@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/faiface/beep/speaker"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -12,6 +13,8 @@ var camera = rl.NewCamera2D(rl.Vector2{screenWidth / 2, screenHeight / 2}, rl.Ve
 func main() {
 
 	// raygui.ButtonDefaultInsideColor = raygui.TextboxBorderColor
+
+	speaker.Init(44100, 512)
 
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(screenWidth, screenHeight, "MasterPlan")

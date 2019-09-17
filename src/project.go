@@ -6,10 +6,13 @@ import (
 	"log"
 	"math"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gen2brain/raylib-go/raygui"
 
 	"github.com/gen2brain/raylib-go/raymath"
 
@@ -76,7 +79,6 @@ func NewProject(projectPath string) *Project {
 		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"),
 	}
 	project.ChangeTheme("Light Theme")
-
 	project.GenerateGrid()
 	project.DoubleClickTimer = -1
 
@@ -190,6 +192,7 @@ func (project *Project) RemoveTask(tasks ...*Task) {
 }
 
 func (project *Project) RemoveTaskByIndex(index int) {
+	project.Tasks[index].ReceiveMessage("delete", map[string]interface{}{"task": project.Tasks[index]})
 	project.Tasks[index] = nil
 	project.Tasks = append(project.Tasks[:index], project.Tasks[index+1:]...)
 }
@@ -327,16 +330,61 @@ func (project *Project) DrawTimescale() {
 
 func (project *Project) HandleDroppedFiles() {
 
+	imageFormats := [...]string{
+		"png",
+		"bmp",
+		"tga",
+		"jpg",
+		"jpeg",
+		"gif",
+		"psd",
+	}
+
+	soundFormats := [...]string{
+		"wav",
+		"ogg",
+		"xm",
+		"mod",
+		"flac",
+		"mp3",
+	}
+
 	if rl.IsFileDropped() {
 		fileCount := int32(0)
 		for _, file := range rl.GetDroppedFiles(&fileCount) {
-			task := NewTask(project)
-			task.Position.X = camera.Target.X
-			task.Position.Y = camera.Target.Y
-			task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-			task.FilePath = file
-			task.ReceiveMessage("task close", map[string]interface{}{"task": task})
-			project.Tasks = append(project.Tasks, task)
+
+			taskType := ""
+
+			for _, f := range imageFormats {
+				if strings.Contains(path.Ext(file), f) {
+					taskType = "image"
+					break
+				}
+			}
+
+			for _, f := range soundFormats {
+				if strings.Contains(path.Ext(file), f) {
+					taskType = "sound"
+					break
+				}
+			}
+
+			if taskType != "" {
+				task := NewTask(project)
+				task.Position.X = camera.Target.X
+				task.Position.Y = camera.Target.Y
+
+				if taskType == "image" {
+					task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
+				} else if taskType == "sound" {
+					task.TaskType.CurrentChoice = TASK_TYPE_SOUND
+				}
+
+				task.FilePath = file
+				task.ReceiveMessage("task close", map[string]interface{}{"task": task})
+				project.Tasks = append(project.Tasks, task)
+				continue
+			}
 		}
 		rl.ClearDroppedFiles()
 	}
@@ -419,7 +467,7 @@ func (project *Project) Update() {
 						clickedTask.ReceiveMessage("select", map[string]interface{}{
 							"task": clickedTask,
 						})
-					} else if !clickedTask.Selected {
+					} else {
 						project.SendMessage("select", map[string]interface{}{
 							"task": clickedTask,
 						})
@@ -673,6 +721,13 @@ func (project *Project) Shortcuts() {
 				project.FocusViewOnSelectedTasks()
 			}
 
+		} else if rl.IsKeyPressed(rl.KeySpace) {
+			// Play Sound Task
+			for _, task := range project.Tasks {
+				if task.Selected && task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+					task.ReceiveMessage("dropped", nil)
+				}
+			}
 		}
 
 	}
@@ -696,6 +751,9 @@ func (project *Project) ChangeTheme(themeName string) bool {
 		project.ColorTheme = themeName
 		currentTheme = project.ColorTheme
 		project.GenerateGrid()
+		color := int64(rl.ColorToInt(getThemeColor(GUI_FONT_COLOR)))
+		raygui.SetStyleProperty(raygui.LabelTextColor, color)
+
 		return true
 	}
 	return false

@@ -2,9 +2,18 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math"
+	"os"
+	"path"
 	"strings"
 
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/flac"
+	"github.com/faiface/beep/mp3"
+	"github.com/faiface/beep/speaker"
+	"github.com/faiface/beep/vorbis"
+	"github.com/faiface/beep/wav"
 	"github.com/gen2brain/dlgs"
 	"github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -19,12 +28,13 @@ const (
 )
 
 type Task struct {
-	Rect     rl.Rectangle
-	Project  *Project
-	Position rl.Vector2
-	Open     bool
-	Selected bool
-	MinSize  rl.Vector2
+	Rect         rl.Rectangle
+	Project      *Project
+	Position     rl.Vector2
+	PrevPosition rl.Vector2
+	Open         bool
+	Selected     bool
+	MinSize      rl.Vector2
 
 	TaskType    *Spinner
 	Description *Textbox
@@ -32,8 +42,10 @@ type Task struct {
 	CompletionCheckbox    *Checkbox
 	CompletionProgressbar *ProgressBar
 	Image                 rl.Texture2D
-	FilePath              string
-	PrevFilePath          string
+
+	SoundControl *beep.Ctrl
+	FilePath     string
+	PrevFilePath string
 	// ImagePathIsURL  // I don't know about the utility of this one. It's got cool points, though.
 	ImageDisplaySize rl.Vector2
 	Resizeable       bool
@@ -81,6 +93,8 @@ func (task *Task) Clone() *Task {
 
 	cp := *copyData.CompletionProgressbar
 	copyData.CompletionProgressbar = &cp
+
+	copyData.ReceiveMessage("task close", nil) // We do this to recreate the sound file for the Task, if necessary.
 
 	return &copyData
 }
@@ -137,10 +151,6 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 func (task *Task) Update() {
 
 	task.SetPrefix()
-
-	if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-		task.ReceiveMessage("dropped", nil)
-	}
 
 	if task.Selected && task.Dragging && !task.Resizing {
 
@@ -244,51 +254,69 @@ func (task *Task) Update() {
 		rl.DrawRectangleRec(r, c)
 	}
 
-	if task.Image.ID != 0 && task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+	if task.SoundControl != nil {
+		sound := task.SoundControl.Streamer.(beep.StreamSeekCloser)
+		pos := sound.Position()
+		len := sound.Len()
+
+		c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		r := task.Rect
+		r.Width *= float32(pos) / float32(len)
+		c.A = color.A / 3
+		rl.DrawRectangleRec(r, c)
+
+		if pos >= len {
+			sound.Seek(0)
+		}
+	}
+
+	rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE && task.Image.ID != 0 {
+
 		src := rl.Rectangle{0, 0, float32(task.Image.Width), float32(task.Image.Height)}
 		dst := task.Rect
 		dst.Width = task.ImageDisplaySize.X
 		dst.Height = task.ImageDisplaySize.Y
 		rl.DrawTexturePro(task.Image, src, dst, rl.Vector2{}, 0, rl.White)
 		// rl.DrawTexture(task.Image, int32(task.Rect.X), int32(task.Rect.Y), rl.White)
-	}
 
-	rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
-
-	if task.Resizeable && task.Selected && task.Image.ID != 0 {
-		rec := task.Rect
-		rec.Width = 8
-		rec.Height = 8
-		rec.X += task.Rect.Width
-		rec.Y += task.Rect.Height
-		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
-		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
-		if rl.IsMouseButtonDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
-			task.Resizing = true
-		} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-			task.Resizing = false
-		}
-		if task.Resizing {
-			endPoint := GetWorldMousePosition()
-			task.ImageDisplaySize.X = endPoint.X - task.Rect.X
-			task.ImageDisplaySize.Y = endPoint.Y - task.Rect.Y
-			if task.ImageDisplaySize.X < task.MinSize.X {
-				task.ImageDisplaySize.X = task.MinSize.X
+		if task.Resizeable && task.Selected {
+			rec := task.Rect
+			rec.Width = 8
+			rec.Height = 8
+			rec.X += task.Rect.Width
+			rec.Y += task.Rect.Height
+			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
+			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
+			if rl.IsMouseButtonDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
+				task.Resizing = true
+			} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				task.Resizing = false
 			}
-			if task.ImageDisplaySize.Y < task.MinSize.Y {
-				task.ImageDisplaySize.Y = task.MinSize.Y
+			if task.Resizing {
+				endPoint := GetWorldMousePosition()
+				task.ImageDisplaySize.X = endPoint.X - task.Rect.X
+				task.ImageDisplaySize.Y = endPoint.Y - task.Rect.Y
+				if task.ImageDisplaySize.X < task.MinSize.X {
+					task.ImageDisplaySize.X = task.MinSize.X
+				}
+				if task.ImageDisplaySize.Y < task.MinSize.Y {
+					task.ImageDisplaySize.Y = task.MinSize.Y
+				}
 			}
-		}
 
-		rec.X = task.Rect.X - rec.Width
-		rec.Y = task.Rect.Y - rec.Height
+			rec.X = task.Rect.X - rec.Width
+			rec.Y = task.Rect.Y - rec.Height
 
-		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
-		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
+			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
+			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 
-		if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
-			task.ImageDisplaySize.X = float32(task.Image.Width)
-			task.ImageDisplaySize.Y = float32(task.Image.Height)
+			if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
+				task.ImageDisplaySize.X = float32(task.Image.Width)
+				task.ImageDisplaySize.Y = float32(task.Image.Height)
+			}
+
 		}
 
 	}
@@ -298,6 +326,9 @@ func (task *Task) Update() {
 	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 		name = ""
 		task.Resizeable = true
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+		_, filename := path.Split(task.FilePath)
+		name = filename
 	} else if task.TaskType.CurrentChoice != TASK_TYPE_NOTE {
 		// Notes don't get just the first line written on the task in the overview.
 		cut := strings.Index(name, "\n")
@@ -386,7 +417,7 @@ func (task *Task) PostDraw() {
 			raygui.Label(rl.Rectangle{rect.X, y + 8, 0, 0}, imagePath)
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
 				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
-				filepath, success, _ := dlgs.File("Load Image", "Images | *.png *.jpg *.bmp *.tiff", false)
+				filepath, success, _ := dlgs.File("Load Image", "Image Files | *.png *.jpg *.bmp *.tiff", false)
 				if success {
 					task.FilePath = filepath
 				}
@@ -405,7 +436,7 @@ func (task *Task) PostDraw() {
 			raygui.Label(rl.Rectangle{rect.X, y + 8, 0, 0}, imagePath)
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
 				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
-				filepath, success, _ := dlgs.File("Load Sound", "*.png", false)
+				filepath, success, _ := dlgs.File("Load Sound", "Sound Files | *.wav *.ogg *.xm *.mod *.flac *.mp3", false)
 				if success {
 					task.FilePath = filepath
 				}
@@ -432,7 +463,11 @@ func (task *Task) IsComplete() bool {
 }
 
 func (task *Task) Completable() bool {
-	return task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_NOTE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND
+	return task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN || task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSBAR
+}
+
+func (task *Task) CanHaveNeighbors() bool {
+	return task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_NOTE
 }
 
 func (task *Task) ToggleCompletion() {
@@ -462,12 +497,47 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Open = true
 		task.Project.SendMessage("task open", nil)
 		task.Project.TaskOpen = true
+		task.Dragging = false
 	} else if message == "task close" {
 		if task.FilePath != "" {
-			task.Image = rl.LoadTexture(task.FilePath)
-			if task.PrevFilePath != task.FilePath {
-				task.ImageDisplaySize.X = float32(task.Image.Width)
-				task.ImageDisplaySize.Y = float32(task.Image.Height)
+			if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+				task.Image = rl.LoadTexture(task.FilePath)
+				if task.PrevFilePath != task.FilePath {
+					task.ImageDisplaySize.X = float32(task.Image.Width)
+					task.ImageDisplaySize.Y = float32(task.Image.Height)
+				}
+			} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+
+				file, err := os.Open(task.FilePath)
+				if err != nil {
+					log.Println("ERROR: Could not load file: ", task.FilePath)
+				} else {
+
+					ext := strings.ToLower(path.Ext(task.FilePath))
+					var stream beep.StreamSeekCloser
+					// var format beep.Format
+					var err error
+
+					if strings.Contains(ext, "mp3") {
+						stream, _, err = mp3.Decode(file)
+					} else if strings.Contains(ext, "ogg") {
+						stream, _, err = vorbis.Decode(file)
+					} else if strings.Contains(ext, "flac") {
+						stream, _, err = flac.Decode(file)
+					} else {
+						// Going to assume it's a WAV
+						stream, _, err = wav.Decode(file)
+					}
+
+					if err != nil {
+						log.Println("ERROR: Could not decode file: ", task.FilePath)
+					} else {
+						task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
+						speaker.Play(task.SoundControl)
+					}
+
+				}
+
 			}
 			task.PrevFilePath = task.FilePath
 		}
@@ -480,6 +550,28 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Position.X, task.Position.Y = task.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
 		task.GetNeighbors()
 		task.RefreshPrefix = true
+		// If you didn't move, this was a click, not a drag and drop
+		if task.Selected && task.Position == task.PrevPosition && task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+			speaker.Lock()
+			task.SoundControl.Paused = !task.SoundControl.Paused
+			speaker.Unlock()
+		}
+		task.PrevPosition = task.Position
+
+	} else if message == "delete" {
+
+		if data["task"] == task {
+			// if task.SoundControlLen() > 0 {
+			// 	task.Sound.Close()
+			// }
+			// if task.Sound.Source > 0 {
+			// 	rl.UnloadSound(task.Sound)
+			// }
+			if task.Image.ID > 0 {
+				rl.UnloadTexture(task.Image)
+			}
+		}
+
 	}
 	// else if message == "task close" {
 	// }
@@ -488,15 +580,12 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 func (task *Task) GetNeighbors() {
 
-	// Only completable Tasks can have neighbors / be interacted with; it'd be too difficult to take into account
-	// non-completable Tasks that could be large enough to span multiple Tasks; however, Sounds need to have neighbors
-	// to be playlist-able, so I dunno what I'm going to do; maybe just Images can't have neighbors?
-	if !task.Completable() {
+	if !task.CanHaveNeighbors() {
 		return
 	}
 
 	for _, other := range task.Project.Tasks {
-		if other != task && other.Completable() {
+		if other != task && other.CanHaveNeighbors() {
 
 			// if other.Position.Y == task.Position.Y-float32(task.Project.GridSize) && other.Position.X >=  {
 			// 	task.TaskAbove = other
