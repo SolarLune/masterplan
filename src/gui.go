@@ -214,18 +214,13 @@ func (progressBar *ProgressBar) Update() {
 	f := float32(progressBar.Percentage) / 100
 	r := rl.Rectangle{progressBar.Rect.X + 2 + progressBar.Rect.Height, progressBar.Rect.Y + 2, w * f, progressBar.Rect.Height - 4}
 
-	drawColor := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 	if progressBar.Percentage < 0 {
 		progressBar.Percentage = 0
 	} else if progressBar.Percentage > 100 {
 		progressBar.Percentage = 100
 	}
 
-	if progressBar.Percentage == 100 {
-		drawColor = rl.Green
-	}
-
-	rl.DrawRectangleRec(r, drawColor)
+	rl.DrawRectangleRec(r, getThemeColor(GUI_OUTLINE))
 
 	pos := rl.Vector2{progressBar.Rect.X + progressBar.Rect.X/2 + 2, progressBar.Rect.Y + progressBar.Rect.Height/2 - 4}
 
