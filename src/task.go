@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"strings"
 
@@ -14,6 +15,7 @@ const (
 	TASK_TYPE_PROGRESSBAR
 	TASK_TYPE_NOTE
 	TASK_TYPE_IMAGE
+	TASK_TYPE_SOUND
 )
 
 type Task struct {
@@ -30,22 +32,31 @@ type Task struct {
 	CompletionCheckbox    *Checkbox
 	CompletionProgressbar *ProgressBar
 	Image                 rl.Texture2D
-	ImagePath             string
-	PrevImagePath         string
+	FilePath              string
+	PrevFilePath          string
 	// ImagePathIsURL  // I don't know about the utility of this one. It's got cool points, though.
 	ImageDisplaySize rl.Vector2
 	Resizeable       bool
 	Resizing         bool
+	Dragging         bool
+
+	TaskAbove           *Task
+	TaskBelow           *Task
+	OriginalIndentation int
+	NumberingPrefix     []int
+	RefreshPrefix       bool
 }
 
 func NewTask(project *Project) *Task {
 	task := &Task{
 		Rect:                  rl.Rectangle{0, 0, 16, 16},
 		Project:               project,
-		TaskType:              NewSpinner(140, 32, 192, 16, "Check Box", "Progress Bar", "Note", "Image"),
+		TaskType:              NewSpinner(140, 32, 192, 16, "Check Box", "Progress Bar", "Note", "Image", "Sound"),
 		Description:           NewTextbox(140, 64, 256, 64),
 		CompletionCheckbox:    NewCheckbox(140, 96, 16, 16),
 		CompletionProgressbar: NewProgressBar(140, 96, 192, 16),
+		NumberingPrefix:       []int{-1},
+		RefreshPrefix:         false,
 	}
 	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
 	task.Description.AllowNewlines = true
@@ -86,7 +97,7 @@ func (task *Task) Serialize() map[string]interface{} {
 	data["Checkbox.Checked"] = task.CompletionCheckbox.Checked
 	data["Progressbar.Percentage"] = task.CompletionProgressbar.Percentage
 	data["Description"] = task.Description.Text
-	data["ImagePath"] = task.ImagePath
+	data["FilePath"] = task.FilePath
 	data["Selected"] = task.Selected
 	data["TaskType.CurrentChoice"] = task.TaskType.CurrentChoice
 	return data
@@ -114,7 +125,8 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	task.CompletionCheckbox.Checked = data["Checkbox.Checked"].(bool)
 	task.CompletionProgressbar.Percentage = getInt("Progressbar.Percentage")
 	task.Description.Text = data["Description"].(string)
-	task.ImagePath = data["ImagePath"].(string)
+	task.FilePath = data["FilePath"].(string)
+	task.PrevFilePath = task.FilePath
 	task.Selected = data["Selected"].(bool)
 	task.TaskType.CurrentChoice = int(data["TaskType.CurrentChoice"].(float64))
 
@@ -124,79 +136,27 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 
 func (task *Task) Update() {
 
-	name := task.Description.Text
+	task.SetPrefix()
 
-	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-		name = ""
-		task.Resizeable = true
-	} else if task.TaskType.CurrentChoice != TASK_TYPE_NOTE {
-		// Notes don't get just the first line written on the task in the overview.
-		cut := strings.Index(name, "\n")
-		if cut >= 0 {
-			name = name[:cut] + "[...]"
+	if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+		task.ReceiveMessage("dropped", nil)
+	}
+
+	if task.Selected && task.Dragging && !task.Resizing {
+
+		task.Position.X += GetMouseDelta().X
+		task.Position.Y += GetMouseDelta().Y
+
+	}
+
+	if !task.Dragging || task.Resizing {
+
+		if math.Abs(float64(task.Rect.X-task.Position.X)) <= 1 {
+			task.Rect.X = task.Position.X
 		}
-		task.Resizeable = false
-	}
 
-	taskDisplaySize := rl.MeasureTextEx(font, name, fontSize, spacing)
-	// Lock the sizes of the task to a grid
-	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
-	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
-	task.Rect.Width = taskDisplaySize.X
-	task.Rect.Height = taskDisplaySize.Y
-
-	if task.Image.ID != 0 && task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-		if task.Rect.Width < task.ImageDisplaySize.X {
-			task.Rect.Width = task.ImageDisplaySize.X
-		}
-		if task.Rect.Height < task.ImageDisplaySize.Y {
-			task.Rect.Height = task.ImageDisplaySize.Y
-		}
-	}
-
-	if task.Rect.Width < task.MinSize.X {
-		task.Rect.Width = task.MinSize.X
-	}
-	if task.Rect.Height < task.MinSize.Y {
-		task.Rect.Height = task.MinSize.Y
-	}
-
-	if task.Selected {
-
-		// if rl.IsKeyPressed(rl.KeyLeft) {
-		// 	task.Position.X -= float32(task.Project.GridSize)
-		// }
-		// if rl.IsKeyPressed(rl.KeyRight) {
-		// 	task.Position.X += float32(task.Project.GridSize)
-		// }
-		// if rl.IsKeyPressed(rl.KeyUp) {
-		// 	task.Position.Y -= float32(task.Project.GridSize)
-		// }
-		// if rl.IsKeyPressed(rl.KeyDown) {
-		// 	task.Position.Y += float32(task.Project.GridSize)
-		// }
-
-		if rl.IsMouseButtonDown(rl.MouseLeftButton) && !task.Project.Selecting && !task.Resizing {
-
-			task.Position.X += GetMouseDelta().X
-			task.Position.Y += GetMouseDelta().Y
-
-		} else {
-
-			if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-				task.Project.SendMessage("dropped", map[string]interface{}{"task": task})
-			}
-
-			task.Position.X, task.Position.Y = task.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
-
-			if math.Abs(float64(task.Rect.X-task.Position.X)) <= 1 {
-				task.Rect.X = task.Position.X
-			}
-
-			if math.Abs(float64(task.Rect.Y-task.Position.Y)) <= 1 {
-				task.Rect.Y = task.Position.Y
-			}
-
+		if math.Abs(float64(task.Rect.Y-task.Position.Y)) <= 1 {
+			task.Rect.Y = task.Position.Y
 		}
 
 	}
@@ -204,15 +164,20 @@ func (task *Task) Update() {
 	task.Rect.X += (task.Position.X - task.Rect.X) * 0.2
 	task.Rect.Y += (task.Position.Y - task.Rect.Y) * 0.2
 
-	color := GUI_INSIDE
+	color := getThemeColor(GUI_INSIDE)
 
 	if task.IsComplete() {
-		color.R -= 127
-		color.B -= 127
+		color = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 	}
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_NOTE {
-		color = GUI_NOTE_COLOR
+		color = getThemeColor(GUI_NOTE_COLOR)
+	}
+
+	outlineColor := getThemeColor(GUI_OUTLINE)
+
+	if task.Selected {
+		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 	}
 
 	if task.Completable() {
@@ -243,18 +208,36 @@ func (task *Task) Update() {
 			color.B = 0
 		}
 
+		if outlineColor.R >= glow {
+			outlineColor.R -= glow
+		} else {
+			outlineColor.R = 0
+		}
+
+		if outlineColor.G >= glow {
+			outlineColor.G -= glow
+		} else {
+			outlineColor.G = 0
+		}
+
+		if outlineColor.B >= glow {
+			outlineColor.B -= glow
+		} else {
+			outlineColor.B = 0
+		}
+
 	}
 
 	shadowRect := task.Rect
 	shadowRect.X += 4
 	shadowRect.Y += 2
 	shadow := rl.Black
-	shadow.A = color.A / 4
+	shadow.A = color.A / 2
 	rl.DrawRectangleRec(shadowRect, shadow)
 
 	rl.DrawRectangleRec(task.Rect, color)
 	if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSBAR && task.CompletionProgressbar.Percentage < 100 {
-		c := GUI_OUTLINE_HIGHLIGHTED
+		c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 		r := task.Rect
 		r.Width *= float32(task.CompletionProgressbar.Percentage) / 100
 		c.A = color.A / 3
@@ -270,11 +253,7 @@ func (task *Task) Update() {
 		// rl.DrawTexture(task.Image, int32(task.Rect.X), int32(task.Rect.Y), rl.White)
 	}
 
-	if task.Selected {
-		rl.DrawRectangleLinesEx(task.Rect, 1, GUI_OUTLINE_HIGHLIGHTED)
-	} else {
-		rl.DrawRectangleLinesEx(task.Rect, 1, GUI_OUTLINE)
-	}
+	rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
 
 	if task.Resizeable && task.Selected && task.Image.ID != 0 {
 		rec := task.Rect
@@ -282,8 +261,8 @@ func (task *Task) Update() {
 		rec.Height = 8
 		rec.X += task.Rect.Width
 		rec.Y += task.Rect.Height
-		rl.DrawRectangleRec(rec, GUI_INSIDE)
-		rl.DrawRectangleLinesEx(rec, 1, GUI_OUTLINE)
+		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
+		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 		if rl.IsMouseButtonDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
 			task.Resizing = true
 		} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
@@ -304,8 +283,8 @@ func (task *Task) Update() {
 		rec.X = task.Rect.X - rec.Width
 		rec.Y = task.Rect.Y - rec.Height
 
-		rl.DrawRectangleRec(rec, GUI_INSIDE)
-		rl.DrawRectangleLinesEx(rec, 1, GUI_OUTLINE)
+		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
+		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 
 		if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
 			task.ImageDisplaySize.X = float32(task.Image.Width)
@@ -314,7 +293,52 @@ func (task *Task) Update() {
 
 	}
 
-	rl.DrawTextEx(font, name, rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}, fontSize, spacing, GUI_FONT_COLOR)
+	name := task.Description.Text
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+		name = ""
+		task.Resizeable = true
+	} else if task.TaskType.CurrentChoice != TASK_TYPE_NOTE {
+		// Notes don't get just the first line written on the task in the overview.
+		cut := strings.Index(name, "\n")
+		if cut >= 0 {
+			name = name[:cut] + "[...]"
+		}
+		task.Resizeable = false
+	}
+
+	if task.NumberingPrefix[0] != -1 && task.Completable() {
+		n := ""
+		for _, value := range task.NumberingPrefix {
+			n += fmt.Sprintf("%d.", value)
+		}
+		name = fmt.Sprintf("%s %s", n, name)
+	}
+
+	taskDisplaySize := rl.MeasureTextEx(font, name, fontSize, spacing)
+	// Lock the sizes of the task to a grid
+	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
+	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
+	task.Rect.Width = taskDisplaySize.X
+	task.Rect.Height = taskDisplaySize.Y
+
+	if task.Image.ID != 0 && task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+		if task.Rect.Width < task.ImageDisplaySize.X {
+			task.Rect.Width = task.ImageDisplaySize.X
+		}
+		if task.Rect.Height < task.ImageDisplaySize.Y {
+			task.Rect.Height = task.ImageDisplaySize.Y
+		}
+	}
+
+	if task.Rect.Width < task.MinSize.X {
+		task.Rect.Width = task.MinSize.X
+	}
+	if task.Rect.Height < task.MinSize.Y {
+		task.Rect.Height = task.MinSize.Y
+	}
+
+	rl.DrawTextEx(font, name, rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 }
 
@@ -324,15 +348,15 @@ func (task *Task) PostDraw() {
 
 		rect := rl.Rectangle{16, 16, screenWidth - 32, screenHeight - 32}
 
-		rl.DrawRectangleRec(rect, GUI_INSIDE)
-		rl.DrawRectangleLinesEx(rect, 1, GUI_OUTLINE)
+		rl.DrawRectangleRec(rect, getThemeColor(GUI_INSIDE))
+		rl.DrawRectangleLinesEx(rect, 1, getThemeColor(GUI_OUTLINE))
 
 		raygui.Label(rl.Rectangle{rect.X, task.TaskType.Rect.Y, 0, 16}, "Task Type: ")
 		task.TaskType.Update()
 
 		y := task.TaskType.Rect.Y + 16
 
-		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE {
+		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND {
 			task.Description.Update()
 			raygui.Label(rl.Rectangle{rect.X, task.Description.Rect.Y + 8, 0, 16}, "Description: ")
 			y += task.Description.Rect.Height + 16
@@ -353,23 +377,42 @@ func (task *Task) PostDraw() {
 			task.CompletionProgressbar.Rect.Y = y + 8
 			task.CompletionProgressbar.Update()
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-			imagePath := "Image: "
-			if task.ImagePath == "" {
+			imagePath := "Image File: "
+			if task.FilePath == "" {
 				imagePath += "[None]"
 			} else {
-				imagePath += task.ImagePath
+				imagePath += task.FilePath
 			}
 			raygui.Label(rl.Rectangle{rect.X, y + 8, 0, 0}, imagePath)
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
 				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
-				filepath, success, _ := dlgs.File("Load Image", "*.png", false)
+				filepath, success, _ := dlgs.File("Load Image", "Images | *.png *.jpg *.bmp *.tiff", false)
 				if success {
-					task.ImagePath = filepath
+					task.FilePath = filepath
 				}
 				//rl.ShowWindow()
 			}
 			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 32, 64, 16}, "Clear", false) {
-				task.ImagePath = ""
+				task.FilePath = ""
+			}
+		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+			imagePath := "Sound File: "
+			if task.FilePath == "" {
+				imagePath += "[None]"
+			} else {
+				imagePath += task.FilePath
+			}
+			raygui.Label(rl.Rectangle{rect.X, y + 8, 0, 0}, imagePath)
+			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
+				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
+				filepath, success, _ := dlgs.File("Load Sound", "*.png", false)
+				if success {
+					task.FilePath = filepath
+				}
+				//rl.ShowWindow()
+			}
+			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 32, 64, 16}, "Clear", false) {
+				task.FilePath = ""
 			}
 		}
 
@@ -389,7 +432,7 @@ func (task *Task) IsComplete() bool {
 }
 
 func (task *Task) Completable() bool {
-	return task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_NOTE
+	return task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_NOTE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND
 }
 
 func (task *Task) ToggleCompletion() {
@@ -420,16 +463,99 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Project.SendMessage("task open", nil)
 		task.Project.TaskOpen = true
 	} else if message == "task close" {
-		if task.ImagePath != "" {
-			task.Image = rl.LoadTexture(task.ImagePath)
-			if task.PrevImagePath != task.ImagePath {
+		if task.FilePath != "" {
+			task.Image = rl.LoadTexture(task.FilePath)
+			if task.PrevFilePath != task.FilePath {
 				task.ImageDisplaySize.X = float32(task.Image.Width)
 				task.ImageDisplaySize.Y = float32(task.Image.Height)
 			}
-			task.PrevImagePath = task.ImagePath
+			task.PrevFilePath = task.FilePath
 		}
+	} else if message == "dragging" {
+		task.TaskAbove = nil
+		task.TaskBelow = nil
+		task.Dragging = task.Selected
+	} else if message == "dropped" {
+		task.Dragging = false
+		task.Position.X, task.Position.Y = task.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
+		task.GetNeighbors()
+		task.RefreshPrefix = true
 	}
 	// else if message == "task close" {
 	// }
+
+}
+
+func (task *Task) GetNeighbors() {
+
+	// Only completable Tasks can have neighbors / be interacted with; it'd be too difficult to take into account
+	// non-completable Tasks that could be large enough to span multiple Tasks; however, Sounds need to have neighbors
+	// to be playlist-able, so I dunno what I'm going to do; maybe just Images can't have neighbors?
+	if !task.Completable() {
+		return
+	}
+
+	for _, other := range task.Project.Tasks {
+		if other != task && other.Completable() {
+
+			// if other.Position.Y == task.Position.Y-float32(task.Project.GridSize) && other.Position.X >=  {
+			// 	task.TaskAbove = other
+			// 	other.TaskBelow = task
+			// 	break
+			// }
+
+			taskRec := task.Rect
+			taskRec.X = task.Position.X
+			taskRec.Y = task.Position.Y + 1
+
+			otherRec := other.Rect
+			otherRec.X = other.Position.X
+			otherRec.Y = other.Position.Y
+
+			if rl.CheckCollisionRecs(taskRec, otherRec) && (taskRec.X != otherRec.X || taskRec.Y != otherRec.Y) {
+				if other.TaskBelow != task {
+					other.TaskAbove = task
+				}
+				if task.TaskAbove != other {
+					task.TaskBelow = other
+				}
+				break
+			}
+
+		}
+	}
+}
+
+func (task *Task) SetPrefix() {
+
+	if task.RefreshPrefix {
+
+		if task.TaskAbove != nil {
+
+			task.NumberingPrefix = append([]int{}, task.TaskAbove.NumberingPrefix...)
+
+			above := task.TaskAbove
+			if above.Position.X < task.Position.X {
+				task.NumberingPrefix = append(task.NumberingPrefix, 0)
+			} else if above.Position.X > task.Position.X {
+				d := len(above.NumberingPrefix) - int((above.Position.X-task.Position.X)/float32(task.Project.GridSize))
+				if d < 1 {
+					d = 1
+				}
+
+				task.NumberingPrefix = append([]int{}, above.NumberingPrefix[:d]...)
+			}
+
+			task.NumberingPrefix[len(task.NumberingPrefix)-1] += 1
+
+		} else if task.TaskBelow != nil {
+			task.NumberingPrefix = []int{1}
+		} else {
+			task.NumberingPrefix = []int{-1}
+		}
+
+		task.RefreshPrefix = false
+
+	}
 
 }

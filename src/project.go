@@ -6,7 +6,9 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gen2brain/raylib-go/raymath"
@@ -19,6 +21,13 @@ const (
 	TIMESCALE_PER_DAY
 	TIMESCALE_PER_WEEK
 	TIMESCALE_PER_MONTH
+)
+
+const (
+	REORDER_NUMBER_PERIOD = iota
+	REORDER_OFF
+	// REORDER_NUMBER_PAREN
+	// REORDER_ROMAN_NUMERAL
 )
 
 type Project struct {
@@ -40,6 +49,13 @@ type Project struct {
 	CopyBuffer          []*Task
 	TimeScaleRate       int
 	TaskOpen            bool
+	ColorTheme          string
+	ReorderSequence     int
+
+	Searchbar    *Textbox
+	StatusBar    rl.Rectangle
+	TimescaleBar rl.Rectangle
+	GUI_Icons    rl.Texture2D
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
@@ -47,6 +63,25 @@ type Project struct {
 	// things even between program sessions which is pretty insane.
 	// 2) Make actual functions, I guess, for each user-controllable change that can happen to the project, and then store references to these functions
 	// in a buffer; then walk backwards through them to change them, I suppose?
+}
+
+func NewProject(projectPath string) *Project {
+
+	searchBar := NewTextbox(screenWidth-128, screenHeight-15, 128, 15)
+	searchBar.MaxSize = searchBar.MinSize // Don't expand for text
+	searchBar.AllowNewlines = false
+
+	project := &Project{FilePath: projectPath, GridSize: 16, ZoomLevel: -99, Pan: camera.Offset, TimeScaleRate: TIMESCALE_PER_DAY,
+		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15}, TimescaleBar: rl.Rectangle{0, 0, screenWidth, 16},
+		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"),
+	}
+	project.ChangeTheme("Light Theme")
+
+	project.GenerateGrid()
+	project.DoubleClickTimer = -1
+
+	return project
+
 }
 
 func (project *Project) Save() {
@@ -57,11 +92,12 @@ func (project *Project) Save() {
 	}
 
 	data := map[string]interface{}{
-		"GridSize":  project.GridSize,
-		"Pan.X":     project.Pan.X,
-		"Pan.Y":     project.Pan.Y,
-		"ZoomLevel": project.ZoomLevel,
-		"Tasks":     tasks,
+		"GridSize":   project.GridSize,
+		"Pan.X":      project.Pan.X,
+		"Pan.Y":      project.Pan.Y,
+		"ZoomLevel":  project.ZoomLevel,
+		"Tasks":      tasks,
+		"ColorTheme": project.ColorTheme,
 	}
 
 	f, err := os.Create(project.FilePath)
@@ -71,6 +107,7 @@ func (project *Project) Save() {
 	}
 
 	encoder := json.NewEncoder(f)
+	encoder.SetIndent("", "\t")
 	encoder.Encode(data)
 
 }
@@ -86,17 +123,40 @@ func (project *Project) Load() {
 		data := map[string]interface{}{}
 		decoder.Decode(&data)
 
+		if len(data) == 0 {
+			log.Println("Save file mangled, cannot be restored; continuing as new project.") // It's possible for the file to be mangled and unable to be loaded; I should actually handle this.
+			return
+		}
+
 		getFloat := func(name string) float32 {
-			return float32(data[name].(float64))
+			value, exists := data[name]
+			if exists {
+				return float32(value.(float64))
+			} else {
+				return 0
+			}
 		}
 		getInt := func(name string) int32 {
-			return int32(data[name].(float64))
+			value, exists := data[name]
+			if exists {
+				return int32(value.(float64))
+			} else {
+				return 0
+			}
+		}
+		getString := func(name string) string {
+			value, exists := data[name]
+			if exists {
+				return value.(string)
+			} else {
+				return ""
+			}
 		}
 
 		project.GridSize = getInt("GridSize")
 		project.Pan.X = getFloat("Pan.X")
 		project.Pan.Y = getFloat("Pan.Y")
-		project.ZoomLevel = int(getInt("ZoomLevel"))
+		project.ZoomLevel = int(getInt("ZoomLevel")) // Needs to be an int, not an int32
 
 		for _, t := range data["Tasks"].([]interface{}) {
 			taskData := t.(map[string]interface{})
@@ -104,6 +164,14 @@ func (project *Project) Load() {
 			task.Deserialize(taskData)
 			project.Tasks = append(project.Tasks, task)
 		}
+
+		colorTheme := getString("ColorTheme")
+		if colorTheme != "" {
+			project.ChangeTheme(colorTheme)
+			project.GenerateGrid()
+		}
+
+		project.ReorderTasks()
 
 	}
 
@@ -124,6 +192,38 @@ func (project *Project) RemoveTask(tasks ...*Task) {
 func (project *Project) RemoveTaskByIndex(index int) {
 	project.Tasks[index] = nil
 	project.Tasks = append(project.Tasks[:index], project.Tasks[index+1:]...)
+}
+
+func (project *Project) FocusViewOnSelectedTasks() {
+
+	if len(project.Tasks) > 0 {
+
+		center := rl.Vector2{}
+		taskCount := float32(0)
+
+		for _, task := range project.Tasks {
+			if task.Selected {
+				taskCount++
+				center.X += task.Position.X + task.Rect.Width/2
+				center.Y += task.Position.Y + task.Rect.Height/2
+			}
+		}
+
+		if taskCount > 0 {
+
+			raymath.Vector2Divide(&center, taskCount)
+
+			center.X *= -1
+			center.Y *= -1
+
+			center.X += screenWidth / 2
+			center.Y += screenHeight / 2
+			project.Pan = center // Pan's a negative offset for the camera
+
+		}
+
+	}
+
 }
 
 // func (project *Project) RaiseTask(task *Task) {
@@ -168,9 +268,8 @@ func (project *Project) HandleCamera() {
 
 	}
 
-	camera.Offset = project.Pan
-	camera.Offset.X = float32(math.Round(float64(camera.Offset.X)))
-	camera.Offset.Y = float32(math.Round(float64(camera.Offset.Y)))
+	camera.Offset.X += float32(math.Round(float64(project.Pan.X-camera.Offset.X))) * 0.2
+	camera.Offset.Y += float32(math.Round(float64(project.Pan.Y-camera.Offset.Y))) * 0.2
 	camera.Target.X = screenWidth/2 - camera.Offset.X
 	camera.Target.Y = screenHeight/2 - camera.Offset.Y
 
@@ -207,17 +306,18 @@ func (project *Project) DrawTimescale() {
 			rl.Vector2{float32(x) + 12, 16},
 			rl.Vector2{float32(x) - 12, 16},
 			rl.Vector2{float32(x), 32},
-			GUI_OUTLINE)
+			getThemeColor(GUI_OUTLINE))
 
 		pos := rl.Vector2{float32(x) - 80, 4}
 		todayText := dateOfReference.Format("Monday, 1/2/2006")
-		rl.DrawTextEx(font, todayText, pos, fontSize, spacing, GUI_FONT_COLOR)
+		rl.DrawTextEx(font, todayText, pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 	}
 
 	if project.TimeScaleRate != TIMESCALE_OFF && !project.TaskOpen {
-		rl.DrawRectangle(0, 0, screenWidth, 16, GUI_INSIDE)
-		rl.DrawLine(0, 16, screenWidth, 16, GUI_OUTLINE)
+		rl.DrawRectangleRec(project.TimescaleBar, getThemeColor(GUI_INSIDE))
+		rl.DrawLine(int32(project.TimescaleBar.X), int32(project.TimescaleBar.Y+16),
+			int32(project.TimescaleBar.X+project.TimescaleBar.Width), int32(project.TimescaleBar.Y+16), getThemeColor(GUI_OUTLINE))
 		displayTimeUnit(yesterday)
 		tomorrow := yesterday.Add(time.Hour * 24)
 		displayTimeUnit(tomorrow)
@@ -234,11 +334,25 @@ func (project *Project) HandleDroppedFiles() {
 			task.Position.X = camera.Target.X
 			task.Position.Y = camera.Target.Y
 			task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-			task.ImagePath = file
+			task.FilePath = file
 			task.ReceiveMessage("task close", map[string]interface{}{"task": task})
 			project.Tasks = append(project.Tasks, task)
 		}
 		rl.ClearDroppedFiles()
+	}
+
+}
+
+func (project *Project) MousingOver() string {
+
+	if rl.CheckCollisionPointRec(GetMousePosition(), project.StatusBar) {
+		return "StatusBar"
+	} else if rl.CheckCollisionPointRec(GetMousePosition(), project.TimescaleBar) {
+		return "TimescaleBar"
+	} else if project.TaskOpen {
+		return "TaskOpen"
+	} else {
+		return "Project"
 	}
 
 }
@@ -253,8 +367,8 @@ func (project *Project) Update() {
 	rl.DrawTexturePro(project.GridTexture, src, dst, rl.Vector2{}, 0, rl.White)
 
 	// This is the origin crosshair
-	rl.DrawLineEx(rl.Vector2{0, -100000}, rl.Vector2{0, 100000}, 2, GUI_FONT_COLOR)
-	rl.DrawLineEx(rl.Vector2{-100000, 0}, rl.Vector2{100000, 0}, 2, GUI_FONT_COLOR)
+	rl.DrawLineEx(rl.Vector2{0, -100000}, rl.Vector2{0, 100000}, 2, getThemeColor(GUI_FONT_COLOR))
+	rl.DrawLineEx(rl.Vector2{-100000, 0}, rl.Vector2{100000, 0}, 2, getThemeColor(GUI_FONT_COLOR))
 
 	selectionRect := rl.Rectangle{}
 
@@ -272,104 +386,114 @@ func (project *Project) Update() {
 			clicked = true
 		}
 
-		for i := len(project.Tasks) - 1; i >= 0; i-- {
+		if project.MousingOver() == "Project" {
 
-			task := project.Tasks[i]
+			for i := len(project.Tasks) - 1; i >= 0; i-- {
 
-			if rl.CheckCollisionPointRec(GetWorldMousePosition(), task.Rect) && clickedTask == nil {
-				clickedTask = task
-			}
+				task := project.Tasks[i]
 
-		}
-
-		if project.DoubleClickTimer >= 0 {
-			project.DoubleClickTimer++
-		}
-
-		if project.DoubleClickTimer >= 10 {
-			project.DoubleClickTimer = -1
-		}
-
-		if clicked {
-
-			if clickedTask == nil {
-				project.SelectionStart = GetWorldMousePosition()
-				project.Selecting = true
-				project.SendMessage("selection rectangle", nil)
-			} else {
-				project.Selecting = false
-
-				if holdingShift {
-					clickedTask.ReceiveMessage("select", map[string]interface{}{
-						"task": clickedTask,
-					})
-				} else if !clickedTask.Selected {
-					project.SendMessage("select", map[string]interface{}{
-						"task": clickedTask,
-					})
+				if rl.CheckCollisionPointRec(GetWorldMousePosition(), task.Rect) && clickedTask == nil {
+					clickedTask = task
 				}
 
 			}
 
-			if project.DoubleClickTimer > 0 && clickedTask != nil && clickedTask.Selected {
-				clickedTask.ReceiveMessage("double click", nil)
+			if project.DoubleClickTimer >= 0 {
+				project.DoubleClickTimer++
 			}
 
-			project.DoubleClickTimer = 0
-
-		}
-
-		if project.Selecting {
-
-			diff := raymath.Vector2Subtract(GetWorldMousePosition(), project.SelectionStart)
-			x1, y1 := project.SelectionStart.X, project.SelectionStart.Y
-			x2, y2 := diff.X, diff.Y
-			if x2 < 0 {
-				x2 *= -1
-				x1 = GetWorldMousePosition().X
-			}
-			if y2 < 0 {
-				y2 *= -1
-				y1 = GetWorldMousePosition().Y
+			if project.DoubleClickTimer >= 10 {
+				project.DoubleClickTimer = -1
 			}
 
-			selectionRect = rl.Rectangle{x1, y1, x2, y2}
+			if clicked {
 
-			if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				if clickedTask == nil {
+					project.SelectionStart = GetWorldMousePosition()
+					project.Selecting = true
+					project.SendMessage("selection rectangle", nil)
+				} else {
+					project.Selecting = false
 
-				project.Selecting = false // We're done with the selection process
-
-				for _, task := range project.Tasks {
-
-					selected := false
-					var t *Task
-
-					if rl.CheckCollisionRecs(selectionRect, task.Rect) {
-						selected = true
-						t = task
+					if holdingShift {
+						clickedTask.ReceiveMessage("select", map[string]interface{}{
+							"task": clickedTask,
+						})
+					} else if !clickedTask.Selected {
+						project.SendMessage("select", map[string]interface{}{
+							"task": clickedTask,
+						})
 					}
 
-					msg := "select"
-					if holdingAlt {
-						msg = "deselect"
-					}
+				}
 
-					if holdingAlt {
-						if selected {
-							task.ReceiveMessage(msg, map[string]interface{}{"task": t})
+				if clickedTask != nil {
+					project.SendMessage("dragging", nil)
+				}
+
+				if project.DoubleClickTimer > 0 && clickedTask != nil && clickedTask.Selected {
+					clickedTask.ReceiveMessage("double click", nil)
+				}
+
+				project.DoubleClickTimer = 0
+
+			}
+
+			if project.Selecting {
+
+				diff := raymath.Vector2Subtract(GetWorldMousePosition(), project.SelectionStart)
+				x1, y1 := project.SelectionStart.X, project.SelectionStart.Y
+				x2, y2 := diff.X, diff.Y
+				if x2 < 0 {
+					x2 *= -1
+					x1 = GetWorldMousePosition().X
+				}
+				if y2 < 0 {
+					y2 *= -1
+					y1 = GetWorldMousePosition().Y
+				}
+
+				selectionRect = rl.Rectangle{x1, y1, x2, y2}
+
+				if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+
+					project.Selecting = false // We're done with the selection process
+
+					for _, task := range project.Tasks {
+
+						selected := false
+						var t *Task
+
+						if rl.CheckCollisionRecs(selectionRect, task.Rect) {
+							selected = true
+							t = task
 						}
-					} else {
 
-						if !holdingShift || selected {
-							task.ReceiveMessage(msg, map[string]interface{}{
-								"task": t,
-							})
+						msg := "select"
+						if holdingAlt {
+							msg = "deselect"
+						}
+
+						if holdingAlt {
+							if selected {
+								task.ReceiveMessage(msg, map[string]interface{}{"task": t})
+							}
+						} else {
+
+							if !holdingShift || selected {
+								task.ReceiveMessage(msg, map[string]interface{}{
+									"task": t,
+								})
+							}
+
 						}
 
 					}
 
 				}
 
+			} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				project.ReorderTasks()
 			}
 
 		}
@@ -380,7 +504,7 @@ func (project *Project) Update() {
 		task.Update()
 	}
 
-	rl.DrawRectangleLinesEx(selectionRect, 1, GUI_OUTLINE_HIGHLIGHTED)
+	rl.DrawRectangleLinesEx(selectionRect, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
 	project.Shortcuts()
 
@@ -392,11 +516,16 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 		task.ReceiveMessage(message, data)
 	}
 
+	project.Save() // Save whenever anything important happens
+
 }
 
 func (project *Project) Shortcuts() {
 
-	if !project.TaskOpen {
+	if !project.TaskOpen && !project.Searchbar.Focused {
+
+		holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
+		holdingCtrl := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
 
 		if rl.IsKeyPressed(rl.KeyOne) {
 			project.ZoomLevel = 0
@@ -409,16 +538,16 @@ func (project *Project) Shortcuts() {
 			camera.Offset = project.Pan
 			camera.Target.X = screenWidth/2 - camera.Offset.X
 			camera.Target.Y = screenHeight/2 - camera.Offset.Y
-		} else if (rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)) && rl.IsKeyPressed(rl.KeyA) {
+		} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
 
 			for _, task := range project.Tasks {
 				task.Selected = true
 			}
 
-		} else if (rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)) && rl.IsKeyPressed(rl.KeyC) {
+		} else if holdingCtrl && rl.IsKeyPressed(rl.KeyC) {
 			project.CopyBuffer = []*Task{} // Clear the buffer before copying tasks
 			project.CopySelectedTasks()
-		} else if (rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)) && rl.IsKeyPressed(rl.KeyV) {
+		} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
 			project.PasteTasks()
 		} else if rl.IsKeyPressed(rl.KeyC) {
 			for _, task := range project.Tasks {
@@ -428,10 +557,148 @@ func (project *Project) Shortcuts() {
 			}
 		} else if rl.IsKeyPressed(rl.KeyDelete) {
 			project.DeleteSelectedTasks()
+			// } else if rl.IsKeyPressed(rl.KeyComma) || rl.IsKeyPressed(rl.KeyPeriod) {
+			// 	if len(project.Tasks) > 0 {
+			// 		nextTask := -1
+			// 		for i, task := range project.Tasks {
+			// 			if task.Selected {
+			// 				nextTask = i
+			// 			}
+			// 			task.Selected = false
+			// 		}
+
+			// 		if nextTask < 0 {
+			// 			nextTask = 0
+			// 		}
+
+			// 		if rl.IsKeyPressed(rl.KeyLeft) {
+			// 			nextTask--
+			// 		} else {
+			// 			nextTask++
+			// 		}
+
+			// 		if nextTask >= len(project.Tasks) {
+			// 			nextTask = 0
+			// 		} else if nextTask < 0 {
+			// 			nextTask = len(project.Tasks) - 1
+			// 		}
+
+			// 		project.Tasks[nextTask].ReceiveMessage("select", map[string]interface{}{"task": project.Tasks[nextTask]})
+
+			// 		project.FocusViewOnSelectedTasks()
+
+			// 	}
+		} else if rl.IsKeyPressed(rl.KeyEnter) {
+			project.FocusViewOnSelectedTasks()
+		} else if holdingShift && rl.IsKeyPressed(rl.KeyUp) {
+
+			for _, task := range project.Tasks {
+				if task.Selected {
+					if task.TaskAbove != nil {
+						temp := task.Position
+						task.Position = task.TaskAbove.Position
+						task.TaskAbove.Position = temp
+						// if task.TaskAbove.TaskAbove != nil && task.TaskAbove.TaskAbove.Position.X != task.Position.X {
+						// 	task.Position.X = task.TaskAbove.TaskAbove.Position.X
+						// }
+						if task.TaskAbove.Position.X != task.Position.X {
+							task.TaskAbove.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
+						}
+						project.ReorderTasks()
+						project.FocusViewOnSelectedTasks()
+					}
+					break
+				}
+			}
+
+		} else if holdingShift && rl.IsKeyPressed(rl.KeyDown) {
+
+			for _, task := range project.Tasks {
+				if task.Selected {
+					if task.TaskBelow != nil {
+						temp := task.Position
+						task.Position = task.TaskBelow.Position
+						task.TaskBelow.Position = temp
+						if task.TaskBelow.TaskBelow != nil && task.TaskBelow.TaskBelow.Position.X != task.TaskBelow.Position.X {
+							task.Position.X = task.TaskBelow.TaskBelow.Position.X
+						}
+						// if task.TaskBelow.Position.X != task.Position.X {
+						// 	task.TaskBelow.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
+						// }
+						project.ReorderTasks()
+						project.FocusViewOnSelectedTasks()
+					}
+					break
+				}
+			}
+
+		} else if holdingShift && rl.IsKeyPressed(rl.KeyRight) {
+
+			for _, task := range project.Tasks {
+				if task.Selected {
+					task.Position.X += float32(task.Project.GridSize)
+					project.ReorderTasks()
+					project.FocusViewOnSelectedTasks()
+					break
+				}
+			}
+
+		} else if holdingShift && rl.IsKeyPressed(rl.KeyLeft) {
+
+			for _, task := range project.Tasks {
+				if task.Selected {
+					task.Position.X -= float32(task.Project.GridSize)
+					project.ReorderTasks()
+					project.FocusViewOnSelectedTasks()
+					break
+				}
+			}
+
+		} else if rl.IsKeyPressed(rl.KeyUp) || rl.IsKeyPressed(rl.KeyDown) {
+
+			var selected *Task
+
+			for _, task := range project.Tasks {
+				if task.Selected {
+					selected = task
+					break
+				}
+			}
+			if selected != nil {
+				if rl.IsKeyPressed(rl.KeyDown) && selected.TaskBelow != nil {
+					project.SendMessage("select", map[string]interface{}{"task": selected.TaskBelow})
+				} else if rl.IsKeyPressed(rl.KeyUp) && selected.TaskAbove != nil {
+					project.SendMessage("select", map[string]interface{}{"task": selected.TaskAbove})
+				}
+				project.FocusViewOnSelectedTasks()
+			}
+
 		}
 
 	}
 
+}
+
+func (project *Project) ReorderTasks() {
+
+	// Re-order the tasks
+	sort.Slice(project.Tasks, func(i, j int) bool {
+		return project.Tasks[i].Position.Y < project.Tasks[j].Position.Y
+	})
+
+	project.SendMessage("dragging", nil)
+	project.SendMessage("dropped", nil)
+}
+
+func (project *Project) ChangeTheme(themeName string) bool {
+	_, themeExists := guiColors[themeName]
+	if themeExists {
+		project.ColorTheme = themeName
+		currentTheme = project.ColorTheme
+		project.GenerateGrid()
+		return true
+	}
+	return false
 }
 
 func (project *Project) GUI() {
@@ -457,6 +724,22 @@ func (project *Project) GUI() {
 			newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X, GetWorldMousePosition().Y)
 			newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 			project.Tasks = append(project.Tasks, newTask)
+			if project.ReorderSequence != REORDER_OFF {
+				for _, task := range project.Tasks {
+					if task.Selected {
+						newTask.Position = task.Position
+						task.Position.Y += float32(project.GridSize)
+						below := task.TaskBelow
+						for below != nil {
+							below.Position.Y += float32(project.GridSize)
+							below = below.TaskBelow
+						}
+						project.ReorderTasks()
+						break
+					}
+				}
+			}
+
 			project.SendMessage("select", map[string]interface{}{"task": newTask})
 		}
 
@@ -498,8 +781,8 @@ func (project *Project) GUI() {
 
 	project.DrawTimescale()
 
-	rl.DrawRectangle(0, screenHeight-15, screenWidth, 16, GUI_INSIDE)
-	rl.DrawLine(0, screenHeight-16, screenWidth, screenHeight-16, GUI_OUTLINE)
+	rl.DrawRectangleRec(project.StatusBar, getThemeColor(GUI_INSIDE))
+	rl.DrawLine(int32(project.StatusBar.X), int32(project.StatusBar.Y-1), int32(project.StatusBar.X+project.StatusBar.Width), int32(project.StatusBar.Y-1), getThemeColor(GUI_OUTLINE))
 
 	taskCount := 0
 	selectionCount := 0
@@ -537,11 +820,34 @@ func (project *Project) GUI() {
 		text += fmt.Sprintf(" (%d selected)", selectionCount)
 	}
 
-	rl.DrawTextEx(font, text, rl.Vector2{6, screenHeight - 12}, fontSize, spacing, GUI_FONT_COLOR)
+	rl.DrawTextEx(font, text, rl.Vector2{6, screenHeight - 12}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 	PrevMousePosition = GetMousePosition()
 
-	if !project.TaskOpen && (rl.GetKeyPressed() > 0 || rl.IsMouseButtonReleased(rl.MouseLeftButton) || rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.GetMouseWheelMove() != 0) {
+	// Search bar
+
+	rec := rl.Rectangle{0, 0, 16, 16}
+	rl.DrawTextureRec(project.GUI_Icons, rec, rl.Vector2{project.Searchbar.Rect.X - 24, project.Searchbar.Rect.Y}, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+
+	project.Searchbar.Update()
+
+	if project.Searchbar.Changed && project.Searchbar.Text != "" {
+
+		project.SendMessage("select", nil)
+
+		for _, task := range project.Tasks {
+
+			if strings.Contains(strings.ToLower(task.Description.Text), strings.ToLower(project.Searchbar.Text)) {
+				task.ReceiveMessage("select", map[string]interface{}{"task": task})
+			}
+
+		}
+
+		project.FocusViewOnSelectedTasks()
+
+	}
+
+	if !project.TaskOpen && (rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.GetMouseWheelMove() != 0) { // Zooming and panning are also recorded
 		project.Save()
 	}
 
@@ -550,9 +856,17 @@ func (project *Project) GUI() {
 func (project *Project) DeleteSelectedTasks() {
 	for i := len(project.Tasks) - 1; i >= 0; i-- {
 		if project.Tasks[i].Selected {
+			below := project.Tasks[i].TaskBelow
+			for below != nil {
+				below.Position.Y -= float32(project.GridSize)
+				below = below.TaskBelow
+			}
+
 			project.RemoveTaskByIndex(i)
 		}
 	}
+
+	project.ReorderTasks()
 }
 
 func (project *Project) CopySelectedTasks() {
@@ -586,34 +900,24 @@ func (project *Project) LockPositionToGrid(x, y float32) (float32, float32) {
 
 }
 
-func GenerateGrid(gridSize int32) rl.Texture2D {
+func (project *Project) GenerateGrid() {
 
 	data := []byte{}
 
-	for y := int32(0); y < gridSize*2; y++ {
-		for x := int32(0); x < gridSize*2; x++ {
+	for y := int32(0); y < project.GridSize*2; y++ {
+		for x := int32(0); x < project.GridSize*2; x++ {
 
-			c := GUI_INSIDE
-			if (x%gridSize == 0 || x%gridSize == gridSize-1) && (y%gridSize == 0 || y%gridSize == gridSize-1) {
-				c = GUI_INSIDE_CLICKED
+			c := getThemeColor(GUI_INSIDE)
+			if (x%project.GridSize == 0 || x%project.GridSize == project.GridSize-1) && (y%project.GridSize == 0 || y%project.GridSize == project.GridSize-1) {
+				c = getThemeColor(GUI_INSIDE_CLICKED)
 			}
 
 			data = append(data, c.R, c.G, c.B, c.A)
 		}
 	}
 
-	img := rl.NewImage(data, gridSize*2, gridSize*2, 1, rl.UncompressedR8g8b8a8)
+	img := rl.NewImage(data, project.GridSize*2, project.GridSize*2, 1, rl.UncompressedR8g8b8a8)
 
-	return rl.LoadTextureFromImage(img)
-
-}
-
-func NewProject(projectPath string) *Project {
-
-	project := &Project{FilePath: projectPath, GridSize: 16, ZoomLevel: -99, Pan: camera.Offset, TimeScaleRate: TIMESCALE_PER_DAY}
-	project.GridTexture = GenerateGrid(project.GridSize)
-	project.DoubleClickTimer = -1
-
-	return project
+	project.GridTexture = rl.LoadTextureFromImage(img)
 
 }

@@ -7,43 +7,97 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-var GUI_OUTLINE = rl.Gray
-var GUI_INSIDE = rl.RayWhite
+// var GUI_OUTLINE = rl.Gray
+// var GUI_INSIDE = rl.RayWhite
+// var GUI_OUTLINE_HIGHLIGHTED = rl.Blue
+// var GUI_INSIDE_HIGHLIGHTED = rl.White
+// var GUI_OUTLINE_CLICKED = rl.DarkBlue
+// var GUI_INSIDE_CLICKED = rl.LightGray
+// var GUI_FONT_COLOR = rl.Black
+// var GUI_INSIDE_DISABLED = rl.DarkGray
+// var GUI_OUTLINE_DISABLED = rl.Black
+// var GUI_NOTE_COLOR = rl.SkyBlue
 
-var GUI_OUTLINE_HIGHLIGHTED = rl.Blue
-var GUI_INSIDE_HIGHLIGHTED = rl.White
+const (
+	GUI_OUTLINE = iota
+	GUI_OUTLINE_HIGHLIGHTED
+	GUI_OUTLINE_CLICKED
+	GUI_OUTLINE_DISABLED
+	GUI_INSIDE
+	GUI_INSIDE_HIGHLIGHTED
+	GUI_INSIDE_CLICKED
+	GUI_INSIDE_DISABLED
+	GUI_FONT_COLOR
+	GUI_NOTE_COLOR
+)
 
-var GUI_OUTLINE_CLICKED = rl.DarkBlue
-var GUI_INSIDE_CLICKED = rl.LightGray
+var guiColors = map[string]map[int]rl.Color{
+	"Sunlight": map[int]rl.Color{
+		GUI_OUTLINE:             rl.Gray,
+		GUI_OUTLINE_HIGHLIGHTED: rl.Blue,
+		GUI_OUTLINE_CLICKED:     rl.DarkBlue,
+		GUI_OUTLINE_DISABLED:    rl.Black,
+		GUI_INSIDE:              rl.RayWhite,
+		GUI_INSIDE_HIGHLIGHTED:  rl.Color{160, 200, 250, 255},
+		GUI_INSIDE_CLICKED:      rl.LightGray,
+		GUI_INSIDE_DISABLED:     rl.LightGray,
+		GUI_FONT_COLOR:          rl.DarkGray,
+		GUI_NOTE_COLOR:          rl.Color{250, 225, 120, 255},
+	},
+	"Moonlight": map[int]rl.Color{
+		GUI_OUTLINE:             rl.Color{40, 40, 100, 255},
+		GUI_OUTLINE_HIGHLIGHTED: rl.White,
+		GUI_OUTLINE_CLICKED:     rl.Black,
+		GUI_OUTLINE_DISABLED:    rl.DarkGray,
+		GUI_INSIDE:              rl.Color{20, 20, 30, 255},
+		GUI_INSIDE_HIGHLIGHTED:  rl.Color{60, 100, 140, 255}, // Highlighted / Completion color
+		GUI_INSIDE_CLICKED:      rl.Black,
+		GUI_INSIDE_DISABLED:     rl.Color{40, 40, 100, 255},
+		GUI_FONT_COLOR:          rl.Color{220, 240, 255, 255},
+		GUI_NOTE_COLOR:          rl.Color{40, 40, 100, 255},
+	},
+	"Dark Crimson": map[int]rl.Color{
+		GUI_OUTLINE:             rl.Gray,
+		GUI_OUTLINE_HIGHLIGHTED: rl.Red,
+		GUI_OUTLINE_CLICKED:     rl.Black,
+		GUI_OUTLINE_DISABLED:    rl.Red,
+		GUI_INSIDE:              rl.Color{20, 20, 20, 255},
+		GUI_INSIDE_HIGHLIGHTED:  rl.Color{100, 40, 40, 255}, // Highlighted / Completion color
+		GUI_INSIDE_CLICKED:      rl.Black,
+		GUI_INSIDE_DISABLED:     rl.Maroon,
+		GUI_FONT_COLOR:          rl.RayWhite,
+		GUI_NOTE_COLOR:          rl.Maroon,
+	},
+}
 
-var GUI_FONT_COLOR = rl.Black
-
-var GUI_INSIDE_DISABLED = rl.DarkGray
-var GUI_OUTLINE_DISABLED = rl.Black
-var GUI_NOTE_COLOR = rl.SkyBlue
+var currentTheme = ""
 
 var fontSize = float32(10)
 var spacing = float32(3)
 var font rl.Font
 
+func getThemeColor(colorConstant int) rl.Color {
+	return guiColors[currentTheme][colorConstant]
+}
+
 func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 
 	clicked := false
 
-	outlineColor := GUI_OUTLINE
-	insideColor := GUI_INSIDE
+	outlineColor := getThemeColor(GUI_OUTLINE)
+	insideColor := getThemeColor(GUI_INSIDE)
 
 	if disabled {
-		outlineColor = GUI_OUTLINE_DISABLED
-		insideColor = GUI_INSIDE_DISABLED
+		outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+		insideColor = getThemeColor(GUI_INSIDE_DISABLED)
 	} else {
 
 		if rl.CheckCollisionPointRec(GetMousePosition(), rect) {
-			outlineColor = GUI_OUTLINE_HIGHLIGHTED
-			insideColor = GUI_INSIDE_HIGHLIGHTED
+			outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+			insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 			if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-				outlineColor = GUI_OUTLINE_CLICKED
-				insideColor = GUI_INSIDE_CLICKED
+				outlineColor = getThemeColor(GUI_OUTLINE_CLICKED)
+				insideColor = getThemeColor(GUI_INSIDE_CLICKED)
 				clicked = true
 			}
 		}
@@ -57,7 +111,7 @@ func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 	pos := rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2, rect.Y + (rect.Height / 2) - textWidth.Y/2}
 	pos.X = float32(math.Round(float64(pos.X)))
 	pos.Y = float32(math.Round(float64(pos.Y)))
-	rl.DrawTextEx(rl.GetFontDefault(), text, pos, fontSize, spacing, GUI_FONT_COLOR)
+	rl.DrawTextEx(rl.GetFontDefault(), text, pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 	return clicked
 }
@@ -74,8 +128,8 @@ func NewCheckbox(x, y, w, h float32) *Checkbox {
 
 func (checkbox *Checkbox) Update() {
 
-	rl.DrawRectangleRec(checkbox.Rect, GUI_INSIDE)
-	outlineColor := GUI_OUTLINE
+	rl.DrawRectangleRec(checkbox.Rect, getThemeColor(GUI_INSIDE))
+	outlineColor := getThemeColor(GUI_OUTLINE)
 
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), checkbox.Rect) {
 		checkbox.Checked = !checkbox.Checked
@@ -87,8 +141,8 @@ func (checkbox *Checkbox) Update() {
 		r.Y += 4
 		r.Width -= 8
 		r.Height -= 8
-		rl.DrawRectangleRec(r, GUI_OUTLINE_HIGHLIGHTED)
-		outlineColor = GUI_OUTLINE_HIGHLIGHTED
+		rl.DrawRectangleRec(r, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 	}
 
 	rl.DrawRectangleLinesEx(checkbox.Rect, 1, outlineColor)
@@ -108,14 +162,14 @@ func NewSpinner(x, y, w, h float32, options ...string) *Spinner {
 
 func (spinner *Spinner) Update() {
 
-	rl.DrawRectangleRec(spinner.Rect, GUI_INSIDE)
-	rl.DrawRectangleLinesEx(spinner.Rect, 1, GUI_OUTLINE)
+	rl.DrawRectangleRec(spinner.Rect, getThemeColor(GUI_INSIDE))
+	rl.DrawRectangleLinesEx(spinner.Rect, 1, getThemeColor(GUI_OUTLINE))
 	if len(spinner.Options) > 0 {
 		text := spinner.Options[spinner.CurrentChoice]
 		textLength := rl.MeasureTextEx(font, text, fontSize, spacing)
 		x := float32(math.Round(float64(spinner.Rect.X + spinner.Rect.Width/2 - textLength.X/2)))
 		y := float32(math.Round(float64(spinner.Rect.Y + spinner.Rect.Height/2 - textLength.Y/2)))
-		rl.DrawTextEx(font, text, rl.Vector2{x, y}, fontSize, spacing, GUI_FONT_COLOR)
+		rl.DrawTextEx(font, text, rl.Vector2{x, y}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 	}
 	if ImmediateButton(rl.Rectangle{spinner.Rect.X, spinner.Rect.Y, spinner.Rect.Height, spinner.Rect.Height}, "<", false) {
 		spinner.CurrentChoice--
@@ -145,8 +199,8 @@ func NewProgressBar(x, y, w, h float32, options ...string) *ProgressBar {
 
 func (progressBar *ProgressBar) Update() {
 
-	rl.DrawRectangleRec(progressBar.Rect, GUI_INSIDE)
-	rl.DrawRectangleLinesEx(progressBar.Rect, 1, GUI_OUTLINE)
+	rl.DrawRectangleRec(progressBar.Rect, getThemeColor(GUI_INSIDE))
+	rl.DrawRectangleLinesEx(progressBar.Rect, 1, getThemeColor(GUI_OUTLINE))
 
 	if ImmediateButton(rl.Rectangle{progressBar.Rect.X, progressBar.Rect.Y, progressBar.Rect.Height, progressBar.Rect.Height}, "-", false) {
 		progressBar.Percentage -= 5
@@ -160,7 +214,7 @@ func (progressBar *ProgressBar) Update() {
 	f := float32(progressBar.Percentage) / 100
 	r := rl.Rectangle{progressBar.Rect.X + 2 + progressBar.Rect.Height, progressBar.Rect.Y + 2, w * f, progressBar.Rect.Height - 4}
 
-	drawColor := GUI_OUTLINE_HIGHLIGHTED
+	drawColor := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 	if progressBar.Percentage < 0 {
 		progressBar.Percentage = 0
 	} else if progressBar.Percentage > 100 {
@@ -175,7 +229,7 @@ func (progressBar *ProgressBar) Update() {
 
 	pos := rl.Vector2{progressBar.Rect.X + progressBar.Rect.X/2 + 2, progressBar.Rect.Y + progressBar.Rect.Height/2 - 4}
 
-	rl.DrawTextEx(font, fmt.Sprintf("%d", progressBar.Percentage)+"%", pos, fontSize, spacing, GUI_FONT_COLOR)
+	rl.DrawTextEx(font, fmt.Sprintf("%d", progressBar.Percentage)+"%", pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 }
 
@@ -185,6 +239,7 @@ type Textbox struct {
 	Rect          rl.Rectangle
 	Visible       bool
 	AllowNewlines bool
+	Changed       bool
 
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
@@ -200,6 +255,8 @@ func NewTextbox(x, y, w, h float32) *Textbox {
 
 func (textbox *Textbox) Update() {
 
+	textbox.Changed = false
+
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 		textbox.Focused = rl.CheckCollisionPointRec(GetMousePosition(), textbox.Rect)
 	}
@@ -213,6 +270,7 @@ func (textbox *Textbox) Update() {
 		letter := rl.GetKeyPressed()
 		if letter != -1 {
 			if letter >= 32 && letter < 127 {
+				textbox.Changed = true
 				textbox.Text += fmt.Sprintf("%c", letter)
 			}
 		}
@@ -225,6 +283,7 @@ func (textbox *Textbox) Update() {
 
 		if (rl.IsKeyPressed(rl.KeyBackspace) || textbox.BackspaceTimer >= 30) && len(textbox.Text) > 0 {
 			textbox.Text = textbox.Text[:len(textbox.Text)-1]
+			textbox.Changed = true
 		}
 
 	}
@@ -249,11 +308,11 @@ func (textbox *Textbox) Update() {
 	}
 
 	if textbox.Focused {
-		rl.DrawRectangleRec(textbox.Rect, GUI_INSIDE_HIGHLIGHTED)
-		rl.DrawRectangleLinesEx(textbox.Rect, 1, GUI_OUTLINE_HIGHLIGHTED)
+		rl.DrawRectangleRec(textbox.Rect, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+		rl.DrawRectangleLinesEx(textbox.Rect, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 	} else {
-		rl.DrawRectangleRec(textbox.Rect, GUI_INSIDE)
-		rl.DrawRectangleLinesEx(textbox.Rect, 1, GUI_OUTLINE)
+		rl.DrawRectangleRec(textbox.Rect, getThemeColor(GUI_INSIDE))
+		rl.DrawRectangleLinesEx(textbox.Rect, 1, getThemeColor(GUI_OUTLINE))
 	}
 
 	txt := textbox.Text
@@ -262,33 +321,6 @@ func (textbox *Textbox) Update() {
 		txt += "|"
 	}
 
-	rl.DrawTextEx(font, txt, rl.Vector2{textbox.Rect.X + 2, textbox.Rect.Y + 2}, fontSize, spacing, GUI_FONT_COLOR)
+	rl.DrawTextEx(font, txt, rl.Vector2{textbox.Rect.X + 2, textbox.Rect.Y + 2}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 }
-
-// func GUIButton(rect rl.Rectangle, text string, icon *rl.Texture2D) bool {
-
-// 	if rl.CheckCollisionPointRec(rl.GetMousePosition(), rect) {
-// 		if rl.IsMouseButtonDown(rl.MouseLeftButton) {
-// 			rl.DrawRectangleRec(rect, GUI_Button_Internal_Clicked)
-// 			rl.DrawRectangleLinesEx(rect, 1, GUI_Button_Outline_Clicked)
-// 		} else {
-// 			rl.DrawRectangleRec(rect, GUI_Button_Internal_Highlighted)
-// 			rl.DrawRectangleLinesEx(rect, 1, GUI_Button_Outline_Highlighted)
-// 		}
-// 	} else {
-// 		rl.DrawRectangleRec(rect, GUI_Button_Internal)
-// 		rl.DrawRectangleLinesEx(rect, 1, GUI_Button_Outline)
-// 	}
-
-// 	if text != "" {
-
-// 	}
-
-// 	if icon != nil {
-
-// 	}
-
-// 	return true
-
-// }
