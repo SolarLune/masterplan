@@ -6,10 +6,16 @@ import (
 	"log"
 	"math"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/speaker"
+
+	"github.com/gen2brain/raylib-go/raygui"
 
 	"github.com/gen2brain/raylib-go/raymath"
 
@@ -51,6 +57,8 @@ type Project struct {
 	TaskOpen            bool
 	ColorTheme          string
 	ReorderSequence     int
+	SampleRate          beep.SampleRate
+	SampleBuffer        int
 
 	Searchbar    *Textbox
 	StatusBar    rl.Rectangle
@@ -73,12 +81,13 @@ func NewProject(projectPath string) *Project {
 
 	project := &Project{FilePath: projectPath, GridSize: 16, ZoomLevel: -99, Pan: camera.Offset, TimeScaleRate: TIMESCALE_PER_DAY,
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15}, TimescaleBar: rl.Rectangle{0, 0, screenWidth, 16},
-		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"),
+		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"), SampleRate: 44100, SampleBuffer: 512,
 	}
 	project.ChangeTheme("Light Theme")
-
 	project.GenerateGrid()
 	project.DoubleClickTimer = -1
+
+	speaker.Init(project.SampleRate, project.SampleBuffer)
 
 	return project
 
@@ -92,12 +101,14 @@ func (project *Project) Save() {
 	}
 
 	data := map[string]interface{}{
-		"GridSize":   project.GridSize,
-		"Pan.X":      project.Pan.X,
-		"Pan.Y":      project.Pan.Y,
-		"ZoomLevel":  project.ZoomLevel,
-		"Tasks":      tasks,
-		"ColorTheme": project.ColorTheme,
+		"GridSize":     project.GridSize,
+		"Pan.X":        project.Pan.X,
+		"Pan.Y":        project.Pan.Y,
+		"ZoomLevel":    project.ZoomLevel,
+		"Tasks":        tasks,
+		"ColorTheme":   project.ColorTheme,
+		"SampleRate":   project.SampleRate,
+		"SampleBuffer": project.SampleBuffer,
 	}
 
 	f, err := os.Create(project.FilePath)
@@ -157,6 +168,10 @@ func (project *Project) Load() {
 		project.Pan.X = getFloat("Pan.X")
 		project.Pan.Y = getFloat("Pan.Y")
 		project.ZoomLevel = int(getInt("ZoomLevel")) // Needs to be an int, not an int32
+		project.SampleRate = beep.SampleRate(getInt("SampleRate"))
+		project.SampleBuffer = int(getInt("SampleBuffer"))
+
+		speaker.Init(project.SampleRate, project.SampleBuffer)
 
 		for _, t := range data["Tasks"].([]interface{}) {
 			taskData := t.(map[string]interface{})
@@ -190,6 +205,7 @@ func (project *Project) RemoveTask(tasks ...*Task) {
 }
 
 func (project *Project) RemoveTaskByIndex(index int) {
+	project.Tasks[index].ReceiveMessage("delete", map[string]interface{}{"task": project.Tasks[index]})
 	project.Tasks[index] = nil
 	project.Tasks = append(project.Tasks[:index], project.Tasks[index+1:]...)
 }
@@ -327,16 +343,61 @@ func (project *Project) DrawTimescale() {
 
 func (project *Project) HandleDroppedFiles() {
 
+	imageFormats := [...]string{
+		"png",
+		"bmp",
+		"tga",
+		"jpg",
+		"jpeg",
+		"gif",
+		"psd",
+	}
+
+	soundFormats := [...]string{
+		"wav",
+		"ogg",
+		"xm",
+		"mod",
+		"flac",
+		"mp3",
+	}
+
 	if rl.IsFileDropped() {
 		fileCount := int32(0)
 		for _, file := range rl.GetDroppedFiles(&fileCount) {
-			task := NewTask(project)
-			task.Position.X = camera.Target.X
-			task.Position.Y = camera.Target.Y
-			task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-			task.FilePath = file
-			task.ReceiveMessage("task close", map[string]interface{}{"task": task})
-			project.Tasks = append(project.Tasks, task)
+
+			taskType := ""
+
+			for _, f := range imageFormats {
+				if strings.Contains(path.Ext(file), f) {
+					taskType = "image"
+					break
+				}
+			}
+
+			for _, f := range soundFormats {
+				if strings.Contains(path.Ext(file), f) {
+					taskType = "sound"
+					break
+				}
+			}
+
+			if taskType != "" {
+				task := NewTask(project)
+				task.Position.X = camera.Target.X
+				task.Position.Y = camera.Target.Y
+
+				if taskType == "image" {
+					task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
+				} else if taskType == "sound" {
+					task.TaskType.CurrentChoice = TASK_TYPE_SOUND
+				}
+
+				task.FilePath = file
+				task.ReceiveMessage("task close", map[string]interface{}{"task": task})
+				project.Tasks = append(project.Tasks, task)
+				continue
+			}
 		}
 		rl.ClearDroppedFiles()
 	}
@@ -419,7 +480,7 @@ func (project *Project) Update() {
 						clickedTask.ReceiveMessage("select", map[string]interface{}{
 							"task": clickedTask,
 						})
-					} else if !clickedTask.Selected {
+					} else if !clickedTask.Selected { // This makes it so you don't have to shift+drag to move already selected Tasks
 						project.SendMessage("select", map[string]interface{}{
 							"task": clickedTask,
 						})
@@ -512,6 +573,13 @@ func (project *Project) Update() {
 
 func (project *Project) SendMessage(message string, data map[string]interface{}) {
 
+	if message == "dropped" {
+		for _, task := range project.Tasks {
+			task.TaskAbove = nil
+			task.TaskBelow = nil
+		}
+	}
+
 	for _, task := range project.Tasks {
 		task.ReceiveMessage(message, data)
 	}
@@ -549,6 +617,12 @@ func (project *Project) Shortcuts() {
 			project.CopySelectedTasks()
 		} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
 			project.PasteTasks()
+		} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
+
+			for _, task := range project.Tasks {
+				task.StopSound()
+			}
+
 		} else if rl.IsKeyPressed(rl.KeyC) {
 			for _, task := range project.Tasks {
 				if task.Selected {
@@ -686,7 +760,6 @@ func (project *Project) ReorderTasks() {
 		return project.Tasks[i].Position.Y < project.Tasks[j].Position.Y
 	})
 
-	project.SendMessage("dragging", nil)
 	project.SendMessage("dropped", nil)
 }
 
@@ -696,6 +769,9 @@ func (project *Project) ChangeTheme(themeName string) bool {
 		project.ColorTheme = themeName
 		currentTheme = project.ColorTheme
 		project.GenerateGrid()
+		color := int64(rl.ColorToInt(getThemeColor(GUI_FONT_COLOR)))
+		raygui.SetStyleProperty(raygui.LabelTextColor, color)
+
 		return true
 	}
 	return false
