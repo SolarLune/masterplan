@@ -1,8 +1,8 @@
 {
 	"ColorTheme": "Moonlight",
 	"GridSize": 16,
-	"Pan.X": 2352,
-	"Pan.Y": 662,
+	"Pan.X": 1866.6666,
+	"Pan.Y": -8.222229,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
 	"Tasks": [
@@ -1030,7 +1030,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"Description": "Add undo + redo to project.",
+			"Description": "Add undo + redo to project.\nAs for an idea of how to do this, I think I'm probably just going to store a buffer of the current project\nstate in memory for each change you make? It doesn't seem like a big enough deal to actually build a \"right\"\nundo system, and less prone to error. The current project file of ~106 completable tasks sits at 49.6 KB,\nso a 1000-level undo system for this project would sit at ~49MB of memory (assuming I was just storing a\nsave of the project file itself, and not the entire project in memory).",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1038,7 +1038,7 @@
 			"Position.Y": 384,
 			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
-			"Rect.W": 224,
+			"Rect.W": 240,
 			"Selected": false,
 			"TaskType.CurrentChoice": 1
 		},
