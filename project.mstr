@@ -1,8 +1,8 @@
 {
 	"ColorTheme": "Moonlight",
 	"GridSize": 16,
-	"Pan.X": 2004.9996,
-	"Pan.Y": 90.00267,
+	"Pan.X": 2352,
+	"Pan.Y": 662,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
 	"Tasks": [
@@ -40,7 +40,7 @@
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
-			"Position.X": -1920,
+			"Position.X": -1904,
 			"Position.Y": -384,
 			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
@@ -128,21 +128,7 @@
 			"Position.Y": -336,
 			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
-			"Rect.W": 96,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"Description": "Test F",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1888,
-			"Position.Y": -320,
-			"Progressbar.Percentage": 0,
-			"Rect.H": 16,
-			"Rect.W": 96,
+			"Rect.W": 80,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
@@ -162,15 +148,15 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"Description": "F",
+			"Description": "Test F",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
-			"Position.X": -2000,
-			"Position.Y": -304,
+			"Position.X": -1888,
+			"Position.Y": -320,
 			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
-			"Rect.W": 32,
+			"Rect.W": 80,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
@@ -184,7 +170,21 @@
 			"Position.Y": -304,
 			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
-			"Rect.W": 96,
+			"Rect.W": 80,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"Checkbox.Checked": false,
+			"Description": "F",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -2000,
+			"Position.Y": -304,
+			"Progressbar.Percentage": 0,
+			"Rect.H": 16,
+			"Rect.W": 32,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
@@ -246,20 +246,6 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"Description": "",
-			"FilePath": "/home/solarlune/Tools/SunVox/instruments/Samples/Commodore 64 Drums/samples/kick1.wav",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -2480,
-			"Position.Y": -176,
-			"Progressbar.Percentage": 0,
-			"Rect.H": 16,
-			"Rect.W": 64,
-			"Selected": false,
-			"TaskType.CurrentChoice": 4
-		},
-		{
-			"Checkbox.Checked": false,
 			"Description": "Teeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeest.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
@@ -271,6 +257,20 @@
 			"Rect.W": 560,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
+		},
+		{
+			"Checkbox.Checked": false,
+			"Description": "",
+			"FilePath": "/home/solarlune/Tools/SunVox/instruments/Samples/Commodore 64 Drums/samples/kick1.wav",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -2480,
+			"Position.Y": -176,
+			"Progressbar.Percentage": 0,
+			"Rect.H": 16,
+			"Rect.W": 64,
+			"Selected": false,
+			"TaskType.CurrentChoice": 4
 		},
 		{
 			"Checkbox.Checked": false,
@@ -315,6 +315,20 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"Checkbox.Checked": true,
+			"Description": "Ideas for MasterPlan",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": -128,
+			"Progressbar.Percentage": 100,
+			"Rect.H": 16,
+			"Rect.W": 160,
+			"Selected": false,
+			"TaskType.CurrentChoice": 2
+		},
+		{
 			"Checkbox.Checked": false,
 			"Description": "",
 			"FilePath": "/home/solarlune/Tools/SunVox/instruments/Samples/Commodore 64 Drums/samples/hihat1.wav",
@@ -355,20 +369,6 @@
 			"Rect.W": 96,
 			"Selected": false,
 			"TaskType.CurrentChoice": 3
-		},
-		{
-			"Checkbox.Checked": true,
-			"Description": "Ideas for MasterPlan",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": -112,
-			"Progressbar.Percentage": 100,
-			"Rect.H": 16,
-			"Rect.W": 160,
-			"Selected": false,
-			"TaskType.CurrentChoice": 2
 		},
 		{
 			"Checkbox.Checked": false,
@@ -470,20 +470,6 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"Description": "Alternative name ideas",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -2144,
-			"Position.Y": -64,
-			"Progressbar.Percentage": 0,
-			"Rect.H": 16,
-			"Rect.W": 176,
-			"Selected": false,
-			"TaskType.CurrentChoice": 2
-		},
-		{
-			"Checkbox.Checked": false,
 			"Description": "Tasks / Ordering",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
@@ -497,18 +483,18 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": true,
-			"Description": "Add search bar so you can search for Tasks by words contained in their Descriptions.",
+			"Checkbox.Checked": false,
+			"Description": "Alternative name ideas",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": -48,
-			"Progressbar.Percentage": 100,
+			"Position.X": -2144,
+			"Position.Y": -64,
+			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
-			"Rect.W": 656,
+			"Rect.W": 176,
 			"Selected": false,
-			"TaskType.CurrentChoice": 0
+			"TaskType.CurrentChoice": 2
 		},
 		{
 			"Checkbox.Checked": false,
@@ -525,18 +511,18 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
-			"Checkbox.Checked": false,
-			"Description": "",
-			"FilePath": "/home/solarlune/Tools/SunVox/instruments/Samples/Commodore 64 Drums/samples/hihat1.wav",
+			"Checkbox.Checked": true,
+			"Description": "Add search bar so you can search for Tasks by words contained in their Descriptions.",
+			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
-			"Position.X": -2480,
-			"Position.Y": -32,
-			"Progressbar.Percentage": 0,
+			"Position.X": -1616,
+			"Position.Y": -48,
+			"Progressbar.Percentage": 100,
 			"Rect.H": 16,
-			"Rect.W": 80,
+			"Rect.W": 656,
 			"Selected": false,
-			"TaskType.CurrentChoice": 4
+			"TaskType.CurrentChoice": 0
 		},
 		{
 			"Checkbox.Checked": true,
@@ -563,6 +549,34 @@
 			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
 			"Rect.W": 80,
+			"Selected": false,
+			"TaskType.CurrentChoice": 2
+		},
+		{
+			"Checkbox.Checked": false,
+			"Description": "",
+			"FilePath": "/home/solarlune/Tools/SunVox/instruments/Samples/Commodore 64 Drums/samples/hihat1.wav",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -2480,
+			"Position.Y": -32,
+			"Progressbar.Percentage": 0,
+			"Rect.H": 16,
+			"Rect.W": 80,
+			"Selected": false,
+			"TaskType.CurrentChoice": 4
+		},
+		{
+			"Checkbox.Checked": false,
+			"Description": "PlanIt!\n(Like a planet, that could even be the logo)",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -2144,
+			"Position.Y": -16,
+			"Progressbar.Percentage": 0,
+			"Rect.H": 32,
+			"Rect.W": 320,
 			"Selected": false,
 			"TaskType.CurrentChoice": 2
 		},
@@ -621,20 +635,6 @@
 			"Rect.W": 80,
 			"Selected": false,
 			"TaskType.CurrentChoice": 4
-		},
-		{
-			"Checkbox.Checked": false,
-			"Description": "PlanIt!\n(Like a planet, that could even be the logo)",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -2144,
-			"Position.Y": -16,
-			"Progressbar.Percentage": 0,
-			"Rect.H": 32,
-			"Rect.W": 320,
-			"Selected": false,
-			"TaskType.CurrentChoice": 2
 		},
 		{
 			"Checkbox.Checked": true,
@@ -834,20 +834,6 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"Description": "",
-			"FilePath": "/home/solarlune/Pictures/Wallpapers/9gdxy1A-cyberpunk-wallpaper.jpg",
-			"ImageDisplaySize.X": 457.00012,
-			"ImageDisplaySize.Y": 298.40002,
-			"Position.X": -2288,
-			"Position.Y": 176,
-			"Progressbar.Percentage": 0,
-			"Rect.H": 298.40002,
-			"Rect.W": 457.00012,
-			"Selected": false,
-			"TaskType.CurrentChoice": 3
-		},
-		{
-			"Checkbox.Checked": false,
 			"Description": "Replace Task Type spinner with drop-down menu as choices rise.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
@@ -859,6 +845,20 @@
 			"Rect.W": 496,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
+		},
+		{
+			"Checkbox.Checked": false,
+			"Description": "",
+			"FilePath": "/home/solarlune/Pictures/Wallpapers/9gdxy1A-cyberpunk-wallpaper.jpg",
+			"ImageDisplaySize.X": 457.00012,
+			"ImageDisplaySize.Y": 298.40002,
+			"Position.X": -2288,
+			"Position.Y": 176,
+			"Progressbar.Percentage": 0,
+			"Rect.H": 298.40002,
+			"Rect.W": 457.00012,
+			"Selected": false,
+			"TaskType.CurrentChoice": 3
 		},
 		{
 			"Checkbox.Checked": false,
@@ -941,7 +941,7 @@
 			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
 			"Rect.W": 192,
-			"Selected": true,
+			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
@@ -1184,20 +1184,6 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"Description": "Time scale display (day, week, month, off)",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 560,
-			"Progressbar.Percentage": 0,
-			"Rect.H": 16,
-			"Rect.W": 352,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
 			"Description": "And a third.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
@@ -1207,6 +1193,20 @@
 			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
 			"Rect.W": 112,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"Checkbox.Checked": false,
+			"Description": "Time scale display (day, week, month, off)",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 560,
+			"Progressbar.Percentage": 0,
+			"Rect.H": 16,
+			"Rect.W": 352,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
@@ -1240,6 +1240,20 @@
 		},
 		{
 			"Checkbox.Checked": false,
+			"Description": "Here's a task.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1008,
+			"Position.Y": 592,
+			"Progressbar.Percentage": 100,
+			"Rect.H": 16,
+			"Rect.W": 128,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"Checkbox.Checked": false,
 			"Description": "Test out task reordering on deletion with this -\u003e",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
@@ -1263,20 +1277,6 @@
 			"Progressbar.Percentage": 0,
 			"Rect.H": 16,
 			"Rect.W": 160,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"Description": "Here's a task.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1008,
-			"Position.Y": 592,
-			"Progressbar.Percentage": 100,
-			"Rect.H": 16,
-			"Rect.W": 128,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},

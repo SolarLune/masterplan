@@ -95,9 +95,16 @@ func NewProject(projectPath string) *Project {
 
 func (project *Project) Save() {
 
-	tasks := []map[string]interface{}{}
-	for _, task := range project.Tasks {
-		tasks = append(tasks, task.Serialize())
+	// Sort the Tasks by their ID, then loop through them using that slice. This way,
+	// They store data according to their creation ID, not according to their position
+	// in the world.
+	tasksByID := append([]*Task{}, project.Tasks...)
+
+	sort.Slice(tasksByID, func(i, j int) bool { return tasksByID[i].ID < tasksByID[j].ID })
+
+	taskData := []map[string]interface{}{}
+	for _, task := range tasksByID {
+		taskData = append(taskData, task.Serialize())
 	}
 
 	data := map[string]interface{}{
@@ -105,7 +112,7 @@ func (project *Project) Save() {
 		"Pan.X":        project.Pan.X,
 		"Pan.Y":        project.Pan.Y,
 		"ZoomLevel":    project.ZoomLevel,
-		"Tasks":        tasks,
+		"Tasks":        taskData,
 		"ColorTheme":   project.ColorTheme,
 		"SampleRate":   project.SampleRate,
 		"SampleBuffer": project.SampleBuffer,
