@@ -236,9 +236,9 @@ func (task *Task) Update() {
 
 		glowYPos := -task.Rect.Y / float32(task.Project.GridSize)
 		glowXPos := -task.Rect.X / float32(task.Project.GridSize)
-		glowVariance := float64(10)
+		glowVariance := float64(20)
 		if task.Selected {
-			glowVariance = 40
+			glowVariance = 80
 		}
 		glow := uint8(math.Sin(float64((rl.GetTime()*math.Pi*2+glowYPos+glowXPos)))*(glowVariance/2) + (glowVariance / 2))
 
@@ -284,7 +284,7 @@ func (task *Task) Update() {
 	shadowRect.X += 4
 	shadowRect.Y += 2
 	shadow := rl.Black
-	shadow.A = color.A / 2
+	shadow.A = color.A / 3
 	rl.DrawRectangleRec(shadowRect, shadow)
 
 	rl.DrawRectangleRec(task.Rect, color)

@@ -81,9 +81,9 @@ func NewProject(projectPath string) *Project {
 
 	project := &Project{FilePath: projectPath, GridSize: 16, ZoomLevel: -99, Pan: camera.Offset, TimeScaleRate: TIMESCALE_PER_DAY,
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15}, TimescaleBar: rl.Rectangle{0, 0, screenWidth, 16},
-		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"), SampleRate: 44100, SampleBuffer: 512,
+		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
 	}
-	project.ChangeTheme("Light Theme")
+	project.ChangeTheme(project.ColorTheme)
 	project.GenerateGrid()
 	project.DoubleClickTimer = -1
 
@@ -801,7 +801,7 @@ func (project *Project) GUI() {
 
 		pos := project.ContextMenuPosition
 
-		rect := rl.Rectangle{pos.X, pos.Y - 24, 128, 24}
+		rect := rl.Rectangle{pos.X - 64, pos.Y - 36, 128, 24}
 
 		if ImmediateButton(rect, "New Project", false) {
 
@@ -824,7 +824,7 @@ func (project *Project) GUI() {
 
 		}
 
-		rect.Y = pos.Y
+		rect.Y = pos.Y - rect.Height/2
 
 		if ImmediateButton(rect, "New Task", false) {
 			newTask := NewTask(project)
@@ -986,21 +986,31 @@ func (project *Project) DeleteSelectedTasks() {
 
 func (project *Project) GetFirstFreeID() int {
 
-	tasksToID := []int{}
+	usedIDs := map[int]bool{}
 
-	for _, task := range project.Tasks {
-		tasksToID = append(tasksToID, task.ID)
+	for i := 0; i < taskID; i++ {
+		if len(project.Tasks) > i {
+			usedIDs[project.Tasks[i].ID] = true
+		}
 	}
 
-	for i := 0; i < len(project.Tasks); i++ {
-		if tasksToID[i] != i {
+	// Reuse already spent, but nonexistent IDs (i.e. create a task that has ID 4, then
+	// delete that and create a new one; it should have an ID of 4 so that when VCS diff
+	// the project file, it just alters the relevant pieces of info to make the original
+	// Task #4 the new Task #4)
+	for i := 0; i < taskID; i++ {
+		exists := usedIDs[i]
+		if !exists {
 			return i
 		}
 	}
 
+	// If no spent but unused IDs exist, then we can just use a new one and move on.
+	id := taskID
+
 	taskID++
 
-	return taskID
+	return id
 
 }
 
