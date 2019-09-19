@@ -912,9 +912,17 @@ func (project *Project) GUI() {
 	rec := rl.Rectangle{0, 0, 16, 16}
 	rl.DrawTextureRec(project.GUI_Icons, rec, rl.Vector2{project.Searchbar.Rect.X - 24, project.Searchbar.Rect.Y}, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
+	clickedOnSearchbar := false
+
+	searchbarWasFocused := project.Searchbar.Focused
+
 	project.Searchbar.Update()
 
-	if project.Searchbar.Changed && project.Searchbar.Text != "" {
+	if project.Searchbar.Focused && !searchbarWasFocused {
+		clickedOnSearchbar = true
+	}
+
+	if (project.Searchbar.Changed || clickedOnSearchbar) && project.Searchbar.Text != "" {
 
 		project.SendMessage("select", nil)
 
