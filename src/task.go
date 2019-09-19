@@ -74,9 +74,8 @@ func NewTask(project *Project) *Task {
 		CompletionProgressbar: NewProgressBar(140, 96, 192, 16),
 		NumberingPrefix:       []int{-1},
 		RefreshPrefix:         false,
-		ID:                    taskID,
+		ID:                    project.GetFirstFreeID(),
 	}
-	taskID++
 	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
 	task.Description.AllowNewlines = true
 	return task

@@ -801,7 +801,31 @@ func (project *Project) GUI() {
 
 		pos := project.ContextMenuPosition
 
-		rect := rl.Rectangle{pos.X, pos.Y, 128, 24}
+		rect := rl.Rectangle{pos.X, pos.Y - 24, 128, 24}
+
+		if ImmediateButton(rect, "New Project", false) {
+
+		}
+		rect.Y -= rect.Height
+
+		if ImmediateButton(rect, "Load Project", false) {
+
+		}
+
+		rect.Y -= rect.Height
+
+		if ImmediateButton(rect, "Save Project As", false) {
+
+		}
+
+		rect.Y -= rect.Height
+
+		if ImmediateButton(rect, "Project Settings", false) {
+
+		}
+
+		rect.Y = pos.Y
+
 		if ImmediateButton(rect, "New Task", false) {
 			newTask := NewTask(project)
 			newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X, GetWorldMousePosition().Y)
@@ -958,6 +982,26 @@ func (project *Project) DeleteSelectedTasks() {
 	}
 
 	project.ReorderTasks()
+}
+
+func (project *Project) GetFirstFreeID() int {
+
+	tasksToID := []int{}
+
+	for _, task := range project.Tasks {
+		tasksToID = append(tasksToID, task.ID)
+	}
+
+	for i := 0; i < len(project.Tasks); i++ {
+		if tasksToID[i] != i {
+			return i
+		}
+	}
+
+	taskID++
+
+	return taskID
+
 }
 
 func (project *Project) CopySelectedTasks() {
