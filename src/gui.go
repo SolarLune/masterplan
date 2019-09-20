@@ -68,6 +68,18 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_FONT_COLOR:          rl.RayWhite,
 		GUI_NOTE_COLOR:          rl.Maroon,
 	},
+	"Blueprint": map[int]rl.Color{
+		GUI_OUTLINE:             rl.RayWhite,
+		GUI_OUTLINE_HIGHLIGHTED: rl.Yellow,
+		GUI_OUTLINE_CLICKED:     rl.Yellow,
+		GUI_OUTLINE_DISABLED:    rl.Color{30, 60, 120, 255},
+		GUI_INSIDE:              rl.Blue,
+		GUI_INSIDE_HIGHLIGHTED:  rl.Gold, // Highlighted / Completion color
+		GUI_INSIDE_CLICKED:      rl.Color{138, 161, 246, 255},
+		GUI_INSIDE_DISABLED:     rl.DarkBlue,
+		GUI_FONT_COLOR:          rl.White,
+		GUI_NOTE_COLOR:          rl.DarkGray,
+	},
 }
 
 var currentTheme = ""
@@ -95,9 +107,10 @@ func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 		if rl.CheckCollisionPointRec(GetMousePosition(), rect) {
 			outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 			insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
-			if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+			if rl.IsMouseButtonDown(rl.MouseLeftButton) {
 				outlineColor = getThemeColor(GUI_OUTLINE_CLICKED)
 				insideColor = getThemeColor(GUI_INSIDE_CLICKED)
+			} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
 				clicked = true
 			}
 		}
