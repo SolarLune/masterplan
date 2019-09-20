@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gen2brain/dlgs"
+
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 
@@ -48,6 +50,7 @@ type Project struct {
 	GridTexture         rl.Texture2D
 	ContextMenuOpen     bool
 	ContextMenuPosition rl.Vector2
+	ProjectSettingsOpen bool
 	RootPath            string
 	Selecting           bool
 	SelectionStart      rl.Vector2
@@ -65,6 +68,8 @@ type Project struct {
 	TimescaleBar rl.Rectangle
 	GUI_Icons    rl.Texture2D
 
+	ColorThemeSpinner *Spinner
+
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
 	// This would be simple, but could be prohibitive if the size becomes large. Upside is that since we're storing the buffer to disk, you can undo
@@ -73,15 +78,21 @@ type Project struct {
 	// in a buffer; then walk backwards through them to change them, I suppose?
 }
 
-func NewProject(projectPath string) *Project {
+func NewProject() *Project {
 
 	searchBar := NewTextbox(screenWidth-128, screenHeight-15, 128, 15)
 	searchBar.MaxSize = searchBar.MinSize // Don't expand for text
 	searchBar.AllowNewlines = false
 
-	project := &Project{FilePath: projectPath, GridSize: 16, ZoomLevel: -99, Pan: camera.Offset, TimeScaleRate: TIMESCALE_PER_DAY,
+	themes := []string{}
+	for themeName := range guiColors {
+		themes = append(themes, themeName)
+	}
+
+	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, Pan: camera.Offset, TimeScaleRate: TIMESCALE_PER_DAY,
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15}, TimescaleBar: rl.Rectangle{0, 0, screenWidth, 16},
 		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
+		ColorThemeSpinner: NewSpinner(192, 32, 192, 16, themes...),
 	}
 	project.ChangeTheme(project.ColorTheme)
 	project.GenerateGrid()
@@ -93,57 +104,76 @@ func NewProject(projectPath string) *Project {
 
 }
 
-func (project *Project) Save() {
+func (project *Project) Save() bool {
 
-	// Sort the Tasks by their ID, then loop through them using that slice. This way,
-	// They store data according to their creation ID, not according to their position
-	// in the world.
-	tasksByID := append([]*Task{}, project.Tasks...)
+	if project.FilePath != "" {
 
-	sort.Slice(tasksByID, func(i, j int) bool { return tasksByID[i].ID < tasksByID[j].ID })
+		// Sort the Tasks by their ID, then loop through them using that slice. This way,
+		// They store data according to their creation ID, not according to their position
+		// in the world.
+		tasksByID := append([]*Task{}, project.Tasks...)
 
-	taskData := []map[string]interface{}{}
-	for _, task := range tasksByID {
-		taskData = append(taskData, task.Serialize())
+		sort.Slice(tasksByID, func(i, j int) bool { return tasksByID[i].ID < tasksByID[j].ID })
+
+		taskData := []map[string]interface{}{}
+		for _, task := range tasksByID {
+			taskData = append(taskData, task.Serialize())
+		}
+
+		data := map[string]interface{}{
+			"GridSize":     project.GridSize,
+			"Pan.X":        project.Pan.X,
+			"Pan.Y":        project.Pan.Y,
+			"ZoomLevel":    project.ZoomLevel,
+			"Tasks":        taskData,
+			"ColorTheme":   project.ColorTheme,
+			"SampleRate":   project.SampleRate,
+			"SampleBuffer": project.SampleBuffer,
+		}
+
+		f, err := os.Create(project.FilePath)
+		defer f.Close()
+		if err != nil {
+			log.Println(err)
+			return false
+		} else {
+			encoder := json.NewEncoder(f)
+			encoder.SetIndent("", "\t")
+			encoder.Encode(data)
+
+			lastOpened, err := os.Create("lastopenedplan")
+			if err != nil {
+				log.Println("Can't save last opened project file to current working directory.")
+				return false
+			}
+			defer lastOpened.Close()
+			lastOpened.WriteString(project.FilePath) // We save the last successfully opened project file here.
+
+		}
+
 	}
 
-	data := map[string]interface{}{
-		"GridSize":     project.GridSize,
-		"Pan.X":        project.Pan.X,
-		"Pan.Y":        project.Pan.Y,
-		"ZoomLevel":    project.ZoomLevel,
-		"Tasks":        taskData,
-		"ColorTheme":   project.ColorTheme,
-		"SampleRate":   project.SampleRate,
-		"SampleBuffer": project.SampleBuffer,
-	}
-
-	f, err := os.Create(project.FilePath)
-	defer f.Close()
-	if err != nil {
-		log.Println("Can't save in this directory; continuing as normal.")
-	}
-
-	encoder := json.NewEncoder(f)
-	encoder.SetIndent("", "\t")
-	encoder.Encode(data)
+	return true
 
 }
 
-func (project *Project) Load() {
+func (project *Project) Load() bool {
 
 	f, err := os.Open(project.FilePath)
 	defer f.Close()
 	if err != nil {
-		log.Println("Save file doesn't exist; continuing as normal.")
+		log.Println(err)
+		return false
 	} else {
 		decoder := json.NewDecoder(f)
 		data := map[string]interface{}{}
 		decoder.Decode(&data)
 
 		if len(data) == 0 {
-			log.Println("Save file mangled, cannot be restored; continuing as new project.") // It's possible for the file to be mangled and unable to be loaded; I should actually handle this.
-			return
+			// It's possible for the file to be mangled and unable to be loaded; I should actually handle this
+			// with a backup system or something.
+			log.Println("Save file [" + project.FilePath + "] corrupted, cannot be restored.")
+			return false
 		}
 
 		getFloat := func(name string) float32 {
@@ -191,11 +221,27 @@ func (project *Project) Load() {
 		if colorTheme != "" {
 			project.ChangeTheme(colorTheme)
 			project.GenerateGrid()
+			for i, choice := range project.ColorThemeSpinner.Options {
+				if choice == colorTheme {
+					project.ColorThemeSpinner.CurrentChoice = i
+					break
+				}
+			}
 		}
 
 		project.ReorderTasks()
 
+		lastOpened, err := os.Create("lastopenedplan")
+		defer lastOpened.Close()
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+		lastOpened.WriteString(project.FilePath) // We save the last successfully opened project file here.
+
 	}
+
+	return true
 
 }
 
@@ -259,7 +305,7 @@ func (project *Project) HandleCamera() {
 
 	wheel := rl.GetMouseWheelMove()
 
-	if !project.ContextMenuOpen && !project.TaskOpen {
+	if !project.ContextMenuOpen && !project.ProjectSettingsOpen && !project.TaskOpen {
 		if wheel > 0 {
 			project.ZoomLevel += 1
 		} else if wheel < 0 {
@@ -450,7 +496,7 @@ func (project *Project) Update() {
 
 		// We update the tasks from top (last) down, because if you click on one, you click on the top-most one.
 
-		if rl.IsMouseButtonPressed(rl.MouseLeftButton) && !project.ContextMenuOpen {
+		if rl.IsMouseButtonPressed(rl.MouseLeftButton) && !project.ContextMenuOpen && !project.ProjectSettingsOpen {
 			clicked = true
 		}
 
@@ -801,27 +847,42 @@ func (project *Project) GUI() {
 
 		pos := project.ContextMenuPosition
 
-		rect := rl.Rectangle{pos.X - 64, pos.Y - 36, 128, 24}
+		rect := rl.Rectangle{pos.X - 64, pos.Y - 24, 128, 12}
 
-		if ImmediateButton(rect, "New Project", false) {
+		ImmediateButton(rect, "---", true) // Spacer
 
-		}
-		rect.Y -= rect.Height
-
-		if ImmediateButton(rect, "Load Project", false) {
-
-		}
-
-		rect.Y -= rect.Height
-
-		if ImmediateButton(rect, "Save Project As", false) {
-
-		}
-
+		rect.Height = 24
 		rect.Y -= rect.Height
 
 		if ImmediateButton(rect, "Project Settings", false) {
+			project.ProjectSettingsOpen = true
+		}
 
+		rect.Y -= rect.Height
+
+		if ImmediateButton(rect, "Load Project", false) {
+			file, success, _ := dlgs.File("Load Plan File", "*.plan", false)
+			if success {
+				currentProject = NewProject()
+				currentProject.FilePath = file
+				currentProject.Load()
+			}
+		}
+
+		rect.Y -= rect.Height
+
+		if ImmediateButton(rect, "Save Project", false) {
+			dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
+			if success {
+				project.FilePath = path.Join(dirPath, "master.plan")
+				project.Save()
+			}
+		}
+
+		rect.Y -= rect.Height
+
+		if ImmediateButton(rect, "New Project", false) {
+			currentProject = NewProject()
 		}
 
 		rect.Y = pos.Y - rect.Height/2
@@ -880,6 +941,26 @@ func (project *Project) GUI() {
 
 		if ImmediateButton(rect, "Paste Tasks", len(project.CopyBuffer) == 0) {
 			project.PasteTasks()
+		}
+
+	} else if project.ProjectSettingsOpen {
+
+		rec := rl.Rectangle{16, 16, screenWidth - 32, screenHeight - 32}
+		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
+		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
+
+		if ImmediateButton(rl.Rectangle{rec.Width - 16, 24, 16, 16}, "X", false) {
+			project.ProjectSettingsOpen = false
+			project.Save()
+		}
+
+		rec = project.ColorThemeSpinner.Rect
+		rec.X -= 192
+		raygui.Label(rec, "Color Theme: ")
+		project.ColorThemeSpinner.Update()
+
+		if project.ColorThemeSpinner.Changed {
+			project.ChangeTheme(project.ColorThemeSpinner.Options[project.ColorThemeSpinner.CurrentChoice])
 		}
 
 	}

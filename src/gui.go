@@ -153,6 +153,7 @@ type Spinner struct {
 	Rect          rl.Rectangle
 	Options       []string
 	CurrentChoice int
+	Changed       bool
 }
 
 func NewSpinner(x, y, w, h float32, options ...string) *Spinner {
@@ -161,6 +162,8 @@ func NewSpinner(x, y, w, h float32, options ...string) *Spinner {
 }
 
 func (spinner *Spinner) Update() {
+
+	spinner.Changed = false
 
 	rl.DrawRectangleRec(spinner.Rect, getThemeColor(GUI_INSIDE))
 	rl.DrawRectangleLinesEx(spinner.Rect, 1, getThemeColor(GUI_OUTLINE))
@@ -173,10 +176,12 @@ func (spinner *Spinner) Update() {
 	}
 	if ImmediateButton(rl.Rectangle{spinner.Rect.X, spinner.Rect.Y, spinner.Rect.Height, spinner.Rect.Height}, "<", false) {
 		spinner.CurrentChoice--
+		spinner.Changed = true
 	}
 
 	if ImmediateButton(rl.Rectangle{spinner.Rect.X + spinner.Rect.Width - spinner.Rect.Height, spinner.Rect.Y, spinner.Rect.Height, spinner.Rect.Height}, ">", false) {
 		spinner.CurrentChoice++
+		spinner.Changed = true
 	}
 
 	if spinner.CurrentChoice < 0 {
