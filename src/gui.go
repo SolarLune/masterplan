@@ -37,9 +37,9 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_OUTLINE_HIGHLIGHTED: rl.Blue,
 		GUI_OUTLINE_CLICKED:     rl.DarkBlue,
 		GUI_OUTLINE_DISABLED:    rl.Black,
-		GUI_INSIDE:              rl.RayWhite,
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{160, 200, 250, 255},
-		GUI_INSIDE_CLICKED:      rl.LightGray,
+		GUI_INSIDE:              rl.RayWhite,                  // BG / Task BG color
+		GUI_INSIDE_HIGHLIGHTED:  rl.Color{160, 200, 250, 255}, // Button Highlight / Focused Textbox / Task Completion color
+		GUI_INSIDE_CLICKED:      rl.LightGray,                 // Grid color
 		GUI_INSIDE_DISABLED:     rl.LightGray,
 		GUI_FONT_COLOR:          rl.DarkGray,
 		GUI_NOTE_COLOR:          rl.Color{250, 225, 120, 255},
@@ -49,9 +49,9 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_OUTLINE_HIGHLIGHTED: rl.White,
 		GUI_OUTLINE_CLICKED:     rl.Black,
 		GUI_OUTLINE_DISABLED:    rl.DarkGray,
-		GUI_INSIDE:              rl.Color{20, 20, 30, 255},
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{60, 100, 140, 255}, // Highlighted / Completion color
-		GUI_INSIDE_CLICKED:      rl.Black,
+		GUI_INSIDE:              rl.Color{20, 20, 30, 255},   // BG / Task BG color
+		GUI_INSIDE_HIGHLIGHTED:  rl.Color{60, 100, 140, 255}, // Button Highlight / Focused Textbox / Task Completion color
+		GUI_INSIDE_CLICKED:      rl.Black,                    // Grid color
 		GUI_INSIDE_DISABLED:     rl.Color{40, 40, 100, 255},
 		GUI_FONT_COLOR:          rl.Color{220, 240, 255, 255},
 		GUI_NOTE_COLOR:          rl.Color{40, 40, 100, 255},
@@ -61,21 +61,21 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_OUTLINE_HIGHLIGHTED: rl.Red,
 		GUI_OUTLINE_CLICKED:     rl.Black,
 		GUI_OUTLINE_DISABLED:    rl.Red,
-		GUI_INSIDE:              rl.Color{20, 20, 20, 255},
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{100, 40, 40, 255}, // Highlighted / Completion color
-		GUI_INSIDE_CLICKED:      rl.Black,
+		GUI_INSIDE:              rl.Color{20, 20, 20, 255},  // BG / Task BG color
+		GUI_INSIDE_HIGHLIGHTED:  rl.Color{100, 40, 40, 255}, // Button Highlight / Focused Textbox / Task Completion color
+		GUI_INSIDE_CLICKED:      rl.Black,                   // Grid color
 		GUI_INSIDE_DISABLED:     rl.Maroon,
 		GUI_FONT_COLOR:          rl.RayWhite,
 		GUI_NOTE_COLOR:          rl.Maroon,
 	},
 	"Blueprint": map[int]rl.Color{
 		GUI_OUTLINE:             rl.RayWhite,
-		GUI_OUTLINE_HIGHLIGHTED: rl.Yellow,
+		GUI_OUTLINE_HIGHLIGHTED: rl.Yellow, // Selected Task Outline
 		GUI_OUTLINE_CLICKED:     rl.Yellow,
 		GUI_OUTLINE_DISABLED:    rl.Color{30, 60, 120, 255},
-		GUI_INSIDE:              rl.Blue,
-		GUI_INSIDE_HIGHLIGHTED:  rl.Gold, // Highlighted / Completion color
-		GUI_INSIDE_CLICKED:      rl.Color{138, 161, 246, 255},
+		GUI_INSIDE:              rl.Blue,                      // BG / Task BG
+		GUI_INSIDE_HIGHLIGHTED:  rl.Color{220, 180, 0, 255},   // Button Highlight / Focused Textbox / Task Completion color
+		GUI_INSIDE_CLICKED:      rl.Color{138, 161, 246, 255}, // Grid color
 		GUI_INSIDE_DISABLED:     rl.DarkBlue,
 		GUI_FONT_COLOR:          rl.White,
 		GUI_NOTE_COLOR:          rl.DarkGray,
