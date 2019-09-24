@@ -48,7 +48,7 @@ func main() {
 	rl.SetTextureFilter(screen.Texture, rl.FilterPoint)
 
 	// TO-DO: Take this out later, this is just pretty much for me, probably
-	rl.SetWindowPosition(1920, 0)
+	// rl.SetWindowPosition(1920, 0)
 
 	for !rl.WindowShouldClose() {
 
