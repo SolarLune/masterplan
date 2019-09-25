@@ -47,9 +47,6 @@ func main() {
 	screen := rl.LoadRenderTexture(screenWidth, screenHeight)
 	rl.SetTextureFilter(screen.Texture, rl.FilterPoint)
 
-	// TO-DO: Take this out later, this is just pretty much for me, probably
-	// rl.SetWindowPosition(1920, 0)
-
 	for !rl.WindowShouldClose() {
 
 		if rl.IsKeyPressed(rl.KeyF1) {

@@ -89,7 +89,7 @@ func NewProject() *Project {
 		themes = append(themes, themeName)
 	}
 
-	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, Pan: camera.Offset, TimeScaleRate: TIMESCALE_PER_DAY,
+	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, Pan: rl.Vector2{screenWidth / 2, screenHeight / 2}, TimeScaleRate: TIMESCALE_PER_DAY,
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15}, TimescaleBar: rl.Rectangle{0, 0, screenWidth, 16},
 		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
 		ColorThemeSpinner: NewSpinner(192, 32, 192, 16, themes...),

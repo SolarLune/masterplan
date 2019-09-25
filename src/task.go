@@ -326,7 +326,7 @@ func (task *Task) Update() {
 			rec.X += task.Rect.Width
 			rec.Y += task.Rect.Height
 			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
-			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
+			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
 			if rl.IsMouseButtonDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
 				task.Resizing = true
 			} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
@@ -348,7 +348,7 @@ func (task *Task) Update() {
 			rec.Y = task.Rect.Y - rec.Height
 
 			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
-			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
+			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
 
 			if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
 				task.ImageDisplaySize.X = float32(task.Image.Width)
