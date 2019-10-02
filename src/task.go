@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/flac"
@@ -15,13 +16,12 @@ import (
 	"github.com/faiface/beep/vorbis"
 	"github.com/faiface/beep/wav"
 	"github.com/gen2brain/dlgs"
-	"github.com/gen2brain/raylib-go/raygui"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 const (
 	TASK_TYPE_BOOLEAN = iota
-	TASK_TYPE_PROGRESSBAR
+	TASK_TYPE_PROGRESSION
 	TASK_TYPE_NOTE
 	TASK_TYPE_IMAGE
 	TASK_TYPE_SOUND
@@ -39,9 +39,13 @@ type Task struct {
 	TaskType    *Spinner
 	Description *Textbox
 
-	CompletionCheckbox    *Checkbox
-	CompletionProgressbar *ProgressBar
-	Image                 rl.Texture2D
+	CreationTime   time.Time
+	CompletionTime time.Time
+
+	CompletionCheckbox           *Checkbox
+	CompletionProgressionCurrent *NumberSpinner
+	CompletionProgressionMax     *NumberSpinner
+	Image                        rl.Texture2D
 
 	SoundControl  *beep.Ctrl
 	SoundStream   beep.StreamSeekCloser
@@ -66,16 +70,20 @@ var taskID = 0
 
 func NewTask(project *Project) *Task {
 	task := &Task{
-		Rect:                  rl.Rectangle{0, 0, 16, 16},
-		Project:               project,
-		TaskType:              NewSpinner(140, 32, 192, 16, "Check Box", "Progress Bar", "Note", "Image", "Sound"),
-		Description:           NewTextbox(140, 64, 256, 64),
-		CompletionCheckbox:    NewCheckbox(140, 96, 16, 16),
-		CompletionProgressbar: NewProgressBar(140, 96, 192, 16),
-		NumberingPrefix:       []int{-1},
-		RefreshPrefix:         false,
-		ID:                    project.GetFirstFreeID(),
+		Rect:                         rl.Rectangle{0, 0, 16, 16},
+		Project:                      project,
+		TaskType:                     NewSpinner(140, 32, 192, 16, "Check Box", "Progression", "Note", "Image", "Sound"),
+		Description:                  NewTextbox(140, 64, 256, 64),
+		CompletionCheckbox:           NewCheckbox(140, 96, 16, 16),
+		CompletionProgressionCurrent: NewNumberSpinner(140, 96, 64, 16),
+		CompletionProgressionMax:     NewNumberSpinner(220, 96, 64, 16),
+		NumberingPrefix:              []int{-1},
+		RefreshPrefix:                false,
+		ID:                           project.GetFirstFreeID(),
 	}
+	task.CreationTime = time.Now()
+	task.CompletionProgressionCurrent.Textbox.MaxCharacters = 8
+	task.CompletionProgressionMax.Textbox.MaxCharacters = 8
 	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
 	task.Description.AllowNewlines = true
 	return task
@@ -97,8 +105,11 @@ func (task *Task) Clone() *Task {
 	cc := *copyData.CompletionCheckbox
 	copyData.CompletionCheckbox = &cc
 
-	cp := *copyData.CompletionProgressbar
-	copyData.CompletionProgressbar = &cp
+	cpc := *copyData.CompletionProgressionCurrent
+	copyData.CompletionProgressionCurrent = &cpc
+
+	cpm := *copyData.CompletionProgressionMax
+	copyData.CompletionProgressionMax = &cpm
 
 	copyData.SoundControl = nil
 	copyData.SoundStream = nil
@@ -118,11 +129,19 @@ func (task *Task) Serialize() map[string]interface{} {
 	data["ImageDisplaySize.X"] = task.ImageDisplaySize.X
 	data["ImageDisplaySize.Y"] = task.ImageDisplaySize.Y
 	data["Checkbox.Checked"] = task.CompletionCheckbox.Checked
-	data["Progressbar.Percentage"] = task.CompletionProgressbar.Percentage
+	data["Progression.Current"] = task.CompletionProgressionCurrent.GetNumber()
+	data["Progression.Max"] = task.CompletionProgressionMax.GetNumber()
 	data["Description"] = task.Description.Text
 	data["FilePath"] = task.FilePath
 	data["Selected"] = task.Selected
 	data["TaskType.CurrentChoice"] = task.TaskType.CurrentChoice
+
+	data["CreationTime"] = task.CreationTime.Format("Jan 2 2006 15:04:05")
+
+	if !task.CompletionTime.IsZero() {
+		data["CompletionTime"] = task.CompletionTime.Format("Jan 2 2006 15:04:05")
+	}
+
 	return data
 
 }
@@ -133,8 +152,8 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	getFloat := func(name string) float32 {
 		return float32(data[name].(float64))
 	}
-	getInt := func(name string) int32 {
-		return int32(data[name].(float64))
+	getInt := func(name string) int {
+		return int(data[name].(float64))
 	}
 
 	task.Position.X = getFloat("Position.X")
@@ -146,18 +165,39 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	task.ImageDisplaySize.X = getFloat("ImageDisplaySize.X")
 	task.ImageDisplaySize.Y = getFloat("ImageDisplaySize.Y")
 	task.CompletionCheckbox.Checked = data["Checkbox.Checked"].(bool)
-	task.CompletionProgressbar.Percentage = getInt("Progressbar.Percentage")
+	task.CompletionProgressionCurrent.SetNumber(getInt("Progression.Current"))
+	task.CompletionProgressionMax.SetNumber(getInt("Progression.Max"))
 	task.Description.Text = data["Description"].(string)
 	task.FilePath = data["FilePath"].(string)
 	task.PrevFilePath = task.FilePath
 	task.Selected = data["Selected"].(bool)
 	task.TaskType.CurrentChoice = int(data["TaskType.CurrentChoice"].(float64))
 
+	creationTime, err := time.Parse("Jan 2 2006 15:04:05", data["CreationTime"].(string))
+	if err == nil {
+		task.CreationTime = creationTime
+	}
+
+	_, completionTimeSaved := data["CompletionTime"]
+	if completionTimeSaved {
+		ctString := data["CompletionTime"].(string)
+		completionTime, err := time.Parse("Jan 2 2006 15:04:05", ctString)
+		if err == nil {
+			task.CompletionTime = completionTime
+		}
+	}
+
 	// We do this to update the task after loading all of the information.
 	task.ReceiveMessage("task close", map[string]interface{}{"task": task})
 }
 
 func (task *Task) Update() {
+
+	if task.IsComplete() && task.CompletionTime.IsZero() {
+		task.CompletionTime = time.Now()
+	} else if !task.IsComplete() {
+		task.CompletionTime = time.Time{}
+	}
 
 	task.SetPrefix()
 
@@ -280,32 +320,53 @@ func (task *Task) Update() {
 
 	}
 
-	shadowRect := task.Rect
-	shadowRect.X += 4
-	shadowRect.Y += 2
-	shadow := rl.Black
-	shadow.A = color.A / 3
-	rl.DrawRectangleRec(shadowRect, shadow)
-
-	rl.DrawRectangleRec(task.Rect, color)
-	if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSBAR && task.CompletionProgressbar.Percentage < 100 {
-		c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
-		r := task.Rect
-		r.Width *= float32(task.CompletionProgressbar.Percentage) / 100
-		c.A = color.A / 3
-		rl.DrawRectangleRec(r, c)
+	if task.Project.ShadowQualitySpinner.CurrentChoice == 2 {
+		for y := 1; y < 4; y++ {
+			shadowRect := task.Rect
+			shadowRect.X += float32(y)
+			shadowRect.Y += float32(y)
+			shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+			shadowColor.A = 64
+			rl.DrawRectangleRec(shadowRect, shadowColor)
+		}
+	} else if task.Project.ShadowQualitySpinner.CurrentChoice == 1 {
+		shadowRect := task.Rect
+		shadowRect.X += 2
+		shadowRect.Y += 2
+		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+		shadowColor.A = 128
+		rl.DrawRectangleRec(shadowRect, shadowColor)
 	}
 
-	if task.SoundControl != nil {
+	rl.DrawRectangleRec(task.Rect, color)
+
+	perc := float32(0)
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
+
+		cnum := task.CompletionProgressionCurrent.GetNumber()
+		mnum := task.CompletionProgressionMax.GetNumber()
+
+		if mnum != 0 {
+			perc = float32(cnum) / float32(mnum)
+		}
+
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND && task.SoundStream != nil {
 		pos := task.SoundStream.Position()
 		len := task.SoundStream.Len()
+		perc = float32(pos) / float32(len)
+	}
 
+	if perc > 1 {
+		perc = 1
+	}
+
+	if perc > 0 {
 		c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 		r := task.Rect
-		r.Width *= float32(pos) / float32(len)
-		c.A = color.A / 3
+		r.Width *= perc
+		c.A = color.A / 2
 		rl.DrawRectangleRec(r, c)
-
 	}
 
 	rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
@@ -317,7 +378,6 @@ func (task *Task) Update() {
 		dst.Width = task.ImageDisplaySize.X
 		dst.Height = task.ImageDisplaySize.Y
 		rl.DrawTexturePro(task.Image, src, dst, rl.Vector2{}, 0, rl.White)
-		// rl.DrawTexture(task.Image, int32(task.Rect.X), int32(task.Rect.Y), rl.White)
 
 		if task.Resizeable && task.Selected {
 			rec := task.Rect
@@ -361,17 +421,21 @@ func (task *Task) Update() {
 
 	name := task.Description.Text
 
+	hasIcon := false
+
 	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 		name = ""
 		task.Resizeable = true
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 		_, filename := path.Split(task.FilePath)
 		name = filename
+		hasIcon = true // Expanded because i
 	} else if task.TaskType.CurrentChoice != TASK_TYPE_NOTE {
 		// Notes don't get just the first line written on the task in the overview.
 		cut := strings.Index(name, "\n")
 		if cut >= 0 {
-			name = name[:cut] + "[...]"
+			hasIcon = true
+			name = name[:cut]
 		}
 		task.Resizeable = false
 	}
@@ -386,8 +450,12 @@ func (task *Task) Update() {
 
 	taskDisplaySize := rl.MeasureTextEx(font, name, fontSize, spacing)
 	// Lock the sizes of the task to a grid
+	if hasIcon {
+		taskDisplaySize.X += 16
+	}
 	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
 	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
+
 	task.Rect.Width = taskDisplaySize.X
 	task.Rect.Height = taskDisplaySize.Y
 
@@ -407,7 +475,25 @@ func (task *Task) Update() {
 		task.Rect.Height = task.MinSize.Y
 	}
 
-	rl.DrawTextEx(font, name, rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	iconColor := getThemeColor(GUI_FONT_COLOR)
+	textPos := rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}
+	iconPos := rl.Vector2{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y}
+	iconSrc := rl.Rectangle{16, 0, 16, 16}
+
+	if hasIcon && task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+		iconPos.X = task.Rect.X
+		textPos.X += 16
+		iconSrc = rl.Rectangle{32, 0, 16, 16}
+		if task.SoundStream == nil || task.SoundControl.Paused {
+			iconColor = getThemeColor(GUI_OUTLINE)
+		}
+	}
+
+	rl.DrawTextEx(font, name, textPos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
+	if hasIcon {
+		rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{iconPos.X, iconPos.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+	}
 
 }
 
@@ -420,14 +506,22 @@ func (task *Task) PostDraw() {
 		rl.DrawRectangleRec(rect, getThemeColor(GUI_INSIDE))
 		rl.DrawRectangleLinesEx(rect, 1, getThemeColor(GUI_OUTLINE))
 
-		raygui.Label(rl.Rectangle{rect.X, task.TaskType.Rect.Y, 0, 16}, "Task Type: ")
+		rl.DrawTextEx(font, "Task Type: ", rl.Vector2{32, task.TaskType.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
 		task.TaskType.Update()
 
-		y := task.TaskType.Rect.Y + 16
+		y := task.TaskType.Rect.Y + 24
+
+		p := rl.Vector2{32, y + 4}
+		rl.DrawTextEx(font, "Created On:", p, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(font, task.CreationTime.Format("Monday, Jan 2, 2006, 15:04"), rl.Vector2{140, y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
+		y += 32
 
 		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND {
+			task.Description.Rect.Y = y
 			task.Description.Update()
-			raygui.Label(rl.Rectangle{rect.X, task.Description.Rect.Y + 8, 0, 16}, "Description: ")
+			rl.DrawTextEx(font, "Description: ", rl.Vector2{32, y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 			y += task.Description.Rect.Height + 16
 		}
 
@@ -438,13 +532,22 @@ func (task *Task) PostDraw() {
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
-			raygui.Label(rl.Rectangle{rect.X, y + 8, 0, 0}, "Completed: ")
+			rl.DrawTextEx(font, "Completed: ", rl.Vector2{32, y + 12}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 			task.CompletionCheckbox.Rect.Y = y + 8
 			task.CompletionCheckbox.Update()
-		} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSBAR {
-			raygui.Label(rl.Rectangle{rect.X, y + 8, 0, 0}, "Percentage: ")
-			task.CompletionProgressbar.Rect.Y = y + 8
-			task.CompletionProgressbar.Update()
+		} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
+			rl.DrawTextEx(font, "Completed: ", rl.Vector2{32, y + 12}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			task.CompletionProgressionCurrent.Rect.Y = y + 8
+			task.CompletionProgressionCurrent.Update()
+
+			r := task.CompletionProgressionCurrent.Rect
+			r.X += r.Width
+
+			rl.DrawTextEx(font, "/", rl.Vector2{r.X + 10, r.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
+			task.CompletionProgressionMax.Rect.X = r.X + 24
+			task.CompletionProgressionMax.Rect.Y = r.Y
+			task.CompletionProgressionMax.Update()
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 			imagePath := "Image File: "
 			if task.FilePath == "" {
@@ -452,7 +555,7 @@ func (task *Task) PostDraw() {
 			} else {
 				imagePath += task.FilePath
 			}
-			raygui.Label(rl.Rectangle{rect.X, y + 8, 0, 0}, imagePath)
+			rl.DrawTextEx(font, imagePath, rl.Vector2{32, y + 8}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
 				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
 				filepath, success, _ := dlgs.File("Load Image", "Image Files | *.png *.jpg *.bmp *.tiff", false)
@@ -471,7 +574,7 @@ func (task *Task) PostDraw() {
 			} else {
 				imagePath += task.FilePath
 			}
-			raygui.Label(rl.Rectangle{rect.X, y + 8, 0, 0}, imagePath)
+			rl.DrawTextEx(font, imagePath, rl.Vector2{32, y + 8}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
 				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
 				filepath, success, _ := dlgs.File("Load Sound", "Sound Files | *.wav *.ogg *.xm *.mod *.flac *.mp3", false)
@@ -487,6 +590,13 @@ func (task *Task) PostDraw() {
 
 		y += 48
 
+		rl.DrawTextEx(font, "Completed On:", rl.Vector2{32, y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		completionTime := task.CompletionTime.Format("Monday, Jan 2, 2006, 15:04")
+		if task.CompletionTime.IsZero() {
+			completionTime = "N/A"
+		}
+		rl.DrawTextEx(font, completionTime, rl.Vector2{140, y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
 	}
 
 }
@@ -494,14 +604,14 @@ func (task *Task) PostDraw() {
 func (task *Task) IsComplete() bool {
 	if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
 		return task.CompletionCheckbox.Checked
-	} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSBAR {
-		return task.CompletionProgressbar.Percentage == 100
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
+		return task.CompletionProgressionMax.GetNumber() > 0 && task.CompletionProgressionCurrent.GetNumber() >= task.CompletionProgressionMax.GetNumber()
 	}
 	return false
 }
 
 func (task *Task) Completable() bool {
-	return task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN || task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSBAR
+	return task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN || task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION
 }
 
 func (task *Task) CanHaveNeighbors() bool {
@@ -514,10 +624,10 @@ func (task *Task) ToggleCompletion() {
 
 		task.CompletionCheckbox.Checked = !task.CompletionCheckbox.Checked
 
-		if task.CompletionProgressbar.Percentage != 100 {
-			task.CompletionProgressbar.Percentage = 100
+		if task.CompletionProgressionCurrent.GetNumber() < task.CompletionProgressionMax.GetNumber() {
+			task.CompletionProgressionCurrent.SetNumber(task.CompletionProgressionMax.GetNumber())
 		} else {
-			task.CompletionProgressbar.Percentage = 0
+			task.CompletionProgressionCurrent.SetNumber(0)
 		}
 
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {

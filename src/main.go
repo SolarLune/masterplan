@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"log"
 	"os"
+	"path"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -16,13 +17,11 @@ var currentProject *Project
 
 func main() {
 
-	// raygui.ButtonDefaultInsideColor = raygui.TextboxBorderColor
-
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(screenWidth, screenHeight, "MasterPlan")
 	rl.SetTargetFPS(60)
 
-	font = rl.GetFontDefault()
+	font = rl.LoadFontEx(path.Join("assets", "font.ttf"), int32(fontSize), -1, nil)
 
 	currentProject = NewProject()
 

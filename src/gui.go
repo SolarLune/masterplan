@@ -3,20 +3,10 @@ package main
 import (
 	"fmt"
 	"math"
+	"strconv"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
-
-// var GUI_OUTLINE = rl.Gray
-// var GUI_INSIDE = rl.RayWhite
-// var GUI_OUTLINE_HIGHLIGHTED = rl.Blue
-// var GUI_INSIDE_HIGHLIGHTED = rl.White
-// var GUI_OUTLINE_CLICKED = rl.DarkBlue
-// var GUI_INSIDE_CLICKED = rl.LightGray
-// var GUI_FONT_COLOR = rl.Black
-// var GUI_INSIDE_DISABLED = rl.DarkGray
-// var GUI_OUTLINE_DISABLED = rl.Black
-// var GUI_NOTE_COLOR = rl.SkyBlue
 
 const (
 	GUI_OUTLINE = iota
@@ -29,6 +19,13 @@ const (
 	GUI_INSIDE_DISABLED
 	GUI_FONT_COLOR
 	GUI_NOTE_COLOR
+	GUI_SHADOW_COLOR
+)
+
+const (
+	TEXTBOX_ALIGN_LEFT = iota
+	TEXTBOX_ALIGN_CENTER
+	TEXTBOX_ALIGN_RIGHT
 )
 
 var guiColors = map[string]map[int]rl.Color{
@@ -43,6 +40,7 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_INSIDE_DISABLED:     rl.LightGray,
 		GUI_FONT_COLOR:          rl.DarkGray,
 		GUI_NOTE_COLOR:          rl.Color{250, 225, 120, 255},
+		GUI_SHADOW_COLOR:        rl.Black,
 	},
 	"Moonlight": map[int]rl.Color{
 		GUI_OUTLINE:             rl.Color{40, 40, 100, 255},
@@ -55,6 +53,7 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_INSIDE_DISABLED:     rl.Color{40, 40, 100, 255},
 		GUI_FONT_COLOR:          rl.Color{220, 240, 255, 255},
 		GUI_NOTE_COLOR:          rl.Color{40, 40, 100, 255},
+		GUI_SHADOW_COLOR:        rl.SkyBlue,
 	},
 	"Dark Crimson": map[int]rl.Color{
 		GUI_OUTLINE:             rl.Gray,
@@ -67,6 +66,7 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_INSIDE_DISABLED:     rl.Maroon,
 		GUI_FONT_COLOR:          rl.RayWhite,
 		GUI_NOTE_COLOR:          rl.Maroon,
+		GUI_SHADOW_COLOR:        rl.Red,
 	},
 	"Blueprint": map[int]rl.Color{
 		GUI_OUTLINE:             rl.RayWhite,
@@ -79,13 +79,14 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_INSIDE_DISABLED:     rl.DarkBlue,
 		GUI_FONT_COLOR:          rl.White,
 		GUI_NOTE_COLOR:          rl.DarkGray,
+		GUI_SHADOW_COLOR:        rl.Black,
 	},
 }
 
 var currentTheme = ""
 
 var fontSize = float32(10)
-var spacing = float32(3)
+var spacing = float32(1)
 var font rl.Font
 
 func getThemeColor(colorConstant int) rl.Color {
@@ -132,6 +133,7 @@ func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 type Checkbox struct {
 	Rect    rl.Rectangle
 	Checked bool
+	Changed bool
 }
 
 func NewCheckbox(x, y, w, h float32) *Checkbox {
@@ -141,11 +143,14 @@ func NewCheckbox(x, y, w, h float32) *Checkbox {
 
 func (checkbox *Checkbox) Update() {
 
+	checkbox.Changed = false
+
 	rl.DrawRectangleRec(checkbox.Rect, getThemeColor(GUI_INSIDE))
 	outlineColor := getThemeColor(GUI_OUTLINE)
 
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), checkbox.Rect) {
 		checkbox.Checked = !checkbox.Checked
+		checkbox.Changed = true
 	}
 
 	if checkbox.Checked {
@@ -246,13 +251,71 @@ func (progressBar *ProgressBar) Update() {
 
 }
 
+type NumberSpinner struct {
+	Rect    rl.Rectangle
+	Textbox *Textbox
+}
+
+func NewNumberSpinner(x, y, w, h float32, options ...string) *NumberSpinner {
+	numberSpinner := &NumberSpinner{Rect: rl.Rectangle{x, y, w, h}, Textbox: NewTextbox(x+h, y, w-(h*2), h)}
+
+	numberSpinner.Textbox.AllowAlphaCharacters = false
+	numberSpinner.Textbox.AllowNewlines = false
+	numberSpinner.Textbox.Alignment = TEXTBOX_ALIGN_CENTER
+	numberSpinner.Textbox.Text = "0"
+
+	return numberSpinner
+}
+
+func (numberSpinner *NumberSpinner) Update() {
+
+	numberSpinner.Textbox.Rect.X = numberSpinner.Rect.X + numberSpinner.Rect.Height
+	numberSpinner.Textbox.Rect.Y = numberSpinner.Rect.Y
+	numberSpinner.Textbox.Update()
+
+	num := numberSpinner.GetNumber()
+
+	if !numberSpinner.Textbox.Focused && numberSpinner.Textbox.Text == "" {
+		numberSpinner.Textbox.Text = "0"
+	}
+
+	numberSpinner.Rect.Width = numberSpinner.Textbox.Rect.Width + (numberSpinner.Rect.Height * 2)
+
+	if ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false) {
+		num--
+	}
+
+	if ImmediateButton(rl.Rectangle{numberSpinner.Rect.X + numberSpinner.Rect.Width - numberSpinner.Rect.Height, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false) {
+		num++
+	}
+
+	if num < 0 {
+		num = 0
+	}
+
+	numberSpinner.Textbox.Text = strconv.Itoa(num)
+
+}
+
+func (numberSpinner *NumberSpinner) GetNumber() int {
+	num, _ := strconv.Atoi(numberSpinner.Textbox.Text)
+	return num
+}
+
+func (numberSpinner *NumberSpinner) SetNumber(number int) {
+	numberSpinner.Textbox.Text = strconv.Itoa(number)
+}
+
 type Textbox struct {
-	Text          string
-	Focused       bool
-	Rect          rl.Rectangle
-	Visible       bool
-	AllowNewlines bool
-	Changed       bool
+	Text                 string
+	Focused              bool
+	Rect                 rl.Rectangle
+	Visible              bool
+	AllowNewlines        bool
+	AllowAlphaCharacters bool
+	MaxCharacters        int
+	Changed              bool
+	Alignment            int
 
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
@@ -262,7 +325,7 @@ type Textbox struct {
 
 func NewTextbox(x, y, w, h float32) *Textbox {
 	textbox := &Textbox{Rect: rl.Rectangle{x, y, w, h}, Visible: true,
-		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}}
+		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharacters: math.MaxInt64, AllowAlphaCharacters: true}
 	return textbox
 }
 
@@ -280,9 +343,20 @@ func (textbox *Textbox) Update() {
 			textbox.Text += "\n"
 		}
 
-		letter := rl.GetKeyPressed()
+		letter := int(rl.GetKeyPressed())
 		if letter != -1 {
-			if letter >= 32 && letter < 127 {
+			numbers := []int{
+				rl.KeyZero,
+				rl.KeyNine,
+			}
+			npNumbers := []int{
+				rl.KeyKp0,
+				rl.KeyKp9,
+			}
+
+			isNum := (letter >= numbers[0] && letter <= numbers[1]) || (letter >= npNumbers[0] && letter <= npNumbers[1])
+
+			if letter >= 32 && letter < 127 && (textbox.AllowAlphaCharacters || isNum) && len(textbox.Text) < textbox.MaxCharacters {
 				textbox.Changed = true
 				textbox.Text += fmt.Sprintf("%c", letter)
 			}
@@ -301,7 +375,7 @@ func (textbox *Textbox) Update() {
 
 	}
 
-	measure := rl.MeasureTextEx(rl.GetFontDefault(), textbox.Text, fontSize, spacing)
+	measure := rl.MeasureTextEx(font, textbox.Text, fontSize, spacing)
 
 	textbox.Rect.Width = measure.X + 8
 	textbox.Rect.Height = measure.Y + 4
@@ -334,6 +408,14 @@ func (textbox *Textbox) Update() {
 		txt += "|"
 	}
 
-	rl.DrawTextEx(font, txt, rl.Vector2{textbox.Rect.X + 2, textbox.Rect.Y + 2}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	pos := rl.Vector2{textbox.Rect.X + 2, textbox.Rect.Y + 2}
+
+	if textbox.Alignment == TEXTBOX_ALIGN_CENTER {
+		pos.X += float32(int(textbox.Rect.Width/2 - measure.X/2))
+	} else if textbox.Alignment == TEXTBOX_ALIGN_RIGHT {
+		pos.X += float32(int(textbox.Rect.Width - measure.X - 4))
+	}
+
+	rl.DrawTextEx(font, txt, pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 }

@@ -17,8 +17,6 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 
-	"github.com/gen2brain/raylib-go/raygui"
-
 	"github.com/gen2brain/raylib-go/raymath"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -47,21 +45,23 @@ type Project struct {
 	Pan       rl.Vector2
 
 	// Internal data to make projects work
-	GridTexture         rl.Texture2D
-	ContextMenuOpen     bool
-	ContextMenuPosition rl.Vector2
-	ProjectSettingsOpen bool
-	RootPath            string
-	Selecting           bool
-	SelectionStart      rl.Vector2
-	DoubleClickTimer    int
-	CopyBuffer          []*Task
-	TimeScaleRate       int
-	TaskOpen            bool
-	ColorTheme          string
-	ReorderSequence     int
-	SampleRate          beep.SampleRate
-	SampleBuffer        int
+	GridTexture          rl.Texture2D
+	ContextMenuOpen      bool
+	ContextMenuPosition  rl.Vector2
+	ProjectSettingsOpen  bool
+	RootPath             string
+	Selecting            bool
+	SelectionStart       rl.Vector2
+	DoubleClickTimer     int
+	CopyBuffer           []*Task
+	TimeScaleRate        int
+	TaskOpen             bool
+	ColorTheme           string
+	ReorderSequence      int
+	SampleRate           beep.SampleRate
+	SampleBuffer         int
+	ShadowQualitySpinner *Spinner
+	GridVisible          *Checkbox
 
 	Searchbar    *Textbox
 	StatusBar    rl.Rectangle
@@ -92,9 +92,12 @@ func NewProject() *Project {
 	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, Pan: rl.Vector2{screenWidth / 2, screenHeight / 2}, TimeScaleRate: TIMESCALE_PER_DAY,
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15}, TimescaleBar: rl.Rectangle{0, 0, screenWidth, 16},
 		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
-		ColorThemeSpinner: NewSpinner(192, 32, 192, 16, themes...),
+		ColorThemeSpinner: NewSpinner(192, 32, 192, 16, themes...), ShadowQualitySpinner: NewSpinner(192, 64, 128, 16, "Off", "Solid", "Smooth"),
+		GridVisible: NewCheckbox(192, 96, 16, 16),
 	}
+	project.ShadowQualitySpinner.CurrentChoice = 2
 	project.ChangeTheme(project.ColorTheme)
+	project.GridVisible.Checked = true
 	project.GenerateGrid()
 	project.DoubleClickTimer = -1
 
@@ -121,14 +124,16 @@ func (project *Project) Save() bool {
 		}
 
 		data := map[string]interface{}{
-			"GridSize":     project.GridSize,
-			"Pan.X":        project.Pan.X,
-			"Pan.Y":        project.Pan.Y,
-			"ZoomLevel":    project.ZoomLevel,
-			"Tasks":        taskData,
-			"ColorTheme":   project.ColorTheme,
-			"SampleRate":   project.SampleRate,
-			"SampleBuffer": project.SampleBuffer,
+			"GridSize":      project.GridSize,
+			"Pan.X":         project.Pan.X,
+			"Pan.Y":         project.Pan.Y,
+			"ZoomLevel":     project.ZoomLevel,
+			"Tasks":         taskData,
+			"ColorTheme":    project.ColorTheme,
+			"SampleRate":    project.SampleRate,
+			"SampleBuffer":  project.SampleBuffer,
+			"ShadowQuality": project.ShadowQualitySpinner.CurrentChoice,
+			"GridVisible":   project.GridVisible.Checked,
 		}
 
 		f, err := os.Create(project.FilePath)
@@ -184,10 +189,10 @@ func (project *Project) Load() bool {
 				return 0
 			}
 		}
-		getInt := func(name string) int32 {
+		getInt := func(name string) int {
 			value, exists := data[name]
 			if exists {
-				return int32(value.(float64))
+				return int(value.(float64))
 			} else {
 				return 0
 			}
@@ -201,12 +206,14 @@ func (project *Project) Load() bool {
 			}
 		}
 
-		project.GridSize = getInt("GridSize")
+		project.GridSize = int32(getInt("GridSize"))
 		project.Pan.X = getFloat("Pan.X")
 		project.Pan.Y = getFloat("Pan.Y")
-		project.ZoomLevel = int(getInt("ZoomLevel")) // Needs to be an int, not an int32
+		project.ZoomLevel = getInt("ZoomLevel")
 		project.SampleRate = beep.SampleRate(getInt("SampleRate"))
-		project.SampleBuffer = int(getInt("SampleBuffer"))
+		project.SampleBuffer = getInt("SampleBuffer")
+		project.ShadowQualitySpinner.CurrentChoice = getInt("ShadowQuality")
+		project.GridVisible.Checked = data["GridVisible"].(bool)
 
 		speaker.Init(project.SampleRate, project.SampleBuffer)
 
@@ -516,7 +523,7 @@ func (project *Project) Update() {
 				project.DoubleClickTimer++
 			}
 
-			if project.DoubleClickTimer >= 10 {
+			if project.DoubleClickTimer >= 20 {
 				project.DoubleClickTimer = -1
 			}
 
@@ -821,10 +828,13 @@ func (project *Project) ChangeTheme(themeName string) bool {
 	if themeExists {
 		project.ColorTheme = themeName
 		currentTheme = project.ColorTheme
+		for i, choice := range project.ColorThemeSpinner.Options {
+			if choice == themeName {
+				project.ColorThemeSpinner.CurrentChoice = i
+				break
+			}
+		}
 		project.GenerateGrid()
-		color := int64(rl.ColorToInt(getThemeColor(GUI_FONT_COLOR)))
-		raygui.SetStyleProperty(raygui.LabelTextColor, color)
-
 		return true
 	}
 	return false
@@ -954,10 +964,18 @@ func (project *Project) GUI() {
 			project.Save()
 		}
 
-		rec = project.ColorThemeSpinner.Rect
-		rec.X -= 192
-		raygui.Label(rec, "Color Theme: ")
+		rl.DrawTextEx(font, "Shadow Quality: ", rl.Vector2{32, project.ShadowQualitySpinner.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		project.ShadowQualitySpinner.Update()
+
+		rl.DrawTextEx(font, "Color Theme: ", rl.Vector2{32, project.ColorThemeSpinner.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 		project.ColorThemeSpinner.Update()
+
+		rl.DrawTextEx(font, "Grid Visible: ", rl.Vector2{32, project.GridVisible.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		project.GridVisible.Update()
+
+		if project.GridVisible.Changed {
+			project.GenerateGrid()
+		}
 
 		if project.ColorThemeSpinner.Changed {
 			project.ChangeTheme(project.ColorThemeSpinner.Options[project.ColorThemeSpinner.CurrentChoice])
@@ -1134,7 +1152,7 @@ func (project *Project) GenerateGrid() {
 		for x := int32(0); x < project.GridSize*2; x++ {
 
 			c := getThemeColor(GUI_INSIDE)
-			if (x%project.GridSize == 0 || x%project.GridSize == project.GridSize-1) && (y%project.GridSize == 0 || y%project.GridSize == project.GridSize-1) {
+			if project.GridVisible.Checked && (x%project.GridSize == 0 || x%project.GridSize == project.GridSize-1) && (y%project.GridSize == 0 || y%project.GridSize == project.GridSize-1) {
 				c = getThemeColor(GUI_INSIDE_CLICKED)
 			}
 
