@@ -139,11 +139,11 @@ type Task struct {
 
 	GifAnimation *GifAnimation
 
-	SoundControl  *beep.Ctrl
-	SoundStream   beep.StreamSeekCloser
-	SoundComplete bool
-	FilePath      string
-	PrevFilePath  string
+	SoundControl    *beep.Ctrl
+	SoundStream     beep.StreamSeekCloser
+	SoundComplete   bool
+	FilePathTextbox *Textbox
+	PrevFilePath    string
 	// ImagePathIsURL  // I don't know about the utility of this one. It's got cool points, though.
 	ImageDisplaySize rl.Vector2
 	Resizeable       bool
@@ -172,12 +172,15 @@ func NewTask(project *Project) *Task {
 		NumberingPrefix:              []int{-1},
 		RefreshPrefix:                false,
 		ID:                           project.GetFirstFreeID(),
+		FilePathTextbox:              NewTextbox(140, 64, 512, 16),
 	}
 	task.CreationTime = time.Now()
 	task.CompletionProgressionCurrent.Textbox.MaxCharacters = 8
 	task.CompletionProgressionMax.Textbox.MaxCharacters = 8
 	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
 	task.Description.AllowNewlines = true
+	task.FilePathTextbox.AllowNewlines = false
+	task.FilePathTextbox.MaxSize = task.FilePathTextbox.MinSize
 	return task
 }
 
@@ -203,10 +206,15 @@ func (task *Task) Clone() *Task {
 	cpm := *copyData.CompletionProgressionMax
 	copyData.CompletionProgressionMax = &cpm
 
+	cPath := *copyData.FilePathTextbox
+	copyData.FilePathTextbox = &cPath
+
+	copyData.PrevFilePath = ""
+	copyData.GifAnimation = nil
 	copyData.SoundControl = nil
 	copyData.SoundStream = nil
 
-	copyData.ReceiveMessage("task close", nil) // We do this to recreate the sound file for the Task, if necessary.
+	copyData.ReceiveMessage("task close", nil) // We do this to recreate the resources for the Task, if necessary.
 
 	return &copyData
 }
@@ -224,7 +232,7 @@ func (task *Task) Serialize() map[string]interface{} {
 	data["Progression.Current"] = task.CompletionProgressionCurrent.GetNumber()
 	data["Progression.Max"] = task.CompletionProgressionMax.GetNumber()
 	data["Description"] = task.Description.Text
-	data["FilePath"] = task.FilePath
+	data["FilePath"] = task.FilePathTextbox.Text
 	data["Selected"] = task.Selected
 	data["TaskType.CurrentChoice"] = task.TaskType.CurrentChoice
 
@@ -260,8 +268,7 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	task.CompletionProgressionCurrent.SetNumber(getInt("Progression.Current"))
 	task.CompletionProgressionMax.SetNumber(getInt("Progression.Max"))
 	task.Description.Text = data["Description"].(string)
-	task.FilePath = data["FilePath"].(string)
-	task.PrevFilePath = task.FilePath
+	task.FilePathTextbox.Text = data["FilePath"].(string)
 	task.Selected = data["Selected"].(bool)
 	task.TaskType.CurrentChoice = int(data["TaskType.CurrentChoice"].(float64))
 
@@ -367,7 +374,7 @@ func (task *Task) Update() {
 		name = ""
 		task.Resizeable = true
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-		_, filename := path.Split(task.FilePath)
+		_, filename := path.Split(task.FilePathTextbox.Text)
 		name = filename
 		hasIcon = true // Expanded because i
 	} else if task.TaskType.CurrentChoice != TASK_TYPE_NOTE {
@@ -670,42 +677,38 @@ func (task *Task) PostDraw() {
 			task.CompletionProgressionMax.Rect.Y = r.Y
 			task.CompletionProgressionMax.Update()
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-			imagePath := "Image File: "
-			if task.FilePath == "" {
-				imagePath += "[None]"
-			} else {
-				imagePath += task.FilePath
-			}
-			rl.DrawTextEx(font, imagePath, rl.Vector2{32, y + 8}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
+			rl.DrawTextEx(font, "Image File: ", rl.Vector2{32, y + 8}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			task.FilePathTextbox.Rect.Y = y + 4
+			task.FilePathTextbox.Update()
+
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
 				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
 				filepath, success, _ := dlgs.File("Load Image", "Image Files | *.png *.jpg *.bmp *.tiff", false)
 				if success {
-					task.FilePath = filepath
+					task.FilePathTextbox.Text = filepath
 				}
 				//rl.ShowWindow()
 			}
 			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 32, 64, 16}, "Clear", false) {
-				task.FilePath = ""
+				task.FilePathTextbox.Text = ""
 			}
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-			imagePath := "Sound File: "
-			if task.FilePath == "" {
-				imagePath += "[None]"
-			} else {
-				imagePath += task.FilePath
-			}
-			rl.DrawTextEx(font, imagePath, rl.Vector2{32, y + 8}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
+			rl.DrawTextEx(font, "Sound File: ", rl.Vector2{32, y + 8}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			task.FilePathTextbox.Rect.Y = y + 4
+			task.FilePathTextbox.Update()
+
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
 				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
-				filepath, success, _ := dlgs.File("Load Sound", "Sound Files | *.wav *.ogg *.xm *.mod *.flac *.mp3", false)
+				filepath, success, _ := dlgs.File("Load Sound", "Sound Files | *.wav *.ogg *.flac *.mp3", false)
 				if success {
-					task.FilePath = filepath
+					task.FilePathTextbox.Text = filepath
 				}
 				//rl.ShowWindow()
 			}
 			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 32, 64, 16}, "Clear", false) {
-				task.FilePath = ""
+				task.FilePathTextbox.Text = ""
 			}
 		}
 
@@ -775,12 +778,13 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Project.TaskOpen = true
 		task.Dragging = false
 	} else if message == "task close" {
-		if task.FilePath != "" {
+		if task.FilePathTextbox.Text != "" && task.FilePathTextbox.Text != task.PrevFilePath {
+			successfullyLoaded := false
 			if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-				ext := strings.ToLower(path.Ext(task.FilePath))
+				ext := strings.ToLower(path.Ext(task.FilePathTextbox.Text))
 				if ext == ".gif" {
 
-					file, err := os.Open(task.FilePath)
+					file, err := os.Open(task.FilePathTextbox.Text)
 					defer file.Close()
 
 					if err != nil {
@@ -790,29 +794,41 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 						if err != nil {
 							log.Println(err)
 						} else {
+							if task.GifAnimation != nil {
+								task.ImageDisplaySize.X = 0
+								task.ImageDisplaySize.Y = 0
+							}
 							task.GifAnimation = NewGifAnimation(gifFile)
-							if task.PrevFilePath != task.FilePath {
+							if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
 								task.ImageDisplaySize.X = float32(task.GifAnimation.Data.Image[0].Bounds().Size().X)
 								task.ImageDisplaySize.Y = float32(task.GifAnimation.Data.Image[0].Bounds().Size().Y)
 							}
+							successfullyLoaded = true
 						}
 					}
 
 				} else {
 					if task.Image.ID > 0 {
 						rl.UnloadTexture(task.Image)
+						task.ImageDisplaySize.X = 0
+						task.ImageDisplaySize.Y = 0
 					}
-					task.Image = rl.LoadTexture(task.FilePath)
-					if task.PrevFilePath != task.FilePath {
+					if task.GifAnimation != nil {
+						task.GifAnimation.Destroy()
+						task.GifAnimation = nil
+					}
+					task.Image = rl.LoadTexture(task.FilePathTextbox.Text)
+					if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
 						task.ImageDisplaySize.X = float32(task.Image.Width)
 						task.ImageDisplaySize.Y = float32(task.Image.Height)
 					}
+					successfullyLoaded = true
 				}
 			} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
-				file, err := os.Open(task.FilePath)
+				file, err := os.Open(task.FilePathTextbox.Text)
 				if err != nil {
-					log.Println("ERROR: Could not load file: ", task.FilePath)
+					log.Println("ERROR: Could not load file: ", task.FilePathTextbox.Text)
 				} else {
 
 					if task.SoundStream != nil {
@@ -821,7 +837,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 						task.SoundControl = nil
 					}
 
-					ext := strings.ToLower(path.Ext(task.FilePath))
+					ext := strings.ToLower(path.Ext(task.FilePathTextbox.Text))
 					var stream beep.StreamSeekCloser
 					var format beep.Format
 					var err error
@@ -838,13 +854,13 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 					}
 
 					if err != nil {
-						log.Println("ERROR: Could not decode file: ", task.FilePath)
+						log.Println("ERROR: Could not decode file: ", task.FilePathTextbox.Text)
 						log.Println(err)
 					} else {
 						task.SoundStream = stream
 
 						if format.SampleRate != task.Project.SampleRate {
-							log.Println("Sample rate of audio file", task.FilePath, "not the same as project sample rate.")
+							log.Println("Sample rate of audio file", task.FilePathTextbox.Text, "not the same as project sample rate.")
 							log.Println("File will be resampled.")
 							resampled := beep.Resample(1, format.SampleRate, 44100, stream)
 							task.SoundControl = &beep.Ctrl{Streamer: resampled, Paused: true}
@@ -852,12 +868,18 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 							task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
 						}
 						speaker.Play(beep.Seq(task.SoundControl, beep.Callback(task.OnSoundCompletion)))
+						successfullyLoaded = true
 					}
 
 				}
 
 			}
-			task.PrevFilePath = task.FilePath
+
+			if successfullyLoaded {
+				// We only record the previous file path if the resource was properly loaded.
+				task.PrevFilePath = task.FilePathTextbox.Text
+			}
+
 		}
 	} else if message == "dragging" {
 		task.Dragging = task.Selected

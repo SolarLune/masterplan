@@ -7,6 +7,20 @@ import (
 	"github.com/gen2brain/raylib-go/raymath"
 )
 
+func GetMousePosition() rl.Vector2 {
+
+	pos := rl.GetMousePosition()
+
+	pos.X *= float32(screenWidth) / float32(rl.GetScreenWidth())
+	pos.Y *= float32(screenHeight) / float32(rl.GetScreenHeight())
+
+	pos.X = float32(math.Round(float64(pos.X)))
+	pos.Y = float32(math.Round(float64(pos.Y)))
+
+	return pos
+
+}
+
 func GetWorldMousePosition() rl.Vector2 {
 
 	pos := camera.Target
@@ -20,20 +34,6 @@ func GetWorldMousePosition() rl.Vector2 {
 
 	pos.X += mousePos.X
 	pos.Y += mousePos.Y
-
-	return pos
-
-}
-
-func GetMousePosition() rl.Vector2 {
-
-	pos := rl.GetMousePosition()
-
-	pos.X *= float32(screenWidth) / float32(rl.GetScreenWidth())
-	pos.Y *= float32(screenHeight) / float32(rl.GetScreenHeight())
-
-	pos.X = float32(math.Round(float64(pos.X)))
-	pos.Y = float32(math.Round(float64(pos.Y)))
 
 	return pos
 

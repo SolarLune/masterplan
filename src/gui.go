@@ -4,8 +4,13 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
+
+	"github.com/gen2brain/raylib-go/raymath"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+
+	"github.com/atotto/clipboard"
 )
 
 const (
@@ -320,13 +325,105 @@ type Textbox struct {
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
 
-	BackspaceTimer int
+	KeyholdTimer int
+	CaretPos     int
 }
 
 func NewTextbox(x, y, w, h float32) *Textbox {
 	textbox := &Textbox{Rect: rl.Rectangle{x, y, w, h}, Visible: true,
 		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharacters: math.MaxInt64, AllowAlphaCharacters: true}
 	return textbox
+}
+
+func (textbox *Textbox) GetClosestPointInText(point rl.Vector2) int {
+
+	if len(textbox.Text) == 0 {
+		return 0
+	}
+
+	closestPos := rl.Vector2{}
+	textPos := rl.Vector2{textbox.Rect.X, textbox.Rect.Y}
+	closestIndex := 0
+
+	i := 0
+
+	point.Y -= fontSize
+
+	done := false
+
+	for i >= 0 {
+
+		if i < len(textbox.Text) {
+
+			char := textbox.Text[i]
+
+			if char == '\n' {
+				textPos.X = textbox.Rect.X
+				scaleFactor := fontSize / float32(font.BaseSize)
+				// This is straight-up ripped for the height that raylib itself uses for \n characters.
+				// See: https://github.com/raysan5/raylib/blob/master/src/text.c#L919
+				textPos.Y += float32((font.BaseSize + font.BaseSize/2) * int32(scaleFactor))
+			} else {
+				measure := rl.MeasureTextEx(font, string(char), fontSize, 0)
+				textPos.X += measure.X + spacing // + spacing because I believe that represents the number of pixels between letters
+			}
+
+			i += 1
+
+		} else {
+			measure := rl.MeasureTextEx(font, string(textbox.Text[i-1]), fontSize, spacing)
+			textPos.X += measure.X
+			done = true
+		}
+
+		if raymath.Vector2Distance(point, textPos) < raymath.Vector2Distance(point, closestPos) {
+			closestPos = textPos
+			closestIndex = i
+		}
+
+		if done {
+			i = -1
+		}
+
+	}
+
+	return closestIndex
+}
+
+func (textbox *Textbox) InsertCharacterAtCaret(char string) {
+	textbox.Text = textbox.Text[:textbox.CaretPos] + char + textbox.Text[textbox.CaretPos:]
+	textbox.CaretPos++
+	textbox.Changed = true
+}
+
+func (textbox *Textbox) InsertTextAtCaret(text string) {
+	for _, char := range text {
+		textbox.InsertCharacterAtCaret(string(char))
+	}
+}
+
+func (textbox *Textbox) Lines() []string {
+	return strings.Split(textbox.Text, "\n")
+}
+
+func (textbox *Textbox) LineNumberByCaretPosition() int {
+	caretPos := textbox.CaretPos
+	for i, line := range textbox.Lines() {
+		caretPos -= len(line) + 1 // Lines are split by "\n", so they're not included in the line length
+		if caretPos < 0 {
+			return i
+		}
+	}
+	return -1
+}
+
+func (textbox *Textbox) CaretPositionInLine() int {
+	cut := textbox.Text[:textbox.CaretPos]
+	start := strings.LastIndex(cut, "\n")
+	if start < 0 {
+		start = 0
+	}
+	return len(cut[start:])
 }
 
 func (textbox *Textbox) Update() {
@@ -340,7 +437,18 @@ func (textbox *Textbox) Update() {
 	if textbox.Focused {
 
 		if textbox.AllowNewlines && rl.IsKeyPressed(rl.KeyEnter) {
-			textbox.Text += "\n"
+			textbox.InsertCharacterAtCaret("\n")
+		}
+
+		control := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
+		if control {
+			if rl.IsKeyPressed(rl.KeyV) {
+				text, err := clipboard.ReadAll()
+				if err == nil {
+					textbox.InsertTextAtCaret(text)
+				}
+			}
+			// COPYING TEXT IS TO BE DONE LATER
 		}
 
 		letter := int(rl.GetKeyPressed())
@@ -358,19 +466,87 @@ func (textbox *Textbox) Update() {
 
 			if letter >= 32 && letter < 127 && (textbox.AllowAlphaCharacters || isNum) && len(textbox.Text) < textbox.MaxCharacters {
 				textbox.Changed = true
-				textbox.Text += fmt.Sprintf("%c", letter)
+				textbox.InsertCharacterAtCaret(fmt.Sprintf("%c", letter))
 			}
 		}
 
-		if rl.IsKeyDown(rl.KeyBackspace) {
-			textbox.BackspaceTimer += 1
-		} else {
-			textbox.BackspaceTimer = 0
+		if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+			textbox.CaretPos = textbox.GetClosestPointInText(GetMousePosition())
 		}
 
-		if (rl.IsKeyPressed(rl.KeyBackspace) || textbox.BackspaceTimer >= 30) && len(textbox.Text) > 0 {
-			textbox.Text = textbox.Text[:len(textbox.Text)-1]
+		keyState := map[int32]int{
+			rl.KeyBackspace: 0,
+			rl.KeyRight:     0,
+			rl.KeyLeft:      0,
+			rl.KeyUp:        0,
+			rl.KeyDown:      0,
+			rl.KeyDelete:    0,
+		}
+
+		for k := range keyState {
+			if rl.IsKeyPressed(k) {
+				keyState[k] = 1
+				textbox.KeyholdTimer = 0
+			} else if rl.IsKeyDown(k) {
+				textbox.KeyholdTimer++
+				if textbox.KeyholdTimer > 30 {
+					keyState[k] = 1
+				}
+			} else if rl.IsKeyReleased(k) {
+				textbox.KeyholdTimer = 0
+			}
+		}
+
+		if keyState[rl.KeyRight] > 0 {
+			textbox.CaretPos++
+		} else if keyState[rl.KeyLeft] > 0 {
+			textbox.CaretPos--
+		}
+
+		if keyState[rl.KeyUp] > 0 {
+			lines := textbox.Lines()
+			lineIndex := textbox.LineNumberByCaretPosition()
+			if lineIndex > 0 {
+				if textbox.CaretPositionInLine() <= len(lines[lineIndex-1])+1 {
+					textbox.CaretPos -= len(lines[lineIndex-1]) + 1
+				} else {
+					textbox.CaretPos -= textbox.CaretPositionInLine()
+				}
+			} else {
+				textbox.CaretPos = 0
+			}
+		}
+
+		if keyState[rl.KeyDown] > 0 {
+			lines := textbox.Lines()
+			lineIndex := textbox.LineNumberByCaretPosition()
+			if lineIndex < len(lines)-1 {
+				if textbox.CaretPositionInLine() <= len(lines[lineIndex+1]) {
+					textbox.CaretPos += len(lines[lineIndex]) + 1
+				} else {
+					textbox.CaretPos -= textbox.CaretPositionInLine()
+					textbox.CaretPos += len(lines[lineIndex]) + 1
+					textbox.CaretPos += len(lines[lineIndex+1]) + 1
+				}
+			} else {
+				textbox.CaretPos = len(textbox.Text)
+			}
+		}
+
+		if keyState[rl.KeyBackspace] > 0 && textbox.CaretPos > 0 {
+			// textbox.Text = textbox.Text[:len(textbox.Text)-1]
 			textbox.Changed = true
+			textbox.CaretPos--
+			textbox.Text = textbox.Text[:textbox.CaretPos] + textbox.Text[textbox.CaretPos+1:]
+		} else if keyState[rl.KeyDelete] > 0 && textbox.CaretPos != len(textbox.Text) {
+			textbox.Changed = true
+			textbox.Text = textbox.Text[:textbox.CaretPos] + textbox.Text[textbox.CaretPos+1:]
+		}
+
+		if textbox.CaretPos < 0 {
+			textbox.CaretPos = 0
+		} else if textbox.CaretPos > len(textbox.Text) {
+			textbox.CaretPos = len(textbox.Text)
 		}
 
 	}
@@ -404,8 +580,13 @@ func (textbox *Textbox) Update() {
 
 	txt := textbox.Text
 
-	if textbox.Focused && math.Ceil(float64(rl.GetTime()))-float64(rl.GetTime()) < 0.5 {
-		txt += "|"
+	if textbox.Focused {
+		caretChar := " "
+		if textbox.Focused && math.Ceil(float64(rl.GetTime()*4))-float64(rl.GetTime()*4) < 0.5 {
+			caretChar = "|"
+		}
+
+		txt = textbox.Text[:textbox.CaretPos] + caretChar + textbox.Text[textbox.CaretPos:]
 	}
 
 	pos := rl.Vector2{textbox.Rect.X + 2, textbox.Rect.Y + 2}

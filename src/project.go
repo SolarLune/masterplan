@@ -453,7 +453,7 @@ func (project *Project) HandleDroppedFiles() {
 					task.TaskType.CurrentChoice = TASK_TYPE_SOUND
 				}
 
-				task.FilePath = file
+				task.FilePathTextbox.Text = file
 				task.ReceiveMessage("task close", map[string]interface{}{"task": task})
 				project.Tasks = append(project.Tasks, task)
 				continue
