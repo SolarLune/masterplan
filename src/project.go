@@ -1151,9 +1151,9 @@ func (project *Project) GenerateGrid() {
 	for y := int32(0); y < project.GridSize*2; y++ {
 		for x := int32(0); x < project.GridSize*2; x++ {
 
-			c := getThemeColor(GUI_INSIDE)
+			c := getThemeColor(GUI_INSIDE_CLICKED)
 			if project.GridVisible.Checked && (x%project.GridSize == 0 || x%project.GridSize == project.GridSize-1) && (y%project.GridSize == 0 || y%project.GridSize == project.GridSize-1) {
-				c = getThemeColor(GUI_INSIDE_CLICKED)
+				c = getThemeColor(GUI_INSIDE)
 			}
 
 			data = append(data, c.R, c.G, c.B, c.A)

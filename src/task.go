@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/gif"
 	"log"
 	"math"
 	"os"
@@ -27,6 +30,93 @@ const (
 	TASK_TYPE_SOUND
 )
 
+type GifAnimation struct {
+	Data         *gif.GIF
+	Frames       []*rl.Image
+	Delays       []float32 // 100ths of a second?
+	CurrentFrame int
+	Timer        float32
+	frameImg     *image.RGBA
+	DrawTexture  *rl.Texture2D
+}
+
+func NewGifAnimation(data *gif.GIF) *GifAnimation {
+	tex := rl.LoadTextureFromImage(rl.NewImageFromImage(data.Image[0]))
+	anim := &GifAnimation{Data: data, frameImg: image.NewRGBA(data.Image[0].Rect), DrawTexture: &tex}
+	return anim
+}
+
+func (gifAnim *GifAnimation) IsEmpty() bool {
+	// return true
+	return gifAnim.Data == nil || len(gifAnim.Data.Image) == 0
+}
+
+func (gifAnim *GifAnimation) Update(dt float32) {
+
+	gifAnim.Timer += dt
+	if gifAnim.Timer >= gifAnim.Delays[gifAnim.CurrentFrame] {
+		gifAnim.Timer -= gifAnim.Delays[gifAnim.CurrentFrame]
+		gifAnim.CurrentFrame++
+	}
+	if gifAnim.CurrentFrame >= len(gifAnim.Data.Image) {
+		gifAnim.CurrentFrame = 0
+	}
+}
+
+func (gifAnim *GifAnimation) GetTexture() rl.Texture2D {
+
+	if gifAnim.CurrentFrame == len(gifAnim.Frames) && len(gifAnim.Frames) < len(gifAnim.Data.Image) {
+
+		// After decoding, we have to manually create a new image and plot each frame of the GIF because transparent GIFs
+		// can only have frames that account for changed pixels (i.e. if you have a 320x240 GIF, but on frame
+		// 17 only one pixel changes, the image generated for frame 17 will be 1x1 for Bounds.Size()).
+
+		img := gifAnim.Data.Image[gifAnim.CurrentFrame]
+
+		disposalMode := gifAnim.Data.Disposal[gifAnim.CurrentFrame]
+
+		for y := 0; y < gifAnim.frameImg.Bounds().Size().Y; y++ {
+			for x := 0; x < gifAnim.frameImg.Bounds().Size().X; x++ {
+				if x >= img.Bounds().Min.X && x < img.Bounds().Max.X && y >= img.Bounds().Min.Y && y < img.Bounds().Max.Y {
+					color := img.At(x, y)
+					_, _, _, a := color.RGBA()
+					if disposalMode != gif.DisposalNone || a >= 255 {
+						gifAnim.frameImg.Set(x, y, color)
+					}
+				} else {
+					if disposalMode == gif.DisposalBackground {
+						gifAnim.frameImg.Set(x, y, color.RGBA{0, 0, 0, 0})
+					} else if disposalMode == gif.DisposalPrevious && gifAnim.CurrentFrame > 0 {
+						gifAnim.frameImg.Set(x, y, gifAnim.Data.Image[gifAnim.CurrentFrame-1].At(x, y))
+					}
+					// For gif.DisposalNone, it doesn't matter, I think?
+					// For clarification on disposal method specs, see: https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+				}
+			}
+
+		}
+
+		gifAnim.Frames = append(gifAnim.Frames, rl.NewImageFromImage(gifAnim.frameImg))
+		gifAnim.Delays = append(gifAnim.Delays, float32(gifAnim.Data.Delay[gifAnim.CurrentFrame])/100)
+
+	}
+
+	if gifAnim.DrawTexture != nil {
+		rl.UnloadTexture(*gifAnim.DrawTexture)
+	}
+	tex := rl.LoadTextureFromImage(gifAnim.Frames[gifAnim.CurrentFrame])
+	gifAnim.DrawTexture = &tex
+	return *gifAnim.DrawTexture
+
+}
+
+func (gifAnimation *GifAnimation) Destroy() {
+	for _, frame := range gifAnimation.Frames {
+		rl.UnloadImage(frame)
+	}
+	rl.UnloadTexture(*gifAnimation.DrawTexture)
+}
+
 type Task struct {
 	Rect         rl.Rectangle
 	Project      *Project
@@ -46,6 +136,8 @@ type Task struct {
 	CompletionProgressionCurrent *NumberSpinner
 	CompletionProgressionMax     *NumberSpinner
 	Image                        rl.Texture2D
+
+	GifAnimation *GifAnimation
 
 	SoundControl  *beep.Ctrl
 	SoundStream   beep.StreamSeekCloser
@@ -256,6 +348,73 @@ func (task *Task) Update() {
 	task.Rect.X += (task.Position.X - task.Rect.X) * 0.2
 	task.Rect.Y += (task.Position.Y - task.Rect.Y) * 0.2
 
+	// DRAWING
+
+	scrW := screenWidth / camera.Zoom
+	scrH := screenHeight / camera.Zoom
+
+	// Slight optimization
+	cameraRect := rl.Rectangle{camera.Target.X - (scrW / 2), camera.Target.Y - scrH/2, scrW, scrH}
+	if !rl.CheckCollisionRecs(task.Rect, cameraRect) && rl.GetTime() > 1 {
+		return
+	}
+
+	name := task.Description.Text
+
+	hasIcon := false
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+		name = ""
+		task.Resizeable = true
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+		_, filename := path.Split(task.FilePath)
+		name = filename
+		hasIcon = true // Expanded because i
+	} else if task.TaskType.CurrentChoice != TASK_TYPE_NOTE {
+		// Notes don't get just the first line written on the task in the overview.
+		cut := strings.Index(name, "\n")
+		if cut >= 0 {
+			hasIcon = true
+			name = name[:cut]
+		}
+		task.Resizeable = false
+	}
+
+	if task.NumberingPrefix[0] != -1 && task.Completable() {
+		n := ""
+		for _, value := range task.NumberingPrefix {
+			n += fmt.Sprintf("%d.", value)
+		}
+		name = fmt.Sprintf("%s %s", n, name)
+	}
+
+	taskDisplaySize := rl.MeasureTextEx(font, name, fontSize, spacing)
+	// Lock the sizes of the task to a grid
+	if hasIcon {
+		taskDisplaySize.X += 16
+	}
+	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
+	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
+
+	task.Rect.Width = taskDisplaySize.X
+	task.Rect.Height = taskDisplaySize.Y
+
+	if task.Image.ID != 0 && task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+		if task.Rect.Width < task.ImageDisplaySize.X {
+			task.Rect.Width = task.ImageDisplaySize.X
+		}
+		if task.Rect.Height < task.ImageDisplaySize.Y {
+			task.Rect.Height = task.ImageDisplaySize.Y
+		}
+	}
+
+	if task.Rect.Width < task.MinSize.X {
+		task.Rect.Width = task.MinSize.X
+	}
+	if task.Rect.Height < task.MinSize.Y {
+		task.Rect.Height = task.MinSize.Y
+	}
+
 	color := getThemeColor(GUI_INSIDE)
 
 	if task.IsComplete() {
@@ -327,7 +486,16 @@ func (task *Task) Update() {
 			shadowRect.Y += float32(y)
 			shadowColor := getThemeColor(GUI_SHADOW_COLOR)
 			shadowColor.A = 64
+
+			additive := false
+			if shadowColor.R > 128 || shadowColor.G > 128 || shadowColor.B > 128 {
+				additive = true
+				rl.BeginBlendMode(rl.BlendAdditive)
+			}
 			rl.DrawRectangleRec(shadowRect, shadowColor)
+			if additive {
+				rl.EndBlendMode()
+			}
 		}
 	} else if task.Project.ShadowQualitySpinner.CurrentChoice == 1 {
 		shadowRect := task.Rect
@@ -371,108 +539,61 @@ func (task *Task) Update() {
 
 	rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
 
-	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE && task.Image.ID != 0 {
-
-		src := rl.Rectangle{0, 0, float32(task.Image.Width), float32(task.Image.Height)}
-		dst := task.Rect
-		dst.Width = task.ImageDisplaySize.X
-		dst.Height = task.ImageDisplaySize.Y
-		rl.DrawTexturePro(task.Image, src, dst, rl.Vector2{}, 0, rl.White)
-
-		if task.Resizeable && task.Selected {
-			rec := task.Rect
-			rec.Width = 8
-			rec.Height = 8
-			rec.X += task.Rect.Width
-			rec.Y += task.Rect.Height
-			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
-			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
-			if rl.IsMouseButtonDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
-				task.Resizing = true
-			} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-				task.Resizing = false
-			}
-			if task.Resizing {
-				endPoint := GetWorldMousePosition()
-				task.ImageDisplaySize.X = endPoint.X - task.Rect.X
-				task.ImageDisplaySize.Y = endPoint.Y - task.Rect.Y
-				if task.ImageDisplaySize.X < task.MinSize.X {
-					task.ImageDisplaySize.X = task.MinSize.X
-				}
-				if task.ImageDisplaySize.Y < task.MinSize.Y {
-					task.ImageDisplaySize.Y = task.MinSize.Y
-				}
-			}
-
-			rec.X = task.Rect.X - rec.Width
-			rec.Y = task.Rect.Y - rec.Height
-
-			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
-			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
-
-			if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
-				task.ImageDisplaySize.X = float32(task.Image.Width)
-				task.ImageDisplaySize.Y = float32(task.Image.Height)
-			}
-
-		}
-
-	}
-
-	name := task.Description.Text
-
-	hasIcon := false
-
 	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-		name = ""
-		task.Resizeable = true
-	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-		_, filename := path.Split(task.FilePath)
-		name = filename
-		hasIcon = true // Expanded because i
-	} else if task.TaskType.CurrentChoice != TASK_TYPE_NOTE {
-		// Notes don't get just the first line written on the task in the overview.
-		cut := strings.Index(name, "\n")
-		if cut >= 0 {
-			hasIcon = true
-			name = name[:cut]
+
+		if task.GifAnimation != nil {
+			task.Image = task.GifAnimation.GetTexture()
+			task.GifAnimation.Update(rl.GetFrameTime())
 		}
-		task.Resizeable = false
-	}
 
-	if task.NumberingPrefix[0] != -1 && task.Completable() {
-		n := ""
-		for _, value := range task.NumberingPrefix {
-			n += fmt.Sprintf("%d.", value)
+		if task.Image.ID != 0 {
+
+			src := rl.Rectangle{0, 0, float32(task.Image.Width), float32(task.Image.Height)}
+			dst := task.Rect
+			dst.Width = task.ImageDisplaySize.X
+			dst.Height = task.ImageDisplaySize.Y
+			rl.DrawTexturePro(task.Image, src, dst, rl.Vector2{}, 0, rl.White)
+
+			if task.Resizeable && task.Selected {
+				rec := task.Rect
+				rec.Width = 8
+				rec.Height = 8
+				rec.X += task.Rect.Width
+				rec.Y += task.Rect.Height
+				rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
+				rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
+				if rl.IsMouseButtonDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
+					task.Resizing = true
+				} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+					task.Resizing = false
+				}
+				if task.Resizing {
+					endPoint := GetWorldMousePosition()
+					task.ImageDisplaySize.X = endPoint.X - task.Rect.X
+					task.ImageDisplaySize.Y = endPoint.Y - task.Rect.Y
+					if task.ImageDisplaySize.X < task.MinSize.X {
+						task.ImageDisplaySize.X = task.MinSize.X
+					}
+					if task.ImageDisplaySize.Y < task.MinSize.Y {
+						task.ImageDisplaySize.Y = task.MinSize.Y
+					}
+				}
+
+				rec.X = task.Rect.X - rec.Width
+				rec.Y = task.Rect.Y - rec.Height
+
+				rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
+				rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
+
+				if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
+					task.ImageDisplaySize.X = float32(task.Image.Width)
+					task.ImageDisplaySize.Y = float32(task.Image.Height)
+				}
+
+			}
+
 		}
-		name = fmt.Sprintf("%s %s", n, name)
-	}
 
-	taskDisplaySize := rl.MeasureTextEx(font, name, fontSize, spacing)
-	// Lock the sizes of the task to a grid
-	if hasIcon {
-		taskDisplaySize.X += 16
-	}
-	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
-	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
-
-	task.Rect.Width = taskDisplaySize.X
-	task.Rect.Height = taskDisplaySize.Y
-
-	if task.Image.ID != 0 && task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-		if task.Rect.Width < task.ImageDisplaySize.X {
-			task.Rect.Width = task.ImageDisplaySize.X
-		}
-		if task.Rect.Height < task.ImageDisplaySize.Y {
-			task.Rect.Height = task.ImageDisplaySize.Y
-		}
-	}
-
-	if task.Rect.Width < task.MinSize.X {
-		task.Rect.Width = task.MinSize.X
-	}
-	if task.Rect.Height < task.MinSize.Y {
-		task.Rect.Height = task.MinSize.Y
 	}
 
 	iconColor := getThemeColor(GUI_FONT_COLOR)
@@ -656,13 +777,36 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else if message == "task close" {
 		if task.FilePath != "" {
 			if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-				if task.Image.ID > 0 {
-					rl.UnloadTexture(task.Image)
-				}
-				task.Image = rl.LoadTexture(task.FilePath)
-				if task.PrevFilePath != task.FilePath {
-					task.ImageDisplaySize.X = float32(task.Image.Width)
-					task.ImageDisplaySize.Y = float32(task.Image.Height)
+				ext := strings.ToLower(path.Ext(task.FilePath))
+				if ext == ".gif" {
+
+					file, err := os.Open(task.FilePath)
+					defer file.Close()
+
+					if err != nil {
+						log.Println(err)
+					} else {
+						gifFile, err := gif.DecodeAll(file)
+						if err != nil {
+							log.Println(err)
+						} else {
+							task.GifAnimation = NewGifAnimation(gifFile)
+							if task.PrevFilePath != task.FilePath {
+								task.ImageDisplaySize.X = float32(task.GifAnimation.Data.Image[0].Bounds().Size().X)
+								task.ImageDisplaySize.Y = float32(task.GifAnimation.Data.Image[0].Bounds().Size().Y)
+							}
+						}
+					}
+
+				} else {
+					if task.Image.ID > 0 {
+						rl.UnloadTexture(task.Image)
+					}
+					task.Image = rl.LoadTexture(task.FilePath)
+					if task.PrevFilePath != task.FilePath {
+						task.ImageDisplaySize.X = float32(task.Image.Width)
+						task.ImageDisplaySize.Y = float32(task.Image.Height)
+					}
 				}
 			} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
@@ -738,6 +882,9 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			}
 			if task.Image.ID > 0 {
 				rl.UnloadTexture(task.Image)
+			}
+			if task.GifAnimation != nil {
+				task.GifAnimation.Destroy()
 			}
 		}
 

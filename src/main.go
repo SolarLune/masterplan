@@ -14,6 +14,8 @@ const screenHeight = 540
 
 var camera = rl.NewCamera2D(rl.Vector2{screenWidth / 2, screenHeight / 2}, rl.Vector2{}, 0, 1)
 var currentProject *Project
+var screen rl.RenderTexture2D
+var drawFPS = false
 
 func main() {
 
@@ -43,16 +45,34 @@ func main() {
 
 	}
 
-	screen := rl.LoadRenderTexture(screenWidth, screenHeight)
+	screen = rl.LoadRenderTexture(screenWidth, screenHeight)
 	rl.SetTextureFilter(screen.Texture, rl.FilterPoint)
+
+	// cpuProfFile, err := os.Create("cpu.pprof")
+	// if err != nil {
+	// 	log.Fatal("Could not create CPU Profile: ", err)
+	// }
+
+	// profiling := false
 
 	for !rl.WindowShouldClose() {
 
 		if rl.IsKeyPressed(rl.KeyF1) {
+			drawFPS = !drawFPS
+		}
+
+		// if rl.IsKeyPressed(rl.KeyF5) {
+		// 	if !profiling {
+		// 		pprof.StartCPUProfile(cpuProfFile)
+		// 	}
+		// 	profiling = true
+		// }
+
+		if rl.IsKeyPressed(rl.KeyF2) {
 			rl.SetWindowSize(960, 540)
 		}
 
-		if rl.IsKeyPressed(rl.KeyF4) {
+		if rl.IsKeyPressed(rl.KeyF3) {
 			rl.SetWindowSize(1920, 1080)
 		}
 
@@ -69,6 +89,10 @@ func main() {
 
 		currentProject.GUI()
 
+		if drawFPS {
+			rl.DrawFPS(0, 0)
+		}
+
 		rl.EndTextureMode()
 
 		src := rl.Rectangle{0, 0, float32(screen.Texture.Width), -float32(screen.Texture.Height)}
@@ -78,5 +102,9 @@ func main() {
 		rl.EndDrawing()
 
 	}
+
+	// if profiling {
+	// 	pprof.StopCPUProfile()
+	// }
 
 }
