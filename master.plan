@@ -2,8 +2,8 @@
 	"ColorTheme": "Moonlight",
 	"GridSize": 16,
 	"GridVisible": true,
-	"Pan.X": 1856,
-	"Pan.Y": -452.00003,
+	"Pan.X": 1864,
+	"Pan.Y": 6,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
 	"ShadowQuality": 2,
@@ -976,7 +976,7 @@
 			"Progression.Max": 0,
 			"Rect.H": 16,
 			"Rect.W": 544,
-			"Selected": true,
+			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
@@ -1731,7 +1731,7 @@
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 4 2019 21:59:17",
 			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Image Tasks could have the ability to take URLs instead of just image files.",
+			"Description": "Image Tasks could have the ability to take URLs instead of just image files.\nThis is done now; the URLs have to start with http:// or https:// to be valid.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1740,8 +1740,8 @@
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Rect.H": 16,
-			"Rect.W": 464,
-			"Selected": false,
+			"Rect.W": 480,
+			"Selected": true,
 			"TaskType.CurrentChoice": 0
 		},
 		{
@@ -2790,8 +2790,8 @@
 			"Position.Y": -256,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Rect.H": 212,
-			"Rect.W": 324,
+			"Rect.H": 16,
+			"Rect.W": 16,
 			"Selected": false,
 			"TaskType.CurrentChoice": 3
 		},
