@@ -302,6 +302,12 @@ func (project *Project) FocusViewOnSelectedTasks() {
 
 }
 
+func (project *Project) Destroy() {
+	for _, task := range project.Tasks {
+		task.ReceiveMessage("delete", map[string]interface{}{"task": task})
+	}
+}
+
 // func (project *Project) RaiseTask(task *Task) {
 
 // 	for tasks

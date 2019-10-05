@@ -103,6 +103,8 @@ func main() {
 
 	}
 
+	currentProject.Destroy()
+
 	// if profiling {
 	// 	pprof.StopCPUProfile()
 	// }

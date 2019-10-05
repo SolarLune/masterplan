@@ -5,8 +5,11 @@ import (
 	"image"
 	"image/color"
 	"image/gif"
+	"io"
+	"io/ioutil"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -139,16 +142,16 @@ type Task struct {
 
 	GifAnimation *GifAnimation
 
-	SoundControl    *beep.Ctrl
-	SoundStream     beep.StreamSeekCloser
-	SoundComplete   bool
-	FilePathTextbox *Textbox
-	PrevFilePath    string
-	// ImagePathIsURL  // I don't know about the utility of this one. It's got cool points, though.
-	ImageDisplaySize rl.Vector2
-	Resizeable       bool
-	Resizing         bool
-	Dragging         bool
+	SoundControl      *beep.Ctrl
+	SoundStream       beep.StreamSeekCloser
+	SoundComplete     bool
+	FilePathTextbox   *Textbox
+	PrevFilePath      string
+	URLDownloadedFile string // I don't know about the utility of this one. It's got cool points, though.
+	ImageDisplaySize  rl.Vector2
+	Resizeable        bool
+	Resizing          bool
+	Dragging          bool
 
 	TaskAbove           *Task
 	TaskBelow           *Task
@@ -213,6 +216,7 @@ func (task *Task) Clone() *Task {
 	copyData.GifAnimation = nil
 	copyData.SoundControl = nil
 	copyData.SoundStream = nil
+	copyData.URLDownloadedFile = "" // Downloaded file doesn't exist; we don't want to delete the original file...
 
 	copyData.ReceiveMessage("task close", nil) // We do this to recreate the resources for the Task, if necessary.
 
@@ -761,6 +765,163 @@ func (task *Task) ToggleCompletion() {
 
 }
 
+func (task *Task) GetResourcePath() string {
+
+	if task.URLDownloadedFile != "" {
+		return task.URLDownloadedFile
+	}
+	return task.FilePathTextbox.Text
+
+}
+
+func (task *Task) DeletePreviouslyDownloadedResource() {
+
+	if task.URLDownloadedFile != "" {
+		os.Remove(task.URLDownloadedFile)
+	}
+
+}
+
+func (task *Task) LoadResource() {
+
+	// Loads the resource for the Task (a Texture if it's an image, a GIF animation if it's a GIF,
+	// a Sound stream if it's a sound file, etc.). It also handles downloading files from URLs to
+	// the temp directory.
+
+	if task.FilePathTextbox.Text != "" && task.FilePathTextbox.Text != task.PrevFilePath {
+
+		task.DeletePreviouslyDownloadedResource()
+
+		successfullyLoaded := false
+		task.URLDownloadedFile = ""
+
+		if strings.HasPrefix(task.FilePathTextbox.Text, "http://") || strings.HasPrefix(task.FilePathTextbox.Text, "https://") {
+			response, err := http.Get(task.FilePathTextbox.Text)
+			if err != nil {
+				log.Println(err)
+			} else {
+				_, ogFilename := path.Split(task.FilePathTextbox.Text)
+				defer response.Body.Close()
+				if path.Ext(ogFilename) == "" {
+					ogFilename += ".png" // Gotta just make a guess on this one
+				}
+				tempFile, err := ioutil.TempFile("", "*masterpla*_"+ogFilename)
+				defer tempFile.Close()
+				if err != nil {
+					log.Println(err)
+				} else {
+					io.Copy(tempFile, response.Body)
+					task.URLDownloadedFile = tempFile.Name()
+				}
+			}
+		}
+
+		if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+			ext := strings.ToLower(path.Ext(task.FilePathTextbox.Text))
+			if ext == ".gif" {
+
+				file, err := os.Open(task.GetResourcePath())
+				defer file.Close()
+
+				if err != nil {
+					log.Println(err)
+				} else {
+					gifFile, err := gif.DecodeAll(file)
+					if err != nil {
+						log.Println(err)
+					} else {
+						if task.GifAnimation != nil {
+							task.ImageDisplaySize.X = 0
+							task.ImageDisplaySize.Y = 0
+						}
+						task.GifAnimation = NewGifAnimation(gifFile)
+						if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
+							task.ImageDisplaySize.X = float32(task.GifAnimation.Data.Image[0].Bounds().Size().X)
+							task.ImageDisplaySize.Y = float32(task.GifAnimation.Data.Image[0].Bounds().Size().Y)
+						}
+						successfullyLoaded = true
+					}
+				}
+
+			} else {
+				if task.Image.ID > 0 {
+					rl.UnloadTexture(task.Image)
+					task.ImageDisplaySize.X = 0
+					task.ImageDisplaySize.Y = 0
+				}
+				if task.GifAnimation != nil {
+					task.GifAnimation.Destroy()
+					task.GifAnimation = nil
+				}
+				task.Image = rl.LoadTexture(task.GetResourcePath())
+				if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
+					task.ImageDisplaySize.X = float32(task.Image.Width)
+					task.ImageDisplaySize.Y = float32(task.Image.Height)
+				}
+				successfullyLoaded = true
+			}
+		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+
+			file, err := os.Open(task.GetResourcePath())
+			if err != nil {
+				log.Println("ERROR: Could not load file: ", task.GetResourcePath())
+			} else {
+
+				if task.SoundStream != nil {
+					task.SoundStream.Close()
+					task.SoundStream = nil
+					task.SoundControl = nil
+				}
+
+				ext := strings.ToLower(path.Ext(task.GetResourcePath()))
+				var stream beep.StreamSeekCloser
+				var format beep.Format
+				var err error
+
+				fmt.Println(ext)
+
+				if strings.Contains(ext, "mp3") {
+					stream, format, err = mp3.Decode(file)
+				} else if strings.Contains(ext, "ogg") {
+					stream, format, err = vorbis.Decode(file)
+				} else if strings.Contains(ext, "flac") {
+					stream, format, err = flac.Decode(file)
+				} else {
+					// Going to assume it's a WAV
+					stream, format, err = wav.Decode(file)
+				}
+
+				if err != nil {
+					log.Println("ERROR: Could not decode file: ", task.FilePathTextbox.Text)
+					log.Println(err)
+				} else {
+					task.SoundStream = stream
+
+					if format.SampleRate != task.Project.SampleRate {
+						log.Println("Sample rate of audio file", task.FilePathTextbox.Text, "not the same as project sample rate.")
+						log.Println("File will be resampled.")
+						resampled := beep.Resample(1, format.SampleRate, 44100, stream)
+						task.SoundControl = &beep.Ctrl{Streamer: resampled, Paused: true}
+					} else {
+						task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
+					}
+					speaker.Play(beep.Seq(task.SoundControl, beep.Callback(task.OnSoundCompletion)))
+					successfullyLoaded = true
+				}
+
+			}
+
+		}
+
+		if successfullyLoaded {
+			// We only record the previous file path if the resource was properly loaded.
+			task.PrevFilePath = task.FilePathTextbox.Text
+		}
+
+	}
+
+}
+
 func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 	if message == "select" {
@@ -778,109 +939,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Project.TaskOpen = true
 		task.Dragging = false
 	} else if message == "task close" {
-		if task.FilePathTextbox.Text != "" && task.FilePathTextbox.Text != task.PrevFilePath {
-			successfullyLoaded := false
-			if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-				ext := strings.ToLower(path.Ext(task.FilePathTextbox.Text))
-				if ext == ".gif" {
-
-					file, err := os.Open(task.FilePathTextbox.Text)
-					defer file.Close()
-
-					if err != nil {
-						log.Println(err)
-					} else {
-						gifFile, err := gif.DecodeAll(file)
-						if err != nil {
-							log.Println(err)
-						} else {
-							if task.GifAnimation != nil {
-								task.ImageDisplaySize.X = 0
-								task.ImageDisplaySize.Y = 0
-							}
-							task.GifAnimation = NewGifAnimation(gifFile)
-							if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
-								task.ImageDisplaySize.X = float32(task.GifAnimation.Data.Image[0].Bounds().Size().X)
-								task.ImageDisplaySize.Y = float32(task.GifAnimation.Data.Image[0].Bounds().Size().Y)
-							}
-							successfullyLoaded = true
-						}
-					}
-
-				} else {
-					if task.Image.ID > 0 {
-						rl.UnloadTexture(task.Image)
-						task.ImageDisplaySize.X = 0
-						task.ImageDisplaySize.Y = 0
-					}
-					if task.GifAnimation != nil {
-						task.GifAnimation.Destroy()
-						task.GifAnimation = nil
-					}
-					task.Image = rl.LoadTexture(task.FilePathTextbox.Text)
-					if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
-						task.ImageDisplaySize.X = float32(task.Image.Width)
-						task.ImageDisplaySize.Y = float32(task.Image.Height)
-					}
-					successfullyLoaded = true
-				}
-			} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-
-				file, err := os.Open(task.FilePathTextbox.Text)
-				if err != nil {
-					log.Println("ERROR: Could not load file: ", task.FilePathTextbox.Text)
-				} else {
-
-					if task.SoundStream != nil {
-						task.SoundStream.Close()
-						task.SoundStream = nil
-						task.SoundControl = nil
-					}
-
-					ext := strings.ToLower(path.Ext(task.FilePathTextbox.Text))
-					var stream beep.StreamSeekCloser
-					var format beep.Format
-					var err error
-
-					if strings.Contains(ext, "mp3") {
-						stream, format, err = mp3.Decode(file)
-					} else if strings.Contains(ext, "ogg") {
-						stream, format, err = vorbis.Decode(file)
-					} else if strings.Contains(ext, "flac") {
-						stream, format, err = flac.Decode(file)
-					} else {
-						// Going to assume it's a WAV
-						stream, format, err = wav.Decode(file)
-					}
-
-					if err != nil {
-						log.Println("ERROR: Could not decode file: ", task.FilePathTextbox.Text)
-						log.Println(err)
-					} else {
-						task.SoundStream = stream
-
-						if format.SampleRate != task.Project.SampleRate {
-							log.Println("Sample rate of audio file", task.FilePathTextbox.Text, "not the same as project sample rate.")
-							log.Println("File will be resampled.")
-							resampled := beep.Resample(1, format.SampleRate, 44100, stream)
-							task.SoundControl = &beep.Ctrl{Streamer: resampled, Paused: true}
-						} else {
-							task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
-						}
-						speaker.Play(beep.Seq(task.SoundControl, beep.Callback(task.OnSoundCompletion)))
-						successfullyLoaded = true
-					}
-
-				}
-
-			}
-
-			if successfullyLoaded {
-				// We only record the previous file path if the resource was properly loaded.
-				task.PrevFilePath = task.FilePathTextbox.Text
-			}
-
-		}
+		task.LoadResource()
 	} else if message == "dragging" {
 		task.Dragging = task.Selected
 	} else if message == "dropped" {
@@ -908,6 +967,9 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			if task.GifAnimation != nil {
 				task.GifAnimation.Destroy()
 			}
+
+			task.DeletePreviouslyDownloadedResource()
+
 		}
 
 	}
