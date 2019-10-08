@@ -477,7 +477,7 @@ func (task *Task) Update() {
 		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 	}
 
-	if task.Completable() {
+	if task.Completable() || task.Selected {
 
 		glowYPos := -task.Rect.Y / float32(task.Project.GridSize)
 		glowXPos := -task.Rect.X / float32(task.Project.GridSize)
