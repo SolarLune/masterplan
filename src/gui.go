@@ -48,15 +48,15 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_SHADOW_COLOR:        rl.Black,
 	},
 	"Moonlight": map[int]rl.Color{
-		GUI_OUTLINE:             rl.Color{140, 160, 180, 255},
+		GUI_OUTLINE:             rl.Color{120, 140, 170, 255},
 		GUI_OUTLINE_HIGHLIGHTED: rl.White,
 		GUI_OUTLINE_CLICKED:     rl.Black,
-		GUI_OUTLINE_DISABLED:    rl.DarkGray,
-		GUI_INSIDE:              rl.Color{40, 50, 60, 255},   // BG / Task BG / Grid Color 1
+		GUI_OUTLINE_DISABLED:    rl.Color{10, 20, 30, 255},
+		GUI_INSIDE:              rl.Color{20, 40, 60, 255},   // BG / Task BG / Grid Color 1
 		GUI_INSIDE_HIGHLIGHTED:  rl.Color{60, 100, 140, 255}, // Button Highlight / Focused Textbox / Task Completion color
-		GUI_INSIDE_CLICKED:      rl.Color{40, 40, 50, 255},   // Grid Color 2
-		GUI_INSIDE_DISABLED:     rl.Color{60, 80, 100, 255},
-		GUI_FONT_COLOR:          rl.Color{220, 240, 255, 255},
+		GUI_INSIDE_CLICKED:      rl.Color{40, 50, 60, 255},   // Grid Color 2
+		GUI_INSIDE_DISABLED:     rl.Color{50, 75, 100, 255},
+		GUI_FONT_COLOR:          rl.Color{200, 220, 255, 255},
 		GUI_NOTE_COLOR:          rl.Color{40, 40, 100, 255},
 		GUI_SHADOW_COLOR:        rl.SkyBlue,
 	},
@@ -64,14 +64,14 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_OUTLINE:             rl.Gray,
 		GUI_OUTLINE_HIGHLIGHTED: rl.Red,
 		GUI_OUTLINE_CLICKED:     rl.Black,
-		GUI_OUTLINE_DISABLED:    rl.Red,
+		GUI_OUTLINE_DISABLED:    rl.Maroon,
 		GUI_INSIDE:              rl.Color{30, 30, 30, 255},  // BG / Task BG / Grid Color 1
 		GUI_INSIDE_HIGHLIGHTED:  rl.Color{100, 40, 40, 255}, // Button Highlight / Focused Textbox / Task Completion color
 		GUI_INSIDE_CLICKED:      rl.Color{10, 10, 10, 255},  // Grid color
-		GUI_INSIDE_DISABLED:     rl.Maroon,
+		GUI_INSIDE_DISABLED:     rl.Color{40, 15, 10, 255},
 		GUI_FONT_COLOR:          rl.RayWhite,
 		GUI_NOTE_COLOR:          rl.Maroon,
-		GUI_SHADOW_COLOR:        rl.White,
+		GUI_SHADOW_COLOR:        rl.Red,
 	},
 	"Blueprint": map[int]rl.Color{
 		GUI_OUTLINE:             rl.RayWhite,
@@ -86,17 +86,17 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_NOTE_COLOR:          rl.DarkGray,
 		GUI_SHADOW_COLOR:        rl.Black,
 	},
-	"Piano": map[int]rl.Color{
+	"Piano Black": map[int]rl.Color{
 		GUI_OUTLINE:             rl.LightGray,
-		GUI_OUTLINE_HIGHLIGHTED: rl.Blue,
+		GUI_OUTLINE_HIGHLIGHTED: rl.Gold,
 		GUI_OUTLINE_CLICKED:     rl.Black,
-		GUI_OUTLINE_DISABLED:    rl.Blue,
-		GUI_INSIDE:              rl.Black,                  // BG / Task BG / Grid Color 1
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{70, 80, 90, 255}, // Button Highlight / Focused Textbox / Task Completion color
-		GUI_INSIDE_CLICKED:      rl.Color{10, 10, 10, 255}, // Grid color 2
-		GUI_INSIDE_DISABLED:     rl.DarkBlue,
-		GUI_FONT_COLOR:          rl.White,
-		GUI_NOTE_COLOR:          rl.Color{40, 50, 60, 255},
+		GUI_OUTLINE_DISABLED:    rl.Color{40, 20, 10, 255},
+		GUI_INSIDE:              rl.Color{20, 20, 20, 255}, // BG / Task BG / Grid Color 1
+		GUI_INSIDE_HIGHLIGHTED:  rl.Color{90, 70, 50, 255}, // Button Highlight / Focused Textbox / Task Completion color
+		GUI_INSIDE_CLICKED:      rl.Black,                  // Grid color 2
+		GUI_INSIDE_DISABLED:     rl.DarkBrown,
+		GUI_FONT_COLOR:          rl.RayWhite,
+		GUI_NOTE_COLOR:          rl.Color{30, 40, 50, 255},
 		GUI_SHADOW_COLOR:        rl.White,
 	},
 }

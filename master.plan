@@ -1,9 +1,9 @@
 {
-	"ColorTheme": "Moonlight",
+	"ColorTheme": "Piano Black",
 	"GridSize": 16,
 	"GridVisible": true,
-	"Pan.X": 1944.0623,
-	"Pan.Y": -47.158997,
+	"Pan.X": 1933.1033,
+	"Pan.Y": -326.10977,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
 	"ShadowQuality": 2,
@@ -245,7 +245,7 @@
 			"Progression.Max": 0,
 			"Rect.H": 16,
 			"Rect.W": 48,
-			"Selected": true,
+			"Selected": false,
 			"TaskType.CurrentChoice": 2
 		},
 		{
@@ -975,7 +975,7 @@
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Rect.H": 16,
-			"Rect.W": 560,
+			"Rect.W": 544,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
@@ -991,7 +991,7 @@
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Rect.H": 16,
-			"Rect.W": 416,
+			"Rect.W": 432,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
@@ -1022,8 +1022,8 @@
 			"Position.Y": 128,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Rect.H": 16,
-			"Rect.W": 16,
+			"Rect.H": 301.6003,
+			"Rect.W": 381.60107,
 			"Selected": false,
 			"TaskType.CurrentChoice": 3
 		},
@@ -1628,7 +1628,7 @@
 			"Progression.Max": 0,
 			"Rect.H": 160,
 			"Rect.W": 160,
-			"Selected": true,
+			"Selected": false,
 			"TaskType.CurrentChoice": 3
 		},
 		{
@@ -2733,7 +2733,7 @@
 			"Progression.Max": 0,
 			"Rect.H": 49.800003,
 			"Rect.W": 48.599854,
-			"Selected": true,
+			"Selected": false,
 			"TaskType.CurrentChoice": 3
 		},
 		{
@@ -3068,7 +3068,7 @@
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Rect.H": 16,
-			"Rect.W": 336,
+			"Rect.W": 320,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
