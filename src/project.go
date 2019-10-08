@@ -1104,7 +1104,9 @@ func (project *Project) DeleteSelectedTasks() {
 	for i := len(project.Tasks) - 1; i >= 0; i-- {
 		if project.Tasks[i].Selected {
 			below := project.Tasks[i].TaskBelow
-			below.Selected = true
+			if below != nil {
+				below.Selected = true
+			}
 			for below != nil {
 				below.Position.Y -= float32(project.GridSize)
 				below = below.TaskBelow
