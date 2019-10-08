@@ -69,6 +69,7 @@ type Project struct {
 	GUI_Icons    rl.Texture2D
 
 	ColorThemeSpinner *Spinner
+	ShortcutKeyTimer  int
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
@@ -181,15 +182,15 @@ func (project *Project) Load() bool {
 			return false
 		}
 
-		getFloat := func(name string) float32 {
+		getFloat := func(name string, defaultValue float32) float32 {
 			value, exists := data[name]
 			if exists {
 				return float32(value.(float64))
 			} else {
-				return 0
+				return defaultValue
 			}
 		}
-		getInt := func(name string) int {
+		getInt := func(name string, defaultValue int) int {
 			value, exists := data[name]
 			if exists {
 				return int(value.(float64))
@@ -197,7 +198,7 @@ func (project *Project) Load() bool {
 				return 0
 			}
 		}
-		getString := func(name string) string {
+		getString := func(name string, defaultValue string) string {
 			value, exists := data[name]
 			if exists {
 				return value.(string)
@@ -206,13 +207,13 @@ func (project *Project) Load() bool {
 			}
 		}
 
-		project.GridSize = int32(getInt("GridSize"))
-		project.Pan.X = getFloat("Pan.X")
-		project.Pan.Y = getFloat("Pan.Y")
-		project.ZoomLevel = getInt("ZoomLevel")
-		project.SampleRate = beep.SampleRate(getInt("SampleRate"))
-		project.SampleBuffer = getInt("SampleBuffer")
-		project.ShadowQualitySpinner.CurrentChoice = getInt("ShadowQuality")
+		project.GridSize = int32(getInt("GridSize", int(project.GridSize)))
+		project.Pan.X = getFloat("Pan.X", project.Pan.X)
+		project.Pan.Y = getFloat("Pan.Y", project.Pan.Y)
+		project.ZoomLevel = getInt("ZoomLevel", project.ZoomLevel)
+		project.SampleRate = beep.SampleRate(getInt("SampleRate", int(project.SampleRate)))
+		project.SampleBuffer = getInt("SampleBuffer", project.SampleBuffer)
+		project.ShadowQualitySpinner.CurrentChoice = getInt("ShadowQuality", project.ShadowQualitySpinner.CurrentChoice)
 		project.GridVisible.Checked = data["GridVisible"].(bool)
 
 		speaker.Init(project.SampleRate, project.SampleBuffer)
@@ -224,7 +225,7 @@ func (project *Project) Load() bool {
 			project.Tasks = append(project.Tasks, task)
 		}
 
-		colorTheme := getString("ColorTheme")
+		colorTheme := getString("ColorTheme", project.ColorTheme)
 		if colorTheme != "" {
 			project.ChangeTheme(colorTheme)
 			project.GenerateGrid()
@@ -656,6 +657,31 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 
 func (project *Project) Shortcuts() {
 
+	repeatKeys := []int32{
+		rl.KeyUp,
+		rl.KeyDown,
+		rl.KeyLeft,
+		rl.KeyRight,
+	}
+
+	repeatableKeyDown := map[int32]bool{}
+
+	for _, key := range repeatKeys {
+		repeatableKeyDown[key] = false
+
+		if rl.IsKeyPressed(key) {
+			project.ShortcutKeyTimer = 0
+			repeatableKeyDown[key] = true
+		} else if rl.IsKeyDown(key) {
+			project.ShortcutKeyTimer++
+			if project.ShortcutKeyTimer >= 30 && project.ShortcutKeyTimer%2 == 0 {
+				repeatableKeyDown[key] = true
+			}
+		} else if rl.IsKeyReleased(key) {
+			project.ShortcutKeyTimer = 0
+		}
+	}
+
 	if !project.TaskOpen && !project.Searchbar.Focused {
 
 		holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
@@ -730,7 +756,7 @@ func (project *Project) Shortcuts() {
 			// 	}
 		} else if rl.IsKeyPressed(rl.KeyEnter) {
 			project.FocusViewOnSelectedTasks()
-		} else if holdingShift && rl.IsKeyPressed(rl.KeyUp) {
+		} else if holdingShift && repeatableKeyDown[rl.KeyUp] {
 
 			for _, task := range project.Tasks {
 				if task.Selected {
@@ -751,7 +777,7 @@ func (project *Project) Shortcuts() {
 				}
 			}
 
-		} else if holdingShift && rl.IsKeyPressed(rl.KeyDown) {
+		} else if holdingShift && repeatableKeyDown[rl.KeyDown] {
 
 			for _, task := range project.Tasks {
 				if task.Selected {
@@ -772,7 +798,7 @@ func (project *Project) Shortcuts() {
 				}
 			}
 
-		} else if holdingShift && rl.IsKeyPressed(rl.KeyRight) {
+		} else if holdingShift && repeatableKeyDown[rl.KeyRight] {
 
 			for _, task := range project.Tasks {
 				if task.Selected {
@@ -783,7 +809,7 @@ func (project *Project) Shortcuts() {
 				}
 			}
 
-		} else if holdingShift && rl.IsKeyPressed(rl.KeyLeft) {
+		} else if holdingShift && repeatableKeyDown[rl.KeyLeft] {
 
 			for _, task := range project.Tasks {
 				if task.Selected {
@@ -794,7 +820,7 @@ func (project *Project) Shortcuts() {
 				}
 			}
 
-		} else if rl.IsKeyPressed(rl.KeyUp) || rl.IsKeyPressed(rl.KeyDown) {
+		} else if repeatableKeyDown[rl.KeyUp] || repeatableKeyDown[rl.KeyDown] {
 
 			var selected *Task
 
@@ -805,9 +831,9 @@ func (project *Project) Shortcuts() {
 				}
 			}
 			if selected != nil {
-				if rl.IsKeyPressed(rl.KeyDown) && selected.TaskBelow != nil {
+				if rl.IsKeyDown(rl.KeyDown) && selected.TaskBelow != nil {
 					project.SendMessage("select", map[string]interface{}{"task": selected.TaskBelow})
-				} else if rl.IsKeyPressed(rl.KeyUp) && selected.TaskAbove != nil {
+				} else if rl.IsKeyDown(rl.KeyUp) && selected.TaskAbove != nil {
 					project.SendMessage("select", map[string]interface{}{"task": selected.TaskAbove})
 				}
 				project.FocusViewOnSelectedTasks()
@@ -1074,9 +1100,11 @@ func (project *Project) GUI() {
 }
 
 func (project *Project) DeleteSelectedTasks() {
+
 	for i := len(project.Tasks) - 1; i >= 0; i-- {
 		if project.Tasks[i].Selected {
 			below := project.Tasks[i].TaskBelow
+			below.Selected = true
 			for below != nil {
 				below.Position.Y -= float32(project.GridSize)
 				below = below.TaskBelow

@@ -253,36 +253,71 @@ func (task *Task) Serialize() map[string]interface{} {
 func (task *Task) Deserialize(data map[string]interface{}) {
 
 	// JSON encodes all numbers as 64-bit floats, so this saves us some visual ugliness.
-	getFloat := func(name string) float32 {
-		return float32(data[name].(float64))
-	}
-	getInt := func(name string) int {
-		return int(data[name].(float64))
+
+	getFloat := func(name string, defaultValue float32) float32 {
+		value, exists := data[name]
+		if exists {
+			return float32(value.(float64))
+		} else {
+			return defaultValue
+		}
 	}
 
-	task.Position.X = getFloat("Position.X")
-	task.Position.Y = getFloat("Position.Y")
+	getInt := func(name string, defaultValue int) int {
+		value, exists := data[name]
+		if exists {
+			return int(value.(float64))
+		} else {
+			return defaultValue
+		}
+	}
+
+	getBool := func(name string, defaultValue bool) bool {
+		value, exists := data[name]
+		if exists {
+			return value.(bool)
+		} else {
+			return defaultValue
+		}
+	}
+
+	getString := func(name string, defaultValue string) string {
+		value, exists := data[name]
+		if exists {
+			return value.(string)
+		} else {
+			return defaultValue
+		}
+	}
+
+	hasData := func(name string) bool {
+		_, exists := data[name]
+		return exists
+	}
+
+	task.Position.X = getFloat("Position.X", task.Position.X)
 	task.Rect.X = task.Position.X
+	task.Position.Y = getFloat("Position.Y", task.Position.Y)
 	task.Rect.Y = task.Position.Y
-	task.Rect.Width = getFloat("Rect.W")
-	task.Rect.Height = getFloat("Rect.H")
-	task.ImageDisplaySize.X = getFloat("ImageDisplaySize.X")
-	task.ImageDisplaySize.Y = getFloat("ImageDisplaySize.Y")
-	task.CompletionCheckbox.Checked = data["Checkbox.Checked"].(bool)
-	task.CompletionProgressionCurrent.SetNumber(getInt("Progression.Current"))
-	task.CompletionProgressionMax.SetNumber(getInt("Progression.Max"))
-	task.Description.Text = data["Description"].(string)
-	task.FilePathTextbox.Text = data["FilePath"].(string)
-	task.Selected = data["Selected"].(bool)
-	task.TaskType.CurrentChoice = int(data["TaskType.CurrentChoice"].(float64))
+	task.Rect.Width = getFloat("Rect.W", task.Rect.Width)
+	task.Rect.Height = getFloat("Rect.H", task.Rect.Height)
+	task.ImageDisplaySize.X = getFloat("ImageDisplaySize.X", task.ImageDisplaySize.X)
+	task.ImageDisplaySize.Y = getFloat("ImageDisplaySize.Y", task.ImageDisplaySize.Y)
+	task.CompletionCheckbox.Checked = getBool("Checkbox.Checked", task.CompletionCheckbox.Checked)
+	task.CompletionProgressionCurrent.SetNumber(getInt("Progression.Current", task.CompletionProgressionCurrent.GetNumber()))
+	task.CompletionProgressionMax.SetNumber(getInt("Progression.Max", task.CompletionProgressionMax.GetNumber()))
+	task.Description.Text = getString("Description", task.Description.Text)
+	task.FilePathTextbox.Text = getString("FilePath", task.FilePathTextbox.Text)
+	task.Selected = getBool("Selected", task.Selected)
+	task.TaskType.CurrentChoice = getInt("TaskType.CurrentChoice", task.TaskType.CurrentChoice)
 
-	creationTime, err := time.Parse("Jan 2 2006 15:04:05", data["CreationTime"].(string))
+	creationTime, err := time.Parse("Jan 2 2006 15:04:05", getString("CreationTime", task.CreationTime.String()))
 	if err == nil {
 		task.CreationTime = creationTime
 	}
 
-	_, completionTimeSaved := data["CompletionTime"]
-	if completionTimeSaved {
+	if hasData("CompletionTime") {
+		// Wouldn't be strange to not have a completion for incomplete Tasks.
 		ctString := data["CompletionTime"].(string)
 		completionTime, err := time.Parse("Jan 2 2006 15:04:05", ctString)
 		if err == nil {
@@ -805,7 +840,7 @@ func (task *Task) LoadResource() {
 				if path.Ext(ogFilename) == "" {
 					ogFilename += ".png" // Gotta just make a guess on this one
 				}
-				tempFile, err := ioutil.TempFile("", "*masterpla*_"+ogFilename)
+				tempFile, err := ioutil.TempFile("", "masterplan*_"+ogFilename)
 				defer tempFile.Close()
 				if err != nil {
 					log.Println(err)

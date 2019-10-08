@@ -436,7 +436,7 @@ func (textbox *Textbox) Update() {
 
 	if textbox.Focused {
 
-		if textbox.AllowNewlines && rl.IsKeyPressed(rl.KeyEnter) {
+		if textbox.AllowNewlines && (rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)) {
 			textbox.InsertCharacterAtCaret("\n")
 		}
 
@@ -481,6 +481,8 @@ func (textbox *Textbox) Update() {
 			rl.KeyUp:        0,
 			rl.KeyDown:      0,
 			rl.KeyDelete:    0,
+			rl.KeyHome:      0,
+			rl.KeyEnd:       0,
 		}
 
 		for k := range keyState {
@@ -498,9 +500,45 @@ func (textbox *Textbox) Update() {
 		}
 
 		if keyState[rl.KeyRight] > 0 {
-			textbox.CaretPos++
+			nextWordDist := strings.Index(textbox.Text[textbox.CaretPos:], " ")
+			nextNewLine := strings.Index(textbox.Text[textbox.CaretPos:], "\n")
+			if nextNewLine >= 0 && nextNewLine < nextWordDist {
+				nextWordDist = nextNewLine
+			}
+
+			if nextWordDist == 0 {
+				nextWordDist = 1
+			}
+			if control {
+				if nextWordDist > 0 {
+					textbox.CaretPos += nextWordDist
+				} else {
+					textbox.CaretPos = len(textbox.Text)
+				}
+			} else {
+				textbox.CaretPos++
+			}
 		} else if keyState[rl.KeyLeft] > 0 {
-			textbox.CaretPos--
+			prevWordDist := strings.LastIndex(textbox.Text[:textbox.CaretPos], " ")
+			prevNewLine := strings.LastIndex(textbox.Text[:textbox.CaretPos], "\n")
+			if prevNewLine >= 0 && prevNewLine > prevWordDist {
+				prevWordDist = prevNewLine
+			}
+
+			prevWordDist++
+
+			if textbox.CaretPos-prevWordDist == 0 {
+				prevWordDist -= 1
+			}
+			if control {
+				if prevWordDist > 0 {
+					textbox.CaretPos -= textbox.CaretPos - prevWordDist
+				} else {
+					textbox.CaretPos = 0
+				}
+			} else {
+				textbox.CaretPos--
+			}
 		}
 
 		if keyState[rl.KeyUp] > 0 {
@@ -531,6 +569,12 @@ func (textbox *Textbox) Update() {
 			} else {
 				textbox.CaretPos = len(textbox.Text)
 			}
+		}
+
+		if keyState[rl.KeyHome] > 0 {
+			textbox.CaretPos = 0
+		} else if keyState[rl.KeyEnd] > 0 {
+			textbox.CaretPos = len(textbox.Text)
 		}
 
 		if keyState[rl.KeyBackspace] > 0 && textbox.CaretPos > 0 {
