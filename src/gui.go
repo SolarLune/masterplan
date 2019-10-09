@@ -47,6 +47,19 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_NOTE_COLOR:          rl.Color{250, 225, 120, 255},
 		GUI_SHADOW_COLOR:        rl.Black,
 	},
+	"Blueprint": map[int]rl.Color{
+		GUI_OUTLINE:             rl.RayWhite,
+		GUI_OUTLINE_HIGHLIGHTED: rl.Yellow, // Selected Task Outline
+		GUI_OUTLINE_CLICKED:     rl.Yellow,
+		GUI_OUTLINE_DISABLED:    rl.Color{30, 60, 120, 255},
+		GUI_INSIDE:              rl.Color{60, 80, 140, 255},   // BG / Task BG / Grid Color 1
+		GUI_INSIDE_HIGHLIGHTED:  rl.Color{140, 160, 200, 255}, // Button Highlight / Focused Textbox / Task Completion color
+		GUI_INSIDE_CLICKED:      rl.Color{138, 161, 246, 255}, // Grid Color 2
+		GUI_INSIDE_DISABLED:     rl.DarkBlue,
+		GUI_FONT_COLOR:          rl.White,
+		GUI_NOTE_COLOR:          rl.DarkGray,
+		GUI_SHADOW_COLOR:        rl.Black,
+	},
 	"Moonlight": map[int]rl.Color{
 		GUI_OUTLINE:             rl.Color{120, 140, 170, 255},
 		GUI_OUTLINE_HIGHLIGHTED: rl.White,
@@ -72,19 +85,6 @@ var guiColors = map[string]map[int]rl.Color{
 		GUI_FONT_COLOR:          rl.RayWhite,
 		GUI_NOTE_COLOR:          rl.Maroon,
 		GUI_SHADOW_COLOR:        rl.Red,
-	},
-	"Blueprint": map[int]rl.Color{
-		GUI_OUTLINE:             rl.RayWhite,
-		GUI_OUTLINE_HIGHLIGHTED: rl.Yellow, // Selected Task Outline
-		GUI_OUTLINE_CLICKED:     rl.Yellow,
-		GUI_OUTLINE_DISABLED:    rl.Color{30, 60, 120, 255},
-		GUI_INSIDE:              rl.Color{60, 80, 140, 255},   // BG / Task BG / Grid Color 1
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{140, 160, 200, 255}, // Button Highlight / Focused Textbox / Task Completion color
-		GUI_INSIDE_CLICKED:      rl.Color{138, 161, 246, 255}, // Grid Color 2
-		GUI_INSIDE_DISABLED:     rl.DarkBlue,
-		GUI_FONT_COLOR:          rl.White,
-		GUI_NOTE_COLOR:          rl.DarkGray,
-		GUI_SHADOW_COLOR:        rl.Black,
 	},
 	"Piano Black": map[int]rl.Color{
 		GUI_OUTLINE:             rl.LightGray,

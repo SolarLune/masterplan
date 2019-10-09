@@ -38,30 +38,31 @@ const (
 
 type Project struct {
 	// Settings / project-specific data
-	FilePath  string
-	GridSize  int32
-	Tasks     []*Task
-	ZoomLevel int
-	Pan       rl.Vector2
-
-	// Internal data to make projects work
-	GridTexture          rl.Texture2D
-	ContextMenuOpen      bool
-	ContextMenuPosition  rl.Vector2
-	ProjectSettingsOpen  bool
-	RootPath             string
-	Selecting            bool
-	SelectionStart       rl.Vector2
-	DoubleClickTimer     int
-	CopyBuffer           []*Task
-	TimeScaleRate        int
-	TaskOpen             bool
-	ColorTheme           string
-	ReorderSequence      int
-	SampleRate           beep.SampleRate
-	SampleBuffer         int
+	FilePath             string
+	GridSize             int32
+	Tasks                []*Task
+	ZoomLevel            int
+	Pan                  rl.Vector2
 	ShadowQualitySpinner *Spinner
 	GridVisible          *Checkbox
+	SampleRate           beep.SampleRate
+	SampleBuffer         int
+	ShowIcons            *Checkbox
+
+	// Internal data to make projects work
+	GridTexture         rl.Texture2D
+	ContextMenuOpen     bool
+	ContextMenuPosition rl.Vector2
+	ProjectSettingsOpen bool
+	RootPath            string
+	Selecting           bool
+	SelectionStart      rl.Vector2
+	DoubleClickTimer    int
+	CopyBuffer          []*Task
+	TimeScaleRate       int
+	TaskOpen            bool
+	ColorTheme          string
+	ReorderSequence     int
 
 	Searchbar    *Textbox
 	StatusBar    rl.Rectangle
@@ -94,11 +95,12 @@ func NewProject() *Project {
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15}, TimescaleBar: rl.Rectangle{0, 0, screenWidth, 16},
 		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
 		ColorThemeSpinner: NewSpinner(192, 32, 192, 16, themes...), ShadowQualitySpinner: NewSpinner(192, 64, 128, 16, "Off", "Solid", "Smooth"),
-		GridVisible: NewCheckbox(192, 96, 16, 16),
+		GridVisible: NewCheckbox(192, 96, 16, 16), ShowIcons: NewCheckbox(192, 112, 16, 16),
 	}
 	project.ShadowQualitySpinner.CurrentChoice = 2
 	project.ChangeTheme(project.ColorTheme)
 	project.GridVisible.Checked = true
+	project.ShowIcons.Checked = true
 	project.GenerateGrid()
 	project.DoubleClickTimer = -1
 
@@ -135,6 +137,7 @@ func (project *Project) Save() bool {
 			"SampleBuffer":  project.SampleBuffer,
 			"ShadowQuality": project.ShadowQualitySpinner.CurrentChoice,
 			"GridVisible":   project.GridVisible.Checked,
+			"ShowIcons":     project.ShowIcons.Checked,
 		}
 
 		f, err := os.Create(project.FilePath)
@@ -195,7 +198,7 @@ func (project *Project) Load() bool {
 			if exists {
 				return int(value.(float64))
 			} else {
-				return 0
+				return defaultValue
 			}
 		}
 		getString := func(name string, defaultValue string) string {
@@ -203,7 +206,15 @@ func (project *Project) Load() bool {
 			if exists {
 				return value.(string)
 			} else {
-				return ""
+				return defaultValue
+			}
+		}
+		getBool := func(name string, defaultValue bool) bool {
+			value, exists := data[name]
+			if exists {
+				return value.(bool)
+			} else {
+				return defaultValue
 			}
 		}
 
@@ -214,7 +225,8 @@ func (project *Project) Load() bool {
 		project.SampleRate = beep.SampleRate(getInt("SampleRate", int(project.SampleRate)))
 		project.SampleBuffer = getInt("SampleBuffer", project.SampleBuffer)
 		project.ShadowQualitySpinner.CurrentChoice = getInt("ShadowQuality", project.ShadowQualitySpinner.CurrentChoice)
-		project.GridVisible.Checked = data["GridVisible"].(bool)
+		project.GridVisible.Checked = getBool("GridVisible", project.GridVisible.Checked)
+		project.ShowIcons.Checked = getBool("ShowIcons", project.ShowIcons.Checked)
 
 		speaker.Init(project.SampleRate, project.SampleBuffer)
 
@@ -1005,6 +1017,9 @@ func (project *Project) GUI() {
 		rl.DrawTextEx(font, "Grid Visible: ", rl.Vector2{32, project.GridVisible.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 		project.GridVisible.Update()
 
+		rl.DrawTextEx(font, "Show Icons: ", rl.Vector2{32, project.ShowIcons.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		project.ShowIcons.Update()
+
 		if project.GridVisible.Changed {
 			project.GenerateGrid()
 		}
@@ -1064,8 +1079,7 @@ func (project *Project) GUI() {
 
 	// Search bar
 
-	rec := rl.Rectangle{0, 0, 16, 16}
-	rl.DrawTextureRec(project.GUI_Icons, rec, rl.Vector2{project.Searchbar.Rect.X - 24, project.Searchbar.Rect.Y}, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+	rl.DrawTextureRec(project.GUI_Icons, rl.Rectangle{128, 0, 16, 16}, rl.Vector2{project.Searchbar.Rect.X - 24, project.Searchbar.Rect.Y}, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
 	clickedOnSearchbar := false
 

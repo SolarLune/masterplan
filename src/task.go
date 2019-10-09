@@ -407,20 +407,22 @@ func (task *Task) Update() {
 
 	name := task.Description.Text
 
-	hasIcon := false
+	extendedText := false
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-		name = ""
+		_, filename := path.Split(task.FilePathTextbox.Text)
+		name = filename
 		task.Resizeable = true
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 		_, filename := path.Split(task.FilePathTextbox.Text)
 		name = filename
-		hasIcon = true // Expanded because i
-	} else if task.TaskType.CurrentChoice != TASK_TYPE_NOTE {
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN || task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
 		// Notes don't get just the first line written on the task in the overview.
 		cut := strings.Index(name, "\n")
 		if cut >= 0 {
-			hasIcon = true
+			if task.Project.ShowIcons.Checked {
+				extendedText = true
+			}
 			name = name[:cut]
 		}
 		task.Resizeable = false
@@ -434,11 +436,21 @@ func (task *Task) Update() {
 		name = fmt.Sprintf("%s %s", n, name)
 	}
 
+	invalidImage := task.Image.ID == 0 && task.GifAnimation == nil
+	if !invalidImage && task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+		name = ""
+	}
+
 	taskDisplaySize := rl.MeasureTextEx(font, name, fontSize, spacing)
 	// Lock the sizes of the task to a grid
-	if hasIcon {
+	// All tasks except for images have an icon at the left
+	if task.Project.ShowIcons.Checked && (task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage) {
 		taskDisplaySize.X += 16
 	}
+	if extendedText && task.Project.ShowIcons.Checked {
+		taskDisplaySize.X += 16
+	}
+
 	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
 	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
 
@@ -477,7 +489,9 @@ func (task *Task) Update() {
 		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 	}
 
-	if task.Completable() || task.Selected {
+	// Moved this to a function because it's used for the inside and outside, and the
+	// progress bar for progression-based Tasks.
+	applyGlow := func(color rl.Color) rl.Color {
 
 		glowYPos := -task.Rect.Y / float32(task.Project.GridSize)
 		glowXPos := -task.Rect.X / float32(task.Project.GridSize)
@@ -504,25 +518,12 @@ func (task *Task) Update() {
 		} else {
 			color.B = 0
 		}
+		return color
+	}
 
-		if outlineColor.R >= glow {
-			outlineColor.R -= glow
-		} else {
-			outlineColor.R = 0
-		}
-
-		if outlineColor.G >= glow {
-			outlineColor.G -= glow
-		} else {
-			outlineColor.G = 0
-		}
-
-		if outlineColor.B >= glow {
-			outlineColor.B -= glow
-		} else {
-			outlineColor.B = 0
-		}
-
+	if task.Completable() || task.Selected {
+		color = applyGlow(color)
+		outlineColor = applyGlow(outlineColor)
 	}
 
 	if task.Project.ShadowQualitySpinner.CurrentChoice == 2 {
@@ -552,8 +553,6 @@ func (task *Task) Update() {
 		rl.DrawRectangleRec(shadowRect, shadowColor)
 	}
 
-	rl.DrawRectangleRec(task.Rect, color)
-
 	perc := float32(0)
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
@@ -575,12 +574,12 @@ func (task *Task) Update() {
 		perc = 1
 	}
 
-	if perc > 0 {
-		c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
-		r := task.Rect
-		r.Width *= perc
-		c.A = color.A / 2
-		rl.DrawRectangleRec(r, c)
+	rl.DrawRectangleRec(task.Rect, color)
+
+	if perc != 0 && perc != 1 {
+		rect := task.Rect
+		rect.Width *= perc
+		rl.DrawRectangleRec(rect, applyGlow(getThemeColor(GUI_INSIDE_HIGHLIGHTED)))
 	}
 
 	rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
@@ -642,24 +641,52 @@ func (task *Task) Update() {
 
 	}
 
-	iconColor := getThemeColor(GUI_FONT_COLOR)
-	textPos := rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}
-	iconPos := rl.Vector2{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y}
-	iconSrc := rl.Rectangle{16, 0, 16, 16}
+	if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage {
 
-	if hasIcon && task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-		iconPos.X = task.Rect.X
-		textPos.X += 16
-		iconSrc = rl.Rectangle{32, 0, 16, 16}
-		if task.SoundStream == nil || task.SoundControl.Paused {
-			iconColor = getThemeColor(GUI_OUTLINE)
+		textPos := rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}
+
+		if task.Project.ShowIcons.Checked {
+			textPos.X += 16
 		}
+
+		rl.DrawTextEx(font, name, textPos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
 	}
 
-	rl.DrawTextEx(font, name, textPos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	if task.Project.ShowIcons.Checked {
 
-	if hasIcon {
-		rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{iconPos.X, iconPos.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+		iconColor := getThemeColor(GUI_FONT_COLOR)
+		iconSrc := rl.Rectangle{16, 0, 16, 16}
+
+		iconSrcIconPositions := map[int]float32{
+			TASK_TYPE_BOOLEAN:     0,
+			TASK_TYPE_PROGRESSION: 32,
+			TASK_TYPE_NOTE:        64,
+			TASK_TYPE_SOUND:       80,
+			TASK_TYPE_IMAGE:       96,
+		}
+
+		if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+			if task.SoundStream == nil || task.SoundControl.Paused {
+				iconColor = getThemeColor(GUI_OUTLINE)
+			}
+		}
+
+		iconSrc.X = iconSrcIconPositions[task.TaskType.CurrentChoice]
+		if task.IsComplete() {
+			iconSrc.X += 16
+			iconColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		}
+
+		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage {
+			rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + 1, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+		}
+
+		if extendedText {
+			iconSrc.X = 112
+			rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+		}
+
 	}
 
 }
