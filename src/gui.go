@@ -204,7 +204,7 @@ func (spinner *Spinner) Update() {
 	rl.DrawRectangleRec(spinner.Rect, getThemeColor(GUI_INSIDE))
 	rl.DrawRectangleLinesEx(spinner.Rect, 1, getThemeColor(GUI_OUTLINE))
 	if len(spinner.Options) > 0 {
-		text := spinner.Options[spinner.CurrentChoice]
+		text := spinner.ChoiceAsString()
 		textLength := rl.MeasureTextEx(font, text, fontSize, spacing)
 		x := float32(math.Round(float64(spinner.Rect.X + spinner.Rect.Width/2 - textLength.X/2)))
 		y := float32(math.Round(float64(spinner.Rect.Y + spinner.Rect.Height/2 - textLength.Y/2)))
@@ -226,6 +226,20 @@ func (spinner *Spinner) Update() {
 		spinner.CurrentChoice = 0
 	}
 
+}
+
+func (spinner *Spinner) SetChoice(choice string) bool {
+	for index, o := range spinner.Options {
+		if choice == o {
+			spinner.CurrentChoice = index
+			return true
+		}
+	}
+	return false
+}
+
+func (spinner *Spinner) ChoiceAsString() string {
+	return spinner.Options[spinner.CurrentChoice]
 }
 
 type ProgressBar struct {
@@ -272,6 +286,9 @@ func (progressBar *ProgressBar) Update() {
 type NumberSpinner struct {
 	Rect    rl.Rectangle
 	Textbox *Textbox
+	Minimum int
+	Maximum int
+	Loop    bool // If the spinner loops when attempting to add a number past the max
 }
 
 func NewNumberSpinner(x, y, w, h float32, options ...string) *NumberSpinner {
@@ -281,6 +298,8 @@ func NewNumberSpinner(x, y, w, h float32, options ...string) *NumberSpinner {
 	numberSpinner.Textbox.AllowNewlines = false
 	numberSpinner.Textbox.Alignment = TEXTBOX_ALIGN_CENTER
 	numberSpinner.Textbox.Text = "0"
+	numberSpinner.Minimum = -math.MaxInt64
+	numberSpinner.Maximum = math.MaxInt64
 
 	return numberSpinner
 }
@@ -307,8 +326,18 @@ func (numberSpinner *NumberSpinner) Update() {
 		num++
 	}
 
-	if num < 0 {
-		num = 0
+	if num < numberSpinner.Minimum {
+		if numberSpinner.Loop {
+			num = numberSpinner.Maximum
+		} else {
+			num = numberSpinner.Minimum
+		}
+	} else if num > numberSpinner.Maximum && numberSpinner.Maximum > -1 {
+		if numberSpinner.Loop {
+			num = numberSpinner.Minimum
+		} else {
+			num = numberSpinner.Maximum
+		}
 	}
 
 	numberSpinner.Textbox.Text = strconv.Itoa(num)

@@ -23,13 +23,6 @@ import (
 )
 
 const (
-	TIMESCALE_OFF = iota
-	TIMESCALE_PER_DAY
-	TIMESCALE_PER_WEEK
-	TIMESCALE_PER_MONTH
-)
-
-const (
 	REORDER_NUMBER_PERIOD = iota
 	REORDER_OFF
 	// REORDER_NUMBER_PAREN
@@ -59,15 +52,14 @@ type Project struct {
 	SelectionStart      rl.Vector2
 	DoubleClickTimer    int
 	CopyBuffer          []*Task
-	TimeScaleRate       int
 	TaskOpen            bool
 	ColorTheme          string
 	ReorderSequence     int
 
-	Searchbar    *Textbox
-	StatusBar    rl.Rectangle
-	TimescaleBar rl.Rectangle
-	GUI_Icons    rl.Texture2D
+	Searchbar      *Textbox
+	StatusBar      rl.Rectangle
+	GUI_Icons      rl.Texture2D
+	Patterns rl.Texture2D
 
 	ColorThemeSpinner *Spinner
 	ShortcutKeyTimer  int
@@ -91,11 +83,11 @@ func NewProject() *Project {
 		themes = append(themes, themeName)
 	}
 
-	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, Pan: rl.Vector2{screenWidth / 2, screenHeight / 2}, TimeScaleRate: TIMESCALE_PER_DAY,
-		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15}, TimescaleBar: rl.Rectangle{0, 0, screenWidth, 16},
-		GUI_Icons: rl.LoadTexture("assets/gui_icons.png"), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
+	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, Pan: rl.Vector2{screenWidth / 2, screenHeight / 2},
+		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15},
+		GUI_Icons: rl.LoadTexture(path.Join("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
 		ColorThemeSpinner: NewSpinner(192, 32, 192, 16, themes...), ShadowQualitySpinner: NewSpinner(192, 64, 128, 16, "Off", "Solid", "Smooth"),
-		GridVisible: NewCheckbox(192, 96, 16, 16), ShowIcons: NewCheckbox(192, 112, 16, 16),
+		GridVisible: NewCheckbox(192, 96, 16, 16), ShowIcons: NewCheckbox(192, 112, 16, 16), Patterns: rl.LoadTexture(path.Join("assets", "patterns.png")),
 	}
 	project.ShadowQualitySpinner.CurrentChoice = 2
 	project.ChangeTheme(project.ColorTheme)
@@ -241,12 +233,7 @@ func (project *Project) Load() bool {
 		if colorTheme != "" {
 			project.ChangeTheme(colorTheme)
 			project.GenerateGrid()
-			for i, choice := range project.ColorThemeSpinner.Options {
-				if choice == colorTheme {
-					project.ColorThemeSpinner.CurrentChoice = i
-					break
-				}
-			}
+			project.ColorThemeSpinner.SetChoice(colorTheme)
 		}
 
 		project.ReorderTasks()
@@ -370,56 +357,6 @@ func (project *Project) HandleCamera() {
 
 }
 
-func (project *Project) DrawTimescale() {
-
-	timeUnit := time.Now()
-	yesterday := time.Date(timeUnit.Year(), timeUnit.Month(), timeUnit.Day(), 0, 0, 0, 0, time.Local)
-
-	var displayTimeUnit = func(dateOfReference time.Time) {
-
-		diff := dateOfReference.Sub(time.Now())
-		// if time.Now().Before(dateOfReference) {
-		// 	diff = dateOfReference.Sub(time.Now())
-		// }
-		x := int32(0)
-
-		if project.TimeScaleRate == TIMESCALE_PER_DAY {
-			x += int32(diff.Hours() * float64(project.GridSize)) // Each square = 1 hour at this timescale (24 squares = 1 day)
-		} else if project.TimeScaleRate == TIMESCALE_PER_WEEK {
-			x += int32(diff.Hours() * 24 * float64(project.GridSize)) // Each square = 1 day at this timescale (7 squares = 1 week)
-		} else if project.TimeScaleRate == TIMESCALE_PER_MONTH {
-			x += int32(diff.Hours() * 24 * 7 * float64(project.GridSize)) // Each square = 1 week at this timescale (4 squares = 1 month, roughly)
-		}
-
-		x = int32(float32(x) * camera.Zoom)
-
-		x += int32(-camera.Target.X*camera.Zoom) + screenWidth/2
-
-		// x = int32((float32(x)))
-
-		rl.DrawTriangle(
-			rl.Vector2{float32(x) + 12, 16},
-			rl.Vector2{float32(x) - 12, 16},
-			rl.Vector2{float32(x), 32},
-			getThemeColor(GUI_OUTLINE))
-
-		pos := rl.Vector2{float32(x) - 80, 4}
-		todayText := dateOfReference.Format("Monday, 1/2/2006")
-		rl.DrawTextEx(font, todayText, pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
-
-	}
-
-	if project.TimeScaleRate != TIMESCALE_OFF && !project.TaskOpen {
-		rl.DrawRectangleRec(project.TimescaleBar, getThemeColor(GUI_INSIDE))
-		rl.DrawLine(int32(project.TimescaleBar.X), int32(project.TimescaleBar.Y+16),
-			int32(project.TimescaleBar.X+project.TimescaleBar.Width), int32(project.TimescaleBar.Y+16), getThemeColor(GUI_OUTLINE))
-		displayTimeUnit(yesterday)
-		tomorrow := yesterday.Add(time.Hour * 24)
-		displayTimeUnit(tomorrow)
-	}
-
-}
-
 func (project *Project) HandleDroppedFiles() {
 
 	imageFormats := [...]string{
@@ -487,8 +424,6 @@ func (project *Project) MousingOver() string {
 
 	if rl.CheckCollisionPointRec(GetMousePosition(), project.StatusBar) {
 		return "StatusBar"
-	} else if rl.CheckCollisionPointRec(GetMousePosition(), project.TimescaleBar) {
-		return "TimescaleBar"
 	} else if project.TaskOpen {
 		return "TaskOpen"
 	} else {
@@ -872,12 +807,7 @@ func (project *Project) ChangeTheme(themeName string) bool {
 	if themeExists {
 		project.ColorTheme = themeName
 		currentTheme = project.ColorTheme
-		for i, choice := range project.ColorThemeSpinner.Options {
-			if choice == themeName {
-				project.ColorThemeSpinner.CurrentChoice = i
-				break
-			}
-		}
+		project.ColorThemeSpinner.SetChoice(themeName)
 		project.GenerateGrid()
 		return true
 	}
@@ -885,6 +815,8 @@ func (project *Project) ChangeTheme(themeName string) bool {
 }
 
 func (project *Project) GUI() {
+
+	fontColor := getThemeColor(GUI_FONT_COLOR)
 
 	for _, task := range project.Tasks {
 		task.PostDraw()
@@ -1008,16 +940,16 @@ func (project *Project) GUI() {
 			project.Save()
 		}
 
-		rl.DrawTextEx(font, "Shadow Quality: ", rl.Vector2{32, project.ShadowQualitySpinner.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(font, "Shadow Quality: ", rl.Vector2{32, project.ShadowQualitySpinner.Rect.Y + 4}, fontSize, spacing, fontColor)
 		project.ShadowQualitySpinner.Update()
 
-		rl.DrawTextEx(font, "Color Theme: ", rl.Vector2{32, project.ColorThemeSpinner.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(font, "Color Theme: ", rl.Vector2{32, project.ColorThemeSpinner.Rect.Y + 4}, fontSize, spacing, fontColor)
 		project.ColorThemeSpinner.Update()
 
-		rl.DrawTextEx(font, "Grid Visible: ", rl.Vector2{32, project.GridVisible.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(font, "Grid Visible: ", rl.Vector2{32, project.GridVisible.Rect.Y + 4}, fontSize, spacing, fontColor)
 		project.GridVisible.Update()
 
-		rl.DrawTextEx(font, "Show Icons: ", rl.Vector2{32, project.ShowIcons.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(font, "Show Icons: ", rl.Vector2{32, project.ShowIcons.Rect.Y + 4}, fontSize, spacing, fontColor)
 		project.ShowIcons.Update()
 
 		if project.GridVisible.Changed {
@@ -1025,14 +957,12 @@ func (project *Project) GUI() {
 		}
 
 		if project.ColorThemeSpinner.Changed {
-			project.ChangeTheme(project.ColorThemeSpinner.Options[project.ColorThemeSpinner.CurrentChoice])
+			project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
 		}
 
 	}
 
 	// Status bar
-
-	project.DrawTimescale()
 
 	rl.DrawRectangleRec(project.StatusBar, getThemeColor(GUI_INSIDE))
 	rl.DrawLine(int32(project.StatusBar.X), int32(project.StatusBar.Y-1), int32(project.StatusBar.X+project.StatusBar.Width), int32(project.StatusBar.Y-1), getThemeColor(GUI_OUTLINE))
@@ -1073,9 +1003,16 @@ func (project *Project) GUI() {
 		text += fmt.Sprintf(" (%d selected)", selectionCount)
 	}
 
-	rl.DrawTextEx(font, text, rl.Vector2{6, screenHeight - 12}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	rl.DrawTextEx(font, text, rl.Vector2{6, screenHeight - 12}, fontSize, spacing, fontColor)
 
 	PrevMousePosition = GetMousePosition()
+
+	todayText := time.Now().Format("Monday, January 2, 2006, 15:04:05")
+	textLength := rl.MeasureTextEx(font, todayText, fontSize, spacing)
+	pos := rl.Vector2{screenWidth/2 - textLength.X/2, screenHeight - 12}
+	pos.X = float32(math.Floor(float64(pos.X)))
+	pos.Y = float32(math.Floor(float64(pos.Y)))
+	rl.DrawTextEx(font, todayText, pos, fontSize, spacing, fontColor)
 
 	// Search bar
 

@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hako/durafmt"
+
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/flac"
 	"github.com/faiface/beep/mp3"
@@ -31,6 +33,13 @@ const (
 	TASK_TYPE_NOTE
 	TASK_TYPE_IMAGE
 	TASK_TYPE_SOUND
+)
+
+const (
+	TASK_NOT_DUE = iota
+	TASK_DUE_FUTURE
+	TASK_DUE_TODAY
+	TASK_DUE_LATE
 )
 
 type GifAnimation struct {
@@ -135,6 +144,11 @@ type Task struct {
 	CreationTime   time.Time
 	CompletionTime time.Time
 
+	DeadlineCheckbox     *Checkbox
+	DeadlineDaySpinner   *NumberSpinner
+	DeadlineMonthSpinner *Spinner
+	DeadlineYearSpinner  *NumberSpinner
+
 	CompletionCheckbox           *Checkbox
 	CompletionProgressionCurrent *NumberSpinner
 	CompletionProgressionMax     *NumberSpinner
@@ -159,11 +173,28 @@ type Task struct {
 	NumberingPrefix     []int
 	RefreshPrefix       bool
 	ID                  int
+	PostOpenDelay       int
 }
 
 var taskID = 0
 
 func NewTask(project *Project) *Task {
+
+	months := []string{
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December",
+	}
+
 	task := &Task{
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Project:                      project,
@@ -176,6 +207,11 @@ func NewTask(project *Project) *Task {
 		RefreshPrefix:                false,
 		ID:                           project.GetFirstFreeID(),
 		FilePathTextbox:              NewTextbox(140, 64, 512, 16),
+		DeadlineCheckbox:             NewCheckbox(140, 112, 16, 16),
+		DeadlineMonthSpinner:         NewSpinner(180, 128, 96, 16, months...),
+		DeadlineDaySpinner:           NewNumberSpinner(300, 128, 48, 16),
+		DeadlineYearSpinner:          NewNumberSpinner(300, 128, 48, 16),
+		// DeadlineTimeTextbox:          NewTextbox(240, 128, 64, 16),	// Need to make textbox format for time.
 	}
 	task.CreationTime = time.Now()
 	task.CompletionProgressionCurrent.Textbox.MaxCharacters = 8
@@ -184,6 +220,14 @@ func NewTask(project *Project) *Task {
 	task.Description.AllowNewlines = true
 	task.FilePathTextbox.AllowNewlines = false
 	task.FilePathTextbox.MaxSize = task.FilePathTextbox.MinSize
+
+	task.DeadlineDaySpinner.Minimum = 1
+	task.DeadlineDaySpinner.Maximum = 31
+	task.DeadlineDaySpinner.Loop = true
+	task.DeadlineDaySpinner.Rect.X = task.DeadlineMonthSpinner.Rect.X + task.DeadlineMonthSpinner.Rect.Width + task.DeadlineDaySpinner.Rect.Height
+
+	task.DeadlineYearSpinner.Rect.X = task.DeadlineDaySpinner.Rect.X + task.DeadlineDaySpinner.Rect.Width + task.DeadlineYearSpinner.Rect.Height
+
 	return task
 }
 
@@ -239,6 +283,12 @@ func (task *Task) Serialize() map[string]interface{} {
 	data["FilePath"] = task.FilePathTextbox.Text
 	data["Selected"] = task.Selected
 	data["TaskType.CurrentChoice"] = task.TaskType.CurrentChoice
+
+	if task.DeadlineCheckbox.Checked {
+		data["DeadlineDaySpinner.Number"] = task.DeadlineDaySpinner.GetNumber()
+		data["DeadlineMonthSpinner.CurrentChoice"] = task.DeadlineMonthSpinner.CurrentChoice
+		data["DeadlineYearSpinner.Number"] = task.DeadlineYearSpinner.GetNumber()
+	}
 
 	data["CreationTime"] = task.CreationTime.Format("Jan 2 2006 15:04:05")
 
@@ -311,6 +361,13 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	task.Selected = getBool("Selected", task.Selected)
 	task.TaskType.CurrentChoice = getInt("TaskType.CurrentChoice", task.TaskType.CurrentChoice)
 
+	if hasData("DeadlineDaySpinner.Number") {
+		task.DeadlineCheckbox.Checked = true
+		task.DeadlineDaySpinner.SetNumber(getInt("DeadlineDaySpinner.Number", task.DeadlineDaySpinner.GetNumber()))
+		task.DeadlineMonthSpinner.CurrentChoice = getInt("DeadlineMonthSpinner.CurrentChoice", task.DeadlineMonthSpinner.CurrentChoice)
+		task.DeadlineYearSpinner.SetNumber(getInt("DeadlineYearSpinner.Number", task.DeadlineYearSpinner.GetNumber()))
+	}
+
 	creationTime, err := time.Parse("Jan 2 2006 15:04:05", getString("CreationTime", task.CreationTime.String()))
 	if err == nil {
 		task.CreationTime = creationTime
@@ -330,6 +387,8 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 }
 
 func (task *Task) Update() {
+
+	task.PostOpenDelay++
 
 	if task.IsComplete() && task.CompletionTime.IsZero() {
 		task.CompletionTime = time.Now()
@@ -441,6 +500,21 @@ func (task *Task) Update() {
 		name = ""
 	}
 
+	if !task.IsComplete() && task.DeadlineCheckbox.Checked {
+		// If there's a deadline, let's tell you how long you have
+		deadlineDuration := task.CalculateDeadlineDuration()
+		deadlineDuration += time.Hour * 24
+		if deadlineDuration.Hours() > 24 {
+			duration, _ := durafmt.ParseString(deadlineDuration.String())
+			duration.LimitFirstN(1)
+			name += " | Due in " + duration.String()
+		} else if deadlineDuration.Hours() >= 0 {
+			name += " | Due today!"
+		} else {
+			name += " | Overdue!"
+		}
+	}
+
 	taskDisplaySize := rl.MeasureTextEx(font, name, fontSize, spacing)
 	// Lock the sizes of the task to a grid
 	// All tasks except for images have an icon at the left
@@ -495,9 +569,9 @@ func (task *Task) Update() {
 
 		glowYPos := -task.Rect.Y / float32(task.Project.GridSize)
 		glowXPos := -task.Rect.X / float32(task.Project.GridSize)
-		glowVariance := float64(20)
+		glowVariance := float64(10)
 		if task.Selected {
-			glowVariance = 80
+			glowVariance = 40
 		}
 		glow := uint8(math.Sin(float64((rl.GetTime()*math.Pi*2+glowYPos+glowXPos)))*(glowVariance/2) + (glowVariance / 2))
 
@@ -575,6 +649,16 @@ func (task *Task) Update() {
 	}
 
 	rl.DrawRectangleRec(task.Rect, color)
+
+	if task.Due() == TASK_DUE_TODAY {
+		src := rl.Rectangle{208 + rl.GetTime()*15, 0, task.Rect.Width, task.Rect.Height}
+		dst := task.Rect
+		rl.DrawTexturePro(task.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+	} else if task.Due() == TASK_DUE_LATE {
+		src := rl.Rectangle{208 + rl.GetTime()*60, 16, task.Rect.Width, task.Rect.Height}
+		dst := task.Rect
+		rl.DrawTexturePro(task.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+	}
 
 	if perc != 0 && perc != 1 {
 		rect := task.Rect
@@ -687,35 +771,78 @@ func (task *Task) Update() {
 			rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
 		}
 
+		if !task.IsComplete() && task.DeadlineCheckbox.Checked {
+			clockPos := rl.Vector2{0, 0}
+			iconSrc = rl.Rectangle{144, 0, 16, 16}
+
+			if task.Due() == TASK_DUE_LATE {
+				iconSrc.X += 32
+			} else if task.Due() == TASK_DUE_TODAY {
+				iconSrc.X += 16
+			} // else it's due in the future, so just a clock icon is fine
+
+			clockPos.X += float32(math.Sin(float64((task.Rect.Y+task.Rect.X)*0.1)+float64(rl.GetTime())*3.1415)) * 4
+
+			rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X - 16 + clockPos.X, task.Rect.Y + clockPos.Y, 16, 16}, rl.Vector2{}, 0, rl.White)
+		}
+
 	}
 
 }
 
+func (task *Task) DeadlineTime() time.Time {
+	return time.Date(task.DeadlineYearSpinner.GetNumber(), time.Month(task.DeadlineMonthSpinner.CurrentChoice+1), task.DeadlineDaySpinner.GetNumber(), 0, 0, 0, 0, time.Now().Location())
+}
+
+func (task *Task) CalculateDeadlineDuration() time.Duration {
+	return task.DeadlineTime().Sub(time.Now())
+}
+
+func (task *Task) Due() int {
+	if !task.IsComplete() && task.DeadlineCheckbox.Checked {
+		// If there's a deadline, let's tell you how long you have
+		deadlineDuration := task.CalculateDeadlineDuration()
+		if deadlineDuration.Hours() > 0 {
+			return TASK_DUE_FUTURE
+		} else if deadlineDuration.Hours() >= -24 {
+			return TASK_DUE_TODAY
+		} else {
+			return TASK_DUE_LATE
+		}
+	}
+	return TASK_NOT_DUE
+}
+
 func (task *Task) PostDraw() {
 
-	if task.Open {
+	// PostOpenDelay makes it so that at least some time passes between double-clicking to open a Task and
+	// clicking on a UI element within the Task Edit window. That way you can't double-click to open a Task
+	// and accidentally click a button.
+	if task.Open && task.PostOpenDelay > 15 {
+
+		fontColor := getThemeColor(GUI_FONT_COLOR)
 
 		rect := rl.Rectangle{16, 16, screenWidth - 32, screenHeight - 32}
 
 		rl.DrawRectangleRec(rect, getThemeColor(GUI_INSIDE))
 		rl.DrawRectangleLinesEx(rect, 1, getThemeColor(GUI_OUTLINE))
 
-		rl.DrawTextEx(font, "Task Type: ", rl.Vector2{32, task.TaskType.Rect.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(font, "Task Type: ", rl.Vector2{32, task.TaskType.Rect.Y + 4}, fontSize, spacing, fontColor)
 
 		task.TaskType.Update()
 
 		y := task.TaskType.Rect.Y + 24
 
 		p := rl.Vector2{32, y + 4}
-		rl.DrawTextEx(font, "Created On:", p, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
-		rl.DrawTextEx(font, task.CreationTime.Format("Monday, Jan 2, 2006, 15:04"), rl.Vector2{140, y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(font, "Created On:", p, fontSize, spacing, fontColor)
+		rl.DrawTextEx(font, task.CreationTime.Format("Monday, Jan 2, 2006, 15:04"), rl.Vector2{140, y + 4}, fontSize, spacing, fontColor)
 
 		y += 32
 
 		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND {
 			task.Description.Rect.Y = y
 			task.Description.Update()
-			rl.DrawTextEx(font, "Description: ", rl.Vector2{32, y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			rl.DrawTextEx(font, "Description: ", rl.Vector2{32, y + 4}, fontSize, spacing, fontColor)
 			y += task.Description.Rect.Height + 16
 		}
 
@@ -726,25 +853,25 @@ func (task *Task) PostDraw() {
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
-			rl.DrawTextEx(font, "Completed: ", rl.Vector2{32, y + 12}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			rl.DrawTextEx(font, "Completed: ", rl.Vector2{32, y + 12}, fontSize, spacing, fontColor)
 			task.CompletionCheckbox.Rect.Y = y + 8
 			task.CompletionCheckbox.Update()
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
-			rl.DrawTextEx(font, "Completed: ", rl.Vector2{32, y + 12}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			rl.DrawTextEx(font, "Completed: ", rl.Vector2{32, y + 12}, fontSize, spacing, fontColor)
 			task.CompletionProgressionCurrent.Rect.Y = y + 8
 			task.CompletionProgressionCurrent.Update()
 
 			r := task.CompletionProgressionCurrent.Rect
 			r.X += r.Width
 
-			rl.DrawTextEx(font, "/", rl.Vector2{r.X + 10, r.Y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			rl.DrawTextEx(font, "/", rl.Vector2{r.X + 10, r.Y + 4}, fontSize, spacing, fontColor)
 
 			task.CompletionProgressionMax.Rect.X = r.X + 24
 			task.CompletionProgressionMax.Rect.Y = r.Y
 			task.CompletionProgressionMax.Update()
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 
-			rl.DrawTextEx(font, "Image File: ", rl.Vector2{32, y + 8}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			rl.DrawTextEx(font, "Image File: ", rl.Vector2{32, y + 8}, fontSize, spacing, fontColor)
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
@@ -761,7 +888,7 @@ func (task *Task) PostDraw() {
 			}
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
-			rl.DrawTextEx(font, "Sound File: ", rl.Vector2{32, y + 8}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			rl.DrawTextEx(font, "Sound File: ", rl.Vector2{32, y + 8}, fontSize, spacing, fontColor)
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
@@ -780,12 +907,38 @@ func (task *Task) PostDraw() {
 
 		y += 48
 
-		rl.DrawTextEx(font, "Completed On:", rl.Vector2{32, y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(font, "Completed On:", rl.Vector2{32, y + 4}, fontSize, spacing, fontColor)
 		completionTime := task.CompletionTime.Format("Monday, Jan 2, 2006, 15:04")
 		if task.CompletionTime.IsZero() {
 			completionTime = "N/A"
 		}
-		rl.DrawTextEx(font, completionTime, rl.Vector2{140, y + 4}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(font, completionTime, rl.Vector2{140, y + 4}, fontSize, spacing, fontColor)
+
+		y += 32
+
+		if task.Completable() {
+
+			rl.DrawTextEx(font, "Deadline: ", rl.Vector2{32, y + 4}, fontSize, spacing, fontColor)
+
+			task.DeadlineCheckbox.Rect.Y = y
+			task.DeadlineCheckbox.Update()
+
+			if task.DeadlineCheckbox.Checked {
+
+				task.DeadlineDaySpinner.Rect.Y = y
+				task.DeadlineDaySpinner.Update()
+
+				task.DeadlineMonthSpinner.Rect.Y = y
+				task.DeadlineMonthSpinner.Update()
+
+				task.DeadlineYearSpinner.Rect.Y = y
+				task.DeadlineYearSpinner.Update()
+
+			}
+
+			y += 32
+
+		}
 
 	}
 
@@ -996,9 +1149,18 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else if message == "deselect" {
 		task.Selected = false
 	} else if message == "double click" {
+
+		if !task.DeadlineCheckbox.Checked {
+			now := time.Now()
+			task.DeadlineDaySpinner.SetNumber(now.Day())
+			task.DeadlineMonthSpinner.SetChoice(now.Month().String())
+			task.DeadlineYearSpinner.SetNumber(time.Now().Year())
+		}
+
 		task.Open = true
 		task.Project.SendMessage("task open", nil)
 		task.Project.TaskOpen = true
+		task.PostOpenDelay = 0
 		task.Dragging = false
 	} else if message == "task close" {
 		task.LoadResource()
