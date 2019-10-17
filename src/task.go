@@ -818,7 +818,7 @@ func (task *Task) PostDraw() {
 	// PostOpenDelay makes it so that at least some time passes between double-clicking to open a Task and
 	// clicking on a UI element within the Task Edit window. That way you can't double-click to open a Task
 	// and accidentally click a button.
-	if task.Open && task.PostOpenDelay > 15 {
+	if task.Open && task.PostOpenDelay > 5 {
 
 		fontColor := getThemeColor(GUI_FONT_COLOR)
 

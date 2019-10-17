@@ -56,10 +56,12 @@ type Project struct {
 	ColorTheme          string
 	ReorderSequence     int
 
-	Searchbar      *Textbox
-	StatusBar      rl.Rectangle
-	GUI_Icons      rl.Texture2D
-	Patterns rl.Texture2D
+	SearchedTasks     []*Task
+	FocusedSearchTask int
+	Searchbar         *Textbox
+	StatusBar         rl.Rectangle
+	GUI_Icons         rl.Texture2D
+	Patterns          rl.Texture2D
 
 	ColorThemeSpinner *Spinner
 	ShortcutKeyTimer  int
@@ -609,6 +611,7 @@ func (project *Project) Shortcuts() {
 		rl.KeyDown,
 		rl.KeyLeft,
 		rl.KeyRight,
+		rl.KeyF,
 	}
 
 	repeatableKeyDown := map[int32]bool{}
@@ -629,163 +632,181 @@ func (project *Project) Shortcuts() {
 		}
 	}
 
-	if !project.TaskOpen && !project.Searchbar.Focused {
+	holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
+	holdingCtrl := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
 
-		holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
-		holdingCtrl := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
+	if !project.TaskOpen {
 
-		if rl.IsKeyPressed(rl.KeyOne) {
-			project.ZoomLevel = 0
-		} else if rl.IsKeyPressed(rl.KeyTwo) {
-			project.ZoomLevel = 1
-		} else if rl.IsKeyPressed(rl.KeyThree) {
-			project.ZoomLevel = 2
-		} else if rl.IsKeyPressed(rl.KeyBackspace) {
-			project.Pan = rl.Vector2{screenWidth / 2, screenHeight / 2}
-			camera.Offset = project.Pan
-			camera.Target.X = screenWidth/2 - camera.Offset.X
-			camera.Target.Y = screenHeight/2 - camera.Offset.Y
-		} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
+		if !project.Searchbar.Focused {
 
-			for _, task := range project.Tasks {
-				task.Selected = true
-			}
+			if rl.IsKeyPressed(rl.KeyOne) {
+				project.ZoomLevel = 0
+			} else if rl.IsKeyPressed(rl.KeyTwo) {
+				project.ZoomLevel = 1
+			} else if rl.IsKeyPressed(rl.KeyThree) {
+				project.ZoomLevel = 2
+			} else if rl.IsKeyPressed(rl.KeyBackspace) {
+				project.Pan = rl.Vector2{screenWidth / 2, screenHeight / 2}
+				camera.Offset = project.Pan
+				camera.Target.X = screenWidth/2 - camera.Offset.X
+				camera.Target.Y = screenHeight/2 - camera.Offset.Y
+			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
 
-		} else if holdingCtrl && rl.IsKeyPressed(rl.KeyC) {
-			project.CopyBuffer = []*Task{} // Clear the buffer before copying tasks
-			project.CopySelectedTasks()
-		} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
-			project.PasteTasks()
-		} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
-
-			for _, task := range project.Tasks {
-				task.StopSound()
-			}
-
-		} else if rl.IsKeyPressed(rl.KeyC) {
-			for _, task := range project.Tasks {
-				if task.Selected {
-					task.ToggleCompletion()
+				for _, task := range project.Tasks {
+					task.Selected = true
 				}
-			}
-		} else if rl.IsKeyPressed(rl.KeyDelete) {
-			project.DeleteSelectedTasks()
-			// } else if rl.IsKeyPressed(rl.KeyComma) || rl.IsKeyPressed(rl.KeyPeriod) {
-			// 	if len(project.Tasks) > 0 {
-			// 		nextTask := -1
-			// 		for i, task := range project.Tasks {
-			// 			if task.Selected {
-			// 				nextTask = i
-			// 			}
-			// 			task.Selected = false
-			// 		}
 
-			// 		if nextTask < 0 {
-			// 			nextTask = 0
-			// 		}
+			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyC) {
+				project.CopyBuffer = []*Task{} // Clear the buffer before copying tasks
+				project.CopySelectedTasks()
+			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
+				project.PasteTasks()
+			} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
 
-			// 		if rl.IsKeyPressed(rl.KeyLeft) {
-			// 			nextTask--
-			// 		} else {
-			// 			nextTask++
-			// 		}
+				for _, task := range project.Tasks {
+					task.StopSound()
+				}
 
-			// 		if nextTask >= len(project.Tasks) {
-			// 			nextTask = 0
-			// 		} else if nextTask < 0 {
-			// 			nextTask = len(project.Tasks) - 1
-			// 		}
-
-			// 		project.Tasks[nextTask].ReceiveMessage("select", map[string]interface{}{"task": project.Tasks[nextTask]})
-
-			// 		project.FocusViewOnSelectedTasks()
-
-			// 	}
-		} else if rl.IsKeyPressed(rl.KeyEnter) {
-			project.FocusViewOnSelectedTasks()
-		} else if holdingShift && repeatableKeyDown[rl.KeyUp] {
-
-			for _, task := range project.Tasks {
-				if task.Selected {
-					if task.TaskAbove != nil {
-						temp := task.Position
-						task.Position = task.TaskAbove.Position
-						task.TaskAbove.Position = temp
-						// if task.TaskAbove.TaskAbove != nil && task.TaskAbove.TaskAbove.Position.X != task.Position.X {
-						// 	task.Position.X = task.TaskAbove.TaskAbove.Position.X
-						// }
-						if task.TaskAbove.Position.X != task.Position.X {
-							task.TaskAbove.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
-						}
-						project.ReorderTasks()
-						project.FocusViewOnSelectedTasks()
+			} else if rl.IsKeyPressed(rl.KeyC) {
+				for _, task := range project.Tasks {
+					if task.Selected {
+						task.ToggleCompletion()
 					}
-					break
 				}
-			}
+			} else if rl.IsKeyPressed(rl.KeyDelete) {
+				project.DeleteSelectedTasks()
+				// } else if rl.IsKeyPressed(rl.KeyComma) || rl.IsKeyPressed(rl.KeyPeriod) {
+				// 	if len(project.Tasks) > 0 {
+				// 		nextTask := -1
+				// 		for i, task := range project.Tasks {
+				// 			if task.Selected {
+				// 				nextTask = i
+				// 			}
+				// 			task.Selected = false
+				// 		}
 
-		} else if holdingShift && repeatableKeyDown[rl.KeyDown] {
+				// 		if nextTask < 0 {
+				// 			nextTask = 0
+				// 		}
 
-			for _, task := range project.Tasks {
-				if task.Selected {
-					if task.TaskBelow != nil {
-						temp := task.Position
-						task.Position = task.TaskBelow.Position
-						task.TaskBelow.Position = temp
-						if task.TaskBelow.TaskBelow != nil && task.TaskBelow.TaskBelow.Position.X != task.TaskBelow.Position.X {
-							task.Position.X = task.TaskBelow.TaskBelow.Position.X
-						}
-						// if task.TaskBelow.Position.X != task.Position.X {
-						// 	task.TaskBelow.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
-						// }
-						project.ReorderTasks()
-						project.FocusViewOnSelectedTasks()
-					}
-					break
-				}
-			}
+				// 		if rl.IsKeyPressed(rl.KeyLeft) {
+				// 			nextTask--
+				// 		} else {
+				// 			nextTask++
+				// 		}
 
-		} else if holdingShift && repeatableKeyDown[rl.KeyRight] {
+				// 		if nextTask >= len(project.Tasks) {
+				// 			nextTask = 0
+				// 		} else if nextTask < 0 {
+				// 			nextTask = len(project.Tasks) - 1
+				// 		}
 
-			for _, task := range project.Tasks {
-				if task.Selected {
-					task.Position.X += float32(task.Project.GridSize)
-					project.ReorderTasks()
-					project.FocusViewOnSelectedTasks()
-					break
-				}
-			}
+				// 		project.Tasks[nextTask].ReceiveMessage("select", map[string]interface{}{"task": project.Tasks[nextTask]})
 
-		} else if holdingShift && repeatableKeyDown[rl.KeyLeft] {
+				// 		project.FocusViewOnSelectedTasks()
 
-			for _, task := range project.Tasks {
-				if task.Selected {
-					task.Position.X -= float32(task.Project.GridSize)
-					project.ReorderTasks()
-					project.FocusViewOnSelectedTasks()
-					break
-				}
-			}
-
-		} else if repeatableKeyDown[rl.KeyUp] || repeatableKeyDown[rl.KeyDown] {
-
-			var selected *Task
-
-			for _, task := range project.Tasks {
-				if task.Selected {
-					selected = task
-					break
-				}
-			}
-			if selected != nil {
-				if rl.IsKeyDown(rl.KeyDown) && selected.TaskBelow != nil {
-					project.SendMessage("select", map[string]interface{}{"task": selected.TaskBelow})
-				} else if rl.IsKeyDown(rl.KeyUp) && selected.TaskAbove != nil {
-					project.SendMessage("select", map[string]interface{}{"task": selected.TaskAbove})
-				}
+				// 	}
+			} else if rl.IsKeyPressed(rl.KeyEnter) {
 				project.FocusViewOnSelectedTasks()
+			} else if holdingShift && repeatableKeyDown[rl.KeyUp] {
+
+				for _, task := range project.Tasks {
+					if task.Selected {
+						if task.TaskAbove != nil {
+							temp := task.Position
+							task.Position = task.TaskAbove.Position
+							task.TaskAbove.Position = temp
+							// if task.TaskAbove.TaskAbove != nil && task.TaskAbove.TaskAbove.Position.X != task.Position.X {
+							// 	task.Position.X = task.TaskAbove.TaskAbove.Position.X
+							// }
+							if task.TaskAbove.Position.X != task.Position.X {
+								task.TaskAbove.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
+							}
+							project.ReorderTasks()
+							project.FocusViewOnSelectedTasks()
+						}
+						break
+					}
+				}
+
+			} else if holdingShift && repeatableKeyDown[rl.KeyDown] {
+
+				for _, task := range project.Tasks {
+					if task.Selected {
+						if task.TaskBelow != nil {
+							temp := task.Position
+							task.Position = task.TaskBelow.Position
+							task.TaskBelow.Position = temp
+							if task.TaskBelow.TaskBelow != nil && task.TaskBelow.TaskBelow.Position.X != task.TaskBelow.Position.X {
+								task.Position.X = task.TaskBelow.TaskBelow.Position.X
+							}
+							// if task.TaskBelow.Position.X != task.Position.X {
+							// 	task.TaskBelow.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
+							// }
+							project.ReorderTasks()
+							project.FocusViewOnSelectedTasks()
+						}
+						break
+					}
+				}
+
+			} else if holdingShift && repeatableKeyDown[rl.KeyRight] {
+
+				for _, task := range project.Tasks {
+					if task.Selected {
+						task.Position.X += float32(task.Project.GridSize)
+						project.ReorderTasks()
+						project.FocusViewOnSelectedTasks()
+						break
+					}
+				}
+
+			} else if holdingShift && repeatableKeyDown[rl.KeyLeft] {
+
+				for _, task := range project.Tasks {
+					if task.Selected {
+						task.Position.X -= float32(task.Project.GridSize)
+						project.ReorderTasks()
+						project.FocusViewOnSelectedTasks()
+						break
+					}
+				}
+
+			} else if repeatableKeyDown[rl.KeyUp] || repeatableKeyDown[rl.KeyDown] {
+
+				var selected *Task
+
+				for _, task := range project.Tasks {
+					if task.Selected {
+						selected = task
+						break
+					}
+				}
+				if selected != nil {
+					if rl.IsKeyDown(rl.KeyDown) && selected.TaskBelow != nil {
+						project.SendMessage("select", map[string]interface{}{"task": selected.TaskBelow})
+					} else if rl.IsKeyDown(rl.KeyUp) && selected.TaskAbove != nil {
+						project.SendMessage("select", map[string]interface{}{"task": selected.TaskAbove})
+					}
+					project.FocusViewOnSelectedTasks()
+				}
+
 			}
 
+		}
+
+		if holdingCtrl && repeatableKeyDown[rl.KeyF] {
+			if project.Searchbar.Focused {
+				if holdingShift {
+					project.FocusedSearchTask--
+				} else {
+					project.FocusedSearchTask++
+				}
+				project.SearchForTasks()
+			} else {
+				project.SearchForTasks()
+				project.Searchbar.Focused = true
+			}
 		}
 
 	}
@@ -1028,24 +1049,77 @@ func (project *Project) GUI() {
 		clickedOnSearchbar = true
 	}
 
-	if (project.Searchbar.Changed || clickedOnSearchbar) && project.Searchbar.Text != "" {
+	if project.Searchbar.Text != "" {
 
-		project.SendMessage("select", nil)
-
-		for _, task := range project.Tasks {
-
-			if strings.Contains(strings.ToLower(task.Description.Text), strings.ToLower(project.Searchbar.Text)) {
-				task.ReceiveMessage("select", map[string]interface{}{"task": task})
-			}
-
+		if project.Searchbar.Changed || clickedOnSearchbar {
+			project.SearchForTasks()
 		}
 
-		project.FocusViewOnSelectedTasks()
+		searchTextPosX := project.Searchbar.Rect.X - 96
+		searchCount := "No Tasks Found"
+		if len(project.SearchedTasks) > 0 {
+			searchCount = fmt.Sprintf("%d / %d", project.FocusedSearchTask+1, len(project.SearchedTasks))
+		}
+		textMeasure := rl.MeasureTextEx(font, searchCount, fontSize, spacing)
+		textMeasure.X = float32(int(textMeasure.X / 2))
+		textMeasure.Y = float32(int(textMeasure.Y / 2))
+
+		if ImmediateButton(rl.Rectangle{searchTextPosX - textMeasure.X - 24, project.Searchbar.Rect.Y, 16, 16}, "<", len(project.SearchedTasks) == 0) {
+			project.FocusedSearchTask--
+			project.SearchForTasks()
+		}
+
+		rl.DrawTextEx(font, searchCount, rl.Vector2{searchTextPosX - textMeasure.X, project.Searchbar.Rect.Y + textMeasure.Y/2}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
+		if ImmediateButton(rl.Rectangle{searchTextPosX + textMeasure.X + 8, project.Searchbar.Rect.Y, 16, 16}, ">", len(project.SearchedTasks) == 0) {
+			project.FocusedSearchTask++
+			project.SearchForTasks()
+		}
 
 	}
 
 	if !project.TaskOpen && (rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.GetMouseWheelMove() != 0) { // Zooming and panning are also recorded
 		project.Save()
+	}
+
+}
+
+func (project *Project) SearchForTasks() {
+
+	project.SendMessage("select", nil)
+	project.SearchedTasks = []*Task{}
+
+	if project.Searchbar.Changed {
+		project.FocusedSearchTask = 0
+	}
+
+	for _, task := range project.Tasks {
+
+		searchText := strings.ToLower(project.Searchbar.Text)
+
+		resourceTask := task.TaskType.CurrentChoice == TASK_TYPE_IMAGE || task.TaskType.CurrentChoice == TASK_TYPE_SOUND
+
+		if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text), searchText) ||
+			(resourceTask && strings.Contains(strings.ToLower(task.FilePathTextbox.Text), searchText))) {
+			project.SearchedTasks = append(project.SearchedTasks, task)
+		}
+
+	}
+
+	if len(project.SearchedTasks) == 0 {
+		project.FocusedSearchTask = 0
+	} else {
+		if project.FocusedSearchTask < 0 {
+			project.FocusedSearchTask = len(project.SearchedTasks) - 1
+		} else if project.FocusedSearchTask >= len(project.SearchedTasks) {
+			project.FocusedSearchTask = 0
+		}
+	}
+
+	if project.FocusedSearchTask < len(project.SearchedTasks) {
+		task := project.SearchedTasks[project.FocusedSearchTask]
+		project.SendMessage("select", map[string]interface{}{"task": task})
+		project.FocusViewOnSelectedTasks()
 	}
 
 }
