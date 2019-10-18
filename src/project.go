@@ -35,7 +35,8 @@ type Project struct {
 	GridSize             int32
 	Tasks                []*Task
 	ZoomLevel            int
-	Pan                  rl.Vector2
+	CameraPan            rl.Vector2
+	CameraOffset         rl.Vector2
 	ShadowQualitySpinner *Spinner
 	GridVisible          *Checkbox
 	SampleRate           beep.SampleRate
@@ -85,7 +86,7 @@ func NewProject() *Project {
 		themes = append(themes, themeName)
 	}
 
-	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, Pan: rl.Vector2{screenWidth / 2, screenHeight / 2},
+	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, CameraPan: rl.Vector2{screenWidth / 2, screenHeight / 2},
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15},
 		GUI_Icons: rl.LoadTexture(path.Join("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
 		ColorThemeSpinner: NewSpinner(192, 32, 192, 16, themes...), ShadowQualitySpinner: NewSpinner(192, 64, 128, 16, "Off", "Solid", "Smooth"),
@@ -122,8 +123,8 @@ func (project *Project) Save() bool {
 
 		data := map[string]interface{}{
 			"GridSize":      project.GridSize,
-			"Pan.X":         project.Pan.X,
-			"Pan.Y":         project.Pan.Y,
+			"Pan.X":         project.CameraPan.X,
+			"Pan.Y":         project.CameraPan.Y,
 			"ZoomLevel":     project.ZoomLevel,
 			"Tasks":         taskData,
 			"ColorTheme":    project.ColorTheme,
@@ -213,8 +214,8 @@ func (project *Project) Load() bool {
 		}
 
 		project.GridSize = int32(getInt("GridSize", int(project.GridSize)))
-		project.Pan.X = getFloat("Pan.X", project.Pan.X)
-		project.Pan.Y = getFloat("Pan.Y", project.Pan.Y)
+		project.CameraPan.X = getFloat("Pan.X", project.CameraPan.X)
+		project.CameraPan.Y = getFloat("Pan.Y", project.CameraPan.Y)
 		project.ZoomLevel = getInt("ZoomLevel", project.ZoomLevel)
 		project.SampleRate = beep.SampleRate(getInt("SampleRate", int(project.SampleRate)))
 		project.SampleBuffer = getInt("SampleBuffer", project.SampleBuffer)
@@ -296,7 +297,7 @@ func (project *Project) FocusViewOnSelectedTasks() {
 
 			center.X += screenWidth / 2
 			center.Y += screenHeight / 2
-			project.Pan = center // Pan's a negative offset for the camera
+			project.CameraPan = center // Pan's a negative offset for the camera
 
 		}
 
@@ -347,13 +348,16 @@ func (project *Project) HandleCamera() {
 	if rl.IsMouseButtonDown(rl.MouseMiddleButton) {
 
 		diff := GetMouseDelta()
-		project.Pan.X += diff.X
-		project.Pan.Y += diff.Y
+		project.CameraPan.X += diff.X
+		project.CameraPan.Y += diff.Y
 
 	}
 
-	camera.Offset.X += float32(math.Round(float64(project.Pan.X-camera.Offset.X))) * 0.2
-	camera.Offset.Y += float32(math.Round(float64(project.Pan.Y-camera.Offset.Y))) * 0.2
+	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * 0.1
+	project.CameraOffset.Y += float32(project.CameraPan.Y-project.CameraOffset.Y) * 0.1
+
+	camera.Offset.X = float32(int(project.CameraOffset.X))
+	camera.Offset.Y = float32(int(project.CameraOffset.Y))
 	camera.Target.X = screenWidth/2 - camera.Offset.X
 	camera.Target.Y = screenHeight/2 - camera.Offset.Y
 
@@ -591,6 +595,7 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 
 	if message == "dropped" {
 		for _, task := range project.Tasks {
+			// Clear out neighbors before having the task proceed with it
 			task.TaskAbove = nil
 			task.TaskBelow = nil
 		}
@@ -598,6 +603,12 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 
 	for _, task := range project.Tasks {
 		task.ReceiveMessage(message, data)
+	}
+
+	if message == "dropped" {
+		for _, task := range project.Tasks {
+			task.ReceiveMessage("children", nil)
+		}
 	}
 
 	project.Save() // Save whenever anything important happens
@@ -646,8 +657,8 @@ func (project *Project) Shortcuts() {
 			} else if rl.IsKeyPressed(rl.KeyThree) {
 				project.ZoomLevel = 2
 			} else if rl.IsKeyPressed(rl.KeyBackspace) {
-				project.Pan = rl.Vector2{screenWidth / 2, screenHeight / 2}
-				camera.Offset = project.Pan
+				project.CameraPan = rl.Vector2{screenWidth / 2, screenHeight / 2}
+				camera.Offset = project.CameraPan
 				camera.Target.X = screenWidth/2 - camera.Offset.X
 				camera.Target.Y = screenHeight/2 - camera.Offset.Y
 			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
@@ -670,7 +681,7 @@ func (project *Project) Shortcuts() {
 			} else if rl.IsKeyPressed(rl.KeyC) {
 				for _, task := range project.Tasks {
 					if task.Selected {
-						task.ToggleCompletion()
+						task.SetCompletion(!task.IsComplete())
 					}
 				}
 			} else if rl.IsKeyPressed(rl.KeyDelete) {
@@ -716,9 +727,6 @@ func (project *Project) Shortcuts() {
 							temp := task.Position
 							task.Position = task.TaskAbove.Position
 							task.TaskAbove.Position = temp
-							// if task.TaskAbove.TaskAbove != nil && task.TaskAbove.TaskAbove.Position.X != task.Position.X {
-							// 	task.Position.X = task.TaskAbove.TaskAbove.Position.X
-							// }
 							if task.TaskAbove.Position.X != task.Position.X {
 								task.TaskAbove.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
 							}
@@ -740,9 +748,6 @@ func (project *Project) Shortcuts() {
 							if task.TaskBelow.TaskBelow != nil && task.TaskBelow.TaskBelow.Position.X != task.TaskBelow.Position.X {
 								task.Position.X = task.TaskBelow.TaskBelow.Position.X
 							}
-							// if task.TaskBelow.Position.X != task.Position.X {
-							// 	task.TaskBelow.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
-							// }
 							project.ReorderTasks()
 							project.FocusViewOnSelectedTasks()
 						}

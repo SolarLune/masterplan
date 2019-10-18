@@ -174,6 +174,8 @@ type Task struct {
 	RefreshPrefix       bool
 	ID                  int
 	PostOpenDelay       int
+	Children            []*Task
+	PercentageComplete  float32
 }
 
 var taskID = 0
@@ -487,6 +489,18 @@ func (task *Task) Update() {
 		task.Resizeable = false
 	}
 
+	if len(task.Children) > 0 && task.Completable() {
+		currentFinished := 0
+		for _, child := range task.Children {
+			if child.IsComplete() {
+				currentFinished++
+			}
+		}
+		name = fmt.Sprintf("%s (%d / %d)", name, currentFinished, len(task.Children))
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
+		name = fmt.Sprintf("%s (%d / %d)", name, task.CompletionProgressionCurrent.GetNumber(), task.CompletionProgressionMax.GetNumber())
+	}
+
 	if task.NumberingPrefix[0] != -1 && task.Completable() {
 		n := ""
 		for _, value := range task.NumberingPrefix {
@@ -549,7 +563,7 @@ func (task *Task) Update() {
 
 	color := getThemeColor(GUI_INSIDE)
 
-	if task.IsComplete() {
+	if task.IsComplete() && task.TaskType.CurrentChoice != TASK_TYPE_PROGRESSION && len(task.Children) == 0 {
 		color = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 	}
 
@@ -571,7 +585,7 @@ func (task *Task) Update() {
 		glowXPos := -task.Rect.X / float32(task.Project.GridSize)
 		glowVariance := float64(10)
 		if task.Selected {
-			glowVariance = 40
+			glowVariance = 80
 		}
 		glow := uint8(math.Sin(float64((rl.GetTime()*math.Pi*2+glowYPos+glowXPos)))*(glowVariance/2) + (glowVariance / 2))
 
@@ -629,7 +643,15 @@ func (task *Task) Update() {
 
 	perc := float32(0)
 
-	if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
+	if len(task.Children) > 0 && task.Completable() {
+		totalComplete := 0
+		for _, child := range task.Children {
+			if child.IsComplete() {
+				totalComplete++
+			}
+		}
+		perc = float32(totalComplete) / float32(len(task.Children))
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
 
 		cnum := task.CompletionProgressionCurrent.GetNumber()
 		mnum := task.CompletionProgressionMax.GetNumber()
@@ -648,6 +670,16 @@ func (task *Task) Update() {
 		perc = 1
 	}
 
+	// task.PercentageComplete = easings.SineIn(rl.GetTime(), task.PercentageComplete, perc, 1)
+
+	task.PercentageComplete += (perc - task.PercentageComplete) * 0.1
+
+	if task.PercentageComplete < 0.01 {
+		task.PercentageComplete = 0
+	} else if task.PercentageComplete >= 0.99 {
+		task.PercentageComplete = 1
+	}
+
 	rl.DrawRectangleRec(task.Rect, color)
 
 	if task.Due() == TASK_DUE_TODAY {
@@ -660,9 +692,9 @@ func (task *Task) Update() {
 		rl.DrawTexturePro(task.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
 	}
 
-	if perc != 0 && perc != 1 {
+	if task.PercentageComplete != 0 {
 		rect := task.Rect
-		rect.Width *= perc
+		rect.Width *= task.PercentageComplete
 		rl.DrawRectangleRec(rect, applyGlow(getThemeColor(GUI_INSIDE_HIGHLIGHTED)))
 	}
 
@@ -757,6 +789,10 @@ func (task *Task) Update() {
 		}
 
 		iconSrc.X = iconSrcIconPositions[task.TaskType.CurrentChoice]
+		if len(task.Children) > 0 && task.Completable() {
+			iconSrc.X = 208 // Hardcoding this because I'm an idiot
+		}
+
 		if task.IsComplete() {
 			iconSrc.X += 16
 			iconColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
@@ -945,10 +981,30 @@ func (task *Task) PostDraw() {
 }
 
 func (task *Task) IsComplete() bool {
-	if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
-		return task.CompletionCheckbox.Checked
-	} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
-		return task.CompletionProgressionMax.GetNumber() > 0 && task.CompletionProgressionCurrent.GetNumber() >= task.CompletionProgressionMax.GetNumber()
+
+	if len(task.Children) > 0 {
+		for _, child := range task.Children {
+			if !child.IsComplete() {
+				return false
+			}
+		}
+		return true
+	} else {
+		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
+			return task.CompletionCheckbox.Checked
+		} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
+			return task.CompletionProgressionMax.GetNumber() > 0 && task.CompletionProgressionCurrent.GetNumber() >= task.CompletionProgressionMax.GetNumber()
+		}
+	}
+	return false
+}
+
+func (task *Task) IsParentOf(child *Task) bool {
+	children := task.Children
+	for _, c := range children {
+		if child == c {
+			return true
+		}
 	}
 	return false
 }
@@ -961,20 +1017,27 @@ func (task *Task) CanHaveNeighbors() bool {
 	return task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_NOTE
 }
 
-func (task *Task) ToggleCompletion() {
+func (task *Task) SetCompletion(complete bool) {
 
 	if task.Completable() {
 
-		task.CompletionCheckbox.Checked = !task.CompletionCheckbox.Checked
+		if len(task.Children) == 0 {
 
-		if task.CompletionProgressionCurrent.GetNumber() < task.CompletionProgressionMax.GetNumber() {
-			task.CompletionProgressionCurrent.SetNumber(task.CompletionProgressionMax.GetNumber())
-		} else {
-			task.CompletionProgressionCurrent.SetNumber(0)
+			task.CompletionCheckbox.Checked = complete
+
+			// VVV This is a nice addition but conversely makes it suuuuuper easy to screw yourself over
+			// for _, child := range task.Children {
+			// 	child.SetCompletion(complete)
+			// }
+
+			if complete {
+				task.CompletionProgressionCurrent.SetNumber(task.CompletionProgressionMax.GetNumber())
+			} else {
+				task.CompletionProgressionCurrent.SetNumber(0)
+			}
 		}
 
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-		// task.ReceiveMessage("dropped", nil) // Play the sound
 		task.ToggleSound()
 	}
 
@@ -1196,6 +1259,17 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		}
 
+	} else if message == "children" {
+		task.Children = []*Task{}
+		t := task.TaskBelow
+		for t != nil {
+			if int(t.Position.X) == int(task.Position.X+float32(task.Project.GridSize)) {
+				task.Children = append(task.Children, t)
+			} else if int(t.Position.X) <= int(task.Position.X) {
+				break
+			}
+			t = t.TaskBelow
+		}
 	}
 
 }
