@@ -23,10 +23,11 @@ import (
 )
 
 const (
-	REORDER_NUMBER_PERIOD = iota
-	REORDER_OFF
-	// REORDER_NUMBER_PAREN
-	// REORDER_ROMAN_NUMERAL
+	NUMBERING_SEQUENCE_NUMBER = iota
+	NUMBERING_SEQUENCE_NUMBER_DASH
+	NUMBERING_SEQUENCE_ROMAN
+	NUMBERING_SEQUENCE_BULLET
+	NUMBERING_SEQUENCE_OFF
 )
 
 type Project struct {
@@ -44,18 +45,19 @@ type Project struct {
 	ShowIcons            *Checkbox
 
 	// Internal data to make projects work
-	GridTexture         rl.Texture2D
-	ContextMenuOpen     bool
-	ContextMenuPosition rl.Vector2
-	ProjectSettingsOpen bool
-	RootPath            string
-	Selecting           bool
-	SelectionStart      rl.Vector2
-	DoubleClickTimer    int
-	CopyBuffer          []*Task
-	TaskOpen            bool
-	ColorTheme          string
-	ReorderSequence     int
+	GridTexture             rl.Texture2D
+	ContextMenuOpen         bool
+	ContextMenuPosition     rl.Vector2
+	ProjectSettingsOpen     bool
+	RootPath                string
+	Selecting               bool
+	SelectionStart          rl.Vector2
+	DoubleClickTimer        int
+	CopyBuffer              []*Task
+	TaskOpen                bool
+	ColorTheme              string
+	NumberingSequence       *Spinner
+	NumberingIgnoreTopLevel *Checkbox
 
 	SearchedTasks     []*Task
 	FocusedSearchTask int
@@ -86,11 +88,14 @@ func NewProject() *Project {
 		themes = append(themes, themeName)
 	}
 
+	settingsX := float32(256)
+
 	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, CameraPan: rl.Vector2{screenWidth / 2, screenHeight / 2},
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15},
 		GUI_Icons: rl.LoadTexture(path.Join("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
-		ColorThemeSpinner: NewSpinner(192, 32, 192, 16, themes...), ShadowQualitySpinner: NewSpinner(192, 64, 128, 16, "Off", "Solid", "Smooth"),
-		GridVisible: NewCheckbox(192, 96, 16, 16), ShowIcons: NewCheckbox(192, 112, 16, 16), Patterns: rl.LoadTexture(path.Join("assets", "patterns.png")),
+		ColorThemeSpinner: NewSpinner(settingsX, 32, 192, 16, themes...), ShadowQualitySpinner: NewSpinner(settingsX, 64, 128, 16, "Off", "Solid", "Smooth"),
+		GridVisible: NewCheckbox(settingsX, 96, 16, 16), ShowIcons: NewCheckbox(settingsX, 118, 16, 16), Patterns: rl.LoadTexture(path.Join("assets", "patterns.png")),
+		NumberingSequence: NewSpinner(settingsX, 140, 128, 16, "1.1.", "1-1)", "I.I.", "Bullets", "Off"), NumberingIgnoreTopLevel: NewCheckbox(settingsX, 164, 16, 16),
 	}
 	project.ShadowQualitySpinner.CurrentChoice = 2
 	project.ChangeTheme(project.ColorTheme)
@@ -122,17 +127,19 @@ func (project *Project) Save() bool {
 		}
 
 		data := map[string]interface{}{
-			"GridSize":      project.GridSize,
-			"Pan.X":         project.CameraPan.X,
-			"Pan.Y":         project.CameraPan.Y,
-			"ZoomLevel":     project.ZoomLevel,
-			"Tasks":         taskData,
-			"ColorTheme":    project.ColorTheme,
-			"SampleRate":    project.SampleRate,
-			"SampleBuffer":  project.SampleBuffer,
-			"ShadowQuality": project.ShadowQualitySpinner.CurrentChoice,
-			"GridVisible":   project.GridVisible.Checked,
-			"ShowIcons":     project.ShowIcons.Checked,
+			"GridSize":                project.GridSize,
+			"Pan.X":                   project.CameraPan.X,
+			"Pan.Y":                   project.CameraPan.Y,
+			"ZoomLevel":               project.ZoomLevel,
+			"Tasks":                   taskData,
+			"ColorTheme":              project.ColorTheme,
+			"SampleRate":              project.SampleRate,
+			"SampleBuffer":            project.SampleBuffer,
+			"ShadowQuality":           project.ShadowQualitySpinner.CurrentChoice,
+			"GridVisible":             project.GridVisible.Checked,
+			"ShowIcons":               project.ShowIcons.Checked,
+			"NumberingIgnoreTopLevel": project.NumberingIgnoreTopLevel.Checked,
+			"NumberingSequence":       project.NumberingSequence.CurrentChoice,
 		}
 
 		f, err := os.Create(project.FilePath)
@@ -147,11 +154,18 @@ func (project *Project) Save() bool {
 
 			lastOpened, err := os.Create("lastopenedplan")
 			if err != nil {
-				log.Println("Can't save last opened project file to current working directory.")
+				log.Println("ERROR: Can't save last opened project file to current working directory.", err)
+				return false
+			} else {
+				lastOpened.WriteString(project.FilePath) // We save the last successfully opened project file here.
+				lastOpened.Close()
+			}
+
+			err = f.Sync() // Want to make sure the file is written
+			if err != nil {
+				log.Println("ERROR: Can't write save file to system.", err)
 				return false
 			}
-			defer lastOpened.Close()
-			lastOpened.WriteString(project.FilePath) // We save the last successfully opened project file here.
 
 		}
 
@@ -164,11 +178,11 @@ func (project *Project) Save() bool {
 func (project *Project) Load() bool {
 
 	f, err := os.Open(project.FilePath)
-	defer f.Close()
 	if err != nil {
 		log.Println(err)
 		return false
 	} else {
+		defer f.Close()
 		decoder := json.NewDecoder(f)
 		data := map[string]interface{}{}
 		decoder.Decode(&data)
@@ -222,6 +236,8 @@ func (project *Project) Load() bool {
 		project.ShadowQualitySpinner.CurrentChoice = getInt("ShadowQuality", project.ShadowQualitySpinner.CurrentChoice)
 		project.GridVisible.Checked = getBool("GridVisible", project.GridVisible.Checked)
 		project.ShowIcons.Checked = getBool("ShowIcons", project.ShowIcons.Checked)
+		project.NumberingSequence.CurrentChoice = getInt("NumberingSequence", project.NumberingSequence.CurrentChoice)
+		project.NumberingIgnoreTopLevel.Checked = getBool("NumberingIgnoreTopLevel", project.NumberingIgnoreTopLevel.Checked)
 
 		speaker.Init(project.SampleRate, project.SampleBuffer)
 
@@ -346,11 +362,9 @@ func (project *Project) HandleCamera() {
 	camera.Zoom += (zoomLevels[project.ZoomLevel] - camera.Zoom) * 0.2
 
 	if rl.IsMouseButtonDown(rl.MouseMiddleButton) {
-
 		diff := GetMouseDelta()
 		project.CameraPan.X += diff.X
 		project.CameraPan.Y += diff.Y
-
 	}
 
 	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * 0.1
@@ -650,6 +664,20 @@ func (project *Project) Shortcuts() {
 
 		if !project.Searchbar.Focused {
 
+			panSpeed := float32(8)
+			if rl.IsKeyDown(rl.KeyW) {
+				project.CameraPan.Y += panSpeed
+			}
+			if rl.IsKeyDown(rl.KeyS) {
+				project.CameraPan.Y -= panSpeed
+			}
+			if rl.IsKeyDown(rl.KeyA) {
+				project.CameraPan.X += panSpeed
+			}
+			if rl.IsKeyDown(rl.KeyD) {
+				project.CameraPan.X -= panSpeed
+			}
+
 			if rl.IsKeyPressed(rl.KeyOne) {
 				project.ZoomLevel = 0
 			} else if rl.IsKeyPressed(rl.KeyTwo) {
@@ -686,38 +714,7 @@ func (project *Project) Shortcuts() {
 				}
 			} else if rl.IsKeyPressed(rl.KeyDelete) {
 				project.DeleteSelectedTasks()
-				// } else if rl.IsKeyPressed(rl.KeyComma) || rl.IsKeyPressed(rl.KeyPeriod) {
-				// 	if len(project.Tasks) > 0 {
-				// 		nextTask := -1
-				// 		for i, task := range project.Tasks {
-				// 			if task.Selected {
-				// 				nextTask = i
-				// 			}
-				// 			task.Selected = false
-				// 		}
-
-				// 		if nextTask < 0 {
-				// 			nextTask = 0
-				// 		}
-
-				// 		if rl.IsKeyPressed(rl.KeyLeft) {
-				// 			nextTask--
-				// 		} else {
-				// 			nextTask++
-				// 		}
-
-				// 		if nextTask >= len(project.Tasks) {
-				// 			nextTask = 0
-				// 		} else if nextTask < 0 {
-				// 			nextTask = len(project.Tasks) - 1
-				// 		}
-
-				// 		project.Tasks[nextTask].ReceiveMessage("select", map[string]interface{}{"task": project.Tasks[nextTask]})
-
-				// 		project.FocusViewOnSelectedTasks()
-
-				// 	}
-			} else if rl.IsKeyPressed(rl.KeyEnter) {
+			} else if rl.IsKeyPressed(rl.KeyF) {
 				project.FocusViewOnSelectedTasks()
 			} else if holdingShift && repeatableKeyDown[rl.KeyUp] {
 
@@ -904,7 +901,7 @@ func (project *Project) GUI() {
 			newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X, GetWorldMousePosition().Y)
 			newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 			project.Tasks = append(project.Tasks, newTask)
-			if project.ReorderSequence != REORDER_OFF {
+			if project.NumberingSequence.CurrentChoice != NUMBERING_SEQUENCE_OFF {
 				for _, task := range project.Tasks {
 					if task.Selected {
 						newTask.Position = task.Position
@@ -986,6 +983,12 @@ func (project *Project) GUI() {
 			project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
 		}
 
+		rl.DrawTextEx(font, "Numbering Sequence: ", rl.Vector2{32, project.NumberingSequence.Rect.Y + 4}, fontSize, spacing, fontColor)
+		project.NumberingSequence.Update()
+
+		rl.DrawTextEx(font, "Ignore Numbering Top-level Tasks: ", rl.Vector2{32, project.NumberingIgnoreTopLevel.Rect.Y + 4}, fontSize, spacing, fontColor)
+		project.NumberingIgnoreTopLevel.Update()
+
 	}
 
 	// Status bar
@@ -1023,10 +1026,10 @@ func (project *Project) GUI() {
 	if taskCount > 0 && completionCount > 0 {
 		percentage = int32(float32(completionCount) / float32(taskCount) * 100)
 	}
-	text += fmt.Sprintf(" %d completed, %d%% complete", completionCount, percentage)
+	text += fmt.Sprintf(" %d completed (%d%%)", completionCount, percentage)
 
 	if selectionCount > 0 {
-		text += fmt.Sprintf(" (%d selected)", selectionCount)
+		text += fmt.Sprintf(", %d selected", selectionCount)
 	}
 
 	rl.DrawTextEx(font, text, rl.Vector2{6, screenHeight - 12}, fontSize, spacing, fontColor)

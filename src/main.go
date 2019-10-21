@@ -32,7 +32,7 @@ func main() {
 	if err != nil {
 		log.Println("Error opening last opened file: ", err)
 	} else {
-
+		defer lastOpenedFile.Close()
 		scanner := bufio.NewScanner(lastOpenedFile)
 		scanner.Scan()
 		currentProject.FilePath = scanner.Text()

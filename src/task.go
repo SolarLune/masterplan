@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chonla/roman-number-go"
+
 	"github.com/hako/durafmt"
 
 	"github.com/faiface/beep"
@@ -501,10 +503,33 @@ func (task *Task) Update() {
 		name = fmt.Sprintf("%s (%d / %d)", name, task.CompletionProgressionCurrent.GetNumber(), task.CompletionProgressionMax.GetNumber())
 	}
 
-	if task.NumberingPrefix[0] != -1 && task.Completable() {
+	sequenceType := task.Project.NumberingSequence.CurrentChoice
+	if sequenceType != NUMBERING_SEQUENCE_OFF && task.NumberingPrefix[0] != -1 && task.Completable() {
 		n := ""
-		for _, value := range task.NumberingPrefix {
-			n += fmt.Sprintf("%d.", value)
+
+		for i, value := range task.NumberingPrefix {
+
+			if task.Project.NumberingIgnoreTopLevel.Checked && i == 0 {
+				continue
+			}
+
+			romanNumber := roman.NewRoman().ToRoman(value)
+
+			switch sequenceType {
+			case NUMBERING_SEQUENCE_NUMBER:
+				n += fmt.Sprintf("%d.", value)
+			case NUMBERING_SEQUENCE_NUMBER_DASH:
+				if i == len(task.NumberingPrefix)-1 {
+					n += fmt.Sprintf("%d)", value)
+				} else {
+					n += fmt.Sprintf("%d-", value)
+				}
+			case NUMBERING_SEQUENCE_BULLET:
+				n += "o"
+			case NUMBERING_SEQUENCE_ROMAN:
+				n += fmt.Sprintf("%s.", romanNumber)
+
+			}
 		}
 		name = fmt.Sprintf("%s %s", n, name)
 	}
@@ -1099,11 +1124,11 @@ func (task *Task) LoadResource() {
 			if ext == ".gif" {
 
 				file, err := os.Open(task.GetResourcePath())
-				defer file.Close()
 
 				if err != nil {
 					log.Println(err)
 				} else {
+					defer file.Close()
 					gifFile, err := gif.DecodeAll(file)
 					if err != nil {
 						log.Println(err)
@@ -1141,6 +1166,8 @@ func (task *Task) LoadResource() {
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
 			file, err := os.Open(task.GetResourcePath())
+			// We don't need to close this file because the sound system streams from the file,
+			// so the file needs to stay open
 			if err != nil {
 				log.Println("ERROR: Could not load file: ", task.GetResourcePath())
 			} else {
