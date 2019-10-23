@@ -660,6 +660,10 @@ func (project *Project) Shortcuts() {
 	holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
 	holdingCtrl := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
 
+	if rl.IsKeyPressed(rl.KeyEscape) {
+		project.SendMessage("task close", map[string]interface{}{"task": "all"})
+	}
+
 	if !project.TaskOpen {
 
 		if !project.Searchbar.Focused {

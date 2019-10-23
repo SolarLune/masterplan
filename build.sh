@@ -1,6 +1,13 @@
 go build -o ./bin/MasterPlan ./src/
-# Cross-compilation doesn't error out, but doesn't seem to run on Windows (and probably the same for Mac, if I were to try it).
-# I only have 64-bit compilers on my computer; TODO: See if I can come back another day to compile in 32-bit mode
-# for Windows.
-# CGO_ENABLED=1 CC=/usr/bin/cc CXX=/usr/bin/g++ GO_OS=windows go build -o ./bin/MasterPlan.exe ./src/
-# CGO_ENABLED=1 CC=/usr/bin/cc CXX=/usr/bin/g++ GO_OS=windows GOARCH=386 go build -o ./bin/MasterPlan.exe ./src/
+
+# Building on one's own system using the above command works fine, but cross-compilation doesn't work with vanilla Go
+# because I'm using raylib-go and CGO (C + Go) doesn't work with cross-compilation. So cross-compilation might be able to
+# work using techknowlogik's xgo fork.
+
+# sudo dockerd  # Run this in another terminal
+
+# gox -cgo -osarch="linux/amd64 windows/386" -output="bin/{{.OS}}_{{.Arch}}" ./src/
+ 
+# sudo /home/solarlune/Documents/Projects/Go/bin/xgo -out MasterPlan --targets=linux/amd64 github.com/SolarLune/masterplan
+
+# CGO_ENABLED=1 CC_FOR_TARGET=gcc GOOS=windows GOARCH=amd64 go build -o ./bin/MasterPlan.exe ./src/

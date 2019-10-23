@@ -908,8 +908,6 @@ func (task *Task) PostDraw() {
 		}
 
 		if ImmediateButton(rl.Rectangle{rect.Width, rect.Y, 16, 16}, "X", false) {
-			task.Open = false
-			task.Project.TaskOpen = false
 			task.Project.SendMessage("task close", map[string]interface{}{"task": task})
 		}
 
@@ -1253,6 +1251,8 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.PostOpenDelay = 0
 		task.Dragging = false
 	} else if message == "task close" {
+		task.Open = false
+		task.Project.TaskOpen = false
 		task.LoadResource()
 	} else if message == "dragging" {
 		task.Dragging = task.Selected

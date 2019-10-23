@@ -27,6 +27,8 @@ func main() {
 
 	currentProject = NewProject()
 
+	rl.SetExitKey(0) /// We don't want Escape to close the program.
+
 	// Attempt auto-load of the last opened project file
 	lastOpenedFile, err := os.Open("lastopenedplan")
 	if err != nil {
