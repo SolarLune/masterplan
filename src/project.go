@@ -851,7 +851,7 @@ func (project *Project) GUI() {
 		task.PostDraw()
 	}
 
-	if rl.IsMouseButtonReleased(rl.MouseRightButton) {
+	if rl.IsMouseButtonReleased(rl.MouseRightButton) && !project.TaskOpen {
 		project.ContextMenuOpen = true
 		project.ContextMenuPosition = GetMousePosition()
 	} else if project.ContextMenuOpen {
