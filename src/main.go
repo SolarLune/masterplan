@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -21,9 +21,12 @@ func main() {
 
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(screenWidth, screenHeight, "MasterPlan")
+
+	rl.SetWindowIcon(*rl.LoadImage(filepath.Join("assets", "window_icon.png")))
+
 	rl.SetTargetFPS(60)
 
-	font = rl.LoadFontEx(path.Join("assets", "font.ttf"), int32(fontSize), -1, nil)
+	font = rl.LoadFontEx(filepath.Join("assets", "font.ttf"), int32(fontSize), -1, nil)
 
 	currentProject = NewProject()
 

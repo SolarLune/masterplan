@@ -1,0 +1,14 @@
+[[actions]]
+name = "play"
+path = "MasterPlan_windows_amd64.exe"
+platform = "windows"
+
+[[actions]]
+name = "play"
+path = "MasterPlan_osx_amd64"
+platform = "osx"
+
+[[actions]]
+name = "play"
+path = "MasterPlan_linux_amd64.64"
+platform = "linux"

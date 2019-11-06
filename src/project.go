@@ -6,7 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -87,9 +87,9 @@ func NewProject() *Project {
 
 	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, CameraPan: rl.Vector2{screenWidth / 2, screenHeight / 2},
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15},
-		GUI_Icons: rl.LoadTexture(path.Join("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512,
+		GUI_Icons: rl.LoadTexture(filepath.Join("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512,
 		ColorThemeSpinner: NewSpinner(settingsX, 32, 192, 16), ShadowQualitySpinner: NewSpinner(settingsX, 64, 128, 16, "Off", "Solid", "Smooth"),
-		GridVisible: NewCheckbox(settingsX, 96, 16, 16), ShowIcons: NewCheckbox(settingsX, 118, 16, 16), Patterns: rl.LoadTexture(path.Join("assets", "patterns.png")),
+		GridVisible: NewCheckbox(settingsX, 96, 16, 16), ShowIcons: NewCheckbox(settingsX, 118, 16, 16), Patterns: rl.LoadTexture(filepath.Join("assets", "patterns.png")),
 		NumberingSequence: NewSpinner(settingsX, 140, 128, 16, "1.1.", "1-1)", "I.I.", "Bullets", "Off"), NumberingIgnoreTopLevel: NewCheckbox(settingsX, 164, 16, 16),
 	}
 
@@ -405,14 +405,14 @@ func (project *Project) HandleDroppedFiles() {
 			taskType := ""
 
 			for _, f := range imageFormats {
-				if strings.Contains(path.Ext(file), f) {
+				if strings.Contains(filepath.Ext(file), f) {
 					taskType = "image"
 					break
 				}
 			}
 
 			for _, f := range soundFormats {
-				if strings.Contains(path.Ext(file), f) {
+				if strings.Contains(filepath.Ext(file), f) {
 					taskType = "sound"
 					break
 				}
@@ -899,7 +899,7 @@ func (project *Project) GUI() {
 		if ImmediateButton(rect, "Save Project", false) {
 			dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
 			if success {
-				project.FilePath = path.Join(dirPath, "master.plan")
+				project.FilePath = filepath.Join(dirPath, "master.plan")
 				project.Save()
 			}
 		}

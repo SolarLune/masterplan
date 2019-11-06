@@ -37,7 +37,7 @@ const (
 	TEXTBOX_ALIGN_RIGHT
 )
 
-var currentTheme = ""
+var currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
 
 var fontSize = float32(10)
 var spacing = float32(1)

@@ -11,7 +11,7 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -473,11 +473,11 @@ func (task *Task) Update() {
 	extendedText := false
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-		_, filename := path.Split(task.FilePathTextbox.Text)
+		_, filename := filepath.Split(task.FilePathTextbox.Text)
 		name = filename
 		task.Resizeable = true
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-		_, filename := path.Split(task.FilePathTextbox.Text)
+		_, filename := filepath.Split(task.FilePathTextbox.Text)
 		name = filename
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN || task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
 		// Notes don't get just the first line written on the task in the overview.
@@ -1101,9 +1101,9 @@ func (task *Task) LoadResource() {
 			if err != nil {
 				log.Println(err)
 			} else {
-				_, ogFilename := path.Split(task.FilePathTextbox.Text)
+				_, ogFilename := filepath.Split(task.FilePathTextbox.Text)
 				defer response.Body.Close()
-				if path.Ext(ogFilename) == "" {
+				if filepath.Ext(ogFilename) == "" {
 					ogFilename += ".png" // Gotta just make a guess on this one
 				}
 				tempFile, err := ioutil.TempFile("", "masterplan*_"+ogFilename)
@@ -1118,7 +1118,7 @@ func (task *Task) LoadResource() {
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-			ext := strings.ToLower(path.Ext(task.FilePathTextbox.Text))
+			ext := strings.ToLower(filepath.Ext(task.FilePathTextbox.Text))
 			if ext == ".gif" {
 
 				file, err := os.Open(task.GetResourcePath())
@@ -1176,7 +1176,7 @@ func (task *Task) LoadResource() {
 					task.SoundControl = nil
 				}
 
-				ext := strings.ToLower(path.Ext(task.GetResourcePath()))
+				ext := strings.ToLower(filepath.Ext(task.GetResourcePath()))
 				var stream beep.StreamSeekCloser
 				var format beep.Format
 				var err error
