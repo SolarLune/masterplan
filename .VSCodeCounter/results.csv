@@ -1,9 +1,0 @@
-filename, language, XML, Markdown, Go, comment, blank, total
-go_old.mod, XML, 7, 0, 0, 0, 4, 11
-readme.md, Markdown, 0, 27, 0, 0, 15, 42
-src/common.go, Go, 0, 0, 31, 0, 18, 49
-src/gui.go, Go, 0, 0, 201, 19, 75, 295
-src/main.go, Go, 0, 0, 38, 1, 24, 63
-src/project.go, Go, 0, 0, 425, 19, 160, 604
-src/task.go, Go, 0, 0, 304, 24, 78, 406
-Total, -, 7, 27, 999, 63, 374, 1470
