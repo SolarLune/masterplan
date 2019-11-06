@@ -37,13 +37,7 @@ func main() {
 		defer lastOpenedFile.Close()
 		scanner := bufio.NewScanner(lastOpenedFile)
 		scanner.Scan()
-		currentProject.FilePath = scanner.Text()
-
-		if !currentProject.Load() {
-			// If the load fails, we want to change the filepath back to blank so we don't
-			// create a new file where one is already known to not exist.
-			currentProject.FilePath = ""
-		}
+		currentProject.Load(scanner.Text())
 
 	}
 

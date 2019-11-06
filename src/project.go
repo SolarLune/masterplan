@@ -173,13 +173,14 @@ func (project *Project) Save() bool {
 
 }
 
-func (project *Project) Load() bool {
+func (project *Project) Load(filepath string) bool {
 
-	f, err := os.Open(project.FilePath)
+	f, err := os.Open(filepath)
 	if err != nil {
 		log.Println(err)
 		return false
 	} else {
+
 		defer f.Close()
 		decoder := json.NewDecoder(f)
 		data := map[string]interface{}{}
@@ -188,9 +189,11 @@ func (project *Project) Load() bool {
 		if len(data) == 0 {
 			// It's possible for the file to be mangled and unable to be loaded; I should actually handle this
 			// with a backup system or something.
-			log.Println("Save file [" + project.FilePath + "] corrupted, cannot be restored.")
+			log.Println("Save file [" + filepath + "] corrupted, cannot be restored.")
 			return false
 		}
+
+		project.FilePath = filepath
 
 		getFloat := func(name string, defaultValue float32) float32 {
 			value, exists := data[name]
@@ -260,7 +263,7 @@ func (project *Project) Load() bool {
 			log.Println(err)
 			return false
 		}
-		lastOpened.WriteString(project.FilePath) // We save the last successfully opened project file here.
+		lastOpened.WriteString(filepath) // We save the last successfully opened project file here.
 
 	}
 
@@ -800,6 +803,13 @@ func (project *Project) Shortcuts() {
 					project.FocusViewOnSelectedTasks()
 				}
 
+			} else if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
+				for _, task := range project.Tasks {
+					if task.Selected {
+						task.ReceiveMessage("double click", nil)
+						break
+					}
+				}
 			}
 
 		}
@@ -879,8 +889,8 @@ func (project *Project) GUI() {
 			file, success, _ := dlgs.File("Load Plan File", "*.plan", false)
 			if success {
 				currentProject = NewProject()
-				currentProject.FilePath = file
-				currentProject.Load()
+				// TODO: DO something if this fails
+				currentProject.Load(file)
 			}
 		}
 
@@ -1243,15 +1253,12 @@ func (project *Project) GenerateGrid() {
 
 func (project *Project) ReloadThemes() {
 
-	if loadThemes() {
-		guiThemes := []string{}
-		for theme, _ := range guiColors {
-			guiThemes = append(guiThemes, theme)
-		}
-		sort.Strings(guiThemes)
-		project.ColorThemeSpinner.Options = guiThemes
-
-		project.ChangeTheme(currentTheme)
+	loadThemes()
+	guiThemes := []string{}
+	for theme, _ := range guiColors {
+		guiThemes = append(guiThemes, theme)
 	}
+	sort.Strings(guiThemes)
+	project.ColorThemeSpinner.Options = guiThemes
 
 }

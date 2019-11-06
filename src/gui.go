@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gen2brain/raylib-go/raymath"
 
@@ -45,17 +44,14 @@ var spacing = float32(1)
 var font rl.Font
 
 var guiColors map[string]map[string]rl.Color
-var lastThemeLoadTime time.Time
 
 func getThemeColor(colorConstant string) rl.Color {
 	return guiColors[currentTheme][colorConstant]
 }
 
-func loadThemes() bool {
+func loadThemes() {
 
 	newGUIColors := map[string]map[string]rl.Color{}
-
-	themeUpdated := false
 
 	filepath.Walk(filepath.Join("assets", "themes"), func(fp string, info os.FileInfo, err error) error {
 
@@ -64,10 +60,6 @@ func loadThemes() bool {
 			themeFile, err := os.Open(fp)
 
 			if err == nil {
-
-				if info.ModTime().Sub(lastThemeLoadTime) > 0 {
-					themeUpdated = true
-				}
 
 				defer themeFile.Close()
 
@@ -107,10 +99,6 @@ func loadThemes() bool {
 	})
 
 	guiColors = newGUIColors
-
-	lastThemeLoadTime = time.Now()
-
-	return themeUpdated
 
 }
 
