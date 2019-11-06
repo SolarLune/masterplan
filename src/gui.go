@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gen2brain/raylib-go/raymath"
 
@@ -14,17 +19,17 @@ import (
 )
 
 const (
-	GUI_OUTLINE = iota
-	GUI_OUTLINE_HIGHLIGHTED
-	GUI_OUTLINE_CLICKED
-	GUI_OUTLINE_DISABLED
-	GUI_INSIDE
-	GUI_INSIDE_HIGHLIGHTED
-	GUI_INSIDE_CLICKED
-	GUI_INSIDE_DISABLED
-	GUI_FONT_COLOR
-	GUI_NOTE_COLOR
-	GUI_SHADOW_COLOR
+	GUI_OUTLINE             = "GUI_OUTLINE"
+	GUI_OUTLINE_HIGHLIGHTED = "GUI_OUTLINE_HIGHLIGHTED"
+	GUI_OUTLINE_CLICKED     = "GUI_OUTLINE_CLICKED"
+	GUI_OUTLINE_DISABLED    = "GUI_OUTLINE_DISABLED"
+	GUI_INSIDE              = "GUI_INSIDE"
+	GUI_INSIDE_HIGHLIGHTED  = "GUI_INSIDE_HIGHLIGHTED"
+	GUI_INSIDE_CLICKED      = "GUI_INSIDE_CLICKED"
+	GUI_INSIDE_DISABLED     = "GUI_INSIDE_DISABLED"
+	GUI_FONT_COLOR          = "GUI_FONT_COLOR"
+	GUI_NOTE_COLOR          = "GUI_NOTE_COLOR"
+	GUI_SHADOW_COLOR        = "GUI_SHADOW_COLOR"
 )
 
 const (
@@ -33,82 +38,80 @@ const (
 	TEXTBOX_ALIGN_RIGHT
 )
 
-var guiColors = map[string]map[int]rl.Color{
-	"Sunlight": map[int]rl.Color{
-		GUI_OUTLINE:             rl.Gray,
-		GUI_OUTLINE_HIGHLIGHTED: rl.Blue,
-		GUI_OUTLINE_CLICKED:     rl.DarkBlue,
-		GUI_OUTLINE_DISABLED:    rl.Black,
-		GUI_INSIDE:              rl.RayWhite,                  // BG / Task BG / Grid Color 1
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{160, 200, 250, 255}, // Button Highlight / Focused Textbox / Task Completion color
-		GUI_INSIDE_CLICKED:      rl.LightGray,                 // Grid Color 2
-		GUI_INSIDE_DISABLED:     rl.Gray,
-		GUI_FONT_COLOR:          rl.DarkGray,
-		GUI_NOTE_COLOR:          rl.Color{250, 225, 120, 255},
-		GUI_SHADOW_COLOR:        rl.Black,
-	},
-	"Blueprint": map[int]rl.Color{
-		GUI_OUTLINE:             rl.RayWhite,
-		GUI_OUTLINE_HIGHLIGHTED: rl.Yellow, // Selected Task Outline
-		GUI_OUTLINE_CLICKED:     rl.Yellow,
-		GUI_OUTLINE_DISABLED:    rl.Color{30, 60, 120, 255},
-		GUI_INSIDE:              rl.Color{60, 80, 140, 255},   // BG / Task BG / Grid Color 1
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{140, 160, 200, 255}, // Button Highlight / Focused Textbox / Task Completion color
-		GUI_INSIDE_CLICKED:      rl.Color{138, 161, 246, 255}, // Grid Color 2
-		GUI_INSIDE_DISABLED:     rl.DarkBlue,
-		GUI_FONT_COLOR:          rl.White,
-		GUI_NOTE_COLOR:          rl.DarkGray,
-		GUI_SHADOW_COLOR:        rl.Black,
-	},
-	"Moonlight": map[int]rl.Color{
-		GUI_OUTLINE:             rl.Color{120, 140, 170, 255},
-		GUI_OUTLINE_HIGHLIGHTED: rl.White,
-		GUI_OUTLINE_CLICKED:     rl.Black,
-		GUI_OUTLINE_DISABLED:    rl.Color{10, 20, 30, 255},
-		GUI_INSIDE:              rl.Color{20, 40, 60, 255},   // BG / Task BG / Grid Color 1
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{60, 100, 140, 255}, // Button Highlight / Focused Textbox / Task Completion color
-		GUI_INSIDE_CLICKED:      rl.Color{40, 50, 60, 255},   // Grid Color 2
-		GUI_INSIDE_DISABLED:     rl.Color{50, 75, 100, 255},
-		GUI_FONT_COLOR:          rl.Color{200, 220, 255, 255},
-		GUI_NOTE_COLOR:          rl.Color{40, 40, 100, 255},
-		GUI_SHADOW_COLOR:        rl.SkyBlue,
-	},
-	"Dark Crimson": map[int]rl.Color{
-		GUI_OUTLINE:             rl.Gray,
-		GUI_OUTLINE_HIGHLIGHTED: rl.Red,
-		GUI_OUTLINE_CLICKED:     rl.Black,
-		GUI_OUTLINE_DISABLED:    rl.Maroon,
-		GUI_INSIDE:              rl.Color{30, 30, 30, 255},  // BG / Task BG / Grid Color 1
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{100, 40, 40, 255}, // Button Highlight / Focused Textbox / Task Completion color
-		GUI_INSIDE_CLICKED:      rl.Color{10, 10, 10, 255},  // Grid color
-		GUI_INSIDE_DISABLED:     rl.Color{40, 15, 10, 255},
-		GUI_FONT_COLOR:          rl.RayWhite,
-		GUI_NOTE_COLOR:          rl.Maroon,
-		GUI_SHADOW_COLOR:        rl.Red,
-	},
-	"Piano Black": map[int]rl.Color{
-		GUI_OUTLINE:             rl.LightGray,
-		GUI_OUTLINE_HIGHLIGHTED: rl.Gold,
-		GUI_OUTLINE_CLICKED:     rl.Black,
-		GUI_OUTLINE_DISABLED:    rl.Color{40, 20, 10, 255},
-		GUI_INSIDE:              rl.Color{20, 20, 20, 255}, // BG / Task BG / Grid Color 1
-		GUI_INSIDE_HIGHLIGHTED:  rl.Color{90, 70, 50, 255}, // Button Highlight / Focused Textbox / Task Completion color
-		GUI_INSIDE_CLICKED:      rl.Black,                  // Grid color 2
-		GUI_INSIDE_DISABLED:     rl.DarkBrown,
-		GUI_FONT_COLOR:          rl.RayWhite,
-		GUI_NOTE_COLOR:          rl.Color{30, 40, 50, 255},
-		GUI_SHADOW_COLOR:        rl.White,
-	},
-}
-
 var currentTheme = ""
 
 var fontSize = float32(10)
 var spacing = float32(1)
 var font rl.Font
 
-func getThemeColor(colorConstant int) rl.Color {
+var guiColors map[string]map[string]rl.Color
+var lastThemeLoadTime time.Time
+
+func getThemeColor(colorConstant string) rl.Color {
 	return guiColors[currentTheme][colorConstant]
+}
+
+func loadThemes() bool {
+
+	newGUIColors := map[string]map[string]rl.Color{}
+
+	themeUpdated := false
+
+	filepath.Walk(filepath.Join("assets", "themes"), func(fp string, info os.FileInfo, err error) error {
+
+		if !info.IsDir() {
+
+			themeFile, err := os.Open(fp)
+
+			if err == nil {
+
+				if info.ModTime().Sub(lastThemeLoadTime) > 0 {
+					themeUpdated = true
+				}
+
+				defer themeFile.Close()
+
+				_, themeName := filepath.Split(fp)
+				themeName = strings.Split(themeName, ".json")[0]
+
+				// themeData := []byte{}
+				themeData := ""
+				var jsonData map[string][]uint8
+
+				scanner := bufio.NewScanner(themeFile)
+				for scanner.Scan() {
+					// themeData = append(themeData, scanner.Bytes()...)
+					themeData += scanner.Text()
+				}
+				json.Unmarshal([]byte(themeData), &jsonData)
+
+				// A length of 0 means JSON couldn't properly unmarshal the data, so it was mangled somehow.
+				if len(jsonData) > 0 {
+
+					newGUIColors[themeName] = map[string]rl.Color{}
+
+					for key, value := range jsonData {
+						newGUIColors[themeName][key] = rl.Color{value[0], value[1], value[2], value[3]}
+					}
+
+				} else {
+					newGUIColors[themeName] = guiColors[themeName]
+				}
+
+			}
+		}
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+
+	guiColors = newGUIColors
+
+	lastThemeLoadTime = time.Now()
+
+	return themeUpdated
+
 }
 
 func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
@@ -143,7 +146,7 @@ func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 	pos := rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2, rect.Y + (rect.Height / 2) - textWidth.Y/2}
 	pos.X = float32(math.Round(float64(pos.X)))
 	pos.Y = float32(math.Round(float64(pos.Y)))
-	rl.DrawTextEx(rl.GetFontDefault(), text, pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	rl.DrawTextEx(font, text, pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 	return clicked
 }
@@ -190,6 +193,7 @@ type Spinner struct {
 	Options       []string
 	CurrentChoice int
 	Changed       bool
+	// Expanded      bool
 }
 
 func NewSpinner(x, y, w, h float32, options ...string) *Spinner {
@@ -201,6 +205,37 @@ func (spinner *Spinner) Update() {
 
 	spinner.Changed = false
 
+	// This kind of works, but not really, because you can click on an item in the menu, but then
+	// you also click on the item underneath the menu. :(
+
+	// clickedSpinner := false
+
+	// if ImmediateButton(rect, spinner.ChoiceAsString(), false) {
+	// 	spinner.Expanded = !spinner.Expanded
+	// 	clickedSpinner = true
+	// }
+
+	// if spinner.Expanded {
+	// 	for i, choice := range spinner.Options {
+	// 		if choice == spinner.ChoiceAsString() {
+	// 			continue
+	// 		}
+	// 		rect.Y += rect.Height
+	// 		if ImmediateButton(rect, choice, false) {
+	// 			spinner.CurrentChoice = i
+	// 			spinner.Expanded = false
+	// 			spinner.Changed = true
+	// 			clickedSpinner = true
+	// 		}
+
+	// 	}
+
+	// }
+
+	// if rl.IsMouseButtonReleased(rl.MouseLeftButton) && !clickedSpinner {
+	// 	spinner.Expanded = false
+	// }
+
 	rl.DrawRectangleRec(spinner.Rect, getThemeColor(GUI_INSIDE))
 	rl.DrawRectangleLinesEx(spinner.Rect, 1, getThemeColor(GUI_OUTLINE))
 	if len(spinner.Options) > 0 {
@@ -210,6 +245,7 @@ func (spinner *Spinner) Update() {
 		y := float32(math.Round(float64(spinner.Rect.Y + spinner.Rect.Height/2 - textLength.Y/2)))
 		rl.DrawTextEx(font, text, rl.Vector2{x, y}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 	}
+
 	if ImmediateButton(rl.Rectangle{spinner.Rect.X, spinner.Rect.Y, spinner.Rect.Height, spinner.Rect.Height}, "<", false) {
 		spinner.CurrentChoice--
 		spinner.Changed = true

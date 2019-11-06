@@ -55,7 +55,7 @@ type Project struct {
 	DoubleClickTimer        int
 	CopyBuffer              []*Task
 	TaskOpen                bool
-	ColorTheme              string
+	ThemeReloadTimer        int
 	NumberingSequence       *Spinner
 	NumberingIgnoreTopLevel *Checkbox
 
@@ -83,26 +83,24 @@ func NewProject() *Project {
 	searchBar.MaxSize = searchBar.MinSize // Don't expand for text
 	searchBar.AllowNewlines = false
 
-	themes := []string{}
-	for themeName := range guiColors {
-		themes = append(themes, themeName)
-	}
-
 	settingsX := float32(256)
 
 	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, CameraPan: rl.Vector2{screenWidth / 2, screenHeight / 2},
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15},
-		GUI_Icons: rl.LoadTexture(path.Join("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512, ColorTheme: "Sunlight",
-		ColorThemeSpinner: NewSpinner(settingsX, 32, 192, 16, themes...), ShadowQualitySpinner: NewSpinner(settingsX, 64, 128, 16, "Off", "Solid", "Smooth"),
+		GUI_Icons: rl.LoadTexture(path.Join("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512,
+		ColorThemeSpinner: NewSpinner(settingsX, 32, 192, 16), ShadowQualitySpinner: NewSpinner(settingsX, 64, 128, 16, "Off", "Solid", "Smooth"),
 		GridVisible: NewCheckbox(settingsX, 96, 16, 16), ShowIcons: NewCheckbox(settingsX, 118, 16, 16), Patterns: rl.LoadTexture(path.Join("assets", "patterns.png")),
 		NumberingSequence: NewSpinner(settingsX, 140, 128, 16, "1.1.", "1-1)", "I.I.", "Bullets", "Off"), NumberingIgnoreTopLevel: NewCheckbox(settingsX, 164, 16, 16),
 	}
+
 	project.ShadowQualitySpinner.CurrentChoice = 2
-	project.ChangeTheme(project.ColorTheme)
 	project.GridVisible.Checked = true
 	project.ShowIcons.Checked = true
 	project.GenerateGrid()
 	project.DoubleClickTimer = -1
+
+	project.ReloadThemes()
+	project.ChangeTheme(currentTheme)
 
 	speaker.Init(project.SampleRate, project.SampleBuffer)
 
@@ -132,7 +130,7 @@ func (project *Project) Save() bool {
 			"Pan.Y":                   project.CameraPan.Y,
 			"ZoomLevel":               project.ZoomLevel,
 			"Tasks":                   taskData,
-			"ColorTheme":              project.ColorTheme,
+			"ColorTheme":              currentTheme,
 			"SampleRate":              project.SampleRate,
 			"SampleBuffer":            project.SampleBuffer,
 			"ShadowQuality":           project.ShadowQualitySpinner.CurrentChoice,
@@ -248,11 +246,10 @@ func (project *Project) Load() bool {
 			project.Tasks = append(project.Tasks, task)
 		}
 
-		colorTheme := getString("ColorTheme", project.ColorTheme)
+		colorTheme := getString("ColorTheme", currentTheme)
 		if colorTheme != "" {
 			project.ChangeTheme(colorTheme)
 			project.GenerateGrid()
-			project.ColorThemeSpinner.SetChoice(colorTheme)
 		}
 
 		project.ReorderTasks()
@@ -453,6 +450,12 @@ func (project *Project) MousingOver() string {
 }
 
 func (project *Project) Update() {
+
+	if project.ThemeReloadTimer > 60 {
+		project.ReloadThemes()
+		project.ThemeReloadTimer = 0
+	}
+	project.ThemeReloadTimer++
 
 	holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
 	holdingAlt := rl.IsKeyDown(rl.KeyLeftAlt) || rl.IsKeyDown(rl.KeyRightAlt)
@@ -829,16 +832,15 @@ func (project *Project) ReorderTasks() {
 	project.SendMessage("dropped", nil)
 }
 
-func (project *Project) ChangeTheme(themeName string) bool {
+func (project *Project) ChangeTheme(themeName string) {
 	_, themeExists := guiColors[themeName]
 	if themeExists {
-		project.ColorTheme = themeName
-		currentTheme = project.ColorTheme
 		project.ColorThemeSpinner.SetChoice(themeName)
-		project.GenerateGrid()
-		return true
+	} else {
+		project.ColorThemeSpinner.CurrentChoice = 0 // Backup in case the named theme doesn't exist
 	}
-	return false
+	currentTheme = project.ColorThemeSpinner.ChoiceAsString()
+	project.GenerateGrid()
 }
 
 func (project *Project) GUI() {
@@ -1236,5 +1238,20 @@ func (project *Project) GenerateGrid() {
 	img := rl.NewImage(data, project.GridSize*2, project.GridSize*2, 1, rl.UncompressedR8g8b8a8)
 
 	project.GridTexture = rl.LoadTextureFromImage(img)
+
+}
+
+func (project *Project) ReloadThemes() {
+
+	if loadThemes() {
+		guiThemes := []string{}
+		for theme, _ := range guiColors {
+			guiThemes = append(guiThemes, theme)
+		}
+		sort.Strings(guiThemes)
+		project.ColorThemeSpinner.Options = guiThemes
+
+		project.ChangeTheme(currentTheme)
+	}
 
 }

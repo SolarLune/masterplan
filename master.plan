@@ -1,11 +1,11 @@
 {
-	"ColorTheme": "Dark Crimson",
+	"ColorTheme": "Piano Black",
 	"GridSize": 16,
 	"GridVisible": true,
 	"NumberingIgnoreTopLevel": true,
 	"NumberingSequence": 0,
-	"Pan.X": 1957,
-	"Pan.Y": -124,
+	"Pan.X": 1728.9474,
+	"Pan.Y": 102.00589,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
 	"ShadowQuality": 2,
@@ -906,7 +906,7 @@
 		},
 		{
 			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 1 2019 19:15:47",
+			"CompletionTime": "Oct 31 2019 23:41:43",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Make deleting tasks automatically re-order tasks.",
 			"FilePath": "",
@@ -923,7 +923,7 @@
 		},
 		{
 			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 1 2019 19:15:47",
+			"CompletionTime": "Oct 31 2019 23:46:42",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Make it so that when creating a new task with one selected, it will appear below the one selected.",
 			"FilePath": "",
@@ -1652,8 +1652,8 @@
 			"Position.Y": 448,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Rect.H": 160,
-			"Rect.W": 160,
+			"Rect.H": 16,
+			"Rect.W": 16,
 			"Selected": false,
 			"TaskType.CurrentChoice": 3
 		},
@@ -2194,7 +2194,7 @@
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Rect.H": 16,
-			"Rect.W": 288,
+			"Rect.W": 272,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
@@ -2443,7 +2443,6 @@
 		},
 		{
 			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 17 2019 15:21:30",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Nevermind, just 15 levels should be good.\n... I think. It's a little bit easier to type in the textbox.\n... Well, it's a lot easier.",
 			"FilePath": "",
@@ -2451,7 +2450,7 @@
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -2160,
 			"Position.Y": -96,
-			"Progression.Current": 15,
+			"Progression.Current": 8,
 			"Progression.Max": 15,
 			"Rect.H": 16,
 			"Rect.W": 320,
@@ -2763,8 +2762,8 @@
 			"Position.Y": -256,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Rect.H": 16,
-			"Rect.W": 16,
+			"Rect.H": 212,
+			"Rect.W": 324,
 			"Selected": false,
 			"TaskType.CurrentChoice": 3
 		},
@@ -3802,7 +3801,7 @@
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Rect.H": 16,
-			"Rect.W": 384,
+			"Rect.W": 400,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
@@ -3901,7 +3900,7 @@
 			"Progression.Max": 0,
 			"Rect.H": 16,
 			"Rect.W": 400,
-			"Selected": true,
+			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		}
 	],

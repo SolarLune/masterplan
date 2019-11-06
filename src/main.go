@@ -78,6 +78,10 @@ func main() {
 			rl.SetWindowSize(1920, 1080)
 		}
 
+		if rl.IsKeyPressed(rl.KeyF4) {
+			rl.ToggleFullscreen()
+		}
+
 		rl.BeginTextureMode(screen)
 
 		rl.ClearBackground(rl.RayWhite)
