@@ -53,7 +53,7 @@ func loadThemes() {
 
 	newGUIColors := map[string]map[string]rl.Color{}
 
-	filepath.Walk(filepath.Join("assets", "themes"), func(fp string, info os.FileInfo, err error) error {
+	filepath.Walk(GetPath("assets", "themes"), func(fp string, info os.FileInfo, err error) error {
 
 		if !info.IsDir() {
 

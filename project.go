@@ -87,9 +87,9 @@ func NewProject() *Project {
 
 	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, CameraPan: rl.Vector2{screenWidth / 2, screenHeight / 2},
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15},
-		GUI_Icons: rl.LoadTexture(filepath.Join("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512,
+		GUI_Icons: rl.LoadTexture(GetPath("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512,
 		ColorThemeSpinner: NewSpinner(settingsX, 32, 192, 16), ShadowQualitySpinner: NewSpinner(settingsX, 64, 128, 16, "Off", "Solid", "Smooth"),
-		GridVisible: NewCheckbox(settingsX, 96, 16, 16), ShowIcons: NewCheckbox(settingsX, 118, 16, 16), Patterns: rl.LoadTexture(filepath.Join("assets", "patterns.png")),
+		GridVisible: NewCheckbox(settingsX, 96, 16, 16), ShowIcons: NewCheckbox(settingsX, 118, 16, 16), Patterns: rl.LoadTexture(GetPath("assets", "patterns.png")),
 		NumberingSequence: NewSpinner(settingsX, 140, 128, 16, "1.1.", "1-1)", "I.I.", "Bullets", "Off"), NumberingIgnoreTopLevel: NewCheckbox(settingsX, 164, 16, 16),
 	}
 

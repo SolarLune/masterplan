@@ -1,3 +1,6 @@
 lastopenedplan
 bin
-bin/*
+.DS_Store
+.stignore
+System Volume Information
+.stfolder
