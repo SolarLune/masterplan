@@ -276,8 +276,6 @@ func (task *Task) Serialize() map[string]interface{} {
 	data := map[string]interface{}{}
 	data["Position.X"] = task.Position.X
 	data["Position.Y"] = task.Position.Y
-	data["Rect.W"] = task.Rect.Width
-	data["Rect.H"] = task.Rect.Height
 	data["ImageDisplaySize.X"] = task.ImageDisplaySize.X
 	data["ImageDisplaySize.Y"] = task.ImageDisplaySize.Y
 	data["Checkbox.Checked"] = task.CompletionCheckbox.Checked
@@ -353,8 +351,6 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	task.Rect.X = task.Position.X
 	task.Position.Y = getFloat("Position.Y", task.Position.Y)
 	task.Rect.Y = task.Position.Y
-	task.Rect.Width = getFloat("Rect.W", task.Rect.Width)
-	task.Rect.Height = getFloat("Rect.H", task.Rect.Height)
 	task.ImageDisplaySize.X = getFloat("ImageDisplaySize.X", task.ImageDisplaySize.X)
 	task.ImageDisplaySize.Y = getFloat("ImageDisplaySize.Y", task.ImageDisplaySize.Y)
 	task.CompletionCheckbox.Checked = getBool("Checkbox.Checked", task.CompletionCheckbox.Checked)

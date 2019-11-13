@@ -1,5 +1,5 @@
 {
-    "GUI_OUTLINE":             [40, 40, 40, 255],
+    "GUI_OUTLINE":             [120, 120, 120, 255],
     "GUI_OUTLINE_HIGHLIGHTED": [245, 245, 245, 255],
     "GUI_OUTLINE_CLICKED":     [245, 245, 245, 255],
     "GUI_OUTLINE_DISABLED":    [0, 0, 0, 255],

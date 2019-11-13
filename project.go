@@ -675,16 +675,16 @@ func (project *Project) Shortcuts() {
 		if !project.Searchbar.Focused {
 
 			panSpeed := float32(8)
-			if rl.IsKeyDown(rl.KeyW) {
+			if !holdingCtrl && rl.IsKeyDown(rl.KeyW) {
 				project.CameraPan.Y += panSpeed
 			}
-			if rl.IsKeyDown(rl.KeyS) {
+			if !holdingCtrl && rl.IsKeyDown(rl.KeyS) {
 				project.CameraPan.Y -= panSpeed
 			}
-			if rl.IsKeyDown(rl.KeyA) {
+			if !holdingCtrl && rl.IsKeyDown(rl.KeyA) {
 				project.CameraPan.X += panSpeed
 			}
-			if rl.IsKeyDown(rl.KeyD) {
+			if !holdingCtrl && rl.IsKeyDown(rl.KeyD) {
 				project.CameraPan.X -= panSpeed
 			}
 
@@ -710,6 +710,8 @@ func (project *Project) Shortcuts() {
 				project.CopySelectedTasks()
 			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
 				project.PasteTasks()
+			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
+				project.CreateNewTask()
 			} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
 
 				for _, task := range project.Tasks {
@@ -913,27 +915,7 @@ func (project *Project) GUI() {
 		rect.Y = pos.Y - rect.Height/2
 
 		if ImmediateButton(rect, "New Task", false) {
-			newTask := NewTask(project)
-			newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X, GetWorldMousePosition().Y)
-			newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
-			project.Tasks = append(project.Tasks, newTask)
-			if project.NumberingSequence.CurrentChoice != NUMBERING_SEQUENCE_OFF {
-				for _, task := range project.Tasks {
-					if task.Selected {
-						newTask.Position = task.Position
-						task.Position.Y += float32(project.GridSize)
-						below := task.TaskBelow
-						for below != nil {
-							below.Position.Y += float32(project.GridSize)
-							below = below.TaskBelow
-						}
-						project.ReorderTasks()
-						break
-					}
-				}
-			}
-
-			project.SendMessage("select", map[string]interface{}{"task": newTask})
+			project.CreateNewTask()
 		}
 
 		selectedTasks := []*Task{}
@@ -1106,6 +1088,37 @@ func (project *Project) GUI() {
 		project.Save()
 	}
 
+}
+
+func (project *Project) CreateNewTask() {
+	newTask := NewTask(project)
+	newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X, GetWorldMousePosition().Y)
+	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
+	project.Tasks = append(project.Tasks, newTask)
+	if project.NumberingSequence.CurrentChoice != NUMBERING_SEQUENCE_OFF {
+		for _, task := range project.Tasks {
+			if task.Selected {
+				newTask.Position = task.Position
+				newTask.Position.Y += float32(project.GridSize)
+				below := task.TaskBelow
+
+				if below != nil && below.Position.X >= task.Position.X {
+					newTask.Position.X = below.Position.X
+				}
+
+				for below != nil {
+					below.Position.Y += float32(project.GridSize)
+					below = below.TaskBelow
+				}
+				project.ReorderTasks()
+				break
+			}
+		}
+	}
+
+	project.SendMessage("select", map[string]interface{}{"task": newTask})
+
+	project.FocusViewOnSelectedTasks()
 }
 
 func (project *Project) SearchForTasks() {
