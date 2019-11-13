@@ -11,3 +11,6 @@ require (
 	github.com/hako/durafmt v0.0.0-20191009132224-3f39dc1ed9f4
 	github.com/otiai10/copy v1.0.2
 )
+
+// The below line replaces the normal raylib-go dependency with a local one that has the config.h tweaked to allow for more image formats.
+replace github.com/gen2brain/raylib-go => /home/solarlune/Documents/Projects/Go/raylib-go-solarlune
