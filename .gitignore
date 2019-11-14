@@ -4,3 +4,4 @@ bin
 .stignore
 System Volume Information
 .stfolder
+*.pprof*

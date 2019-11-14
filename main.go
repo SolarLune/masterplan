@@ -46,11 +46,6 @@ func main() {
 	screen = rl.LoadRenderTexture(screenWidth, screenHeight)
 	rl.SetTextureFilter(screen.Texture, rl.FilterPoint)
 
-	// cpuProfFile, err := os.Create("cpu.pprof")
-	// if err != nil {
-	// 	log.Fatal("Could not create CPU Profile: ", err)
-	// }
-
 	// profiling := false
 
 	for !rl.WindowShouldClose() {
@@ -61,9 +56,15 @@ func main() {
 
 		// if rl.IsKeyPressed(rl.KeyF5) {
 		// 	if !profiling {
+		// 		cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rand.Int()))
+		// 		if err != nil {
+		// 			log.Fatal("Could not create CPU Profile: ", err)
+		// 		}
 		// 		pprof.StartCPUProfile(cpuProfFile)
+		// 	} else {
+		// 		pprof.StopCPUProfile()
 		// 	}
-		// 	profiling = true
+		// 	profiling = !profiling
 		// }
 
 		if rl.IsKeyPressed(rl.KeyF2) {
@@ -106,9 +107,5 @@ func main() {
 	}
 
 	currentProject.Destroy()
-
-	// if profiling {
-	// 	pprof.StopCPUProfile()
-	// }
 
 }

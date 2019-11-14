@@ -45,6 +45,7 @@ type Project struct {
 	ShowIcons            *Checkbox
 
 	// Internal data to make projects work
+	FullyInitialized        bool
 	GridTexture             rl.Texture2D
 	ContextMenuOpen         bool
 	ContextMenuPosition     rl.Vector2
@@ -601,9 +602,27 @@ func (project *Project) Update() {
 
 	}
 
+	// Additive blending should be out here to avoid state changes mid-task drawing.
+	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+
+	if shadowColor.R > 128 || shadowColor.G > 128 || shadowColor.B > 128 {
+		rl.BeginBlendMode(rl.BlendAdditive)
+	}
+
+	for _, task := range project.Tasks {
+		task.DrawShadow()
+	}
+
+	if shadowColor.R > 128 || shadowColor.G > 128 || shadowColor.B > 128 {
+		rl.EndBlendMode()
+	}
+
 	for _, task := range project.Tasks {
 		task.Update()
 	}
+
+	// This is true once at least one loop has happened
+	project.FullyInitialized = true
 
 	rl.DrawRectangleLinesEx(selectionRect, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 

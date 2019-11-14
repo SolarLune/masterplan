@@ -8,6 +8,7 @@ require (
 	github.com/faiface/beep v1.0.2
 	github.com/gen2brain/dlgs v0.0.0-20191023125645-8832682fb7f8
 	github.com/gen2brain/raylib-go v0.0.0-20191004100518-02424e2e10ea
+	github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c
 	github.com/hako/durafmt v0.0.0-20191009132224-3f39dc1ed9f4
 	github.com/otiai10/copy v1.0.2
 )

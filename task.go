@@ -178,6 +178,8 @@ type Task struct {
 	PostOpenDelay       int
 	Children            []*Task
 	PercentageComplete  float32
+	Visible             bool
+	RenderTexture       rl.RenderTexture2D
 }
 
 var taskID = 0
@@ -215,6 +217,7 @@ func NewTask(project *Project) *Task {
 		DeadlineMonthSpinner:         NewSpinner(180, 128, 96, 16, months...),
 		DeadlineDaySpinner:           NewNumberSpinner(300, 128, 48, 16),
 		DeadlineYearSpinner:          NewNumberSpinner(300, 128, 48, 16),
+		RenderTexture:                rl.LoadRenderTexture(8000, 16),
 		// DeadlineTimeTextbox:          NewTextbox(240, 128, 64, 16),	// Need to make textbox format for time.
 	}
 	task.CreationTime = time.Now()
@@ -453,14 +456,15 @@ func (task *Task) Update() {
 	task.Rect.X += (task.Position.X - task.Rect.X) * 0.2
 	task.Rect.Y += (task.Position.Y - task.Rect.Y) * 0.2
 
-	// DRAWING
+	task.Visible = true
 
 	scrW := screenWidth / camera.Zoom
 	scrH := screenHeight / camera.Zoom
 
 	// Slight optimization
 	cameraRect := rl.Rectangle{camera.Target.X - (scrW / 2), camera.Target.Y - scrH/2, scrW, scrH}
-	if !rl.CheckCollisionRecs(task.Rect, cameraRect) && rl.GetTime() > 1 {
+	if !rl.CheckCollisionRecs(task.Rect, cameraRect) && task.Project.FullyInitialized {
+		task.Visible = false
 		return
 	}
 
@@ -633,33 +637,6 @@ func (task *Task) Update() {
 	if task.Completable() || task.Selected {
 		color = applyGlow(color)
 		outlineColor = applyGlow(outlineColor)
-	}
-
-	if task.Project.ShadowQualitySpinner.CurrentChoice == 2 {
-		for y := 1; y < 4; y++ {
-			shadowRect := task.Rect
-			shadowRect.X += float32(y)
-			shadowRect.Y += float32(y)
-			shadowColor := getThemeColor(GUI_SHADOW_COLOR)
-			shadowColor.A = 64
-
-			additive := false
-			if shadowColor.R > 128 || shadowColor.G > 128 || shadowColor.B > 128 {
-				additive = true
-				rl.BeginBlendMode(rl.BlendAdditive)
-			}
-			rl.DrawRectangleRec(shadowRect, shadowColor)
-			if additive {
-				rl.EndBlendMode()
-			}
-		}
-	} else if task.Project.ShadowQualitySpinner.CurrentChoice == 1 {
-		shadowRect := task.Rect
-		shadowRect.X += 2
-		shadowRect.Y += 2
-		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
-		shadowColor.A = 128
-		rl.DrawRectangleRec(shadowRect, shadowColor)
 	}
 
 	perc := float32(0)
@@ -868,6 +845,54 @@ func (task *Task) Due() int {
 		}
 	}
 	return TASK_NOT_DUE
+}
+
+func (task *Task) DrawShadow() {
+
+	if task.Visible {
+
+		shadowRect := task.Rect
+		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+
+		if task.Project.ShadowQualitySpinner.CurrentChoice == 2 {
+
+			src := rl.Rectangle{248, 0, 4, 4}
+			dst := shadowRect
+			dst.X += dst.Width
+			dst.Width = 4
+			dst.Height = 4
+			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+
+			dst.Y += 4
+			src.Y += 4
+			dst.Height = task.Rect.Height - 4
+			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+
+			dst.Y += dst.Height
+			dst.Height = 4
+			src.Y += 4
+			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+
+			dst.X = shadowRect.X + 4
+			dst.Width = shadowRect.Width - 4
+			src.X -= 4
+			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+
+			dst.X = shadowRect.X
+			dst.Width = 4
+			src.X -= 4
+			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+
+		} else if task.Project.ShadowQualitySpinner.CurrentChoice == 1 {
+			shadowRect.X += 2
+			shadowRect.Y += 2
+			shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+			shadowColor.A = 128
+			rl.DrawRectangleRec(shadowRect, shadowColor)
+		}
+
+	}
+
 }
 
 func (task *Task) PostDraw() {

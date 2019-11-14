@@ -1,11 +1,11 @@
 {
-	"ColorTheme": "Moonlight",
+	"ColorTheme": "Piano Black",
 	"GridSize": 16,
 	"GridVisible": true,
 	"NumberingIgnoreTopLevel": true,
 	"NumberingSequence": 0,
-	"Pan.X": 1913.9335,
-	"Pan.Y": 62.03679,
+	"Pan.X": 1870,
+	"Pan.Y": -1891,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
 	"ShadowQuality": 2,
@@ -559,7 +559,7 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 0,
+			"Position.Y": -0,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
@@ -1832,7 +1832,8 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 13 2019 21:28:06",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Make shadows appear under all tasks, rather than drawing on the same layer as the tasks themselves.",
 			"FilePath": "",
@@ -3430,7 +3431,8 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 13 2019 21:28:40",
 			"CreationTime": "Nov 6 2019 09:49:15",
 			"Description": "Finish setting up itch project page.",
 			"FilePath": "",
@@ -3454,7 +3456,7 @@
 			"Position.Y": 2128,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Selected": false,
+			"Selected": true,
 			"TaskType.CurrentChoice": 0
 		},
 		{
@@ -3473,9 +3475,10 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 13 2019 21:28:43",
 			"CreationTime": "Nov 6 2019 10:18:31",
-			"Description": "Implement and test .itch.toml file for properly running from Itch app.",
+			"Description": "Implement and test .itch.toml file for properly running from Itch app.\nDon't need to do this; itch automatically picks up the executables and runs them.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
