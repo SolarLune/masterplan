@@ -20,11 +20,9 @@ import (
 const (
 	GUI_OUTLINE             = "GUI_OUTLINE"
 	GUI_OUTLINE_HIGHLIGHTED = "GUI_OUTLINE_HIGHLIGHTED"
-	GUI_OUTLINE_CLICKED     = "GUI_OUTLINE_CLICKED"
 	GUI_OUTLINE_DISABLED    = "GUI_OUTLINE_DISABLED"
 	GUI_INSIDE              = "GUI_INSIDE"
 	GUI_INSIDE_HIGHLIGHTED  = "GUI_INSIDE_HIGHLIGHTED"
-	GUI_INSIDE_CLICKED      = "GUI_INSIDE_CLICKED"
 	GUI_INSIDE_DISABLED     = "GUI_INSIDE_DISABLED"
 	GUI_FONT_COLOR          = "GUI_FONT_COLOR"
 	GUI_NOTE_COLOR          = "GUI_NOTE_COLOR"
@@ -35,13 +33,19 @@ const (
 	TEXTBOX_ALIGN_LEFT = iota
 	TEXTBOX_ALIGN_CENTER
 	TEXTBOX_ALIGN_RIGHT
+
+	TEXTBOX_ALIGN_UPPER = iota
+	_                   // Center works for this, too
+	TEXTBOX_ALIGN_BOTTOM
 )
 
 var currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
 
 var fontSize = float32(10)
+var guiFontSize = float32(15)
 var spacing = float32(1)
 var font rl.Font
+var guiFont rl.Font
 
 var guiColors map[string]map[string]rl.Color
 
@@ -83,7 +87,9 @@ func loadThemes() {
 					newGUIColors[themeName] = map[string]rl.Color{}
 
 					for key, value := range jsonData {
-						newGUIColors[themeName][key] = rl.Color{value[0], value[1], value[2], value[3]}
+						if !strings.Contains(key, "//") { // Strings that begin with "//" are ignored
+							newGUIColors[themeName][key] = rl.Color{value[0], value[1], value[2], value[3]}
+						}
 					}
 
 				} else {
@@ -118,8 +124,8 @@ func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 			outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 			insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 			if rl.IsMouseButtonDown(rl.MouseLeftButton) {
-				outlineColor = getThemeColor(GUI_OUTLINE_CLICKED)
-				insideColor = getThemeColor(GUI_INSIDE_CLICKED)
+				outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+				insideColor = getThemeColor(GUI_INSIDE_DISABLED)
 			} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
 				clicked = true
 			}
@@ -130,11 +136,11 @@ func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 	rl.DrawRectangleRec(rect, insideColor)
 	rl.DrawRectangleLinesEx(rect, 1, outlineColor)
 
-	textWidth := rl.MeasureTextEx(font, text, fontSize, spacing)
+	textWidth := rl.MeasureTextEx(guiFont, text, guiFontSize, spacing)
 	pos := rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2, rect.Y + (rect.Height / 2) - textWidth.Y/2}
 	pos.X = float32(math.Round(float64(pos.X)))
 	pos.Y = float32(math.Round(float64(pos.Y)))
-	rl.DrawTextEx(font, text, pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	rl.DrawTextEx(guiFont, text, pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 	return clicked
 }
@@ -228,10 +234,10 @@ func (spinner *Spinner) Update() {
 	rl.DrawRectangleLinesEx(spinner.Rect, 1, getThemeColor(GUI_OUTLINE))
 	if len(spinner.Options) > 0 {
 		text := spinner.ChoiceAsString()
-		textLength := rl.MeasureTextEx(font, text, fontSize, spacing)
+		textLength := rl.MeasureTextEx(guiFont, text, guiFontSize, spacing)
 		x := float32(math.Round(float64(spinner.Rect.X + spinner.Rect.Width/2 - textLength.X/2)))
 		y := float32(math.Round(float64(spinner.Rect.Y + spinner.Rect.Height/2 - textLength.Y/2)))
-		rl.DrawTextEx(font, text, rl.Vector2{x, y}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		rl.DrawTextEx(guiFont, text, rl.Vector2{x, y}, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 	}
 
 	if ImmediateButton(rl.Rectangle{spinner.Rect.X, spinner.Rect.Y, spinner.Rect.Height, spinner.Rect.Height}, "<", false) {
@@ -303,7 +309,7 @@ func (progressBar *ProgressBar) Update() {
 
 	pos := rl.Vector2{progressBar.Rect.X + progressBar.Rect.X/2 + 2, progressBar.Rect.Y + progressBar.Rect.Height/2 - 4}
 
-	rl.DrawTextEx(font, fmt.Sprintf("%d", progressBar.Percentage)+"%", pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	rl.DrawTextEx(guiFont, fmt.Sprintf("%d", progressBar.Percentage)+"%", pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 }
 
@@ -320,7 +326,8 @@ func NewNumberSpinner(x, y, w, h float32, options ...string) *NumberSpinner {
 
 	numberSpinner.Textbox.AllowAlphaCharacters = false
 	numberSpinner.Textbox.AllowNewlines = false
-	numberSpinner.Textbox.Alignment = TEXTBOX_ALIGN_CENTER
+	numberSpinner.Textbox.HorizontalAlignment = TEXTBOX_ALIGN_CENTER
+	numberSpinner.Textbox.VerticalAlignment = TEXTBOX_ALIGN_CENTER
 	numberSpinner.Textbox.Text = "0"
 	numberSpinner.Minimum = -math.MaxInt64
 	numberSpinner.Maximum = math.MaxInt64
@@ -334,37 +341,44 @@ func (numberSpinner *NumberSpinner) Update() {
 	numberSpinner.Textbox.Rect.Y = numberSpinner.Rect.Y
 	numberSpinner.Textbox.Update()
 
-	num := numberSpinner.GetNumber()
+	if !numberSpinner.Textbox.Focused {
 
-	if !numberSpinner.Textbox.Focused && numberSpinner.Textbox.Text == "" {
-		numberSpinner.Textbox.Text = "0"
-	}
-
-	numberSpinner.Rect.Width = numberSpinner.Textbox.Rect.Width + (numberSpinner.Rect.Height * 2)
-
-	if ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false) {
-		num--
-	}
-
-	if ImmediateButton(rl.Rectangle{numberSpinner.Rect.X + numberSpinner.Rect.Width - numberSpinner.Rect.Height, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false) {
-		num++
-	}
-
-	if num < numberSpinner.Minimum {
-		if numberSpinner.Loop {
-			num = numberSpinner.Maximum
-		} else {
-			num = numberSpinner.Minimum
+		if numberSpinner.Textbox.Text == "" {
+			numberSpinner.Textbox.Text = "0"
 		}
-	} else if num > numberSpinner.Maximum && numberSpinner.Maximum > -1 {
-		if numberSpinner.Loop {
-			num = numberSpinner.Minimum
-		} else {
-			num = numberSpinner.Maximum
-		}
-	}
 
-	numberSpinner.Textbox.Text = strconv.Itoa(num)
+		num := numberSpinner.GetNumber()
+
+		numberSpinner.Rect.Width = numberSpinner.Textbox.Rect.Width + (numberSpinner.Rect.Height * 2)
+
+		if ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false) {
+			num--
+		}
+
+		if ImmediateButton(rl.Rectangle{numberSpinner.Rect.X + numberSpinner.Rect.Width - numberSpinner.Rect.Height, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false) {
+			num++
+		}
+
+		if num < numberSpinner.Minimum {
+			if numberSpinner.Loop {
+				num = numberSpinner.Maximum
+			} else {
+				num = numberSpinner.Minimum
+			}
+		} else if num > numberSpinner.Maximum && numberSpinner.Maximum > -1 {
+			if numberSpinner.Loop {
+				num = numberSpinner.Minimum
+			} else {
+				num = numberSpinner.Maximum
+			}
+		}
+
+		numberSpinner.Textbox.Text = strconv.Itoa(num)
+
+	} else {
+		ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false)
+		ImmediateButton(rl.Rectangle{numberSpinner.Rect.X + numberSpinner.Rect.Width - numberSpinner.Rect.Height, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false)
+	}
 
 }
 
@@ -379,14 +393,16 @@ func (numberSpinner *NumberSpinner) SetNumber(number int) {
 
 type Textbox struct {
 	Text                 string
+	LastModifiedText     string
 	Focused              bool
 	Rect                 rl.Rectangle
 	Visible              bool
 	AllowNewlines        bool
 	AllowAlphaCharacters bool
-	MaxCharacters        int
+	MaxCharactersPerLine int
 	Changed              bool
-	Alignment            int
+	HorizontalAlignment  int
+	VerticalAlignment    int
 
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
@@ -397,7 +413,7 @@ type Textbox struct {
 
 func NewTextbox(x, y, w, h float32) *Textbox {
 	textbox := &Textbox{Rect: rl.Rectangle{x, y, w, h}, Visible: true,
-		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharacters: math.MaxInt64, AllowAlphaCharacters: true}
+		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64, AllowAlphaCharacters: true}
 	return textbox
 }
 
@@ -413,7 +429,7 @@ func (textbox *Textbox) GetClosestPointInText(point rl.Vector2) int {
 
 	i := 0
 
-	point.Y -= fontSize
+	point.Y -= guiFontSize
 
 	done := false
 
@@ -425,19 +441,19 @@ func (textbox *Textbox) GetClosestPointInText(point rl.Vector2) int {
 
 			if char == '\n' {
 				textPos.X = textbox.Rect.X
-				scaleFactor := fontSize / float32(font.BaseSize)
+				scaleFactor := guiFontSize / float32(font.BaseSize)
 				// This is straight-up ripped for the height that raylib itself uses for \n characters.
 				// See: https://github.com/raysan5/raylib/blob/master/src/text.c#L919
 				textPos.Y += float32((font.BaseSize + font.BaseSize/2) * int32(scaleFactor))
 			} else {
-				measure := rl.MeasureTextEx(font, string(char), fontSize, 0)
+				measure := rl.MeasureTextEx(guiFont, string(char), guiFontSize, 0)
 				textPos.X += measure.X + spacing // + spacing because I believe that represents the number of pixels between letters
 			}
 
 			i += 1
 
 		} else {
-			measure := rl.MeasureTextEx(font, string(textbox.Text[i-1]), fontSize, spacing)
+			measure := rl.MeasureTextEx(guiFont, string(textbox.Text[i-1]), guiFontSize, spacing)
 			textPos.X += measure.X
 			done = true
 		}
@@ -480,7 +496,7 @@ func (textbox *Textbox) LineNumberByCaretPosition() int {
 			return i
 		}
 	}
-	return -1
+	return 0
 }
 
 func (textbox *Textbox) CaretPositionInLine() int {
@@ -498,6 +514,9 @@ func (textbox *Textbox) Update() {
 
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 		textbox.Focused = rl.CheckCollisionPointRec(GetMousePosition(), textbox.Rect)
+		if !textbox.Focused {
+			textbox.LastModifiedText = textbox.Text
+		}
 	}
 
 	if textbox.Focused {
@@ -530,9 +549,15 @@ func (textbox *Textbox) Update() {
 
 			isNum := (letter >= numbers[0] && letter <= numbers[1]) || (letter >= npNumbers[0] && letter <= npNumbers[1])
 
-			if letter >= 32 && letter < 127 && (textbox.AllowAlphaCharacters || isNum) && len(textbox.Text) < textbox.MaxCharacters {
-				textbox.Changed = true
-				textbox.InsertCharacterAtCaret(fmt.Sprintf("%c", letter))
+			fmt.Println(textbox.LineNumberByCaretPosition())
+
+			if len(textbox.Lines()[textbox.LineNumberByCaretPosition()]) < textbox.MaxCharactersPerLine {
+
+				if letter >= 32 && letter < 127 && (textbox.AllowAlphaCharacters || isNum) {
+					textbox.Changed = true
+					textbox.InsertCharacterAtCaret(fmt.Sprintf("%c", letter))
+				}
+
 			}
 		}
 
@@ -661,7 +686,7 @@ func (textbox *Textbox) Update() {
 
 	}
 
-	measure := rl.MeasureTextEx(font, textbox.Text, fontSize, spacing)
+	measure := rl.MeasureTextEx(guiFont, textbox.Text, guiFontSize, spacing)
 
 	textbox.Rect.Width = measure.X + 8
 	textbox.Rect.Height = measure.Y + 4
@@ -701,12 +726,18 @@ func (textbox *Textbox) Update() {
 
 	pos := rl.Vector2{textbox.Rect.X + 2, textbox.Rect.Y + 2}
 
-	if textbox.Alignment == TEXTBOX_ALIGN_CENTER {
+	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
 		pos.X += float32(int(textbox.Rect.Width/2 - measure.X/2))
-	} else if textbox.Alignment == TEXTBOX_ALIGN_RIGHT {
+	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
 		pos.X += float32(int(textbox.Rect.Width - measure.X - 4))
 	}
 
-	rl.DrawTextEx(font, txt, pos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	if textbox.VerticalAlignment == TEXTBOX_ALIGN_CENTER {
+		pos.Y += float32(int(textbox.Rect.Height/2 - measure.Y/2))
+	} else if textbox.VerticalAlignment == TEXTBOX_ALIGN_BOTTOM {
+		pos.Y += float32(int(textbox.Rect.Height - measure.Y - 4))
+	}
+
+	rl.DrawTextEx(guiFont, txt, pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 }

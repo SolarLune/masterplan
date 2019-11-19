@@ -8,24 +8,24 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const screenWidth = 960
-const screenHeight = 540
+// const screenWidth = 960
+// const screenHeight = 540
 
-var camera = rl.NewCamera2D(rl.Vector2{screenWidth / 2, screenHeight / 2}, rl.Vector2{}, 0, 1)
+var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
-var screen rl.RenderTexture2D
 var drawFPS = false
 
 func main() {
 
 	rl.SetConfigFlags(rl.FlagWindowResizable)
-	rl.InitWindow(screenWidth, screenHeight, "MasterPlan")
+	rl.InitWindow(960, 540, "MasterPlan")
 
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
 	rl.SetTargetFPS(60)
 
-	font = rl.LoadFontEx(GetPath("assets", "font.ttf"), int32(fontSize), -1, nil)
+	font = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(fontSize), -1, nil)
+	guiFont = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(guiFontSize), -1, nil)
 
 	currentProject = NewProject()
 
@@ -42,9 +42,6 @@ func main() {
 		currentProject.Load(scanner.Text())
 
 	}
-
-	screen = rl.LoadRenderTexture(screenWidth, screenHeight)
-	rl.SetTextureFilter(screen.Texture, rl.FilterPoint)
 
 	// profiling := false
 
@@ -79,8 +76,6 @@ func main() {
 			rl.ToggleFullscreen()
 		}
 
-		rl.BeginTextureMode(screen)
-
 		rl.ClearBackground(rl.RayWhite)
 
 		rl.BeginDrawing()
@@ -97,10 +92,6 @@ func main() {
 		}
 
 		rl.EndTextureMode()
-
-		src := rl.Rectangle{0, 0, float32(screen.Texture.Width), -float32(screen.Texture.Height)}
-		dst := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
-		rl.DrawTexturePro(screen.Texture, src, dst, rl.Vector2{}, 0, rl.White)
 
 		rl.EndDrawing()
 

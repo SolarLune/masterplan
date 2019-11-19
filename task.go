@@ -201,28 +201,35 @@ func NewTask(project *Project) *Task {
 		"December",
 	}
 
+	postX := float32(180)
+
 	task := &Task{
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Project:                      project,
-		TaskType:                     NewSpinner(140, 32, 192, 16, "Check Box", "Progression", "Note", "Image", "Sound"),
-		Description:                  NewTextbox(140, 64, 256, 64),
-		CompletionCheckbox:           NewCheckbox(140, 96, 16, 16),
-		CompletionProgressionCurrent: NewNumberSpinner(140, 96, 64, 16),
-		CompletionProgressionMax:     NewNumberSpinner(220, 96, 64, 16),
+		TaskType:                     NewSpinner(postX, 32, 192, 24, "Check Box", "Progression", "Note", "Image", "Sound"),
+		Description:                  NewTextbox(postX, 64, 512, 64),
+		CompletionCheckbox:           NewCheckbox(postX, 96, 16, 16),
+		CompletionProgressionCurrent: NewNumberSpinner(postX, 96, 96, 24),
+		CompletionProgressionMax:     NewNumberSpinner(postX+80, 96, 96, 24),
 		NumberingPrefix:              []int{-1},
 		RefreshPrefix:                false,
 		ID:                           project.GetFirstFreeID(),
-		FilePathTextbox:              NewTextbox(140, 64, 512, 16),
-		DeadlineCheckbox:             NewCheckbox(140, 112, 16, 16),
-		DeadlineMonthSpinner:         NewSpinner(180, 128, 96, 16, months...),
-		DeadlineDaySpinner:           NewNumberSpinner(300, 128, 48, 16),
-		DeadlineYearSpinner:          NewNumberSpinner(300, 128, 48, 16),
+		FilePathTextbox:              NewTextbox(postX, 64, 512, 16),
+		DeadlineCheckbox:             NewCheckbox(postX, 112, 16, 16),
+		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 160, 24, months...),
+		DeadlineDaySpinner:           NewNumberSpinner(300, 128, 64, 24),
+		DeadlineYearSpinner:          NewNumberSpinner(300, 128, 64, 24),
 		RenderTexture:                rl.LoadRenderTexture(8000, 16),
 		// DeadlineTimeTextbox:          NewTextbox(240, 128, 64, 16),	// Need to make textbox format for time.
 	}
+
 	task.CreationTime = time.Now()
-	task.CompletionProgressionCurrent.Textbox.MaxCharacters = 8
-	task.CompletionProgressionMax.Textbox.MaxCharacters = 8
+	task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine = 19
+	task.CompletionProgressionCurrent.Textbox.AllowNewlines = false
+
+	task.CompletionProgressionMax.Textbox.MaxCharactersPerLine = task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine
+	task.CompletionProgressionMax.Textbox.AllowNewlines = false
+
 	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
 	task.Description.AllowNewlines = true
 	task.FilePathTextbox.AllowNewlines = false
@@ -232,8 +239,9 @@ func NewTask(project *Project) *Task {
 	task.DeadlineDaySpinner.Maximum = 31
 	task.DeadlineDaySpinner.Loop = true
 	task.DeadlineDaySpinner.Rect.X = task.DeadlineMonthSpinner.Rect.X + task.DeadlineMonthSpinner.Rect.Width + task.DeadlineDaySpinner.Rect.Height
-
 	task.DeadlineYearSpinner.Rect.X = task.DeadlineDaySpinner.Rect.X + task.DeadlineDaySpinner.Rect.Width + task.DeadlineYearSpinner.Rect.Height
+
+	// task.DeadlineMonthSpinner.
 
 	return task
 }
@@ -458,8 +466,8 @@ func (task *Task) Update() {
 
 	task.Visible = true
 
-	scrW := screenWidth / camera.Zoom
-	scrH := screenHeight / camera.Zoom
+	scrW := float32(rl.GetScreenWidth()) / camera.Zoom
+	scrH := float32(rl.GetScreenHeight()) / camera.Zoom
 
 	// Slight optimization
 	cameraRect := rl.Rectangle{camera.Target.X - (scrW / 2), camera.Target.Y - scrH/2, scrW, scrH}
@@ -696,8 +704,6 @@ func (task *Task) Update() {
 		rl.DrawRectangleRec(rect, applyGlow(getThemeColor(GUI_INSIDE_HIGHLIGHTED)))
 	}
 
-	rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
-
 	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 
 		if task.GifAnimation != nil {
@@ -754,6 +760,8 @@ func (task *Task) Update() {
 		}
 
 	}
+
+	rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
 
 	if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage {
 
@@ -851,6 +859,16 @@ func (task *Task) DrawShadow() {
 
 	if task.Visible {
 
+		if task.Selected { // Drawing selection indicator
+			r := task.Rect
+			r.Height -= 12
+			r.Y += task.Rect.Height/2 - r.Height/2
+			r.Width = 64
+			c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+			rl.DrawRectangleGradientH(int32(r.X+task.Rect.Width), int32(r.Y), int32(r.Width), int32(r.Height), c, rl.Fade(getThemeColor(GUI_OUTLINE_HIGHLIGHTED), 0))
+			rl.DrawRectangleGradientH(int32(r.X-r.Width), int32(r.Y), int32(r.Width), int32(r.Height), rl.Fade(getThemeColor(GUI_OUTLINE_HIGHLIGHTED), 0), c)
+		}
+
 		shadowRect := task.Rect
 		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
 
@@ -904,54 +922,53 @@ func (task *Task) PostDraw() {
 
 		fontColor := getThemeColor(GUI_FONT_COLOR)
 
-		rect := rl.Rectangle{16, 16, screenWidth - 32, screenHeight - 32}
+		rect := rl.Rectangle{16, 16, float32(rl.GetScreenWidth()) - 32, float32(rl.GetScreenHeight()) - 32}
 
 		rl.DrawRectangleRec(rect, getThemeColor(GUI_INSIDE))
 		rl.DrawRectangleLinesEx(rect, 1, getThemeColor(GUI_OUTLINE))
 
-		rl.DrawTextEx(font, "Task Type: ", rl.Vector2{32, task.TaskType.Rect.Y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Task Type: ", rl.Vector2{32, task.TaskType.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 
 		task.TaskType.Update()
 
-		y := task.TaskType.Rect.Y + 24
+		y := task.TaskType.Rect.Y + 32
 
-		p := rl.Vector2{32, y + 4}
-		rl.DrawTextEx(font, "Created On:", p, fontSize, spacing, fontColor)
-		rl.DrawTextEx(font, task.CreationTime.Format("Monday, Jan 2, 2006, 15:04"), rl.Vector2{140, y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Created On:", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, task.CreationTime.Format("Monday, Jan 2, 2006, 15:04"), rl.Vector2{180, y + 8}, guiFontSize, spacing, fontColor)
 
-		y += 32
+		y += 40
 
 		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND {
 			task.Description.Rect.Y = y
 			task.Description.Update()
-			rl.DrawTextEx(font, "Description: ", rl.Vector2{32, y + 4}, fontSize, spacing, fontColor)
+			rl.DrawTextEx(guiFont, "Description: ", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
 			y += task.Description.Rect.Height + 16
 		}
 
-		if ImmediateButton(rl.Rectangle{rect.Width, rect.Y, 16, 16}, "X", false) {
+		if ImmediateButton(rl.Rectangle{rect.Width - 16, rect.Y, 32, 32}, "X", false) {
 			task.Project.SendMessage("task close", map[string]interface{}{"task": task})
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
-			rl.DrawTextEx(font, "Completed: ", rl.Vector2{32, y + 12}, fontSize, spacing, fontColor)
+			rl.DrawTextEx(guiFont, "Completed: ", rl.Vector2{32, y + 12}, guiFontSize, spacing, fontColor)
 			task.CompletionCheckbox.Rect.Y = y + 8
 			task.CompletionCheckbox.Update()
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
-			rl.DrawTextEx(font, "Completed: ", rl.Vector2{32, y + 12}, fontSize, spacing, fontColor)
+			rl.DrawTextEx(guiFont, "Completed: ", rl.Vector2{32, y + 12}, guiFontSize, spacing, fontColor)
 			task.CompletionProgressionCurrent.Rect.Y = y + 8
 			task.CompletionProgressionCurrent.Update()
 
 			r := task.CompletionProgressionCurrent.Rect
 			r.X += r.Width
 
-			rl.DrawTextEx(font, "/", rl.Vector2{r.X + 10, r.Y + 4}, fontSize, spacing, fontColor)
+			rl.DrawTextEx(guiFont, "/", rl.Vector2{r.X + 10, r.Y + 4}, guiFontSize, spacing, fontColor)
 
 			task.CompletionProgressionMax.Rect.X = r.X + 24
 			task.CompletionProgressionMax.Rect.Y = r.Y
 			task.CompletionProgressionMax.Update()
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 
-			rl.DrawTextEx(font, "Image File: ", rl.Vector2{32, y + 8}, fontSize, spacing, fontColor)
+			rl.DrawTextEx(guiFont, "Image File: ", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
@@ -968,7 +985,7 @@ func (task *Task) PostDraw() {
 			}
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
-			rl.DrawTextEx(font, "Sound File: ", rl.Vector2{32, y + 8}, fontSize, spacing, fontColor)
+			rl.DrawTextEx(guiFont, "Sound File: ", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
@@ -985,20 +1002,20 @@ func (task *Task) PostDraw() {
 			}
 		}
 
-		y += 48
+		y += 40
 
-		rl.DrawTextEx(font, "Completed On:", rl.Vector2{32, y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Completed On:", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
 		completionTime := task.CompletionTime.Format("Monday, Jan 2, 2006, 15:04")
 		if task.CompletionTime.IsZero() {
 			completionTime = "N/A"
 		}
-		rl.DrawTextEx(font, completionTime, rl.Vector2{140, y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, completionTime, rl.Vector2{180, y + 4}, guiFontSize, spacing, fontColor)
 
-		y += 32
+		y += 40
 
 		if task.Completable() {
 
-			rl.DrawTextEx(font, "Deadline: ", rl.Vector2{32, y + 4}, fontSize, spacing, fontColor)
+			rl.DrawTextEx(guiFont, "Deadline: ", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
 
 			task.DeadlineCheckbox.Rect.Y = y
 			task.DeadlineCheckbox.Update()

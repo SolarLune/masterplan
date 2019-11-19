@@ -1,12 +1,10 @@
 {
     "GUI_OUTLINE":             [120, 120, 120, 255],
     "GUI_OUTLINE_HIGHLIGHTED": [245, 245, 245, 255],
-    "GUI_OUTLINE_CLICKED":     [245, 245, 245, 255],
-    "GUI_OUTLINE_DISABLED":    [0, 0, 0, 255],
+    "GUI_OUTLINE_DISABLED":    [20, 20, 20, 255],
     "GUI_INSIDE":              [0, 0, 0, 255],
     "GUI_INSIDE_HIGHLIGHTED":  [60, 60, 60, 255],
-    "GUI_INSIDE_CLICKED":      [0, 0, 0, 255],
-    "GUI_INSIDE_DISABLED":     [20, 20, 20, 255],
+    "GUI_INSIDE_DISABLED":     [0, 0, 0, 255],
     "GUI_FONT_COLOR":          [255, 255, 255, 255],
     "GUI_NOTE_COLOR":          [120, 120, 120, 255],
     "GUI_SHADOW_COLOR":        [255, 255, 255, 255]

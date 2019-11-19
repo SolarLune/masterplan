@@ -11,6 +11,7 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c
 	github.com/hako/durafmt v0.0.0-20191009132224-3f39dc1ed9f4
 	github.com/otiai10/copy v1.0.2
+	golang.org/x/exp v0.0.0-20180710024300-14dda7b62fcd
 )
 
 // The below line replaces the normal raylib-go dependency with a local one that has the config.h tweaked to allow for more image formats.

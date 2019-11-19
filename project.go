@@ -8,15 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
-
-	"github.com/gen2brain/dlgs"
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 
+	"github.com/gen2brain/dlgs"
 	"github.com/gen2brain/raylib-go/raymath"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -80,18 +78,22 @@ type Project struct {
 
 func NewProject() *Project {
 
-	searchBar := NewTextbox(screenWidth-128, screenHeight-15, 128, 15)
+	searchBar := NewTextbox(float32(rl.GetScreenWidth())-128, float32(float32(rl.GetScreenHeight()))-23, 128, 23)
 	searchBar.MaxSize = searchBar.MinSize // Don't expand for text
 	searchBar.AllowNewlines = false
 
-	settingsX := float32(256)
+	settingsX := float32(350)
 
-	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, CameraPan: rl.Vector2{screenWidth / 2, screenHeight / 2},
-		Searchbar: searchBar, StatusBar: rl.Rectangle{0, screenHeight - 15, screenWidth, 15},
-		GUI_Icons: rl.LoadTexture(GetPath("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512,
-		ColorThemeSpinner: NewSpinner(settingsX, 32, 192, 16), ShadowQualitySpinner: NewSpinner(settingsX, 64, 128, 16, "Off", "Solid", "Smooth"),
-		GridVisible: NewCheckbox(settingsX, 96, 16, 16), ShowIcons: NewCheckbox(settingsX, 118, 16, 16), Patterns: rl.LoadTexture(GetPath("assets", "patterns.png")),
-		NumberingSequence: NewSpinner(settingsX, 140, 128, 16, "1.1.", "1-1)", "I.I.", "Bullets", "Off"), NumberingIgnoreTopLevel: NewCheckbox(settingsX, 164, 16, 16),
+	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, CameraPan: rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2},
+		Searchbar: searchBar, StatusBar: rl.Rectangle{0, float32(rl.GetScreenHeight()) - 24, float32(rl.GetScreenWidth()), 24},
+		GUI_Icons: rl.LoadTexture(GetPath("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512, Patterns: rl.LoadTexture(GetPath("assets", "patterns.png")),
+
+		ColorThemeSpinner:       NewSpinner(settingsX, 32, 192, 24),
+		ShadowQualitySpinner:    NewSpinner(settingsX, 72, 128, 24, "Off", "Solid", "Smooth"),
+		GridVisible:             NewCheckbox(settingsX, 112, 24, 24),
+		ShowIcons:               NewCheckbox(settingsX, 152, 24, 24),
+		NumberingSequence:       NewSpinner(settingsX, 192, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
+		NumberingIgnoreTopLevel: NewCheckbox(settingsX, 232, 24, 24),
 	}
 
 	project.ShadowQualitySpinner.CurrentChoice = 2
@@ -312,8 +314,8 @@ func (project *Project) FocusViewOnSelectedTasks() {
 			center.X *= -1
 			center.Y *= -1
 
-			center.X += screenWidth / 2
-			center.Y += screenHeight / 2
+			center.X += float32(rl.GetScreenWidth()) / 2
+			center.Y += float32(rl.GetScreenHeight()) / 2
 			project.CameraPan = center // Pan's a negative offset for the camera
 
 		}
@@ -346,7 +348,7 @@ func (project *Project) HandleCamera() {
 		}
 	}
 
-	zoomLevels := []float32{0.5, 1, 2}
+	zoomLevels := []float32{0.5, 1, 2, 3, 4}
 
 	if project.ZoomLevel == -99 {
 		project.ZoomLevel = 1
@@ -373,8 +375,8 @@ func (project *Project) HandleCamera() {
 
 	camera.Offset.X = float32(int(project.CameraOffset.X))
 	camera.Offset.Y = float32(int(project.CameraOffset.Y))
-	camera.Target.X = screenWidth/2 - camera.Offset.X
-	camera.Target.Y = screenHeight/2 - camera.Offset.Y
+	camera.Target.X = float32(rl.GetScreenWidth())/2 - camera.Offset.X
+	camera.Target.Y = float32(rl.GetScreenHeight())/2 - camera.Offset.Y
 
 }
 
@@ -469,12 +471,12 @@ func (project *Project) Update() {
 	rl.DrawTexturePro(project.GridTexture, src, dst, rl.Vector2{}, 0, rl.White)
 
 	// This is the origin crosshair
-	rl.DrawLineEx(rl.Vector2{0, -100000}, rl.Vector2{0, 100000}, 2, getThemeColor(GUI_INSIDE_DISABLED))
-	rl.DrawLineEx(rl.Vector2{-100000, 0}, rl.Vector2{100000, 0}, 2, getThemeColor(GUI_INSIDE_DISABLED))
+	rl.DrawLineEx(rl.Vector2{0, -100000}, rl.Vector2{0, 100000}, 2, getThemeColor(GUI_INSIDE))
+	rl.DrawLineEx(rl.Vector2{-100000, 0}, rl.Vector2{100000, 0}, 2, getThemeColor(GUI_INSIDE))
 
 	selectionRect := rl.Rectangle{}
 
-	if !project.TaskOpen {
+	if !project.TaskOpen && !project.ProjectSettingsOpen {
 
 		project.HandleDroppedFiles()
 		project.HandleCamera()
@@ -685,168 +687,178 @@ func (project *Project) Shortcuts() {
 	holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
 	holdingCtrl := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
 
-	if rl.IsKeyPressed(rl.KeyEscape) {
-		project.SendMessage("task close", map[string]interface{}{"task": "all"})
-	}
+	if !project.ProjectSettingsOpen {
 
-	if !project.TaskOpen {
+		if !project.TaskOpen {
 
-		if !project.Searchbar.Focused {
+			if !project.Searchbar.Focused {
 
-			panSpeed := float32(8)
-			if !holdingCtrl && rl.IsKeyDown(rl.KeyW) {
-				project.CameraPan.Y += panSpeed
-			}
-			if !holdingCtrl && rl.IsKeyDown(rl.KeyS) {
-				project.CameraPan.Y -= panSpeed
-			}
-			if !holdingCtrl && rl.IsKeyDown(rl.KeyA) {
-				project.CameraPan.X += panSpeed
-			}
-			if !holdingCtrl && rl.IsKeyDown(rl.KeyD) {
-				project.CameraPan.X -= panSpeed
-			}
+				panSpeed := float32(8)
 
-			if rl.IsKeyPressed(rl.KeyOne) {
-				project.ZoomLevel = 0
-			} else if rl.IsKeyPressed(rl.KeyTwo) {
-				project.ZoomLevel = 1
-			} else if rl.IsKeyPressed(rl.KeyThree) {
-				project.ZoomLevel = 2
-			} else if rl.IsKeyPressed(rl.KeyBackspace) {
-				project.CameraPan = rl.Vector2{screenWidth / 2, screenHeight / 2}
-				camera.Offset = project.CameraPan
-				camera.Target.X = screenWidth/2 - camera.Offset.X
-				camera.Target.Y = screenHeight/2 - camera.Offset.Y
-			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
-
-				for _, task := range project.Tasks {
-					task.Selected = true
-				}
-
-			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyC) {
-				project.CopyBuffer = []*Task{} // Clear the buffer before copying tasks
-				project.CopySelectedTasks()
-			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
-				project.PasteTasks()
-			} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
-				project.CreateNewTask()
-			} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
-
-				for _, task := range project.Tasks {
-					task.StopSound()
-				}
-
-			} else if rl.IsKeyPressed(rl.KeyC) {
-				for _, task := range project.Tasks {
-					if task.Selected {
-						task.SetCompletion(!task.IsComplete())
-					}
-				}
-			} else if rl.IsKeyPressed(rl.KeyDelete) {
-				project.DeleteSelectedTasks()
-			} else if rl.IsKeyPressed(rl.KeyF) {
-				project.FocusViewOnSelectedTasks()
-			} else if holdingShift && repeatableKeyDown[rl.KeyUp] {
-
-				for _, task := range project.Tasks {
-					if task.Selected {
-						if task.TaskAbove != nil {
-							temp := task.Position
-							task.Position = task.TaskAbove.Position
-							task.TaskAbove.Position = temp
-							if task.TaskAbove.Position.X != task.Position.X {
-								task.TaskAbove.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
-							}
-							project.ReorderTasks()
-							project.FocusViewOnSelectedTasks()
-						}
-						break
-					}
-				}
-
-			} else if holdingShift && repeatableKeyDown[rl.KeyDown] {
-
-				for _, task := range project.Tasks {
-					if task.Selected {
-						if task.TaskBelow != nil {
-							temp := task.Position
-							task.Position = task.TaskBelow.Position
-							task.TaskBelow.Position = temp
-							if task.TaskBelow.TaskBelow != nil && task.TaskBelow.TaskBelow.Position.X != task.TaskBelow.Position.X {
-								task.Position.X = task.TaskBelow.TaskBelow.Position.X
-							}
-							project.ReorderTasks()
-							project.FocusViewOnSelectedTasks()
-						}
-						break
-					}
-				}
-
-			} else if holdingShift && repeatableKeyDown[rl.KeyRight] {
-
-				for _, task := range project.Tasks {
-					if task.Selected {
-						task.Position.X += float32(task.Project.GridSize)
-						project.ReorderTasks()
-						project.FocusViewOnSelectedTasks()
-						break
-					}
-				}
-
-			} else if holdingShift && repeatableKeyDown[rl.KeyLeft] {
-
-				for _, task := range project.Tasks {
-					if task.Selected {
-						task.Position.X -= float32(task.Project.GridSize)
-						project.ReorderTasks()
-						project.FocusViewOnSelectedTasks()
-						break
-					}
-				}
-
-			} else if repeatableKeyDown[rl.KeyUp] || repeatableKeyDown[rl.KeyDown] {
-
-				var selected *Task
-
-				for _, task := range project.Tasks {
-					if task.Selected {
-						selected = task
-						break
-					}
-				}
-				if selected != nil {
-					if rl.IsKeyDown(rl.KeyDown) && selected.TaskBelow != nil {
-						project.SendMessage("select", map[string]interface{}{"task": selected.TaskBelow})
-					} else if rl.IsKeyDown(rl.KeyUp) && selected.TaskAbove != nil {
-						project.SendMessage("select", map[string]interface{}{"task": selected.TaskAbove})
-					}
-					project.FocusViewOnSelectedTasks()
-				}
-
-			} else if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
-				for _, task := range project.Tasks {
-					if task.Selected {
-						task.ReceiveMessage("double click", nil)
-						break
-					}
-				}
-			}
-
-		}
-
-		if holdingCtrl && repeatableKeyDown[rl.KeyF] {
-			if project.Searchbar.Focused {
 				if holdingShift {
-					project.FocusedSearchTask--
-				} else {
-					project.FocusedSearchTask++
+					panSpeed = 16
 				}
-				project.SearchForTasks()
-			} else {
-				project.SearchForTasks()
-				project.Searchbar.Focused = true
+
+				if !holdingCtrl && rl.IsKeyDown(rl.KeyW) {
+					project.CameraPan.Y += panSpeed
+				}
+				if !holdingCtrl && rl.IsKeyDown(rl.KeyS) {
+					project.CameraPan.Y -= panSpeed
+				}
+				if !holdingCtrl && rl.IsKeyDown(rl.KeyA) {
+					project.CameraPan.X += panSpeed
+				}
+				if !holdingCtrl && rl.IsKeyDown(rl.KeyD) {
+					project.CameraPan.X -= panSpeed
+				}
+
+				if rl.IsKeyPressed(rl.KeyOne) {
+					project.ZoomLevel = 0
+				} else if rl.IsKeyPressed(rl.KeyTwo) {
+					project.ZoomLevel = 1
+				} else if rl.IsKeyPressed(rl.KeyThree) {
+					project.ZoomLevel = 2
+				} else if rl.IsKeyPressed(rl.KeyFour) {
+					project.ZoomLevel = 3
+				} else if rl.IsKeyPressed(rl.KeyFive) {
+					project.ZoomLevel = 4
+				} else if rl.IsKeyPressed(rl.KeyBackspace) {
+					project.CameraPan = rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2}
+					camera.Offset = project.CameraPan
+					camera.Target.X = float32(rl.GetScreenWidth())/2 - camera.Offset.X
+					camera.Target.Y = float32(rl.GetScreenHeight())/2 - camera.Offset.Y
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
+
+					for _, task := range project.Tasks {
+						task.Selected = true
+					}
+
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyC) {
+					project.CopySelectedTasks()
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
+					project.PasteTasks()
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
+					project.CreateNewTask()
+				} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
+
+					for _, task := range project.Tasks {
+						task.StopSound()
+					}
+
+				} else if rl.IsKeyPressed(rl.KeyC) {
+					for _, task := range project.Tasks {
+						if task.Selected {
+							task.SetCompletion(!task.IsComplete())
+						}
+					}
+				} else if rl.IsKeyPressed(rl.KeyDelete) {
+					project.DeleteSelectedTasks()
+				} else if rl.IsKeyPressed(rl.KeyF) {
+					project.FocusViewOnSelectedTasks()
+				} else if holdingShift && repeatableKeyDown[rl.KeyUp] {
+
+					for _, task := range project.Tasks {
+						if task.Selected {
+							if task.TaskAbove != nil {
+								temp := task.Position
+								task.Position = task.TaskAbove.Position
+								task.TaskAbove.Position = temp
+								if task.TaskAbove.Position.X != task.Position.X {
+									task.TaskAbove.Position.X = task.Position.X // We want to preserve indentation of tasks before reordering
+								}
+								project.ReorderTasks()
+								project.FocusViewOnSelectedTasks()
+							}
+							break
+						}
+					}
+
+				} else if holdingShift && repeatableKeyDown[rl.KeyDown] {
+
+					for _, task := range project.Tasks {
+						if task.Selected {
+							if task.TaskBelow != nil {
+								temp := task.Position
+								task.Position = task.TaskBelow.Position
+								task.TaskBelow.Position = temp
+								if task.TaskBelow.TaskBelow != nil && task.TaskBelow.TaskBelow.Position.X != task.TaskBelow.Position.X {
+									task.Position.X = task.TaskBelow.TaskBelow.Position.X
+								}
+								project.ReorderTasks()
+								project.FocusViewOnSelectedTasks()
+							}
+							break
+						}
+					}
+
+				} else if holdingShift && repeatableKeyDown[rl.KeyRight] {
+
+					for _, task := range project.Tasks {
+						if task.Selected {
+							task.Position.X += float32(task.Project.GridSize)
+							project.ReorderTasks()
+							project.FocusViewOnSelectedTasks()
+							break
+						}
+					}
+
+				} else if holdingShift && repeatableKeyDown[rl.KeyLeft] {
+
+					for _, task := range project.Tasks {
+						if task.Selected {
+							task.Position.X -= float32(task.Project.GridSize)
+							project.ReorderTasks()
+							project.FocusViewOnSelectedTasks()
+							break
+						}
+					}
+
+				} else if repeatableKeyDown[rl.KeyUp] || repeatableKeyDown[rl.KeyDown] {
+
+					var selected *Task
+
+					for _, task := range project.Tasks {
+						if task.Selected {
+							selected = task
+							break
+						}
+					}
+					if selected != nil {
+						if rl.IsKeyDown(rl.KeyDown) && selected.TaskBelow != nil {
+							project.SendMessage("select", map[string]interface{}{"task": selected.TaskBelow})
+						} else if rl.IsKeyDown(rl.KeyUp) && selected.TaskAbove != nil {
+							project.SendMessage("select", map[string]interface{}{"task": selected.TaskAbove})
+						}
+						project.FocusViewOnSelectedTasks()
+					}
+
+				} else if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
+					for _, task := range project.Tasks {
+						if task.Selected {
+							task.ReceiveMessage("double click", nil)
+							break
+						}
+					}
+				}
+
 			}
+
+			if holdingCtrl && repeatableKeyDown[rl.KeyF] {
+				if project.Searchbar.Focused {
+					if holdingShift {
+						project.FocusedSearchTask--
+					} else {
+						project.FocusedSearchTask++
+					}
+					project.SearchForTasks()
+				} else {
+					project.SearchForTasks()
+					project.Searchbar.Focused = true
+				}
+			}
+
+		} else if rl.IsKeyPressed(rl.KeyEscape) {
+			project.SendMessage("task close", map[string]interface{}{"task": "all"})
 		}
 
 	}
@@ -893,103 +905,113 @@ func (project *Project) GUI() {
 
 		pos := project.ContextMenuPosition
 
-		rect := rl.Rectangle{pos.X - 64, pos.Y - 24, 128, 12}
-
-		ImmediateButton(rect, "---", true) // Spacer
-
-		rect.Height = 24
-		rect.Y -= rect.Height
-
-		if ImmediateButton(rect, "Project Settings", false) {
-			project.ProjectSettingsOpen = true
+		menuOptions := []string{
+			"New Project",
+			"Load Project",
+			"Save Project",
+			"Project Settings",
+			"",
+			"New Task",
+			"Delete Tasks",
+			"Copy Tasks",
+			"Paste Tasks",
 		}
 
-		rect.Y -= rect.Height
+		rect := rl.Rectangle{pos.X - 64, pos.Y, 160, 32}
 
-		if ImmediateButton(rect, "Load Project", false) {
-			file, success, _ := dlgs.File("Load Plan File", "*.plan", false)
-			if success {
-				currentProject = NewProject()
-				// TODO: DO something if this fails
-				currentProject.Load(file)
-			}
-		}
+		rect.Y -= (float32(len(menuOptions)) * rect.Height / 2) + rect.Height // This to make it start on New Task by default
 
-		rect.Y -= rect.Height
-
-		if ImmediateButton(rect, "Save Project", false) {
-			dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
-			if success {
-				project.FilePath = filepath.Join(dirPath, "master.plan")
-				project.Save()
-			}
-		}
-
-		rect.Y -= rect.Height
-
-		if ImmediateButton(rect, "New Project", false) {
-			currentProject = NewProject()
-		}
-
-		rect.Y = pos.Y - rect.Height/2
-
-		if ImmediateButton(rect, "New Task", false) {
-			project.CreateNewTask()
-		}
-
-		selectedTasks := []*Task{}
+		selected := []*Task{}
 		for _, task := range project.Tasks {
 			if task.Selected {
-				selectedTasks = append(selectedTasks, task)
+				selected = append(selected, task)
 			}
 		}
 
-		text := "Delete Task"
+		for _, option := range menuOptions {
 
-		if len(selectedTasks) > 1 {
-			text = "Delete " + strconv.Itoa(len(selectedTasks)) + " Tasks"
-		}
+			disabled := option == "" // Spacer can't be selected
 
-		rect.Y += rect.Height
+			if option == "Copy Tasks" && len(selected) == 0 ||
+				option == "Delete Tasks" && len(selected) == 0 ||
+				option == "Paste Tasks" && len(project.CopyBuffer) == 0 {
+				disabled = true
+			}
 
-		if ImmediateButton(rect, text, len(selectedTasks) == 0) {
-			project.DeleteSelectedTasks()
-		}
+			if option == "" {
+				rect.Height /= 2
+			}
 
-		rect.Y += rect.Height
+			if ImmediateButton(rect, option, disabled) {
 
-		if ImmediateButton(rect, "Copy Tasks", len(selectedTasks) == 0) {
-			project.CopyBuffer = []*Task{} // Clear the buffer before copying tasks
-			project.CopySelectedTasks()
-		}
+				switch option {
 
-		rect.Y += rect.Height
+				case "New Project":
+					currentProject = NewProject()
 
-		if ImmediateButton(rect, "Paste Tasks", len(project.CopyBuffer) == 0) {
-			project.PasteTasks()
+				case "Save Project":
+					dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
+					if success {
+						project.FilePath = filepath.Join(dirPath, "master.plan")
+						project.Save()
+					}
+
+				case "Load Project":
+					file, success, _ := dlgs.File("Load Plan File", "*.plan", false)
+					if success {
+						currentProject = NewProject()
+						// TODO: DO something if this fails
+						currentProject.Load(file)
+					}
+
+				case "Project Settings":
+					project.ProjectSettingsOpen = true
+
+				case "New Task":
+					project.CreateNewTask()
+
+				case "Delete Tasks":
+					project.DeleteSelectedTasks()
+
+				case "Copy Tasks":
+					project.CopySelectedTasks()
+
+				case "Paste Tasks":
+					project.PasteTasks()
+
+				}
+
+			}
+
+			rect.Y += rect.Height
+
+			if option == "" {
+				rect.Height *= 2
+			}
+
 		}
 
 	} else if project.ProjectSettingsOpen {
 
-		rec := rl.Rectangle{16, 16, screenWidth - 32, screenHeight - 32}
+		rec := rl.Rectangle{16, 16, float32(rl.GetScreenWidth()) - 32, float32(rl.GetScreenHeight() / 2)}
 		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 
-		if ImmediateButton(rl.Rectangle{rec.Width - 16, 24, 16, 16}, "X", false) {
+		if ImmediateButton(rl.Rectangle{rec.Width - 16, rec.Y, 32, 32}, "X", false) {
 			project.ProjectSettingsOpen = false
 			project.Save()
 		}
 
-		rl.DrawTextEx(font, "Shadow Quality: ", rl.Vector2{32, project.ShadowQualitySpinner.Rect.Y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Shadow Quality: ", rl.Vector2{32, project.ShadowQualitySpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.ShadowQualitySpinner.Update()
 
-		rl.DrawTextEx(font, "Color Theme: ", rl.Vector2{32, project.ColorThemeSpinner.Rect.Y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Color Theme: ", rl.Vector2{32, project.ColorThemeSpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.ColorThemeSpinner.Update()
 
-		rl.DrawTextEx(font, "Grid Visible: ", rl.Vector2{32, project.GridVisible.Rect.Y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Grid Visible: ", rl.Vector2{32, project.GridVisible.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.GridVisible.Update()
 
-		rl.DrawTextEx(font, "Show Icons: ", rl.Vector2{32, project.ShowIcons.Rect.Y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Show Icons: ", rl.Vector2{32, project.ShowIcons.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.ShowIcons.Update()
 
 		if project.GridVisible.Changed {
@@ -1000,105 +1022,109 @@ func (project *Project) GUI() {
 			project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
 		}
 
-		rl.DrawTextEx(font, "Numbering Sequence: ", rl.Vector2{32, project.NumberingSequence.Rect.Y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Numbering Sequence: ", rl.Vector2{32, project.NumberingSequence.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.NumberingSequence.Update()
 
-		rl.DrawTextEx(font, "Ignore Numbering Top-level Tasks: ", rl.Vector2{32, project.NumberingIgnoreTopLevel.Rect.Y + 4}, fontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Ignore Numbering Top-level Tasks: ", rl.Vector2{32, project.NumberingIgnoreTopLevel.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.NumberingIgnoreTopLevel.Update()
 
 	}
 
 	// Status bar
 
-	rl.DrawRectangleRec(project.StatusBar, getThemeColor(GUI_INSIDE))
-	rl.DrawLine(int32(project.StatusBar.X), int32(project.StatusBar.Y-1), int32(project.StatusBar.X+project.StatusBar.Width), int32(project.StatusBar.Y-1), getThemeColor(GUI_OUTLINE))
+	if !project.ProjectSettingsOpen {
 
-	taskCount := 0
-	selectionCount := 0
-	completionCount := 0
+		project.StatusBar.Y = float32(rl.GetScreenHeight()) - project.StatusBar.Height
+		project.StatusBar.Width = float32(rl.GetScreenWidth())
 
-	for _, t := range project.Tasks {
+		rl.DrawRectangleRec(project.StatusBar, getThemeColor(GUI_INSIDE))
+		rl.DrawLine(int32(project.StatusBar.X), int32(project.StatusBar.Y-1), int32(project.StatusBar.X+project.StatusBar.Width), int32(project.StatusBar.Y-1), getThemeColor(GUI_OUTLINE))
 
-		if t.Completable() {
+		taskCount := 0
+		// selectionCount := 0
+		completionCount := 0
 
-			taskCount++
-			if t.Selected && t.Completable() {
-				selectionCount++
+		for _, t := range project.Tasks {
+
+			if t.Completable() {
+
+				taskCount++
+				// if t.Selected && t.Completable() {
+				// 	selectionCount++
+				// }
+				if t.IsComplete() {
+					completionCount++
+				}
 			}
-			if t.IsComplete() {
-				completionCount++
+		}
+
+		percentage := int32(0)
+		if taskCount > 0 && completionCount > 0 {
+			percentage = int32(float32(completionCount) / float32(taskCount) * 100)
+		}
+
+		text := fmt.Sprintf("%d / %d Tasks completed (%d%%)", completionCount, taskCount, percentage)
+
+		// if selectionCount > 0 {
+		// 	text += fmt.Sprintf(", %d selected", selectionCount)
+		// }
+
+		rl.DrawTextEx(guiFont, text, rl.Vector2{6, project.StatusBar.Y + 4}, guiFontSize, spacing, fontColor)
+
+		PrevMousePosition = GetMousePosition()
+
+		todayText := time.Now().Format("Monday, January 2, 2006, 15:04:05")
+		textLength := rl.MeasureTextEx(guiFont, todayText, guiFontSize, spacing)
+		pos := rl.Vector2{float32(rl.GetScreenWidth())/2 - textLength.X/2, project.StatusBar.Y + 4}
+		pos.X = float32(int(pos.X))
+		pos.Y = float32(int(pos.Y))
+
+		rl.DrawTextEx(guiFont, todayText, pos, guiFontSize, spacing, fontColor)
+
+		// Search bar
+
+		project.Searchbar.Rect.Y = project.StatusBar.Y + 1
+		project.Searchbar.Rect.X = float32(rl.GetScreenWidth()) - (project.Searchbar.Rect.Width + 16)
+
+		rl.DrawTextureRec(project.GUI_Icons, rl.Rectangle{128, 0, 16, 16}, rl.Vector2{project.Searchbar.Rect.X - 24, project.Searchbar.Rect.Y + 4}, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+
+		clickedOnSearchbar := false
+
+		searchbarWasFocused := project.Searchbar.Focused
+
+		project.Searchbar.Update()
+
+		if project.Searchbar.Focused && !searchbarWasFocused {
+			clickedOnSearchbar = true
+		}
+
+		if project.Searchbar.Text != "" {
+
+			if project.Searchbar.Changed || clickedOnSearchbar {
+				project.SearchForTasks()
 			}
-		}
-	}
 
-	text := fmt.Sprintf("%d Task", taskCount)
+			searchTextPosX := project.Searchbar.Rect.X - 96
+			searchCount := "0/0"
+			if len(project.SearchedTasks) > 0 {
+				searchCount = fmt.Sprintf("%d / %d", project.FocusedSearchTask+1, len(project.SearchedTasks))
+			}
+			textMeasure := rl.MeasureTextEx(guiFont, searchCount, guiFontSize, spacing)
+			textMeasure.X = float32(int(textMeasure.X / 2))
+			textMeasure.Y = float32(int(textMeasure.Y / 2))
 
-	if len(project.Tasks) != 1 {
-		text += "s,"
-	} else {
-		text += ","
-	}
+			if ImmediateButton(rl.Rectangle{searchTextPosX - textMeasure.X - 28, project.Searchbar.Rect.Y, project.Searchbar.Rect.Height, project.Searchbar.Rect.Height}, "<", len(project.SearchedTasks) == 0) {
+				project.FocusedSearchTask--
+				project.SearchForTasks()
+			}
 
-	percentage := int32(0)
-	if taskCount > 0 && completionCount > 0 {
-		percentage = int32(float32(completionCount) / float32(taskCount) * 100)
-	}
-	text += fmt.Sprintf(" %d completed (%d%%)", completionCount, percentage)
+			rl.DrawTextEx(guiFont, searchCount, rl.Vector2{searchTextPosX - textMeasure.X, project.Searchbar.Rect.Y + textMeasure.Y/2}, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
-	if selectionCount > 0 {
-		text += fmt.Sprintf(", %d selected", selectionCount)
-	}
+			if ImmediateButton(rl.Rectangle{searchTextPosX + textMeasure.X + 12, project.Searchbar.Rect.Y, project.Searchbar.Rect.Height, project.Searchbar.Rect.Height}, ">", len(project.SearchedTasks) == 0) {
+				project.FocusedSearchTask++
+				project.SearchForTasks()
+			}
 
-	rl.DrawTextEx(font, text, rl.Vector2{6, screenHeight - 12}, fontSize, spacing, fontColor)
-
-	PrevMousePosition = GetMousePosition()
-
-	todayText := time.Now().Format("Monday, January 2, 2006, 15:04:05")
-	textLength := rl.MeasureTextEx(font, todayText, fontSize, spacing)
-	pos := rl.Vector2{screenWidth/2 - textLength.X/2, screenHeight - 12}
-	pos.X = float32(math.Floor(float64(pos.X)))
-	pos.Y = float32(math.Floor(float64(pos.Y)))
-	rl.DrawTextEx(font, todayText, pos, fontSize, spacing, fontColor)
-
-	// Search bar
-
-	rl.DrawTextureRec(project.GUI_Icons, rl.Rectangle{128, 0, 16, 16}, rl.Vector2{project.Searchbar.Rect.X - 24, project.Searchbar.Rect.Y}, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
-
-	clickedOnSearchbar := false
-
-	searchbarWasFocused := project.Searchbar.Focused
-
-	project.Searchbar.Update()
-
-	if project.Searchbar.Focused && !searchbarWasFocused {
-		clickedOnSearchbar = true
-	}
-
-	if project.Searchbar.Text != "" {
-
-		if project.Searchbar.Changed || clickedOnSearchbar {
-			project.SearchForTasks()
-		}
-
-		searchTextPosX := project.Searchbar.Rect.X - 96
-		searchCount := "No Tasks Found"
-		if len(project.SearchedTasks) > 0 {
-			searchCount = fmt.Sprintf("%d / %d", project.FocusedSearchTask+1, len(project.SearchedTasks))
-		}
-		textMeasure := rl.MeasureTextEx(font, searchCount, fontSize, spacing)
-		textMeasure.X = float32(int(textMeasure.X / 2))
-		textMeasure.Y = float32(int(textMeasure.Y / 2))
-
-		if ImmediateButton(rl.Rectangle{searchTextPosX - textMeasure.X - 24, project.Searchbar.Rect.Y, 16, 16}, "<", len(project.SearchedTasks) == 0) {
-			project.FocusedSearchTask--
-			project.SearchForTasks()
-		}
-
-		rl.DrawTextEx(font, searchCount, rl.Vector2{searchTextPosX - textMeasure.X, project.Searchbar.Rect.Y + textMeasure.Y/2}, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
-
-		if ImmediateButton(rl.Rectangle{searchTextPosX + textMeasure.X + 8, project.Searchbar.Rect.Y, 16, 16}, ">", len(project.SearchedTasks) == 0) {
-			project.FocusedSearchTask++
-			project.SearchForTasks()
 		}
 
 	}
@@ -1232,6 +1258,8 @@ func (project *Project) GetFirstFreeID() int {
 
 func (project *Project) CopySelectedTasks() {
 
+	project.CopyBuffer = []*Task{}
+
 	for _, task := range project.Tasks {
 		if task.Selected {
 			project.CopyBuffer = append(project.CopyBuffer, task)
@@ -1268,7 +1296,7 @@ func (project *Project) GenerateGrid() {
 	for y := int32(0); y < project.GridSize*2; y++ {
 		for x := int32(0); x < project.GridSize*2; x++ {
 
-			c := getThemeColor(GUI_INSIDE_CLICKED)
+			c := getThemeColor(GUI_INSIDE_DISABLED)
 			if project.GridVisible.Checked && (x%project.GridSize == 0 || x%project.GridSize == project.GridSize-1) && (y%project.GridSize == 0 || y%project.GridSize == project.GridSize-1) {
 				c = getThemeColor(GUI_INSIDE)
 			}
@@ -1279,6 +1307,10 @@ func (project *Project) GenerateGrid() {
 
 	img := rl.NewImage(data, project.GridSize*2, project.GridSize*2, 1, rl.UncompressedR8g8b8a8)
 
+	if project.GridTexture.ID != 0 {
+		rl.UnloadTexture(project.GridTexture)
+	}
+
 	project.GridTexture = rl.LoadTextureFromImage(img)
 
 }
@@ -1286,6 +1318,7 @@ func (project *Project) GenerateGrid() {
 func (project *Project) ReloadThemes() {
 
 	loadThemes()
+	project.GenerateGrid()
 	guiThemes := []string{}
 	for theme, _ := range guiColors {
 		guiThemes = append(guiThemes, theme)
