@@ -14,11 +14,12 @@ import (
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
+var softwareVersion = "v0.1.0"
 
 func main() {
 
 	rl.SetConfigFlags(rl.FlagWindowResizable)
-	rl.InitWindow(960, 540, "MasterPlan")
+	rl.InitWindow(960, 540, "MasterPlan "+softwareVersion)
 
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
@@ -76,9 +77,10 @@ func main() {
 			rl.ToggleFullscreen()
 		}
 
-		rl.ClearBackground(rl.RayWhite)
+		rl.ClearBackground(rl.Black)
 
 		rl.BeginDrawing()
+
 		rl.BeginMode2D(camera)
 
 		currentProject.Update()
@@ -90,8 +92,6 @@ func main() {
 		if drawFPS {
 			rl.DrawFPS(0, 0)
 		}
-
-		rl.EndTextureMode()
 
 		rl.EndDrawing()
 
