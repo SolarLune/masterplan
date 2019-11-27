@@ -830,6 +830,17 @@ func (task *Task) Update() {
 
 	}
 
+	if task.Selected && task.Project.PulsingTaskSelection.Checked { // Drawing selection indicator
+		r := task.Rect
+		f := float32(int(2 + float32(math.Sin(float64(rl.GetTime()+(r.X+r.Y*0.01))*math.Pi*4))*2))
+		r.X -= f
+		r.Y -= f
+		r.Width += f * 2
+		r.Height += f * 2
+		c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		rl.DrawRectangleLinesEx(r, 2, c)
+	}
+
 }
 
 func (task *Task) DeadlineTime() time.Time {
@@ -858,16 +869,6 @@ func (task *Task) Due() int {
 func (task *Task) DrawShadow() {
 
 	if task.Visible {
-
-		if task.Selected { // Drawing selection indicator
-			r := task.Rect
-			r.Height -= 12
-			r.Y += task.Rect.Height/2 - r.Height/2
-			r.Width = 64
-			c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
-			rl.DrawRectangleGradientH(int32(r.X+task.Rect.Width), int32(r.Y), int32(r.Width), int32(r.Height), c, rl.Fade(getThemeColor(GUI_OUTLINE_HIGHLIGHTED), 0))
-			rl.DrawRectangleGradientH(int32(r.X-r.Width), int32(r.Y), int32(r.Width), int32(r.Height), rl.Fade(getThemeColor(GUI_OUTLINE_HIGHLIGHTED), 0), c)
-		}
 
 		shadowRect := task.Rect
 		shadowColor := getThemeColor(GUI_SHADOW_COLOR)

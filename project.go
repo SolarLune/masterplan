@@ -41,6 +41,7 @@ type Project struct {
 	SampleRate           beep.SampleRate
 	SampleBuffer         int
 	ShowIcons            *Checkbox
+	PulsingTaskSelection *Checkbox
 
 	// Internal data to make projects work
 	FullyInitialized        bool
@@ -94,8 +95,10 @@ func NewProject() *Project {
 		ShowIcons:               NewCheckbox(settingsX, 152, 24, 24),
 		NumberingSequence:       NewSpinner(settingsX, 192, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
 		NumberingIgnoreTopLevel: NewCheckbox(settingsX, 232, 24, 24),
+		PulsingTaskSelection:    NewCheckbox(settingsX, 272, 24, 24),
 	}
 
+	project.PulsingTaskSelection.Checked = true
 	project.ShadowQualitySpinner.CurrentChoice = 2
 	project.GridVisible.Checked = true
 	project.ShowIcons.Checked = true
@@ -141,6 +144,7 @@ func (project *Project) Save() bool {
 			"ShowIcons":               project.ShowIcons.Checked,
 			"NumberingIgnoreTopLevel": project.NumberingIgnoreTopLevel.Checked,
 			"NumberingSequence":       project.NumberingSequence.CurrentChoice,
+			"PulsingTaskSelection":    project.PulsingTaskSelection.Checked,
 		}
 
 		f, err := os.Create(project.FilePath)
@@ -242,6 +246,7 @@ func (project *Project) Load(filepath string) bool {
 		project.ShowIcons.Checked = getBool("ShowIcons", project.ShowIcons.Checked)
 		project.NumberingSequence.CurrentChoice = getInt("NumberingSequence", project.NumberingSequence.CurrentChoice)
 		project.NumberingIgnoreTopLevel.Checked = getBool("NumberingIgnoreTopLevel", project.NumberingIgnoreTopLevel.Checked)
+		project.PulsingTaskSelection.Checked = getBool("PulsingTaskSelection", project.PulsingTaskSelection.Checked)
 
 		speaker.Init(project.SampleRate, project.SampleBuffer)
 
@@ -1027,6 +1032,9 @@ func (project *Project) GUI() {
 
 		rl.DrawTextEx(guiFont, "Ignore Numbering Top-level Tasks: ", rl.Vector2{32, project.NumberingIgnoreTopLevel.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.NumberingIgnoreTopLevel.Update()
+
+		rl.DrawTextEx(guiFont, "Pulsing Task Selection Outlines: ", rl.Vector2{32, project.PulsingTaskSelection.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		project.PulsingTaskSelection.Update()
 
 	}
 
