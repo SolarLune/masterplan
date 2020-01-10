@@ -25,8 +25,8 @@ func main() {
 
 	rl.SetTargetFPS(60)
 
-	font = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(fontSize), -1, nil)
-	guiFont = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(guiFontSize), -1, nil)
+	font = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(fontSize), nil, -1)
+	guiFont = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(guiFontSize), nil, -1)
 
 	currentProject = NewProject()
 

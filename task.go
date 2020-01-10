@@ -470,7 +470,8 @@ func (task *Task) Update() {
 	scrH := float32(rl.GetScreenHeight()) / camera.Zoom
 
 	// Slight optimization
-	cameraRect := rl.Rectangle{camera.Target.X - (scrW / 2), camera.Target.Y - scrH/2, scrW, scrH}
+	cameraRect := rl.Rectangle{camera.Target.X - (scrW / 2), camera.Target.Y - (scrH / 2), scrW, scrH}
+
 	if !rl.CheckCollisionRecs(task.Rect, cameraRect) && task.Project.FullyInitialized {
 		task.Visible = false
 		return

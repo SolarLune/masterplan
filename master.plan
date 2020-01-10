@@ -1,11 +1,13 @@
 {
-	"ColorTheme": "Python",
+	"AutoReloadThemes": true,
+	"AutoSave": false,
+	"ColorTheme": "Golden Hour",
 	"GridSize": 16,
 	"GridVisible": true,
 	"NumberingIgnoreTopLevel": true,
 	"NumberingSequence": 0,
-	"Pan.X": 2492.1863,
-	"Pan.Y": 141.1272,
+	"Pan.X": 2444.4758,
+	"Pan.Y": 391.37048,
 	"PulsingTaskSelection": true,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
@@ -672,8 +674,8 @@
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
-			"Position.X": -800,
-			"Position.Y": -0,
+			"Position.X": -784,
+			"Position.Y": -64,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
@@ -1129,7 +1131,7 @@
 		{
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Add undo + redo to project.\nAs for an idea of how to do this, I think I'm probably just going to store a buffer of the current project\nstate in memory for each change you make? It doesn't seem like a big enough deal to actually build a \"right\"\nundo system, and less prone to error. The current to-do list for MasterPlan has about 161 completable tasks\nand sits at about 91 KB, so a 1000-level undo system for this project would sit at about 91 MB of memory \n(assuming I was just storing a save of the project file itself, and not the entire project in memory).",
+			"Description": "Add undo + redo to project.\nAs for an idea of how to do this, I think I'm probably just going to store a buffer of the current project\nstate in memory for each change you make? It doesn't seem like a big enough deal to actually build a \"right\"\nundo system, and less prone to error. The current to-do list for MasterPlan has about 161 completable tasks\nand sits at about 91 KB, so a 1000-level undo system for this project would sit at about 91 MB of memory \n(assuming I was just storing a save of the project file itself, and not the entire project in memory).\n\nNote that the above approach only really works if I constantly save the project, which isn't really feasible\nfor large projects in terms of time taken...",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1213,7 +1215,8 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Jan 10 2020 11:44:03",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Auto-saving toggle (whether or not to auto-save when editing project)",
 			"FilePath": "",
@@ -1317,7 +1320,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Nov 18 2019 17:15:59",
+			"CompletionTime": "Jan 10 2020 13:13:32",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Numbering schemes.",
 			"FilePath": "",
@@ -1454,7 +1457,7 @@
 			"Position.Y": 480,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Selected": true,
+			"Selected": false,
 			"TaskType.CurrentChoice": 3
 		},
 		{
@@ -2578,7 +2581,7 @@
 		{
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 7 2019 21:40:58",
-			"Description": "Clicking to position the caret should prioritize the line that the mouse cursor is closest to, \nnot the individual character the caret is closest to.",
+			"Description": "Clicking to position the caret should prioritize the line that the mouse cursor is closest to horizontally.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -3072,7 +3075,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Nov 18 2019 17:15:59",
+			"CompletionTime": "Jan 10 2020 13:13:32",
 			"CreationTime": "Oct 16 2019 23:10:50",
 			"Description": "Search bar.",
 			"FilePath": "",
@@ -3087,7 +3090,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Oct 17 2019 20:13:17",
+			"CompletionTime": "Jan 10 2020 13:13:32",
 			"CreationTime": "Oct 16 2019 23:11:12",
 			"Description": "Ordering.",
 			"FilePath": "",
@@ -3521,7 +3524,8 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Jan 10 2020 12:38:41",
 			"CreationTime": "Nov 6 2019 10:20:11",
 			"Description": "Add link somewhere in project that kicks users over to forum.\nPossibly also to Github repo for bug reports?",
 			"FilePath": "",
@@ -3719,7 +3723,8 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Jan 10 2020 12:12:32",
 			"CreationTime": "Nov 18 2019 16:37:13",
 			"Description": "Automatically reload themes from themes directory.",
 			"FilePath": "",

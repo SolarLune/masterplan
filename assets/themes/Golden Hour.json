@@ -1,0 +1,11 @@
+{
+    "GUI_OUTLINE":              [160, 120, 80, 255],
+    "GUI_OUTLINE_HIGHLIGHTED":  [250, 240, 220, 255],
+    "GUI_OUTLINE_DISABLED":     [0, 0, 0, 255],
+    "GUI_INSIDE":               [240, 220, 200, 255],
+    "GUI_INSIDE_HIGHLIGHTED":   [250, 200, 100, 255],
+    "GUI_INSIDE_DISABLED":      [200, 160, 120, 255],
+    "GUI_FONT_COLOR":           [80, 40, 80, 255],
+    "GUI_NOTE_COLOR":           [250, 150, 120, 255],
+    "GUI_SHADOW_COLOR":         [80, 40, 0, 255]
+}

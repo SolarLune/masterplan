@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/browser"
+
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 
@@ -42,6 +44,8 @@ type Project struct {
 	SampleBuffer         int
 	ShowIcons            *Checkbox
 	PulsingTaskSelection *Checkbox
+	AutoSave             *Checkbox
+	AutoReloadThemes     *Checkbox
 
 	// Internal data to make projects work
 	FullyInitialized        bool
@@ -58,6 +62,7 @@ type Project struct {
 	ThemeReloadTimer        int
 	NumberingSequence       *Spinner
 	NumberingIgnoreTopLevel *Checkbox
+	JustLoaded bool
 
 	SearchedTasks     []*Task
 	FocusedSearchTask int
@@ -83,19 +88,20 @@ func NewProject() *Project {
 	searchBar.MaxSize = searchBar.MinSize // Don't expand for text
 	searchBar.AllowNewlines = false
 
-	settingsX := float32(350)
-
 	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, CameraPan: rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2},
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, float32(rl.GetScreenHeight()) - 24, float32(rl.GetScreenWidth()), 24},
 		GUI_Icons: rl.LoadTexture(GetPath("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512, Patterns: rl.LoadTexture(GetPath("assets", "patterns.png")),
 
-		ColorThemeSpinner:       NewSpinner(settingsX, 32, 192, 24),
-		ShadowQualitySpinner:    NewSpinner(settingsX, 72, 128, 24, "Off", "Solid", "Smooth"),
-		GridVisible:             NewCheckbox(settingsX, 112, 24, 24),
-		ShowIcons:               NewCheckbox(settingsX, 152, 24, 24),
-		NumberingSequence:       NewSpinner(settingsX, 192, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
-		NumberingIgnoreTopLevel: NewCheckbox(settingsX, 232, 24, 24),
-		PulsingTaskSelection:    NewCheckbox(settingsX, 272, 24, 24),
+		ColorThemeSpinner:    NewSpinner(350, 32, 192, 24),
+		ShadowQualitySpinner: NewSpinner(350, 72, 128, 24, "Off", "Solid", "Smooth"),
+		GridVisible:          NewCheckbox(350, 112, 24, 24),
+		ShowIcons:            NewCheckbox(350, 152, 24, 24),
+		NumberingSequence:    NewSpinner(350, 192, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
+
+		NumberingIgnoreTopLevel: NewCheckbox(350, 232, 24, 24),
+		PulsingTaskSelection:    NewCheckbox(350, 272, 24, 24),
+		AutoSave:                NewCheckbox(350, 312, 24, 24),
+		AutoReloadThemes:        NewCheckbox(350, 352, 24, 24),
 	}
 
 	project.PulsingTaskSelection.Checked = true
@@ -145,6 +151,8 @@ func (project *Project) Save() bool {
 			"NumberingIgnoreTopLevel": project.NumberingIgnoreTopLevel.Checked,
 			"NumberingSequence":       project.NumberingSequence.CurrentChoice,
 			"PulsingTaskSelection":    project.PulsingTaskSelection.Checked,
+			"AutoSave":                project.AutoSave.Checked,
+			"AutoReloadThemes":        project.AutoReloadThemes.Checked,
 		}
 
 		f, err := os.Create(project.FilePath)
@@ -247,6 +255,8 @@ func (project *Project) Load(filepath string) bool {
 		project.NumberingSequence.CurrentChoice = getInt("NumberingSequence", project.NumberingSequence.CurrentChoice)
 		project.NumberingIgnoreTopLevel.Checked = getBool("NumberingIgnoreTopLevel", project.NumberingIgnoreTopLevel.Checked)
 		project.PulsingTaskSelection.Checked = getBool("PulsingTaskSelection", project.PulsingTaskSelection.Checked)
+		project.AutoSave.Checked = getBool("AutoSave", project.AutoSave.Checked)
+		project.AutoReloadThemes.Checked = getBool("AutoReloadThemes", project.AutoReloadThemes.Checked)
 
 		speaker.Init(project.SampleRate, project.SampleBuffer)
 
@@ -263,8 +273,6 @@ func (project *Project) Load(filepath string) bool {
 			project.GenerateGrid()
 		}
 
-		project.ReorderTasks()
-
 		lastOpened, err := os.Create("lastopenedplan")
 		defer lastOpened.Close()
 		if err != nil {
@@ -273,6 +281,7 @@ func (project *Project) Load(filepath string) bool {
 		}
 		lastOpened.WriteString(filepath) // We save the last successfully opened project file here.
 
+		project.JustLoaded = true
 	}
 
 	return true
@@ -375,13 +384,14 @@ func (project *Project) HandleCamera() {
 		project.CameraPan.Y += diff.Y
 	}
 
-	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * 0.1
-	project.CameraOffset.Y += float32(project.CameraPan.Y-project.CameraOffset.Y) * 0.1
+	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * 0.2
+	project.CameraOffset.Y += float32(project.CameraPan.Y-project.CameraOffset.Y) * 0.2
 
-	camera.Offset.X = float32(int(project.CameraOffset.X))
-	camera.Offset.Y = float32(int(project.CameraOffset.Y))
-	camera.Target.X = float32(rl.GetScreenWidth())/2 - camera.Offset.X
-	camera.Target.Y = float32(rl.GetScreenHeight())/2 - camera.Offset.Y
+	camera.Target.X = float32(rl.GetScreenWidth())/2 - project.CameraOffset.X
+	camera.Target.Y = float32(rl.GetScreenHeight())/2 - project.CameraOffset.Y
+
+	camera.Offset.X = float32(rl.GetScreenWidth() / 2)
+	camera.Offset.Y = float32(rl.GetScreenHeight() / 2)
 
 }
 
@@ -462,7 +472,7 @@ func (project *Project) MousingOver() string {
 
 func (project *Project) Update() {
 
-	if project.ThemeReloadTimer > 60 {
+	if project.AutoReloadThemes.Checked && project.ThemeReloadTimer > 30 {
 		project.ReloadThemes()
 		project.ThemeReloadTimer = 0
 	}
@@ -635,6 +645,11 @@ func (project *Project) Update() {
 
 	project.Shortcuts()
 
+	if project.JustLoaded {
+		project.ReorderTasks()
+		project.JustLoaded = false
+	}
+
 }
 
 func (project *Project) SendMessage(message string, data map[string]interface{}) {
@@ -657,7 +672,9 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 		}
 	}
 
-	project.Save() // Save whenever anything important happens
+	if project.AutoSave.Checked {
+		project.Save() // Save whenever anything important happens
+	}
 
 }
 
@@ -701,7 +718,7 @@ func (project *Project) Shortcuts() {
 				panSpeed := float32(8)
 
 				if holdingShift {
-					panSpeed = 16
+					panSpeed = 24
 				}
 
 				if !holdingCtrl && rl.IsKeyDown(rl.KeyW) {
@@ -717,15 +734,15 @@ func (project *Project) Shortcuts() {
 					project.CameraPan.X -= panSpeed
 				}
 
-				if rl.IsKeyPressed(rl.KeyOne) {
+				if rl.IsKeyPressed(rl.KeyOne) || rl.IsKeyPressed(rl.KeyKp1) {
 					project.ZoomLevel = 0
-				} else if rl.IsKeyPressed(rl.KeyTwo) {
+				} else if rl.IsKeyPressed(rl.KeyTwo) || rl.IsKeyPressed(rl.KeyKp2) {
 					project.ZoomLevel = 1
-				} else if rl.IsKeyPressed(rl.KeyThree) {
+				} else if rl.IsKeyPressed(rl.KeyThree) || rl.IsKeyPressed(rl.KeyKp3) {
 					project.ZoomLevel = 2
-				} else if rl.IsKeyPressed(rl.KeyFour) {
+				} else if rl.IsKeyPressed(rl.KeyFour) || rl.IsKeyPressed(rl.KeyKp4) {
 					project.ZoomLevel = 3
-				} else if rl.IsKeyPressed(rl.KeyFive) {
+				} else if rl.IsKeyPressed(rl.KeyFive) || rl.IsKeyPressed(rl.KeyKp5) {
 					project.ZoomLevel = 4
 				} else if rl.IsKeyPressed(rl.KeyBackspace) {
 					project.CameraPan = rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2}
@@ -914,12 +931,15 @@ func (project *Project) GUI() {
 			"New Project",
 			"Load Project",
 			"Save Project",
+			"Save Project As...",
 			"Project Settings",
 			"",
 			"New Task",
 			"Delete Tasks",
 			"Copy Tasks",
 			"Paste Tasks",
+			"",
+			"Visit Forums",
 		}
 
 		rect := rl.Rectangle{pos.X - 64, pos.Y, 160, 32}
@@ -943,6 +963,10 @@ func (project *Project) GUI() {
 				disabled = true
 			}
 
+			if option == "Save Project" && project.FilePath == "" {
+				disabled = true
+			}
+
 			if option == "" {
 				rect.Height /= 2
 			}
@@ -955,6 +979,9 @@ func (project *Project) GUI() {
 					currentProject = NewProject()
 
 				case "Save Project":
+					project.Save()
+
+				case "Save Project As...":
 					dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
 					if success {
 						project.FilePath = filepath.Join(dirPath, "master.plan")
@@ -984,6 +1011,9 @@ func (project *Project) GUI() {
 				case "Paste Tasks":
 					project.PasteTasks()
 
+				case "Visit Forums":
+					browser.OpenURL("https://solarlune.itch.io/masterplan/community")
+
 				}
 
 			}
@@ -998,7 +1028,7 @@ func (project *Project) GUI() {
 
 	} else if project.ProjectSettingsOpen {
 
-		rec := rl.Rectangle{16, 16, float32(rl.GetScreenWidth()) - 32, float32(rl.GetScreenHeight() / 2)}
+		rec := rl.Rectangle{16, 16, 650, 450}
 		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 
@@ -1007,16 +1037,18 @@ func (project *Project) GUI() {
 			project.Save()
 		}
 
-		rl.DrawTextEx(guiFont, "Shadow Quality: ", rl.Vector2{32, project.ShadowQualitySpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		columnX := float32(32)
+
+		rl.DrawTextEx(guiFont, "Shadow Quality: ", rl.Vector2{columnX, project.ShadowQualitySpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.ShadowQualitySpinner.Update()
 
-		rl.DrawTextEx(guiFont, "Color Theme: ", rl.Vector2{32, project.ColorThemeSpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Color Theme: ", rl.Vector2{columnX, project.ColorThemeSpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.ColorThemeSpinner.Update()
 
-		rl.DrawTextEx(guiFont, "Grid Visible: ", rl.Vector2{32, project.GridVisible.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Grid Visible: ", rl.Vector2{columnX, project.GridVisible.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.GridVisible.Update()
 
-		rl.DrawTextEx(guiFont, "Show Icons: ", rl.Vector2{32, project.ShowIcons.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Show Icons: ", rl.Vector2{columnX, project.ShowIcons.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.ShowIcons.Update()
 
 		if project.GridVisible.Changed {
@@ -1027,14 +1059,20 @@ func (project *Project) GUI() {
 			project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
 		}
 
-		rl.DrawTextEx(guiFont, "Numbering Sequence: ", rl.Vector2{32, project.NumberingSequence.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Numbering Sequence: ", rl.Vector2{columnX, project.NumberingSequence.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.NumberingSequence.Update()
 
-		rl.DrawTextEx(guiFont, "Ignore Numbering Top-level Tasks: ", rl.Vector2{32, project.NumberingIgnoreTopLevel.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Ignore Numbering Top-level Tasks: ", rl.Vector2{columnX, project.NumberingIgnoreTopLevel.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.NumberingIgnoreTopLevel.Update()
 
-		rl.DrawTextEx(guiFont, "Pulsing Task Selection Outlines: ", rl.Vector2{32, project.PulsingTaskSelection.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Pulsing Task Selection Outlines: ", rl.Vector2{columnX, project.PulsingTaskSelection.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.PulsingTaskSelection.Update()
+
+		rl.DrawTextEx(guiFont, "Auto-save Projects on Change: ", rl.Vector2{columnX, project.AutoSave.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		project.AutoSave.Update()
+
+		rl.DrawTextEx(guiFont, "Auto-reload Themes: ", rl.Vector2{columnX, project.AutoReloadThemes.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		project.AutoReloadThemes.Update()
 
 	}
 
@@ -1137,7 +1175,7 @@ func (project *Project) GUI() {
 
 	}
 
-	if !project.TaskOpen && (rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.GetMouseWheelMove() != 0) { // Zooming and panning are also recorded
+	if project.AutoSave.Checked && !project.TaskOpen && (rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.GetMouseWheelMove() != 0) { // Zooming and panning are also recorded
 		project.Save()
 	}
 
@@ -1324,6 +1362,15 @@ func (project *Project) GenerateGrid() {
 }
 
 func (project *Project) ReloadThemes() {
+
+	_, themeExists := guiColors[currentTheme]
+	if !themeExists {
+		for k := range guiColors {
+			currentTheme = k
+			project.ColorThemeSpinner.SetChoice(k)
+			break
+		}
+	}
 
 	loadThemes()
 	project.GenerateGrid()
