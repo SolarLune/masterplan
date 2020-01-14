@@ -333,7 +333,7 @@ func (project *Project) Log(text string, variables ...interface{}) {
 		if len(variables) > 0 {
 			text = fmt.Sprintf(text, variables...)
 		}
-		messageBuffer = append(messageBuffer, Message{rl.GetTime(), text})
+		logBuffer = append(logBuffer, LogMessage{rl.GetTime(), text})
 	}
 }
 

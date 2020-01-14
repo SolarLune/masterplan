@@ -97,16 +97,16 @@ func main() {
 
 		c.A = 255
 		timeLimit := float32(5)
-		for i := 0; i < len(messageBuffer); i++ {
+		for i := 0; i < len(logBuffer); i++ {
 
-			msg := messageBuffer[i]
+			msg := logBuffer[i]
 
 			c.A = uint8(easings.LinearIn(rl.GetTime()-msg.Time, 255, -255, timeLimit))
 
 			rl.DrawTextEx(guiFont, msg.Text, rl.Vector2{8, 24 + float32(i*16)}, guiFontSize, 1, c)
 
 			if rl.GetTime()-msg.Time > timeLimit {
-				messageBuffer = append(messageBuffer[:i], messageBuffer[i+1:]...)
+				logBuffer = append(logBuffer[:i], logBuffer[i+1:]...)
 				i--
 			}
 
