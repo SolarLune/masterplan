@@ -1,4 +1,4 @@
-# MasterPlan
+![MasterPlan](https://user-images.githubusercontent.com/4733521/72319146-4372bd80-3653-11ea-806f-9c66c41d4c2f.png)
 
 MasterPlan is project management software for independent users. If you need to share plans across a whole company on an online site, there are tools for that. But if you just want to keep track of your todo list, version control your project plan, or make an ideaboard, MasterPlan is for you. This is just the code repository and external issue / bug tracker for MasterPlan; actual releases can be purchased from the project download page [here](https://solarlune.itch.io/masterplan?secret=fed4MHmTdQ5paAvgv4kfJzrg). (Or, you can just build it yourself from this repository if you're familiar with Go.)
 
