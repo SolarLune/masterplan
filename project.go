@@ -198,6 +198,8 @@ func (project *Project) Save() bool {
 
 		}
 
+	} else {
+		success = false
 	}
 
 	if success {
@@ -990,7 +992,11 @@ func (project *Project) Shortcuts() {
 				} else if holdingCtrl && holdingShift && rl.IsKeyPressed(rl.KeyS) {
 					project.SaveAs()
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyS) {
-					project.Save()
+					if project.FilePath == "" {
+						project.SaveAs()
+					} else {
+						project.Save()
+					}
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyO) {
 					project.LoadFrom()
 				}
