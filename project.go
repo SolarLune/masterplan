@@ -108,6 +108,7 @@ func NewProject() *Project {
 		AutoReloadThemes:        NewCheckbox(350, 352, 24, 24),
 	}
 
+	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
 	project.ShadowQualitySpinner.CurrentChoice = 2
 	project.GridVisible.Checked = true
