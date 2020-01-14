@@ -549,8 +549,6 @@ func (textbox *Textbox) Update() {
 
 			isNum := (letter >= numbers[0] && letter <= numbers[1]) || (letter >= npNumbers[0] && letter <= npNumbers[1])
 
-			fmt.Println(textbox.LineNumberByCaretPosition())
-
 			if len(textbox.Lines()[textbox.LineNumberByCaretPosition()]) < textbox.MaxCharactersPerLine {
 
 				if letter >= 32 && letter < 127 && (textbox.AllowAlphaCharacters || isNum) {

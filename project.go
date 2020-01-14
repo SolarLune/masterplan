@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/pkg/browser"
 
 	"github.com/faiface/beep"
@@ -57,12 +58,15 @@ type Project struct {
 	Selecting               bool
 	SelectionStart          rl.Vector2
 	DoubleClickTimer        int
+	DoubleClickTaskID       int
 	CopyBuffer              []*Task
 	TaskOpen                bool
 	ThemeReloadTimer        int
 	NumberingSequence       *Spinner
 	NumberingIgnoreTopLevel *Checkbox
-	JustLoaded bool
+	JustLoaded              bool
+	ResizingImage           bool
+	LogOn                   bool
 
 	SearchedTasks     []*Task
 	FocusedSearchTask int
@@ -120,7 +124,18 @@ func NewProject() *Project {
 
 }
 
+func (project *Project) SaveAs() bool {
+	dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
+	if success {
+		project.FilePath = filepath.Join(dirPath, "master.plan")
+		return project.Save()
+	}
+	return false
+}
+
 func (project *Project) Save() bool {
+
+	success := true
 
 	if project.FilePath != "" {
 
@@ -168,7 +183,7 @@ func (project *Project) Save() bool {
 			lastOpened, err := os.Create("lastopenedplan")
 			if err != nil {
 				log.Println("ERROR: Can't save last opened project file to current working directory.", err)
-				return false
+				success = false
 			} else {
 				lastOpened.WriteString(project.FilePath) // We save the last successfully opened project file here.
 				lastOpened.Close()
@@ -177,23 +192,41 @@ func (project *Project) Save() bool {
 			err = f.Sync() // Want to make sure the file is written
 			if err != nil {
 				log.Println("ERROR: Can't write save file to system.", err)
-				return false
+				success = false
 			}
 
 		}
 
 	}
 
-	return true
+	if success {
+		project.Log("Save successful.")
+	} else {
+		project.Log("ERROR: Save unsuccessful.")
+	}
 
+	return success
+
+}
+
+func (project *Project) LoadFrom() bool {
+	file, success, _ := dlgs.File("Load Plan File", "*.plan", false)
+	if success {
+		currentProject = NewProject()
+		// TODO: DO something if this fails
+		return currentProject.Load(file)
+	}
+	return false
 }
 
 func (project *Project) Load(filepath string) bool {
 
+	success := true
+
 	f, err := os.Open(filepath)
 	if err != nil {
 		log.Println(err)
-		return false
+		success = false
 	} else {
 
 		defer f.Close()
@@ -205,7 +238,7 @@ func (project *Project) Load(filepath string) bool {
 			// It's possible for the file to be mangled and unable to be loaded; I should actually handle this
 			// with a backup system or something.
 			log.Println("Save file [" + filepath + "] corrupted, cannot be restored.")
-			return false
+			success = false
 		}
 
 		project.FilePath = filepath
@@ -260,12 +293,12 @@ func (project *Project) Load(filepath string) bool {
 
 		speaker.Init(project.SampleRate, project.SampleBuffer)
 
+		project.LogOn = false
 		for _, t := range data["Tasks"].([]interface{}) {
-			taskData := t.(map[string]interface{})
-			task := NewTask(project)
-			task.Deserialize(taskData)
-			project.Tasks = append(project.Tasks, task)
+			task := project.CreateNewTask()
+			task.Deserialize(t.(map[string]interface{}))
 		}
+		project.LogOn = true
 
 		colorTheme := getString("ColorTheme", currentTheme)
 		if colorTheme != "" {
@@ -277,28 +310,44 @@ func (project *Project) Load(filepath string) bool {
 		defer lastOpened.Close()
 		if err != nil {
 			log.Println(err)
-			return false
+			success = false
+		} else {
+			lastOpened.WriteString(filepath) // We save the last successfully opened project file here.
+			project.JustLoaded = true
 		}
-		lastOpened.WriteString(filepath) // We save the last successfully opened project file here.
 
-		project.JustLoaded = true
 	}
 
-	return true
+	if success {
+		project.Log("Load successful.")
+	} else {
+		project.Log("ERROR: Load unsuccessful.")
+	}
+
+	return success
 
 }
 
-func (project *Project) RemoveTask(tasks ...*Task) {
-
-	for _, task := range tasks {
-		for i := len(project.Tasks) - 1; i >= 0; i-- {
-			if project.Tasks[i] == task {
-				project.RemoveTaskByIndex(i)
-			}
+func (project *Project) Log(text string, variables ...interface{}) {
+	if project.LogOn {
+		if len(variables) > 0 {
+			text = fmt.Sprintf(text, variables...)
 		}
+		messageBuffer = append(messageBuffer, Message{rl.GetTime(), text})
 	}
-
 }
+
+// func (project *Project) RemoveTask(tasks ...*Task) {
+
+// 	for _, task := range tasks {
+// 		for i := len(project.Tasks) - 1; i >= 0; i-- {
+// 			if project.Tasks[i] == task {
+// 				project.RemoveTaskByIndex(i)
+// 			}
+// 		}
+// 	}
+
+// }
 
 func (project *Project) RemoveTaskByIndex(index int) {
 	project.Tasks[index].ReceiveMessage("delete", map[string]interface{}{"task": project.Tasks[index]})
@@ -395,7 +444,7 @@ func (project *Project) HandleCamera() {
 
 }
 
-func (project *Project) HandleDroppedFiles() {
+func (project *Project) IdentifyFile(filename string) (string, string) {
 
 	imageFormats := [...]string{
 		"png",
@@ -405,6 +454,12 @@ func (project *Project) HandleDroppedFiles() {
 		"jpeg",
 		"gif",
 		"psd",
+		"dds",
+		"hdr",
+		"ktx",
+		"astc",
+		"pkm",
+		"pvr",
 	}
 
 	soundFormats := [...]string{
@@ -416,25 +471,45 @@ func (project *Project) HandleDroppedFiles() {
 		"mp3",
 	}
 
+	filename = strings.ToLower(filename)
+
+	for _, f := range imageFormats {
+		if strings.Contains(filepath.Ext(filename), f) {
+			return f, "image"
+		}
+	}
+
+	for _, f := range soundFormats {
+		if strings.Contains(filepath.Ext(filename), f) {
+			return f, "sound"
+		}
+	}
+
+	// Guesses
+
+	for _, f := range imageFormats {
+		if strings.Contains(filename, f) {
+			return f, "image"
+		}
+	}
+
+	for _, f := range soundFormats {
+		if strings.Contains(filename, f) {
+			return f, "sound"
+		}
+	}
+
+	return "", ""
+
+}
+
+func (project *Project) HandleDroppedFiles() {
+
 	if rl.IsFileDropped() {
 		fileCount := int32(0)
 		for _, file := range rl.GetDroppedFiles(&fileCount) {
 
-			taskType := ""
-
-			for _, f := range imageFormats {
-				if strings.Contains(filepath.Ext(file), f) {
-					taskType = "image"
-					break
-				}
-			}
-
-			for _, f := range soundFormats {
-				if strings.Contains(filepath.Ext(file), f) {
-					taskType = "sound"
-					break
-				}
-			}
+			_, taskType := project.IdentifyFile(file)
 
 			if taskType != "" {
 				task := NewTask(project)
@@ -505,6 +580,10 @@ func (project *Project) Update() {
 			clicked = true
 		}
 
+		if project.ResizingImage {
+			project.Selecting = false
+		}
+
 		if project.MousingOver() == "Project" {
 
 			for i := len(project.Tasks) - 1; i >= 0; i-- {
@@ -534,27 +613,52 @@ func (project *Project) Update() {
 				} else {
 					project.Selecting = false
 
+					if holdingAlt && clickedTask.Selected {
+						project.Log("Deselected 1 Task.")
+					} else if !holdingAlt && !clickedTask.Selected {
+						project.Log("Selected 1 Task.")
+					}
+
 					if holdingShift {
-						clickedTask.ReceiveMessage("select", map[string]interface{}{
-							"task": clickedTask,
-						})
-					} else if !clickedTask.Selected { // This makes it so you don't have to shift+drag to move already selected Tasks
-						project.SendMessage("select", map[string]interface{}{
-							"task": clickedTask,
-						})
+
+						if holdingAlt {
+							clickedTask.ReceiveMessage("select", map[string]interface{}{})
+						} else {
+							clickedTask.ReceiveMessage("select", map[string]interface{}{
+								"task": clickedTask,
+							})
+						}
+
+					} else {
+						if !clickedTask.Selected { // This makes it so you don't have to shift+drag to move already selected Tasks
+							project.SendMessage("select", map[string]interface{}{
+								"task": clickedTask,
+							})
+						} else {
+							clickedTask.ReceiveMessage("select", map[string]interface{}{
+								"task": clickedTask,
+							})
+						}
 					}
 
 				}
 
 				if clickedTask != nil {
-					project.SendMessage("dragging", nil)
-				}
 
-				if project.DoubleClickTimer > 0 && clickedTask != nil && clickedTask.Selected {
-					clickedTask.ReceiveMessage("double click", nil)
-				}
+					if clickedTask.ID != project.DoubleClickTaskID {
+						project.DoubleClickTaskID = clickedTask.ID
+						project.DoubleClickTimer = 0
+					}
 
-				project.DoubleClickTimer = 0
+					if project.DoubleClickTimer > 0 && clickedTask.Selected {
+						clickedTask.ReceiveMessage("double click", nil)
+					} else {
+						project.SendMessage("dragging", nil)
+					}
+
+					project.DoubleClickTimer = 0
+					project.DoubleClickTaskID = clickedTask.ID
+				}
 
 			}
 
@@ -574,39 +678,56 @@ func (project *Project) Update() {
 
 				selectionRect = rl.Rectangle{x1, y1, x2, y2}
 
-				if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				if rl.IsMouseButtonReleased(rl.MouseLeftButton) && !project.ResizingImage {
 
 					project.Selecting = false // We're done with the selection process
 
+					count := 0
+
 					for _, task := range project.Tasks {
 
-						selected := false
+						inSelectionRect := false
 						var t *Task
 
 						if rl.CheckCollisionRecs(selectionRect, task.Rect) {
-							selected = true
+							inSelectionRect = true
 							t = task
 						}
 
-						msg := "select"
 						if holdingAlt {
-							msg = "deselect"
-						}
+							if inSelectionRect {
 
-						if holdingAlt {
-							if selected {
-								task.ReceiveMessage(msg, map[string]interface{}{"task": t})
+								if task.Selected {
+									count++
+								}
+
+								task.ReceiveMessage("deselect", map[string]interface{}{"task": t})
 							}
 						} else {
 
-							if !holdingShift || selected {
-								task.ReceiveMessage(msg, map[string]interface{}{
+							if !holdingShift || inSelectionRect {
+
+								if !task.Selected && inSelectionRect {
+									count++
+								}
+
+								task.ReceiveMessage("select", map[string]interface{}{
 									"task": t,
 								})
 							}
 
 						}
 
+					}
+
+					if count > 0 {
+						if holdingAlt {
+							project.Log("Deselected %d Tasks.", count)
+						} else {
+							project.Log("Selected %d Tasks.", count)
+						}
+					} else if !holdingShift {
+						project.Log("Deselected all Tasks.")
 					}
 
 				}
@@ -715,10 +836,10 @@ func (project *Project) Shortcuts() {
 
 			if !project.Searchbar.Focused {
 
-				panSpeed := float32(8)
+				panSpeed := float32(16 / camera.Zoom)
 
 				if holdingShift {
-					panSpeed = 24
+					panSpeed *= 3
 				}
 
 				if !holdingCtrl && rl.IsKeyDown(rl.KeyW) {
@@ -755,8 +876,12 @@ func (project *Project) Shortcuts() {
 						task.Selected = true
 					}
 
+					project.Log("Selected all %d Tasks.", len(project.Tasks))
+
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyC) {
 					project.CopySelectedTasks()
+				} else if holdingCtrl && holdingShift && rl.IsKeyPressed(rl.KeyV) {
+					project.PasteContent()
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
 					project.PasteTasks()
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
@@ -861,6 +986,12 @@ func (project *Project) Shortcuts() {
 							break
 						}
 					}
+				} else if holdingCtrl && holdingShift && rl.IsKeyPressed(rl.KeyS) {
+					project.SaveAs()
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyS) {
+					project.Save()
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyO) {
+					project.LoadFrom()
 				}
 
 			}
@@ -938,13 +1069,25 @@ func (project *Project) GUI() {
 			"Delete Tasks",
 			"Copy Tasks",
 			"Paste Tasks",
+			"Paste Content",
 			"",
 			"Visit Forums",
 		}
 
-		rect := rl.Rectangle{pos.X - 64, pos.Y, 160, 32}
+		rect := rl.Rectangle{pos.X - 64, pos.Y + 16, 160, 32}
 
-		rect.Y -= (float32(len(menuOptions)) * rect.Height / 2) + rect.Height // This to make it start on New Task by default
+		newTaskPos := float32(1)
+		for _, option := range menuOptions {
+			if option == "New Task" {
+				break
+			} else if option == "" {
+				newTaskPos += 0.5
+			} else {
+				newTaskPos++
+			}
+		}
+
+		rect.Y -= (float32(newTaskPos) * rect.Height) // This to make it start on New Task by default
 
 		selected := []*Task{}
 		for _, task := range project.Tasks {
@@ -955,6 +1098,8 @@ func (project *Project) GUI() {
 
 		for _, option := range menuOptions {
 
+			clipboardData, clipboardError := clipboard.ReadAll()
+
 			disabled := option == "" // Spacer can't be selected
 
 			if option == "Copy Tasks" && len(selected) == 0 ||
@@ -964,6 +1109,10 @@ func (project *Project) GUI() {
 			}
 
 			if option == "Save Project" && project.FilePath == "" {
+				disabled = true
+			}
+
+			if option == "Paste Content" && (clipboardData == "" || clipboardError != nil) {
 				disabled = true
 			}
 
@@ -982,19 +1131,10 @@ func (project *Project) GUI() {
 					project.Save()
 
 				case "Save Project As...":
-					dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
-					if success {
-						project.FilePath = filepath.Join(dirPath, "master.plan")
-						project.Save()
-					}
+					project.SaveAs()
 
 				case "Load Project":
-					file, success, _ := dlgs.File("Load Plan File", "*.plan", false)
-					if success {
-						currentProject = NewProject()
-						// TODO: DO something if this fails
-						currentProject.Load(file)
-					}
+					project.LoadFrom()
 
 				case "Project Settings":
 					project.ProjectSettingsOpen = true
@@ -1010,6 +1150,9 @@ func (project *Project) GUI() {
 
 				case "Paste Tasks":
 					project.PasteTasks()
+
+				case "Paste Content":
+					project.PasteContent()
 
 				case "Visit Forums":
 					browser.OpenURL("https://solarlune.itch.io/masterplan/community")
@@ -1034,7 +1177,9 @@ func (project *Project) GUI() {
 
 		if ImmediateButton(rl.Rectangle{rec.Width - 16, rec.Y, 32, 32}, "X", false) {
 			project.ProjectSettingsOpen = false
-			project.Save()
+			if project.AutoSave.Checked {
+				project.Save()
+			}
 		}
 
 		columnX := float32(32)
@@ -1181,7 +1326,7 @@ func (project *Project) GUI() {
 
 }
 
-func (project *Project) CreateNewTask() {
+func (project *Project) CreateNewTask() *Task {
 	newTask := NewTask(project)
 	newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X, GetWorldMousePosition().Y)
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
@@ -1209,7 +1354,10 @@ func (project *Project) CreateNewTask() {
 
 	project.SendMessage("select", map[string]interface{}{"task": newTask})
 
+	project.Log("Created 1 new Task.")
+
 	project.FocusViewOnSelectedTasks()
+	return newTask
 }
 
 func (project *Project) SearchForTasks() {
@@ -1254,8 +1402,11 @@ func (project *Project) SearchForTasks() {
 
 func (project *Project) DeleteSelectedTasks() {
 
+	count := 0
+
 	for i := len(project.Tasks) - 1; i >= 0; i-- {
 		if project.Tasks[i].Selected {
+			count++
 			below := project.Tasks[i].TaskBelow
 			if below != nil {
 				below.Selected = true
@@ -1268,6 +1419,8 @@ func (project *Project) DeleteSelectedTasks() {
 			project.RemoveTaskByIndex(i)
 		}
 	}
+
+	project.Log("Deleted %d Tasks.", count)
 
 	project.ReorderTasks()
 }
@@ -1312,6 +1465,8 @@ func (project *Project) CopySelectedTasks() {
 		}
 	}
 
+	project.Log("Copied %d Tasks.", len(project.CopyBuffer))
+
 }
 
 func (project *Project) PasteTasks() {
@@ -1324,6 +1479,39 @@ func (project *Project) PasteTasks() {
 		clone := srcTask.Clone()
 		clone.Selected = true
 		project.Tasks = append(project.Tasks, clone)
+	}
+
+	project.Log("Pasted %d Tasks.", len(project.CopyBuffer))
+
+}
+
+func (project *Project) PasteContent() {
+
+	clipboardData, err := clipboard.ReadAll()
+
+	if clipboardData != "" && err == nil {
+
+		_, fileType := project.IdentifyFile(clipboardData)
+
+		project.LogOn = false
+		task := project.CreateNewTask()
+		project.LogOn = true
+		task.FilePathTextbox.Text = clipboardData
+
+		taskType := "Note"
+
+		if fileType == "image" || fileType == "sound" {
+			taskType = strings.Title(fileType)
+		} else {
+			task.Description.Text = clipboardData
+		}
+
+		task.TaskType.SetChoice(taskType)
+
+		project.Log("Pasted 1 new %s Task from clipboard content.", taskType)
+
+		task.ReceiveMessage("task close", map[string]interface{}{})
+
 	}
 
 }
@@ -1381,4 +1569,12 @@ func (project *Project) ReloadThemes() {
 	sort.Strings(guiThemes)
 	project.ColorThemeSpinner.Options = guiThemes
 
+}
+
+func (project *Project) GetFrameTime() float32 {
+	ft := rl.GetFrameTime()
+	if ft > (1/float32(TARGET_FPS))*2 {
+		ft = (1 / float32(TARGET_FPS)) * 2
+	}
+	return ft
 }

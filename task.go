@@ -233,7 +233,6 @@ func NewTask(project *Project) *Task {
 	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
 	task.Description.AllowNewlines = true
 	task.FilePathTextbox.AllowNewlines = false
-	task.FilePathTextbox.MaxSize = task.FilePathTextbox.MinSize
 
 	task.DeadlineDaySpinner.Minimum = 1
 	task.DeadlineDaySpinner.Maximum = 31
@@ -400,6 +399,14 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 func (task *Task) Update() {
 
 	task.PostOpenDelay++
+
+	rec := task.Rect
+	rec.Width = 16
+	rec.Height = 16
+
+	if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) && task.Selected && task.TaskType.CurrentChoice == TASK_TYPE_SOUND && task.SoundControl != nil {
+		task.ToggleSound()
+	}
 
 	if task.IsComplete() && task.CompletionTime.IsZero() {
 		task.CompletionTime = time.Now()
@@ -615,13 +622,11 @@ func (task *Task) Update() {
 	// progress bar for progression-based Tasks.
 	applyGlow := func(color rl.Color) rl.Color {
 
-		glowYPos := -task.Rect.Y / float32(task.Project.GridSize)
-		glowXPos := -task.Rect.X / float32(task.Project.GridSize)
 		glowVariance := float64(10)
 		if task.Selected {
 			glowVariance = 80
 		}
-		glow := uint8(math.Sin(float64((rl.GetTime()*math.Pi*2+glowYPos+glowXPos)))*(glowVariance/2) + (glowVariance / 2))
+		glow := uint8(math.Sin(float64((rl.GetTime()*math.Pi*2-(float32(task.ID)*0.1))))*(glowVariance/2) + (glowVariance / 2))
 
 		if color.R >= glow {
 			color.R -= glow
@@ -709,7 +714,7 @@ func (task *Task) Update() {
 
 		if task.GifAnimation != nil {
 			task.Image = task.GifAnimation.GetTexture()
-			task.GifAnimation.Update(rl.GetFrameTime())
+			task.GifAnimation.Update(task.Project.GetFrameTime())
 		}
 
 		if task.Image.ID != 0 {
@@ -724,14 +729,23 @@ func (task *Task) Update() {
 				rec := task.Rect
 				rec.Width = 8
 				rec.Height = 8
-				rec.X += task.Rect.Width
-				rec.Y += task.Rect.Height
+
+				if task.Project.ZoomLevel <= 1 {
+					rec.Width *= 2
+					rec.Height *= 2
+				}
+
+				rec.X += task.Rect.Width - rec.Width
+				rec.Y += task.Rect.Height - rec.Height
 				rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 				rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
-				if rl.IsMouseButtonDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
+				if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
 					task.Resizing = true
+					task.Project.ResizingImage = true
+					task.Project.SendMessage("dropped", map[string]interface{}{})
 				} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
 					task.Resizing = false
+					task.Project.ResizingImage = false
 				}
 				if task.Resizing {
 					endPoint := GetWorldMousePosition()
@@ -743,10 +757,14 @@ func (task *Task) Update() {
 					if task.ImageDisplaySize.Y < task.MinSize.Y {
 						task.ImageDisplaySize.Y = task.MinSize.Y
 					}
+					if rl.IsKeyDown(rl.KeyLeftAlt) || rl.IsKeyDown(rl.KeyLeftAlt) {
+						asr := float32(task.Image.Height) / float32(task.Image.Width)
+						task.ImageDisplaySize.Y = task.ImageDisplaySize.X * asr
+					}
 				}
 
-				rec.X = task.Rect.X - rec.Width
-				rec.Y = task.Rect.Y - rec.Height
+				rec.X = task.Rect.X
+				rec.Y = task.Rect.Y
 
 				rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 				rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
@@ -824,7 +842,7 @@ func (task *Task) Update() {
 				iconSrc.X += 16
 			} // else it's due in the future, so just a clock icon is fine
 
-			clockPos.X += float32(math.Sin(float64((task.Rect.Y+task.Rect.X)*0.1)+float64(rl.GetTime())*3.1415)) * 4
+			clockPos.X += float32(math.Sin(float64(float32(task.ID)*0.1)+float64(rl.GetTime())*3.1415)) * 4
 
 			rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X - 16 + clockPos.X, task.Rect.Y + clockPos.Y, 16, 16}, rl.Vector2{}, 0, rl.White)
 		}
@@ -833,7 +851,7 @@ func (task *Task) Update() {
 
 	if task.Selected && task.Project.PulsingTaskSelection.Checked { // Drawing selection indicator
 		r := task.Rect
-		f := float32(int(2 + float32(math.Sin(float64(rl.GetTime()+(r.X+r.Y*0.01))*math.Pi*4))*2))
+		f := float32(int(2 + float32(math.Sin(float64(rl.GetTime()-(float32(task.ID)*0.1))*math.Pi*4))*2))
 		r.X -= f
 		r.Y -= f
 		r.Width += f * 2
@@ -974,7 +992,7 @@ func (task *Task) PostDraw() {
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
-			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
+			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 40, 64, 32}, "Load", false) {
 				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
 				filepath, success, _ := dlgs.File("Load Image", "Image Files | *.png *.jpg *.bmp *.tiff", false)
 				if success {
@@ -982,16 +1000,19 @@ func (task *Task) PostDraw() {
 				}
 				//rl.ShowWindow()
 			}
-			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 32, 64, 16}, "Clear", false) {
+			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 40, 64, 32}, "Clear", false) {
 				task.FilePathTextbox.Text = ""
 			}
+
+			y += 48
+
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
 			rl.DrawTextEx(guiFont, "Sound File: ", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
-			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 32, 64, 16}, "Load", false) {
+			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 40, 64, 32}, "Load", false) {
 				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
 				filepath, success, _ := dlgs.File("Load Sound", "Sound Files | *.wav *.ogg *.flac *.mp3", false)
 				if success {
@@ -999,23 +1020,26 @@ func (task *Task) PostDraw() {
 				}
 				//rl.ShowWindow()
 			}
-			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 32, 64, 16}, "Clear", false) {
+			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 40, 64, 32}, "Clear", false) {
 				task.FilePathTextbox.Text = ""
 			}
-		}
 
-		y += 40
+			y += 48
 
-		rl.DrawTextEx(guiFont, "Completed On:", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
-		completionTime := task.CompletionTime.Format("Monday, Jan 2, 2006, 15:04")
-		if task.CompletionTime.IsZero() {
-			completionTime = "N/A"
 		}
-		rl.DrawTextEx(guiFont, completionTime, rl.Vector2{180, y + 4}, guiFontSize, spacing, fontColor)
 
 		y += 40
 
 		if task.Completable() {
+
+			rl.DrawTextEx(guiFont, "Completed On:", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
+			completionTime := task.CompletionTime.Format("Monday, Jan 2, 2006, 15:04")
+			if task.CompletionTime.IsZero() {
+				completionTime = "N/A"
+			}
+			rl.DrawTextEx(guiFont, completionTime, rl.Vector2{180, y + 4}, guiFontSize, spacing, fontColor)
+
+			y += 40
 
 			rl.DrawTextEx(guiFont, "Deadline: ", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
 
@@ -1140,11 +1164,13 @@ func (task *Task) LoadResource() {
 			response, err := http.Get(task.FilePathTextbox.Text)
 			if err != nil {
 				log.Println(err)
+				task.Project.Log(err.Error())
 			} else {
 				_, ogFilename := filepath.Split(task.FilePathTextbox.Text)
 				defer response.Body.Close()
 				if filepath.Ext(ogFilename) == "" {
 					ogFilename += ".png" // Gotta just make a guess on this one
+					// TODO: Use project.IdentifyFile() for this?
 				}
 				tempFile, err := ioutil.TempFile("", "masterplan*_"+ogFilename)
 				defer tempFile.Close()
@@ -1301,12 +1327,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Position.X, task.Position.Y = task.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
 		task.GetNeighbors()
 		task.RefreshPrefix = true
-		// If you didn't move, this was a click, not a drag and drop
-		if task.Selected && task.Position == task.PrevPosition && task.TaskType.CurrentChoice == TASK_TYPE_SOUND && task.SoundControl != nil {
-			task.ToggleSound()
-		}
 		task.PrevPosition = task.Position
-
 	} else if message == "delete" {
 
 		if data["task"] == task {
@@ -1345,6 +1366,14 @@ func (task *Task) ToggleSound() {
 	if task.SoundControl != nil {
 		speaker.Lock()
 		task.SoundControl.Paused = !task.SoundControl.Paused
+
+		_, filename := filepath.Split(task.FilePathTextbox.Text)
+		if task.SoundControl.Paused {
+			task.Project.Log("Paused %s.", filename)
+		} else {
+			task.Project.Log("Playing %s.", filename)
+		}
+
 		speaker.Unlock()
 	}
 }

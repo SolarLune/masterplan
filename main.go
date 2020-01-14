@@ -5,11 +5,15 @@ import (
 	"log"
 	"os"
 
+	"github.com/gen2brain/raylib-go/easings"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 // const screenWidth = 960
 // const screenHeight = 540
+
+const TARGET_FPS = 60
 
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
@@ -23,7 +27,7 @@ func main() {
 
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
-	rl.SetTargetFPS(60)
+	rl.SetTargetFPS(TARGET_FPS)
 
 	font = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(fontSize), nil, -1)
 	guiFont = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(guiFontSize), nil, -1)
@@ -87,10 +91,31 @@ func main() {
 
 		rl.EndMode2D()
 
+		c := getThemeColor(GUI_FONT_COLOR)
+		c.A = 128
+		rl.DrawTextEx(guiFont, softwareVersion, rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, guiFontSize, 1, c)
+
+		c.A = 255
+		timeLimit := float32(5)
+		for i := 0; i < len(messageBuffer); i++ {
+
+			msg := messageBuffer[i]
+
+			c.A = uint8(easings.LinearIn(rl.GetTime()-msg.Time, 255, -255, timeLimit))
+
+			rl.DrawTextEx(guiFont, msg.Text, rl.Vector2{8, 24 + float32(i*16)}, guiFontSize, 1, c)
+
+			if rl.GetTime()-msg.Time > timeLimit {
+				messageBuffer = append(messageBuffer[:i], messageBuffer[i+1:]...)
+				i--
+			}
+
+		}
+
 		currentProject.GUI()
 
 		if drawFPS {
-			rl.DrawFPS(0, 0)
+			rl.DrawFPS(4, 4)
 		}
 
 		rl.EndDrawing()
