@@ -32,6 +32,12 @@ This particular branch is up-to-date with `raylib-go` master, but has had its `r
 
 from the MasterPlan source directory. It should generate a folder named `bin`, and populate it with a directory with a release build for your OS and architecture.
 
+To fetch the correct branch of Raylib-Go, use the following git (where you cloned your masterplan):
+
+```
+> git clone --single-branch --branch ImgFormats https://github.com/SolarLune/raylib-go.git raylib-go-solarlune
+```
+
 ## License
 
 MasterPlan is licensed as All Rights Reserved, SolarLune Games 2019. 
