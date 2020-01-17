@@ -658,12 +658,10 @@ func (project *Project) Update() {
 
 				} else {
 
-					if clickedTask.ID == project.DoubleClickTaskID {
-						if project.DoubleClickTimer > 0 && clickedTask.Selected {
-							clickedTask.ReceiveMessage("double click", nil)
-						} else {
-							project.SendMessage("dragging", nil)
-						}
+					if clickedTask.ID == project.DoubleClickTaskID && project.DoubleClickTimer > 0 && clickedTask.Selected {
+						clickedTask.ReceiveMessage("double click", nil)
+					} else {
+						project.SendMessage("dragging", nil)
 					}
 
 					project.DoubleClickTimer = 0
@@ -1336,7 +1334,8 @@ func (project *Project) GUI() {
 
 func (project *Project) CreateNewTask() *Task {
 	newTask := NewTask(project)
-	newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X, GetWorldMousePosition().Y)
+	halfGrid := float32(project.GridSize / 2)
+	newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X - halfGrid, GetWorldMousePosition().Y - halfGrid)
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	project.Tasks = append(project.Tasks, newTask)
 	if project.NumberingSequence.CurrentChoice != NUMBERING_SEQUENCE_OFF {
@@ -1495,7 +1494,7 @@ func (project *Project) PasteTasks() {
 
 func (project *Project) PasteContent() {
 
-	clipboardData, _ := clipboard.ReadAll()	// Tanks FPS if done every frame because of course it does
+	clipboardData, _ := clipboard.ReadAll() // Tanks FPS if done every frame because of course it does
 
 	if clipboardData != "" {
 
