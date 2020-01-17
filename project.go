@@ -76,6 +76,7 @@ type Project struct {
 	GUI_Icons         rl.Texture2D
 	Patterns          rl.Texture2D
 	ShortcutKeyTimer  int
+	PreviousTaskType  string
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
@@ -114,6 +115,7 @@ func NewProject() *Project {
 	project.ShowIcons.Checked = true
 	project.GenerateGrid()
 	project.DoubleClickTimer = -1
+	project.PreviousTaskType = "Check Box"
 
 	project.ReloadThemes()
 	project.ChangeTheme(currentTheme)
@@ -525,7 +527,7 @@ func (project *Project) HandleDroppedFiles() {
 				}
 
 				task.FilePathTextbox.Text = file
-				task.ReceiveMessage("task close", map[string]interface{}{"task": task})
+				task.LoadResource()
 				project.Tasks = append(project.Tasks, task)
 				continue
 			}
@@ -1023,7 +1025,7 @@ func (project *Project) Shortcuts() {
 			}
 
 		} else if rl.IsKeyPressed(rl.KeyEscape) {
-			project.SendMessage("task close", map[string]interface{}{"task": "all"})
+			project.SendMessage("task close", nil)
 		}
 
 	}
@@ -1335,20 +1337,21 @@ func (project *Project) GUI() {
 func (project *Project) CreateNewTask() *Task {
 	newTask := NewTask(project)
 	halfGrid := float32(project.GridSize / 2)
-	newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X - halfGrid, GetWorldMousePosition().Y - halfGrid)
+	newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X-halfGrid, GetWorldMousePosition().Y-halfGrid)
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	project.Tasks = append(project.Tasks, newTask)
+	
 	if project.NumberingSequence.CurrentChoice != NUMBERING_SEQUENCE_OFF {
 		for _, task := range project.Tasks {
 			if task.Selected {
 				newTask.Position = task.Position
 				newTask.Position.Y += float32(project.GridSize)
 				below := task.TaskBelow
-
+				
 				if below != nil && below.Position.X >= task.Position.X {
 					newTask.Position.X = below.Position.X
 				}
-
+				
 				for below != nil {
 					below.Position.Y += float32(project.GridSize)
 					below = below.TaskBelow
@@ -1357,6 +1360,14 @@ func (project *Project) CreateNewTask() *Task {
 				break
 			}
 		}
+	}
+	
+	newTask.TaskType.SetChoice(project.PreviousTaskType)
+
+	if newTask.TaskType.ChoiceAsString() == "Image" || newTask.TaskType.ChoiceAsString() == "Sound" {
+		newTask.FilePathTextbox.Focused = true
+	} else {
+		newTask.Description.Focused = true
 	}
 
 	project.SendMessage("select", map[string]interface{}{"task": newTask})
@@ -1517,7 +1528,7 @@ func (project *Project) PasteContent() {
 
 		project.Log("Pasted 1 new %s Task from clipboard content.", taskType)
 
-		task.ReceiveMessage("task close", map[string]interface{}{})
+		task.LoadResource()
 
 	} else {
 		project.Log("Unable to create Task from clipboard content.")

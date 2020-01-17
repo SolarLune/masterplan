@@ -232,7 +232,6 @@ func NewTask(project *Project) *Task {
 
 	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
 	task.Description.AllowNewlines = true
-	task.Description.Focused = true
 	task.FilePathTextbox.AllowNewlines = false
 
 	task.DeadlineDaySpinner.Minimum = 1
@@ -394,7 +393,7 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	}
 
 	// We do this to update the task after loading all of the information.
-	task.ReceiveMessage("task close", map[string]interface{}{"task": task})
+	task.LoadResource()
 }
 
 func (task *Task) Update() {
@@ -967,7 +966,7 @@ func (task *Task) PostDraw() {
 		}
 
 		if ImmediateButton(rl.Rectangle{rect.Width - 16, rect.Y, 32, 32}, "X", false) {
-			task.Project.SendMessage("task close", map[string]interface{}{"task": task})
+			task.ReceiveMessage("task close", nil)
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
@@ -1317,10 +1316,11 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Project.TaskOpen = true
 		task.PostOpenDelay = 0
 		task.Dragging = false
-	} else if message == "task close" {
+	} else if message == "task close" && task.Open {
 		task.Open = false
 		task.Project.TaskOpen = false
 		task.LoadResource()
+		task.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
 	} else if message == "dragging" {
 		task.Dragging = task.Selected
 	} else if message == "dropped" {
