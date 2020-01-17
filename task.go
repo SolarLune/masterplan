@@ -757,7 +757,8 @@ func (task *Task) Update() {
 					if task.ImageDisplaySize.Y < task.MinSize.Y {
 						task.ImageDisplaySize.Y = task.MinSize.Y
 					}
-					if rl.IsKeyDown(rl.KeyLeftAlt) || rl.IsKeyDown(rl.KeyLeftAlt) {
+
+					if !rl.IsKeyDown(rl.KeyLeftAlt) && !rl.IsKeyDown(rl.KeyRightAlt) {
 						asr := float32(task.Image.Height) / float32(task.Image.Width)
 						task.ImageDisplaySize.Y = task.ImageDisplaySize.X * asr
 					}
