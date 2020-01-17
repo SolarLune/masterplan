@@ -19,31 +19,30 @@ func build() {
 
 	// The bin directory should always have a fresh set of assets
 
-	if err := os.RemoveAll(filepath.Join("bin", "assets")); err != nil {
-		panic(err)
-	}
-
 	osName := runtime.GOOS + "_" + runtime.GOARCH
 	if strings.Contains(runtime.GOOS, "darwin") {
 		osName = "mac_" + runtime.GOARCH
 	}
 
-	// Copy the assets folder to the bin directory
-	if err := copy.Copy("assets", filepath.Join("bin", osName, "assets")); err != nil {
+	baseDir := filepath.Join("bin", osName)
+
+	if strings.Contains(osName, "mac") {
+		baseDir = filepath.Join("bin", osName, "MasterPlan.app", "Contents", "MacOS")
+	}
+
+	if err := os.RemoveAll(baseDir); err != nil {
 		panic(err)
 	}
 
-	log.Println("Assets copied...")
+	// Copy the assets folder to the bin directory
+	if err := copy.Copy("assets", filepath.Join(baseDir, "assets")); err != nil {
+		panic(err)
+	}
 
-	// if err := copy.Copy(".itch.toml", filepath.Join("bin", ".itch.toml")); err != nil {
-	// 	panic(err)
-	// }
+	log.Println("Assets copied.")
 
-	// log.Println(".itch.toml copied...")
-
-	// Build the binary and plop it where the binary should go for this OS
-	filename := filepath.Join("bin", osName, "MasterPlan")
-
+	filename := filepath.Join(baseDir, "MasterPlan")
+	
 	if strings.Contains(osName, "windows") {
 		filename += ".exe"
 	}
