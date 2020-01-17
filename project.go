@@ -47,6 +47,7 @@ type Project struct {
 	PulsingTaskSelection *Checkbox
 	AutoSave             *Checkbox
 	AutoReloadThemes     *Checkbox
+	ColorThemeSpinner    *Spinner
 
 	// Internal data to make projects work
 	FullyInitialized        bool
@@ -74,8 +75,6 @@ type Project struct {
 	StatusBar         rl.Rectangle
 	GUI_Icons         rl.Texture2D
 	Patterns          rl.Texture2D
-
-	ColorThemeSpinner *Spinner
 	ShortcutKeyTimer  int
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
@@ -1113,8 +1112,6 @@ func (project *Project) GUI() {
 
 		for _, option := range menuOptions {
 
-			clipboardData, clipboardError := clipboard.ReadAll()
-
 			disabled := option == "" // Spacer can't be selected
 
 			if option == "Copy Tasks" && len(selected) == 0 ||
@@ -1124,10 +1121,6 @@ func (project *Project) GUI() {
 			}
 
 			if option == "Save Project" && project.FilePath == "" {
-				disabled = true
-			}
-
-			if option == "Paste Content" && (clipboardData == "" || clipboardError != nil) {
 				disabled = true
 			}
 
@@ -1502,21 +1495,21 @@ func (project *Project) PasteTasks() {
 
 func (project *Project) PasteContent() {
 
-	clipboardData, err := clipboard.ReadAll()
+	clipboardData, _ := clipboard.ReadAll()	// Tanks FPS if done every frame because of course it does
 
-	if clipboardData != "" && err == nil {
+	if clipboardData != "" {
 
 		_, fileType := project.IdentifyFile(clipboardData)
 
 		project.LogOn = false
 		task := project.CreateNewTask()
 		project.LogOn = true
-		task.FilePathTextbox.Text = clipboardData
 
 		taskType := "Note"
 
 		if fileType == "image" || fileType == "sound" {
 			taskType = strings.Title(fileType)
+			task.FilePathTextbox.Text = clipboardData
 		} else {
 			task.Description.Text = clipboardData
 		}
@@ -1527,6 +1520,8 @@ func (project *Project) PasteContent() {
 
 		task.ReceiveMessage("task close", map[string]interface{}{})
 
+	} else {
+		project.Log("Unable to create Task from clipboard content.")
 	}
 
 }
