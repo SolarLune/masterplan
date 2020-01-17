@@ -232,6 +232,7 @@ func NewTask(project *Project) *Task {
 
 	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
 	task.Description.AllowNewlines = true
+	task.Description.Focused = true
 	task.FilePathTextbox.AllowNewlines = false
 
 	task.DeadlineDaySpinner.Minimum = 1

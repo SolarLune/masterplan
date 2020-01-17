@@ -646,17 +646,25 @@ func (project *Project) Update() {
 
 				}
 
-				if clickedTask != nil {
+				if clickedTask == nil {
 
-					if clickedTask.ID != project.DoubleClickTaskID {
-						project.DoubleClickTaskID = clickedTask.ID
-						project.DoubleClickTimer = 0
+					if project.DoubleClickTimer > 0 && project.DoubleClickTaskID == -1 {
+						task := project.CreateNewTask()
+						task.ReceiveMessage("double click", nil)
+						project.Selecting = false
 					}
 
-					if project.DoubleClickTimer > 0 && clickedTask.Selected {
-						clickedTask.ReceiveMessage("double click", nil)
-					} else {
-						project.SendMessage("dragging", nil)
+					project.DoubleClickTaskID = -1
+					project.DoubleClickTimer = 0
+
+				} else {
+
+					if clickedTask.ID == project.DoubleClickTaskID {
+						if project.DoubleClickTimer > 0 && clickedTask.Selected {
+							clickedTask.ReceiveMessage("double click", nil)
+						} else {
+							project.SendMessage("dragging", nil)
+						}
 					}
 
 					project.DoubleClickTimer = 0
