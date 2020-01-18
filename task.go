@@ -1248,8 +1248,6 @@ func (task *Task) LoadResource() {
 				var format beep.Format
 				var err error
 
-				fmt.Println(ext)
-
 				if strings.Contains(ext, "mp3") {
 					stream, format, err = mp3.Decode(file)
 				} else if strings.Contains(ext, "ogg") {
@@ -1270,7 +1268,7 @@ func (task *Task) LoadResource() {
 					if format.SampleRate != task.Project.SampleRate {
 						log.Println("Sample rate of audio file", task.FilePathTextbox.Text, "not the same as project sample rate.")
 						log.Println("File will be resampled.")
-						resampled := beep.Resample(1, format.SampleRate, 44100, stream)
+						resampled := beep.Resample(4, format.SampleRate, 44100, stream)
 						task.SoundControl = &beep.Ctrl{Streamer: resampled, Paused: true}
 					} else {
 						task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
