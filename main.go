@@ -19,7 +19,7 @@ const TARGET_FPS = 60
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
-var softwareVersion = "v0.1.0"
+var softwareVersion = "v0.1.1"
 
 func main() {
 
