@@ -22,6 +22,8 @@ var softwareVersion = "v0.1.0"
 
 func main() {
 
+	rl.SetTraceLog(rl.LogError)
+
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(960, 540, "MasterPlan "+softwareVersion)
 
