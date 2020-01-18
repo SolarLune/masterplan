@@ -337,7 +337,7 @@ func (project *Project) Log(text string, variables ...interface{}) {
 		if len(variables) > 0 {
 			text = fmt.Sprintf(text, variables...)
 		}
-		logBuffer = append(logBuffer, LogMessage{rl.GetTime(), text})
+		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text})
 	}
 }
 
@@ -1340,18 +1340,18 @@ func (project *Project) CreateNewTask() *Task {
 	newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X-halfGrid, GetWorldMousePosition().Y-halfGrid)
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	project.Tasks = append(project.Tasks, newTask)
-	
+
 	if project.NumberingSequence.CurrentChoice != NUMBERING_SEQUENCE_OFF {
 		for _, task := range project.Tasks {
 			if task.Selected {
 				newTask.Position = task.Position
 				newTask.Position.Y += float32(project.GridSize)
 				below := task.TaskBelow
-				
+
 				if below != nil && below.Position.X >= task.Position.X {
 					newTask.Position.X = below.Position.X
 				}
-				
+
 				for below != nil {
 					below.Position.Y += float32(project.GridSize)
 					below = below.TaskBelow
@@ -1361,7 +1361,7 @@ func (project *Project) CreateNewTask() *Task {
 			}
 		}
 	}
-	
+
 	newTask.TaskType.SetChoice(project.PreviousTaskType)
 
 	if newTask.TaskType.ChoiceAsString() == "Image" || newTask.TaskType.ChoiceAsString() == "Sound" {

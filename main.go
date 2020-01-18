@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gen2brain/raylib-go/easings"
 
@@ -93,22 +94,40 @@ func main() {
 
 		rl.EndMode2D()
 
-		c := getThemeColor(GUI_FONT_COLOR)
-		c.A = 128
-		rl.DrawTextEx(guiFont, softwareVersion, rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, guiFontSize, 1, c)
+		color := getThemeColor(GUI_FONT_COLOR)
+		color.A = 128
+		rl.DrawTextEx(guiFont, softwareVersion, rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, guiFontSize, 1, color)
 
-		c.A = 255
+		color = rl.White
+		bgColor := rl.Black
+
 		timeLimit := float32(5)
-		for i := 0; i < len(logBuffer); i++ {
 
-			msg := logBuffer[i]
+		now := time.Now()
 
-			c.A = uint8(easings.LinearIn(rl.GetTime()-msg.Time, 255, -255, timeLimit))
+		for i := 0; i < len(eventLogBuffer); i++ {
 
-			rl.DrawTextEx(guiFont, msg.Text, rl.Vector2{8, 24 + float32(i*16)}, guiFontSize, 1, c)
+			msg := eventLogBuffer[i]
 
-			if rl.GetTime()-msg.Time > timeLimit {
-				logBuffer = append(logBuffer[:i], logBuffer[i+1:]...)
+			text := msg.Time.Format("15:04:05") + " : " + msg.Text
+
+			color.A = uint8(easings.LinearIn(float32(now.Sub(msg.Time).Seconds()), 255, -255, timeLimit))
+			bgColor.A = color.A
+
+			textSize := rl.MeasureTextEx(guiFont, text, guiFontSize, 1)
+			textPos := rl.Vector2{8, 24 + float32(i*16)}
+			rectPos := textPos
+
+			rectPos.X--
+			rectPos.Y--
+			textSize.X += 2
+			textSize.Y += 2
+
+			rl.DrawRectangleV(textPos, textSize, bgColor)
+			rl.DrawTextEx(guiFont, text, textPos, guiFontSize, 1, color)
+
+			if now.Sub(msg.Time).Seconds() > float64(timeLimit) {
+				eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
 				i--
 			}
 

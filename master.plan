@@ -6,8 +6,8 @@
 	"GridVisible": true,
 	"NumberingIgnoreTopLevel": true,
 	"NumberingSequence": 0,
-	"Pan.X": 2298.0837,
-	"Pan.Y": 290.65555,
+	"Pan.X": 1896,
+	"Pan.Y": 566,
 	"PulsingTaskSelection": true,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
@@ -1320,7 +1320,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Jan 14 2020 15:01:08",
+			"CompletionTime": "Jan 17 2020 17:26:10",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Numbering schemes.",
 			"FilePath": "",
@@ -3075,7 +3075,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Jan 14 2020 15:01:08",
+			"CompletionTime": "Jan 17 2020 17:26:10",
 			"CreationTime": "Oct 16 2019 23:10:50",
 			"Description": "Search bar.",
 			"FilePath": "",
@@ -3090,7 +3090,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Jan 14 2020 15:01:08",
+			"CompletionTime": "Jan 17 2020 17:26:10",
 			"CreationTime": "Oct 16 2019 23:11:12",
 			"Description": "Ordering.",
 			"FilePath": "",
@@ -3979,7 +3979,49 @@
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
+		},
+		{
+			"Checkbox.Checked": false,
+			"CreationTime": "Jan 17 2020 17:02:37",
+			"Description": "",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": 208,
+			"Position.Y": -192,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"Checkbox.Checked": false,
+			"CreationTime": "Jan 17 2020 17:22:23",
+			"Description": "",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": 48,
+			"Position.Y": 160,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"Checkbox.Checked": false,
+			"CreationTime": "Jan 17 2020 17:26:15",
+			"Description": "",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": 48,
+			"Position.Y": 480,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
 		}
 	],
-	"ZoomLevel": 2
+	"ZoomLevel": 1
 }
