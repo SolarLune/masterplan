@@ -668,6 +668,11 @@ func (task *Task) Update() {
 		cnum := task.CompletionProgressionCurrent.GetNumber()
 		mnum := task.CompletionProgressionMax.GetNumber()
 
+		if mnum < cnum {
+			task.CompletionProgressionMax.SetNumber(cnum)
+			mnum = cnum
+		}
+
 		if mnum != 0 {
 			perc = float32(cnum) / float32(mnum)
 		}
