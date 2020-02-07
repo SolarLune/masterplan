@@ -47,6 +47,7 @@ type Project struct {
 	PulsingTaskSelection *Checkbox
 	AutoSave             *Checkbox
 	AutoReloadThemes     *Checkbox
+	AutoLoadLastProject  *Checkbox
 	ColorThemeSpinner    *Spinner
 
 	// Internal data to make projects work
@@ -106,10 +107,12 @@ func NewProject() *Project {
 		PulsingTaskSelection:    NewCheckbox(350, 272, 24, 24),
 		AutoSave:                NewCheckbox(350, 312, 24, 24),
 		AutoReloadThemes:        NewCheckbox(350, 352, 24, 24),
+		AutoLoadLastProject:     NewCheckbox(350, 392, 24, 24),
 	}
 
 	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
+	project.AutoLoadLastProject.Checked = true
 	project.ShadowQualitySpinner.CurrentChoice = 2
 	project.GridVisible.Checked = true
 	project.ShowIcons.Checked = true
@@ -182,13 +185,15 @@ func (project *Project) Save() bool {
 			encoder.SetIndent("", "\t")
 			encoder.Encode(data)
 
-			lastOpened, err := os.Create("lastopenedplan")
-			if err != nil {
-				log.Println("ERROR: Can't save last opened project file to current working directory.", err)
-				success = false
-			} else {
-				lastOpened.WriteString(project.FilePath) // We save the last successfully opened project file here.
-				lastOpened.Close()
+			if project.AutoLoadLastProject.Checked {
+				lastOpened, err := os.Create("lastopenedplan")
+				if err != nil {
+					log.Println("ERROR: Can't save last opened project file to current working directory.", err)
+					success = false
+				} else {
+					lastOpened.WriteString(project.FilePath) // We save the last successfully opened project file here.
+					lastOpened.Close()
+				}
 			}
 
 			err = f.Sync() // Want to make sure the file is written
@@ -1088,7 +1093,25 @@ func (project *Project) GUI() {
 			"Visit Forums",
 		}
 
-		rect := rl.Rectangle{pos.X - 64, pos.Y + 16, 160, 32}
+		menuWidth := float32(160)
+		menuHeight := float32(32 * len(menuOptions))
+
+		pos.X -= menuWidth / 2
+		pos.Y += 16
+
+		if pos.X < 0 {
+			pos.X = 0
+		} else if pos.X > float32(rl.GetScreenWidth())-menuWidth {
+			pos.X = float32(rl.GetScreenWidth()) - menuWidth
+		}
+
+		if pos.Y < menuHeight/2 {
+			pos.Y = menuHeight / 2
+		} else if pos.Y > float32(rl.GetScreenHeight())-menuHeight/2 {
+			pos.Y = float32(rl.GetScreenHeight()) - menuHeight/2
+		}
+
+		rect := rl.Rectangle{pos.X, pos.Y, 160, 32}
 
 		newTaskPos := float32(1)
 		for _, option := range menuOptions {
@@ -1215,17 +1238,27 @@ func (project *Project) GUI() {
 		rl.DrawTextEx(guiFont, "Numbering Sequence: ", rl.Vector2{columnX, project.NumberingSequence.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.NumberingSequence.Update()
 
-		rl.DrawTextEx(guiFont, "Ignore Numbering Top-level Tasks: ", rl.Vector2{columnX, project.NumberingIgnoreTopLevel.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Ignore Numbering Top-level Tasks:", rl.Vector2{columnX, project.NumberingIgnoreTopLevel.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.NumberingIgnoreTopLevel.Update()
 
-		rl.DrawTextEx(guiFont, "Pulsing Task Selection Outlines: ", rl.Vector2{columnX, project.PulsingTaskSelection.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Pulsing Task Selection Outlines:", rl.Vector2{columnX, project.PulsingTaskSelection.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.PulsingTaskSelection.Update()
 
-		rl.DrawTextEx(guiFont, "Auto-save Projects on Change: ", rl.Vector2{columnX, project.AutoSave.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Auto-save Projects on Change:", rl.Vector2{columnX, project.AutoSave.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.AutoSave.Update()
 
-		rl.DrawTextEx(guiFont, "Auto-reload Themes: ", rl.Vector2{columnX, project.AutoReloadThemes.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		rl.DrawTextEx(guiFont, "Auto-reload Themes:", rl.Vector2{columnX, project.AutoReloadThemes.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.AutoReloadThemes.Update()
+
+		rl.DrawTextEx(guiFont, "Auto-load Last Saved Project:", rl.Vector2{columnX, project.AutoLoadLastProject.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		project.AutoLoadLastProject.Update()
+
+		if !project.AutoLoadLastProject.Checked {
+			_, err := os.Open("lastopenedplan")
+			if err == nil {
+				os.Remove("lastopenedplan")
+			}
+		}
 
 	}
 
