@@ -805,12 +805,12 @@ func (task *Task) Update() {
 		iconColor := getThemeColor(GUI_FONT_COLOR)
 		iconSrc := rl.Rectangle{16, 0, 16, 16}
 
-		iconSrcIconPositions := map[int]float32{
-			TASK_TYPE_BOOLEAN:     0,
-			TASK_TYPE_PROGRESSION: 32,
-			TASK_TYPE_NOTE:        64,
-			TASK_TYPE_SOUND:       80,
-			TASK_TYPE_IMAGE:       96,
+		iconSrcIconPositions := map[int][]float32{
+			TASK_TYPE_BOOLEAN:     []float32{0, 0},
+			TASK_TYPE_PROGRESSION: []float32{32, 0},
+			TASK_TYPE_NOTE:        []float32{64, 0},
+			TASK_TYPE_SOUND:       []float32{80, 0},
+			TASK_TYPE_IMAGE:       []float32{96, 0},
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
@@ -819,7 +819,9 @@ func (task *Task) Update() {
 			}
 		}
 
-		iconSrc.X = iconSrcIconPositions[task.TaskType.CurrentChoice]
+		iconSrc.X = iconSrcIconPositions[task.TaskType.CurrentChoice][0]
+		iconSrc.Y = iconSrcIconPositions[task.TaskType.CurrentChoice][1]
+
 		if len(task.Children) > 0 && task.Completable() {
 			iconSrc.X = 208 // Hardcoding this because I'm an idiot
 		}
@@ -827,6 +829,10 @@ func (task *Task) Update() {
 		if task.IsComplete() {
 			iconSrc.X += 16
 			iconColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		}
+
+		if task.TaskType.CurrentChoice == TASK_TYPE_SOUND && (task.SoundStream == nil || task.GetResourcePath() == "") {
+			iconSrc.Y += 16
 		}
 
 		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage {
@@ -1230,20 +1236,24 @@ func (task *Task) LoadResource() {
 				}
 				successfullyLoaded = true
 			}
+			task.Project.Log("Image file %s properly loaded.", task.GetResourcePath())
+			
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
 			file, err := os.Open(task.GetResourcePath())
 			// We don't need to close this file because the sound system streams from the file,
 			// so the file needs to stay open
-			if err != nil {
-				log.Println("ERROR: Could not load file: ", task.GetResourcePath())
-			} else {
 
-				if task.SoundStream != nil {
-					task.SoundStream.Close()
-					task.SoundStream = nil
-					task.SoundControl = nil
-				}
+			if task.SoundStream != nil {
+				task.SoundStream.Close()
+				task.SoundStream = nil
+				task.SoundControl = nil
+				task.PrevFilePath = ""
+			}
+
+			if err != nil {
+				task.Project.Log("ERROR: Could not load %s.", task.GetResourcePath())
+			} else {
 
 				ext := strings.ToLower(filepath.Ext(task.GetResourcePath()))
 				var stream beep.StreamSeekCloser
@@ -1262,19 +1272,20 @@ func (task *Task) LoadResource() {
 				}
 
 				if err != nil {
-					log.Println("ERROR: Could not decode file: ", task.FilePathTextbox.Text)
+					task.Project.Log("ERROR: Could not decode file %s.", task.GetResourcePath())
 					log.Println(err)
 				} else {
 					task.SoundStream = stream
 
 					if format.SampleRate != task.Project.SampleRate {
-						log.Println("Sample rate of audio file", task.FilePathTextbox.Text, "not the same as project sample rate.")
-						log.Println("File will be resampled.")
+						task.Project.Log("Sample rate of audio file %s not the same as project sample rate.", task.GetResourcePath())
+						task.Project.Log("File will be resampled.")
 						resampled := beep.Resample(4, format.SampleRate, 44100, stream)
 						task.SoundControl = &beep.Ctrl{Streamer: resampled, Paused: true}
 					} else {
 						task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
 					}
+					task.Project.Log("Sound file %s loaded properly.", task.GetResourcePath())
 					speaker.Play(beep.Seq(task.SoundControl, beep.Callback(task.OnSoundCompletion)))
 					successfullyLoaded = true
 				}
