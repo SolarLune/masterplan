@@ -111,7 +111,7 @@ func main() {
 
 			text := msg.Time.Format("15:04:05") + " : " + msg.Text
 
-			color.A = uint8(easings.LinearIn(float32(now.Sub(msg.Time).Seconds()), 255, -255, timeLimit))
+			color.A = uint8(easings.CubicIn(float32(now.Sub(msg.Time).Seconds()), 255, -254, timeLimit))
 			bgColor.A = color.A
 
 			textSize := rl.MeasureTextEx(guiFont, text, guiFontSize, 1)
@@ -126,7 +126,7 @@ func main() {
 			rl.DrawRectangleV(textPos, textSize, bgColor)
 			rl.DrawTextEx(guiFont, text, textPos, guiFontSize, 1, color)
 
-			if now.Sub(msg.Time).Seconds() > float64(timeLimit) {
+			if now.Sub(msg.Time).Seconds() >= float64(timeLimit) {
 				eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
 				i--
 			}
