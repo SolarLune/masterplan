@@ -999,12 +999,11 @@ func (task *Task) PostDraw() {
 			task.FilePathTextbox.Update()
 
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 40, 64, 32}, "Load", false) {
-				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
-				filepath, success, _ := dlgs.File("Load Image", "Image Files | *.png *.jpg *.bmp *.tiff", false)
+				filepath, success, _ := dlgs.File("Load Image", "*.png *.bmp *.jpeg *.jpg *.gif *.psd *.dds *.hdr *.ktx *.astc *.kpm *.pvr", false)
+
 				if success {
 					task.FilePathTextbox.Text = filepath
 				}
-				//rl.ShowWindow()
 			}
 			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 40, 64, 32}, "Clear", false) {
 				task.FilePathTextbox.Text = ""
@@ -1019,12 +1018,10 @@ func (task *Task) PostDraw() {
 			task.FilePathTextbox.Update()
 
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 40, 64, 32}, "Load", false) {
-				//rl.HideWindow()	// Not with the old version of Raylib that raylib-go ships with :/
-				filepath, success, _ := dlgs.File("Load Sound", "Sound Files | *.wav *.ogg *.flac *.mp3", false)
+				filepath, success, _ := dlgs.File("Load Sound", "*.wav *.ogg *.flac *.mp3", false)
 				if success {
 					task.FilePathTextbox.Text = filepath
 				}
-				//rl.ShowWindow()
 			}
 			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 40, 64, 32}, "Clear", false) {
 				task.FilePathTextbox.Text = ""
