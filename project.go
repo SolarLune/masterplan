@@ -900,7 +900,8 @@ func (project *Project) Shortcuts() {
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
 					project.PasteTasks()
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
-					project.CreateNewTask()
+					task := project.CreateNewTask()
+					task.ReceiveMessage("double click", nil)
 				} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
 
 					for _, task := range project.Tasks {
@@ -1171,7 +1172,8 @@ func (project *Project) GUI() {
 					project.ProjectSettingsOpen = true
 
 				case "New Task":
-					project.CreateNewTask()
+					task :=project.CreateNewTask()
+					task.ReceiveMessage("double click", nil)
 
 				case "Delete Tasks":
 					project.DeleteSelectedTasks()
