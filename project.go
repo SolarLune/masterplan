@@ -883,8 +883,6 @@ func (project *Project) Shortcuts() {
 				} else if rl.IsKeyPressed(rl.KeyBackspace) {
 					project.CameraPan = rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2}
 					camera.Offset = project.CameraPan
-					camera.Target.X = float32(rl.GetScreenWidth())/2 - camera.Offset.X
-					camera.Target.Y = float32(rl.GetScreenHeight())/2 - camera.Offset.Y
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
 
 					for _, task := range project.Tasks {
