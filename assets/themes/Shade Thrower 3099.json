@@ -1,0 +1,28 @@
+{
+    "//Outline for tasks, non-highlighted GUI elements, unchecked boxes": [],
+    "GUI_OUTLINE": [255, 130, 255, 255],
+
+    "//Outline for highlighted GUI elements, checked boxes, icon colors": [],
+    "GUI_OUTLINE_HIGHLIGHTED": [250, 61, 0, 255],
+
+    "//Outline for disabled GUI elements / when clicking GUI elements":[],
+    "GUI_OUTLINE_DISABLED": [200, 0, 0, 255],
+
+    "//Inside for tasks, GUI background, background grid markers, axes on background grid": [],
+    "GUI_INSIDE": [20, 20, 20, 255],
+
+    "//Inside for highlighted GUI elements, completed Tasks": [],
+    "GUI_INSIDE_HIGHLIGHTED": [110, 20, 110, 255],
+
+    "//Inside for disabled GUI elements, grid background":[],
+    "GUI_INSIDE_DISABLED": [0, 0, 0, 255],
+
+    "//Text color":[],
+    "GUI_FONT_COLOR": [255, 255, 255, 255],
+    
+    "//Note Tasks":[],
+    "GUI_NOTE_COLOR": [40, 0, 80, 255],
+    
+    "//Task Shadows":[],
+    "GUI_SHADOW_COLOR": [255, 0, 255, 255]
+}

@@ -97,7 +97,7 @@ func NewProject() *Project {
 		Searchbar: searchBar, StatusBar: rl.Rectangle{0, float32(rl.GetScreenHeight()) - 24, float32(rl.GetScreenWidth()), 24},
 		GUI_Icons: rl.LoadTexture(GetPath("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512, Patterns: rl.LoadTexture(GetPath("assets", "patterns.png")),
 
-		ColorThemeSpinner:    NewSpinner(350, 32, 192, 24),
+		ColorThemeSpinner:    NewSpinner(350, 32, 256, 24),
 		ShadowQualitySpinner: NewSpinner(350, 72, 128, 24, "Off", "Solid", "Smooth"),
 		GridVisible:          NewCheckbox(350, 112, 24, 24),
 		ShowIcons:            NewCheckbox(350, 152, 24, 24),
@@ -1167,10 +1167,11 @@ func (project *Project) GUI() {
 					project.LoadFrom()
 
 				case "Project Settings":
+					project.ReloadThemes() // Reload the themes after opening the settings window
 					project.ProjectSettingsOpen = true
 
 				case "New Task":
-					task :=project.CreateNewTask()
+					task := project.CreateNewTask()
 					task.ReceiveMessage("double click", nil)
 
 				case "Delete Tasks":
@@ -1604,6 +1605,8 @@ func (project *Project) GenerateGrid() {
 
 func (project *Project) ReloadThemes() {
 
+	loadThemes()
+
 	_, themeExists := guiColors[currentTheme]
 	if !themeExists {
 		for k := range guiColors {
@@ -1613,7 +1616,6 @@ func (project *Project) ReloadThemes() {
 		}
 	}
 
-	loadThemes()
 	project.GenerateGrid()
 	guiThemes := []string{}
 	for theme, _ := range guiColors {

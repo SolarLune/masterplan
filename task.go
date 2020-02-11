@@ -906,7 +906,7 @@ func (task *Task) DrawShadow() {
 
 		if task.Project.ShadowQualitySpinner.CurrentChoice == 2 {
 
-			src := rl.Rectangle{248, 0, 4, 4}
+			src := rl.Rectangle{248, 1, 4, 4}
 			dst := shadowRect
 			dst.X += dst.Width
 			dst.Width = 4
