@@ -1,9 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"log"
-	"os"
 	"time"
 
 	"github.com/gen2brain/raylib-go/easings"
@@ -39,16 +36,11 @@ func main() {
 
 	rl.SetExitKey(0) /// We don't want Escape to close the program.
 
-	// Attempt auto-load of the last opened project file
-	lastOpenedFile, err := os.Open("lastopenedplan")
-	if err != nil {
-		log.Println("Error opening last opened file: ", err)
-	} else {
-		defer lastOpenedFile.Close()
-		scanner := bufio.NewScanner(lastOpenedFile)
-		scanner.Scan()
-		currentProject.Load(scanner.Text())
+	programSettings.Load()
 
+	// Attempt auto-load of the last opened project file
+	if programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN) {
+		currentProject.Load(programSettings.GetString(PS_LAST_OPENED_PLAN))
 	}
 
 	// profiling := false

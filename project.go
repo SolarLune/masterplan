@@ -112,7 +112,6 @@ func NewProject() *Project {
 
 	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
-	project.AutoLoadLastProject.Checked = true
 	project.ShadowQualitySpinner.CurrentChoice = 2
 	project.GridVisible.Checked = true
 	project.ShowIcons.Checked = true
@@ -176,25 +175,17 @@ func (project *Project) Save() bool {
 		}
 
 		f, err := os.Create(project.FilePath)
-		defer f.Close()
 		if err != nil {
 			log.Println(err)
 			return false
 		} else {
+			defer f.Close()
 			encoder := json.NewEncoder(f)
 			encoder.SetIndent("", "\t")
 			encoder.Encode(data)
 
-			if project.AutoLoadLastProject.Checked {
-				lastOpened, err := os.Create("lastopenedplan")
-				if err != nil {
-					log.Println("ERROR: Can't save last opened project file to current working directory.", err)
-					success = false
-				} else {
-					lastOpened.WriteString(project.FilePath) // We save the last successfully opened project file here.
-					lastOpened.Close()
-				}
-			}
+			programSettings[PS_LAST_OPENED_PLAN] = project.FilePath
+			programSettings.Save()
 
 			err = f.Sync() // Want to make sure the file is written
 			if err != nil {
@@ -315,15 +306,9 @@ func (project *Project) Load(filepath string) bool {
 			project.GenerateGrid()
 		}
 
-		lastOpened, err := os.Create("lastopenedplan")
-		defer lastOpened.Close()
-		if err != nil {
-			log.Println(err)
-			success = false
-		} else {
-			lastOpened.WriteString(filepath) // We save the last successfully opened project file here.
-			project.JustLoaded = true
-		}
+		programSettings[PS_LAST_OPENED_PLAN] = filepath
+		programSettings.Save()
+		project.JustLoaded = true
 
 	}
 
@@ -1212,6 +1197,8 @@ func (project *Project) GUI() {
 			if project.AutoSave.Checked {
 				project.Save()
 			}
+			programSettings[PS_AUTOLOAD_LAST_PLAN] = project.AutoLoadLastProject.Checked
+			programSettings.Save()
 		}
 
 		columnX := float32(32)
@@ -1253,13 +1240,6 @@ func (project *Project) GUI() {
 
 		rl.DrawTextEx(guiFont, "Auto-load Last Saved Project:", rl.Vector2{columnX, project.AutoLoadLastProject.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.AutoLoadLastProject.Update()
-
-		if !project.AutoLoadLastProject.Checked {
-			_, err := os.Open("lastopenedplan")
-			if err == nil {
-				os.Remove("lastopenedplan")
-			}
-		}
 
 	}
 
