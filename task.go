@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gen2brain/raylib-go/raymath"
+
 	"github.com/chonla/roman-number-go"
 
 	"github.com/hako/durafmt"
@@ -168,6 +170,8 @@ type Task struct {
 	Resizeable        bool
 	Resizing          bool
 	Dragging          bool
+	MouseDragStart    rl.Vector2
+	TaskDragStart     rl.Vector2
 
 	TaskAbove           *Task
 	TaskBelow           *Task
@@ -450,10 +454,10 @@ func (task *Task) Update() {
 	}
 
 	if task.Selected && task.Dragging && !task.Resizing {
-
-		task.Position.X += GetMouseDelta().X
-		task.Position.Y += GetMouseDelta().Y
-
+		delta := raymath.Vector2Subtract(GetWorldMousePosition(), task.MouseDragStart)
+		task.Position = raymath.Vector2Add(task.TaskDragStart, delta)
+		task.Rect.X = task.Position.X
+		task.Rect.Y = task.Position.Y
 	}
 
 	if !task.Dragging || task.Resizing {
@@ -481,6 +485,13 @@ func (task *Task) Update() {
 
 	if !rl.CheckCollisionRecs(task.Rect, cameraRect) && task.Project.FullyInitialized {
 		task.Visible = false
+	}
+
+}
+
+func (task *Task) Draw() {
+
+	if !task.Visible {
 		return
 	}
 
@@ -1237,7 +1248,7 @@ func (task *Task) LoadResource() {
 				successfullyLoaded = true
 			}
 			task.Project.Log("Image file %s properly loaded.", task.GetResourcePath())
-			
+
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
 			file, err := os.Open(task.GetResourcePath())
@@ -1334,7 +1345,11 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.LoadResource()
 		task.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
 	} else if message == "dragging" {
-		task.Dragging = task.Selected
+		if task.Selected {
+			task.Dragging = true
+			task.MouseDragStart = GetWorldMousePosition()
+			task.TaskDragStart = task.Position
+		}
 	} else if message == "dropped" {
 		task.Dragging = false
 		task.Position.X, task.Position.Y = task.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
