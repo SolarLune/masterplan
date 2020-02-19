@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gen2brain/raylib-go/raymath"
-
 	rl "github.com/gen2brain/raylib-go/raylib"
 
 	"github.com/atotto/clipboard"
@@ -393,7 +391,6 @@ func (numberSpinner *NumberSpinner) SetNumber(number int) {
 
 type Textbox struct {
 	Text                 string
-	LastModifiedText     string
 	Focused              bool
 	Rect                 rl.Rectangle
 	Visible              bool
@@ -403,73 +400,87 @@ type Textbox struct {
 	Changed              bool
 	HorizontalAlignment  int
 	VerticalAlignment    int
+	SelectedRange        [2]int
+	SelectionStart       int
+	LeadingSelectionEdge int
 
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
 
 	KeyholdTimer int
 	CaretPos     int
+
+	lineHeight  float32
+	lineSpacing float32
 }
 
 func NewTextbox(x, y, w, h float32) *Textbox {
 	textbox := &Textbox{Rect: rl.Rectangle{x, y, w, h}, Visible: true,
-		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64, AllowAlphaCharacters: true}
+		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64, AllowAlphaCharacters: true,
+		SelectedRange: [2]int{-1, -1}}
+
+	textbox.lineHeight = rl.MeasureTextEx(guiFont, "a", guiFontSize, spacing).Y
+	// There's extra line spacing in addition to letter spacing; that spacing is what we're calculating here by getting the size
+	// of a newline character (and therefore, two lines), and then subtracting the size of two normal characters.
+	// Note that this is assuming a monospace font (where all possible lines of text have the same vertical height because of the
+	// font).
+	textbox.lineSpacing = rl.MeasureTextEx(guiFont, "\n", guiFontSize, spacing).Y - (textbox.lineHeight * 2)
+	textbox.lineHeight += textbox.lineSpacing
+
 	return textbox
 }
 
-func (textbox *Textbox) GetClosestPointInText(point rl.Vector2) int {
+func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
 	if len(textbox.Text) == 0 {
 		return 0
 	}
 
-	closestPos := rl.Vector2{}
-	textPos := rl.Vector2{textbox.Rect.X, textbox.Rect.Y}
-	closestIndex := 0
+	closestLineIndex := -1
+	closestLineDiff := float32(-1)
 
-	i := 0
-
-	point.Y -= guiFontSize
-
-	done := false
-
-	for i >= 0 {
-
-		if i < len(textbox.Text) {
-
-			char := textbox.Text[i]
-
-			if char == '\n' {
-				textPos.X = textbox.Rect.X
-				scaleFactor := guiFontSize / float32(font.BaseSize)
-				// This is straight-up ripped for the height that raylib itself uses for \n characters.
-				// See: https://github.com/raysan5/raylib/blob/master/src/text.c#L919
-				textPos.Y += float32((font.BaseSize + font.BaseSize/2) * int32(scaleFactor))
-			} else {
-				measure := rl.MeasureTextEx(guiFont, string(char), guiFontSize, 0)
-				textPos.X += measure.X + spacing // + spacing because I believe that represents the number of pixels between letters
-			}
-
-			i += 1
-
-		} else {
-			measure := rl.MeasureTextEx(guiFont, string(textbox.Text[i-1]), guiFontSize, spacing)
-			textPos.X += measure.X
-			done = true
+	for i := range textbox.Lines() {
+		lineY := textbox.Rect.Y + (textbox.lineHeight * float32(i))
+		diff := float32(math.Abs(float64(lineY - point.Y)))
+		if closestLineDiff < 0 || diff < closestLineDiff {
+			closestLineIndex = i
+			closestLineDiff = diff
 		}
-
-		if raymath.Vector2Distance(point, textPos) < raymath.Vector2Distance(point, closestPos) {
-			closestPos = textPos
-			closestIndex = i
-		}
-
-		if done {
-			i = -1
-		}
-
 	}
 
-	return closestIndex
+	line := textbox.Lines()[closestLineIndex]
+
+	x := textbox.Rect.X
+
+	// Adding a space so you can select the point after the line ends
+	line += " "
+
+	closestCharIndex := -1
+	closestCharDiff := float32(-1)
+	for i, char := range line {
+		x += rl.MeasureTextEx(guiFont, string(char), guiFontSize, spacing).X + spacing
+		diff := math.Abs(float64(x - point.X))
+		if closestCharDiff < 0 || diff < float64(closestCharDiff) {
+			closestCharIndex = i
+			closestCharDiff = float32(diff)
+		}
+	}
+
+	index := 0
+
+	for l := range textbox.Lines() {
+		if l < closestLineIndex {
+			index += len(textbox.Lines()[l]) + 1 // The +1 is for the newline character
+		} else {
+			index += closestCharIndex
+			break
+		}
+	}
+
+	// WARNING! The index can be at the very end of the array (so the index could be 3 with text of "abc")
+
+	return index
+
 }
 
 func (textbox *Textbox) InsertCharacterAtCaret(char string) {
@@ -488,24 +499,68 @@ func (textbox *Textbox) Lines() []string {
 	return strings.Split(textbox.Text, "\n")
 }
 
-func (textbox *Textbox) LineNumberByCaretPosition() int {
-	caretPos := textbox.CaretPos
+func (textbox *Textbox) LineNumberByPosition(position int) int {
 	for i, line := range textbox.Lines() {
-		caretPos -= len(line) + 1 // Lines are split by "\n", so they're not included in the line length
-		if caretPos < 0 {
+		position -= len(line) + 1 // Lines are split by "\n", so they're not included in the line length
+		if position < 0 {
 			return i
 		}
 	}
 	return 0
 }
 
-func (textbox *Textbox) CaretPositionInLine() int {
-	cut := textbox.Text[:textbox.CaretPos]
+func (textbox *Textbox) PositionInLine(position int) int {
+	cut := textbox.Text[:position]
 	start := strings.LastIndex(cut, "\n")
 	if start < 0 {
 		start = 0
 	}
 	return len(cut[start:])
+}
+
+func (textbox *Textbox) CharacterToPoint(position int) rl.Vector2 {
+
+	x := textbox.Rect.X
+	y := textbox.Rect.Y
+
+	for index, char := range textbox.Text {
+		if index == position {
+			break
+		}
+		if string(char) == "\n" {
+			y += textbox.lineHeight
+			x = textbox.Rect.X
+		}
+		x += rl.MeasureTextEx(guiFont, string(char), guiFontSize, spacing).X + spacing
+	}
+
+	return rl.Vector2{x, y}
+
+}
+
+func (textbox *Textbox) CharacterToRect(position int) rl.Rectangle {
+
+	rect := rl.Rectangle{}
+
+	if position < len(textbox.Text) {
+
+		pos := textbox.CharacterToPoint(position)
+
+		letterSize := rl.MeasureTextEx(guiFont, string(textbox.Text[position]), guiFontSize, spacing)
+
+		rect.X = pos.X
+		rect.Y = pos.Y
+		rect.Width = letterSize.X + spacing
+		rect.Height = letterSize.Y
+
+	}
+
+	return rect
+
+}
+
+func (textbox *Textbox) OutlineLetter(position int) {
+
 }
 
 func (textbox *Textbox) Update() {
@@ -514,26 +569,26 @@ func (textbox *Textbox) Update() {
 
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 		textbox.Focused = rl.CheckCollisionPointRec(GetMousePosition(), textbox.Rect)
-		if !textbox.Focused {
-			textbox.LastModifiedText = textbox.Text
-		}
 	}
 
 	if textbox.Focused {
 
 		if textbox.AllowNewlines && (rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)) {
+			textbox.Changed = true
+			if textbox.RangeSelected() {
+				textbox.DeleteSelectedText()
+			}
 			textbox.InsertCharacterAtCaret("\n")
 		}
 
 		control := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
+		shift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
+
 		if control {
-			if rl.IsKeyPressed(rl.KeyV) {
-				text, err := clipboard.ReadAll()
-				if err == nil {
-					textbox.InsertTextAtCaret(text)
-				}
+			if rl.IsKeyPressed(rl.KeyA) {
+				textbox.SelectedRange[0] = 0
+				textbox.SelectedRange[1] = len(textbox.Text)
 			}
-			// COPYING TEXT IS TO BE DONE LATER
 		}
 
 		letter := int(rl.GetKeyPressed())
@@ -549,18 +604,31 @@ func (textbox *Textbox) Update() {
 
 			isNum := (letter >= numbers[0] && letter <= numbers[1]) || (letter >= npNumbers[0] && letter <= npNumbers[1])
 
-			if len(textbox.Lines()[textbox.LineNumberByCaretPosition()]) < textbox.MaxCharactersPerLine {
+			if len(textbox.Lines()[textbox.LineNumberByPosition(textbox.CaretPos)]) < textbox.MaxCharactersPerLine {
 
 				if letter >= 32 && letter < 127 && (textbox.AllowAlphaCharacters || isNum) {
 					textbox.Changed = true
+					if textbox.RangeSelected() {
+						textbox.DeleteSelectedText()
+					}
+					textbox.RemoveSelection()
 					textbox.InsertCharacterAtCaret(fmt.Sprintf("%c", letter))
 				}
 
 			}
 		}
 
+		mousePos := GetMousePosition()
+		mousePos.Y -= textbox.lineHeight / 2
+
 		if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
-			textbox.CaretPos = textbox.GetClosestPointInText(GetMousePosition())
+			textbox.CaretPos = textbox.ClosestPointInText(mousePos)
+			textbox.SelectionStart = textbox.CaretPos
+		}
+		if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+			textbox.SelectedRange[0] = textbox.SelectionStart
+			textbox.CaretPos = textbox.ClosestPointInText(mousePos)
+			textbox.SelectedRange[1] = textbox.CaretPos
 		}
 
 		keyState := map[int32]int{
@@ -572,6 +640,7 @@ func (textbox *Textbox) Update() {
 			rl.KeyDelete:    0,
 			rl.KeyHome:      0,
 			rl.KeyEnd:       0,
+			rl.KeyV:         0,
 		}
 
 		for k := range keyState {
@@ -588,10 +657,14 @@ func (textbox *Textbox) Update() {
 			}
 		}
 
+		if !textbox.RangeSelected() && (rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift)) {
+			textbox.SelectionStart = textbox.CaretPos
+		}
+
 		if keyState[rl.KeyRight] > 0 {
 			nextWordDist := strings.Index(textbox.Text[textbox.CaretPos:], " ")
 			nextNewLine := strings.Index(textbox.Text[textbox.CaretPos:], "\n")
-			if nextNewLine >= 0 && nextNewLine < nextWordDist {
+			if nextWordDist < 0 || (nextWordDist >= 0 && nextNewLine >= 0 && nextNewLine < nextWordDist) {
 				nextWordDist = nextNewLine
 			}
 
@@ -607,10 +680,13 @@ func (textbox *Textbox) Update() {
 			} else {
 				textbox.CaretPos++
 			}
+			if !shift {
+				textbox.RemoveSelection()
+			}
 		} else if keyState[rl.KeyLeft] > 0 {
 			prevWordDist := strings.LastIndex(textbox.Text[:textbox.CaretPos], " ")
 			prevNewLine := strings.LastIndex(textbox.Text[:textbox.CaretPos], "\n")
-			if prevNewLine >= 0 && prevNewLine > prevWordDist {
+			if prevWordDist < 0 || (prevWordDist >= 0 && prevNewLine >= 0 && prevNewLine > prevWordDist) {
 				prevWordDist = prevNewLine
 			}
 
@@ -628,36 +704,81 @@ func (textbox *Textbox) Update() {
 			} else {
 				textbox.CaretPos--
 			}
-		}
-
-		if keyState[rl.KeyUp] > 0 {
-			lines := textbox.Lines()
-			lineIndex := textbox.LineNumberByCaretPosition()
+			if !shift {
+				textbox.RemoveSelection()
+			}
+		} else if keyState[rl.KeyUp] > 0 {
+			lineIndex := textbox.LineNumberByPosition(textbox.CaretPos)
 			if lineIndex > 0 {
-				if textbox.CaretPositionInLine() <= len(lines[lineIndex-1])+1 {
-					textbox.CaretPos -= len(lines[lineIndex-1]) + 1
-				} else {
-					textbox.CaretPos -= textbox.CaretPositionInLine()
-				}
+				pos := textbox.CharacterToPoint(textbox.CaretPos)
+				pos.Y -= textbox.lineHeight
+				pos.X += 6 // To combat drifting (THIS IS THE BEST I CAN DO, OKAY)
+				textbox.CaretPos = textbox.ClosestPointInText(pos)
 			} else {
 				textbox.CaretPos = 0
 			}
-		}
-
-		if keyState[rl.KeyDown] > 0 {
-			lines := textbox.Lines()
-			lineIndex := textbox.LineNumberByCaretPosition()
-			if lineIndex < len(lines)-1 {
-				if textbox.CaretPositionInLine() <= len(lines[lineIndex+1]) {
-					textbox.CaretPos += len(lines[lineIndex]) + 1
-				} else {
-					textbox.CaretPos -= textbox.CaretPositionInLine()
-					textbox.CaretPos += len(lines[lineIndex]) + 1
-					textbox.CaretPos += len(lines[lineIndex+1]) + 1
-				}
+			if !shift {
+				textbox.RemoveSelection()
+			}
+		} else if keyState[rl.KeyDown] > 0 {
+			lineIndex := textbox.LineNumberByPosition(textbox.CaretPos)
+			if lineIndex < len(textbox.Lines())-1 {
+				pos := textbox.CharacterToPoint(textbox.CaretPos)
+				pos.Y += textbox.lineHeight
+				pos.X += 6
+				textbox.CaretPos = textbox.ClosestPointInText(pos)
 			} else {
 				textbox.CaretPos = len(textbox.Text)
 			}
+			if !shift {
+				textbox.RemoveSelection()
+			}
+		} else if keyState[rl.KeyV] > 0 && control {
+			clipboardText, _ := clipboard.ReadAll()
+			if clipboardText != "" {
+
+				textbox.Changed = true
+				if textbox.RangeSelected() {
+					textbox.DeleteSelectedText()
+				}
+
+				textbox.InsertTextAtCaret(clipboardText)
+
+			}
+
+		}
+
+		if shift {
+			textbox.SelectedRange[0] = textbox.SelectionStart
+			textbox.SelectedRange[1] = textbox.CaretPos
+		}
+
+		if textbox.SelectedRange[1] < textbox.SelectedRange[0] || textbox.SelectedRange[0] > textbox.SelectedRange[1] {
+			temp := textbox.SelectedRange[0]
+			textbox.SelectedRange[0] = textbox.SelectedRange[1]
+			textbox.SelectedRange[1] = temp
+		}
+
+		// Specifically want these two shortcuts to be here, underneath the above code block to ensure the selected range is valid before
+		// we mess with it
+
+		if control {
+
+			if textbox.RangeSelected() {
+
+				if rl.IsKeyPressed(rl.KeyC) {
+
+					clipboard.WriteAll(textbox.Text[textbox.SelectedRange[0]:textbox.SelectedRange[1]])
+
+				} else if rl.IsKeyPressed(rl.KeyX) {
+
+					clipboard.WriteAll(textbox.Text[textbox.SelectedRange[0]:textbox.SelectedRange[1]])
+					textbox.DeleteSelectedText()
+
+				}
+
+			}
+
 		}
 
 		if keyState[rl.KeyHome] > 0 {
@@ -666,14 +787,22 @@ func (textbox *Textbox) Update() {
 			textbox.CaretPos = len(textbox.Text)
 		}
 
-		if keyState[rl.KeyBackspace] > 0 && textbox.CaretPos > 0 {
-			// textbox.Text = textbox.Text[:len(textbox.Text)-1]
+		if keyState[rl.KeyBackspace] > 0 {
 			textbox.Changed = true
-			textbox.CaretPos--
-			textbox.Text = textbox.Text[:textbox.CaretPos] + textbox.Text[textbox.CaretPos+1:]
-		} else if keyState[rl.KeyDelete] > 0 && textbox.CaretPos != len(textbox.Text) {
+			if textbox.RangeSelected() {
+				textbox.DeleteSelectedText()
+			} else if textbox.CaretPos > 0 {
+				// textbox.Text = textbox.Text[:len(textbox.Text)-1]
+				textbox.CaretPos--
+				textbox.Text = textbox.Text[:textbox.CaretPos] + textbox.Text[textbox.CaretPos+1:]
+			}
+		} else if keyState[rl.KeyDelete] > 0 {
 			textbox.Changed = true
-			textbox.Text = textbox.Text[:textbox.CaretPos] + textbox.Text[textbox.CaretPos+1:]
+			if textbox.RangeSelected() {
+				textbox.DeleteSelectedText()
+			} else if textbox.CaretPos != len(textbox.Text) {
+				textbox.Text = textbox.Text[:textbox.CaretPos] + textbox.Text[textbox.CaretPos+1:]
+			}
 		}
 
 		if textbox.CaretPos < 0 {
@@ -713,9 +842,10 @@ func (textbox *Textbox) Update() {
 
 	txt := textbox.Text
 
+	// if textbox.Focused && !textbox.RangeSelected() {
 	if textbox.Focused {
 		caretChar := " "
-		if textbox.Focused && math.Ceil(float64(rl.GetTime()*4))-float64(rl.GetTime()*4) < 0.5 {
+		if math.Ceil(float64(rl.GetTime()*4))-float64(rl.GetTime()*4) < 0.5 {
 			caretChar = "|"
 		}
 
@@ -736,6 +866,50 @@ func (textbox *Textbox) Update() {
 		pos.Y += float32(int(textbox.Rect.Height - measure.Y - 4))
 	}
 
+	if textbox.RangeSelected() {
+		for i := textbox.SelectedRange[0]; i < textbox.SelectedRange[1]; i++ {
+			rec := textbox.CharacterToRect(i)
+			if i > textbox.CaretPos {
+				rec.X += 2
+			}
+			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE_DISABLED))
+		}
+	}
+
 	rl.DrawTextEx(guiFont, txt, pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
+}
+
+func (textbox *Textbox) RangeSelected() bool {
+	return textbox.Focused && textbox.SelectedRange[0] >= 0 && textbox.SelectedRange[1] >= 0 && textbox.SelectedRange[0] != textbox.SelectedRange[1]
+}
+
+func (textbox *Textbox) RemoveSelection() {
+	textbox.SelectedRange[0] = -1
+	textbox.SelectedRange[1] = -1
+	textbox.SelectionStart = -1
+}
+
+func (textbox *Textbox) DeleteSelectedText() {
+
+	if textbox.SelectedRange[0] < 0 {
+		textbox.SelectedRange[0] = 0
+	}
+	if textbox.SelectedRange[1] < 0 {
+		textbox.SelectedRange[1] = 0
+	}
+
+	if textbox.SelectedRange[0] > len(textbox.Text) {
+		textbox.SelectedRange[0] = len(textbox.Text)
+	}
+	if textbox.SelectedRange[1] > len(textbox.Text) {
+		textbox.SelectedRange[1] = len(textbox.Text)
+	}
+
+	textbox.Text = textbox.Text[:textbox.SelectedRange[0]] + textbox.Text[textbox.SelectedRange[1]:]
+	textbox.CaretPos = textbox.SelectedRange[0]
+	if textbox.CaretPos > len(textbox.Text) {
+		textbox.CaretPos = len(textbox.Text)
+	}
+	textbox.RemoveSelection()
 }
