@@ -573,6 +573,10 @@ func (textbox *Textbox) Update() {
 
 	if textbox.Focused {
 
+		if rl.IsKeyPressed(rl.KeyEscape) {
+			textbox.Focused = false
+		}
+
 		if textbox.AllowNewlines && (rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)) {
 			textbox.Changed = true
 			if textbox.RangeSelected() {

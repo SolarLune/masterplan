@@ -2,15 +2,7 @@ package main
 
 import (
 	"fmt"
-	"image"
-	"image/color"
-	"image/gif"
-	"io"
-	"io/ioutil"
-	"log"
 	"math"
-	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -22,11 +14,7 @@ import (
 	"github.com/hako/durafmt"
 
 	"github.com/faiface/beep"
-	"github.com/faiface/beep/flac"
-	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
-	"github.com/faiface/beep/vorbis"
-	"github.com/faiface/beep/wav"
 	"github.com/gen2brain/dlgs"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -45,93 +33,6 @@ const (
 	TASK_DUE_TODAY
 	TASK_DUE_LATE
 )
-
-type GifAnimation struct {
-	Data         *gif.GIF
-	Frames       []*rl.Image
-	Delays       []float32 // 100ths of a second?
-	CurrentFrame int
-	Timer        float32
-	frameImg     *image.RGBA
-	DrawTexture  *rl.Texture2D
-}
-
-func NewGifAnimation(data *gif.GIF) *GifAnimation {
-	tex := rl.LoadTextureFromImage(rl.NewImageFromImage(data.Image[0]))
-	anim := &GifAnimation{Data: data, frameImg: image.NewRGBA(data.Image[0].Rect), DrawTexture: &tex}
-	return anim
-}
-
-func (gifAnim *GifAnimation) IsEmpty() bool {
-	// return true
-	return gifAnim.Data == nil || len(gifAnim.Data.Image) == 0
-}
-
-func (gifAnim *GifAnimation) Update(dt float32) {
-
-	gifAnim.Timer += dt
-	if gifAnim.Timer >= gifAnim.Delays[gifAnim.CurrentFrame] {
-		gifAnim.Timer -= gifAnim.Delays[gifAnim.CurrentFrame]
-		gifAnim.CurrentFrame++
-	}
-	if gifAnim.CurrentFrame >= len(gifAnim.Data.Image) {
-		gifAnim.CurrentFrame = 0
-	}
-}
-
-func (gifAnim *GifAnimation) GetTexture() rl.Texture2D {
-
-	if gifAnim.CurrentFrame == len(gifAnim.Frames) && len(gifAnim.Frames) < len(gifAnim.Data.Image) {
-
-		// After decoding, we have to manually create a new image and plot each frame of the GIF because transparent GIFs
-		// can only have frames that account for changed pixels (i.e. if you have a 320x240 GIF, but on frame
-		// 17 only one pixel changes, the image generated for frame 17 will be 1x1 for Bounds.Size()).
-
-		img := gifAnim.Data.Image[gifAnim.CurrentFrame]
-
-		disposalMode := gifAnim.Data.Disposal[gifAnim.CurrentFrame]
-
-		for y := 0; y < gifAnim.frameImg.Bounds().Size().Y; y++ {
-			for x := 0; x < gifAnim.frameImg.Bounds().Size().X; x++ {
-				if x >= img.Bounds().Min.X && x < img.Bounds().Max.X && y >= img.Bounds().Min.Y && y < img.Bounds().Max.Y {
-					color := img.At(x, y)
-					_, _, _, a := color.RGBA()
-					if disposalMode != gif.DisposalNone || a >= 255 {
-						gifAnim.frameImg.Set(x, y, color)
-					}
-				} else {
-					if disposalMode == gif.DisposalBackground {
-						gifAnim.frameImg.Set(x, y, color.RGBA{0, 0, 0, 0})
-					} else if disposalMode == gif.DisposalPrevious && gifAnim.CurrentFrame > 0 {
-						gifAnim.frameImg.Set(x, y, gifAnim.Data.Image[gifAnim.CurrentFrame-1].At(x, y))
-					}
-					// For gif.DisposalNone, it doesn't matter, I think?
-					// For clarification on disposal method specs, see: https://www.w3.org/Graphics/GIF/spec-gif89a.txt
-				}
-			}
-
-		}
-
-		gifAnim.Frames = append(gifAnim.Frames, rl.NewImageFromImage(gifAnim.frameImg))
-		gifAnim.Delays = append(gifAnim.Delays, float32(gifAnim.Data.Delay[gifAnim.CurrentFrame])/100)
-
-	}
-
-	if gifAnim.DrawTexture != nil {
-		rl.UnloadTexture(*gifAnim.DrawTexture)
-	}
-	tex := rl.LoadTextureFromImage(gifAnim.Frames[gifAnim.CurrentFrame])
-	gifAnim.DrawTexture = &tex
-	return *gifAnim.DrawTexture
-
-}
-
-func (gifAnimation *GifAnimation) Destroy() {
-	for _, frame := range gifAnimation.Frames {
-		rl.UnloadImage(frame)
-	}
-	rl.UnloadTexture(*gifAnimation.DrawTexture)
-}
 
 type Task struct {
 	Rect         rl.Rectangle
@@ -160,18 +61,17 @@ type Task struct {
 
 	GifAnimation *GifAnimation
 
-	SoundControl      *beep.Ctrl
-	SoundStream       beep.StreamSeekCloser
-	SoundComplete     bool
-	FilePathTextbox   *Textbox
-	PrevFilePath      string
-	URLDownloadedFile string // I don't know about the utility of this one. It's got cool points, though.
-	ImageDisplaySize  rl.Vector2
-	Resizeable        bool
-	Resizing          bool
-	Dragging          bool
-	MouseDragStart    rl.Vector2
-	TaskDragStart     rl.Vector2
+	SoundControl     *beep.Ctrl
+	SoundStream      beep.StreamSeekCloser
+	SoundComplete    bool
+	FilePathTextbox  *Textbox
+	PrevFilePath     string
+	ImageDisplaySize rl.Vector2
+	Resizeable       bool
+	Resizing         bool
+	Dragging         bool
+	MouseDragStart   rl.Vector2
+	TaskDragStart    rl.Vector2
 
 	TaskAbove           *Task
 	TaskBelow           *Task
@@ -183,7 +83,6 @@ type Task struct {
 	Children            []*Task
 	PercentageComplete  float32
 	Visible             bool
-	RenderTexture       rl.RenderTexture2D
 }
 
 var taskID = 0
@@ -223,7 +122,6 @@ func NewTask(project *Project) *Task {
 		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 160, 24, months...),
 		DeadlineDaySpinner:           NewNumberSpinner(300, 128, 64, 24),
 		DeadlineYearSpinner:          NewNumberSpinner(300, 128, 64, 24),
-		RenderTexture:                rl.LoadRenderTexture(8000, 16),
 		// DeadlineTimeTextbox:          NewTextbox(240, 128, 64, 16),	// Need to make textbox format for time.
 	}
 
@@ -256,10 +154,6 @@ func (task *Task) Clone() *Task {
 	copyData.Description = &desc
 
 	tt := *copyData.TaskType
-	// tt.Options = []string{}		// THIS COULD be a problem later; don't do anything about it if it's not necessary.
-	// for _, opt := range task.TaskType.Options {
-
-	// }
 	copyData.TaskType = &tt
 
 	cc := *copyData.CompletionCheckbox
@@ -278,7 +172,6 @@ func (task *Task) Clone() *Task {
 	copyData.GifAnimation = nil
 	copyData.SoundControl = nil
 	copyData.SoundStream = nil
-	copyData.URLDownloadedFile = "" // Downloaded file doesn't exist; we don't want to delete the original file...
 
 	copyData.ReceiveMessage("task close", nil) // We do this to recreate the resources for the Task, if necessary.
 
@@ -299,6 +192,9 @@ func (task *Task) Serialize() map[string]interface{} {
 	data["FilePath"] = task.FilePathTextbox.Text
 	data["Selected"] = task.Selected
 	data["TaskType.CurrentChoice"] = task.TaskType.CurrentChoice
+	if task.Project.SaveSoundsPlaying.Checked {
+		data["SoundPaused"] = task.SoundControl != nil && task.SoundControl.Paused
+	}
 
 	if task.DeadlineCheckbox.Checked {
 		data["DeadlineDaySpinner.Number"] = task.DeadlineDaySpinner.GetNumber()
@@ -324,36 +220,32 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 		value, exists := data[name]
 		if exists {
 			return float32(value.(float64))
-		} else {
-			return defaultValue
 		}
+		return defaultValue
 	}
 
 	getInt := func(name string, defaultValue int) int {
 		value, exists := data[name]
 		if exists {
 			return int(value.(float64))
-		} else {
-			return defaultValue
 		}
+		return defaultValue
 	}
 
 	getBool := func(name string, defaultValue bool) bool {
 		value, exists := data[name]
 		if exists {
 			return value.(bool)
-		} else {
-			return defaultValue
 		}
+		return defaultValue
 	}
 
 	getString := func(name string, defaultValue string) string {
 		value, exists := data[name]
 		if exists {
 			return value.(string)
-		} else {
-			return defaultValue
 		}
+		return defaultValue
 	}
 
 	hasData := func(name string) bool {
@@ -398,6 +290,10 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 
 	// We do this to update the task after loading all of the information.
 	task.LoadResource()
+
+	if task.SoundControl != nil {
+		task.SoundControl.Paused = getBool("SoundPaused", true)
+	}
 }
 
 func (task *Task) Update() {
@@ -422,16 +318,23 @@ func (task *Task) Update() {
 
 	if task.SoundComplete {
 
+		// We want to lock and unlock the speaker as little as possible, and only when manipulating streams or controls.
+
+		speaker.Lock()
+
 		task.SoundComplete = false
 		task.SoundControl.Paused = true
 		task.SoundStream.Seek(0)
+
+		speaker.Unlock()
+
 		speaker.Play(beep.Seq(task.SoundControl, beep.Callback(task.OnSoundCompletion)))
 
+		speaker.Lock()
+
 		if task.TaskBelow != nil && task.TaskBelow.TaskType.CurrentChoice == TASK_TYPE_SOUND && task.TaskBelow.SoundControl != nil {
-			speaker.Lock()
 			task.SoundControl.Paused = true
 			task.TaskBelow.SoundControl.Paused = false
-			speaker.Unlock()
 		} else if task.TaskAbove != nil {
 
 			above := task.TaskAbove
@@ -440,16 +343,14 @@ func (task *Task) Update() {
 			}
 
 			if above != nil {
-				speaker.Lock()
 				task.SoundControl.Paused = true
 				above.SoundControl.Paused = false
-				speaker.Unlock()
 			}
 		} else {
-			speaker.Lock()
 			task.SoundControl.Paused = false
-			speaker.Unlock()
 		}
+
+		speaker.Unlock()
 
 	}
 
@@ -698,13 +599,12 @@ func (task *Task) Draw() {
 		perc = 1
 	}
 
-	// task.PercentageComplete = easings.SineIn(rl.GetTime(), task.PercentageComplete, perc, 1)
-
 	task.PercentageComplete += (perc - task.PercentageComplete) * 0.1
 
-	if task.PercentageComplete < 0.01 {
+	// Raising these "margins" because sounds can be longer, and so 3 seconds into a 5 minute song might would be 1%, or 0.01.
+	if task.PercentageComplete < 0.0001 {
 		task.PercentageComplete = 0
-	} else if task.PercentageComplete >= 0.99 {
+	} else if task.PercentageComplete >= 0.9999 {
 		task.PercentageComplete = 1
 	}
 
@@ -842,7 +742,7 @@ func (task *Task) Draw() {
 			iconColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 		}
 
-		if task.TaskType.CurrentChoice == TASK_TYPE_SOUND && (task.SoundStream == nil || task.GetResourcePath() == "") {
+		if task.TaskType.CurrentChoice == TASK_TYPE_SOUND && task.SoundStream == nil {
 			iconSrc.Y += 16
 		}
 
@@ -1150,164 +1050,79 @@ func (task *Task) SetCompletion(complete bool) {
 
 }
 
-func (task *Task) GetResourcePath() string {
-
-	if task.URLDownloadedFile != "" {
-		return task.URLDownloadedFile
-	}
-	return task.FilePathTextbox.Text
-
-}
-
-func (task *Task) DeletePreviouslyDownloadedResource() {
-
-	if task.URLDownloadedFile != "" {
-		os.Remove(task.URLDownloadedFile)
-	}
-
-}
-
 func (task *Task) LoadResource() {
 
-	// Loads the resource for the Task (a Texture if it's an image, a GIF animation if it's a GIF,
-	// a Sound stream if it's a sound file, etc.). It also handles downloading files from URLs to
-	// the temp directory.
+	if task.FilePathTextbox.Text != "" && task.PrevFilePath != task.FilePathTextbox.Text {
 
-	if task.FilePathTextbox.Text != "" && task.FilePathTextbox.Text != task.PrevFilePath {
+		res, _ := task.Project.LoadResource(task.FilePathTextbox.Text)
 
-		task.DeletePreviouslyDownloadedResource()
+		if res != nil {
 
-		successfullyLoaded := false
-		task.URLDownloadedFile = ""
+			if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 
-		if strings.HasPrefix(task.FilePathTextbox.Text, "http://") || strings.HasPrefix(task.FilePathTextbox.Text, "https://") {
-			response, err := http.Get(task.FilePathTextbox.Text)
-			if err != nil {
-				log.Println(err)
-				task.Project.Log(err.Error())
-			} else {
-				_, ogFilename := filepath.Split(task.FilePathTextbox.Text)
-				defer response.Body.Close()
-				if filepath.Ext(ogFilename) == "" {
-					ogFilename += ".png" // Gotta just make a guess on this one
-					// TODO: Use project.IdentifyFile() for this?
-				}
-				tempFile, err := ioutil.TempFile("", "masterplan*_"+ogFilename)
-				defer tempFile.Close()
-				if err != nil {
-					log.Println(err)
-				} else {
-					io.Copy(tempFile, response.Body)
-					task.URLDownloadedFile = tempFile.Name()
-				}
-			}
-		}
+				if res.IsTexture() {
 
-		if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-			ext := strings.ToLower(filepath.Ext(task.FilePathTextbox.Text))
-			if ext == ".gif" {
-
-				file, err := os.Open(task.GetResourcePath())
-
-				if err != nil {
-					log.Println(err)
-				} else {
-					defer file.Close()
-					gifFile, err := gif.DecodeAll(file)
-					if err != nil {
-						log.Println(err)
-					} else {
-						if task.GifAnimation != nil {
-							task.ImageDisplaySize.X = 0
-							task.ImageDisplaySize.Y = 0
-						}
-						task.GifAnimation = NewGifAnimation(gifFile)
-						if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
-							task.ImageDisplaySize.X = float32(task.GifAnimation.Data.Image[0].Bounds().Size().X)
-							task.ImageDisplaySize.Y = float32(task.GifAnimation.Data.Image[0].Bounds().Size().Y)
-						}
-						successfullyLoaded = true
+					if task.GifAnimation != nil {
+						task.GifAnimation.Destroy()
+						task.GifAnimation = nil
 					}
+					task.Image = res.Texture()
+					if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
+						task.ImageDisplaySize.X = float32(task.Image.Width)
+						task.ImageDisplaySize.Y = float32(task.Image.Height)
+					}
+
+				} else if res.IsGIF() {
+
+					if task.GifAnimation != nil {
+						task.ImageDisplaySize.X = 0
+						task.ImageDisplaySize.Y = 0
+					}
+					task.GifAnimation = NewGifAnimation(res.GIF())
+					if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
+						task.ImageDisplaySize.X = float32(task.GifAnimation.Data.Image[0].Bounds().Size().X)
+						task.ImageDisplaySize.Y = float32(task.GifAnimation.Data.Image[0].Bounds().Size().Y)
+					}
+
 				}
 
-			} else {
-				if task.Image.ID > 0 {
-					rl.UnloadTexture(task.Image)
-					task.ImageDisplaySize.X = 0
-					task.ImageDisplaySize.Y = 0
-				}
-				if task.GifAnimation != nil {
-					task.GifAnimation.Destroy()
-					task.GifAnimation = nil
-				}
-				task.Image = rl.LoadTexture(task.GetResourcePath())
-				if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
-					task.ImageDisplaySize.X = float32(task.Image.Width)
-					task.ImageDisplaySize.Y = float32(task.Image.Height)
-				}
-				successfullyLoaded = true
-			}
-			task.Project.Log("Image file %s properly loaded.", task.GetResourcePath())
+			} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
-		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-
-			file, err := os.Open(task.GetResourcePath())
-			// We don't need to close this file because the sound system streams from the file,
-			// so the file needs to stay open
-
-			if task.SoundStream != nil {
-				task.SoundStream.Close()
-				task.SoundStream = nil
-				task.SoundControl = nil
-				task.PrevFilePath = ""
-			}
-
-			if err != nil {
-				task.Project.Log("ERROR: Could not load %s.", task.GetResourcePath())
-			} else {
-
-				ext := strings.ToLower(filepath.Ext(task.GetResourcePath()))
-				var stream beep.StreamSeekCloser
-				var format beep.Format
-				var err error
-
-				if strings.Contains(ext, "mp3") {
-					stream, format, err = mp3.Decode(file)
-				} else if strings.Contains(ext, "ogg") {
-					stream, format, err = vorbis.Decode(file)
-				} else if strings.Contains(ext, "flac") {
-					stream, format, err = flac.Decode(file)
-				} else {
-					// Going to assume it's a WAV
-					stream, format, err = wav.Decode(file)
+				if task.SoundStream != nil {
+					speaker.Lock()
+					task.SoundStream.Close()
+					task.SoundControl.Paused = true
+					task.SoundControl = nil
+					speaker.Unlock()
 				}
 
-				if err != nil {
-					task.Project.Log("ERROR: Could not decode file %s.", task.GetResourcePath())
-					log.Println(err)
-				} else {
+				stream, format, err := res.Audio()
+
+				if err == nil {
+
 					task.SoundStream = stream
 
 					if format.SampleRate != task.Project.SampleRate {
-						task.Project.Log("Sample rate of audio file %s not the same as project sample rate.", task.GetResourcePath())
+						task.Project.Log("Sample rate of audio file %s not the same as project sample rate %d.", res.ResourcePath, int(task.Project.SampleRate))
 						task.Project.Log("File will be resampled.")
-						resampled := beep.Resample(4, format.SampleRate, 44100, stream)
-						task.SoundControl = &beep.Ctrl{Streamer: resampled, Paused: true}
+						// SolarLune: Note the resample quality has to be 1 (poor); otherwise, it seems like some files will cause beep to crash with an invalid
+						// index error. Probably has to do something with how the resampling process works combined with particular sound files.
+						// For me, it crashes on playing back the file "10 3-audio.wav" on my computer repeatedly (after about 4-6 loops, it crashes).
+						task.SoundControl = &beep.Ctrl{
+							Streamer: beep.Resample(1, format.SampleRate, task.Project.SampleRate, stream),
+							Paused:   true}
 					} else {
 						task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
 					}
-					task.Project.Log("Sound file %s loaded properly.", task.GetResourcePath())
+					task.Project.Log("Sound file %s loaded properly.", res.ResourcePath)
 					speaker.Play(beep.Seq(task.SoundControl, beep.Callback(task.OnSoundCompletion)))
-					successfullyLoaded = true
+
 				}
 
 			}
 
-		}
-
-		if successfullyLoaded {
-			// We only record the previous file path if the resource was properly loaded.
 			task.PrevFilePath = task.FilePathTextbox.Text
+
 		}
 
 	}
@@ -1359,19 +1174,15 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else if message == "delete" {
 
 		if data["task"] == task {
+
 			if task.SoundStream != nil {
 				task.SoundStream.Close()
 				task.SoundControl.Paused = true
 				task.SoundControl = nil
 			}
-			if task.Image.ID > 0 {
-				rl.UnloadTexture(task.Image)
-			}
 			if task.GifAnimation != nil {
 				task.GifAnimation.Destroy()
 			}
-
-			task.DeletePreviouslyDownloadedResource()
 
 		}
 
@@ -1436,18 +1247,15 @@ func (task *Task) GetNeighbors() {
 			otherRec.X = other.Position.X
 			otherRec.Y = other.Position.Y
 
-			if rl.CheckCollisionRecs(taskRec, otherRec) && (taskRec.X != otherRec.X || taskRec.Y-8 != otherRec.Y) {
-				if other.TaskBelow != task {
-					other.TaskAbove = task
-				}
-				if task.TaskAbove != other {
-					task.TaskBelow = other
-				}
+			if rl.CheckCollisionRecs(taskRec, otherRec) && otherRec.Y > taskRec.Y {
+				other.TaskAbove = task
+				task.TaskBelow = other
 				break
 			}
 
 		}
 	}
+
 }
 
 func (task *Task) SetPrefix() {

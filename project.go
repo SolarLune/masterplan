@@ -3,8 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"image/gif"
+	"io"
+	"io/ioutil"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,6 +24,7 @@ import (
 	"github.com/gen2brain/dlgs"
 	"github.com/gen2brain/raylib-go/raymath"
 
+	"github.com/gabriel-vasile/mimetype"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -48,6 +53,7 @@ type Project struct {
 	AutoSave             *Checkbox
 	AutoReloadThemes     *Checkbox
 	AutoLoadLastProject  *Checkbox
+	SaveSoundsPlaying    *Checkbox
 	ColorThemeSpinner    *Spinner
 
 	// Internal data to make projects work
@@ -78,6 +84,7 @@ type Project struct {
 	Patterns          rl.Texture2D
 	ShortcutKeyTimer  int
 	PreviousTaskType  string
+	Resources         map[string]*Resource
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
@@ -93,21 +100,31 @@ func NewProject() *Project {
 	searchBar.MaxSize = searchBar.MinSize // Don't expand for text
 	searchBar.AllowNewlines = false
 
-	project := &Project{FilePath: "", GridSize: 16, ZoomLevel: -99, CameraPan: rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2},
-		Searchbar: searchBar, StatusBar: rl.Rectangle{0, float32(rl.GetScreenHeight()) - 24, float32(rl.GetScreenWidth()), 24},
-		GUI_Icons: rl.LoadTexture(GetPath("assets", "gui_icons.png")), SampleRate: 44100, SampleBuffer: 512, Patterns: rl.LoadTexture(GetPath("assets", "patterns.png")),
+	project := &Project{
+		FilePath:     "",
+		GridSize:     16,
+		ZoomLevel:    -99,
+		CameraPan:    rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2},
+		Searchbar:    searchBar,
+		StatusBar:    rl.Rectangle{0, float32(rl.GetScreenHeight()) - 24, float32(rl.GetScreenWidth()), 24},
+		GUI_Icons:    rl.LoadTexture(GetPath("assets", "gui_icons.png")),
+		SampleRate:   44100,
+		SampleBuffer: 512,
+		Patterns:     rl.LoadTexture(GetPath("assets", "patterns.png")),
+		Resources:    map[string]*Resource{},
 
-		ColorThemeSpinner:    NewSpinner(350, 32, 256, 24),
-		ShadowQualitySpinner: NewSpinner(350, 72, 128, 24, "Off", "Solid", "Smooth"),
-		GridVisible:          NewCheckbox(350, 112, 24, 24),
-		ShowIcons:            NewCheckbox(350, 152, 24, 24),
-		NumberingSequence:    NewSpinner(350, 192, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
-
+		ColorThemeSpinner:       NewSpinner(350, 32, 256, 24),
+		ShadowQualitySpinner:    NewSpinner(350, 72, 128, 24, "Off", "Solid", "Smooth"),
+		GridVisible:             NewCheckbox(350, 112, 24, 24),
+		ShowIcons:               NewCheckbox(350, 152, 24, 24),
+		NumberingSequence:       NewSpinner(350, 192, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
 		NumberingIgnoreTopLevel: NewCheckbox(350, 232, 24, 24),
 		PulsingTaskSelection:    NewCheckbox(350, 272, 24, 24),
 		AutoSave:                NewCheckbox(350, 312, 24, 24),
 		AutoReloadThemes:        NewCheckbox(350, 352, 24, 24),
-		AutoLoadLastProject:     NewCheckbox(350, 392, 24, 24),
+		SaveSoundsPlaying:       NewCheckbox(350, 392, 24, 24),
+
+		AutoLoadLastProject: NewCheckbox(350, 432, 24, 24),
 	}
 
 	project.LogOn = true
@@ -171,6 +188,7 @@ func (project *Project) Save() bool {
 			"PulsingTaskSelection":    project.PulsingTaskSelection.Checked,
 			"AutoSave":                project.AutoSave.Checked,
 			"AutoReloadThemes":        project.AutoReloadThemes.Checked,
+			"SaveSoundsPlaying":       project.SaveSoundsPlaying.Checked,
 		}
 
 		f, err := os.Create(project.FilePath)
@@ -289,6 +307,7 @@ func (project *Project) Load(filepath string) bool {
 		project.PulsingTaskSelection.Checked = getBool("PulsingTaskSelection", project.PulsingTaskSelection.Checked)
 		project.AutoSave.Checked = getBool("AutoSave", project.AutoSave.Checked)
 		project.AutoReloadThemes.Checked = getBool("AutoReloadThemes", project.AutoReloadThemes.Checked)
+		project.SaveSoundsPlaying.Checked = getBool("SaveSoundsPlaying", project.SaveSoundsPlaying.Checked)
 
 		speaker.Init(project.SampleRate, project.SampleBuffer)
 
@@ -379,18 +398,6 @@ func (project *Project) FocusViewOnSelectedTasks() {
 
 }
 
-func (project *Project) Destroy() {
-	for _, task := range project.Tasks {
-		task.ReceiveMessage("delete", map[string]interface{}{"task": task})
-	}
-}
-
-// func (project *Project) RaiseTask(task *Task) {
-
-// 	for tasks
-
-// }
-
 func (project *Project) HandleCamera() {
 
 	wheel := rl.GetMouseWheelMove()
@@ -442,86 +449,27 @@ func (project *Project) HandleCamera() {
 
 }
 
-func (project *Project) IdentifyFile(filename string) (string, string) {
-
-	imageFormats := [...]string{
-		"png",
-		"bmp",
-		"tga",
-		"jpg",
-		"jpeg",
-		"gif",
-		"psd",
-		"dds",
-		"hdr",
-		"ktx",
-		"astc",
-		"pkm",
-		"pvr",
-	}
-
-	soundFormats := [...]string{
-		"wav",
-		"ogg",
-		"xm",
-		"mod",
-		"flac",
-		"mp3",
-	}
-
-	filename = strings.ToLower(filename)
-
-	for _, f := range imageFormats {
-		if strings.Contains(filepath.Ext(filename), f) {
-			return f, "image"
-		}
-	}
-
-	for _, f := range soundFormats {
-		if strings.Contains(filepath.Ext(filename), f) {
-			return f, "sound"
-		}
-	}
-
-	// Guesses
-
-	for _, f := range imageFormats {
-		if strings.Contains(filename, f) {
-			return f, "image"
-		}
-	}
-
-	for _, f := range soundFormats {
-		if strings.Contains(filename, f) {
-			return f, "sound"
-		}
-	}
-
-	return "", ""
-
-}
-
 func (project *Project) HandleDroppedFiles() {
 
 	if rl.IsFileDropped() {
 		fileCount := int32(0)
-		for _, file := range rl.GetDroppedFiles(&fileCount) {
+		for _, filePath := range rl.GetDroppedFiles(&fileCount) {
 
-			_, taskType := project.IdentifyFile(file)
+			taskType, _ := mimetype.DetectFile(filePath)
 
-			if taskType != "" {
+			if taskType != nil {
 				task := NewTask(project)
 				task.Position.X = camera.Target.X
 				task.Position.Y = camera.Target.Y
 
-				if taskType == "image" {
+				if strings.Contains(taskType.String(), "image") {
 					task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-				} else if taskType == "sound" {
+				} else if strings.Contains(taskType.String(), "audio") {
 					task.TaskType.CurrentChoice = TASK_TYPE_SOUND
 				}
 
-				task.FilePathTextbox.Text = file
-				task.LoadResource()
+				task.FilePathTextbox.Text = filePath
+				project.LoadResource(filePath)
 				project.Tasks = append(project.Tasks, task)
 				continue
 			}
@@ -706,32 +654,30 @@ func (project *Project) Update() {
 								}
 
 								task.ReceiveMessage("deselect", map[string]interface{}{"task": t})
+
 							}
 						} else {
 
 							if !holdingShift || inSelectionRect {
 
-								if !task.Selected && inSelectionRect {
+								if (!task.Selected && inSelectionRect) || (!holdingShift && inSelectionRect) {
 									count++
 								}
 
 								task.ReceiveMessage("select", map[string]interface{}{
 									"task": t,
 								})
+
 							}
 
 						}
 
 					}
 
-					if count > 0 {
-						if holdingAlt {
-							project.Log("Deselected %d Tasks.", count)
-						} else {
-							project.Log("Selected %d Tasks.", count)
-						}
-					} else if !holdingShift {
-						project.Log("Deselected all Tasks.")
+					if holdingAlt {
+						project.Log("Deselected %d Tasks.", count)
+					} else {
+						project.Log("Selected %d Tasks.", count)
 					}
 
 				}
@@ -815,6 +761,8 @@ func (project *Project) Shortcuts() {
 		rl.KeyLeft,
 		rl.KeyRight,
 		rl.KeyF,
+		rl.KeyEnter,
+		rl.KeyKpEnter,
 	}
 
 	repeatableKeyDown := map[int32]bool{}
@@ -898,6 +846,7 @@ func (project *Project) Shortcuts() {
 					for _, task := range project.Tasks {
 						task.StopSound()
 					}
+					project.Log("Stopped all playing Sounds.")
 
 				} else if rl.IsKeyPressed(rl.KeyC) {
 					for _, task := range project.Tasks {
@@ -1051,6 +1000,15 @@ func (project *Project) Shortcuts() {
 					project.FocusViewOnSelectedTasks()
 				}
 
+			}
+
+			if project.Searchbar.Focused && (repeatableKeyDown[rl.KeyEnter] || repeatableKeyDown[rl.KeyKpEnter]) {
+				if holdingShift {
+					project.FocusedSearchTask--
+				} else {
+					project.FocusedSearchTask++
+				}
+				project.SearchForTasks()
 			}
 
 			if holdingCtrl && repeatableKeyDown[rl.KeyF] {
@@ -1295,6 +1253,9 @@ func (project *Project) GUI() {
 		rl.DrawTextEx(guiFont, "Auto-load Last Saved Project:", rl.Vector2{columnX, project.AutoLoadLastProject.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.AutoLoadLastProject.Update()
 
+		rl.DrawTextEx(guiFont, "Save Sound Playback Status:", rl.Vector2{columnX, project.SaveSoundsPlaying.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		project.SaveSoundsPlaying.Update()
+
 	}
 
 	// Status bar
@@ -1308,21 +1269,15 @@ func (project *Project) GUI() {
 		rl.DrawLine(int32(project.StatusBar.X), int32(project.StatusBar.Y-1), int32(project.StatusBar.X+project.StatusBar.Width), int32(project.StatusBar.Y-1), getThemeColor(GUI_OUTLINE))
 
 		taskCount := 0
-		// selectionCount := 0
 		completionCount := 0
 
 		for _, t := range project.Tasks {
 
-			if t.Completable() {
-
-				taskCount++
-				// if t.Selected && t.Completable() {
-				// 	selectionCount++
-				// }
-				if t.IsComplete() {
-					completionCount++
-				}
+			taskCount++
+			if t.IsComplete() {
+				completionCount++
 			}
+
 		}
 
 		percentage := int32(0)
@@ -1331,10 +1286,6 @@ func (project *Project) GUI() {
 		}
 
 		text := fmt.Sprintf("%d / %d Tasks completed (%d%%)", completionCount, taskCount, percentage)
-
-		// if selectionCount > 0 {
-		// 	text += fmt.Sprintf(", %d selected", selectionCount)
-		// }
 
 		rl.DrawTextEx(guiFont, text, rl.Vector2{6, project.StatusBar.Y + 4}, guiFontSize, spacing, fontColor)
 
@@ -1556,17 +1507,49 @@ func (project *Project) CopySelectedTasks() {
 
 func (project *Project) PasteTasks() {
 
-	for _, task := range project.Tasks {
-		task.Selected = false
-	}
+	if len(project.CopyBuffer) > 0 {
 
-	for _, srcTask := range project.CopyBuffer {
-		clone := srcTask.Clone()
-		clone.Selected = true
-		project.Tasks = append(project.Tasks, clone)
-	}
+		for _, task := range project.Tasks {
+			task.Selected = false
+		}
 
-	project.Log("Pasted %d Tasks.", len(project.CopyBuffer))
+		var firstTask *Task
+
+		for _, t := range project.CopyBuffer {
+			if t.CanHaveNeighbors() {
+				firstTask = t
+				break
+			}
+		}
+
+		offsetY := float32(project.GridSize)
+
+		if firstTask != nil {
+			down := firstTask.TaskBelow
+			for down != nil {
+				offsetY += float32(project.GridSize)
+				down = down.TaskBelow
+			}
+		}
+
+		// offsetX := ((-project.CameraPan.X + float32(rl.GetScreenWidth()/2)) - project.CopyBuffer[0].Position.X)
+		// offsetY := ((-project.CameraPan.Y + float32(rl.GetScreenHeight()/2)) - project.CopyBuffer[0].Position.Y)
+
+		for _, srcTask := range project.CopyBuffer {
+			clone := srcTask.Clone()
+			clone.Selected = true
+			project.Tasks = append(project.Tasks, clone)
+			clone.LoadResource()
+			clone.Position.Y += float32(offsetY)
+		}
+
+		project.ReorderTasks()
+
+		project.Log("Pasted %d Tasks.", len(project.CopyBuffer))
+
+		project.FocusViewOnSelectedTasks()
+
+	}
 
 }
 
@@ -1576,26 +1559,31 @@ func (project *Project) PasteContent() {
 
 	if clipboardData != "" {
 
-		_, fileType := project.IdentifyFile(clipboardData)
+		res, _ := project.LoadResource(clipboardData) // Attempt to load the resource
 
 		project.LogOn = false
 		task := project.CreateNewTask()
 		project.LogOn = true
 
-		taskType := "Note"
+		task.TaskType.CurrentChoice = TASK_TYPE_NOTE
 
-		if fileType == "image" || fileType == "sound" {
-			taskType = strings.Title(fileType)
+		if res != nil {
+
 			task.FilePathTextbox.Text = clipboardData
+
+			if res.IsTexture() || res.IsGIF() {
+				task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
+			} else if res.IsAudio() {
+				task.TaskType.CurrentChoice = TASK_TYPE_SOUND
+			}
+
+			task.LoadResource()
+
 		} else {
 			task.Description.Text = clipboardData
 		}
 
-		task.TaskType.SetChoice(taskType)
-
-		project.Log("Pasted 1 new %s Task from clipboard content.", taskType)
-
-		task.LoadResource()
+		project.Log("Pasted 1 new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
 
 	} else {
 		project.Log("Unable to create Task from clipboard content.")
@@ -1665,4 +1653,125 @@ func (project *Project) GetFrameTime() float32 {
 		ft = (1 / float32(TARGET_FPS)) * 2
 	}
 	return ft
+}
+
+func (project *Project) Destroy() {
+
+	for _, task := range project.Tasks {
+		task.ReceiveMessage("delete", map[string]interface{}{"task": task})
+	}
+
+	for filepath, res := range project.Resources {
+
+		if res.IsTexture() {
+			rl.UnloadTexture(res.Texture())
+		}
+		// GIFs don't need to be disposed of directly here; the file handle was already Closed.
+		// Audio streams are closed by the Task, as each Sound Task has its own stream.
+
+		if res.Temporary {
+			os.Remove(filepath)
+		}
+
+	}
+
+}
+
+func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
+
+	downloadedFile := false
+	newlyLoaded := false
+
+	var loadedResource *Resource
+
+	existingResource, exists := project.Resources[resourcePath]
+
+	if exists {
+		loadedResource = existingResource
+	} else if resourcePath != "" {
+
+		localFilepath := resourcePath
+
+		// Attempt downloading it if it's an HTTP file
+		if strings.HasPrefix(resourcePath, "http://") || strings.HasPrefix(resourcePath, "https://") {
+
+			response, err := http.Get(resourcePath)
+
+			if err != nil {
+
+				log.Println("Could not open HTTP address: ", err)
+				project.Log("Could not open HTTP address: ", err.Error())
+
+			} else {
+
+				defer response.Body.Close()
+
+				tempFile, err := ioutil.TempFile("", "masterplan_resource")
+				defer tempFile.Close()
+				if err != nil {
+					log.Println(err)
+				} else {
+					io.Copy(tempFile, response.Body)
+					newlyLoaded = true
+					localFilepath = tempFile.Name()
+					downloadedFile = true
+				}
+
+			}
+
+		}
+
+		fileType, err := mimetype.DetectFile(localFilepath)
+
+		if err != nil {
+			log.Println("Error identifying file: %s", err.Error())
+		} else {
+
+			// We have to rename the resource according to what it is because raylib expects the extensions of files to be correct.
+			// png image files need to have .png as an extension, for example.
+			if filepath.Ext(localFilepath) != fileType.Extension() {
+				newName := localFilepath + fileType.Extension()
+				os.Rename(localFilepath, newName)
+				localFilepath = newName
+			}
+
+			if strings.Contains(fileType.String(), "image") {
+
+				if strings.Contains(fileType.String(), "gif") {
+					file, err := os.Open(localFilepath)
+					if err != nil {
+						log.Println("Could not open GIF: ", err.Error())
+					} else {
+
+						defer file.Close()
+
+						gifFile, err := gif.DecodeAll(file)
+
+						if err != nil {
+							log.Println("Could not decode GIF: ", err.Error())
+						} else {
+							res := RegisterResource(resourcePath, localFilepath, gifFile)
+							res.Temporary = downloadedFile
+							loadedResource = res
+						}
+
+					}
+				} else { // Ordinary image
+					res := RegisterResource(resourcePath, localFilepath, rl.LoadTexture(localFilepath))
+					res.Temporary = downloadedFile
+					loadedResource = res
+				}
+
+			} else if strings.Contains(fileType.String(), "audio") {
+				res := RegisterResource(resourcePath, localFilepath, nil)
+				res.Temporary = downloadedFile
+				loadedResource = res
+			}
+
+		}
+
+	}
+
+	return loadedResource, newlyLoaded
+
 }

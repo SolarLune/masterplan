@@ -4,6 +4,8 @@ github.com/chonla/roman-number-go v0.0.0-20181101035413-6768129de021 h1:F7ux9YUT
 github.com/chonla/roman-number-go v0.0.0-20181101035413-6768129de021/go.mod h1:mgLs523CF5p4A7oIy2Es5ZxuKnG3xhT3Ff0L7J/2J1c=
 github.com/faiface/beep v1.0.2 h1:UB5DiRNmA4erfUYnHbgU4UB6DlBOrsdEFRtcc8sCkdQ=
 github.com/faiface/beep v1.0.2/go.mod h1:1yLb5yRdHMsovYYWVqYLioXkVuziCSITW1oarTeduQM=
+github.com/gabriel-vasile/mimetype v1.0.2 h1:GKCo1TUCg0pV0R4atTcaLv/9SI2W9xPgMySZxUxcJOE=
+github.com/gabriel-vasile/mimetype v1.0.2/go.mod h1:6CDPel/o/3/s4+bp6kIbsWATq8pmgOisOPG40CJa6To=
 github.com/gdamore/encoding v1.0.0/go.mod h1:alR0ol34c49FCSBLjhosxzcPHQbf2trDkoo5dl+VrEg=
 github.com/gdamore/tcell v1.1.1/go.mod h1:K1udHkiR3cOtlpKG5tZPD5XxrF7v2y7lDq7Whcj+xkQ=
 github.com/gen2brain/dlgs v0.0.0-20191023125645-8832682fb7f8 h1:A1aYLIvXDeTkCPrSPGDZ9gUVRvmKQo6MRWw5IjaTKPY=

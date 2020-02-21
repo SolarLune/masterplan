@@ -93,7 +93,7 @@ func main() {
 		color = rl.White
 		bgColor := rl.Black
 
-		timeLimit := float32(5)
+		timeLimit := float32(7)
 
 		now := time.Now()
 
