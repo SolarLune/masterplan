@@ -559,10 +559,6 @@ func (textbox *Textbox) CharacterToRect(position int) rl.Rectangle {
 
 }
 
-func (textbox *Textbox) OutlineLetter(position int) {
-
-}
-
 func (textbox *Textbox) Update() {
 
 	textbox.Changed = false
@@ -572,6 +568,8 @@ func (textbox *Textbox) Update() {
 	}
 
 	if textbox.Focused {
+
+		prevCaretPos := textbox.CaretPos
 
 		if rl.IsKeyPressed(rl.KeyEscape) {
 			textbox.Focused = false
@@ -590,8 +588,10 @@ func (textbox *Textbox) Update() {
 
 		if control {
 			if rl.IsKeyPressed(rl.KeyA) {
-				textbox.SelectedRange[0] = 0
-				textbox.SelectedRange[1] = len(textbox.Text)
+				textbox.SelectionStart = 0
+				textbox.SelectedRange[0] = textbox.SelectionStart
+				textbox.CaretPos = len(textbox.Text)
+				textbox.SelectedRange[1] = textbox.CaretPos
 			}
 		}
 
@@ -611,11 +611,10 @@ func (textbox *Textbox) Update() {
 			if len(textbox.Lines()[textbox.LineNumberByPosition(textbox.CaretPos)]) < textbox.MaxCharactersPerLine {
 
 				if letter >= 32 && letter < 127 && (textbox.AllowAlphaCharacters || isNum) {
-					textbox.Changed = true
 					if textbox.RangeSelected() {
 						textbox.DeleteSelectedText()
 					}
-					textbox.RemoveSelection()
+					textbox.ClearSelection()
 					textbox.InsertCharacterAtCaret(fmt.Sprintf("%c", letter))
 				}
 
@@ -627,7 +626,12 @@ func (textbox *Textbox) Update() {
 
 		if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 			textbox.CaretPos = textbox.ClosestPointInText(mousePos)
-			textbox.SelectionStart = textbox.CaretPos
+			if !shift {
+				textbox.ClearSelection()
+			}
+			if !textbox.RangeSelected() {
+				textbox.SelectionStart = textbox.CaretPos
+			}
 		}
 		if rl.IsMouseButtonDown(rl.MouseLeftButton) {
 			textbox.SelectedRange[0] = textbox.SelectionStart
@@ -661,10 +665,6 @@ func (textbox *Textbox) Update() {
 			}
 		}
 
-		if !textbox.RangeSelected() && (rl.IsKeyPressed(rl.KeyLeftShift) || rl.IsKeyPressed(rl.KeyRightShift)) {
-			textbox.SelectionStart = textbox.CaretPos
-		}
-
 		if keyState[rl.KeyRight] > 0 {
 			nextWordDist := strings.Index(textbox.Text[textbox.CaretPos:], " ")
 			nextNewLine := strings.Index(textbox.Text[textbox.CaretPos:], "\n")
@@ -685,7 +685,7 @@ func (textbox *Textbox) Update() {
 				textbox.CaretPos++
 			}
 			if !shift {
-				textbox.RemoveSelection()
+				textbox.ClearSelection()
 			}
 		} else if keyState[rl.KeyLeft] > 0 {
 			prevWordDist := strings.LastIndex(textbox.Text[:textbox.CaretPos], " ")
@@ -709,7 +709,7 @@ func (textbox *Textbox) Update() {
 				textbox.CaretPos--
 			}
 			if !shift {
-				textbox.RemoveSelection()
+				textbox.ClearSelection()
 			}
 		} else if keyState[rl.KeyUp] > 0 {
 			lineIndex := textbox.LineNumberByPosition(textbox.CaretPos)
@@ -722,7 +722,7 @@ func (textbox *Textbox) Update() {
 				textbox.CaretPos = 0
 			}
 			if !shift {
-				textbox.RemoveSelection()
+				textbox.ClearSelection()
 			}
 		} else if keyState[rl.KeyDown] > 0 {
 			lineIndex := textbox.LineNumberByPosition(textbox.CaretPos)
@@ -735,7 +735,7 @@ func (textbox *Textbox) Update() {
 				textbox.CaretPos = len(textbox.Text)
 			}
 			if !shift {
-				textbox.RemoveSelection()
+				textbox.ClearSelection()
 			}
 		} else if keyState[rl.KeyV] > 0 && control {
 			clipboardText, _ := clipboard.ReadAll()
@@ -750,6 +750,12 @@ func (textbox *Textbox) Update() {
 
 			}
 
+		}
+
+		if !textbox.RangeSelected() && shift {
+			if textbox.CaretPos != prevCaretPos && !textbox.Changed {
+				textbox.SelectionStart = prevCaretPos
+			}
 		}
 
 		if shift {
@@ -888,7 +894,7 @@ func (textbox *Textbox) RangeSelected() bool {
 	return textbox.Focused && textbox.SelectedRange[0] >= 0 && textbox.SelectedRange[1] >= 0 && textbox.SelectedRange[0] != textbox.SelectedRange[1]
 }
 
-func (textbox *Textbox) RemoveSelection() {
+func (textbox *Textbox) ClearSelection() {
 	textbox.SelectedRange[0] = -1
 	textbox.SelectedRange[1] = -1
 	textbox.SelectionStart = -1
@@ -915,5 +921,7 @@ func (textbox *Textbox) DeleteSelectedText() {
 	if textbox.CaretPos > len(textbox.Text) {
 		textbox.CaretPos = len(textbox.Text)
 	}
-	textbox.RemoveSelection()
+	textbox.ClearSelection()
+	textbox.Changed = true
+
 }
