@@ -48,7 +48,8 @@ func (ps *ProgramSettings) Load() {
 		decoder.Decode(&data)
 		programSettings = ProgramSettings(data)
 
-		currentProject.AutoLoadLastProject.Checked = programSettings[PS_AUTOLOAD_LAST_PLAN].(bool)
+		currentProject.AutoLoadLastProject.Checked = programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN)
+
 	}
 }
 
