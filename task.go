@@ -338,12 +338,6 @@ func (task *Task) Update() {
 
 	task.PostOpenDelay++
 
-	if task.IsComplete() && task.CompletionTime.IsZero() {
-		task.CompletionTime = time.Now()
-	} else if !task.IsComplete() {
-		task.CompletionTime = time.Time{}
-	}
-
 	task.SetPrefix()
 
 	if task.SoundComplete {
@@ -414,8 +408,16 @@ func (task *Task) Update() {
 	// Slight optimization
 	cameraRect := rl.Rectangle{camera.Target.X - (scrW / 2), camera.Target.Y - (scrH / 2), scrW, scrH}
 
-	if !rl.CheckCollisionRecs(task.Rect, cameraRect) && task.Project.FullyInitialized {
-		task.Visible = false
+	if task.Project.FullyInitialized {
+		if task.IsComplete() && task.CompletionTime.IsZero() {
+			task.CompletionTime = time.Now()
+		} else if !task.IsComplete() {
+			task.CompletionTime = time.Time{}
+		}
+
+		if !rl.CheckCollisionRecs(task.Rect, cameraRect) {
+			task.Visible = false
+		}
 	}
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {

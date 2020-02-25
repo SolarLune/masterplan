@@ -6,8 +6,8 @@
 	"GridVisible": true,
 	"NumberingIgnoreTopLevel": true,
 	"NumberingSequence": 0,
-	"Pan.X": 2628,
-	"Pan.Y": -912.5,
+	"Pan.X": 2328,
+	"Pan.Y": -26.5,
 	"PulsingTaskSelection": true,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
@@ -4120,7 +4120,8 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Feb 25 2020 15:23:18",
 			"CreationTime": "Feb 20 2020 22:48:25",
 			"Description": "Add Timer Task (a Task that triggers every x minutes / days / etc.)\nSome people use Timers to improve productivity to boost productivity (e.g. start a 1 hour timer, \nstart programming, when it's done, take a break, and move on to another part of the project).",
 			"FilePath": "",
@@ -4130,7 +4131,7 @@
 			"Position.Y": 544,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Selected": false,
+			"Selected": true,
 			"TaskType.CurrentChoice": 0
 		},
 		{
@@ -4324,5 +4325,5 @@
 		}
 	],
 	"Version": "0.1.2",
-	"ZoomLevel": 1
+	"ZoomLevel": 2
 }
