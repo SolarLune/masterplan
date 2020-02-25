@@ -6,8 +6,8 @@
 	"GridVisible": true,
 	"NumberingIgnoreTopLevel": true,
 	"NumberingSequence": 0,
-	"Pan.X": 2226.5,
-	"Pan.Y": -603.5,
+	"Pan.X": 2362.573,
+	"Pan.Y": -1339.5,
 	"PulsingTaskSelection": true,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
@@ -1395,7 +1395,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Feb 24 2020 21:05:13",
+			"CompletionTime": "Feb 24 2020 21:12:54",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Numbering schemes.",
 			"FilePath": "",
@@ -2501,7 +2501,8 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Feb 24 2020 21:13:15",
 			"CreationTime": "Oct 2 2019 17:17:44",
 			"Description": "Manage assets loaded into Tasks (images and GIFs, currently).\nThese should be loaded into a central location in the Project that Tasks reference. They shouldn't hold the resources\nthemselves, ideally.",
 			"FilePath": "",
@@ -3155,7 +3156,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Feb 24 2020 21:05:13",
+			"CompletionTime": "Feb 24 2020 21:12:54",
 			"CreationTime": "Oct 16 2019 23:10:50",
 			"Description": "Search bar.",
 			"FilePath": "",
@@ -3170,7 +3171,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Feb 24 2020 21:05:13",
+			"CompletionTime": "Feb 24 2020 21:12:54",
 			"CreationTime": "Oct 16 2019 23:11:12",
 			"Description": "Ordering.",
 			"FilePath": "",
@@ -3697,7 +3698,7 @@
 			"ImageDisplaySize.X": 474.99994,
 			"ImageDisplaySize.Y": 263,
 			"Position.X": -736,
-			"Position.Y": 1648,
+			"Position.Y": 1712,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
@@ -3711,7 +3712,7 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -992,
-			"Position.Y": 1744,
+			"Position.Y": 1808,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
@@ -4230,6 +4231,6 @@
 			"TaskType.CurrentChoice": 0
 		}
 	],
-	"Version": "v0.1.2",
+	"Version": "0.1.2",
 	"ZoomLevel": 2
 }
