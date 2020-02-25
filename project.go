@@ -172,6 +172,7 @@ func (project *Project) Save() bool {
 		}
 
 		data := map[string]interface{}{
+			"Version":                 softwareVersion.String(),
 			"GridSize":                project.GridSize,
 			"Pan.X":                   project.CameraPan.X,
 			"Pan.Y":                   project.CameraPan.Y,

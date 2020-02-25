@@ -1,5 +1,7 @@
 github.com/atotto/clipboard v0.1.2 h1:YZCtFu5Ie8qX2VmVTBnrqLSiU9XOWwqNRmdT3gIQzbY=
 github.com/atotto/clipboard v0.1.2/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
+github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdnnjpJbkM4JQ=
+github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/chonla/roman-number-go v0.0.0-20181101035413-6768129de021 h1:F7ux9YUTBF8wykFrRhNJIuLyAkJhD6hs98M/lJM0ZW4=
 github.com/chonla/roman-number-go v0.0.0-20181101035413-6768129de021/go.mod h1:mgLs523CF5p4A7oIy2Es5ZxuKnG3xhT3Ff0L7J/2J1c=
 github.com/faiface/beep v1.0.2 h1:UB5DiRNmA4erfUYnHbgU4UB6DlBOrsdEFRtcc8sCkdQ=

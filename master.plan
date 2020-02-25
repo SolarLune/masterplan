@@ -1395,7 +1395,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Feb 21 2020 15:36:19",
+			"CompletionTime": "Feb 24 2020 21:05:13",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Numbering schemes.",
 			"FilePath": "",
@@ -3155,7 +3155,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Feb 21 2020 15:36:19",
+			"CompletionTime": "Feb 24 2020 21:05:13",
 			"CreationTime": "Oct 16 2019 23:10:50",
 			"Description": "Search bar.",
 			"FilePath": "",
@@ -3170,7 +3170,7 @@
 		},
 		{
 			"Checkbox.Checked": false,
-			"CompletionTime": "Feb 21 2020 15:36:19",
+			"CompletionTime": "Feb 24 2020 21:05:13",
 			"CreationTime": "Oct 16 2019 23:11:12",
 			"Description": "Ordering.",
 			"FilePath": "",
@@ -4230,5 +4230,6 @@
 			"TaskType.CurrentChoice": 0
 		}
 	],
+	"Version": "v0.1.2",
 	"ZoomLevel": 2
 }

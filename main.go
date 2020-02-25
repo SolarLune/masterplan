@@ -5,6 +5,7 @@ import (
 
 	"github.com/gen2brain/raylib-go/easings"
 
+	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -16,14 +17,14 @@ const TARGET_FPS = 60
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
-var softwareVersion = "v0.1.2"
+var softwareVersion, _ = semver.Make("0.1.2")
 
 func main() {
 
 	rl.SetTraceLog(rl.LogError)
 
 	rl.SetConfigFlags(rl.FlagWindowResizable)
-	rl.InitWindow(960, 540, "MasterPlan "+softwareVersion)
+	rl.InitWindow(960, 540, "MasterPlan v"+softwareVersion.String())
 
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
@@ -88,7 +89,7 @@ func main() {
 
 		color := getThemeColor(GUI_FONT_COLOR)
 		color.A = 128
-		rl.DrawTextEx(guiFont, softwareVersion, rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, guiFontSize, 1, color)
+		rl.DrawTextEx(guiFont, "v"+softwareVersion.String(), rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, guiFontSize, 1, color)
 
 		color = rl.White
 		bgColor := rl.Black
