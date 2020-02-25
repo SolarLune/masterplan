@@ -850,11 +850,22 @@ func (project *Project) Shortcuts() {
 					project.Log("Stopped all playing Sounds.")
 
 				} else if rl.IsKeyPressed(rl.KeyC) {
+
+					toggleCount := 0
+
 					for _, task := range project.Tasks {
 						if task.Selected {
+							if task.Completable() {
+								toggleCount++
+							}
 							task.SetCompletion(!task.IsComplete())
 						}
 					}
+
+					if toggleCount > 0 {
+						project.Log("Completion toggled on %d Tasks.", toggleCount)
+					}
+
 				} else if rl.IsKeyPressed(rl.KeyDelete) {
 					project.DeleteSelectedTasks()
 				} else if rl.IsKeyPressed(rl.KeyF) {

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
+	"github.com/faiface/beep/wav"
 	"github.com/gen2brain/dlgs"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -25,6 +27,7 @@ const (
 	TASK_TYPE_NOTE
 	TASK_TYPE_IMAGE
 	TASK_TYPE_SOUND
+	TASK_TYPE_TIMER
 )
 
 const (
@@ -53,6 +56,12 @@ type Task struct {
 	DeadlineDaySpinner   *NumberSpinner
 	DeadlineMonthSpinner *Spinner
 	DeadlineYearSpinner  *NumberSpinner
+
+	TimerSecondSpinner *NumberSpinner
+	TimerMinuteSpinner *NumberSpinner
+	TimerValue         float32
+	TimerRunning       bool
+	TimerName          *Textbox
 
 	CompletionCheckbox           *Checkbox
 	CompletionProgressionCurrent *NumberSpinner
@@ -109,7 +118,7 @@ func NewTask(project *Project) *Task {
 	task := &Task{
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Project:                      project,
-		TaskType:                     NewSpinner(postX, 32, 192, 24, "Check Box", "Progression", "Note", "Image", "Sound"),
+		TaskType:                     NewSpinner(postX, 32, 192, 24, "Check Box", "Progression", "Note", "Image", "Sound", "Timer"),
 		Description:                  NewTextbox(postX, 64, 512, 64),
 		CompletionCheckbox:           NewCheckbox(postX, 96, 16, 16),
 		CompletionProgressionCurrent: NewNumberSpinner(postX, 96, 96, 24),
@@ -120,8 +129,11 @@ func NewTask(project *Project) *Task {
 		FilePathTextbox:              NewTextbox(postX, 64, 512, 16),
 		DeadlineCheckbox:             NewCheckbox(postX, 112, 16, 16),
 		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 160, 24, months...),
-		DeadlineDaySpinner:           NewNumberSpinner(300, 128, 64, 24),
-		DeadlineYearSpinner:          NewNumberSpinner(300, 128, 64, 24),
+		DeadlineDaySpinner:           NewNumberSpinner(postX+140, 128, 64, 24),
+		DeadlineYearSpinner:          NewNumberSpinner(postX+140, 128, 64, 24),
+		TimerMinuteSpinner:           NewNumberSpinner(postX, 0, 96, 24),
+		TimerSecondSpinner:           NewNumberSpinner(postX, 0, 96, 24),
+		TimerName:                    NewTextbox(postX, 64, 512, 16),
 		// DeadlineTimeTextbox:          NewTextbox(240, 128, 64, 16),	// Need to make textbox format for time.
 	}
 
@@ -142,7 +154,10 @@ func NewTask(project *Project) *Task {
 	task.DeadlineDaySpinner.Rect.X = task.DeadlineMonthSpinner.Rect.X + task.DeadlineMonthSpinner.Rect.Width + task.DeadlineDaySpinner.Rect.Height
 	task.DeadlineYearSpinner.Rect.X = task.DeadlineDaySpinner.Rect.X + task.DeadlineDaySpinner.Rect.Width + task.DeadlineYearSpinner.Rect.Height
 
-	// task.DeadlineMonthSpinner.
+	task.TimerSecondSpinner.Minimum = 0
+	task.TimerSecondSpinner.Maximum = 59
+
+	task.TimerMinuteSpinner.Minimum = 0
 
 	return task
 }
@@ -168,6 +183,17 @@ func (task *Task) Clone() *Task {
 	cPath := *copyData.FilePathTextbox
 	copyData.FilePathTextbox = &cPath
 
+	timerSec := *copyData.TimerSecondSpinner
+	copyData.TimerSecondSpinner = &timerSec
+
+	timerMinute := *copyData.TimerMinuteSpinner
+	copyData.TimerMinuteSpinner = &timerMinute
+
+	timerName := *copyData.TimerName
+	copyData.TimerName = &timerName
+
+	copyData.TimerRunning = false // We don't want to clone the timer running
+	copyData.TimerValue = 0
 	copyData.PrevFilePath = ""
 	copyData.GifAnimation = nil
 	copyData.SoundControl = nil
@@ -200,6 +226,12 @@ func (task *Task) Serialize() map[string]interface{} {
 		data["DeadlineDaySpinner.Number"] = task.DeadlineDaySpinner.GetNumber()
 		data["DeadlineMonthSpinner.CurrentChoice"] = task.DeadlineMonthSpinner.CurrentChoice
 		data["DeadlineYearSpinner.Number"] = task.DeadlineYearSpinner.GetNumber()
+	}
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+		data["TimerSecondSpinner.Number"] = task.TimerSecondSpinner.GetNumber()
+		data["TimerMinuteSpinner.Number"] = task.TimerMinuteSpinner.GetNumber()
+		data["TimerName.Text"] = task.TimerName.Text
 	}
 
 	data["CreationTime"] = task.CreationTime.Format("Jan 2 2006 15:04:05")
@@ -274,6 +306,12 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 		task.DeadlineYearSpinner.SetNumber(getInt("DeadlineYearSpinner.Number", task.DeadlineYearSpinner.GetNumber()))
 	}
 
+	if hasData("TimerSecondSpinner.Number") {
+		task.TimerSecondSpinner.SetNumber(getInt("TimerSecondSpinner.Number", task.TimerSecondSpinner.GetNumber()))
+		task.TimerMinuteSpinner.SetNumber(getInt("TimerMinuteSpinner.Number", task.TimerMinuteSpinner.GetNumber()))
+		task.TimerName.Text = getString("TimerName.Text", task.TimerName.Text)
+	}
+
 	creationTime, err := time.Parse("Jan 2 2006 15:04:05", getString("CreationTime", task.CreationTime.String()))
 	if err == nil {
 		task.CreationTime = creationTime
@@ -299,14 +337,6 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 func (task *Task) Update() {
 
 	task.PostOpenDelay++
-
-	rec := task.Rect
-	rec.Width = 16
-	rec.Height = 16
-
-	if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) && task.Selected && task.TaskType.CurrentChoice == TASK_TYPE_SOUND && task.SoundControl != nil {
-		task.ToggleSound()
-	}
 
 	if task.IsComplete() && task.CompletionTime.IsZero() {
 		task.CompletionTime = time.Now()
@@ -388,6 +418,46 @@ func (task *Task) Update() {
 		task.Visible = false
 	}
 
+	if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+
+		if task.TimerRunning {
+
+			countdownMax := float32(task.TimerSecondSpinner.GetNumber() + (task.TimerMinuteSpinner.GetNumber() * 60))
+
+			if countdownMax <= 0 {
+				task.TimerRunning = false
+			} else {
+
+				if task.TimerValue >= countdownMax {
+
+					task.TimerValue = countdownMax
+					task.TimerRunning = false
+					task.TimerValue = 0
+					task.Project.Log("Timer [%s] elapsed.", task.TimerName.Text)
+
+					f, err := os.Open(filepath.Join("assets", "alarm.wav"))
+					if err == nil {
+						stream, _, _ := wav.Decode(f)
+						fn := func() {
+							stream.Close()
+						}
+						speaker.Play(beep.Seq(stream, beep.Callback(fn)))
+					}
+
+					if task.TaskBelow != nil && task.TaskBelow.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+						task.TaskBelow.ToggleTimer()
+					}
+
+				} else {
+					task.TimerValue += rl.GetFrameTime()
+				}
+
+			}
+
+		}
+
+	}
+
 }
 
 func (task *Task) Draw() {
@@ -417,6 +487,14 @@ func (task *Task) Draw() {
 			name = name[:cut]
 		}
 		task.Resizeable = false
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+
+		minutes := int(task.TimerValue / 60)
+		seconds := int(task.TimerValue) % 60
+		timeString := fmt.Sprintf("%02d:%02d", minutes, seconds)
+		maxTimeString := fmt.Sprintf("%02d:%02d", task.TimerMinuteSpinner.GetNumber(), task.TimerSecondSpinner.GetNumber())
+		name = task.TimerName.Text + " : " + timeString + " / " + maxTimeString
+
 	}
 
 	if len(task.Children) > 0 && task.Completable() {
@@ -490,6 +568,9 @@ func (task *Task) Draw() {
 	}
 	if extendedText && task.Project.ShowIcons.Checked {
 		taskDisplaySize.X += 16
+	}
+	if task.TaskType.CurrentChoice == TASK_TYPE_TIMER || task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+		taskDisplaySize.X += 32
 	}
 
 	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
@@ -593,6 +674,9 @@ func (task *Task) Draw() {
 		pos := task.SoundStream.Position()
 		len := task.SoundStream.Len()
 		perc = float32(pos) / float32(len)
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+		countdownMax := float32(task.TimerSecondSpinner.GetNumber() + (task.TimerMinuteSpinner.GetNumber() * 60))
+		perc = task.TimerValue / countdownMax
 	}
 
 	if perc > 1 {
@@ -611,11 +695,11 @@ func (task *Task) Draw() {
 	rl.DrawRectangleRec(task.Rect, color)
 
 	if task.Due() == TASK_DUE_TODAY {
-		src := rl.Rectangle{208 + rl.GetTime()*15, 0, task.Rect.Width, task.Rect.Height}
+		src := rl.Rectangle{208 + rl.GetTime()*30, 0, task.Rect.Width, task.Rect.Height}
 		dst := task.Rect
 		rl.DrawTexturePro(task.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
 	} else if task.Due() == TASK_DUE_LATE {
-		src := rl.Rectangle{208 + rl.GetTime()*60, 16, task.Rect.Width, task.Rect.Height}
+		src := rl.Rectangle{208 + rl.GetTime()*120, 16, task.Rect.Width, task.Rect.Height}
 		dst := task.Rect
 		rl.DrawTexturePro(task.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
 	}
@@ -706,12 +790,19 @@ func (task *Task) Draw() {
 		if task.Project.ShowIcons.Checked {
 			textPos.X += 16
 		}
+		if task.TaskType.CurrentChoice == TASK_TYPE_TIMER || task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+			textPos.X += 32
+		}
 
 		rl.DrawTextEx(font, name, textPos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 	}
 
+	controlPos := float32(0)
+
 	if task.Project.ShowIcons.Checked {
+
+		controlPos = 16
 
 		iconColor := getThemeColor(GUI_FONT_COLOR)
 		iconSrc := rl.Rectangle{16, 0, 16, 16}
@@ -722,6 +813,7 @@ func (task *Task) Draw() {
 			TASK_TYPE_NOTE:        []float32{64, 0},
 			TASK_TYPE_SOUND:       []float32{80, 0},
 			TASK_TYPE_IMAGE:       []float32{96, 0},
+			TASK_TYPE_TIMER:       []float32{0, 16},
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
@@ -768,6 +860,46 @@ func (task *Task) Draw() {
 			clockPos.X += float32(math.Sin(float64(float32(task.ID)*0.1)+float64(rl.GetTime())*3.1415)) * 4
 
 			rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X - 16 + clockPos.X, task.Rect.Y + clockPos.Y, 16, 16}, rl.Vector2{}, 0, rl.White)
+		}
+
+	}
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+
+		x := task.Rect.X + controlPos
+		y := task.Rect.Y
+
+		srcX := float32(16)
+		if task.TimerRunning {
+			srcX += 16
+		}
+
+		if task.SmallButton(srcX, 16, 16, 16, x, y) && (task.TimerMinuteSpinner.GetNumber() > 0 || task.TimerSecondSpinner.GetNumber() > 0) {
+			task.ToggleTimer()
+		}
+		if task.SmallButton(48, 16, 16, 16, x+16, y) {
+			task.TimerValue = 0
+			task.Project.Log("Timer [%s] reset.", task.TimerName.Text)
+		}
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+
+		x := task.Rect.X + controlPos
+		y := task.Rect.Y
+
+		srcX := float32(16)
+		if task.SoundControl != nil && !task.SoundControl.Paused {
+			srcX += 16
+		}
+
+		if task.SmallButton(srcX, 16, 16, 16, x, y) && task.SoundControl != nil {
+			task.ToggleSound()
+		}
+		if task.SmallButton(48, 16, 16, 16, x+16, y) && task.SoundControl != nil {
+			speaker.Lock()
+			task.SoundStream.Seek(0)
+			speaker.Unlock()
+			_, filename := filepath.Split(task.FilePathTextbox.Text)
+			task.Project.Log("Sound Task [%s] restarted.", filename)
 		}
 
 	}
@@ -881,7 +1013,7 @@ func (task *Task) PostDraw() {
 
 		y += 40
 
-		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND {
+		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND && task.TaskType.CurrentChoice != TASK_TYPE_TIMER {
 			task.Description.Rect.Y = y
 			task.Description.Update()
 			rl.DrawTextEx(guiFont, "Description: ", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
@@ -945,6 +1077,31 @@ func (task *Task) PostDraw() {
 			}
 
 			y += 48
+
+		} else if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+
+			task.TimerName.Rect.Y = y
+			task.TimerName.Update()
+			rl.DrawTextEx(guiFont, "Name: ", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
+			y += task.TimerName.Rect.Height + 16
+
+			rl.DrawTextEx(guiFont, "Countdown", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
+
+			y += 24
+
+			rl.DrawTextEx(guiFont, "Minutes: ", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
+
+			task.TimerMinuteSpinner.Rect.Y = y + 4
+			task.TimerMinuteSpinner.Update()
+
+			y += 28
+
+			rl.DrawTextEx(guiFont, "Seconds: ", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
+
+			task.TimerSecondSpinner.Rect.Y = y + 4
+			task.TimerSecondSpinner.Update()
+
+			y += 28
 
 		}
 
@@ -1046,6 +1203,8 @@ func (task *Task) SetCompletion(complete bool) {
 
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 		task.ToggleSound()
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+		task.ToggleTimer()
 	}
 
 }
@@ -1208,9 +1367,9 @@ func (task *Task) ToggleSound() {
 
 		_, filename := filepath.Split(task.FilePathTextbox.Text)
 		if task.SoundControl.Paused {
-			task.Project.Log("Paused %s.", filename)
+			task.Project.Log("Paused [%s].", filename)
 		} else {
-			task.Project.Log("Playing %s.", filename)
+			task.Project.Log("Playing [%s].", filename)
 		}
 
 		speaker.Unlock()
@@ -1227,6 +1386,15 @@ func (task *Task) StopSound() {
 
 func (task *Task) OnSoundCompletion() {
 	task.SoundComplete = true
+}
+
+func (task *Task) ToggleTimer() {
+	task.TimerRunning = !task.TimerRunning
+	if task.TimerRunning {
+		task.Project.Log("Timer [%s] started.", task.TimerName.Text)
+	} else {
+		task.Project.Log("Timer [%s] paused.", task.TimerName.Text)
+	}
 }
 
 func (task *Task) GetNeighbors() {
@@ -1289,5 +1457,22 @@ func (task *Task) SetPrefix() {
 		task.RefreshPrefix = false
 
 	}
+
+}
+
+func (task *Task) SmallButton(srcX, srcY, srcW, srcH, dstX, dstY float32) bool {
+
+	dstRect := rl.Rectangle{dstX, dstY, srcW, srcH}
+
+	rl.DrawTexturePro(
+		task.Project.GUI_Icons,
+		rl.Rectangle{srcX, srcY, srcW, srcH},
+		dstRect,
+		rl.Vector2{},
+		0,
+		getThemeColor(GUI_FONT_COLOR))
+	// getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+
+	return task.Selected && rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), dstRect)
 
 }

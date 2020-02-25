@@ -9,9 +9,6 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-// const screenWidth = 960
-// const screenHeight = 540
-
 const TARGET_FPS = 60
 
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
