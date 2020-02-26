@@ -15,7 +15,7 @@ const TARGET_FPS = 60
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.1.2")
+var softwareVersion, _ = semver.Make("0.2.0")
 
 var splashScreen rl.Texture2D
 var splashScreenTime = float32(0)
