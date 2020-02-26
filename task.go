@@ -677,8 +677,15 @@ func (task *Task) Draw() {
 		len := task.SoundStream.Len()
 		perc = float32(pos) / float32(len)
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+
 		countdownMax := float32(task.TimerSecondSpinner.GetNumber() + (task.TimerMinuteSpinner.GetNumber() * 60))
-		perc = task.TimerValue / countdownMax
+
+		// If countdownMax == 0, then task.TimerValue / countdownMax can equal a NaN, which breaks drawing the
+		// filling rectangle.
+		if countdownMax > 0 {
+			perc = task.TimerValue / countdownMax
+		}
+
 	}
 
 	if perc > 1 {
