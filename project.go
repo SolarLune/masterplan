@@ -470,7 +470,7 @@ func (project *Project) HandleDroppedFiles() {
 				}
 
 				task.FilePathTextbox.Text = filePath
-				project.LoadResource(filePath)
+				task.LoadResource()
 				project.Tasks = append(project.Tasks, task)
 				continue
 			}
