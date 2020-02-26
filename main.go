@@ -1,7 +1,6 @@
 package main
 
 import (
-	"path/filepath"
 	"time"
 
 	"github.com/gen2brain/raylib-go/easings"
@@ -41,7 +40,7 @@ func main() {
 
 	programSettings.Load()
 
-	splashScreen = rl.LoadTexture(filepath.Join("assets", "splashscreen.png"))
+	splashScreen = rl.LoadTexture(GetPath("assets", "splashscreen.png"))
 	splashColor := rl.White
 
 	// profiling := false
@@ -148,7 +147,7 @@ func main() {
 
 		splashScreenTime += rl.GetFrameTime()
 
-		if splashScreenTime >= 1 {
+		if splashScreenTime >= 1.5 {
 			if splashColor.A > 5 {
 				splashColor.A -= 5
 			} else {
