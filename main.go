@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"time"
 
 	"github.com/gen2brain/raylib-go/easings"
@@ -15,6 +16,10 @@ var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
 var softwareVersion, _ = semver.Make("0.1.2")
+
+var splashScreen rl.Texture2D
+var splashScreenTime = float32(0)
+var attemptAutoload = 5
 
 func main() {
 
@@ -36,10 +41,8 @@ func main() {
 
 	programSettings.Load()
 
-	// Attempt auto-load of the last opened project file
-	if programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN) {
-		currentProject.Load(programSettings.GetString(PS_LAST_OPENED_PLAN))
-	}
+	splashScreen = rl.LoadTexture(filepath.Join("assets", "splashscreen.png"))
+	splashColor := rl.White
 
 	// profiling := false
 
@@ -78,56 +81,84 @@ func main() {
 
 		rl.BeginDrawing()
 
-		rl.BeginMode2D(camera)
+		if attemptAutoload > 0 {
 
-		currentProject.Update()
+			attemptAutoload--
 
-		rl.EndMode2D()
+			if attemptAutoload == 0 {
+				if programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN) {
+					currentProject.Load(programSettings.GetString(PS_LAST_OPENED_PLAN))
+				}
+			}
 
-		color := getThemeColor(GUI_FONT_COLOR)
-		color.A = 128
-		rl.DrawTextEx(guiFont, "v"+softwareVersion.String(), rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, guiFontSize, 1, color)
+		} else {
 
-		color = rl.White
-		bgColor := rl.Black
+			rl.BeginMode2D(camera)
 
-		timeLimit := float32(7)
+			currentProject.Update()
 
-		now := time.Now()
+			rl.EndMode2D()
 
-		for i := 0; i < len(eventLogBuffer); i++ {
+			color := getThemeColor(GUI_FONT_COLOR)
+			color.A = 128
+			rl.DrawTextEx(guiFont, "v"+softwareVersion.String(), rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, guiFontSize, 1, color)
 
-			msg := eventLogBuffer[i]
+			color = rl.White
+			bgColor := rl.Black
 
-			text := msg.Time.Format("15:04:05") + " : " + msg.Text
+			timeLimit := float32(7)
 
-			color.A = uint8(easings.CubicIn(float32(now.Sub(msg.Time).Seconds()), 255, -254, timeLimit))
-			bgColor.A = color.A
+			now := time.Now()
 
-			textSize := rl.MeasureTextEx(guiFont, text, guiFontSize, 1)
-			textPos := rl.Vector2{8, 24 + float32(i*16)}
-			rectPos := textPos
+			for i := 0; i < len(eventLogBuffer); i++ {
 
-			rectPos.X--
-			rectPos.Y--
-			textSize.X += 2
-			textSize.Y += 2
+				msg := eventLogBuffer[i]
 
-			rl.DrawRectangleV(textPos, textSize, bgColor)
-			rl.DrawTextEx(guiFont, text, textPos, guiFontSize, 1, color)
+				text := msg.Time.Format("15:04:05") + " : " + msg.Text
 
-			if now.Sub(msg.Time).Seconds() >= float64(timeLimit) {
-				eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
-				i--
+				color.A = uint8(easings.CubicIn(float32(now.Sub(msg.Time).Seconds()), 255, -254, timeLimit))
+				bgColor.A = color.A
+
+				textSize := rl.MeasureTextEx(guiFont, text, guiFontSize, 1)
+				textPos := rl.Vector2{8, 24 + float32(i*16)}
+				rectPos := textPos
+
+				rectPos.X--
+				rectPos.Y--
+				textSize.X += 2
+				textSize.Y += 2
+
+				rl.DrawRectangleV(textPos, textSize, bgColor)
+				rl.DrawTextEx(guiFont, text, textPos, guiFontSize, 1, color)
+
+				if now.Sub(msg.Time).Seconds() >= float64(timeLimit) {
+					eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
+					i--
+				}
+
+			}
+
+			currentProject.GUI()
+
+			if drawFPS {
+				rl.DrawFPS(4, 4)
 			}
 
 		}
 
-		currentProject.GUI()
+		splashScreenTime += rl.GetFrameTime()
 
-		if drawFPS {
-			rl.DrawFPS(4, 4)
+		if splashScreenTime >= 1 {
+			if splashColor.A > 5 {
+				splashColor.A -= 5
+			} else {
+				splashColor.A = 0
+			}
 		}
+
+		src := rl.Rectangle{0, 0, 1920, 1080}
+		dst := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
+		rl.DrawTexturePro(splashScreen, src, dst, rl.Vector2{}, 0, splashColor)
 
 		rl.EndDrawing()
 
