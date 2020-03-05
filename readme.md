@@ -40,7 +40,7 @@ To fetch the correct branch of Raylib-Go, use the following git (where you clone
 
 ## License
 
-MasterPlan is licensed as All Rights Reserved, SolarLune Games 2019. 
+MasterPlan is copyright, All Rights Reserved, SolarLune Games 2019-2020. 
 
 Feel free to use the program itself and the generated plan files in the development of projects, commercial or otherwise, as that's the point of the tool, haha. You can also build MasterPlan yourself using the repo here, contribute to its development, and fork it freely, but you may not use any assets (graphics files, code, etc) from this repository in any commercial creations. Please also do not distribute builds of MasterPlan to others.
 

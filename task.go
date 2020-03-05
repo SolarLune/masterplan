@@ -327,7 +327,7 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	}
 
 	// We do this to update the task after loading all of the information.
-	task.LoadResource()
+	task.LoadResource(false)
 
 	if task.SoundControl != nil {
 		task.SoundControl.Paused = getBool("SoundPaused", true)
@@ -1218,9 +1218,9 @@ func (task *Task) SetCompletion(complete bool) {
 
 }
 
-func (task *Task) LoadResource() {
+func (task *Task) LoadResource(forceLoad bool) {
 
-	if task.FilePathTextbox.Text != "" && task.PrevFilePath != task.FilePathTextbox.Text {
+	if task.FilePathTextbox.Text != "" && (task.PrevFilePath != task.FilePathTextbox.Text || forceLoad) {
 
 		res, _ := task.Project.LoadResource(task.FilePathTextbox.Text)
 
@@ -1269,15 +1269,16 @@ func (task *Task) LoadResource() {
 				if err == nil {
 
 					task.SoundStream = stream
+					projectSampleRate := beep.SampleRate(task.Project.SampleRate.ChoiceAsInt())
 
-					if format.SampleRate != task.Project.SampleRate {
-						task.Project.Log("Sample rate of audio file %s not the same as project sample rate %d.", res.ResourcePath, int(task.Project.SampleRate))
+					if format.SampleRate != projectSampleRate {
+						task.Project.Log("Sample rate of audio file %s not the same as project sample rate %d.", res.ResourcePath, projectSampleRate)
 						task.Project.Log("File will be resampled.")
 						// SolarLune: Note the resample quality has to be 1 (poor); otherwise, it seems like some files will cause beep to crash with an invalid
 						// index error. Probably has to do something with how the resampling process works combined with particular sound files.
 						// For me, it crashes on playing back the file "10 3-audio.wav" on my computer repeatedly (after about 4-6 loops, it crashes).
 						task.SoundControl = &beep.Ctrl{
-							Streamer: beep.Resample(1, format.SampleRate, task.Project.SampleRate, stream),
+							Streamer: beep.Resample(1, format.SampleRate, projectSampleRate, stream),
 							Paused:   true}
 					} else {
 						task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
@@ -1325,7 +1326,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else if message == "task close" && task.Open {
 		task.Open = false
 		task.Project.TaskOpen = false
-		task.LoadResource()
+		task.LoadResource(false)
 		task.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
 	} else if message == "dragging" {
 		if task.Selected {

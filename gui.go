@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -268,6 +269,12 @@ func (spinner *Spinner) SetChoice(choice string) bool {
 
 func (spinner *Spinner) ChoiceAsString() string {
 	return spinner.Options[spinner.CurrentChoice]
+}
+
+func (spinner *Spinner) ChoiceAsInt() int {
+	n := 0
+	n, _ = strconv.Atoi(spinner.ChoiceAsString())
+	return n
 }
 
 type ProgressBar struct {
@@ -585,6 +592,10 @@ func (textbox *Textbox) Update() {
 
 		control := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
 		shift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
+
+		if strings.Contains(runtime.GOOS, "darwin") && !control {
+			control = rl.IsKeyDown(rl.KeyLeftSuper) || rl.IsKeyDown(rl.KeyRightSuper)
+		}
 
 		if control {
 			if rl.IsKeyPressed(rl.KeyA) {

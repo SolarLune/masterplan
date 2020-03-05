@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -46,7 +47,9 @@ type Project struct {
 	CameraOffset         rl.Vector2
 	ShadowQualitySpinner *Spinner
 	GridVisible          *Checkbox
-	SampleRate           beep.SampleRate
+	// SampleRate           beep.SampleRate
+	SampleRate           *Spinner
+	SetSampleRate        int
 	SampleBuffer         int
 	ShowIcons            *Checkbox
 	PulsingTaskSelection *Checkbox
@@ -108,7 +111,6 @@ func NewProject() *Project {
 		Searchbar:    searchBar,
 		StatusBar:    rl.Rectangle{0, float32(rl.GetScreenHeight()) - 24, float32(rl.GetScreenWidth()), 24},
 		GUI_Icons:    rl.LoadTexture(GetPath("assets", "gui_icons.png")),
-		SampleRate:   44100,
 		SampleBuffer: 512,
 		Patterns:     rl.LoadTexture(GetPath("assets", "patterns.png")),
 		Resources:    map[string]*Resource{},
@@ -123,8 +125,9 @@ func NewProject() *Project {
 		AutoSave:                NewCheckbox(350, 312, 24, 24),
 		AutoReloadThemes:        NewCheckbox(350, 352, 24, 24),
 		SaveSoundsPlaying:       NewCheckbox(350, 392, 24, 24),
+		SampleRate:              NewSpinner(350, 432, 128, 24, "22050", "44100", "48000", "88200", "96000"),
 
-		AutoLoadLastProject: NewCheckbox(350, 432, 24, 24),
+		AutoLoadLastProject: NewCheckbox(350, 472, 24, 24),
 	}
 
 	project.LogOn = true
@@ -138,7 +141,13 @@ func NewProject() *Project {
 	project.ReloadThemes()
 	project.ChangeTheme(currentTheme)
 
-	speaker.Init(project.SampleRate, project.SampleBuffer)
+	if strings.Contains(runtime.GOOS, "darwin") {
+		project.SampleRate.SetChoice("22050") // For some reason, sound on Mac is choppy unless the project's sample rate is 22050.
+	} else {
+		project.SampleRate.SetChoice("44100")
+	}
+	speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
+	project.SetSampleRate = project.SampleRate.ChoiceAsInt()
 
 	return project
 
@@ -179,7 +188,7 @@ func (project *Project) Save() bool {
 			"ZoomLevel":               project.ZoomLevel,
 			"Tasks":                   taskData,
 			"ColorTheme":              currentTheme,
-			"SampleRate":              project.SampleRate,
+			"SampleRate":              project.SampleRate.ChoiceAsInt(),
 			"SampleBuffer":            project.SampleBuffer,
 			"ShadowQuality":           project.ShadowQualitySpinner.CurrentChoice,
 			"GridVisible":             project.GridVisible.Checked,
@@ -228,7 +237,9 @@ func (project *Project) Save() bool {
 }
 
 func (project *Project) LoadFrom() bool {
-	file, success, _ := dlgs.File("Load Plan File", "*.plan", false)
+	// I used to have the extension for this file selector set to "*.plan", but Mac doesn't seem to recognize
+	// MasterPlan's .plan files as having that extension... I'm just removing the extension filter for now.
+	file, success, _ := dlgs.File("Load Plan File", "", false)
 	if success {
 		currentProject = NewProject()
 		// TODO: DO something if this fails
@@ -252,88 +263,101 @@ func (project *Project) Load(filepath string) bool {
 		data := map[string]interface{}{}
 		decoder.Decode(&data)
 
-		if len(data) == 0 {
+		dataGood := true
+
+		if len(data) != 0 {
+			_, exists := data["Tasks"]
+			if !exists {
+				dataGood = false
+			}
+		} else {
+			dataGood = false
+		}
+
+		if dataGood {
+
+			project.FilePath = filepath
+
+			getFloat := func(name string, defaultValue float32) float32 {
+				value, exists := data[name]
+				if exists {
+					return float32(value.(float64))
+				} else {
+					return defaultValue
+				}
+			}
+			getInt := func(name string, defaultValue int) int {
+				value, exists := data[name]
+				if exists {
+					return int(value.(float64))
+				} else {
+					return defaultValue
+				}
+			}
+			getString := func(name string, defaultValue string) string {
+				value, exists := data[name]
+				if exists {
+					return value.(string)
+				} else {
+					return defaultValue
+				}
+			}
+			getBool := func(name string, defaultValue bool) bool {
+				value, exists := data[name]
+				if exists {
+					return value.(bool)
+				} else {
+					return defaultValue
+				}
+			}
+
+			project.GridSize = int32(getInt("GridSize", int(project.GridSize)))
+			project.CameraPan.X = getFloat("Pan.X", project.CameraPan.X)
+			project.CameraPan.Y = getFloat("Pan.Y", project.CameraPan.Y)
+			project.ZoomLevel = getInt("ZoomLevel", project.ZoomLevel)
+			project.SampleRate.SetChoice(string(getInt("SampleRate", project.SampleRate.ChoiceAsInt())))
+			project.SampleBuffer = getInt("SampleBuffer", project.SampleBuffer)
+			project.ShadowQualitySpinner.CurrentChoice = getInt("ShadowQuality", project.ShadowQualitySpinner.CurrentChoice)
+			project.GridVisible.Checked = getBool("GridVisible", project.GridVisible.Checked)
+			project.ShowIcons.Checked = getBool("ShowIcons", project.ShowIcons.Checked)
+			project.NumberingSequence.CurrentChoice = getInt("NumberingSequence", project.NumberingSequence.CurrentChoice)
+			project.NumberingIgnoreTopLevel.Checked = getBool("NumberingIgnoreTopLevel", project.NumberingIgnoreTopLevel.Checked)
+			project.PulsingTaskSelection.Checked = getBool("PulsingTaskSelection", project.PulsingTaskSelection.Checked)
+			project.AutoSave.Checked = getBool("AutoSave", project.AutoSave.Checked)
+			project.AutoReloadThemes.Checked = getBool("AutoReloadThemes", project.AutoReloadThemes.Checked)
+			project.SaveSoundsPlaying.Checked = getBool("SaveSoundsPlaying", project.SaveSoundsPlaying.Checked)
+
+			speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
+			project.SetSampleRate = project.SampleRate.ChoiceAsInt()
+
+			project.LogOn = false
+			for _, t := range data["Tasks"].([]interface{}) {
+				task := project.CreateNewTask()
+				task.Deserialize(t.(map[string]interface{}))
+			}
+			project.LogOn = true
+
+			colorTheme := getString("ColorTheme", currentTheme)
+			if colorTheme != "" {
+				project.ChangeTheme(colorTheme) // Changing theme regenerates the grid; we don't have to do it elsewhere
+			}
+
+			programSettings[PS_LAST_OPENED_PLAN] = filepath
+			programSettings.Save()
+			project.JustLoaded = true
+			project.Log("Load successful.")
+
+		} else {
+
 			// It's possible for the file to be mangled and unable to be loaded; I should actually handle this
 			// with a backup system or something.
-			log.Println("Save file [" + filepath + "] corrupted, cannot be restored.")
+			log.Println("Error: Could not load plan: [ %s ].", filepath)
+			currentProject.Log("Error: Could not load plan: [ %s ].", filepath)
+			currentProject.Log("Are you sure it's a valid MasterPlan project?")
 			success = false
+
 		}
 
-		project.FilePath = filepath
-
-		getFloat := func(name string, defaultValue float32) float32 {
-			value, exists := data[name]
-			if exists {
-				return float32(value.(float64))
-			} else {
-				return defaultValue
-			}
-		}
-		getInt := func(name string, defaultValue int) int {
-			value, exists := data[name]
-			if exists {
-				return int(value.(float64))
-			} else {
-				return defaultValue
-			}
-		}
-		getString := func(name string, defaultValue string) string {
-			value, exists := data[name]
-			if exists {
-				return value.(string)
-			} else {
-				return defaultValue
-			}
-		}
-		getBool := func(name string, defaultValue bool) bool {
-			value, exists := data[name]
-			if exists {
-				return value.(bool)
-			} else {
-				return defaultValue
-			}
-		}
-
-		project.GridSize = int32(getInt("GridSize", int(project.GridSize)))
-		project.CameraPan.X = getFloat("Pan.X", project.CameraPan.X)
-		project.CameraPan.Y = getFloat("Pan.Y", project.CameraPan.Y)
-		project.ZoomLevel = getInt("ZoomLevel", project.ZoomLevel)
-		project.SampleRate = beep.SampleRate(getInt("SampleRate", int(project.SampleRate)))
-		project.SampleBuffer = getInt("SampleBuffer", project.SampleBuffer)
-		project.ShadowQualitySpinner.CurrentChoice = getInt("ShadowQuality", project.ShadowQualitySpinner.CurrentChoice)
-		project.GridVisible.Checked = getBool("GridVisible", project.GridVisible.Checked)
-		project.ShowIcons.Checked = getBool("ShowIcons", project.ShowIcons.Checked)
-		project.NumberingSequence.CurrentChoice = getInt("NumberingSequence", project.NumberingSequence.CurrentChoice)
-		project.NumberingIgnoreTopLevel.Checked = getBool("NumberingIgnoreTopLevel", project.NumberingIgnoreTopLevel.Checked)
-		project.PulsingTaskSelection.Checked = getBool("PulsingTaskSelection", project.PulsingTaskSelection.Checked)
-		project.AutoSave.Checked = getBool("AutoSave", project.AutoSave.Checked)
-		project.AutoReloadThemes.Checked = getBool("AutoReloadThemes", project.AutoReloadThemes.Checked)
-		project.SaveSoundsPlaying.Checked = getBool("SaveSoundsPlaying", project.SaveSoundsPlaying.Checked)
-
-		speaker.Init(project.SampleRate, project.SampleBuffer)
-
-		project.LogOn = false
-		for _, t := range data["Tasks"].([]interface{}) {
-			task := project.CreateNewTask()
-			task.Deserialize(t.(map[string]interface{}))
-		}
-		project.LogOn = true
-
-		colorTheme := getString("ColorTheme", currentTheme)
-		if colorTheme != "" {
-			project.ChangeTheme(colorTheme) // Changing theme regenerates the grid; we don't have to do it elsewhere
-		}
-
-		programSettings[PS_LAST_OPENED_PLAN] = filepath
-		programSettings.Save()
-		project.JustLoaded = true
-
-	}
-
-	if success {
-		project.Log("Load successful.")
-	} else {
-		project.Log("ERROR: Load unsuccessful.")
 	}
 
 	return success
@@ -470,7 +494,7 @@ func (project *Project) HandleDroppedFiles() {
 				}
 
 				task.FilePathTextbox.Text = filePath
-				task.LoadResource()
+				task.LoadResource(false)
 				project.Tasks = append(project.Tasks, task)
 				continue
 			}
@@ -786,6 +810,10 @@ func (project *Project) Shortcuts() {
 
 	holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
 	holdingCtrl := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
+
+	if strings.Contains(runtime.GOOS, "darwin") && !holdingCtrl {
+		holdingCtrl = rl.IsKeyDown(rl.KeyLeftSuper) || rl.IsKeyDown(rl.KeyRightSuper)
+	}
 
 	if !project.ProjectSettingsOpen {
 
@@ -1212,12 +1240,27 @@ func (project *Project) GUI() {
 
 	} else if project.ProjectSettingsOpen {
 
-		rec := rl.Rectangle{16, 16, 650, 450}
+		rec := rl.Rectangle{16, 16, 650, 500}
 		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 
 		if ImmediateButton(rl.Rectangle{rec.Width - 16, rec.Y, 32, 32}, "X", false) {
 			project.ProjectSettingsOpen = false
+
+			if project.SampleRate.ChoiceAsInt() != project.SetSampleRate {
+				speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
+				project.SetSampleRate = project.SampleRate.ChoiceAsInt()
+				project.Log("Project sample rate changed to %s.", project.SampleRate.ChoiceAsString())
+				project.Log("Currently playing sounds have been stopped and resampled as necessary.")
+				project.LogOn = false
+				for _, t := range project.Tasks {
+					if t.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+						t.LoadResource(true) // Force reloading to resample as necessary
+					}
+				}
+				project.LogOn = true
+			}
+
 			if project.AutoSave.Checked {
 				project.Save()
 			}
@@ -1261,6 +1304,9 @@ func (project *Project) GUI() {
 
 		rl.DrawTextEx(guiFont, "Auto-reload Themes:", rl.Vector2{columnX, project.AutoReloadThemes.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.AutoReloadThemes.Update()
+
+		rl.DrawTextEx(guiFont, "Project Samplerate:", rl.Vector2{columnX, project.SampleRate.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		project.SampleRate.Update()
 
 		rl.DrawTextEx(guiFont, "Auto-load Last Saved Project:", rl.Vector2{columnX, project.AutoLoadLastProject.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.AutoLoadLastProject.Update()
@@ -1372,24 +1418,22 @@ func (project *Project) CreateNewTask() *Task {
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	project.Tasks = append(project.Tasks, newTask)
 
-	if project.NumberingSequence.CurrentChoice != NUMBERING_SEQUENCE_OFF {
-		for _, task := range project.Tasks {
-			if task.Selected {
-				newTask.Position = task.Position
-				newTask.Position.Y += float32(project.GridSize)
-				below := task.TaskBelow
+	for _, task := range project.Tasks {
+		if task.Selected {
+			newTask.Position = task.Position
+			newTask.Position.Y += float32(project.GridSize)
+			below := task.TaskBelow
 
-				if below != nil && below.Position.X >= task.Position.X {
-					newTask.Position.X = below.Position.X
-				}
-
-				for below != nil {
-					below.Position.Y += float32(project.GridSize)
-					below = below.TaskBelow
-				}
-				project.ReorderTasks()
-				break
+			if below != nil && below.Position.X >= task.Position.X {
+				newTask.Position.X = below.Position.X
 			}
+
+			for below != nil {
+				below.Position.Y += float32(project.GridSize)
+				below = below.TaskBelow
+			}
+			project.ReorderTasks()
+			break
 		}
 	}
 
@@ -1525,34 +1569,23 @@ func (project *Project) PasteTasks() {
 			task.Selected = false
 		}
 
-		var firstTask *Task
+		bottom := project.CopyBuffer[len(project.CopyBuffer)-1]
 
-		for _, t := range project.CopyBuffer {
-			if t.CanHaveNeighbors() {
-				firstTask = t
-				break
-			}
-		}
-
-		offsetY := float32(project.GridSize)
-
-		if firstTask != nil {
-			down := firstTask.TaskBelow
-			for down != nil {
-				offsetY += float32(project.GridSize)
-				down = down.TaskBelow
-			}
-		}
-
-		// offsetX := ((-project.CameraPan.X + float32(rl.GetScreenWidth()/2)) - project.CopyBuffer[0].Position.X)
-		// offsetY := ((-project.CameraPan.Y + float32(rl.GetScreenHeight()/2)) - project.CopyBuffer[0].Position.Y)
-
-		for _, srcTask := range project.CopyBuffer {
+		for i, srcTask := range project.CopyBuffer {
 			clone := srcTask.Clone()
 			clone.Selected = true
 			project.Tasks = append(project.Tasks, clone)
-			clone.LoadResource()
-			clone.Position.Y += float32(offsetY)
+			clone.LoadResource(false)
+
+			clone.Position.Y = bottom.Position.Y + float32(int32(i+1)*project.GridSize)
+
+			below := bottom.TaskBelow
+
+			for below != nil {
+				below.Position.Y += float32(project.GridSize)
+				below = below.TaskBelow
+			}
+
 		}
 
 		project.ReorderTasks()
@@ -1589,7 +1622,7 @@ func (project *Project) PasteContent() {
 				task.TaskType.CurrentChoice = TASK_TYPE_SOUND
 			}
 
-			task.LoadResource()
+			task.LoadResource(false)
 
 		} else {
 			task.Description.Text = clipboardData
