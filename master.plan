@@ -6,8 +6,8 @@
 	"GridVisible": true,
 	"NumberingIgnoreTopLevel": true,
 	"NumberingSequence": 0,
-	"Pan.X": 2512,
-	"Pan.Y": -200,
+	"Pan.X": 2282,
+	"Pan.Y": -1472,
 	"PulsingTaskSelection": true,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
@@ -513,7 +513,8 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Mar 5 2020 22:03:29",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Do the same as above, but for copy+paste.\nSo pasting tasks should insert them where the top-most selected Task is.",
 			"FilePath": "",
@@ -584,7 +585,8 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Mar 5 2020 22:02:27",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Playback controls.\nJust shortcuts would do for now.\nRestart, fast forward, rewind. Play + Pause are already implemented.\nThis should probably be added to a panel for Tasks.",
 			"FilePath": "",
@@ -1426,7 +1428,7 @@
 		{
 			"Checkbox.Checked": false,
 			"CreationTime": "Jan 13 2020 19:07:42",
-			"Description": "Transparency, allowing to make \"layers\" with different layers editable and viewable at a time.\nParticularly could be useful for planning floorplans, as it would give you the ability to overlay floors over\neach other or display different amounts of information.",
+			"Description": "Transparency to allow for different \"layers\" being editable and visible at a time.\nParticularly could be useful for planning floorplans, as it would give you the ability to overlay floors over\neach other or display different amounts of information.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1434,7 +1436,7 @@
 			"Position.Y": 1920,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Selected": false,
+			"Selected": true,
 			"TaskType.CurrentChoice": 0
 		},
 		{
@@ -4329,7 +4331,8 @@
 			"TimerSecondSpinner.Number": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Mar 5 2020 22:05:12",
 			"CreationTime": "Feb 25 2020 08:46:21",
 			"Description": "MasterPlan should open with a splash screen. Should probably change it up every few versions.",
 			"FilePath": "",
