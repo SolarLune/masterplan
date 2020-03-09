@@ -1,3 +1,28 @@
+-------
+
+v0.2.1
+
+-------
+
+Added Boards. A Board represents a collection of Tasks. Boards are selected by utilizing the Board selection menu at the top-right (or an 
+    associated shortcut, which is Ctrl + 1, 2, 3..., 0). You can add Boards by clicking on the + button in that same menu. Empty Boards (Boards
+    that don't contain any Tasks) are deleted if they are not open.
+Added the Board number on the grid background at origin (0, 0).
+Added Cut Tasks option and shortcut. Pasting cut Tasks move them to the mouse's position.
+Fixed wording of Log messages that mention "Tasks" to mention "Task(s)" instead (to cover singular Task use cases).
+
+You can now configure the sound playback sample rate in the Project Settings.
+Sample rate is now set to 22050 by default (the only sample rate that seems to play sounds back flawlessly in my tests, oddly) on Mac.
+Fix: Unable to load .plan files on Mac because the most recent Mac OS version seems to have trouble recognizing file extensions in some cases. So 
+    instead, I'm just removing the filter on the File Open dialog for now.
+Fix: On Mac, shortcuts can now use Super instead of Control. Note that I'm still allowing people to use Control for those shortcuts as well if they 
+    prefer.
+Loading saved plans are validated a little bit more - if the file loaded isn't valid JSON or does not have a "Tasks" entry, then the load will fail 
+    gracefully.
+Fix: New Tasks now are created beneath the top-most selected Task, regardless of numbering sequence.
+Pasting Tasks now pastes them below the last Task selected, in the same column.
+Fix: Dragging image or sound files over MasterPlan create associated Tasks, but don't automatically load the media.
+
 _______
 
 v0.2.0
@@ -9,7 +34,9 @@ Hopeful Fix: Set application build type to GUI on Windows, making it so the comm
 FIX: Task bar not filling for Timer when running.
 Adding splash screen.
 FIX: Task completion time constantly set on save for parent Tasks with completed subtasks.
-Adding Timer Task type. The Timer allows people to add Timers to their plan, allowing them to better control how and when they work. It allows for Pomodoro-style timing-based workflows (work for x minutes, rest for y minutes, repeat) into their daily development. Timers that are next to each other trigger in sequence, much like Sound Tasks.
+Adding Timer Task type. The Timer allows people to add Timers to their plan, allowing them to better control how and when they work. It allows for 
+    Pomodoro-style timing-based workflows (work for x minutes, rest for y minutes, repeat) into their daily development. Timers that are next to 
+    each other trigger in sequence, much like Sound Tasks.
 Sound Tasks now have buttons for playing, pausing, and restarting sounds.
 Completing Tasks with [C] now is displayed as a notification.
 Deadline patterns cycle faster to indicate urgency.
@@ -22,7 +49,9 @@ FIX: Crash if starting MasterPlan and Autoload Last Project setting didn't save.
 
 Major changes - Resource management improvements.
 Resources (images and GIFs) are now stored in a central location on the Project and are reused between Tasks.
-Resource downloading and loading has been improved by the addition of the usage of a MIME type detection library. This allows for MasterPlan to see what kind of file a file is after downloading, even if the file doesn't have the correct filepath. This means that Paste Content now works much more reliably across media found on the Internet.
+Resource downloading and loading has been improved by the addition of the usage of a MIME type detection library. This allows for MasterPlan to see 
+    what kind of file a file is after downloading, even if the file doesn't have the correct filepath. This means that Paste Content now works much 
+    more reliably across media found on the Internet.
 Lengthening the amount of time messages are on screen (5 seconds to 7 seconds).
 Escape key now defocuses textboxes.
 Enter key now is also a shortcut to jump to the next Task in a search when the searchbar is highlighted (like Ctrl+F). Shift+Enter goes back (much like Shift+Ctrl+F).
@@ -30,10 +59,13 @@ Adding project setting to save sounds that are currently playing.
 
 FIX: Percentage didn't fill a Task if under 1% filled. That value has now been bumped to 0.01%.
 FIX: Log reporting selection and deselection of Tasks was incorrect.
-FIX: Pasting Tasks now lowers them below the column of existing Tasks (if the Task is completable). A TODO is to make all Tasks able to have neighbors so you can shift them around easily using the keyboard.
+FIX: Pasting Tasks now lowers them below the column of existing Tasks (if the Task is completable). A TODO is to make all Tasks able to have 
+    neighbors so you can shift them around easily using the keyboard.
 FIX: Crash if using Ctrl+V to paste Tasks with no Tasks copied.
-FIX: Crash if playing resampled audio and looping it multiple times (4-6 in my tests on a specific file). This seems to be FIXed by lowering the quality of resampling (quality of 4 > quality of 1).
-FIX: Hang when deleting Tasks due to Tasks registering their neighbors that include themselves, resulting in a loop (A.TaskAbove = B, B.TaskAbove = A). This is resolved by comparing Task positions more absolutely to determine whether a Task is another's neighbor.
+FIX: Crash if playing resampled audio and looping it multiple times (4-6 in my tests on a specific file). This seems to be FIXed by lowering the 
+    quality of resampling (quality of 4 > quality of 1).
+FIX: Hang when deleting Tasks due to Tasks registering their neighbors that include themselves, resulting in a loop (A.TaskAbove = B, B.TaskAbove = 
+    A). This is resolved by comparing Task positions more absolutely to determine whether a Task is another's neighbor.
 
 Massive textbox improvements.
 You can now select blocks of text in textboxes, either by mouse click and drag, or by holding shift and using the keyboard.
@@ -43,14 +75,17 @@ FIX: Navigating text lines by keyboard in textboxes is no longer as inaccurate. 
 
 You can now move multiple Tasks at a time with the keyboard.
 You can now select multiple Tasks using Shift + up or down arrow.
-Ctrl + arrow keys now move Tasks, rather than Shift. This is a bit more awkward, but more consistent with how holding shift allows for selecting multiple Tasks with the mouse.
-Moving Tasks no longer adjusts the indentation. This seems better to keep Tasks arranged consistently and not jump around when moving groups of Tasks around.
+Ctrl + arrow keys now move Tasks, rather than Shift. This is a bit more awkward, but more consistent with how holding shift allows for selecting 
+    multiple Tasks with the mouse.
+Moving Tasks no longer adjusts the indentation. This seems better to keep Tasks arranged consistently and not jump around when moving groups of 
+    Tasks around.
 Escape now deselects all Tasks.
 Page Up and Page Down now selects the first or last Task in a column, respectively.
 FIX: Shadows no longer render on top of Tasks.
 FIX: You can now pan while dragging Tasks.
 FIX: Projects couldn't restore the pan of the camera from saved plans. To resolve this, creating new Tasks now no longer focuses the view on them.
-HOPEFUL FIX: Zoom locks when close to targeted zoom. Seems like I was getting some artifacting at 1x zoom level, but I can't seem to reproduce it reliably. This should help make sure the zoom never stays at fractional levels.
+HOPEFUL FIX: Zoom locks when close to targeted zoom. Seems like I was getting some artifacting at 1x zoom level, but I can't seem to reproduce it 
+    reliably. This should help make sure the zoom never stays at fractional levels.
 
 Other assorted code rearrangings and minor fixes.
 
