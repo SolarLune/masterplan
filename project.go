@@ -486,7 +486,7 @@ func (project *Project) Update() {
 	dst := src
 	rl.DrawTexturePro(project.GridTexture, src, dst, rl.Vector2{}, 0, rl.White)
 
-	rl.DrawTextEx(font, fmt.Sprintf("BOARD %d", project.BoardIndex), rl.Vector2{-1, 0}, fontSize*4, spacing, getThemeColor(GUI_INSIDE))
+	rl.DrawTextEx(font, fmt.Sprintf("BOARD %d", project.BoardIndex+1), rl.Vector2{-1, 0}, fontSize*4, spacing, getThemeColor(GUI_INSIDE))
 
 	// This is the origin crosshair
 	rl.DrawLineEx(rl.Vector2{0, -100000}, rl.Vector2{0, 100000}, 2, getThemeColor(GUI_INSIDE))
@@ -1420,7 +1420,7 @@ func (project *Project) GUI() {
 
 			for boardIndex, _ := range project.Boards {
 
-				boardName := fmt.Sprintf("Board %d", boardIndex)
+				boardName := fmt.Sprintf("Board %d", boardIndex+1)
 
 				disabled := boardIndex == project.BoardIndex
 
