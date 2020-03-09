@@ -107,7 +107,11 @@ func loadThemes() {
 
 }
 
-func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
+func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, text string, disabled bool) bool {
+
+	// r := rect
+	// r.Width += iconSrcRec.Width
+	// r.X -= iconSrcRec.Width
 
 	clicked := false
 
@@ -136,12 +140,31 @@ func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 	rl.DrawRectangleLinesEx(rect, 1, outlineColor)
 
 	textWidth := rl.MeasureTextEx(guiFont, text, guiFontSize, spacing)
-	pos := rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2, rect.Y + (rect.Height / 2) - textWidth.Y/2}
+	pos := rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2 + (iconSrcRec.Width / 2), rect.Y + (rect.Height / 2) - textWidth.Y/2}
 	pos.X = float32(math.Round(float64(pos.X)))
 	pos.Y = float32(math.Round(float64(pos.Y)))
+
+	iconDstRec := rect
+	iconDstRec.X += iconSrcRec.Width / 4
+	iconDstRec.Y += iconSrcRec.Height / 4
+	iconDstRec.Width = iconSrcRec.Width
+	iconDstRec.Height = iconSrcRec.Height
+
+	rl.DrawTexturePro(
+		currentProject.GUI_Icons,
+		iconSrcRec,
+		iconDstRec,
+		rl.Vector2{},
+		0,
+		getThemeColor(GUI_FONT_COLOR))
+
 	rl.DrawTextEx(guiFont, text, pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
 
 	return clicked
+}
+
+func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
+	return ImmediateIconButton(rect, rl.Rectangle{}, text, disabled)
 }
 
 type Checkbox struct {

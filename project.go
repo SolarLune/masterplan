@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/atotto/clipboard"
 	"github.com/pkg/browser"
 
 	"github.com/faiface/beep"
@@ -39,9 +38,12 @@ const (
 
 type Project struct {
 	// Settings / project-specific data
-	FilePath             string
-	GridSize             int32
-	Tasks                []*Task
+	FilePath string
+	GridSize int32
+	// Tasks                []Board
+	Boards               []*Board
+	BoardIndex           int
+	BoardPanel           rl.Rectangle
 	ZoomLevel            int
 	CameraPan            rl.Vector2
 	CameraOffset         rl.Vector2
@@ -59,7 +61,7 @@ type Project struct {
 	SaveSoundsPlaying    *Checkbox
 	ColorThemeSpinner    *Spinner
 
-	// Internal data to make projects work
+	// Internal data to make stuff work
 	FullyInitialized        bool
 	GridTexture             rl.Texture2D
 	ContextMenuOpen         bool
@@ -71,6 +73,7 @@ type Project struct {
 	DoubleClickTimer        int
 	DoubleClickTaskID       int
 	CopyBuffer              []*Task
+	CutMode                 bool // If cutting, then this boolean is set
 	TaskOpen                bool
 	ThemeReloadTimer        int
 	NumberingSequence       *Spinner
@@ -130,6 +133,8 @@ func NewProject() *Project {
 		AutoLoadLastProject: NewCheckbox(350, 472, 24, 24),
 	}
 
+	project.Boards = []*Board{NewBoard(project)}
+
 	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
 	project.ShadowQualitySpinner.CurrentChoice = 2
@@ -153,6 +158,10 @@ func NewProject() *Project {
 
 }
 
+func (project *Project) CurrentBoard() *Board {
+	return project.Boards[project.BoardIndex]
+}
+
 func (project *Project) SaveAs() bool {
 	dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
 	if success {
@@ -160,6 +169,14 @@ func (project *Project) SaveAs() bool {
 		return project.Save()
 	}
 	return false
+}
+
+func (project *Project) GetAllTasks() []*Task {
+	tasks := []*Task{}
+	for _, b := range project.Boards {
+		tasks = append(tasks, b.Tasks...)
+	}
+	return tasks
 }
 
 func (project *Project) Save() bool {
@@ -171,7 +188,7 @@ func (project *Project) Save() bool {
 		// Sort the Tasks by their ID, then loop through them using that slice. This way,
 		// They store data according to their creation ID, not according to their position
 		// in the world.
-		tasksByID := append([]*Task{}, project.Tasks...)
+		tasksByID := append([]*Task{}, project.GetAllTasks()...)
 
 		sort.Slice(tasksByID, func(i, j int) bool { return tasksByID[i].ID < tasksByID[j].ID })
 
@@ -186,6 +203,7 @@ func (project *Project) Save() bool {
 			"Pan.X":                   project.CameraPan.X,
 			"Pan.Y":                   project.CameraPan.Y,
 			"ZoomLevel":               project.ZoomLevel,
+			"BoardCount":              len(project.Boards),
 			"Tasks":                   taskData,
 			"ColorTheme":              currentTheme,
 			"SampleRate":              project.SampleRate.ChoiceAsInt(),
@@ -331,10 +349,25 @@ func (project *Project) Load(filepath string) bool {
 			project.SetSampleRate = project.SampleRate.ChoiceAsInt()
 
 			project.LogOn = false
-			for _, t := range data["Tasks"].([]interface{}) {
-				task := project.CreateNewTask()
-				task.Deserialize(t.(map[string]interface{}))
+
+			for i := 0; i < getInt("BoardCount", 0)-1; i++ {
+				project.AddBoard()
 			}
+
+			for _, t := range data["Tasks"].([]interface{}) {
+				taskData := t.(map[string]interface{})
+
+				bi, exists := taskData["BoardIndex"]
+				boardIndex := 0
+
+				if exists {
+					boardIndex = int(bi.(float64))
+				}
+
+				task := project.Boards[boardIndex].CreateNewTask()
+				task.Deserialize(taskData)
+			}
+
 			project.LogOn = true
 
 			colorTheme := getString("ColorTheme", currentTheme)
@@ -371,56 +404,6 @@ func (project *Project) Log(text string, variables ...interface{}) {
 		}
 		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text})
 	}
-}
-
-// func (project *Project) RemoveTask(tasks ...*Task) {
-
-// 	for _, task := range tasks {
-// 		for i := len(project.Tasks) - 1; i >= 0; i-- {
-// 			if project.Tasks[i] == task {
-// 				project.RemoveTaskByIndex(i)
-// 			}
-// 		}
-// 	}
-
-// }
-
-func (project *Project) RemoveTaskByIndex(index int) {
-	project.Tasks[index].ReceiveMessage("delete", map[string]interface{}{"task": project.Tasks[index]})
-	project.Tasks[index] = nil
-	project.Tasks = append(project.Tasks[:index], project.Tasks[index+1:]...)
-}
-
-func (project *Project) FocusViewOnSelectedTasks() {
-
-	if len(project.Tasks) > 0 {
-
-		center := rl.Vector2{}
-		taskCount := float32(0)
-
-		for _, task := range project.Tasks {
-			if task.Selected {
-				taskCount++
-				center.X += task.Position.X + task.Rect.Width/2
-				center.Y += task.Position.Y + task.Rect.Height/2
-			}
-		}
-
-		if taskCount > 0 {
-
-			raymath.Vector2Divide(&center, taskCount)
-
-			center.X *= -1
-			center.Y *= -1
-
-			center.X += float32(rl.GetScreenWidth()) / 2
-			center.Y += float32(rl.GetScreenHeight()) / 2
-			project.CameraPan = center // Pan's a negative offset for the camera
-
-		}
-
-	}
-
 }
 
 func (project *Project) HandleCamera() {
@@ -474,40 +457,12 @@ func (project *Project) HandleCamera() {
 
 }
 
-func (project *Project) HandleDroppedFiles() {
-
-	if rl.IsFileDropped() {
-		fileCount := int32(0)
-		for _, filePath := range rl.GetDroppedFiles(&fileCount) {
-
-			taskType, _ := mimetype.DetectFile(filePath)
-
-			if taskType != nil {
-				task := NewTask(project)
-				task.Position.X = camera.Target.X
-				task.Position.Y = camera.Target.Y
-
-				if strings.Contains(taskType.String(), "image") {
-					task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-				} else if strings.Contains(taskType.String(), "audio") {
-					task.TaskType.CurrentChoice = TASK_TYPE_SOUND
-				}
-
-				task.FilePathTextbox.Text = filePath
-				task.LoadResource(false)
-				project.Tasks = append(project.Tasks, task)
-				continue
-			}
-		}
-		rl.ClearDroppedFiles()
-	}
-
-}
-
 func (project *Project) MousingOver() string {
 
 	if rl.CheckCollisionPointRec(GetMousePosition(), project.StatusBar) {
 		return "StatusBar"
+	} else if rl.CheckCollisionPointRec(GetMousePosition(), project.BoardPanel) {
+		return "Boards"
 	} else if project.TaskOpen {
 		return "TaskOpen"
 	} else {
@@ -531,6 +486,8 @@ func (project *Project) Update() {
 	dst := src
 	rl.DrawTexturePro(project.GridTexture, src, dst, rl.Vector2{}, 0, rl.White)
 
+	rl.DrawTextEx(font, fmt.Sprintf("BOARD %d", project.BoardIndex), rl.Vector2{-1, 0}, fontSize*4, spacing, getThemeColor(GUI_INSIDE))
+
 	// This is the origin crosshair
 	rl.DrawLineEx(rl.Vector2{0, -100000}, rl.Vector2{0, 100000}, 2, getThemeColor(GUI_INSIDE))
 	rl.DrawLineEx(rl.Vector2{-100000, 0}, rl.Vector2{100000, 0}, 2, getThemeColor(GUI_INSIDE))
@@ -539,7 +496,7 @@ func (project *Project) Update() {
 
 	if !project.TaskOpen && !project.ProjectSettingsOpen {
 
-		project.HandleDroppedFiles()
+		project.CurrentBoard().HandleDroppedFiles()
 		project.HandleCamera()
 
 		var clickedTask *Task
@@ -557,9 +514,9 @@ func (project *Project) Update() {
 
 		if project.MousingOver() == "Project" {
 
-			for i := len(project.Tasks) - 1; i >= 0; i-- {
+			for i := len(project.CurrentBoard().Tasks) - 1; i >= 0; i-- {
 
-				task := project.Tasks[i]
+				task := project.CurrentBoard().Tasks[i]
 
 				if rl.CheckCollisionPointRec(GetWorldMousePosition(), task.Rect) && clickedTask == nil {
 					clickedTask = task
@@ -617,7 +574,7 @@ func (project *Project) Update() {
 				if clickedTask == nil {
 
 					if project.DoubleClickTimer > 0 && project.DoubleClickTaskID == -1 {
-						task := project.CreateNewTask()
+						task := project.CurrentBoard().CreateNewTask()
 						task.ReceiveMessage("double click", nil)
 						project.Selecting = false
 					}
@@ -661,7 +618,7 @@ func (project *Project) Update() {
 
 					count := 0
 
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 
 						inSelectionRect := false
 						var t *Task
@@ -700,9 +657,9 @@ func (project *Project) Update() {
 					}
 
 					if holdingAlt {
-						project.Log("Deselected %d Tasks.", count)
+						project.Log("Deselected %d Task(s).", count)
 					} else {
-						project.Log("Selected %d Tasks.", count)
+						project.Log("Selected %d Task(s).", count)
 					}
 
 				}
@@ -715,7 +672,7 @@ func (project *Project) Update() {
 
 	}
 
-	for _, task := range project.Tasks {
+	for _, task := range project.CurrentBoard().Tasks {
 		task.Update()
 	}
 
@@ -726,7 +683,7 @@ func (project *Project) Update() {
 		rl.BeginBlendMode(rl.BlendAdditive)
 	}
 
-	for _, task := range project.Tasks {
+	for _, task := range project.CurrentBoard().Tasks {
 		task.DrawShadow()
 	}
 
@@ -734,7 +691,7 @@ func (project *Project) Update() {
 		rl.EndBlendMode()
 	}
 
-	for _, task := range project.Tasks {
+	for _, task := range project.CurrentBoard().Tasks {
 		task.Draw()
 	}
 
@@ -755,19 +712,19 @@ func (project *Project) Update() {
 func (project *Project) SendMessage(message string, data map[string]interface{}) {
 
 	if message == "dropped" {
-		for _, task := range project.Tasks {
+		for _, task := range project.CurrentBoard().Tasks {
 			// Clear out neighbors before having the task proceed with it
 			task.TaskAbove = nil
 			task.TaskBelow = nil
 		}
 	}
 
-	for _, task := range project.Tasks {
+	for _, task := range project.CurrentBoard().Tasks {
 		task.ReceiveMessage(message, data)
 	}
 
 	if message == "dropped" {
-		for _, task := range project.Tasks {
+		for _, task := range project.CurrentBoard().Tasks {
 			task.ReceiveMessage("children", nil)
 		}
 	}
@@ -840,7 +797,47 @@ func (project *Project) Shortcuts() {
 					project.CameraPan.X -= panSpeed
 				}
 
-				if rl.IsKeyPressed(rl.KeyOne) || rl.IsKeyPressed(rl.KeyKp1) {
+				if holdingCtrl && rl.IsKeyPressed(rl.KeyOne) {
+					if len(project.Boards) > 0 {
+						project.BoardIndex = 0
+					}
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyTwo) {
+					if len(project.Boards) > 1 {
+						project.BoardIndex = 1
+					}
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyThree) {
+					if len(project.Boards) > 2 {
+						project.BoardIndex = 2
+					}
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyFour) {
+					if len(project.Boards) > 3 {
+						project.BoardIndex = 3
+					}
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyFive) {
+					if len(project.Boards) > 4 {
+						project.BoardIndex = 4
+					}
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeySix) {
+					if len(project.Boards) > 5 {
+						project.BoardIndex = 5
+					}
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeySeven) {
+					if len(project.Boards) > 6 {
+						project.BoardIndex = 6
+					}
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyEight) {
+					if len(project.Boards) > 7 {
+						project.BoardIndex = 7
+					}
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyNine) {
+					if len(project.Boards) > 8 {
+						project.BoardIndex = 8
+					}
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyZero) {
+					if len(project.Boards) > 9 {
+						project.BoardIndex = 9
+					}
+				} else if rl.IsKeyPressed(rl.KeyOne) || rl.IsKeyPressed(rl.KeyKp1) {
 					project.ZoomLevel = 0
 				} else if rl.IsKeyPressed(rl.KeyTwo) || rl.IsKeyPressed(rl.KeyKp2) {
 					project.ZoomLevel = 1
@@ -855,24 +852,26 @@ func (project *Project) Shortcuts() {
 					camera.Offset = project.CameraPan
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
 
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 						task.Selected = true
 					}
 
-					project.Log("Selected all %d Tasks.", len(project.Tasks))
+					project.Log("Selected all %d Task(s).", len(project.CurrentBoard().Tasks))
 
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyC) {
-					project.CopySelectedTasks()
+					project.CurrentBoard().CopySelectedTasks()
+				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyX) {
+					project.CurrentBoard().CutSelectedTasks()
 				} else if holdingCtrl && holdingShift && rl.IsKeyPressed(rl.KeyV) {
-					project.PasteContent()
+					project.CurrentBoard().PasteContent()
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
-					project.PasteTasks()
+					project.CurrentBoard().PasteTasks()
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
-					task := project.CreateNewTask()
+					task := project.CurrentBoard().CreateNewTask()
 					task.ReceiveMessage("double click", nil)
 				} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
 
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 						task.StopSound()
 					}
 					project.Log("Stopped all playing Sounds.")
@@ -881,7 +880,7 @@ func (project *Project) Shortcuts() {
 
 					toggleCount := 0
 
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
 							if task.Completable() {
 								toggleCount++
@@ -891,16 +890,16 @@ func (project *Project) Shortcuts() {
 					}
 
 					if toggleCount > 0 {
-						project.Log("Completion toggled on %d Tasks.", toggleCount)
+						project.Log("Completion toggled on %d Task(s).", toggleCount)
 					}
 
 				} else if rl.IsKeyPressed(rl.KeyDelete) {
-					project.DeleteSelectedTasks()
+					project.CurrentBoard().DeleteSelectedTasks()
 				} else if rl.IsKeyPressed(rl.KeyF) {
-					project.FocusViewOnSelectedTasks()
+					project.CurrentBoard().FocusViewOnSelectedTasks()
 				} else if holdingCtrl && repeatableKeyDown[rl.KeyUp] {
 
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
 							above := task.TaskAbove
 							for above != nil && above.Selected {
@@ -913,12 +912,12 @@ func (project *Project) Shortcuts() {
 							task.Position.Y -= float32(project.GridSize)
 						}
 					}
-					project.FocusViewOnSelectedTasks()
+					project.CurrentBoard().FocusViewOnSelectedTasks()
 					project.ReorderTasks()
 
 				} else if holdingCtrl && repeatableKeyDown[rl.KeyDown] {
 
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 
 						if task.Selected {
 							below := task.TaskBelow
@@ -931,42 +930,42 @@ func (project *Project) Shortcuts() {
 							task.Position.Y += float32(project.GridSize)
 						}
 					}
-					project.FocusViewOnSelectedTasks()
+					project.CurrentBoard().FocusViewOnSelectedTasks()
 					project.ReorderTasks()
 
 				} else if holdingCtrl && repeatableKeyDown[rl.KeyRight] {
 
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
-							task.Position.X += float32(task.Project.GridSize)
+							task.Position.X += float32(project.GridSize)
 						}
 					}
 					project.ReorderTasks()
-					project.FocusViewOnSelectedTasks()
+					project.CurrentBoard().FocusViewOnSelectedTasks()
 
 				} else if holdingCtrl && repeatableKeyDown[rl.KeyLeft] {
 
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
-							task.Position.X -= float32(task.Project.GridSize)
+							task.Position.X -= float32(project.GridSize)
 						}
 					}
 					project.ReorderTasks()
-					project.FocusViewOnSelectedTasks()
+					project.CurrentBoard().FocusViewOnSelectedTasks()
 
 				} else if repeatableKeyDown[rl.KeyUp] || repeatableKeyDown[rl.KeyDown] {
 
 					var selected *Task
 
 					if rl.IsKeyDown(rl.KeyDown) {
-						for i := len(project.Tasks) - 1; i > 0; i-- {
-							if project.Tasks[i].Selected {
-								selected = project.Tasks[i]
+						for i := len(project.CurrentBoard().Tasks) - 1; i > 0; i-- {
+							if project.CurrentBoard().Tasks[i].Selected {
+								selected = project.CurrentBoard().Tasks[i]
 								break
 							}
 						}
 					} else {
-						for _, task := range project.Tasks {
+						for _, task := range project.CurrentBoard().Tasks {
 							if task.Selected {
 								selected = task
 								break
@@ -987,11 +986,11 @@ func (project *Project) Shortcuts() {
 								project.SendMessage("select", map[string]interface{}{"task": selected.TaskAbove})
 							}
 						}
-						project.FocusViewOnSelectedTasks()
+						project.CurrentBoard().FocusViewOnSelectedTasks()
 					}
 
 				} else if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
 							task.ReceiveMessage("double click", nil)
 							break
@@ -1009,9 +1008,9 @@ func (project *Project) Shortcuts() {
 					project.LoadFrom()
 				} else if rl.IsKeyPressed(rl.KeyEscape) {
 					project.SendMessage("deselect", nil)
-					project.Log("Deselected all Tasks.")
+					project.Log("Deselected all Task(s).")
 				} else if rl.IsKeyPressed(rl.KeyPageUp) {
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
 							next := task.TaskAbove
 							for next != nil && next.TaskAbove != nil {
@@ -1023,9 +1022,9 @@ func (project *Project) Shortcuts() {
 							break
 						}
 					}
-					project.FocusViewOnSelectedTasks()
+					project.CurrentBoard().FocusViewOnSelectedTasks()
 				} else if rl.IsKeyPressed(rl.KeyPageDown) {
-					for _, task := range project.Tasks {
+					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
 							next := task.TaskBelow
 							for next != nil && next.TaskBelow != nil {
@@ -1037,7 +1036,7 @@ func (project *Project) Shortcuts() {
 							break
 						}
 					}
-					project.FocusViewOnSelectedTasks()
+					project.CurrentBoard().FocusViewOnSelectedTasks()
 				}
 
 			}
@@ -1076,8 +1075,8 @@ func (project *Project) Shortcuts() {
 func (project *Project) ReorderTasks() {
 
 	// Re-order the tasks
-	sort.Slice(project.Tasks, func(i, j int) bool {
-		return project.Tasks[i].Position.Y < project.Tasks[j].Position.Y
+	sort.Slice(project.CurrentBoard().Tasks, func(i, j int) bool {
+		return project.CurrentBoard().Tasks[i].Position.Y < project.CurrentBoard().Tasks[j].Position.Y
 	})
 
 	project.SendMessage("dropped", nil)
@@ -1098,7 +1097,7 @@ func (project *Project) GUI() {
 
 	fontColor := getThemeColor(GUI_FONT_COLOR)
 
-	for _, task := range project.Tasks {
+	for _, task := range project.CurrentBoard().Tasks {
 		task.PostDraw()
 	}
 
@@ -1122,6 +1121,7 @@ func (project *Project) GUI() {
 			"",
 			"New Task",
 			"Delete Tasks",
+			"Cut Tasks",
 			"Copy Tasks",
 			"Paste Tasks",
 			"Paste Content",
@@ -1163,7 +1163,7 @@ func (project *Project) GUI() {
 		rect.Y -= (float32(newTaskPos) * rect.Height) // This to make it start on New Task by default
 
 		selected := []*Task{}
-		for _, task := range project.Tasks {
+		for _, task := range project.CurrentBoard().Tasks {
 			if task.Selected {
 				selected = append(selected, task)
 			}
@@ -1208,20 +1208,23 @@ func (project *Project) GUI() {
 					project.ProjectSettingsOpen = true
 
 				case "New Task":
-					task := project.CreateNewTask()
+					task := project.CurrentBoard().CreateNewTask()
 					task.ReceiveMessage("double click", nil)
 
 				case "Delete Tasks":
-					project.DeleteSelectedTasks()
+					project.CurrentBoard().DeleteSelectedTasks()
+
+				case "Cut Tasks":
+					project.CurrentBoard().CutSelectedTasks()
 
 				case "Copy Tasks":
-					project.CopySelectedTasks()
+					project.CurrentBoard().CopySelectedTasks()
 
 				case "Paste Tasks":
-					project.PasteTasks()
+					project.CurrentBoard().PasteTasks()
 
 				case "Paste Content":
-					project.PasteContent()
+					project.CurrentBoard().PasteContent()
 
 				case "Visit Forums":
 					browser.OpenURL("https://solarlune.itch.io/masterplan/community")
@@ -1253,7 +1256,7 @@ func (project *Project) GUI() {
 				project.Log("Project sample rate changed to %s.", project.SampleRate.ChoiceAsString())
 				project.Log("Currently playing sounds have been stopped and resampled as necessary.")
 				project.LogOn = false
-				for _, t := range project.Tasks {
+				for _, t := range project.CurrentBoard().Tasks {
 					if t.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 						t.LoadResource(true) // Force reloading to resample as necessary
 					}
@@ -1316,9 +1319,9 @@ func (project *Project) GUI() {
 
 	}
 
-	// Status bar
-
 	if !project.ProjectSettingsOpen {
+
+		// Status bar
 
 		project.StatusBar.Y = float32(rl.GetScreenHeight()) - project.StatusBar.Height
 		project.StatusBar.Width = float32(rl.GetScreenWidth())
@@ -1329,7 +1332,7 @@ func (project *Project) GUI() {
 		taskCount := 0
 		completionCount := 0
 
-		for _, t := range project.Tasks {
+		for _, t := range project.CurrentBoard().Tasks {
 
 			taskCount++
 			if t.IsComplete() {
@@ -1403,6 +1406,60 @@ func (project *Project) GUI() {
 
 		}
 
+		// Boards
+
+		y := float32(64)
+		w := float32(96)
+		x := float32(rl.GetScreenWidth() - int(w) - 16)
+		h := float32(24)
+		iconSrcRect := rl.Rectangle{96, 16, 16, 16}
+
+		project.BoardPanel = rl.Rectangle{x, y, w, h * float32(len(project.Boards)+1)}
+
+		if !project.TaskOpen {
+
+			for boardIndex, _ := range project.Boards {
+
+				boardName := fmt.Sprintf("Board %d", boardIndex)
+
+				disabled := boardIndex == project.BoardIndex
+
+				if len(project.Boards[boardIndex].Tasks) == 0 {
+					iconSrcRect.X += iconSrcRect.Width
+				}
+
+				if ImmediateIconButton(rl.Rectangle{x, y, w, h}, iconSrcRect, boardName, disabled) {
+
+					project.BoardIndex = boardIndex
+					project.Log("Switched to %s.", boardName)
+
+				}
+
+				y += float32(h)
+
+			}
+
+			if ImmediateButton(rl.Rectangle{x, y, w, h}, "+", false) {
+				if project.GetEmptyBoard() != nil {
+					project.Log("Can't create new Board while an empty Board exists.")
+				} else {
+					project.AddBoard()
+					project.BoardIndex = len(project.Boards) - 1
+					project.Log("New Board %d created.", len(project.Boards)-1)
+				}
+			}
+
+			empty := project.GetEmptyBoard()
+			if empty != nil && empty != project.CurrentBoard() {
+				project.RemoveBoard(empty)
+			}
+
+			if project.BoardIndex >= len(project.Boards) {
+				project.BoardIndex = len(project.Boards) - 1
+			}
+
+		}
+
 	}
 
 	if project.AutoSave.Checked && !project.TaskOpen && (rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.GetMouseWheelMove() != 0) { // Zooming and panning are also recorded
@@ -1411,45 +1468,28 @@ func (project *Project) GUI() {
 
 }
 
-func (project *Project) CreateNewTask() *Task {
-	newTask := NewTask(project)
-	halfGrid := float32(project.GridSize / 2)
-	newTask.Position.X, newTask.Position.Y = project.LockPositionToGrid(GetWorldMousePosition().X-halfGrid, GetWorldMousePosition().Y-halfGrid)
-	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
-	project.Tasks = append(project.Tasks, newTask)
+func (project *Project) GetEmptyBoard() *Board {
+	for _, b := range project.Boards {
+		if len(b.Tasks) == 0 {
+			return b
+		}
+	}
+	return nil
+}
 
-	for _, task := range project.Tasks {
-		if task.Selected {
-			newTask.Position = task.Position
-			newTask.Position.Y += float32(project.GridSize)
-			below := task.TaskBelow
+func (project *Project) AddBoard() {
+	project.Boards = append(project.Boards, NewBoard(project))
+}
 
-			if below != nil && below.Position.X >= task.Position.X {
-				newTask.Position.X = below.Position.X
-			}
-
-			for below != nil {
-				below.Position.Y += float32(project.GridSize)
-				below = below.TaskBelow
-			}
-			project.ReorderTasks()
+func (project *Project) RemoveBoard(board *Board) {
+	for index, b := range project.Boards {
+		if b == board {
+			b.Destroy()
+			project.Boards = append(project.Boards[:index], project.Boards[index+1:]...)
+			project.Log("Deleted empty board %d.", index)
 			break
 		}
 	}
-
-	newTask.TaskType.SetChoice(project.PreviousTaskType)
-
-	if newTask.TaskType.ChoiceAsString() == "Image" || newTask.TaskType.ChoiceAsString() == "Sound" {
-		newTask.FilePathTextbox.Focused = true
-	} else {
-		newTask.Description.Focused = true
-	}
-
-	project.SendMessage("select", map[string]interface{}{"task": newTask})
-
-	project.Log("Created 1 new Task.")
-
-	return newTask
 }
 
 func (project *Project) SearchForTasks() {
@@ -1461,7 +1501,7 @@ func (project *Project) SearchForTasks() {
 		project.FocusedSearchTask = 0
 	}
 
-	for _, task := range project.Tasks {
+	for _, task := range project.CurrentBoard().Tasks {
 
 		searchText := strings.ToLower(project.Searchbar.Text)
 
@@ -1487,34 +1527,9 @@ func (project *Project) SearchForTasks() {
 	if project.FocusedSearchTask < len(project.SearchedTasks) {
 		task := project.SearchedTasks[project.FocusedSearchTask]
 		project.SendMessage("select", map[string]interface{}{"task": task})
-		project.FocusViewOnSelectedTasks()
+		project.CurrentBoard().FocusViewOnSelectedTasks()
 	}
 
-}
-
-func (project *Project) DeleteSelectedTasks() {
-
-	count := 0
-
-	for i := len(project.Tasks) - 1; i >= 0; i-- {
-		if project.Tasks[i].Selected {
-			count++
-			below := project.Tasks[i].TaskBelow
-			if below != nil {
-				below.Selected = true
-			}
-			for below != nil {
-				below.Position.Y -= float32(project.GridSize)
-				below = below.TaskBelow
-			}
-
-			project.RemoveTaskByIndex(i)
-		}
-	}
-
-	project.Log("Deleted %d Tasks.", count)
-
-	project.ReorderTasks()
 }
 
 func (project *Project) GetFirstFreeID() int {
@@ -1522,8 +1537,8 @@ func (project *Project) GetFirstFreeID() int {
 	usedIDs := map[int]bool{}
 
 	for i := 0; i < taskID; i++ {
-		if len(project.Tasks) > i {
-			usedIDs[project.Tasks[i].ID] = true
+		if len(project.CurrentBoard().Tasks) > i {
+			usedIDs[project.CurrentBoard().Tasks[i].ID] = true
 		}
 	}
 
@@ -1544,95 +1559,6 @@ func (project *Project) GetFirstFreeID() int {
 	taskID++
 
 	return id
-
-}
-
-func (project *Project) CopySelectedTasks() {
-
-	project.CopyBuffer = []*Task{}
-
-	for _, task := range project.Tasks {
-		if task.Selected {
-			project.CopyBuffer = append(project.CopyBuffer, task)
-		}
-	}
-
-	project.Log("Copied %d Tasks.", len(project.CopyBuffer))
-
-}
-
-func (project *Project) PasteTasks() {
-
-	if len(project.CopyBuffer) > 0 {
-
-		for _, task := range project.Tasks {
-			task.Selected = false
-		}
-
-		bottom := project.CopyBuffer[len(project.CopyBuffer)-1]
-
-		for i, srcTask := range project.CopyBuffer {
-			clone := srcTask.Clone()
-			clone.Selected = true
-			project.Tasks = append(project.Tasks, clone)
-			clone.LoadResource(false)
-
-			clone.Position.Y = bottom.Position.Y + float32(int32(i+1)*project.GridSize)
-
-			below := bottom.TaskBelow
-
-			for below != nil {
-				below.Position.Y += float32(project.GridSize)
-				below = below.TaskBelow
-			}
-
-		}
-
-		project.ReorderTasks()
-
-		project.Log("Pasted %d Tasks.", len(project.CopyBuffer))
-
-		project.FocusViewOnSelectedTasks()
-
-	}
-
-}
-
-func (project *Project) PasteContent() {
-
-	clipboardData, _ := clipboard.ReadAll() // Tanks FPS if done every frame because of course it does
-
-	if clipboardData != "" {
-
-		res, _ := project.LoadResource(clipboardData) // Attempt to load the resource
-
-		project.LogOn = false
-		task := project.CreateNewTask()
-		project.LogOn = true
-
-		task.TaskType.CurrentChoice = TASK_TYPE_NOTE
-
-		if res != nil {
-
-			task.FilePathTextbox.Text = clipboardData
-
-			if res.IsTexture() || res.IsGIF() {
-				task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-			} else if res.IsAudio() {
-				task.TaskType.CurrentChoice = TASK_TYPE_SOUND
-			}
-
-			task.LoadResource(false)
-
-		} else {
-			task.Description.Text = clipboardData
-		}
-
-		project.Log("Pasted 1 new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
-
-	} else {
-		project.Log("Unable to create Task from clipboard content.")
-	}
 
 }
 
@@ -1695,6 +1621,7 @@ func (project *Project) ReloadThemes() {
 func (project *Project) GetFrameTime() float32 {
 	ft := rl.GetFrameTime()
 	if ft > (1/float32(TARGET_FPS))*2 {
+		// This artificial limiting is done to ensure the delta time never gets so high that it makes major problems.
 		ft = (1 / float32(TARGET_FPS)) * 2
 	}
 	return ft
@@ -1702,8 +1629,8 @@ func (project *Project) GetFrameTime() float32 {
 
 func (project *Project) Destroy() {
 
-	for _, task := range project.Tasks {
-		task.ReceiveMessage("delete", map[string]interface{}{"task": task})
+	for _, board := range project.Boards {
+		board.Destroy()
 	}
 
 	for filepath, res := range project.Resources {

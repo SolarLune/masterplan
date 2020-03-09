@@ -39,7 +39,7 @@ const (
 
 type Task struct {
 	Rect         rl.Rectangle
-	Project      *Project
+	Board        *Board
 	Position     rl.Vector2
 	PrevPosition rl.Vector2
 	Open         bool
@@ -96,7 +96,7 @@ type Task struct {
 
 var taskID = 0
 
-func NewTask(project *Project) *Task {
+func NewTask(board *Board) *Task {
 
 	months := []string{
 		"January",
@@ -117,7 +117,7 @@ func NewTask(project *Project) *Task {
 
 	task := &Task{
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
-		Project:                      project,
+		Board:                        board,
 		TaskType:                     NewSpinner(postX, 32, 192, 24, "Check Box", "Progression", "Note", "Image", "Sound", "Timer"),
 		Description:                  NewTextbox(postX, 64, 512, 64),
 		CompletionCheckbox:           NewCheckbox(postX, 96, 16, 16),
@@ -125,7 +125,7 @@ func NewTask(project *Project) *Task {
 		CompletionProgressionMax:     NewNumberSpinner(postX+80, 96, 96, 24),
 		NumberingPrefix:              []int{-1},
 		RefreshPrefix:                false,
-		ID:                           project.GetFirstFreeID(),
+		ID:                           board.Project.GetFirstFreeID(),
 		FilePathTextbox:              NewTextbox(postX, 64, 512, 16),
 		DeadlineCheckbox:             NewCheckbox(postX, 112, 16, 16),
 		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 160, 24, months...),
@@ -207,6 +207,7 @@ func (task *Task) Clone() *Task {
 func (task *Task) Serialize() map[string]interface{} {
 
 	data := map[string]interface{}{}
+	data["BoardIndex"] = task.Board.Index()
 	data["Position.X"] = task.Position.X
 	data["Position.Y"] = task.Position.Y
 	data["ImageDisplaySize.X"] = task.ImageDisplaySize.X
@@ -218,7 +219,7 @@ func (task *Task) Serialize() map[string]interface{} {
 	data["FilePath"] = task.FilePathTextbox.Text
 	data["Selected"] = task.Selected
 	data["TaskType.CurrentChoice"] = task.TaskType.CurrentChoice
-	if task.Project.SaveSoundsPlaying.Checked {
+	if task.Board.Project.SaveSoundsPlaying.Checked {
 		data["SoundPaused"] = task.SoundControl != nil && task.SoundControl.Paused
 	}
 
@@ -408,7 +409,7 @@ func (task *Task) Update() {
 	// Slight optimization
 	cameraRect := rl.Rectangle{camera.Target.X - (scrW / 2), camera.Target.Y - (scrH / 2), scrW, scrH}
 
-	if task.Project.FullyInitialized {
+	if task.Board.Project.FullyInitialized {
 		if task.IsComplete() && task.CompletionTime.IsZero() {
 			task.CompletionTime = time.Now()
 		} else if !task.IsComplete() {
@@ -435,7 +436,7 @@ func (task *Task) Update() {
 					task.TimerValue = countdownMax
 					task.TimerRunning = false
 					task.TimerValue = 0
-					task.Project.Log("Timer [%s] elapsed.", task.TimerName.Text)
+					task.Board.Project.Log("Timer [%s] elapsed.", task.TimerName.Text)
 
 					f, err := os.Open(filepath.Join("assets", "alarm.wav"))
 					if err == nil {
@@ -483,7 +484,7 @@ func (task *Task) Draw() {
 		// Notes don't get just the first line written on the task in the overview.
 		cut := strings.Index(name, "\n")
 		if cut >= 0 {
-			if task.Project.ShowIcons.Checked {
+			if task.Board.Project.ShowIcons.Checked {
 				extendedText = true
 			}
 			name = name[:cut]
@@ -511,13 +512,13 @@ func (task *Task) Draw() {
 		name = fmt.Sprintf("%s (%d / %d)", name, task.CompletionProgressionCurrent.GetNumber(), task.CompletionProgressionMax.GetNumber())
 	}
 
-	sequenceType := task.Project.NumberingSequence.CurrentChoice
+	sequenceType := task.Board.Project.NumberingSequence.CurrentChoice
 	if sequenceType != NUMBERING_SEQUENCE_OFF && task.NumberingPrefix[0] != -1 && task.Completable() {
 		n := ""
 
 		for i, value := range task.NumberingPrefix {
 
-			if task.Project.NumberingIgnoreTopLevel.Checked && i == 0 {
+			if task.Board.Project.NumberingIgnoreTopLevel.Checked && i == 0 {
 				continue
 			}
 
@@ -565,18 +566,18 @@ func (task *Task) Draw() {
 	taskDisplaySize := rl.MeasureTextEx(font, name, fontSize, spacing)
 	// Lock the sizes of the task to a grid
 	// All tasks except for images have an icon at the left
-	if task.Project.ShowIcons.Checked && (task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage) {
+	if task.Board.Project.ShowIcons.Checked && (task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage) {
 		taskDisplaySize.X += 16
 	}
-	if extendedText && task.Project.ShowIcons.Checked {
+	if extendedText && task.Board.Project.ShowIcons.Checked {
 		taskDisplaySize.X += 16
 	}
 	if task.TaskType.CurrentChoice == TASK_TYPE_TIMER || task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 		taskDisplaySize.X += 32
 	}
 
-	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
-	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y + 4) / float32(task.Project.GridSize))))) * float32(task.Project.GridSize)
+	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Board.Project.GridSize))))) * float32(task.Board.Project.GridSize)
+	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y + 4) / float32(task.Board.Project.GridSize))))) * float32(task.Board.Project.GridSize)
 
 	task.Rect.Width = taskDisplaySize.X
 	task.Rect.Height = taskDisplaySize.Y
@@ -706,11 +707,11 @@ func (task *Task) Draw() {
 	if task.Due() == TASK_DUE_TODAY {
 		src := rl.Rectangle{208 + rl.GetTime()*30, 0, task.Rect.Width, task.Rect.Height}
 		dst := task.Rect
-		rl.DrawTexturePro(task.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+		rl.DrawTexturePro(task.Board.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
 	} else if task.Due() == TASK_DUE_LATE {
 		src := rl.Rectangle{208 + rl.GetTime()*120, 16, task.Rect.Width, task.Rect.Height}
 		dst := task.Rect
-		rl.DrawTexturePro(task.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+		rl.DrawTexturePro(task.Board.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
 	}
 
 	if task.PercentageComplete != 0 {
@@ -723,7 +724,7 @@ func (task *Task) Draw() {
 
 		if task.GifAnimation != nil {
 			task.Image = task.GifAnimation.GetTexture()
-			task.GifAnimation.Update(task.Project.GetFrameTime())
+			task.GifAnimation.Update(task.Board.Project.GetFrameTime())
 		}
 
 		if task.Image.ID != 0 {
@@ -739,7 +740,7 @@ func (task *Task) Draw() {
 				rec.Width = 8
 				rec.Height = 8
 
-				if task.Project.ZoomLevel <= 1 {
+				if task.Board.Project.ZoomLevel <= 1 {
 					rec.Width *= 2
 					rec.Height *= 2
 				}
@@ -750,11 +751,11 @@ func (task *Task) Draw() {
 				rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
 				if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
 					task.Resizing = true
-					task.Project.ResizingImage = true
-					task.Project.SendMessage("dropped", map[string]interface{}{})
+					task.Board.Project.ResizingImage = true
+					task.Board.Project.SendMessage("dropped", map[string]interface{}{})
 				} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
 					task.Resizing = false
-					task.Project.ResizingImage = false
+					task.Board.Project.ResizingImage = false
 				}
 				if task.Resizing {
 					endPoint := GetWorldMousePosition()
@@ -796,7 +797,7 @@ func (task *Task) Draw() {
 
 		textPos := rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}
 
-		if task.Project.ShowIcons.Checked {
+		if task.Board.Project.ShowIcons.Checked {
 			textPos.X += 16
 		}
 		if task.TaskType.CurrentChoice == TASK_TYPE_TIMER || task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
@@ -809,7 +810,7 @@ func (task *Task) Draw() {
 
 	controlPos := float32(0)
 
-	if task.Project.ShowIcons.Checked {
+	if task.Board.Project.ShowIcons.Checked {
 
 		controlPos = 16
 
@@ -848,12 +849,12 @@ func (task *Task) Draw() {
 		}
 
 		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage {
-			rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + 1, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + 1, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
 		}
 
 		if extendedText {
 			iconSrc.X = 112
-			rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
 		}
 
 		if !task.IsComplete() && task.DeadlineCheckbox.Checked {
@@ -868,7 +869,7 @@ func (task *Task) Draw() {
 
 			clockPos.X += float32(math.Sin(float64(float32(task.ID)*0.1)+float64(rl.GetTime())*3.1415)) * 4
 
-			rl.DrawTexturePro(task.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X - 16 + clockPos.X, task.Rect.Y + clockPos.Y, 16, 16}, rl.Vector2{}, 0, rl.White)
+			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X - 16 + clockPos.X, task.Rect.Y + clockPos.Y, 16, 16}, rl.Vector2{}, 0, rl.White)
 		}
 
 	}
@@ -888,7 +889,7 @@ func (task *Task) Draw() {
 		}
 		if task.SmallButton(48, 16, 16, 16, x+16, y) {
 			task.TimerValue = 0
-			task.Project.Log("Timer [%s] reset.", task.TimerName.Text)
+			task.Board.Project.Log("Timer [%s] reset.", task.TimerName.Text)
 		}
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
@@ -908,12 +909,12 @@ func (task *Task) Draw() {
 			task.SoundStream.Seek(0)
 			speaker.Unlock()
 			_, filename := filepath.Split(task.FilePathTextbox.Text)
-			task.Project.Log("Sound Task [%s] restarted.", filename)
+			task.Board.Project.Log("Sound Task [%s] restarted.", filename)
 		}
 
 	}
 
-	if task.Selected && task.Project.PulsingTaskSelection.Checked { // Drawing selection indicator
+	if task.Selected && task.Board.Project.PulsingTaskSelection.Checked { // Drawing selection indicator
 		r := task.Rect
 		f := float32(int(2 + float32(math.Sin(float64(rl.GetTime()-(float32(task.ID)*0.1))*math.Pi*4))*2))
 		r.X -= f
@@ -956,36 +957,36 @@ func (task *Task) DrawShadow() {
 		shadowRect := task.Rect
 		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
 
-		if task.Project.ShadowQualitySpinner.CurrentChoice == 2 {
+		if task.Board.Project.ShadowQualitySpinner.CurrentChoice == 2 {
 
 			src := rl.Rectangle{248, 1, 4, 4}
 			dst := shadowRect
 			dst.X += dst.Width
 			dst.Width = 4
 			dst.Height = 4
-			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
 			dst.Y += 4
 			src.Y += 4
 			dst.Height = task.Rect.Height - 4
-			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
 			dst.Y += dst.Height
 			dst.Height = 4
 			src.Y += 4
-			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
 			dst.X = shadowRect.X + 4
 			dst.Width = shadowRect.Width - 4
 			src.X -= 4
-			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
 			dst.X = shadowRect.X
 			dst.Width = 4
 			src.X -= 4
-			rl.DrawTexturePro(task.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
+			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
-		} else if task.Project.ShadowQualitySpinner.CurrentChoice == 1 {
+		} else if task.Board.Project.ShadowQualitySpinner.CurrentChoice == 1 {
 			shadowRect.X += 2
 			shadowRect.Y += 2
 			shadowColor := getThemeColor(GUI_SHADOW_COLOR)
@@ -1222,7 +1223,7 @@ func (task *Task) LoadResource(forceLoad bool) {
 
 	if task.FilePathTextbox.Text != "" && (task.PrevFilePath != task.FilePathTextbox.Text || forceLoad) {
 
-		res, _ := task.Project.LoadResource(task.FilePathTextbox.Text)
+		res, _ := task.Board.Project.LoadResource(task.FilePathTextbox.Text)
 
 		if res != nil {
 
@@ -1269,11 +1270,11 @@ func (task *Task) LoadResource(forceLoad bool) {
 				if err == nil {
 
 					task.SoundStream = stream
-					projectSampleRate := beep.SampleRate(task.Project.SampleRate.ChoiceAsInt())
+					projectSampleRate := beep.SampleRate(task.Board.Project.SampleRate.ChoiceAsInt())
 
 					if format.SampleRate != projectSampleRate {
-						task.Project.Log("Sample rate of audio file %s not the same as project sample rate %d.", res.ResourcePath, projectSampleRate)
-						task.Project.Log("File will be resampled.")
+						task.Board.Project.Log("Sample rate of audio file %s not the same as project sample rate %d.", res.ResourcePath, projectSampleRate)
+						task.Board.Project.Log("File will be resampled.")
 						// SolarLune: Note the resample quality has to be 1 (poor); otherwise, it seems like some files will cause beep to crash with an invalid
 						// index error. Probably has to do something with how the resampling process works combined with particular sound files.
 						// For me, it crashes on playing back the file "10 3-audio.wav" on my computer repeatedly (after about 4-6 loops, it crashes).
@@ -1283,7 +1284,7 @@ func (task *Task) LoadResource(forceLoad bool) {
 					} else {
 						task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
 					}
-					task.Project.Log("Sound file %s loaded properly.", res.ResourcePath)
+					task.Board.Project.Log("Sound file %s loaded properly.", res.ResourcePath)
 					speaker.Play(beep.Seq(task.SoundControl, beep.Callback(task.OnSoundCompletion)))
 
 				}
@@ -1319,15 +1320,15 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		}
 
 		task.Open = true
-		task.Project.SendMessage("task open", nil)
-		task.Project.TaskOpen = true
+		task.Board.Project.SendMessage("task open", nil)
+		task.Board.Project.TaskOpen = true
 		task.PostOpenDelay = 0
 		task.Dragging = false
 	} else if message == "task close" && task.Open {
 		task.Open = false
-		task.Project.TaskOpen = false
+		task.Board.Project.TaskOpen = false
 		task.LoadResource(false)
-		task.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
+		task.Board.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
 	} else if message == "dragging" {
 		if task.Selected {
 			task.Dragging = true
@@ -1336,11 +1337,13 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		}
 	} else if message == "dropped" {
 		task.Dragging = false
-		task.Position.X, task.Position.Y = task.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
+		task.Position.X, task.Position.Y = task.Board.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
 		task.GetNeighbors()
 		task.RefreshPrefix = true
 		task.PrevPosition = task.Position
 	} else if message == "delete" {
+
+		task.Board = nil
 
 		if data["task"] == task {
 
@@ -1359,7 +1362,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Children = []*Task{}
 		t := task.TaskBelow
 		for t != nil {
-			if int(t.Position.X) == int(task.Position.X+float32(task.Project.GridSize)) {
+			if int(t.Position.X) == int(task.Position.X+float32(task.Board.Project.GridSize)) {
 				task.Children = append(task.Children, t)
 			} else if int(t.Position.X) <= int(task.Position.X) {
 				break
@@ -1377,9 +1380,9 @@ func (task *Task) ToggleSound() {
 
 		_, filename := filepath.Split(task.FilePathTextbox.Text)
 		if task.SoundControl.Paused {
-			task.Project.Log("Paused [%s].", filename)
+			task.Board.Project.Log("Paused [%s].", filename)
 		} else {
-			task.Project.Log("Playing [%s].", filename)
+			task.Board.Project.Log("Playing [%s].", filename)
 		}
 
 		speaker.Unlock()
@@ -1401,9 +1404,9 @@ func (task *Task) OnSoundCompletion() {
 func (task *Task) ToggleTimer() {
 	task.TimerRunning = !task.TimerRunning
 	if task.TimerRunning {
-		task.Project.Log("Timer [%s] started.", task.TimerName.Text)
+		task.Board.Project.Log("Timer [%s] started.", task.TimerName.Text)
 	} else {
-		task.Project.Log("Timer [%s] paused.", task.TimerName.Text)
+		task.Board.Project.Log("Timer [%s] paused.", task.TimerName.Text)
 	}
 }
 
@@ -1413,7 +1416,7 @@ func (task *Task) GetNeighbors() {
 		return
 	}
 
-	for _, other := range task.Project.Tasks {
+	for _, other := range task.Board.Project.CurrentBoard().Tasks {
 		if other != task && other.CanHaveNeighbors() {
 
 			taskRec := task.Rect
@@ -1448,7 +1451,7 @@ func (task *Task) SetPrefix() {
 			if above.Position.X < task.Position.X {
 				task.NumberingPrefix = append(task.NumberingPrefix, 0)
 			} else if above.Position.X > task.Position.X {
-				d := len(above.NumberingPrefix) - int((above.Position.X-task.Position.X)/float32(task.Project.GridSize))
+				d := len(above.NumberingPrefix) - int((above.Position.X-task.Position.X)/float32(task.Board.Project.GridSize))
 				if d < 1 {
 					d = 1
 				}
@@ -1475,7 +1478,7 @@ func (task *Task) SmallButton(srcX, srcY, srcW, srcH, dstX, dstY float32) bool {
 	dstRect := rl.Rectangle{dstX, dstY, srcW, srcH}
 
 	rl.DrawTexturePro(
-		task.Project.GUI_Icons,
+		task.Board.Project.GUI_Icons,
 		rl.Rectangle{srcX, srcY, srcW, srcH},
 		dstRect,
 		rl.Vector2{},

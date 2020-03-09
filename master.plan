@@ -1,13 +1,14 @@
 {
 	"AutoReloadThemes": false,
 	"AutoSave": false,
-	"ColorTheme": "Dark Crimson",
+	"BoardCount": 2,
+	"ColorTheme": "Sunlight",
 	"GridSize": 16,
 	"GridVisible": true,
 	"NumberingIgnoreTopLevel": true,
 	"NumberingSequence": 0,
-	"Pan.X": 2282,
-	"Pan.Y": -1472,
+	"Pan.X": 1120,
+	"Pan.Y": 293.5,
 	"PulsingTaskSelection": true,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
@@ -16,6 +17,22 @@
 	"ShowIcons": true,
 	"Tasks": [
 		{
+			"BoardIndex": 1,
+			"Checkbox.Checked": false,
+			"CreationTime": "Mar 7 2020 21:24:39",
+			"Description": "Image inspiration",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": 16,
+			"Position.Y": -32,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 2
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "A",
@@ -30,6 +47,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 8 2019 17:45:46",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -45,6 +63,22 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 1,
+			"Checkbox.Checked": false,
+			"CreationTime": "Mar 7 2020 21:38:06",
+			"Description": "",
+			"FilePath": "/home/solarlune/Pictures/References/Style/ElectronicPopple.png",
+			"ImageDisplaySize.X": 269,
+			"ImageDisplaySize.Y": 178.91434,
+			"Position.X": 0,
+			"Position.Y": 16,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 3
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 8 2019 17:45:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -60,6 +94,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "B",
@@ -74,6 +109,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 8 2019 17:45:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -89,6 +125,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "D",
@@ -103,6 +140,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "C",
@@ -117,6 +155,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 8 2019 17:45:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -132,6 +171,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "E",
@@ -146,6 +186,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 8 2019 17:45:48",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -161,6 +202,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 8 2019 17:45:48",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -176,6 +218,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "F",
@@ -190,6 +233,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Test H",
@@ -204,6 +248,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 18 2020 16:43:33",
 			"CreationTime": "Nov 6 2019 09:59:31",
@@ -212,13 +257,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 400,
+			"Position.Y": 416,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "The heck is this beat",
@@ -233,6 +279,7 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -247,6 +294,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -261,6 +309,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -275,6 +324,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -289,6 +339,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -303,6 +354,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -317,6 +369,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -331,6 +384,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -345,6 +399,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -359,6 +414,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -373,6 +429,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -387,6 +444,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -401,6 +459,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -415,6 +474,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -429,6 +489,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -443,6 +504,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -457,6 +519,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -471,6 +534,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -485,6 +549,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Ideas for MasterPlan",
@@ -499,6 +564,7 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -513,6 +579,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Mar 5 2020 22:03:29",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -521,13 +588,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 928,
+			"Position.Y": 944,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -542,6 +610,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Sound Tasks.",
@@ -556,6 +625,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 18 2020 18:22:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -571,6 +641,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Alternative name ideas",
@@ -585,6 +656,7 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Mar 5 2020 22:02:27",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -600,6 +672,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 2 2019 17:19:41",
 			"Description": "Use profiler for RAM usage, examine results.",
@@ -607,13 +680,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2016,
+			"Position.Y": 2048,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 2 2019 17:18:48",
 			"Description": "Use profiler for CPU usage, examine results.",
@@ -621,13 +695,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2032,
+			"Position.Y": 2064,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Click and drag text from outside of MasterPlan to make each line its own Task?\nMaybe the ability to paste in resources from outside could be done with an entry\nin the context menu as well (so Ctrl+V will paste a Task if it's in the buffer, but\nthe context menu option will paste in resources from elsewhere if in the system\ncopy buffer).",
@@ -635,13 +710,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 3280,
+			"Position.Y": 3312,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 16 2019 23:55:42",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -650,13 +726,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 224,
+			"Position.Y": 240,
 			"Progression.Current": 14,
 			"Progression.Max": 32,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Tasks.",
@@ -671,6 +748,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "MasterPlan",
@@ -685,6 +763,7 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 16 2019 23:56:13",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -700,6 +779,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "You can type in more information\nto explain something else.\nThis is easier than opening a task\nall of the time.",
@@ -707,13 +787,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": 128,
-			"Position.Y": -16,
+			"Position.Y": -64,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "PlanIt!\n(Like a planet, that could even be the logo)",
@@ -728,6 +809,7 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "This is a task.",
@@ -742,6 +824,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Does this reload on program restart?\nIt does. Excellent.",
@@ -756,6 +839,7 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 19:15:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -771,6 +855,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 19:15:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -779,13 +864,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 256,
+			"Position.Y": 272,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Presto!",
@@ -800,25 +886,11 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 19:15:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add shortcut to cycle through tasks (\u003c and \u003e, perhaps).\nI added this, but I'm not sure if I'm going to keep it; I commented it out for now.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 272,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 1 2019 19:15:47",
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Add a button to focus view on all selected Tasks.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -830,6 +902,23 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Oct 1 2019 19:15:47",
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Add a button to focus view on all selected Tasks.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 304,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "This is a test.",
@@ -844,6 +933,7 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 18 2020 21:35:23",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -852,13 +942,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 816,
+			"Position.Y": 832,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Possibly have a way to associate tasks, perhaps by an arrow or other draggable asset?",
@@ -866,32 +957,18 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 576,
+			"Position.Y": 592,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 31 2019 23:41:43",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Make deleting tasks automatically re-order tasks.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 944,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Feb 18 2020 21:34:08",
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Make it so that when creating a new task with one selected, it will appear below the one selected.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -903,6 +980,23 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Feb 18 2020 21:34:08",
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Make it so that when creating a new task with one selected, it will appear below the one selected.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 976,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 19:15:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -911,31 +1005,17 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1024,
+			"Position.Y": 1040,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Move groups of tasks by grabbing the parent.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 1152,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 16 2019 23:55:05",
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Make completed tasks under a Task category fill up a progress bar in the \"head\" Task.\nThis probably would work well if the parent Task is not a progression Task.",
+			"Description": "Move groups of tasks by grabbing the parent with mouse, or moving with keys.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -947,6 +1027,23 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Oct 16 2019 23:55:05",
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Make completed tasks under a Task category fill up a progress bar in the \"head\" Task.\nThis probably would work well if the parent Task is not a progression Task.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 1184,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add ability to cancel out of a task without making changes to it.\nEither I could do this with project undo/redo (undo the change after it's been made if you click\non the cancel button), or I could make a template Task that you're actually working on when you\ngo to open a task, and when you click on Accept, those changes get committed to the actual Task.\nThat's an idea, anyway.",
@@ -961,6 +1058,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -975,6 +1073,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -989,6 +1088,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -1003,6 +1103,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add ability to make changes to all Tasks at the same time?\nBy which I mean completing them all, changing their types,\nwriting a description, etc.",
@@ -1017,6 +1118,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Make the Spinner option a button that will display the options within when clicked.",
@@ -1031,6 +1133,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 2 2019 01:14:46",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1046,6 +1149,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 2 2019 13:45:48",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1061,6 +1165,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Optimizations.",
@@ -1068,31 +1173,18 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 1936,
+			"Position.Y": 1968,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 2 2019 17:17:45",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Don't render anything offscreen.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2048,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Render text for each Task to an image and draw that.\nI've observed a 5-7% -\u003e 2% improvement on CPU usage when not drawing text, most likely due to draw calls.\nIf rendering text to an image and drawing that on top of the Task rectangle, it most likely would improve\nCPU usage, making this a much lighter program.\nNote that this should probably include all aspects of the Task to respective Textures (one for shadows, one for\nall other elements of the Task that render on one layer).",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1104,6 +1196,22 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Render text for each Task to an image and draw that.\nI've observed a 5-7% -\u003e 2% improvement on CPU usage when not drawing text, most likely due to draw calls.\nIf rendering text to an image and drawing that on top of the Task rectangle, it most likely would improve\nCPU usage, making this a much lighter program.\nNote that this should probably include all aspects of the Task to respective Textures (one for shadows, one for\nall other elements of the Task that render on one layer).",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2112,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Textbox editor.",
@@ -1111,21 +1219,6 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 2096,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 7 2019 21:39:22",
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Add cut, copy, and paste from clipboard.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
 			"Position.Y": 2128,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
@@ -1133,10 +1226,11 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
-			"CompletionTime": "Feb 20 2020 22:47:27",
+			"CompletionTime": "Oct 7 2019 21:39:22",
 			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Ctrl+A to select all text.",
+			"Description": "Add cut, copy, and paste from clipboard.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1148,6 +1242,23 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Feb 20 2020 22:47:27",
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Ctrl+A to select all text.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2192,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 20 2020 22:47:29",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1156,31 +1267,18 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2144,
+			"Position.Y": 2176,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 7 2019 21:39:25",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add ability to use keys to move caret around.\nImplemented, along with the ability to use the mouse as well!",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2208,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Add undo + redo to textbox editor, specifically.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1192,23 +1290,25 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Use a different custom font.\nI'm currently using Monaco, but comma and semi-colon look weird. Keep looking for alternatives.",
+			"Description": "Add undo + redo to textbox editor, specifically.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
-			"Position.X": -1632,
-			"Position.Y": 2336,
+			"Position.X": -1616,
+			"Position.Y": 2272,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Add undo + redo to project.\nAs for an idea of how to do this, I think I'm probably just going to store a buffer of the current project\nstate in memory for each change you make? It doesn't seem like a big enough deal to actually build a \"right\"\nundo system, and less prone to error. The current to-do list for MasterPlan has about 161 completable tasks\nand sits at about 91 KB, so a 1000-level undo system for this project would sit at about 91 MB of memory \n(assuming I was just storing a save of the project file itself, and not the entire project in memory).\n\nNote that the above approach only really works if I constantly save the project, which isn't really feasible\nfor large projects in terms of time taken...",
+			"Description": "Use a different custom font.\nI'm currently using Monaco, but comma and semi-colon look weird. Keep looking for alternatives.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1220,6 +1320,22 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Add undo + redo to project.\nAs for an idea of how to do this, I think I'm probably just going to store a buffer of the current project\nstate in memory for each change you make? It doesn't seem like a big enough deal to actually build a \"right\"\nundo system, and less prone to error. The current to-do list for MasterPlan has about 161 completable tasks\nand sits at about 91 KB, so a 1000-level undo system for this project would sit at about 91 MB of memory \n(assuming I was just storing a save of the project file itself, and not the entire project in memory).\n\nNote that the above approach only really works if I constantly save the project, which isn't really feasible\nfor large projects in terms of time taken...",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1632,
+			"Position.Y": 2400,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Project menu.",
@@ -1227,16 +1343,33 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 2592,
+			"Position.Y": 2624,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Load Project",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2672,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Oct 1 2019 19:15:47",
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "New Project",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1248,21 +1381,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 1 2019 19:15:47",
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "New Project",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2608,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 20 2020 23:34:26",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1271,13 +1390,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2624,
+			"Position.Y": 2656,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Project Settings",
@@ -1285,32 +1405,18 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2688,
+			"Position.Y": 2720,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Jan 10 2020 11:44:03",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Auto-saving toggle (whether or not to auto-save when editing project)",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 2768,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 18 2019 16:35:37",
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Color customization\nThis isn't going to be done, I think; it's just easier to have people edit the colors by hand\nusing MasterPlan while open to visualize their custom theme (at least for now).",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1322,6 +1428,23 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 18 2019 16:35:37",
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Color customization\nThis isn't going to be done, I think; it's just easier to have people edit the colors by hand\nusing MasterPlan while open to visualize their custom theme (at least for now).",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 2832,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 19:15:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1330,13 +1453,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2816,
+			"Position.Y": 2848,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 2 2019 01:23:28",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1345,13 +1469,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2944,
+			"Position.Y": 2976,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 9 2019 17:36:24",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1360,13 +1485,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 3152,
+			"Position.Y": 3184,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 16 2019 17:19:32",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1375,27 +1501,30 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 3136,
+			"Position.Y": 3168,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Mar 8 2020 15:03:12",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add Cut Task(s) to context menu.\nOf course, add the associated shortcut.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 336,
+			"Position.Y": 352,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CompletionTime": "Feb 25 2020 14:10:44",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1404,13 +1533,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2960,
+			"Position.Y": 2992,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 2 2019 13:24:00",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1419,27 +1549,29 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 3072,
+			"Position.Y": 3104,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Jan 13 2020 19:07:42",
-			"Description": "Transparency to allow for different \"layers\" being editable and visible at a time.\nParticularly could be useful for planning floorplans, as it would give you the ability to overlay floors over\neach other or display different amounts of information.",
+			"Description": "Transparency to allow for different \"layers\" being visible at a time.\nParticularly could be useful for planning floorplans, as it would give you the ability to overlay floors over\neach other or display different amounts of information.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1920,
+			"Position.Y": 1616,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Selected": true,
+			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add ability to mouse-over a Task and see its full description at a glance.",
@@ -1447,13 +1579,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 976,
+			"Position.Y": 992,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add template project that shows how to use the program.",
@@ -1461,13 +1594,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 3184,
+			"Position.Y": 3216,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Implement ability to set colors for tasks to preset colors?",
@@ -1482,6 +1616,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Implement priority levels for Tasks.\nEach higher level of priority should probably kick the Task color darker?",
@@ -1496,6 +1631,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Notes become categories / milestones / deliverables, and will indicate stats regarding all Tasks they're touching.",
@@ -1503,13 +1639,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1632,
+			"Position.Y": 1696,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Metrics.\nMaybe Notes become categories / milestones / deliverables, and will indicate\nstats regarding the Tasks they're touching if they're touching them.",
@@ -1517,13 +1654,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1584,
+			"Position.Y": 1648,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "",
@@ -1538,6 +1676,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 17 2019 15:24:56",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1549,13 +1688,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1600,
+			"Position.Y": 1664,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Implement \"Day's Tasks\" button.\nThis button will give you a set of Tasks that you have yet to complete for today.",
@@ -1563,13 +1703,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1696,
+			"Position.Y": 1760,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 18 2020 21:35:09",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1578,32 +1719,18 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 800,
+			"Position.Y": 816,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 4 2019 22:00:28",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Image Tasks should have the path in a Textbox so you can type in a path.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 640,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 4 2019 21:59:17",
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Image Tasks could have the ability to take URLs instead of just image files.\nThis is done now; the URLs have to start with http:// or https:// to be valid.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1615,6 +1742,23 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Oct 4 2019 21:59:17",
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Image Tasks could have the ability to take URLs instead of just image files.\nThis is done now; the URLs have to start with http:// or https:// to be valid.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 672,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Nov 6 2019 09:52:25",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1623,13 +1767,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1568,
+			"Position.Y": 1632,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Drag n' dropping files should deselect other tasks and auto-select the new Tasks.",
@@ -1637,30 +1782,17 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 3216,
+			"Position.Y": 3248,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Fix: Drag n' dropping files should align them to the grid.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 3232,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Drag n' dropping multiple files at a time should spread them out vertically.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1672,6 +1804,22 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Drag n' dropping multiple files at a time should spread them out vertically.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 3296,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Clicking on a task should raise its visual depth (so it's on top of other Tasks).",
@@ -1686,37 +1834,10 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "When panning using middle-mouse, the mouse should teleport to the other side if it goes offscreen.\nThis would make it easier to continually pan.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 3328,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Add custom mouse cursor?",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1632,
-			"Position.Y": 3296,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Render the project overview at 1920x1080 to provide better outer zoom levels.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -1728,6 +1849,37 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Add custom mouse cursor?",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1632,
+			"Position.Y": 3328,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Render the project overview at 1920x1080 to provide better outer zoom levels.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 3392,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Allow for different screen sizes?\nFor example, for a 1080x1920 rotated screen, it could show a more vertical\nview of the world.",
@@ -1735,13 +1887,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 3376,
+			"Position.Y": 3408,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Text files.\nIt would allow users to put text files in their projects, which would be written out, I suppose?",
@@ -1749,13 +1902,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 512,
+			"Position.Y": 528,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Nov 19 2019 11:04:14",
 			"Description": "",
@@ -1770,6 +1924,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Nov 18 2019 17:15:59",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1778,13 +1933,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 3408,
+			"Position.Y": 3440,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add automatic back-up creation.\nDefaults to 1 per 5 minutes.\nFile could end in \".(backup number)\", like Blender.",
@@ -1792,13 +1948,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 2384,
+			"Position.Y": 2416,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Rebindable shortcuts.",
@@ -1806,13 +1963,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 3104,
+			"Position.Y": 3136,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add Task locking. Locked Tasks can't be edited, or moved (or otherwise altered).",
@@ -1820,13 +1978,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 480,
+			"Position.Y": 496,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 18 2020 18:22:58",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1835,13 +1994,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 624,
+			"Position.Y": 640,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "In the event a file could not be loaded, it should prompt for a notification to try opening a backup file.",
@@ -1849,13 +2009,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 3472,
+			"Position.Y": 3504,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 26 2020 09:24:09",
 			"Description": "Pomodoro Time-!",
@@ -1870,6 +2031,7 @@
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Hour estimation for completable Tasks.",
@@ -1877,13 +2039,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1648,
+			"Position.Y": 1712,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Estimation at bottom of screen of how many minutes' worth of Tasks remain.",
@@ -1891,13 +2054,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1664,
+			"Position.Y": 1728,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 19:15:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1906,13 +2070,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 3424,
+			"Position.Y": 3456,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Allow clicking arrows in the status bar to look at Tasks of different priorities?",
@@ -1920,13 +2085,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 3440,
+			"Position.Y": 3472,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 19:15:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1935,13 +2101,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 320,
+			"Position.Y": 336,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Nov 13 2019 21:28:06",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1957,6 +2124,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 7 2019 22:03:23",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1965,13 +2133,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1008,
+			"Position.Y": 1024,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 26 2020 09:24:32",
 			"Description": "",
@@ -1986,6 +2155,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 19:15:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -1994,13 +2164,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 3456,
+			"Position.Y": 3488,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Fix: Can't release selection rectangle over status bar.",
@@ -2008,13 +2179,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 880,
+			"Position.Y": 896,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 19:15:47",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -2023,13 +2195,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1040,
+			"Position.Y": 1056,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Test A",
@@ -2044,6 +2217,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Bloom filter for Tasks? Could look cool...",
@@ -2058,6 +2232,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "File path absolute vs. relative.\nRelative would be better for sharing across network drives / VCS?",
@@ -2065,13 +2240,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 3088,
+			"Position.Y": 3120,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Drag n' Drop.",
@@ -2079,13 +2255,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 3200,
+			"Position.Y": 3232,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Camera (zooming / panning / visibility).",
@@ -2093,20 +2270,6 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 3312,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Add abstracted map when you zoom out enough.\nIt could just show occupied \"cells\", which might be, say, 20x20 blocks.\nThen you could click on the cell to zoom to it.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
 			"Position.Y": 3344,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
@@ -2114,6 +2277,22 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Add abstracted map when you zoom out enough.\nIt could just show occupied \"cells\", which might be, say, 20x20 blocks.\nThen you could click on the cell to zoom to it.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 3376,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Make it possible to select multiple Tasks with the keyboard?\nCtrl + arrow keys to move them, shift + arrow keys to select them?\nThat might be better because Shift + mouse is to add to a selection in the overview.",
@@ -2121,13 +2300,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 848,
+			"Position.Y": 864,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 8 2019 12:53:13",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -2143,6 +2323,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Add shadows underneath GUI elements.",
@@ -2150,13 +2331,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 3120,
+			"Position.Y": 3152,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Nov 18 2019 16:33:37",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -2165,13 +2347,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2752,
+			"Position.Y": 2784,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 21 2019 11:15:21",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -2180,13 +2363,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 3392,
+			"Position.Y": 3424,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 2 2019 01:16:02",
 			"CreationTime": "Oct 1 2019 19:13:07",
@@ -2202,6 +2386,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Setting for how long it should take to double-click to open a Task.",
@@ -2209,13 +2394,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2912,
+			"Position.Y": 2944,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Single-click option to open a Task, perhaps?",
@@ -2223,13 +2409,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2848,
+			"Position.Y": 2880,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Recent Files list.",
@@ -2237,13 +2424,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2672,
+			"Position.Y": 2704,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Drag n' dropping .plan files should open them automatically.\nThe program should prompt this, though.",
@@ -2251,13 +2439,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 3248,
+			"Position.Y": 3280,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Make it possible to select Tasks to the left or right (that aren't in the same stack).\nSame for up or down that aren't in the same stack.",
@@ -2272,6 +2461,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Nevermind, just 15 levels should be good.\n... I think. It's a little bit easier to type in the textbox.\n... Well, it's a lot easier.",
@@ -2286,40 +2476,11 @@
 			"TaskType.CurrentChoice": 1
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Nov 18 2019 17:15:59",
 			"CreationTime": "Oct 1 2019 19:13:07",
 			"Description": "Progress Bar Tasks should be Progression Tasks.\nInstead of an arbitrary progress bar, a Progress task represents a Task that is\ncomprised of real, individually recognizable steps. For example, \"Create all 40 levels\",\n\"Finish 4 worlds\", \"Animate all 12 NPCs\", etc.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 1104,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 12 2019 15:22:02",
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Creating a Task should create it below the currently selected one, with the indentation of the previous child.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 912,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 17 2019 15:28:23",
-			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "The [...] indicator for multi-line Tasks should be made more visually appealing.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -2331,6 +2492,39 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 12 2019 15:22:02",
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "Creating a Task should create it below the currently selected one, with the indentation of the previous child.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 928,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Mar 8 2020 15:00:46",
+			"CreationTime": "Oct 1 2019 19:13:07",
+			"Description": "The [...] indicator for multi-line Tasks should be made more visually appealing.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 1136,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:24:40",
 			"Description": "Custom font selection",
@@ -2338,13 +2532,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2928,
+			"Position.Y": 2960,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:40:07",
 			"Description": "",
@@ -2359,6 +2554,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 1 2019 19:41:30",
 			"Description": "",
@@ -2373,6 +2569,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 23:57:42",
 			"CreationTime": "Oct 1 2019 23:56:48",
@@ -2388,6 +2585,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 1 2019 23:57:51",
 			"CreationTime": "Oct 1 2019 23:57:45",
@@ -2403,6 +2601,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 16 2019 23:56:42",
 			"CreationTime": "Oct 2 2019 01:05:39",
@@ -2411,13 +2610,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 208,
+			"Position.Y": 224,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 2 2019 13:11:30",
 			"Description": "",
@@ -2432,6 +2632,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 7 2019 21:45:34",
 			"CreationTime": "Oct 2 2019 13:38:20",
@@ -2440,13 +2641,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2656,
+			"Position.Y": 2688,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 2 2019 13:39:34",
 			"Description": "Add ability to force newline characters if the text exceeds a certain length on a single line.",
@@ -2454,13 +2656,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2256,
+			"Position.Y": 2288,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 2 2019 13:40:15",
 			"Description": "Add ability to limit the number of lines (should be useful for Tasks' Descriptions).",
@@ -2468,13 +2671,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2272,
+			"Position.Y": 2304,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 25 2020 14:11:37",
 			"Description": "Cache downloaded resources to someplace on disk.\n(Maybe a .masterplan folder in the project directory.)",
@@ -2482,13 +2686,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 3168,
+			"Position.Y": 3200,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 2 2019 14:43:41",
 			"Description": "",
@@ -2503,6 +2708,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 2 2019 15:24:22",
 			"Description": "",
@@ -2517,6 +2723,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 4 2019 14:11:47",
 			"Description": "A large number of WAV files don't decode for me; investigate this.",
@@ -2531,6 +2738,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 24 2020 21:13:15",
 			"CreationTime": "Oct 2 2019 17:17:44",
@@ -2539,13 +2747,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1984,
+			"Position.Y": 2016,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 3 2019 13:36:23",
 			"Description": "",
@@ -2560,6 +2769,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 3 2019 23:48:52",
 			"Description": "Might be good to make loading GIFs use a Goroutine.\nIf so, then it would be good to render a progress bar for this, and\ndo the entire creation process in the Goroutine. Then there wouldn't\nbe any visible lag when first loading the GIF, and also no stuttering when\nconverting the frames to Images.",
@@ -2567,13 +2777,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2000,
+			"Position.Y": 2032,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 3 2019 23:52:01",
 			"Description": "Creating or copying + pasting Tasks should keep a distance of at least one Task when moving lower Tasks down.",
@@ -2588,6 +2799,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 4 2019 14:06:39",
 			"Description": "",
@@ -2602,6 +2814,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 18 2020 18:23:38",
 			"CreationTime": "Oct 4 2019 14:07:09",
@@ -2610,13 +2823,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 784,
+			"Position.Y": 800,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 4 2019 20:38:55",
 			"Description": "",
@@ -2631,6 +2845,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 4 2019 21:21:27",
 			"Description": "",
@@ -2645,6 +2860,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 4 2019 21:22:55",
 			"Description": "",
@@ -2659,6 +2875,7 @@
 			"TaskType.CurrentChoice": 4
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 4 2019 21:59:18",
 			"Description": "Tasks downloading resources should be done on a Goroutine, not live.",
@@ -2666,13 +2883,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1952,
+			"Position.Y": 1984,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 7 2019 21:37:57",
 			"Description": "Add Shape Task type specifically for planning shapes (like floorplans, level layouts, etc).\nNot sure if Notes could serve this purpose specifically or not; maybe a checkbox\nto turn the Note \"sticky\", and make it stick to other Notes that it touches? \n\nNote that detecting whether you click in their area should be simple.\nJust use Resolv and cast a line from the mouse cursor in any direction infinitely.\nIf the line crosses the lines making up the shape an odd number of times, then the\ncursor is inside the shape. If it's an even number, the cursor is outside the shape.",
@@ -2680,13 +2898,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 528,
+			"Position.Y": 544,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 20 2020 22:47:35",
 			"CreationTime": "Oct 7 2019 21:40:58",
@@ -2695,13 +2914,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2224,
+			"Position.Y": 2256,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 7 2019 21:45:07",
 			"Description": "Make caret not take up space in the text line.",
@@ -2709,13 +2929,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2288,
+			"Position.Y": 2320,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 18 2020 21:34:37",
 			"CreationTime": "Oct 7 2019 22:04:05",
@@ -2724,13 +2945,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 896,
+			"Position.Y": 912,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 8 2019 12:35:57",
 			"Description": "When making a new Task, it should be the same type as the last-edited Task.",
@@ -2745,6 +2967,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 18 2020 16:54:38",
 			"CreationTime": "Oct 8 2019 12:51:51",
@@ -2753,13 +2976,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 416,
+			"Position.Y": 432,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 8 2019 12:53:40",
 			"Description": "Make it possible to collapse Tasks into parents.",
@@ -2774,6 +2998,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 8 2019 13:17:59",
 			"CreationTime": "Oct 8 2019 13:17:37",
@@ -2782,13 +3007,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 352,
+			"Position.Y": 368,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 8 2019 16:59:12",
 			"Description": "",
@@ -2803,6 +3029,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 8 2019 19:03:04",
 			"Description": "Juice.",
@@ -2810,58 +3037,17 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1712,
+			"Position.Y": 1776,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 8 2019 19:03:21",
 			"Description": "Completion should make the Task flash super bright.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 1792,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 8 2019 19:03:36",
-			"Description": "Completion should make a sound (options should allow you to turn it off).",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 1824,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 8 2019 19:04:07",
-			"Description": "Swapping Tasks should make a \"clack\" sound, like two dominos knocking together, maybe?",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 1872,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 8 2019 19:04:37",
-			"Description": "Indenting or dedenting should make a \"swish\" sound, like sand filling a cavity.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -2873,6 +3059,52 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 8 2019 19:03:36",
+			"Description": "Completion should make a sound (options should allow you to turn it off).",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 1888,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 8 2019 19:04:07",
+			"Description": "Swapping Tasks should make a \"clack\" sound, like two dominos knocking together, maybe?",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 1936,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 8 2019 19:04:37",
+			"Description": "Indenting or dedenting should make a \"swish\" sound, like sand filling a cavity.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 1920,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 8 2019 19:05:15",
 			"Description": "Moving Tasks should leave a trail where the Task last was.",
@@ -2880,13 +3112,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1840,
+			"Position.Y": 1904,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 8 2019 19:05:34",
 			"Description": "Incrementing a value should make the value appear bright and large.",
@@ -2894,13 +3127,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1808,
+			"Position.Y": 1872,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 8 2019 19:12:06",
 			"Description": "Integrate overview with Git so that you can see a visualization of your taskboard changing.\nNew Tasks are outlined in green, modified ones are outlined in yellow. \nMaybe deleted ones are faded out?\nThis is a cool idea, but I question if it's a really good one, since there are other VCS methods.\nMight not be good to integrate directly with one specific system only.",
@@ -2908,13 +3142,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1088,
+			"Position.Y": 1104,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 8 2019 19:30:12",
 			"Description": "A virtual pet, city builder, and action RPG all contained within this application.\nThat's right.\n\nThere would be a mode, maybe called \"Adventure Mode\". This mode would spawn\nNPCs to populate the towns you create, which are just the Tasks you've placed down.\nThe buildings would monitor the text in text-based Tasks to change what they contain \n/ how they work. More lines = buildings with more floors. If the lines contain garbage,\nthey will spawn monsters and items.\n\nBoolean Task = Weapon Shop\nProgression = Armor Shop\nImage = Skill Shop\nSound = Inn\nNote = Home\n\nYou'd be able to control the main hero, who would be able to enter these buildings to\ntalk to your pets and solve their problems, along with getting different items to proceed.\nDifferent villages in different physical locations would create different terrain and different\nitems for sale. If you allow the town to get ravaged, then the text in the Tasks also gets thrashed,\nwhich means monsters and items spawn.\n\nI have no idea why the heck I'd do this, but I also feel like I NEED to do this on a fundamental level.\nIt's just too cool an idea to pass up...",
@@ -2922,13 +3157,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1632,
-			"Position.Y": 3488,
+			"Position.Y": 3520,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 9 2019 00:24:18",
 			"Description": "Make the mouse cursor turn to the \"I\" text editing cursor when highlighting the textbox while focused.",
@@ -2936,13 +3172,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2112,
+			"Position.Y": 2144,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 9 2019 00:16:49",
 			"Description": "Add options for sample rate and buffer sizes.",
@@ -2950,13 +3187,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2720,
+			"Position.Y": 2752,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 17 2019 15:25:07",
 			"CreationTime": "Oct 9 2019 18:16:00",
@@ -2965,13 +3203,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1616,
+			"Position.Y": 1680,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 11 2019 00:52:16",
 			"Description": "",
@@ -2986,6 +3225,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 16 2019 23:54:26",
 			"CreationTime": "Oct 14 2019 12:56:07",
@@ -3001,6 +3241,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 16 2019 23:54:25",
 			"CreationTime": "Oct 14 2019 12:56:23",
@@ -3016,6 +3257,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 14 2019 12:58:31",
 			"Description": "Image Tasks should be collapsible.",
@@ -3023,16 +3265,32 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 752,
+			"Position.Y": 768,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 14 2019 12:58:42",
 			"Description": "Spell-check for Task description text?",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 736,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 14 2019 12:58:53",
+			"Description": "Replace Task Edit window with just a panel that opens right on the Overview screen.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -3044,20 +3302,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 14 2019 12:58:53",
-			"Description": "Replace Task Edit window with just a panel that opens right on the Overview screen.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 704,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 14 2019 13:11:29",
 			"Description": "Boards. A Board is just an individual Task board, but a project can contain multiple boards.\nIt's something like workspaces on an OS. Basically, currently, projects have just one Board. They should\nbe able to have multiples.",
@@ -3065,13 +3310,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1904,
+			"Position.Y": 1568,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 15 2019 16:30:05",
 			"Description": "Patterns and more theme customization.\nI'm thinking there should just be a set of \"bits\" in a texture that represents each theme. That way custom themes\ncould easily replace icons, set colors, etc...? For example, in addition to the existing theme icons, there could be\nsquares representing the colors to use for the Piano Black theme. If there's a pattern there, then it would be\ncopied and tiled across the \"space\" where it's used...?",
@@ -3079,13 +3325,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2784,
+			"Position.Y": 2816,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 16 2019 17:18:19",
 			"Description": "Should be possible to make deadlined Tasks \"untrigger\" periodically.\nThis would allow you to make continuous Tasks (i.e. pick up groceries could be something\ndone every week).",
@@ -3100,6 +3347,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 16 2019 23:54:24",
 			"CreationTime": "Oct 16 2019 18:14:15",
@@ -3115,6 +3363,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 16 2019 18:24:59",
 			"Description": "First, reattach knee. That'll be important.",
@@ -3129,6 +3378,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 16 2019 18:24:59",
 			"Description": "And then clean my bathtub.",
@@ -3143,6 +3393,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 16 2019 18:24:59",
 			"Description": "After that, I should pick up groceries.",
@@ -3157,6 +3408,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 17 2019 19:28:49",
 			"Description": "Go for the rising tiger knee again. It'll definitely work the second time.",
@@ -3171,6 +3423,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 16 2019 18:24:59",
 			"Description": "Fight that bear.",
@@ -3185,6 +3438,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CompletionTime": "Feb 25 2020 14:10:44",
 			"CreationTime": "Oct 16 2019 23:10:50",
@@ -3200,6 +3454,7 @@
 			"TaskType.CurrentChoice": 1
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CompletionTime": "Feb 25 2020 14:10:44",
 			"CreationTime": "Oct 16 2019 23:11:12",
@@ -3215,6 +3470,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 16 2019 23:57:46",
 			"Description": "Children count towards parent Task's completion toggle?\nWith this off, it will behave how it used to, and not count turn \"parent\" Tasks into \nprogression Tasks if they have children.",
@@ -3222,13 +3478,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2832,
+			"Position.Y": 2864,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 17 2019 15:24:07",
 			"CreationTime": "Oct 17 2019 15:12:51",
@@ -3237,13 +3494,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1776,
+			"Position.Y": 1840,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 17 2019 15:25:28",
 			"Description": "Parenting.",
@@ -3251,27 +3509,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1136,
+			"Position.Y": 1152,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 17 2019 15:26:02",
-			"Description": "Swapping parent Tasks should move the children with the parent.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 1184,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 17 2019 19:29:02",
 			"Description": "Finish with a backbreaker.",
@@ -3286,6 +3531,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 17 2019 19:30:10",
 			"Description": "Today's Tasks",
@@ -3300,6 +3546,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 17 2019 20:55:46",
 			"CreationTime": "Oct 17 2019 20:13:31",
@@ -3308,13 +3555,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1584,
-			"Position.Y": 2976,
+			"Position.Y": 3008,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 17 2019 20:55:48",
 			"CreationTime": "Oct 17 2019 20:14:33",
@@ -3323,13 +3571,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1584,
-			"Position.Y": 3056,
+			"Position.Y": 3088,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 17 2019 20:55:48",
 			"CreationTime": "Oct 17 2019 20:14:48",
@@ -3338,13 +3587,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1584,
-			"Position.Y": 3040,
+			"Position.Y": 3072,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 17 2019 20:55:43",
 			"CreationTime": "Oct 17 2019 20:14:50",
@@ -3353,13 +3603,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1584,
-			"Position.Y": 2992,
+			"Position.Y": 3024,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 17 2019 20:46:02",
 			"Description": "Tomorrow's Tasks.",
@@ -3374,6 +3625,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 17 2019 20:46:17",
 			"Description": "Something else.",
@@ -3388,6 +3640,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 20 2019 21:31:11",
 			"Description": "Note Tasks should be able to be hidden down to an icon.",
@@ -3395,13 +3648,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 464,
+			"Position.Y": 480,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 21 2019 11:04:36",
 			"CreationTime": "Oct 21 2019 11:04:18",
@@ -3410,13 +3664,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1584,
-			"Position.Y": 3008,
+			"Position.Y": 3040,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Oct 21 2019 11:04:37",
 			"CreationTime": "Oct 21 2019 11:04:24",
@@ -3425,13 +3680,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1584,
-			"Position.Y": 3024,
+			"Position.Y": 3056,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 21 2019 11:17:44",
 			"Description": "Selected Tasks should be a list maintained on the Project.\nIt's too jank and slow to loop through the project constantly to select Tasks.",
@@ -3439,13 +3695,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2064,
+			"Position.Y": 2096,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 22 2019 09:39:06",
 			"Description": "Git.",
@@ -3453,20 +3710,6 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1056,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 22 2019 09:39:47",
-			"Description": "You should be able to complete Tasks from Git commit messages.\nIdea for this is to scan the .git subfolder and check commit messages for specific strings to complete specific Tasks.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
 			"Position.Y": 1072,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
@@ -3474,386 +3717,25 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 22 2019 09:39:47",
+			"Description": "You should be able to complete Tasks from Git commit messages.\nIdea for this is to scan the .git subfolder and check commit messages for specific strings to complete specific Tasks.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 1088,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Oct 22 2019 18:34:39",
 			"Description": "See a calendar and see which Tasks have yet to be done.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 1680,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 18 2019 17:15:59",
-			"CreationTime": "Oct 22 2019 18:49:56",
-			"Description": "Escape shouldn't close program.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1632,
-			"Position.Y": 2352,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Oct 22 2019 18:51:56",
-			"CreationTime": "Oct 22 2019 18:51:46",
-			"Description": "Add shortcut to close task edit window.\nIt's escape now.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 368,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Oct 22 2019 18:58:06",
-			"Description": "Fix: Tasks touching to the right or left should not be children.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 688,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 6 2019 15:18:02",
-			"CreationTime": "Nov 6 2019 09:48:34",
-			"Description": "Create a Go source file / script for building.\nThis should build MasterPlan for the OS it's running on, and copy the assets directory and\nitch.toml file into the build directory.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2480,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 6 2019 09:49:07",
-			"Description": "Distribution",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1632,
-			"Position.Y": 2448,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 13 2019 21:28:40",
-			"CreationTime": "Nov 6 2019 09:49:15",
-			"Description": "Finish setting up itch project page.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2496,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 6 2019 09:49:33",
-			"Description": "Go live!",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2576,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 6 2019 10:18:16",
-			"CreationTime": "Nov 6 2019 09:51:39",
-			"Description": "Change to using go mod to make it easier to build for new systems.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2464,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 13 2019 21:28:43",
-			"CreationTime": "Nov 6 2019 10:18:31",
-			"Description": "Implement and test .itch.toml file for properly running from Itch app.\nDon't need to do this; itch automatically picks up the executables and runs them.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2528,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 6 2019 13:50:09",
-			"CreationTime": "Nov 6 2019 10:19:18",
-			"Description": "Add shortcut to open Tasks (Enter / Return).",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 384,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Jan 10 2020 12:38:41",
-			"CreationTime": "Nov 6 2019 10:20:11",
-			"Description": "Add link somewhere in project that kicks users over to forum.\nPossibly also to Github repo for bug reports?",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2560,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 6 2019 15:18:35",
-			"Description": "Upload builds.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2512,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 6 2019 15:21:03",
-			"CreationTime": "Nov 6 2019 15:20:54",
-			"Description": "Add an icon for the window.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 432,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Feb 25 2020 14:11:31",
-			"CreationTime": "Nov 6 2019 15:29:03",
-			"Description": "Rendering FPS.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 2880,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 7 2019 20:56:15",
-			"Description": "Add general help text (accessible from right-click menu).",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2544,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 9 2019 08:21:15",
-			"Description": "Add markdown parsing support to the text editor.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2320,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 9 2019 08:26:23",
-			"Description": "",
-			"FilePath": "https://www.notion.so/front/product/use-case-screenshot-wiki.gif",
-			"ImageDisplaySize.X": 474.99994,
-			"ImageDisplaySize.Y": 263,
-			"Position.X": -736,
-			"Position.Y": 1728,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 3
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 9 2019 08:27:00",
-			"Description": "\u003c== www.Notion.so for example.\nI like how the page categories appears\nat the left.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -992,
-			"Position.Y": 1824,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 2
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 12 2019 19:41:59",
-			"CreationTime": "Nov 12 2019 16:31:43",
-			"Description": "Add JPEG (and other image format) support back in.\nWorking with Go modules now means I'm using vanilla raylib-go, so JPEGs aren't supported again.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 992,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 18 2019 16:04:57",
-			"Description": "Add word wrap to description box.\nThis should probably be done after the task editor is reworked.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2304,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 18 2019 16:13:12",
-			"Description": "Test out raylib-go-plus; if it works, move to that as the backend.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2416,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 18 2019 16:13:31",
-			"Description": "Save window size and position in project save information.\n(Under vanilla raylib-go, there is no function to get the window position).",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1616,
-			"Position.Y": 2432,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 18 2019 16:14:19",
-			"Description": "Raylib-go-plus",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1632,
-			"Position.Y": 2400,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Nov 18 2019 16:19:02",
-			"Description": "Lazy loading of resources.\nIn other words, whether to load resources only when necessary or not.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 2896,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Jan 10 2020 12:12:32",
-			"CreationTime": "Nov 18 2019 16:37:13",
-			"Description": "Automatically reload themes from themes directory.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 2864,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Nov 18 2019 17:36:30",
-			"CreationTime": "Nov 18 2019 17:34:28",
-			"Description": "Selected Tasks should be easier to see.\nFor now this has been implemented as a horizontal glow to draw the eye to selected Tasks.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -3865,6 +3747,410 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 18 2019 17:15:59",
+			"CreationTime": "Oct 22 2019 18:49:56",
+			"Description": "Escape shouldn't close program.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1632,
+			"Position.Y": 2384,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Oct 22 2019 18:51:56",
+			"CreationTime": "Oct 22 2019 18:51:46",
+			"Description": "Add shortcut to close task edit window.\nIt's escape now.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 384,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Oct 22 2019 18:58:06",
+			"Description": "Fix: Tasks touching to the right or left should not be children.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 704,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 6 2019 15:18:02",
+			"CreationTime": "Nov 6 2019 09:48:34",
+			"Description": "Create a Go source file / script for building.\nThis should build MasterPlan for the OS it's running on, and copy the assets directory and\nitch.toml file into the build directory.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2512,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 6 2019 09:49:07",
+			"Description": "Distribution",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1632,
+			"Position.Y": 2480,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 13 2019 21:28:40",
+			"CreationTime": "Nov 6 2019 09:49:15",
+			"Description": "Finish setting up itch project page.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2528,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 6 2019 09:49:33",
+			"Description": "Go live!",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2608,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 6 2019 10:18:16",
+			"CreationTime": "Nov 6 2019 09:51:39",
+			"Description": "Change to using go mod to make it easier to build for new systems.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2496,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 13 2019 21:28:43",
+			"CreationTime": "Nov 6 2019 10:18:31",
+			"Description": "Implement and test .itch.toml file for properly running from Itch app.\nDon't need to do this; itch automatically picks up the executables and runs them.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2560,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 6 2019 13:50:09",
+			"CreationTime": "Nov 6 2019 10:19:18",
+			"Description": "Add shortcut to open Tasks (Enter / Return).",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 400,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Jan 10 2020 12:38:41",
+			"CreationTime": "Nov 6 2019 10:20:11",
+			"Description": "Add link somewhere in project that kicks users over to forum.\nPossibly also to Github repo for bug reports?",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2592,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 6 2019 15:18:35",
+			"Description": "Upload builds.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2544,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 6 2019 15:21:03",
+			"CreationTime": "Nov 6 2019 15:20:54",
+			"Description": "Add an icon for the window.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 448,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Feb 25 2020 14:11:31",
+			"CreationTime": "Nov 6 2019 15:29:03",
+			"Description": "Rendering FPS.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 2912,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 7 2019 20:56:15",
+			"Description": "Add general help text (accessible from right-click menu).",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2576,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 9 2019 08:21:15",
+			"Description": "Add markdown parsing support to the text editor.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2352,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 9 2019 08:26:23",
+			"Description": "",
+			"FilePath": "https://www.notion.so/front/product/use-case-screenshot-wiki.gif",
+			"ImageDisplaySize.X": 474.99994,
+			"ImageDisplaySize.Y": 263,
+			"Position.X": -736,
+			"Position.Y": 1808,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 3
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 9 2019 08:27:00",
+			"Description": "\u003c== www.Notion.so for example.\nI like how the page categories appears\nat the left.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -992,
+			"Position.Y": 1904,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 2
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 12 2019 19:41:59",
+			"CreationTime": "Nov 12 2019 16:31:43",
+			"Description": "Add JPEG (and other image format) support back in.\nWorking with Go modules now means I'm using vanilla raylib-go, so JPEGs aren't supported again.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 1008,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 18 2019 16:04:57",
+			"Description": "Add word wrap to description box.\nThis should probably be done after the task editor is reworked.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2336,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 18 2019 16:13:12",
+			"Description": "Test out raylib-go-plus; if it works, move to that as the backend.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2448,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 18 2019 16:13:31",
+			"Description": "Save window size and position in project save information.\n(Under vanilla raylib-go, there is no function to get the window position).",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1616,
+			"Position.Y": 2464,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 18 2019 16:14:19",
+			"Description": "Raylib-go-plus",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1632,
+			"Position.Y": 2432,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Nov 18 2019 16:19:02",
+			"Description": "Lazy loading of resources.\nIn other words, whether to load resources only when necessary or not.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 2928,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Jan 10 2020 12:12:32",
+			"CreationTime": "Nov 18 2019 16:37:13",
+			"Description": "Automatically reload themes from themes directory.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 2896,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Nov 18 2019 17:36:30",
+			"CreationTime": "Nov 18 2019 17:34:28",
+			"Description": "Selected Tasks should be easier to see.\nFor now this has been implemented as a horizontal glow to draw the eye to selected Tasks.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 1808,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Nov 18 2019 17:39:12",
 			"CreationTime": "Nov 18 2019 17:36:51",
@@ -3873,13 +4159,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 1968,
+			"Position.Y": 2000,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Nov 18 2019 17:46:03",
 			"Description": "GUI scaling for people with poor eyesight.",
@@ -3887,13 +4174,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2736,
+			"Position.Y": 2768,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Nov 18 2019 17:49:23",
 			"Description": "Focus should zoom out to show all selected Tasks...?",
@@ -3901,13 +4189,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 304,
+			"Position.Y": 320,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Nov 19 2019 10:59:37",
 			"CreationTime": "Nov 18 2019 18:02:15",
@@ -3923,6 +4212,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Nov 26 2019 16:58:01",
 			"CreationTime": "Nov 21 2019 18:49:26",
@@ -3931,13 +4221,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1760,
+			"Position.Y": 1824,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Jan 12 2020 19:16:58",
 			"Description": "",
@@ -3952,6 +4243,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Jan 13 2020 19:06:08",
 			"CreationTime": "Jan 12 2020 20:27:59",
@@ -3967,6 +4259,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Jan 13 2020 11:50:48",
 			"Description": "Dragging a Task into contact with another should add it to the column.",
@@ -3974,13 +4267,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 832,
+			"Position.Y": 848,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 18 2020 18:23:24",
 			"CreationTime": "Jan 13 2020 19:03:49",
@@ -3989,13 +4283,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 736,
+			"Position.Y": 752,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Jan 13 2020 21:28:34",
 			"Description": "",
@@ -4010,6 +4305,7 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Jan 13 2020 21:28:44",
 			"Description": "",
@@ -4024,48 +4320,22 @@
 			"TaskType.CurrentChoice": 3
 		},
 		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Feb 26 2020 11:07:32",
-			"Description": "",
-			"FilePath": "https://zophar.vgmdownloads.com/soundcovers/nintendo-snes-spc/thumbs_large/snes_RunSaber_de.jpg",
-			"ImageDisplaySize.X": 183,
-			"ImageDisplaySize.Y": 210,
-			"Position.X": -272,
-			"Position.Y": 368,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 3
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Feb 26 2020 11:07:41",
-			"Description": "",
-			"FilePath": "/home/solarlune/Music/Run Saber (MP3).zophar/04 Taj Base.mp3",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -256,
-			"Position.Y": 576,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 4
-		},
-		{
+			"BoardIndex": 1,
 			"Checkbox.Checked": false,
 			"CreationTime": "Jan 14 2020 14:55:34",
 			"Description": "Console: Nintendo SNES (SPC)\n\nDeveloper: Horisoft\n\nPublisher: Atlus\n\nRipped by: Dais\n\nTagged by: Datschge",
 			"FilePath": "Console: Nintendo SNES (SPC)\n\nDeveloper: Horisoft\n\nPublisher: Atlus\n\nRipped by: Dais\n\nTagged by: Datschge",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
-			"Position.X": -272,
-			"Position.Y": 224,
+			"Position.X": 288,
+			"Position.Y": -128,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 2
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Jan 14 2020 15:02:39",
 			"Description": "Image Tasks should be rotatable.",
@@ -4073,16 +4343,78 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 768,
+			"Position.Y": 784,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 1,
+			"Checkbox.Checked": false,
+			"CreationTime": "Feb 26 2020 11:07:32",
+			"Description": "",
+			"FilePath": "https://zophar.vgmdownloads.com/soundcovers/nintendo-snes-spc/thumbs_large/snes_RunSaber_de.jpg",
+			"ImageDisplaySize.X": 183,
+			"ImageDisplaySize.Y": 210,
+			"Position.X": 288,
+			"Position.Y": 16,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 3
+		},
+		{
+			"BoardIndex": 1,
+			"Checkbox.Checked": false,
+			"CreationTime": "Feb 26 2020 11:07:41",
+			"Description": "",
+			"FilePath": "/home/solarlune/Music/Run Saber (MP3).zophar/04 Taj Base.mp3",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": 304,
+			"Position.Y": 224,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 4
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Jan 14 2020 15:02:54",
 			"Description": "3D Task for visualizing 3D models?",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 576,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Feb 18 2020 18:32:12",
+			"Description": "Working, but now make shift+arrow keys select from the currently selected Task.\nFor example, hold shift and press up to select one above, then press down, and it should deselect that one).\nThis should be able to be done by just storing the \"starting\" selected Task if you're holding Shift, and storing\na range of Tasks? Similar to how I do this for the textbox.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 880,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Feb 25 2020 15:23:18",
+			"CreationTime": "Feb 20 2020 22:48:25",
+			"Description": "Add Timer Task (a Task that triggers every x minutes / days / etc.)\nSome people use Timers to improve productivity to boost productivity (e.g. start a 1 hour timer, \nstart programming, when it's done, take a break, and move on to another part of the project).",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -4094,77 +4426,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Jan 17 2020 17:02:37",
-			"Description": "",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": 208,
-			"Position.Y": -192,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Jan 17 2020 17:22:23",
-			"Description": "",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": 48,
-			"Position.Y": 160,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Jan 17 2020 17:26:15",
-			"Description": "",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": 48,
-			"Position.Y": 480,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Feb 18 2020 18:32:12",
-			"Description": "Working, but now make shift+arrow keys select from the currently selected Task.\nFor example, hold shift and press up to select one above, then press down, and it should deselect that one).\nThis should be able to be done by just storing the \"starting\" selected Task if you're holding Shift, and storing\na range of Tasks? Similar to how I do this for the textbox.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 864,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": true,
-			"CompletionTime": "Feb 25 2020 15:23:18",
-			"CreationTime": "Feb 20 2020 22:48:25",
-			"Description": "Add Timer Task (a Task that triggers every x minutes / days / etc.)\nSome people use Timers to improve productivity to boost productivity (e.g. start a 1 hour timer, \nstart programming, when it's done, take a break, and move on to another part of the project).",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 544,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 20 2020 22:52:10",
 			"Description": "Additional Task types",
@@ -4172,13 +4434,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 496,
+			"Position.Y": 512,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 1
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 20 2020 22:53:11",
 			"Description": "Transition between colors when changing themes?",
@@ -4186,13 +4449,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1888,
+			"Position.Y": 1952,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 20 2020 22:53:59",
 			"Description": "Double-click words to select them.",
@@ -4200,30 +4464,17 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2176,
+			"Position.Y": 2208,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 20 2020 23:28:12",
 			"Description": "Video player Task.",
-			"FilePath": "",
-			"ImageDisplaySize.X": 0,
-			"ImageDisplaySize.Y": 0,
-			"Position.X": -1600,
-			"Position.Y": 592,
-			"Progression.Current": 0,
-			"Progression.Max": 0,
-			"Selected": false,
-			"TaskType.CurrentChoice": 0
-		},
-		{
-			"Checkbox.Checked": false,
-			"CreationTime": "Feb 20 2020 23:28:17",
-			"Description": "Web stream Task (for YouTube videos, as an example). No idea of the feasibility of this.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -4235,6 +4486,22 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Feb 20 2020 23:28:17",
+			"Description": "Web stream Task (for YouTube videos, as an example). No idea of the feasibility of this.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 624,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 20 2020 23:33:58",
 			"Description": "Version number of MasterPlan should be saved in save file.",
@@ -4242,13 +4509,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 2704,
+			"Position.Y": 2736,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 21 2020 15:37:07",
 			"Description": "All Tasks should be able to have neighbors and swap positions with each other.\nNot just completable / numberable ones.",
@@ -4263,6 +4531,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 24 2020 21:40:09",
 			"Description": "",
@@ -4280,6 +4549,7 @@
 			"TimerSecondSpinner.Number": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 24 2020 21:40:09",
 			"Description": "",
@@ -4297,6 +4567,7 @@
 			"TimerSecondSpinner.Number": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 24 2020 21:40:09",
 			"Description": "",
@@ -4314,6 +4585,7 @@
 			"TimerSecondSpinner.Number": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 24 2020 21:40:09",
 			"Description": "",
@@ -4331,6 +4603,7 @@
 			"TimerSecondSpinner.Number": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Mar 5 2020 22:05:12",
 			"CreationTime": "Feb 25 2020 08:46:21",
@@ -4339,13 +4612,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 1728,
+			"Position.Y": 1792,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": true,
 			"CompletionTime": "Feb 25 2020 13:05:39",
 			"CreationTime": "Feb 25 2020 08:47:07",
@@ -4354,13 +4628,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 2192,
+			"Position.Y": 2224,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 25 2020 14:05:56",
 			"Description": "Spotify / Amazon Music / other web stream integration?",
@@ -4368,13 +4643,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1600,
-			"Position.Y": 240,
+			"Position.Y": 256,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 25 2020 14:08:23",
 			"Description": "Consolidate Image and Sound Task types into just a Media type.\nThat would encompass all additional Task types that are \"imported\" into MasterPlan from external locations.",
@@ -4382,13 +4658,14 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 448,
+			"Position.Y": 464,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Mar 4 2020 21:57:09",
 			"Description": "Add ability to open .plan files from explorer with MasterPlan.",
@@ -4403,6 +4680,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Mar 4 2020 21:57:25",
 			"Description": "Ability to receive texts or emails when timers go off? (Snowminx's idea)",
@@ -4417,6 +4695,7 @@
 			"TaskType.CurrentChoice": 0
 		},
 		{
+			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Mar 4 2020 22:17:38",
 			"Description": "Image Tasks should lock to a grid when resizing.",
@@ -4424,7 +4703,53 @@
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
 			"Position.X": -1616,
-			"Position.Y": 672,
+			"Position.Y": 688,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Mar 8 2020 14:58:00",
+			"CreationTime": "Mar 8 2020 14:56:05",
+			"Description": "Implement Boards.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 1584,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Mar 8 2020 14:56:20",
+			"Description": "Implement ability to rename Boards.",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 1600,
+			"Progression.Current": 0,
+			"Progression.Max": 0,
+			"Selected": false,
+			"TaskType.CurrentChoice": 0
+		},
+		{
+			"BoardIndex": 0,
+			"Checkbox.Checked": false,
+			"CreationTime": "Mar 8 2020 14:59:18",
+			"Description": "Seek controls (this could be used for Timers as well).",
+			"FilePath": "",
+			"ImageDisplaySize.X": 0,
+			"ImageDisplaySize.Y": 0,
+			"Position.X": -1600,
+			"Position.Y": 208,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
 			"Selected": false,
@@ -4432,5 +4757,5 @@
 		}
 	],
 	"Version": "0.2.0",
-	"ZoomLevel": 2
+	"ZoomLevel": 1
 }
