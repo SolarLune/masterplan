@@ -672,7 +672,8 @@ func (project *Project) Update() {
 
 	}
 
-	for _, task := range project.CurrentBoard().Tasks {
+	for _, task := range project.GetAllTasks() {
+		// for _, task := range project.CurrentBoard().Tasks {
 		task.Update()
 	}
 
@@ -871,7 +872,7 @@ func (project *Project) Shortcuts() {
 					task.ReceiveMessage("double click", nil)
 				} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
 
-					for _, task := range project.CurrentBoard().Tasks {
+					for _, task := range project.GetAllTasks() {
 						task.StopSound()
 					}
 					project.Log("Stopped all playing Sounds.")
@@ -1501,7 +1502,7 @@ func (project *Project) SearchForTasks() {
 		project.FocusedSearchTask = 0
 	}
 
-	for _, task := range project.CurrentBoard().Tasks {
+	for _, task := range project.GetAllTasks() {
 
 		searchText := strings.ToLower(project.Searchbar.Text)
 
@@ -1524,8 +1525,9 @@ func (project *Project) SearchForTasks() {
 		}
 	}
 
-	if project.FocusedSearchTask < len(project.SearchedTasks) {
+	if len(project.SearchedTasks) > 0 {
 		task := project.SearchedTasks[project.FocusedSearchTask]
+		project.BoardIndex = task.Board.Index()
 		project.SendMessage("select", map[string]interface{}{"task": task})
 		project.CurrentBoard().FocusViewOnSelectedTasks()
 	}
