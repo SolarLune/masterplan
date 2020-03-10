@@ -135,6 +135,7 @@ func NewProject() *Project {
 
 	project.Boards = []*Board{NewBoard(project)}
 
+	project.AutoLoadLastProject.Checked = programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN)
 	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
 	project.ShadowQualitySpinner.CurrentChoice = 2
@@ -375,6 +376,7 @@ func (project *Project) Load(filepath string) bool {
 				project.ChangeTheme(colorTheme) // Changing theme regenerates the grid; we don't have to do it elsewhere
 			}
 
+			project.AutoLoadLastProject.Checked = programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN)
 			programSettings[PS_LAST_OPENED_PLAN] = filepath
 			programSettings.Save()
 			project.JustLoaded = true

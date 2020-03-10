@@ -47,9 +47,6 @@ func (ps *ProgramSettings) Load() {
 		data := map[string]interface{}{}
 		decoder.Decode(&data)
 		programSettings = ProgramSettings(data)
-
-		currentProject.AutoLoadLastProject.Checked = programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN)
-
 	}
 }
 
