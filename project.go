@@ -1056,7 +1056,7 @@ func (project *Project) Shortcuts() {
 					var selected *Task
 
 					if rl.IsKeyDown(rl.KeyDown) {
-						for i := len(project.CurrentBoard().Tasks) - 1; i > 0; i-- {
+						for i := len(project.CurrentBoard().Tasks) - 1; i >= 0; i-- {
 							if project.CurrentBoard().Tasks[i].Selected {
 								selected = project.CurrentBoard().Tasks[i]
 								break
