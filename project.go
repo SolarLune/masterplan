@@ -255,6 +255,7 @@ func (project *Project) Save() bool {
 			"AutoSave":                project.AutoSave.Checked,
 			"AutoReloadThemes":        project.AutoReloadThemes.Checked,
 			"SaveSoundsPlaying":       project.SaveSoundsPlaying.Checked,
+			"BoardIndex":              project.BoardIndex,
 		}
 
 		f, err := os.Create(project.FilePath)
@@ -382,6 +383,7 @@ func (project *Project) Load(filepath string) bool {
 			project.AutoSave.Checked = getBool("AutoSave", project.AutoSave.Checked)
 			project.AutoReloadThemes.Checked = getBool("AutoReloadThemes", project.AutoReloadThemes.Checked)
 			project.SaveSoundsPlaying.Checked = getBool("SaveSoundsPlaying", project.SaveSoundsPlaying.Checked)
+			project.BoardIndex = getInt("BoardIndex", project.BoardIndex)
 
 			speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
 			project.SetSampleRate = project.SampleRate.ChoiceAsInt()
@@ -761,7 +763,6 @@ func (project *Project) Update() {
 	}
 
 	for _, task := range project.GetAllTasks() {
-		// for _, task := range project.CurrentBoard().Tasks {
 		task.Update()
 	}
 
@@ -792,6 +793,12 @@ func (project *Project) Update() {
 	project.Shortcuts()
 
 	if project.JustLoaded {
+
+		for _, t := range project.GetAllTasks() {
+			t.Draw() // We need to draw the task at least once to ensure the rects are updated by the Task's contents.
+			// This makes it so that neighbors can be correct.
+		}
+
 		project.ReorderTasks()
 		project.JustLoaded = false
 	}
@@ -1165,9 +1172,9 @@ func (project *Project) Shortcuts() {
 
 func (project *Project) ReorderTasks() {
 
-	sort.Slice(project.CurrentBoard().Tasks, func(i, j int) bool {
-		return project.CurrentBoard().Tasks[i].Position.Y < project.CurrentBoard().Tasks[j].Position.Y
-	})
+	for _, board := range project.Boards {
+		board.ReorderTasks()
+	}
 
 	project.SendMessage("dropped", nil)
 }

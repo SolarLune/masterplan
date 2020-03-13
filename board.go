@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -70,6 +71,7 @@ func (board *Board) DeleteTaskByIndex(index int) {
 }
 
 func (board *Board) DeleteTask(task *Task) {
+
 	for index, internalTask := range board.Tasks {
 		if internalTask == task {
 			board.Tasks[index].ReceiveMessage("delete", map[string]interface{}{"task": board.Tasks[index]})
@@ -291,6 +293,12 @@ func (board *Board) PasteContent() {
 		board.Project.Log("Unable to create Task from clipboard content.")
 	}
 
+}
+
+func (board *Board) ReorderTasks() {
+	sort.Slice(board.Tasks, func(i, j int) bool {
+		return board.Tasks[i].Position.Y < board.Tasks[j].Position.Y
+	})
 }
 
 // Returns the index of the board in the Project's Board stack
