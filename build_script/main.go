@@ -17,8 +17,6 @@ func build() {
 	// It is specifically not meant to be built into an executable and run by double-clicking in
 	// Finder, on Mac OS.
 
-	// The bin directory should always have a fresh set of assets
-
 	osName := runtime.GOOS + "_" + runtime.GOARCH
 	if strings.Contains(runtime.GOOS, "darwin") {
 		osName = "mac_" + runtime.GOARCH
@@ -26,12 +24,17 @@ func build() {
 
 	baseDir := filepath.Join("bin", osName)
 
-	if strings.Contains(osName, "mac") {
-		baseDir = filepath.Join("bin", osName, "MasterPlan.app", "Contents", "MacOS")
-	}
-
+	// We always remove any pre-existing platform directory before building to ensure it's fresh.
 	if err := os.RemoveAll(baseDir); err != nil {
 		panic(err)
+	}
+
+	if err := copy.Copy("changelog.txt", filepath.Join(baseDir, "changelog.txt")); err != nil {
+		panic(err)
+	}
+
+	if strings.Contains(osName, "mac") {
+		baseDir = filepath.Join("bin", osName, "MasterPlan.app", "Contents", "MacOS")
 	}
 
 	// Copy the assets folder to the bin directory
@@ -42,13 +45,13 @@ func build() {
 	log.Println("Assets copied.")
 
 	filename := filepath.Join(baseDir, "MasterPlan")
-																																															
+
 	args := []string{"build", "-o", filename, "./"}
 
 	if strings.Contains(osName, "windows") {
 		filename += ".exe"
 		// The -H=windowsgui -ldflag is to make sure Go builds a Windows GUI app so the command prompt doesn't stay.
-		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag 
+		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag
 		// gets passed to the compiler and XCode wouldn't build if on Mac I leave it in there.
 		args = []string{"build", "-ldflags", "-H=windowsgui", "-o", filename, "./"}
 	}
