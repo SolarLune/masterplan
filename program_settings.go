@@ -2,51 +2,36 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"os"
 )
 
-const (
-	PS_LAST_OPENED_PLAN   = "LAST_OPENED_PLAN_PATH"
-	PS_AUTOLOAD_LAST_PLAN = "AUTOLOAD_LAST_PLAN"
-)
-
-type ProgramSettings map[string]interface{}
-
-func (ps ProgramSettings) GetString(constant string) string {
-	_, exists := ps[constant]
-	if exists {
-		return ps[constant].(string)
-	}
-	return ""
+type ProgramSettings struct {
+	AutoloadLastPlan bool
+	RecentPlanList   []string
 }
 
-func (ps ProgramSettings) GetBool(constant string) bool {
-	_, exists := ps[constant]
-	if exists {
-		return ps[constant].(bool)
+func NewProgramSettings() ProgramSettings {
+	return ProgramSettings{
+		RecentPlanList: []string{},
 	}
-	return false
 }
 
 func (ps *ProgramSettings) Save() {
-	f, err := os.Create("settings.json")
+	f, err := os.Create(GetPath("masterplan-settings.json"))	// Use GetPath to ensure it's coming from the home directory, not somewhere else
 	if err == nil {
 		defer f.Close()
-		encoder := json.NewEncoder(f)
-		encoder.SetIndent("", "\t")
-		encoder.Encode(programSettings)
+		bytes, _ := json.Marshal(ps)
+		f.Write(bytes)
 		f.Sync()
 	}
 }
 
 func (ps *ProgramSettings) Load() {
-	f, err := os.Open("settings.json")
+	settingsJSON, err := ioutil.ReadFile(GetPath("masterplan-settings.json"))
+
 	if err == nil {
-		defer f.Close()
-		decoder := json.NewDecoder(f)
-		data := map[string]interface{}{}
-		decoder.Decode(&data)
-		programSettings = ProgramSettings(data)
+		json.Unmarshal(settingsJSON, ps)
 	}
 }
 

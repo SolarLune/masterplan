@@ -733,6 +733,7 @@ func (task *Task) Draw() {
 			dst := task.Rect
 			dst.Width = task.ImageDisplaySize.X
 			dst.Height = task.ImageDisplaySize.Y
+			rl.SetTextureFilter(task.Image, rl.FilterAnisotropic4x)
 			rl.DrawTexturePro(task.Image, src, dst, rl.Vector2{}, 0, rl.White)
 
 			if task.Resizeable && task.Selected {
@@ -757,10 +758,13 @@ func (task *Task) Draw() {
 					task.Resizing = false
 					task.Board.Project.ResizingImage = false
 				}
+
 				if task.Resizing {
 					endPoint := GetWorldMousePosition()
+
 					task.ImageDisplaySize.X = endPoint.X - task.Rect.X
 					task.ImageDisplaySize.Y = endPoint.Y - task.Rect.Y
+
 					if task.ImageDisplaySize.X < task.MinSize.X {
 						task.ImageDisplaySize.X = task.MinSize.X
 					}
@@ -772,6 +776,11 @@ func (task *Task) Draw() {
 						asr := float32(task.Image.Height) / float32(task.Image.Width)
 						task.ImageDisplaySize.Y = task.ImageDisplaySize.X * asr
 					}
+
+					if !rl.IsKeyDown(rl.KeyLeftShift) && !rl.IsKeyDown(rl.KeyRightShift) {
+						task.ImageDisplaySize.X, task.ImageDisplaySize.Y = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize.X, task.ImageDisplaySize.Y)
+					}
+
 				}
 
 				rec.X = task.Rect.X
@@ -791,8 +800,9 @@ func (task *Task) Draw() {
 
 	}
 
-	rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
-
+	if task.Board.Project.OutlineTasks.Checked {
+		rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
+	}
 	if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage {
 
 		textPos := rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}
@@ -836,7 +846,8 @@ func (task *Task) Draw() {
 		iconSrc.Y = iconSrcIconPositions[task.TaskType.CurrentChoice][1]
 
 		if len(task.Children) > 0 && task.Completable() {
-			iconSrc.X = 208 // Hardcoding this because I'm an idiot
+			iconSrc.X = 128 // Hardcoding this because I'm an idiot
+			iconSrc.Y = 16
 		}
 
 		if task.IsComplete() {
@@ -854,6 +865,7 @@ func (task *Task) Draw() {
 
 		if extendedText {
 			iconSrc.X = 112
+			iconSrc.Y = 0
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
 		}
 
@@ -954,44 +966,46 @@ func (task *Task) DrawShadow() {
 
 	if task.Visible {
 
-		shadowRect := task.Rect
+		depthRect := task.Rect
 		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
 
-		if task.Board.Project.ShadowQualitySpinner.CurrentChoice == 2 {
+		if task.Board.Project.TaskShadowSpinner.CurrentChoice == 2 || task.Board.Project.TaskShadowSpinner.CurrentChoice == 3 {
 
-			src := rl.Rectangle{248, 1, 4, 4}
-			dst := shadowRect
+			src := rl.Rectangle{224, 0, 8, 8}
+			if task.Board.Project.TaskShadowSpinner.CurrentChoice == 3 {
+				src.X = 248
+			}
+
+			dst := depthRect
 			dst.X += dst.Width
-			dst.Width = 4
-			dst.Height = 4
+			dst.Width = src.Width
+			dst.Height = src.Height
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
-			dst.Y += 4
-			src.Y += 4
-			dst.Height = task.Rect.Height - 4
+			src.Y += src.Height
+			dst.Y += src.Height
+			dst.Height = depthRect.Height - src.Height
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
+			src.Y += src.Height
 			dst.Y += dst.Height
-			dst.Height = 4
-			src.Y += 4
+			dst.Height = src.Height
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
-			dst.X = shadowRect.X + 4
-			dst.Width = shadowRect.Width - 4
-			src.X -= 4
+			src.X -= src.Width
+			dst.X = depthRect.X + src.Width
+			dst.Width = depthRect.Width - src.Width
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
-			dst.X = shadowRect.X
-			dst.Width = 4
-			src.X -= 4
+			src.X -= src.Width
+			dst.X = depthRect.X
+			dst.Width = src.Width
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
-		} else if task.Board.Project.ShadowQualitySpinner.CurrentChoice == 1 {
-			shadowRect.X += 2
-			shadowRect.Y += 2
-			shadowColor := getThemeColor(GUI_SHADOW_COLOR)
-			shadowColor.A = 128
-			rl.DrawRectangleRec(shadowRect, shadowColor)
+		} else if task.Board.Project.TaskShadowSpinner.CurrentChoice == 1 {
+			depthRect.X += 4
+			depthRect.Y += 4
+			rl.DrawRectangleRec(depthRect, shadowColor)
 		}
 
 	}
@@ -1416,7 +1430,7 @@ func (task *Task) GetNeighbors() {
 		return
 	}
 
-	for _, other := range task.Board.Project.CurrentBoard().Tasks {
+	for _, other := range task.Board.Tasks {
 		if other != task && other.CanHaveNeighbors() {
 
 			taskRec := task.Rect

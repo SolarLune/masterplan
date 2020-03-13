@@ -41,14 +41,14 @@ type Project struct {
 	FilePath string
 	GridSize int32
 	// Tasks                []Board
-	Boards               []*Board
-	BoardIndex           int
-	BoardPanel           rl.Rectangle
-	ZoomLevel            int
-	CameraPan            rl.Vector2
-	CameraOffset         rl.Vector2
-	ShadowQualitySpinner *Spinner
-	GridVisible          *Checkbox
+	Boards            []*Board
+	BoardIndex        int
+	BoardPanel        rl.Rectangle
+	ZoomLevel         int
+	CameraPan         rl.Vector2
+	CameraOffset      rl.Vector2
+	TaskShadowSpinner *Spinner
+	GridVisible       *Checkbox
 	// SampleRate           beep.SampleRate
 	SampleRate           *Spinner
 	SetSampleRate        int
@@ -59,6 +59,7 @@ type Project struct {
 	AutoReloadThemes     *Checkbox
 	AutoLoadLastProject  *Checkbox
 	SaveSoundsPlaying    *Checkbox
+	OutlineTasks         *Checkbox
 	ColorThemeSpinner    *Spinner
 
 	// Internal data to make stuff work
@@ -81,6 +82,7 @@ type Project struct {
 	JustLoaded              bool
 	ResizingImage           bool
 	LogOn                   bool
+	LoadRecentDropdown      *DropdownMenu
 
 	SearchedTasks     []*Task
 	FocusedSearchTask int
@@ -107,38 +109,72 @@ func NewProject() *Project {
 	searchBar.AllowNewlines = false
 
 	project := &Project{
-		FilePath:     "",
-		GridSize:     16,
-		ZoomLevel:    -99,
-		CameraPan:    rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2},
-		Searchbar:    searchBar,
-		StatusBar:    rl.Rectangle{0, float32(rl.GetScreenHeight()) - 24, float32(rl.GetScreenWidth()), 24},
-		GUI_Icons:    rl.LoadTexture(GetPath("assets", "gui_icons.png")),
-		SampleBuffer: 512,
-		Patterns:     rl.LoadTexture(GetPath("assets", "patterns.png")),
-		Resources:    map[string]*Resource{},
+		FilePath:           "",
+		GridSize:           16,
+		ZoomLevel:          -99,
+		CameraPan:          rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2},
+		Searchbar:          searchBar,
+		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 24, float32(rl.GetScreenWidth()), 24},
+		GUI_Icons:          rl.LoadTexture(GetPath("assets", "gui_icons.png")),
+		SampleBuffer:       512,
+		Patterns:           rl.LoadTexture(GetPath("assets", "patterns.png")),
+		Resources:          map[string]*Resource{},
+		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
 
-		ColorThemeSpinner:       NewSpinner(350, 32, 256, 24),
-		ShadowQualitySpinner:    NewSpinner(350, 72, 128, 24, "Off", "Solid", "Smooth"),
-		GridVisible:             NewCheckbox(350, 112, 24, 24),
-		ShowIcons:               NewCheckbox(350, 152, 24, 24),
-		NumberingSequence:       NewSpinner(350, 192, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
-		NumberingIgnoreTopLevel: NewCheckbox(350, 232, 24, 24),
-		PulsingTaskSelection:    NewCheckbox(350, 272, 24, 24),
-		AutoSave:                NewCheckbox(350, 312, 24, 24),
-		AutoReloadThemes:        NewCheckbox(350, 352, 24, 24),
-		SaveSoundsPlaying:       NewCheckbox(350, 392, 24, 24),
-		SampleRate:              NewSpinner(350, 432, 128, 24, "22050", "44100", "48000", "88200", "96000"),
+		ColorThemeSpinner:       NewSpinner(350, 0, 256, 24),
+		TaskShadowSpinner:       NewSpinner(350, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
+		OutlineTasks:            NewCheckbox(350, 0, 24, 24),
+		GridVisible:             NewCheckbox(350, 0, 24, 24),
+		ShowIcons:               NewCheckbox(350, 0, 24, 24),
+		NumberingSequence:       NewSpinner(350, 0, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
+		NumberingIgnoreTopLevel: NewCheckbox(350, 0, 24, 24),
+		PulsingTaskSelection:    NewCheckbox(350, 0, 24, 24),
+		AutoSave:                NewCheckbox(350, 0, 24, 24),
+		AutoReloadThemes:        NewCheckbox(350, 0, 24, 24),
+		SaveSoundsPlaying:       NewCheckbox(350, 0, 24, 24),
+		SampleRate:              NewSpinner(350, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
 
-		AutoLoadLastProject: NewCheckbox(350, 472, 24, 24),
+		AutoLoadLastProject: NewCheckbox(350, 0, 24, 24),
+	}
+
+	// Position the settings using something more maintainable than adding 40 to each Y value in a line
+	settingsOptions := []interface{}{
+		project.ColorThemeSpinner,
+		project.TaskShadowSpinner,
+		project.OutlineTasks,
+		project.GridVisible,
+		project.ShowIcons,
+		project.NumberingSequence,
+		project.NumberingIgnoreTopLevel,
+		project.PulsingTaskSelection,
+		project.AutoSave,
+		project.AutoReloadThemes,
+		project.SaveSoundsPlaying,
+		project.SampleRate,
+		nil,
+		project.AutoLoadLastProject,
+	}
+
+	y := float32(32)
+
+	for _, option := range settingsOptions {
+
+		if cb, isCB := option.(*Checkbox); isCB {
+			cb.Rect.Y = y
+		} else if sp, isSP := option.(*Spinner); isSP {
+			sp.Rect.Y = y
+		}
+
+		y += 40
 	}
 
 	project.Boards = []*Board{NewBoard(project)}
 
-	project.AutoLoadLastProject.Checked = programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN)
+	project.OutlineTasks.Checked = true
+	project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
 	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
-	project.ShadowQualitySpinner.CurrentChoice = 2
+	project.TaskShadowSpinner.CurrentChoice = 2
 	project.GridVisible.Checked = true
 	project.ShowIcons.Checked = true
 	project.DoubleClickTimer = -1
@@ -163,6 +199,14 @@ func (project *Project) CurrentBoard() *Board {
 	return project.Boards[project.BoardIndex]
 }
 
+func (project *Project) GetAllTasks() []*Task {
+	tasks := []*Task{}
+	for _, b := range project.Boards {
+		tasks = append(tasks, b.Tasks...)
+	}
+	return tasks
+}
+
 func (project *Project) SaveAs() bool {
 	dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
 	if success {
@@ -170,14 +214,6 @@ func (project *Project) SaveAs() bool {
 		return project.Save()
 	}
 	return false
-}
-
-func (project *Project) GetAllTasks() []*Task {
-	tasks := []*Task{}
-	for _, b := range project.Boards {
-		tasks = append(tasks, b.Tasks...)
-	}
-	return tasks
 }
 
 func (project *Project) Save() bool {
@@ -209,7 +245,8 @@ func (project *Project) Save() bool {
 			"ColorTheme":              currentTheme,
 			"SampleRate":              project.SampleRate.ChoiceAsInt(),
 			"SampleBuffer":            project.SampleBuffer,
-			"ShadowQuality":           project.ShadowQualitySpinner.CurrentChoice,
+			"TaskShadow":              project.TaskShadowSpinner.CurrentChoice,
+			"OutlineTasks":            project.OutlineTasks.Checked,
 			"GridVisible":             project.GridVisible.Checked,
 			"ShowIcons":               project.ShowIcons.Checked,
 			"NumberingIgnoreTopLevel": project.NumberingIgnoreTopLevel.Checked,
@@ -229,8 +266,6 @@ func (project *Project) Save() bool {
 			encoder := json.NewEncoder(f)
 			encoder.SetIndent("", "\t")
 			encoder.Encode(data)
-
-			programSettings[PS_LAST_OPENED_PLAN] = project.FilePath
 			programSettings.Save()
 
 			err = f.Sync() // Want to make sure the file is written
@@ -260,6 +295,7 @@ func (project *Project) LoadFrom() bool {
 	// MasterPlan's .plan files as having that extension... I'm just removing the extension filter for now.
 	file, success, _ := dlgs.File("Load Plan File", "", false)
 	if success {
+		currentProject.Destroy()
 		currentProject = NewProject()
 		// TODO: DO something if this fails
 		return currentProject.Load(file)
@@ -336,7 +372,8 @@ func (project *Project) Load(filepath string) bool {
 			project.ZoomLevel = getInt("ZoomLevel", project.ZoomLevel)
 			project.SampleRate.SetChoice(string(getInt("SampleRate", project.SampleRate.ChoiceAsInt())))
 			project.SampleBuffer = getInt("SampleBuffer", project.SampleBuffer)
-			project.ShadowQualitySpinner.CurrentChoice = getInt("ShadowQuality", project.ShadowQualitySpinner.CurrentChoice)
+			project.TaskShadowSpinner.CurrentChoice = getInt("TaskShadow", project.TaskShadowSpinner.CurrentChoice)
+			project.OutlineTasks.Checked = getBool("OutlineTasks", project.OutlineTasks.Checked)
 			project.GridVisible.Checked = getBool("GridVisible", project.GridVisible.Checked)
 			project.ShowIcons.Checked = getBool("ShowIcons", project.ShowIcons.Checked)
 			project.NumberingSequence.CurrentChoice = getInt("NumberingSequence", project.NumberingSequence.CurrentChoice)
@@ -376,8 +413,57 @@ func (project *Project) Load(filepath string) bool {
 				project.ChangeTheme(colorTheme) // Changing theme regenerates the grid; we don't have to do it elsewhere
 			}
 
-			project.AutoLoadLastProject.Checked = programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN)
-			programSettings[PS_LAST_OPENED_PLAN] = filepath
+			project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
+
+			list := []string{}
+
+			existsInList := func(value string) bool {
+				for _, item := range list {
+					if value == item {
+						return true
+					}
+				}
+				return false
+			}
+
+			lastOpenedIndex := -1
+			i := 0
+			for _, s := range programSettings.RecentPlanList {
+				_, err := os.Stat(s)
+				if err == nil && !existsInList(s) {
+					// If err != nil, the file must not exist, so we'll skip it
+					list = append(list, s)
+					if s == filepath {
+						lastOpenedIndex = i
+					}
+					i++
+				}
+			}
+
+			if lastOpenedIndex > 0 {
+
+				// If the project to be opened is already in the recent files list, then we can just bump it up to the front.
+
+				// ABC <- Say we want to move B to the front.
+
+				// list = ABC_
+				list = append(list, "")
+
+				// list = AABC
+				copy(list[1:], list[0:])
+
+				// list = BABC
+				list[0] = list[lastOpenedIndex+1] // Index needs to be +1 here because we made the list 1 larger above
+
+				// list = BAC
+				list = append(list[:lastOpenedIndex+1], list[lastOpenedIndex+2:]...)
+
+			} else if lastOpenedIndex < 0 {
+				list = append([]string{filepath}, list...)
+			}
+
+			programSettings.RecentPlanList = list
+
 			programSettings.Save()
 			project.JustLoaded = true
 			project.Log("Load successful.")
@@ -682,7 +768,7 @@ func (project *Project) Update() {
 	// Additive blending should be out here to avoid state changes mid-task drawing.
 	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
 
-	if shadowColor.R > 128 || shadowColor.G > 128 || shadowColor.B > 128 {
+	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
 		rl.BeginBlendMode(rl.BlendAdditive)
 	}
 
@@ -690,7 +776,7 @@ func (project *Project) Update() {
 		task.DrawShadow()
 	}
 
-	if shadowColor.R > 128 || shadowColor.G > 128 || shadowColor.B > 128 {
+	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
 		rl.EndBlendMode()
 	}
 
@@ -714,20 +800,22 @@ func (project *Project) Update() {
 
 func (project *Project) SendMessage(message string, data map[string]interface{}) {
 
+	taskList := project.GetAllTasks()
+
 	if message == "dropped" {
-		for _, task := range project.CurrentBoard().Tasks {
+		for _, task := range taskList {
 			// Clear out neighbors before having the task proceed with it
 			task.TaskAbove = nil
 			task.TaskBelow = nil
 		}
 	}
 
-	for _, task := range project.CurrentBoard().Tasks {
+	for _, task := range taskList {
 		task.ReceiveMessage(message, data)
 	}
 
 	if message == "dropped" {
-		for _, task := range project.CurrentBoard().Tasks {
+		for _, task := range taskList {
 			task.ReceiveMessage("children", nil)
 		}
 	}
@@ -1077,7 +1165,6 @@ func (project *Project) Shortcuts() {
 
 func (project *Project) ReorderTasks() {
 
-	// Re-order the tasks
 	sort.Slice(project.CurrentBoard().Tasks, func(i, j int) bool {
 		return project.CurrentBoard().Tasks[i].Position.Y < project.CurrentBoard().Tasks[j].Position.Y
 	})
@@ -1104,20 +1191,19 @@ func (project *Project) GUI() {
 		task.PostDraw()
 	}
 
-	if rl.IsMouseButtonReleased(rl.MouseRightButton) && !project.TaskOpen {
+	if rl.IsMouseButtonReleased(rl.MouseRightButton) && !project.TaskOpen && !project.ContextMenuOpen {
 		project.ContextMenuOpen = true
 		project.ContextMenuPosition = GetMousePosition()
 	} else if project.ContextMenuOpen {
 
-		if rl.IsMouseButtonReleased(rl.MouseLeftButton) || rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.IsMouseButtonReleased(rl.MouseRightButton) {
-			project.ContextMenuOpen = false
-		}
+		closeMenu := false
 
 		pos := project.ContextMenuPosition
 
 		menuOptions := []string{
 			"New Project",
 			"Load Project",
+			"Load Recent...",
 			"Save Project",
 			"Save Project As...",
 			"Project Settings",
@@ -1130,6 +1216,7 @@ func (project *Project) GUI() {
 			"Paste Content",
 			"",
 			"Visit Forums",
+			"Take Screenshot",
 		}
 
 		menuWidth := float32(160)
@@ -1190,7 +1277,22 @@ func (project *Project) GUI() {
 				rect.Height /= 2
 			}
 
-			if ImmediateButton(rect, option, disabled) {
+			if option == "Load Recent..." {
+
+				project.LoadRecentDropdown.Rect = rect
+				project.LoadRecentDropdown.Update()
+				project.LoadRecentDropdown.Options = programSettings.RecentPlanList
+
+				if project.LoadRecentDropdown.ChoiceAsString() != "" {
+					currentProject.Destroy()
+					currentProject = NewProject()
+					currentProject.Load(project.LoadRecentDropdown.ChoiceAsString())
+					closeMenu = true
+				}
+
+			} else if ImmediateButton(rect, option, disabled) {
+
+				closeMenu = true
 
 				switch option {
 
@@ -1232,6 +1334,9 @@ func (project *Project) GUI() {
 				case "Visit Forums":
 					browser.OpenURL("https://solarlune.itch.io/masterplan/community")
 
+				case "Take Screenshot":
+					takeScreenshot = true
+
 				}
 
 			}
@@ -1244,9 +1349,18 @@ func (project *Project) GUI() {
 
 		}
 
+		if (rl.IsMouseButtonReleased(rl.MouseLeftButton) && !closeMenu && !project.LoadRecentDropdown.Clicked) || rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.IsMouseButtonReleased(rl.MouseRightButton) {
+			closeMenu = true
+		}
+
+		if closeMenu {
+			project.ContextMenuOpen = false
+			project.LoadRecentDropdown.Open = false
+		}
+
 	} else if project.ProjectSettingsOpen {
 
-		rec := rl.Rectangle{16, 16, 650, 500}
+		rec := rl.Rectangle{16, 16, 650, project.AutoLoadLastProject.Rect.Y + 32}
 		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 
@@ -1270,14 +1384,17 @@ func (project *Project) GUI() {
 			if project.AutoSave.Checked {
 				project.Save()
 			}
-			programSettings[PS_AUTOLOAD_LAST_PLAN] = project.AutoLoadLastProject.Checked
+			programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
 			programSettings.Save()
 		}
 
 		columnX := float32(32)
 
-		rl.DrawTextEx(guiFont, "Shadow Quality: ", rl.Vector2{columnX, project.ShadowQualitySpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
-		project.ShadowQualitySpinner.Update()
+		rl.DrawTextEx(guiFont, "Task Depth: ", rl.Vector2{columnX, project.TaskShadowSpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		project.TaskShadowSpinner.Update()
+
+		rl.DrawTextEx(guiFont, "Outline Tasks: ", rl.Vector2{columnX, project.OutlineTasks.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		project.OutlineTasks.Update()
 
 		rl.DrawTextEx(guiFont, "Color Theme: ", rl.Vector2{columnX, project.ColorThemeSpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
 		project.ColorThemeSpinner.Update()

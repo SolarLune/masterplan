@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/gen2brain/raylib-go/easings"
@@ -15,10 +17,11 @@ var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
 var softwareVersion, _ = semver.Make("0.2.1")
+var takeScreenshot = false
 
-var splashScreen rl.Texture2D
-var splashScreenTime = float32(0)
-var attemptAutoload = 5
+func init() {
+	runtime.LockOSThread() // Don't know if this is necessary still
+}
 
 func main() {
 
@@ -34,14 +37,18 @@ func main() {
 	font = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(fontSize), nil, -1)
 	guiFont = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(guiFontSize), nil, -1)
 
+	programSettings.Load()
+
 	currentProject = NewProject()
 
 	rl.SetExitKey(0) /// We don't want Escape to close the program.
 
-	programSettings.Load()
-
-	splashScreen = rl.LoadTexture(GetPath("assets", "splashscreen.png"))
+	attemptAutoload := 5
+	splashScreenTime := float32(0)
+	splashScreen := rl.LoadTexture(GetPath("assets", "splashscreen.png"))
 	splashColor := rl.White
+
+	screenshotIndex := 0
 
 	// profiling := false
 
@@ -85,8 +92,8 @@ func main() {
 			attemptAutoload--
 
 			if attemptAutoload == 0 {
-				if programSettings.GetBool(PS_AUTOLOAD_LAST_PLAN) {
-					currentProject.Load(programSettings.GetString(PS_LAST_OPENED_PLAN))
+				if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
+					currentProject.Load(programSettings.RecentPlanList[0])
 				}
 			}
 
@@ -135,6 +142,18 @@ func main() {
 					i--
 				}
 
+			}
+
+			if rl.IsKeyPressed(rl.KeyF11) {
+				// This is here because you can trigger a screenshot from the context menu as well.
+				takeScreenshot = true
+			}
+
+			if takeScreenshot {
+				currentProject.Log("Screenshot saved successfully.")
+				screenshotIndex++
+				rl.TakeScreenshot(GetPath(fmt.Sprintf("screenshot%d.png", screenshotIndex)))
+				takeScreenshot = false
 			}
 
 			currentProject.GUI()

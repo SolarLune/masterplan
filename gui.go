@@ -109,10 +109,6 @@ func loadThemes() {
 
 func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, text string, disabled bool) bool {
 
-	// r := rect
-	// r.Width += iconSrcRec.Width
-	// r.X -= iconSrcRec.Width
-
 	clicked := false
 
 	outlineColor := getThemeColor(GUI_OUTLINE)
@@ -165,6 +161,100 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, text string, disabled bo
 
 func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 	return ImmediateIconButton(rect, rl.Rectangle{}, text, disabled)
+}
+
+type DropdownMenu struct {
+	Rect        rl.Rectangle
+	Name        string
+	Options     []string
+	Open        bool
+	ChoiceIndex int
+	Clicked     bool
+}
+
+func NewDropdown(x, y, w, h float32, name string, options ...string) *DropdownMenu {
+	return &DropdownMenu{
+		Name:        name,
+		Rect:        rl.Rectangle{x, y, w, h},
+		Options:     options,
+		ChoiceIndex: -1,
+	}
+}
+
+func (dropdown *DropdownMenu) Update() {
+
+	dropdown.Clicked = false
+	dropdown.ChoiceIndex = -1
+	outlineColor := getThemeColor(GUI_OUTLINE)
+	insideColor := getThemeColor(GUI_INSIDE)
+
+	arrowColor := getThemeColor(GUI_FONT_COLOR)
+
+	if rl.CheckCollisionPointRec(GetMousePosition(), dropdown.Rect) {
+		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+		arrowColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+			insideColor = getThemeColor(GUI_INSIDE_DISABLED)
+			arrowColor = getThemeColor(GUI_OUTLINE_DISABLED)
+		} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+			dropdown.Open = !dropdown.Open
+			dropdown.Clicked = true
+		}
+	} else if dropdown.Open {
+		arrowColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+	}
+
+	rl.DrawRectangleRec(dropdown.Rect, insideColor)
+	rl.DrawRectangleLinesEx(dropdown.Rect, 1, outlineColor)
+
+	textWidth := rl.MeasureTextEx(guiFont, dropdown.Name, guiFontSize, spacing)
+	pos := rl.Vector2{dropdown.Rect.X + (dropdown.Rect.Width / 2) - textWidth.X/2, dropdown.Rect.Y + (dropdown.Rect.Height / 2) - textWidth.Y/2}
+	pos.X = float32(math.Round(float64(pos.X)))
+	pos.Y = float32(math.Round(float64(pos.Y)))
+
+	rl.DrawTextEx(guiFont, dropdown.Name, pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+
+	rl.DrawTexturePro(currentProject.GUI_Icons, rl.Rectangle{16, 16, 16, 16}, rl.Rectangle{dropdown.Rect.X + (dropdown.Rect.Width - 24), dropdown.Rect.Y + 8, 16, 16}, rl.Vector2{}, 0, arrowColor)
+	// rl.DrawPoly(rl.Vector2{dropdown.Rect.X + dropdown.Rect.Width - 14, dropdown.Rect.Y + dropdown.Rect.Height/2}, 3, 7, 26, getThemeColor(GUI_FONT_COLOR))
+
+	if dropdown.Open {
+
+		y := float32(0)
+
+		for i, option := range dropdown.Options {
+
+			txt := fmt.Sprintf("%d: %s", i+1, option)
+
+			rect := dropdown.Rect
+			textWidth = rl.MeasureTextEx(guiFont, txt, guiFontSize, spacing)
+			rect.X += rect.Width
+			rect.Width = textWidth.X + 16
+			rect.Y += y
+
+			if ImmediateButton(rect, txt, false) {
+				dropdown.Clicked = true
+				dropdown.ChoiceIndex = i
+				dropdown.Open = false
+			}
+			y += rect.Height
+
+		}
+
+	}
+
+}
+
+func (dropdown *DropdownMenu) ChoiceAsString() string {
+
+	if dropdown.ChoiceIndex >= 0 && len(dropdown.Options) > dropdown.ChoiceIndex {
+		return dropdown.Options[dropdown.ChoiceIndex]
+	}
+	return ""
+
 }
 
 type Checkbox struct {
