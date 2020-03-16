@@ -36,6 +36,8 @@ const (
 	NUMBERING_SEQUENCE_OFF
 )
 
+var firstFreeTaskID = 0
+
 type Project struct {
 	// Settings / project-specific data
 	FilePath string
@@ -1290,7 +1292,9 @@ func (project *Project) GUI() {
 				project.LoadRecentDropdown.Update()
 				project.LoadRecentDropdown.Options = programSettings.RecentPlanList
 
-				if project.LoadRecentDropdown.ChoiceAsString() != "" {
+				if len(programSettings.RecentPlanList) == 0 {
+					project.LoadRecentDropdown.Options = []string{"No recent plans loaded"}
+				} else if project.LoadRecentDropdown.ChoiceAsString() != "" {
 					currentProject.Destroy()
 					currentProject = NewProject()
 					currentProject.Load(project.LoadRecentDropdown.ChoiceAsString())
@@ -1664,9 +1668,11 @@ func (project *Project) GetFirstFreeID() int {
 
 	usedIDs := map[int]bool{}
 
-	for i := 0; i < taskID; i++ {
-		if len(project.CurrentBoard().Tasks) > i {
-			usedIDs[project.CurrentBoard().Tasks[i].ID] = true
+	tasks := project.GetAllTasks()
+
+	for i := 0; i < firstFreeTaskID; i++ {
+		if len(tasks) > i {
+			usedIDs[tasks[i].ID] = true
 		}
 	}
 
@@ -1674,7 +1680,7 @@ func (project *Project) GetFirstFreeID() int {
 	// delete that and create a new one; it should have an ID of 4 so that when VCS diff
 	// the project file, it just alters the relevant pieces of info to make the original
 	// Task #4 the new Task #4)
-	for i := 0; i < taskID; i++ {
+	for i := 0; i < firstFreeTaskID; i++ {
 		exists := usedIDs[i]
 		if !exists {
 			return i
@@ -1682,9 +1688,9 @@ func (project *Project) GetFirstFreeID() int {
 	}
 
 	// If no spent but unused IDs exist, then we can just use a new one and move on.
-	id := taskID
+	id := firstFreeTaskID
 
-	taskID++
+	firstFreeTaskID++
 
 	return id
 

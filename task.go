@@ -94,8 +94,6 @@ type Task struct {
 	Visible             bool
 }
 
-var taskID = 0
-
 func NewTask(board *Board) *Task {
 
 	months := []string{
