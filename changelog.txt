@@ -1,5 +1,31 @@
 -------
 
+v0.2.2
+
+-------
+
+Building now uses OpenGL 2.1 instead of 3.x. This should allow for MasterPlan to be usable on older graphics cards, hopefully without issue.
+Adding an "Open Recent" menu to the right-click context menu.
+Making Open Recent menu have an option stating no recent plans have been opened if that's the case, rather than being blank.
+MP can now take screenshots without the GUI using the F11 shortcut or the Screenshot context menu option.
+Projects now save which Board is active.
+Adding 3D shadow type.
+Lengthening smooth shadow slightly.
+Filtering images using anisotropic filtering for clearer zooming.
+Program settings file is now called "masterplan-settings.json".
+Updating a few themes to update shadow color.
+Fix: Can't select the task below the top-most Task on the Board using the keyboard.
+Fix: Settings is always saved next to the MasterPlan executable.
+Fix: Autoloading last plan wasn't being loaded properly.
+Fix: Numbering sequence was broken across all Boards except the first one. 
+Fix: Auto-load checkbox not properly loaded on running MasterPlan.
+Fix: All Tasks update now. Before it was just the ones on the current Board. This fixes timers and sounds not playing when switching Boards.
+Fix: Stopping all playing sounds works across all Boards.
+Fix: Searching for a Task switches to the Board it resides on.
+Fix: Boards are now numbered starting from 1, rather than 0.
+
+-------
+
 v0.2.1
 
 -------
