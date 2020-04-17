@@ -190,6 +190,18 @@ func (task *Task) Clone() *Task {
 	timerName := *copyData.TimerName
 	copyData.TimerName = &timerName
 
+	dlc := *copyData.DeadlineCheckbox
+	copyData.DeadlineCheckbox = &dlc
+
+	dds := *copyData.DeadlineDaySpinner
+	copyData.DeadlineDaySpinner = &dds
+
+	dms := *copyData.DeadlineMonthSpinner
+	copyData.DeadlineMonthSpinner = &dms
+
+	dys := *copyData.DeadlineYearSpinner
+	copyData.DeadlineYearSpinner = &dys
+
 	copyData.TimerRunning = false // We don't want to clone the timer running
 	copyData.TimerValue = 0
 	copyData.PrevFilePath = ""
