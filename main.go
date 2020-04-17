@@ -107,7 +107,7 @@ func main() {
 
 			color := getThemeColor(GUI_FONT_COLOR)
 			color.A = 128
-			rl.DrawTextEx(guiFont, "v"+softwareVersion.String(), rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, guiFontSize, 1, color)
+			DrawGUITextColored(rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, color, "v"+softwareVersion.String())
 
 			color = rl.White
 			bgColor := rl.Black
@@ -135,7 +135,7 @@ func main() {
 				textSize.Y += 2
 
 				rl.DrawRectangleV(textPos, textSize, bgColor)
-				rl.DrawTextEx(guiFont, text, textPos, guiFontSize, 1, color)
+				DrawGUITextColored(textPos, color, text)
 
 				if now.Sub(msg.Time).Seconds() >= float64(timeLimit) {
 					eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)

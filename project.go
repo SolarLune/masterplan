@@ -578,7 +578,7 @@ func (project *Project) Update() {
 	dst := src
 	rl.DrawTexturePro(project.GridTexture, src, dst, rl.Vector2{}, 0, rl.White)
 
-	rl.DrawTextEx(font, fmt.Sprintf("BOARD %d", project.BoardIndex+1), rl.Vector2{-1, 0}, fontSize*4, spacing, getThemeColor(GUI_INSIDE))
+	DrawGUITextColored(rl.Vector2{-1, 0}, getThemeColor(GUI_INSIDE), "BOARD %d", project.BoardIndex+1)
 
 	// This is the origin crosshair
 	rl.DrawLineEx(rl.Vector2{0, -100000}, rl.Vector2{0, 100000}, 2, getThemeColor(GUI_INSIDE))
@@ -1194,8 +1194,6 @@ func (project *Project) ChangeTheme(themeName string) {
 
 func (project *Project) GUI() {
 
-	fontColor := getThemeColor(GUI_FONT_COLOR)
-
 	for _, task := range project.CurrentBoard().Tasks {
 		task.PostDraw()
 	}
@@ -1401,19 +1399,19 @@ func (project *Project) GUI() {
 
 		columnX := float32(32)
 
-		rl.DrawTextEx(guiFont, "Task Depth: ", rl.Vector2{columnX, project.TaskShadowSpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.TaskShadowSpinner.Rect.Y + 4}, "Task Depth: ")
 		project.TaskShadowSpinner.Update()
 
-		rl.DrawTextEx(guiFont, "Outline Tasks: ", rl.Vector2{columnX, project.OutlineTasks.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.OutlineTasks.Rect.Y + 4}, "Outline Tasks: ")
 		project.OutlineTasks.Update()
 
-		rl.DrawTextEx(guiFont, "Color Theme: ", rl.Vector2{columnX, project.ColorThemeSpinner.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.ColorThemeSpinner.Rect.Y + 4}, "Color Theme: ")
 		project.ColorThemeSpinner.Update()
 
-		rl.DrawTextEx(guiFont, "Grid Visible: ", rl.Vector2{columnX, project.GridVisible.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.GridVisible.Rect.Y + 4}, "Grid Visible: ")
 		project.GridVisible.Update()
 
-		rl.DrawTextEx(guiFont, "Show Icons: ", rl.Vector2{columnX, project.ShowIcons.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.ShowIcons.Rect.Y + 4}, "Show Icons: ")
 		project.ShowIcons.Update()
 
 		if project.GridVisible.Changed {
@@ -1424,28 +1422,28 @@ func (project *Project) GUI() {
 			project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
 		}
 
-		rl.DrawTextEx(guiFont, "Numbering Sequence: ", rl.Vector2{columnX, project.NumberingSequence.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.NumberingSequence.Rect.Y + 4}, "Numbering Sequence: ")
 		project.NumberingSequence.Update()
 
-		rl.DrawTextEx(guiFont, "Ignore Numbering Top-level Tasks:", rl.Vector2{columnX, project.NumberingIgnoreTopLevel.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.NumberingIgnoreTopLevel.Rect.Y + 4}, "Ignore Numbering Top-level Tasks:")
 		project.NumberingIgnoreTopLevel.Update()
 
-		rl.DrawTextEx(guiFont, "Pulsing Task Selection Outlines:", rl.Vector2{columnX, project.PulsingTaskSelection.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.PulsingTaskSelection.Rect.Y + 4}, "Pulsing Task Selection Outlines:")
 		project.PulsingTaskSelection.Update()
 
-		rl.DrawTextEx(guiFont, "Auto-save Projects on Change:", rl.Vector2{columnX, project.AutoSave.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.AutoSave.Rect.Y + 4}, "Auto-save Projects on Change:")
 		project.AutoSave.Update()
 
-		rl.DrawTextEx(guiFont, "Auto-reload Themes:", rl.Vector2{columnX, project.AutoReloadThemes.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.AutoReloadThemes.Rect.Y + 4}, "Auto-reload Themes:")
 		project.AutoReloadThemes.Update()
 
-		rl.DrawTextEx(guiFont, "Project Samplerate:", rl.Vector2{columnX, project.SampleRate.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.SampleRate.Rect.Y + 4}, "Project Samplerate:")
 		project.SampleRate.Update()
 
-		rl.DrawTextEx(guiFont, "Auto-load Last Saved Project:", rl.Vector2{columnX, project.AutoLoadLastProject.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.AutoLoadLastProject.Rect.Y + 4}, "Auto-load Last Saved Project:")
 		project.AutoLoadLastProject.Update()
 
-		rl.DrawTextEx(guiFont, "Save Sound Playback Status:", rl.Vector2{columnX, project.SaveSoundsPlaying.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{columnX, project.SaveSoundsPlaying.Rect.Y + 4}, "Save Sound Playback Status:")
 		project.SaveSoundsPlaying.Update()
 
 	}
@@ -1477,9 +1475,7 @@ func (project *Project) GUI() {
 			percentage = int32(float32(completionCount) / float32(taskCount) * 100)
 		}
 
-		text := fmt.Sprintf("%d / %d Tasks completed (%d%%)", completionCount, taskCount, percentage)
-
-		rl.DrawTextEx(guiFont, text, rl.Vector2{6, project.StatusBar.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{6, project.StatusBar.Y + 4}, "%d / %d Tasks completed (%d%%)", completionCount, taskCount, percentage)
 
 		PrevMousePosition = GetMousePosition()
 
@@ -1489,7 +1485,7 @@ func (project *Project) GUI() {
 		pos.X = float32(int(pos.X))
 		pos.Y = float32(int(pos.Y))
 
-		rl.DrawTextEx(guiFont, todayText, pos, guiFontSize, spacing, fontColor)
+		DrawGUIText(pos, todayText)
 
 		// Search bar
 
@@ -1528,7 +1524,7 @@ func (project *Project) GUI() {
 				project.SearchForTasks()
 			}
 
-			rl.DrawTextEx(guiFont, searchCount, rl.Vector2{searchTextPosX - textMeasure.X, project.Searchbar.Rect.Y + textMeasure.Y/2}, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+			DrawGUIText(rl.Vector2{searchTextPosX - textMeasure.X, project.Searchbar.Rect.Y + textMeasure.Y/2}, searchCount)
 
 			if ImmediateButton(rl.Rectangle{searchTextPosX + textMeasure.X + 12, project.Searchbar.Rect.Y, project.Searchbar.Rect.Height, project.Searchbar.Rect.Height}, ">", len(project.SearchedTasks) == 0) {
 				project.FocusedSearchTask++

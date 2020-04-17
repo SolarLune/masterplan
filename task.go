@@ -824,7 +824,7 @@ func (task *Task) Draw() {
 			textPos.X += 32
 		}
 
-		rl.DrawTextEx(font, name, textPos, fontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		DrawText(textPos, name)
 
 	}
 
@@ -1029,28 +1029,26 @@ func (task *Task) PostDraw() {
 	// and accidentally click a button.
 	if task.Open && task.PostOpenDelay > 5 {
 
-		fontColor := getThemeColor(GUI_FONT_COLOR)
-
 		rect := rl.Rectangle{16, 16, float32(rl.GetScreenWidth()) - 32, float32(rl.GetScreenHeight()) - 32}
 
 		rl.DrawRectangleRec(rect, getThemeColor(GUI_INSIDE))
 		rl.DrawRectangleLinesEx(rect, 1, getThemeColor(GUI_OUTLINE))
 
-		rl.DrawTextEx(guiFont, "Task Type: ", rl.Vector2{32, task.TaskType.Rect.Y + 4}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{32, task.TaskType.Rect.Y + 4}, "Task Type: ")
 
 		task.TaskType.Update()
 
 		y := task.TaskType.Rect.Y + 32
 
-		rl.DrawTextEx(guiFont, "Created On:", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
-		rl.DrawTextEx(guiFont, task.CreationTime.Format("Monday, Jan 2, 2006, 15:04"), rl.Vector2{180, y + 8}, guiFontSize, spacing, fontColor)
+		DrawGUIText(rl.Vector2{32, y + 8}, "Created On:")
+		DrawGUIText(rl.Vector2{180, y + 8}, task.CreationTime.Format("Monday, Jan 2, 2006, 15:04"))
 
 		y += 40
 
 		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND && task.TaskType.CurrentChoice != TASK_TYPE_TIMER {
 			task.Description.Rect.Y = y
 			task.Description.Update()
-			rl.DrawTextEx(guiFont, "Description: ", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 4}, "Description: ")
 			y += task.Description.Rect.Height + 16
 		}
 
@@ -1059,25 +1057,25 @@ func (task *Task) PostDraw() {
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
-			rl.DrawTextEx(guiFont, "Completed: ", rl.Vector2{32, y + 12}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 12}, "Completed: ")
 			task.CompletionCheckbox.Rect.Y = y + 8
 			task.CompletionCheckbox.Update()
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
-			rl.DrawTextEx(guiFont, "Completed: ", rl.Vector2{32, y + 12}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 12}, "Completed: ")
 			task.CompletionProgressionCurrent.Rect.Y = y + 8
 			task.CompletionProgressionCurrent.Update()
 
 			r := task.CompletionProgressionCurrent.Rect
 			r.X += r.Width
 
-			rl.DrawTextEx(guiFont, "/", rl.Vector2{r.X + 10, r.Y + 4}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{r.X + 10, r.Y + 4}, "/")
 
 			task.CompletionProgressionMax.Rect.X = r.X + 24
 			task.CompletionProgressionMax.Rect.Y = r.Y
 			task.CompletionProgressionMax.Update()
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 
-			rl.DrawTextEx(guiFont, "Image File: ", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 8}, "Image File: ")
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
@@ -1096,7 +1094,7 @@ func (task *Task) PostDraw() {
 
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
-			rl.DrawTextEx(guiFont, "Sound File: ", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 8}, "Sound File: ")
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
@@ -1116,21 +1114,21 @@ func (task *Task) PostDraw() {
 
 			task.TimerName.Rect.Y = y
 			task.TimerName.Update()
-			rl.DrawTextEx(guiFont, "Name: ", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 4}, "Name: ")
 			y += task.TimerName.Rect.Height + 16
 
-			rl.DrawTextEx(guiFont, "Countdown", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 8}, "Countdown")
 
 			y += 24
 
-			rl.DrawTextEx(guiFont, "Minutes: ", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 8}, "Minutes: ")
 
 			task.TimerMinuteSpinner.Rect.Y = y + 4
 			task.TimerMinuteSpinner.Update()
 
 			y += 28
 
-			rl.DrawTextEx(guiFont, "Seconds: ", rl.Vector2{32, y + 8}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 8}, "Seconds: ")
 
 			task.TimerSecondSpinner.Rect.Y = y + 4
 			task.TimerSecondSpinner.Update()
@@ -1143,16 +1141,16 @@ func (task *Task) PostDraw() {
 
 		if task.Completable() {
 
-			rl.DrawTextEx(guiFont, "Completed On:", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 4}, "Completed On:")
 			completionTime := task.CompletionTime.Format("Monday, Jan 2, 2006, 15:04")
 			if task.CompletionTime.IsZero() {
 				completionTime = "N/A"
 			}
-			rl.DrawTextEx(guiFont, completionTime, rl.Vector2{180, y + 4}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{180, y + 4}, completionTime)
 
 			y += 40
 
-			rl.DrawTextEx(guiFont, "Deadline: ", rl.Vector2{32, y + 4}, guiFontSize, spacing, fontColor)
+			DrawGUIText(rl.Vector2{32, y + 4}, "Deadline: ")
 
 			task.DeadlineCheckbox.Rect.Y = y
 			task.DeadlineCheckbox.Update()

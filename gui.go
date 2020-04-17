@@ -154,7 +154,7 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, text string, disabled bo
 		0,
 		getThemeColor(GUI_FONT_COLOR))
 
-	rl.DrawTextEx(guiFont, text, pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	DrawGUIText(pos, text)
 
 	return clicked
 }
@@ -216,7 +216,7 @@ func (dropdown *DropdownMenu) Update() {
 	pos.X = float32(math.Round(float64(pos.X)))
 	pos.Y = float32(math.Round(float64(pos.Y)))
 
-	rl.DrawTextEx(guiFont, dropdown.Name, pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	DrawGUIText(pos, dropdown.Name)
 
 	rl.DrawTexturePro(currentProject.GUI_Icons, rl.Rectangle{16, 16, 16, 16}, rl.Rectangle{dropdown.Rect.X + (dropdown.Rect.Width - 24), dropdown.Rect.Y + 8, 16, 16}, rl.Vector2{}, 0, arrowColor)
 	// rl.DrawPoly(rl.Vector2{dropdown.Rect.X + dropdown.Rect.Width - 14, dropdown.Rect.Y + dropdown.Rect.Height/2}, 3, 7, 26, getThemeColor(GUI_FONT_COLOR))
@@ -349,7 +349,7 @@ func (spinner *Spinner) Update() {
 		textLength := rl.MeasureTextEx(guiFont, text, guiFontSize, spacing)
 		x := float32(math.Round(float64(spinner.Rect.X + spinner.Rect.Width/2 - textLength.X/2)))
 		y := float32(math.Round(float64(spinner.Rect.Y + spinner.Rect.Height/2 - textLength.Y/2)))
-		rl.DrawTextEx(guiFont, text, rl.Vector2{x, y}, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+		DrawGUIText(rl.Vector2{x, y}, text)
 	}
 
 	if ImmediateButton(rl.Rectangle{spinner.Rect.X, spinner.Rect.Y, spinner.Rect.Height, spinner.Rect.Height}, "<", false) {
@@ -427,7 +427,7 @@ func (progressBar *ProgressBar) Update() {
 
 	pos := rl.Vector2{progressBar.Rect.X + progressBar.Rect.X/2 + 2, progressBar.Rect.Y + progressBar.Rect.Height/2 - 4}
 
-	rl.DrawTextEx(guiFont, fmt.Sprintf("%d", progressBar.Percentage)+"%", pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	DrawGUIText(pos, "%d"+"%", progressBar.Percentage)
 
 }
 
@@ -1010,7 +1010,7 @@ func (textbox *Textbox) Update() {
 		}
 	}
 
-	rl.DrawTextEx(guiFont, txt, pos, guiFontSize, spacing, getThemeColor(GUI_FONT_COLOR))
+	DrawGUIText(pos, txt)
 
 }
 
@@ -1048,4 +1048,26 @@ func (textbox *Textbox) DeleteSelectedText() {
 	textbox.ClearSelection()
 	textbox.Changed = true
 
+}
+
+func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, variables ...interface{}) {
+	if len(variables) > 0 {
+		text = fmt.Sprintf(text, variables...)
+	}
+	rl.DrawTextEx(font, text, pos, fontSize, spacing, fontColor)
+}
+
+func DrawText(pos rl.Vector2, text string, values ...interface{}) {
+	DrawTextColored(pos, getThemeColor(GUI_FONT_COLOR), text, values...)
+}
+
+func DrawGUITextColored(pos rl.Vector2, fontColor rl.Color, text string, variables ...interface{}) {
+	if len(variables) > 0 {
+		text = fmt.Sprintf(text, variables...)
+	}
+	rl.DrawTextEx(guiFont, text, pos, guiFontSize, spacing, fontColor)
+}
+
+func DrawGUIText(pos rl.Vector2, text string, values ...interface{}) {
+	DrawGUITextColored(pos, getThemeColor(GUI_FONT_COLOR), text, values...)
 }
