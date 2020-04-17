@@ -4,6 +4,8 @@ v0.2.2
 
 -------
 
+Adding option to disable Task Outlines.
+Images now lock to a grid when scaling - to disable this, hold shift while dragging their size.
 Adding an "Open Recent" menu to the right-click context menu.
 Making Open Recent menu have an option stating no recent plans have been opened if that's the case, rather than being blank.
 MP can now take screenshots without the GUI using the F11 shortcut or the Screenshot context menu option.
