@@ -3,9 +3,6 @@ package main
 import (
 	"fmt"
 	"runtime"
-	"time"
-
-	"github.com/gen2brain/raylib-go/easings"
 
 	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -18,6 +15,13 @@ var currentProject *Project
 var drawFPS = false
 var softwareVersion, _ = semver.Make("0.2.2")
 var takeScreenshot = false
+
+var fontSize = float32(15)
+var guiFontSize = float32(30)
+var spacing = float32(1)
+var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
+var font rl.Font
+var guiFont rl.Font
 
 func init() {
 	runtime.LockOSThread() // Don't know if this is necessary still
@@ -34,8 +38,8 @@ func main() {
 
 	rl.SetTargetFPS(TARGET_FPS)
 
-	font = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(fontSize), nil, -1)
-	guiFont = rl.LoadFontEx(GetPath("assets", "Monaco.ttf"), int32(guiFontSize), nil, -1)
+	font = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(fontSize), nil, 256)
+	guiFont = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(guiFontSize), nil, 256)
 
 	programSettings.Load()
 
@@ -112,21 +116,19 @@ func main() {
 			color = rl.White
 			bgColor := rl.Black
 
-			timeLimit := float32(7)
-
-			now := time.Now()
-
 			for i := 0; i < len(eventLogBuffer); i++ {
 
 				msg := eventLogBuffer[i]
 
 				text := msg.Time.Format("15:04:05") + " : " + msg.Text
 
-				color.A = uint8(easings.CubicIn(float32(now.Sub(msg.Time).Seconds()), 255, -254, timeLimit))
+				alpha, done := msg.Tween.Update(rl.GetFrameTime())
+				color.A = uint8(alpha)
 				bgColor.A = color.A
 
 				textSize := rl.MeasureTextEx(guiFont, text, guiFontSize, 1)
-				textPos := rl.Vector2{8, 24 + float32(i*16)}
+				lineHeight, _ := TextHeight(text, true)
+				textPos := rl.Vector2{8, 24 + float32(i)*lineHeight}
 				rectPos := textPos
 
 				rectPos.X--
@@ -137,7 +139,7 @@ func main() {
 				rl.DrawRectangleV(textPos, textSize, bgColor)
 				DrawGUITextColored(textPos, color, text)
 
-				if now.Sub(msg.Time).Seconds() >= float64(timeLimit) {
+				if done {
 					eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
 					i--
 				}

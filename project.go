@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/pkg/browser"
+	"github.com/tanema/gween"
+	"github.com/tanema/gween/ease"
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
@@ -110,33 +112,35 @@ func NewProject() *Project {
 	searchBar.MaxSize = searchBar.MinSize // Don't expand for text
 	searchBar.AllowNewlines = false
 
+	px := float32(390)
+
 	project := &Project{
 		FilePath:           "",
 		GridSize:           16,
 		ZoomLevel:          -99,
 		CameraPan:          rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2},
 		Searchbar:          searchBar,
-		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 24, float32(rl.GetScreenWidth()), 24},
+		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
 		GUI_Icons:          rl.LoadTexture(GetPath("assets", "gui_icons.png")),
 		SampleBuffer:       512,
 		Patterns:           rl.LoadTexture(GetPath("assets", "patterns.png")),
 		Resources:          map[string]*Resource{},
 		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
 
-		ColorThemeSpinner:       NewSpinner(350, 0, 256, 24),
-		TaskShadowSpinner:       NewSpinner(350, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
-		OutlineTasks:            NewCheckbox(350, 0, 24, 24),
-		GridVisible:             NewCheckbox(350, 0, 24, 24),
-		ShowIcons:               NewCheckbox(350, 0, 24, 24),
-		NumberingSequence:       NewSpinner(350, 0, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
-		NumberingIgnoreTopLevel: NewCheckbox(350, 0, 24, 24),
-		PulsingTaskSelection:    NewCheckbox(350, 0, 24, 24),
-		AutoSave:                NewCheckbox(350, 0, 24, 24),
-		AutoReloadThemes:        NewCheckbox(350, 0, 24, 24),
-		SaveSoundsPlaying:       NewCheckbox(350, 0, 24, 24),
-		SampleRate:              NewSpinner(350, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
+		ColorThemeSpinner:       NewSpinner(px, 0, 256, 24),
+		TaskShadowSpinner:       NewSpinner(px, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
+		OutlineTasks:            NewCheckbox(px, 0, 32, 32),
+		GridVisible:             NewCheckbox(px, 0, 32, 32),
+		ShowIcons:               NewCheckbox(px, 0, 32, 32),
+		NumberingSequence:       NewSpinner(px, 0, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
+		NumberingIgnoreTopLevel: NewCheckbox(px, 0, 32, 32),
+		PulsingTaskSelection:    NewCheckbox(px, 0, 32, 32),
+		AutoSave:                NewCheckbox(px, 0, 32, 32),
+		AutoReloadThemes:        NewCheckbox(px, 0, 32, 32),
+		SaveSoundsPlaying:       NewCheckbox(px, 0, 32, 32),
+		SampleRate:              NewSpinner(px, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
 
-		AutoLoadLastProject: NewCheckbox(350, 0, 24, 24),
+		AutoLoadLastProject: NewCheckbox(px, 0, 24, 24),
 	}
 
 	// Position the settings using something more maintainable than adding 40 to each Y value in a line
@@ -494,7 +498,7 @@ func (project *Project) Log(text string, variables ...interface{}) {
 		if len(variables) > 0 {
 			text = fmt.Sprintf(text, variables...)
 		}
-		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text})
+		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text, gween.New(255, 0, 7, ease.InCubic)})
 	}
 }
 
@@ -1226,7 +1230,7 @@ func (project *Project) GUI() {
 			"Take Screenshot",
 		}
 
-		menuWidth := float32(160)
+		menuWidth := float32(192)
 		menuHeight := float32(32 * len(menuOptions))
 
 		pos.X -= menuWidth / 2
@@ -1244,7 +1248,7 @@ func (project *Project) GUI() {
 			pos.Y = float32(rl.GetScreenHeight()) - menuHeight/2
 		}
 
-		rect := rl.Rectangle{pos.X, pos.Y, 160, 32}
+		rect := rl.Rectangle{pos.X, pos.Y, menuWidth, 32}
 
 		newTaskPos := float32(1)
 		for _, option := range menuOptions {
@@ -1369,7 +1373,7 @@ func (project *Project) GUI() {
 
 	} else if project.ProjectSettingsOpen {
 
-		rec := rl.Rectangle{16, 16, 650, project.AutoLoadLastProject.Rect.Y + 32}
+		rec := rl.Rectangle{16, 16, 750, project.AutoLoadLastProject.Rect.Y + 32}
 		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 
@@ -1475,13 +1479,13 @@ func (project *Project) GUI() {
 			percentage = int32(float32(completionCount) / float32(taskCount) * 100)
 		}
 
-		DrawGUIText(rl.Vector2{6, project.StatusBar.Y + 4}, "%d / %d Tasks completed (%d%%)", completionCount, taskCount, percentage)
+		DrawGUIText(rl.Vector2{6, project.StatusBar.Y - 2}, "%d / %d Tasks completed (%d%%)", completionCount, taskCount, percentage)
 
 		PrevMousePosition = GetMousePosition()
 
 		todayText := time.Now().Format("Monday, January 2, 2006, 15:04:05")
 		textLength := rl.MeasureTextEx(guiFont, todayText, guiFontSize, spacing)
-		pos := rl.Vector2{float32(rl.GetScreenWidth())/2 - textLength.X/2, project.StatusBar.Y + 4}
+		pos := rl.Vector2{float32(rl.GetScreenWidth())/2 - textLength.X/2, project.StatusBar.Y - 2}
 		pos.X = float32(int(pos.X))
 		pos.Y = float32(int(pos.Y))
 
@@ -1504,7 +1508,7 @@ func (project *Project) GUI() {
 			clickedOnSearchbar = true
 		}
 
-		if project.Searchbar.Text != "" {
+		if project.Searchbar.Text() != "" {
 
 			if project.Searchbar.Changed || clickedOnSearchbar {
 				project.SearchForTasks()
@@ -1536,7 +1540,7 @@ func (project *Project) GUI() {
 		// Boards
 
 		y := float32(64)
-		w := float32(96)
+		w := float32(112)
 		x := float32(rl.GetScreenWidth() - int(w) - 16)
 		h := float32(24)
 		iconSrcRect := rl.Rectangle{96, 16, 16, 16}
@@ -1630,12 +1634,12 @@ func (project *Project) SearchForTasks() {
 
 	for _, task := range project.GetAllTasks() {
 
-		searchText := strings.ToLower(project.Searchbar.Text)
+		searchText := strings.ToLower(project.Searchbar.Text())
 
 		resourceTask := task.TaskType.CurrentChoice == TASK_TYPE_IMAGE || task.TaskType.CurrentChoice == TASK_TYPE_SOUND
 
-		if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text), searchText) ||
-			(resourceTask && strings.Contains(strings.ToLower(task.FilePathTextbox.Text), searchText))) {
+		if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text()), searchText) ||
+			(resourceTask && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText))) {
 			project.SearchedTasks = append(project.SearchedTasks, task)
 		}
 

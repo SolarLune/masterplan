@@ -14,6 +14,7 @@ require (
 	github.com/hako/durafmt v0.0.0-20191009132224-3f39dc1ed9f4
 	github.com/otiai10/copy v1.0.2
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
+	github.com/tanema/gween v0.0.0-20200417141625-072eecd4c6ed
 	golang.org/x/exp v0.0.0-20180710024300-14dda7b62fcd
 )
 

@@ -118,19 +118,19 @@ func NewTask(board *Board) *Task {
 		Board:                        board,
 		TaskType:                     NewSpinner(postX, 32, 192, 24, "Check Box", "Progression", "Note", "Image", "Sound", "Timer"),
 		Description:                  NewTextbox(postX, 64, 512, 64),
-		CompletionCheckbox:           NewCheckbox(postX, 96, 16, 16),
-		CompletionProgressionCurrent: NewNumberSpinner(postX, 96, 96, 24),
-		CompletionProgressionMax:     NewNumberSpinner(postX+80, 96, 96, 24),
+		CompletionCheckbox:           NewCheckbox(postX, 96, 32, 32),
+		CompletionProgressionCurrent: NewNumberSpinner(postX, 96, 128, 40),
+		CompletionProgressionMax:     NewNumberSpinner(postX+80, 96, 128, 40),
 		NumberingPrefix:              []int{-1},
 		RefreshPrefix:                false,
 		ID:                           board.Project.GetFirstFreeID(),
 		FilePathTextbox:              NewTextbox(postX, 64, 512, 16),
-		DeadlineCheckbox:             NewCheckbox(postX, 112, 16, 16),
-		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 160, 24, months...),
-		DeadlineDaySpinner:           NewNumberSpinner(postX+140, 128, 64, 24),
-		DeadlineYearSpinner:          NewNumberSpinner(postX+140, 128, 64, 24),
-		TimerMinuteSpinner:           NewNumberSpinner(postX, 0, 96, 24),
-		TimerSecondSpinner:           NewNumberSpinner(postX, 0, 96, 24),
+		DeadlineCheckbox:             NewCheckbox(postX, 112, 32, 32),
+		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 160, 40, months...),
+		DeadlineDaySpinner:           NewNumberSpinner(postX+100, 80, 160, 40),
+		DeadlineYearSpinner:          NewNumberSpinner(postX+240, 128, 160, 40),
+		TimerMinuteSpinner:           NewNumberSpinner(postX, 0, 160, 40),
+		TimerSecondSpinner:           NewNumberSpinner(postX, 0, 160, 40),
 		TimerName:                    NewTextbox(postX, 64, 512, 16),
 		// DeadlineTimeTextbox:          NewTextbox(240, 128, 64, 16),	// Need to make textbox format for time.
 	}
@@ -149,8 +149,8 @@ func NewTask(board *Board) *Task {
 	task.DeadlineDaySpinner.Minimum = 1
 	task.DeadlineDaySpinner.Maximum = 31
 	task.DeadlineDaySpinner.Loop = true
-	task.DeadlineDaySpinner.Rect.X = task.DeadlineMonthSpinner.Rect.X + task.DeadlineMonthSpinner.Rect.Width + task.DeadlineDaySpinner.Rect.Height
-	task.DeadlineYearSpinner.Rect.X = task.DeadlineDaySpinner.Rect.X + task.DeadlineDaySpinner.Rect.Width + task.DeadlineYearSpinner.Rect.Height
+	task.DeadlineDaySpinner.Rect.X = task.DeadlineMonthSpinner.Rect.X + task.DeadlineMonthSpinner.Rect.Width + 8
+	task.DeadlineYearSpinner.Rect.X = task.DeadlineDaySpinner.Rect.X + task.DeadlineDaySpinner.Rect.Width + 8
 
 	task.TimerSecondSpinner.Minimum = 0
 	task.TimerSecondSpinner.Maximum = 59
@@ -225,8 +225,8 @@ func (task *Task) Serialize() map[string]interface{} {
 	data["Checkbox.Checked"] = task.CompletionCheckbox.Checked
 	data["Progression.Current"] = task.CompletionProgressionCurrent.GetNumber()
 	data["Progression.Max"] = task.CompletionProgressionMax.GetNumber()
-	data["Description"] = task.Description.Text
-	data["FilePath"] = task.FilePathTextbox.Text
+	data["Description"] = task.Description.Text()
+	data["FilePath"] = task.FilePathTextbox.Text()
 	data["Selected"] = task.Selected
 	data["TaskType.CurrentChoice"] = task.TaskType.CurrentChoice
 	if task.Board.Project.SaveSoundsPlaying.Checked {
@@ -242,7 +242,7 @@ func (task *Task) Serialize() map[string]interface{} {
 	if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
 		data["TimerSecondSpinner.Number"] = task.TimerSecondSpinner.GetNumber()
 		data["TimerMinuteSpinner.Number"] = task.TimerMinuteSpinner.GetNumber()
-		data["TimerName.Text"] = task.TimerName.Text
+		data["TimerName.Text"] = task.TimerName.Text()
 	}
 
 	data["CreationTime"] = task.CreationTime.Format("Jan 2 2006 15:04:05")
@@ -305,8 +305,8 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	task.CompletionCheckbox.Checked = getBool("Checkbox.Checked", task.CompletionCheckbox.Checked)
 	task.CompletionProgressionCurrent.SetNumber(getInt("Progression.Current", task.CompletionProgressionCurrent.GetNumber()))
 	task.CompletionProgressionMax.SetNumber(getInt("Progression.Max", task.CompletionProgressionMax.GetNumber()))
-	task.Description.Text = getString("Description", task.Description.Text)
-	task.FilePathTextbox.Text = getString("FilePath", task.FilePathTextbox.Text)
+	task.Description.SetText(getString("Description", task.Description.Text()))
+	task.FilePathTextbox.SetText(getString("FilePath", task.FilePathTextbox.Text()))
 	task.Selected = getBool("Selected", task.Selected)
 	task.TaskType.CurrentChoice = getInt("TaskType.CurrentChoice", task.TaskType.CurrentChoice)
 
@@ -320,7 +320,7 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	if hasData("TimerSecondSpinner.Number") {
 		task.TimerSecondSpinner.SetNumber(getInt("TimerSecondSpinner.Number", task.TimerSecondSpinner.GetNumber()))
 		task.TimerMinuteSpinner.SetNumber(getInt("TimerMinuteSpinner.Number", task.TimerMinuteSpinner.GetNumber()))
-		task.TimerName.Text = getString("TimerName.Text", task.TimerName.Text)
+		task.TimerName.SetText(getString("TimerName.Text", task.TimerName.Text()))
 	}
 
 	creationTime, err := time.Parse("Jan 2 2006 15:04:05", getString("CreationTime", task.CreationTime.String()))
@@ -479,16 +479,16 @@ func (task *Task) Draw() {
 		return
 	}
 
-	name := task.Description.Text
+	name := task.Description.Text()
 
 	extendedText := false
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
-		_, filename := filepath.Split(task.FilePathTextbox.Text)
+		_, filename := filepath.Split(task.FilePathTextbox.Text())
 		name = filename
 		task.Resizeable = true
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-		_, filename := filepath.Split(task.FilePathTextbox.Text)
+		_, filename := filepath.Split(task.FilePathTextbox.Text())
 		name = filename
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN || task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
 		// Notes don't get just the first line written on the task in the overview.
@@ -506,7 +506,7 @@ func (task *Task) Draw() {
 		seconds := int(task.TimerValue) % 60
 		timeString := fmt.Sprintf("%02d:%02d", minutes, seconds)
 		maxTimeString := fmt.Sprintf("%02d:%02d", task.TimerMinuteSpinner.GetNumber(), task.TimerSecondSpinner.GetNumber())
-		name = task.TimerName.Text + " : " + timeString + " / " + maxTimeString
+		name = task.TimerName.Text() + " : " + timeString + " / " + maxTimeString
 
 	}
 
@@ -586,8 +586,10 @@ func (task *Task) Draw() {
 		taskDisplaySize.X += 32
 	}
 
+	taskDisplaySize.Y, _ = TextHeight(name, false) // Custom spacing to better deal with custom fonts
+
 	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Board.Project.GridSize))))) * float32(task.Board.Project.GridSize)
-	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y + 4) / float32(task.Board.Project.GridSize))))) * float32(task.Board.Project.GridSize)
+	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y) / float32(task.Board.Project.GridSize))))) * float32(task.Board.Project.GridSize)
 
 	task.Rect.Width = taskDisplaySize.X
 	task.Rect.Height = taskDisplaySize.Y
@@ -930,7 +932,7 @@ func (task *Task) Draw() {
 			speaker.Lock()
 			task.SoundStream.Seek(0)
 			speaker.Unlock()
-			_, filename := filepath.Split(task.FilePathTextbox.Text)
+			_, filename := filepath.Split(task.FilePathTextbox.Text())
 			task.Board.Project.Log("Sound Task [%s] restarted.", filename)
 		}
 
@@ -1038,12 +1040,12 @@ func (task *Task) PostDraw() {
 
 		task.TaskType.Update()
 
-		y := task.TaskType.Rect.Y + 32
+		y := task.TaskType.Rect.Y + 40
 
 		DrawGUIText(rl.Vector2{32, y + 8}, "Created On:")
 		DrawGUIText(rl.Vector2{180, y + 8}, task.CreationTime.Format("Monday, Jan 2, 2006, 15:04"))
 
-		y += 40
+		y += 48
 
 		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND && task.TaskType.CurrentChoice != TASK_TYPE_TIMER {
 			task.Description.Rect.Y = y
@@ -1079,18 +1081,18 @@ func (task *Task) PostDraw() {
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
-			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 40, 64, 32}, "Load", false) {
+			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 56, 64, 32}, "Load", false) {
 				filepath, success, _ := dlgs.File("Load Image", "*.png *.bmp *.jpeg *.jpg *.gif *.psd *.dds *.hdr *.ktx *.astc *.kpm *.pvr", false)
 
 				if success {
-					task.FilePathTextbox.Text = filepath
+					task.FilePathTextbox.SetText(filepath)
 				}
 			}
-			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 40, 64, 32}, "Clear", false) {
-				task.FilePathTextbox.Text = ""
+			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 56, 64, 32}, "Clear", false) {
+				task.FilePathTextbox.SetText("")
 			}
 
-			y += 48
+			y += 56
 
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
 
@@ -1098,17 +1100,17 @@ func (task *Task) PostDraw() {
 			task.FilePathTextbox.Rect.Y = y + 4
 			task.FilePathTextbox.Update()
 
-			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 40, 64, 32}, "Load", false) {
+			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 56, 64, 32}, "Load", false) {
 				filepath, success, _ := dlgs.File("Load Sound", "*.wav *.ogg *.flac *.mp3", false)
 				if success {
-					task.FilePathTextbox.Text = filepath
+					task.FilePathTextbox.SetText(filepath)
 				}
 			}
-			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 40, 64, 32}, "Clear", false) {
-				task.FilePathTextbox.Text = ""
+			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 56, 64, 32}, "Clear", false) {
+				task.FilePathTextbox.SetText("")
 			}
 
-			y += 48
+			y += 56
 
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
 
@@ -1119,25 +1121,25 @@ func (task *Task) PostDraw() {
 
 			DrawGUIText(rl.Vector2{32, y + 8}, "Countdown")
 
-			y += 24
+			y += 40
 
 			DrawGUIText(rl.Vector2{32, y + 8}, "Minutes: ")
 
 			task.TimerMinuteSpinner.Rect.Y = y + 4
 			task.TimerMinuteSpinner.Update()
 
-			y += 28
+			y += 48
 
 			DrawGUIText(rl.Vector2{32, y + 8}, "Seconds: ")
 
 			task.TimerSecondSpinner.Rect.Y = y + 4
 			task.TimerSecondSpinner.Update()
 
-			y += 28
+			y += 48
 
 		}
 
-		y += 40
+		y += 56
 
 		if task.Completable() {
 
@@ -1148,7 +1150,7 @@ func (task *Task) PostDraw() {
 			}
 			DrawGUIText(rl.Vector2{180, y + 4}, completionTime)
 
-			y += 40
+			y += 48
 
 			DrawGUIText(rl.Vector2{32, y + 4}, "Deadline: ")
 
@@ -1168,7 +1170,7 @@ func (task *Task) PostDraw() {
 
 			}
 
-			y += 32
+			y += 40
 
 		}
 
@@ -1243,9 +1245,9 @@ func (task *Task) SetCompletion(complete bool) {
 
 func (task *Task) LoadResource(forceLoad bool) {
 
-	if task.FilePathTextbox.Text != "" && (task.PrevFilePath != task.FilePathTextbox.Text || forceLoad) {
+	if task.FilePathTextbox.Text() != "" && (task.PrevFilePath != task.FilePathTextbox.Text() || forceLoad) {
 
-		res, _ := task.Board.Project.LoadResource(task.FilePathTextbox.Text)
+		res, _ := task.Board.Project.LoadResource(task.FilePathTextbox.Text())
 
 		if res != nil {
 
@@ -1313,7 +1315,7 @@ func (task *Task) LoadResource(forceLoad bool) {
 
 			}
 
-			task.PrevFilePath = task.FilePathTextbox.Text
+			task.PrevFilePath = task.FilePathTextbox.Text()
 
 		}
 
@@ -1400,7 +1402,7 @@ func (task *Task) ToggleSound() {
 		speaker.Lock()
 		task.SoundControl.Paused = !task.SoundControl.Paused
 
-		_, filename := filepath.Split(task.FilePathTextbox.Text)
+		_, filename := filepath.Split(task.FilePathTextbox.Text())
 		if task.SoundControl.Paused {
 			task.Board.Project.Log("Paused [%s].", filename)
 		} else {

@@ -158,7 +158,7 @@ func (board *Board) HandleDroppedFiles() {
 					task.TaskType.CurrentChoice = TASK_TYPE_SOUND
 				}
 
-				task.FilePathTextbox.Text = filePath
+				task.FilePathTextbox.SetText(filePath)
 				task.LoadResource(false)
 				board.Tasks = append(board.Tasks, task)
 				continue
@@ -273,7 +273,7 @@ func (board *Board) PasteContent() {
 
 		if res != nil {
 
-			task.FilePathTextbox.Text = clipboardData
+			task.FilePathTextbox.SetText(clipboardData)
 
 			if res.IsTexture() || res.IsGIF() {
 				task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
@@ -284,7 +284,7 @@ func (board *Board) PasteContent() {
 			task.LoadResource(false)
 
 		} else {
-			task.Description.Text = clipboardData
+			task.Description.SetText(clipboardData)
 		}
 
 		board.Project.Log("Pasted 1 new %s Task from clipboard content.", task.TaskType.ChoiceAsString())

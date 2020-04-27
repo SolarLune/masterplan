@@ -11,9 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	rl "github.com/gen2brain/raylib-go/raylib"
-
 	"github.com/atotto/clipboard"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 const (
@@ -39,12 +38,6 @@ const (
 )
 
 var currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
-
-var fontSize = float32(10)
-var guiFontSize = float32(15)
-var spacing = float32(1)
-var font rl.Font
-var guiFont rl.Font
 
 var guiColors map[string]map[string]rl.Color
 
@@ -446,7 +439,7 @@ func NewNumberSpinner(x, y, w, h float32, options ...string) *NumberSpinner {
 	numberSpinner.Textbox.AllowNewlines = false
 	numberSpinner.Textbox.HorizontalAlignment = TEXTBOX_ALIGN_CENTER
 	numberSpinner.Textbox.VerticalAlignment = TEXTBOX_ALIGN_CENTER
-	numberSpinner.Textbox.Text = "0"
+	numberSpinner.Textbox.SetText("0")
 	numberSpinner.Minimum = -math.MaxInt64
 	numberSpinner.Maximum = math.MaxInt64
 
@@ -459,21 +452,22 @@ func (numberSpinner *NumberSpinner) Update() {
 	numberSpinner.Textbox.Rect.Y = numberSpinner.Rect.Y
 	numberSpinner.Textbox.Update()
 
+	minusButton := ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false)
+	plusButton := ImmediateButton(rl.Rectangle{numberSpinner.Rect.X + numberSpinner.Rect.Width - numberSpinner.Rect.Height, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false)
+
 	if !numberSpinner.Textbox.Focused {
 
-		if numberSpinner.Textbox.Text == "" {
-			numberSpinner.Textbox.Text = "0"
+		if numberSpinner.Textbox.Text() == "" {
+			numberSpinner.Textbox.SetText("0")
 		}
 
 		num := numberSpinner.GetNumber()
 
-		numberSpinner.Rect.Width = numberSpinner.Textbox.Rect.Width + (numberSpinner.Rect.Height * 2)
-
-		if ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false) {
+		if minusButton {
 			num--
 		}
 
-		if ImmediateButton(rl.Rectangle{numberSpinner.Rect.X + numberSpinner.Rect.Width - numberSpinner.Rect.Height, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false) {
+		if plusButton {
 			num++
 		}
 
@@ -491,26 +485,24 @@ func (numberSpinner *NumberSpinner) Update() {
 			}
 		}
 
-		numberSpinner.Textbox.Text = strconv.Itoa(num)
+		numberSpinner.Textbox.SetText(strconv.Itoa(num))
 
-	} else {
-		ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false)
-		ImmediateButton(rl.Rectangle{numberSpinner.Rect.X + numberSpinner.Rect.Width - numberSpinner.Rect.Height, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false)
 	}
 
 }
 
 func (numberSpinner *NumberSpinner) GetNumber() int {
-	num, _ := strconv.Atoi(numberSpinner.Textbox.Text)
+	num, _ := strconv.Atoi(numberSpinner.Textbox.Text())
 	return num
 }
 
 func (numberSpinner *NumberSpinner) SetNumber(number int) {
-	numberSpinner.Textbox.Text = strconv.Itoa(number)
+	numberSpinner.Textbox.SetText(strconv.Itoa(number))
 }
 
 type Textbox struct {
-	Text                 string
+	// Used to be a string, but now is a []rune so it can deal with UTF8 characters like À properly, HOPEFULLY
+	text                 []rune
 	Focused              bool
 	Rect                 rl.Rectangle
 	Visible              bool
@@ -530,8 +522,7 @@ type Textbox struct {
 	KeyholdTimer int
 	CaretPos     int
 
-	lineHeight  float32
-	lineSpacing float32
+	lineHeight float32
 }
 
 func NewTextbox(x, y, w, h float32) *Textbox {
@@ -539,20 +530,14 @@ func NewTextbox(x, y, w, h float32) *Textbox {
 		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64, AllowAlphaCharacters: true,
 		SelectedRange: [2]int{-1, -1}}
 
-	textbox.lineHeight = rl.MeasureTextEx(guiFont, "a", guiFontSize, spacing).Y
-	// There's extra line spacing in addition to letter spacing; that spacing is what we're calculating here by getting the size
-	// of a newline character (and therefore, two lines), and then subtracting the size of two normal characters.
-	// Note that this is assuming a monospace font (where all possible lines of text have the same vertical height because of the
-	// font).
-	textbox.lineSpacing = rl.MeasureTextEx(guiFont, "\n", guiFontSize, spacing).Y - (textbox.lineHeight * 2)
-	textbox.lineHeight += textbox.lineSpacing
+	textbox.lineHeight, _ = TextHeight(textbox.Text(), true)
 
 	return textbox
 }
 
 func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
-	if len(textbox.Text) == 0 {
+	if len(textbox.text) == 0 {
 		return 0
 	}
 
@@ -571,6 +556,13 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 	line := textbox.Lines()[closestLineIndex]
 
 	x := textbox.Rect.X
+	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
+		x = textbox.Rect.X + textbox.Rect.Width - textbox.TextWidth(line)
+		point.X += 8
+	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
+		x = textbox.Rect.X + (textbox.Rect.Width-textbox.TextWidth(line))/2
+		point.X += 8
+	}
 
 	// Adding a space so you can select the point after the line ends
 	line += " "
@@ -603,20 +595,44 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
 }
 
-func (textbox *Textbox) InsertCharacterAtCaret(char string) {
-	textbox.Text = textbox.Text[:textbox.CaretPos] + char + textbox.Text[textbox.CaretPos:]
+func (textbox *Textbox) InsertCharacterAtCaret(char rune) {
+
+	// Oh LORDY this was the only way I could get this to work
+
+	a := []rune{}
+	b := []rune{char}
+
+	for _, r := range textbox.text[:textbox.CaretPos] {
+		a = append(a, r)
+	}
+
+	if textbox.CaretPos < len(textbox.text) {
+		for _, r := range textbox.text[textbox.CaretPos:] {
+			b = append(b, r)
+		}
+	}
+
+	textbox.text = append(a, b...)
 	textbox.CaretPos++
 	textbox.Changed = true
 }
 
 func (textbox *Textbox) InsertTextAtCaret(text string) {
 	for _, char := range text {
-		textbox.InsertCharacterAtCaret(string(char))
+		textbox.InsertCharacterAtCaret(char)
 	}
 }
 
 func (textbox *Textbox) Lines() []string {
-	return strings.Split(textbox.Text, "\n")
+	return strings.Split(textbox.Text(), "\n")
+}
+
+func (textbox *Textbox) TextWidth(line string) float32 {
+	w := float32(0)
+	for _, c := range line {
+		w += rl.MeasureTextEx(guiFont, string(c), guiFontSize, spacing).X + spacing
+	}
+	return w
 }
 
 func (textbox *Textbox) LineNumberByPosition(position int) int {
@@ -630,26 +646,43 @@ func (textbox *Textbox) LineNumberByPosition(position int) int {
 }
 
 func (textbox *Textbox) PositionInLine(position int) int {
-	cut := textbox.Text[:position]
-	start := strings.LastIndex(cut, "\n")
-	if start < 0 {
-		start = 0
+	
+	start := 0
+
+	sub := textbox.text[position:]
+
+	for i := len(sub); i > position; i-- {
+
+		if textbox.text[i] == '\n' {
+			start = i
+			break
+		}
+
 	}
-	return len(cut[start:])
+	return len(textbox.text[start:])
+
 }
 
 func (textbox *Textbox) CharacterToPoint(position int) rl.Vector2 {
 
-	x := textbox.Rect.X
-	y := textbox.Rect.Y
+	startX := textbox.Rect.X + 8
+	y := textbox.Rect.Y + 2
 
-	for index, char := range textbox.Text {
+	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
+		startX += textbox.Rect.Width - textbox.TextWidth(textbox.Lines()[textbox.LineNumberByPosition(position)]) - 8
+	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
+		startX += (textbox.Rect.Width-textbox.TextWidth(textbox.Lines()[textbox.LineNumberByPosition(position)]))/2 - 8
+	}
+
+	x := startX
+
+	for index, char := range textbox.text {
 		if index == position {
 			break
 		}
 		if string(char) == "\n" {
 			y += textbox.lineHeight
-			x = textbox.Rect.X
+			x = startX
 		}
 		x += rl.MeasureTextEx(guiFont, string(char), guiFontSize, spacing).X + spacing
 	}
@@ -662,11 +695,11 @@ func (textbox *Textbox) CharacterToRect(position int) rl.Rectangle {
 
 	rect := rl.Rectangle{}
 
-	if position < len(textbox.Text) {
+	if position < len(textbox.text) {
 
 		pos := textbox.CharacterToPoint(position)
 
-		letterSize := rl.MeasureTextEx(guiFont, string(textbox.Text[position]), guiFontSize, spacing)
+		letterSize := rl.MeasureTextEx(guiFont, string(textbox.text[position]), guiFontSize, spacing)
 
 		rect.X = pos.X
 		rect.Y = pos.Y
@@ -677,6 +710,24 @@ func (textbox *Textbox) CharacterToRect(position int) rl.Rectangle {
 
 	return rect
 
+}
+
+func (textbox *Textbox) FindFirstCharAfterCaret(char rune) int {
+	for i := textbox.CaretPos; i < len(textbox.text); i++ {
+		if textbox.text[i] == char {
+			return i
+		}
+	}
+	return -1
+}
+
+func (textbox *Textbox) FindLastCharBeforeCaret(char rune) int {
+	for i := textbox.CaretPos - 1; i > 0; i-- {
+		if i < len(textbox.text) && textbox.text[i] == char {
+			return i
+		}
+	}
+	return -1
 }
 
 func (textbox *Textbox) Update() {
@@ -700,7 +751,7 @@ func (textbox *Textbox) Update() {
 			if textbox.RangeSelected() {
 				textbox.DeleteSelectedText()
 			}
-			textbox.InsertCharacterAtCaret("\n")
+			textbox.InsertCharacterAtCaret('\n')
 		}
 
 		control := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
@@ -714,7 +765,7 @@ func (textbox *Textbox) Update() {
 			if rl.IsKeyPressed(rl.KeyA) {
 				textbox.SelectionStart = 0
 				textbox.SelectedRange[0] = textbox.SelectionStart
-				textbox.CaretPos = len(textbox.Text)
+				textbox.CaretPos = len(textbox.text)
 				textbox.SelectedRange[1] = textbox.CaretPos
 			}
 		}
@@ -734,12 +785,12 @@ func (textbox *Textbox) Update() {
 
 			if len(textbox.Lines()[textbox.LineNumberByPosition(textbox.CaretPos)]) < textbox.MaxCharactersPerLine {
 
-				if letter >= 32 && letter < 127 && (textbox.AllowAlphaCharacters || isNum) {
+				if letter != 0 && (textbox.AllowAlphaCharacters || isNum) {
 					if textbox.RangeSelected() {
 						textbox.DeleteSelectedText()
 					}
 					textbox.ClearSelection()
-					textbox.InsertCharacterAtCaret(fmt.Sprintf("%c", letter))
+					textbox.InsertCharacterAtCaret(rune(letter))
 				}
 
 			}
@@ -790,20 +841,22 @@ func (textbox *Textbox) Update() {
 		}
 
 		if keyState[rl.KeyRight] > 0 {
-			nextWordDist := strings.Index(textbox.Text[textbox.CaretPos:], " ")
-			nextNewLine := strings.Index(textbox.Text[textbox.CaretPos:], "\n")
-			if nextWordDist < 0 || (nextWordDist >= 0 && nextNewLine >= 0 && nextNewLine < nextWordDist) {
-				nextWordDist = nextNewLine
+			nextNewWord := textbox.FindFirstCharAfterCaret(' ')
+			nextNewLine := textbox.FindFirstCharAfterCaret('\n')
+
+			if nextNewWord < 0 || (nextNewWord >= 0 && nextNewLine >= 0 && nextNewLine < nextNewWord) {
+				nextNewWord = nextNewLine
 			}
 
-			if nextWordDist == 0 {
-				nextWordDist = 1
+			if nextNewWord == textbox.CaretPos {
+				nextNewWord++
 			}
+
 			if control {
-				if nextWordDist > 0 {
-					textbox.CaretPos += nextWordDist
+				if nextNewWord > 0 {
+					textbox.CaretPos = nextNewWord
 				} else {
-					textbox.CaretPos = len(textbox.Text)
+					textbox.CaretPos = len(textbox.text)
 				}
 			} else {
 				textbox.CaretPos++
@@ -812,20 +865,21 @@ func (textbox *Textbox) Update() {
 				textbox.ClearSelection()
 			}
 		} else if keyState[rl.KeyLeft] > 0 {
-			prevWordDist := strings.LastIndex(textbox.Text[:textbox.CaretPos], " ")
-			prevNewLine := strings.LastIndex(textbox.Text[:textbox.CaretPos], "\n")
-			if prevWordDist < 0 || (prevWordDist >= 0 && prevNewLine >= 0 && prevNewLine > prevWordDist) {
-				prevWordDist = prevNewLine
+			prevNewWord := textbox.FindLastCharBeforeCaret(' ')
+			prevNewLine := textbox.FindLastCharBeforeCaret('\n')
+			if prevNewWord < 0 || (prevNewWord >= 0 && prevNewLine >= 0 && prevNewLine > prevNewWord) {
+				prevNewWord = prevNewLine
 			}
 
-			prevWordDist++
+			prevNewWord++
 
-			if textbox.CaretPos-prevWordDist == 0 {
-				prevWordDist -= 1
+			if textbox.CaretPos == prevNewWord {
+				prevNewWord--
 			}
+
 			if control {
-				if prevWordDist > 0 {
-					textbox.CaretPos -= textbox.CaretPos - prevWordDist
+				if prevNewWord > 0 {
+					textbox.CaretPos = prevNewWord
 				} else {
 					textbox.CaretPos = 0
 				}
@@ -856,7 +910,7 @@ func (textbox *Textbox) Update() {
 				pos.X += 6
 				textbox.CaretPos = textbox.ClosestPointInText(pos)
 			} else {
-				textbox.CaretPos = len(textbox.Text)
+				textbox.CaretPos = len(textbox.text)
 			}
 			if !shift {
 				textbox.ClearSelection()
@@ -902,11 +956,11 @@ func (textbox *Textbox) Update() {
 
 				if rl.IsKeyPressed(rl.KeyC) {
 
-					clipboard.WriteAll(textbox.Text[textbox.SelectedRange[0]:textbox.SelectedRange[1]])
+					clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
 
 				} else if rl.IsKeyPressed(rl.KeyX) {
 
-					clipboard.WriteAll(textbox.Text[textbox.SelectedRange[0]:textbox.SelectedRange[1]])
+					clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
 					textbox.DeleteSelectedText()
 
 				}
@@ -918,7 +972,7 @@ func (textbox *Textbox) Update() {
 		if keyState[rl.KeyHome] > 0 {
 			textbox.CaretPos = 0
 		} else if keyState[rl.KeyEnd] > 0 {
-			textbox.CaretPos = len(textbox.Text)
+			textbox.CaretPos = len(textbox.text)
 		}
 
 		if keyState[rl.KeyBackspace] > 0 {
@@ -926,31 +980,34 @@ func (textbox *Textbox) Update() {
 			if textbox.RangeSelected() {
 				textbox.DeleteSelectedText()
 			} else if textbox.CaretPos > 0 {
-				// textbox.Text = textbox.Text[:len(textbox.Text)-1]
 				textbox.CaretPos--
-				textbox.Text = textbox.Text[:textbox.CaretPos] + textbox.Text[textbox.CaretPos+1:]
+				textbox.text = append(textbox.text[:textbox.CaretPos], textbox.text[textbox.CaretPos+1:]...)
 			}
 		} else if keyState[rl.KeyDelete] > 0 {
 			textbox.Changed = true
 			if textbox.RangeSelected() {
 				textbox.DeleteSelectedText()
-			} else if textbox.CaretPos != len(textbox.Text) {
-				textbox.Text = textbox.Text[:textbox.CaretPos] + textbox.Text[textbox.CaretPos+1:]
+			} else if textbox.CaretPos != len(textbox.text) {
+				textbox.text = append(textbox.text[:textbox.CaretPos], textbox.text[textbox.CaretPos+1:]...)
 			}
 		}
 
 		if textbox.CaretPos < 0 {
 			textbox.CaretPos = 0
-		} else if textbox.CaretPos > len(textbox.Text) {
-			textbox.CaretPos = len(textbox.Text)
+		} else if textbox.CaretPos > len(textbox.text) {
+			textbox.CaretPos = len(textbox.text)
 		}
 
 	}
 
-	measure := rl.MeasureTextEx(guiFont, textbox.Text, guiFontSize, spacing)
+	txt := textbox.Text()
 
-	textbox.Rect.Width = measure.X + 8
-	textbox.Rect.Height = measure.Y + 4
+	measure := rl.MeasureTextEx(guiFont, txt, guiFontSize, spacing)
+
+	boxHeight, _ := TextHeight(txt, true)
+
+	textbox.Rect.Width = measure.X + 16
+	textbox.Rect.Height = boxHeight + 4
 
 	if textbox.Rect.Width < textbox.MinSize.X {
 		textbox.Rect.Width = textbox.MinSize.X
@@ -974,24 +1031,30 @@ func (textbox *Textbox) Update() {
 		rl.DrawRectangleLinesEx(textbox.Rect, 1, getThemeColor(GUI_OUTLINE))
 	}
 
-	txt := textbox.Text
+	txt = ""
 
-	// if textbox.Focused && !textbox.RangeSelected() {
-	if textbox.Focused {
-		caretChar := " "
-		if math.Ceil(float64(rl.GetTime()*4))-float64(rl.GetTime()*4) < 0.5 {
-			caretChar = "|"
-		}
-
-		txt = textbox.Text[:textbox.CaretPos] + caretChar + textbox.Text[textbox.CaretPos:]
+	caretChar := ' '
+	if math.Ceil(float64(rl.GetTime()*4))-float64(rl.GetTime()*4) < 0.5 {
+		caretChar = '|'
 	}
 
-	pos := rl.Vector2{textbox.Rect.X + 2, textbox.Rect.Y + 2}
+	for i := 0; i < len(textbox.text)+1; i++ {
+		if i == textbox.CaretPos && textbox.Focused {
+			txt += string(caretChar)
+		}
+		if i < len(textbox.text) {
+			txt += string(textbox.text[i])
+		}
+	}
+
+	pos := rl.Vector2{textbox.Rect.X + 8, textbox.Rect.Y + 2}
 
 	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
 		pos.X += float32(int(textbox.Rect.Width/2 - measure.X/2))
+		pos.X -= 8
 	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
 		pos.X += float32(int(textbox.Rect.Width - measure.X - 4))
+		pos.X -= 8
 	}
 
 	if textbox.VerticalAlignment == TEXTBOX_ALIGN_CENTER {
@@ -1001,8 +1064,13 @@ func (textbox *Textbox) Update() {
 	}
 
 	if textbox.RangeSelected() {
+		// offset := float32(-1)
 		for i := textbox.SelectedRange[0]; i < textbox.SelectedRange[1]; i++ {
 			rec := textbox.CharacterToRect(i)
+			// if offset < 0 {
+			// 	offset = pos.X - rec.X
+			// }
+			// rec.X += offset
 			if i > textbox.CaretPos {
 				rec.X += 2
 			}
@@ -1012,6 +1080,14 @@ func (textbox *Textbox) Update() {
 
 	DrawGUIText(pos, txt)
 
+}
+
+func (textbox *Textbox) SetText(text string) {
+	textbox.text = []rune(text)
+}
+
+func (textbox *Textbox) Text() string {
+	return string(textbox.text)
 }
 
 func (textbox *Textbox) RangeSelected() bool {
@@ -1033,41 +1109,68 @@ func (textbox *Textbox) DeleteSelectedText() {
 		textbox.SelectedRange[1] = 0
 	}
 
-	if textbox.SelectedRange[0] > len(textbox.Text) {
-		textbox.SelectedRange[0] = len(textbox.Text)
+	if textbox.SelectedRange[0] > len(textbox.text) {
+		textbox.SelectedRange[0] = len(textbox.text)
 	}
-	if textbox.SelectedRange[1] > len(textbox.Text) {
-		textbox.SelectedRange[1] = len(textbox.Text)
+	if textbox.SelectedRange[1] > len(textbox.text) {
+		textbox.SelectedRange[1] = len(textbox.text)
 	}
 
-	textbox.Text = textbox.Text[:textbox.SelectedRange[0]] + textbox.Text[textbox.SelectedRange[1]:]
+	textbox.text = append(textbox.text[:textbox.SelectedRange[0]], textbox.text[textbox.SelectedRange[1]:]...)
 	textbox.CaretPos = textbox.SelectedRange[0]
-	if textbox.CaretPos > len(textbox.Text) {
-		textbox.CaretPos = len(textbox.Text)
+	if textbox.CaretPos > len(textbox.text) {
+		textbox.CaretPos = len(textbox.text)
 	}
 	textbox.ClearSelection()
 	textbox.Changed = true
 
 }
 
-func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, variables ...interface{}) {
+// TextHeight returns the height of the text, as well as how many lines are in the provided text.
+func TextHeight(text string, usingGuiFont bool) (float32, int) {
+	nCount := strings.Count(text, "\n") + 1
+	totalHeight := float32(0)
+	if usingGuiFont {
+		totalHeight = float32(nCount) * lineSpacing * guiFontSize
+	} else {
+		totalHeight = float32(nCount) * lineSpacing * fontSize
+	}
+	return totalHeight, nCount
+
+}
+
+func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bool, variables ...interface{}) {
+
 	if len(variables) > 0 {
 		text = fmt.Sprintf(text, variables...)
 	}
-	rl.DrawTextEx(font, text, pos, fontSize, spacing, fontColor)
+	pos.Y -= 2 // Text is a bit low
+
+	size := fontSize
+	f := font
+
+	if guiMode {
+		size = guiFontSize
+		f = guiFont
+	}
+
+	height, lineCount := TextHeight(text, guiMode)
+
+	for _, line := range strings.Split(text, "\n") {
+		rl.DrawTextEx(f, line, pos, size, spacing, fontColor)
+		pos.Y += height / float32(lineCount)
+	}
+
 }
 
 func DrawText(pos rl.Vector2, text string, values ...interface{}) {
-	DrawTextColored(pos, getThemeColor(GUI_FONT_COLOR), text, values...)
-}
-
-func DrawGUITextColored(pos rl.Vector2, fontColor rl.Color, text string, variables ...interface{}) {
-	if len(variables) > 0 {
-		text = fmt.Sprintf(text, variables...)
-	}
-	rl.DrawTextEx(guiFont, text, pos, guiFontSize, spacing, fontColor)
+	DrawTextColored(pos, getThemeColor(GUI_FONT_COLOR), text, false, values...)
 }
 
 func DrawGUIText(pos rl.Vector2, text string, values ...interface{}) {
-	DrawGUITextColored(pos, getThemeColor(GUI_FONT_COLOR), text, values...)
+	DrawTextColored(pos, getThemeColor(GUI_FONT_COLOR), text, true, values...)
+}
+
+func DrawGUITextColored(pos rl.Vector2, fontColor rl.Color, text string, values ...interface{}) {
+	DrawTextColored(pos, fontColor, text, true, values...)
 }
