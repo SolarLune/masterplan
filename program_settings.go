@@ -7,8 +7,9 @@ import (
 )
 
 type ProgramSettings struct {
-	AutoloadLastPlan bool
-	RecentPlanList   []string
+	AutoloadLastPlan    bool
+	RecentPlanList      []string
+	DisableSplashscreen bool
 }
 
 func NewProgramSettings() ProgramSettings {
@@ -18,7 +19,7 @@ func NewProgramSettings() ProgramSettings {
 }
 
 func (ps *ProgramSettings) Save() {
-	f, err := os.Create(GetPath("masterplan-settings.json"))	// Use GetPath to ensure it's coming from the home directory, not somewhere else
+	f, err := os.Create(GetPath("masterplan-settings.json")) // Use GetPath to ensure it's coming from the home directory, not somewhere else
 	if err == nil {
 		defer f.Close()
 		bytes, _ := json.Marshal(ps)

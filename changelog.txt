@@ -4,13 +4,15 @@ v0.2.3
 
 -------
 
-Ability to rename Boards. Adding a button for this, the Rename button, to the right of the currently active Board.
+You can now disable the splashscreen on startup.
+You can now rename Boards. Adding a button for this, the Rename button, to the right of the currently active Board.
 Adding Cloudy theme.
-MasterPlan now is more Unicode character compliant (this means that common Latin characters for non-English languages like À or Æ can be typed and display correctly). 
-Note that I have to design the characters myself, so not every character is implemented currently. Let me know on the forums if a language is missing characters: https://itch.io/board/555951/general
+MasterPlan's text rendering is now Unicode character compliant (this means that common Latin characters for non-English languages like À or Æ can be typed and display correctly). 
+Note that I'm designing the characters myself, so not every character for every Latin-based language is implemented currently. Let me know on the forums if a language is missing
+characters: https://itch.io/board/555951/general
 Switching out the font from Monaco to my own, Excel.
-Fix: Can't release mouse over status bar.
-Fix: Selection rectangle offset over the individual characters when selecting text in Textbox.
+FIX: Can't release mouse over status bar.
+FIX: Selection rectangle offset over the individual characters when selecting text in Textbox.
 FIX: Text selection and highlighting improved, fixed for center-aligned text.
 FIX: Task and its clone share deadline properties.
 

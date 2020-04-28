@@ -62,6 +62,7 @@ type Project struct {
 	AutoSave             *Checkbox
 	AutoReloadThemes     *Checkbox
 	AutoLoadLastProject  *Checkbox
+	DisableSplashscreen  *Checkbox
 	SaveSoundsPlaying    *Checkbox
 	OutlineTasks         *Checkbox
 	ColorThemeSpinner    *Spinner
@@ -141,9 +142,9 @@ func NewProject() *Project {
 		AutoReloadThemes:        NewCheckbox(px, 0, 32, 32),
 		SaveSoundsPlaying:       NewCheckbox(px, 0, 32, 32),
 		SampleRate:              NewSpinner(px, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
-
-		AutoLoadLastProject: NewCheckbox(px, 0, 24, 24),
-		RenameBoardPopup:    NewTextboxPopup("New Board name:", "Accept", "Cancel"),
+		DisableSplashscreen:     NewCheckbox(px, 0, 32, 32),
+		AutoLoadLastProject:     NewCheckbox(px, 0, 32, 32),
+		RenameBoardPopup:        NewTextboxPopup("New Board name:", "Accept", "Cancel"),
 	}
 
 	// Position the settings using something more maintainable than adding 40 to each Y value in a line
@@ -157,11 +158,12 @@ func NewProject() *Project {
 		project.NumberingIgnoreTopLevel,
 		project.PulsingTaskSelection,
 		project.AutoSave,
-		project.AutoReloadThemes,
 		project.SaveSoundsPlaying,
 		project.SampleRate,
 		nil,
+		project.AutoReloadThemes,
 		project.AutoLoadLastProject,
+		project.DisableSplashscreen,
 	}
 
 	y := float32(32)
@@ -456,6 +458,7 @@ func (project *Project) Load(filepath string) bool {
 			}
 
 			project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
+			project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
 
 			list := []string{}
 
@@ -1441,7 +1444,7 @@ func (project *Project) GUI() {
 
 		} else if project.ProjectSettingsOpen {
 
-			rec := rl.Rectangle{16, 16, 750, project.AutoLoadLastProject.Rect.Y + 32}
+			rec := rl.Rectangle{16, 16, 750, project.DisableSplashscreen.Rect.Y + 32}
 			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 
@@ -1466,6 +1469,7 @@ func (project *Project) GUI() {
 					project.Save()
 				}
 				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
+				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
 				programSettings.Save()
 			}
 
@@ -1517,6 +1521,9 @@ func (project *Project) GUI() {
 
 			DrawGUIText(rl.Vector2{columnX, project.SaveSoundsPlaying.Rect.Y + 4}, "Save Sound Playback Status:")
 			project.SaveSoundsPlaying.Update()
+
+			DrawGUIText(rl.Vector2{columnX, project.DisableSplashscreen.Rect.Y + 4}, "Disable Splashscreen on Start:")
+			project.DisableSplashscreen.Update()
 
 		}
 

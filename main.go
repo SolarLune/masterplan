@@ -52,6 +52,11 @@ func main() {
 	splashScreen := rl.LoadTexture(GetPath("assets", "splashscreen.png"))
 	splashColor := rl.White
 
+	if programSettings.DisableSplashscreen {
+		splashScreenTime = 100
+		splashColor.A = 0
+	}
+
 	screenshotIndex := 0
 
 	// profiling := false
