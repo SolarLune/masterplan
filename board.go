@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -13,12 +14,15 @@ import (
 type Board struct {
 	Tasks   []*Task
 	Project *Project
+	Name    string
 }
 
 func NewBoard(project *Project) *Board {
 	board := &Board{
 		Tasks:   []*Task{},
-		Project: project}
+		Project: project,
+		Name:    fmt.Sprintf("Board %d", len(project.Boards)+1),
+	}
 
 	return board
 }

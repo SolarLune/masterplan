@@ -557,10 +557,10 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
 	x := textbox.Rect.X
 	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
-		x = textbox.Rect.X + textbox.Rect.Width - textbox.TextWidth(line)
+		x = textbox.Rect.X + textbox.Rect.Width - TextWidth(line)
 		point.X += 8
 	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
-		x = textbox.Rect.X + (textbox.Rect.Width-textbox.TextWidth(line))/2
+		x = textbox.Rect.X + (textbox.Rect.Width-TextWidth(line))/2
 		point.X += 8
 	}
 
@@ -627,14 +627,6 @@ func (textbox *Textbox) Lines() []string {
 	return strings.Split(textbox.Text(), "\n")
 }
 
-func (textbox *Textbox) TextWidth(line string) float32 {
-	w := float32(0)
-	for _, c := range line {
-		w += rl.MeasureTextEx(guiFont, string(c), guiFontSize, spacing).X + spacing
-	}
-	return w
-}
-
 func (textbox *Textbox) LineNumberByPosition(position int) int {
 	for i, line := range textbox.Lines() {
 		position -= len(line) + 1 // Lines are split by "\n", so they're not included in the line length
@@ -646,7 +638,7 @@ func (textbox *Textbox) LineNumberByPosition(position int) int {
 }
 
 func (textbox *Textbox) PositionInLine(position int) int {
-	
+
 	start := 0
 
 	sub := textbox.text[position:]
@@ -665,13 +657,13 @@ func (textbox *Textbox) PositionInLine(position int) int {
 
 func (textbox *Textbox) CharacterToPoint(position int) rl.Vector2 {
 
-	startX := textbox.Rect.X + 8
+	startX := textbox.Rect.X
 	y := textbox.Rect.Y + 2
 
 	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
-		startX += textbox.Rect.Width - textbox.TextWidth(textbox.Lines()[textbox.LineNumberByPosition(position)]) - 8
+		startX += textbox.Rect.Width - TextWidth(textbox.Lines()[textbox.LineNumberByPosition(position)]) - 8
 	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
-		startX += (textbox.Rect.Width-textbox.TextWidth(textbox.Lines()[textbox.LineNumberByPosition(position)]))/2 - 8
+		startX += (textbox.Rect.Width-TextWidth(textbox.Lines()[textbox.LineNumberByPosition(position)]))/2 - 8
 	}
 
 	x := startX
@@ -763,10 +755,7 @@ func (textbox *Textbox) Update() {
 
 		if control {
 			if rl.IsKeyPressed(rl.KeyA) {
-				textbox.SelectionStart = 0
-				textbox.SelectedRange[0] = textbox.SelectionStart
-				textbox.CaretPos = len(textbox.text)
-				textbox.SelectedRange[1] = textbox.CaretPos
+				textbox.SelectAllText()
 			}
 		}
 
@@ -1047,7 +1036,7 @@ func (textbox *Textbox) Update() {
 		}
 	}
 
-	pos := rl.Vector2{textbox.Rect.X + 8, textbox.Rect.Y + 2}
+	pos := rl.Vector2{textbox.Rect.X + 2, textbox.Rect.Y - 4}
 
 	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
 		pos.X += float32(int(textbox.Rect.Width/2 - measure.X/2))
@@ -1064,16 +1053,15 @@ func (textbox *Textbox) Update() {
 	}
 
 	if textbox.RangeSelected() {
-		// offset := float32(-1)
 		for i := textbox.SelectedRange[0]; i < textbox.SelectedRange[1]; i++ {
 			rec := textbox.CharacterToRect(i)
-			// if offset < 0 {
-			// 	offset = pos.X - rec.X
-			// }
-			// rec.X += offset
-			if i > textbox.CaretPos {
-				rec.X += 2
+			if i >= textbox.CaretPos {
+				rec.X += rec.Width / 2
 			}
+			if rec.Width < TextWidth("A") {
+				rec.Width = TextWidth("A")
+			}
+
 			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE_DISABLED))
 		}
 	}
@@ -1126,6 +1114,101 @@ func (textbox *Textbox) DeleteSelectedText() {
 
 }
 
+func (textbox *Textbox) SelectAllText() {
+	textbox.SelectionStart = 0
+	textbox.SelectedRange[0] = textbox.SelectionStart
+	textbox.CaretPos = len(textbox.text)
+	textbox.SelectedRange[1] = textbox.CaretPos
+}
+
+type TextboxPopup struct {
+	Textbox         *Textbox
+	Buttons         []string
+	Rect            rl.Rectangle
+	Active          bool
+	DescriptionText string
+	SelectedChoice  int
+}
+
+func NewTextboxPopup(descriptionText string, buttonChoices ...string) *TextboxPopup {
+	p := &TextboxPopup{
+		Textbox:         NewTextbox(16, 16, 256, 32),
+		Buttons:         buttonChoices,
+		Rect:            rl.NewRectangle(64, 64, 16, 16),
+		DescriptionText: descriptionText,
+		SelectedChoice:  -1,
+	}
+
+	p.Textbox.AllowNewlines = false
+
+	return p
+}
+
+func (p *TextboxPopup) Update() {
+
+	if p.Active {
+
+		p.Rect.Width = 512
+		p.Rect.Height = 256
+		p.Rect.X = (float32(rl.GetScreenWidth()) - p.Rect.Width) * 0.5
+		p.Rect.Y = (float32(rl.GetScreenHeight()) - p.Rect.Height) * 0.5
+
+		outlineColor := getThemeColor(GUI_OUTLINE)
+		insideColor := getThemeColor(GUI_INSIDE)
+
+		rl.DrawRectangleRec(p.Rect, insideColor)
+		rl.DrawRectangleLinesEx(p.Rect, 1, outlineColor)
+
+		s := (p.Rect.Width - 64) / float32(len(p.Buttons))
+
+		buttonRect := rl.Rectangle{
+			p.Rect.X + 32,
+			p.Rect.Y + p.Rect.Height - 64,
+			float32(128),
+			float32(32),
+		}
+
+		textPos := rl.Vector2{p.Rect.X + 32, p.Rect.Y + 72}
+
+		p.Textbox.Rect.X = textPos.X + 200
+		p.Textbox.Rect.Y = textPos.Y
+
+		DrawGUIText(textPos, p.DescriptionText)
+
+		buttonRect.X -= buttonRect.Width/2 + s/2
+
+		for i, button := range p.Buttons {
+			buttonRect.X += s
+			if ImmediateButton(buttonRect, button, false) {
+				p.SelectedChoice = i
+			}
+
+		}
+
+		p.Textbox.Update()
+
+	}
+
+}
+
+func (p *TextboxPopup) Open() {
+	p.Active = true
+	p.Textbox.Focused = true
+	p.Textbox.SelectAllText()
+}
+
+func (p *TextboxPopup) Close() {
+	p.Active = false
+	p.SelectedChoice = -1
+}
+
+func (p *TextboxPopup) SelectedButton() string {
+	if p.SelectedChoice != -1 {
+		return p.Buttons[p.SelectedChoice]
+	}
+	return ""
+}
+
 // TextHeight returns the height of the text, as well as how many lines are in the provided text.
 func TextHeight(text string, usingGuiFont bool) (float32, int) {
 	nCount := strings.Count(text, "\n") + 1
@@ -1137,6 +1220,14 @@ func TextHeight(text string, usingGuiFont bool) (float32, int) {
 	}
 	return totalHeight, nCount
 
+}
+
+func TextWidth(text string) float32 {
+	w := float32(0)
+	for _, c := range text {
+		w += rl.MeasureTextEx(guiFont, string(c), guiFontSize, spacing).X + spacing
+	}
+	return w
 }
 
 func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bool, variables ...interface{}) {
