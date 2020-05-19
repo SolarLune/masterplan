@@ -1629,11 +1629,12 @@ func (project *Project) GUI() {
 			w += 32 // Make room for the icon
 
 			y := float32(64)
-			x := float32(rl.GetScreenWidth() - int(w) - 64)
+			buttonRange := float32(72)
+			x := float32(rl.GetScreenWidth()-int(w)) - buttonRange - 64
 			h := float32(24)
 			iconSrcRect := rl.Rectangle{96, 16, 16, 16}
 
-			project.BoardPanel = rl.Rectangle{x, y, w + 64, h * float32(len(project.Boards)+1)}
+			project.BoardPanel = rl.Rectangle{x, y, w + 100, h * float32(len(project.Boards)+1)}
 
 			if !project.TaskOpen {
 
@@ -1645,7 +1646,7 @@ func (project *Project) GUI() {
 						iconSrcRect.X += iconSrcRect.Width
 					}
 
-					if ImmediateIconButton(rl.Rectangle{x, y, w, h}, iconSrcRect, board.Name, disabled) {
+					if ImmediateIconButton(rl.Rectangle{x + buttonRange, y, w, h}, iconSrcRect, 0, board.Name, disabled) {
 
 						project.BoardIndex = boardIndex
 						project.Log("Switched to Board: %s.", board.Name)
@@ -1654,11 +1655,26 @@ func (project *Project) GUI() {
 
 					if disabled {
 
-						if ImmediateIconButton(rl.Rectangle{x + w, y, h, h}, rl.Rectangle{160, 16, 16, 16}, "", false) {
-
+						bx := x + buttonRange - h
+						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{16, 16, 16, 16}, 90, "", boardIndex == len(project.Boards)-1) {
+							b := project.Boards[boardIndex+1]
+							project.Boards[boardIndex] = b
+							project.Boards[boardIndex+1] = board
+							project.BoardIndex++
+							project.Log("Moved Board %s down.", board.Name)
+						}
+						bx -= h
+						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{16, 16, 16, 16}, -90, "", boardIndex == 0) {
+							b := project.Boards[boardIndex-1]
+							project.Boards[boardIndex] = b
+							project.Boards[boardIndex-1] = board
+							project.BoardIndex--
+							project.Log("Moved Board %s up.", board.Name)
+						}
+						bx -= h
+						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{160, 16, 16, 16}, 0, "", false) {
 							project.RenameBoardPopup.Textbox.SetText(project.CurrentBoard().Name)
 							project.RenameBoardPopup.Open()
-
 						}
 
 					}
@@ -1667,7 +1683,7 @@ func (project *Project) GUI() {
 
 				}
 
-				if ImmediateButton(rl.Rectangle{x, y, w, h}, "+", false) {
+				if ImmediateButton(rl.Rectangle{x + buttonRange, y, w, h}, "+", false) {
 					if project.GetEmptyBoard() != nil {
 						project.Log("Can't create new Board while an empty Board exists.")
 					} else {

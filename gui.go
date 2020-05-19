@@ -100,7 +100,7 @@ func loadThemes() {
 
 }
 
-func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, text string, disabled bool) bool {
+func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, rotation float32, text string, disabled bool) bool {
 
 	clicked := false
 
@@ -134,8 +134,8 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, text string, disabled bo
 	pos.Y = float32(math.Round(float64(pos.Y)))
 
 	iconDstRec := rect
-	iconDstRec.X += iconSrcRec.Width / 4
-	iconDstRec.Y += iconSrcRec.Height / 4
+	iconDstRec.X += iconSrcRec.Width / 4 * 3
+	iconDstRec.Y += iconSrcRec.Height / 4 * 3
 	iconDstRec.Width = iconSrcRec.Width
 	iconDstRec.Height = iconSrcRec.Height
 
@@ -143,8 +143,8 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, text string, disabled bo
 		currentProject.GUI_Icons,
 		iconSrcRec,
 		iconDstRec,
-		rl.Vector2{},
-		0,
+		rl.Vector2{iconSrcRec.Width / 2, iconSrcRec.Height / 2},
+		rotation,
 		getThemeColor(GUI_FONT_COLOR))
 
 	DrawGUIText(pos, text)
@@ -153,7 +153,7 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, text string, disabled bo
 }
 
 func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
-	return ImmediateIconButton(rect, rl.Rectangle{}, text, disabled)
+	return ImmediateIconButton(rect, rl.Rectangle{}, 0, text, disabled)
 }
 
 type DropdownMenu struct {
