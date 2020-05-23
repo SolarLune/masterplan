@@ -11,10 +11,16 @@ import (
 	"github.com/gen2brain/raylib-go/raymath"
 )
 
+type Position struct {
+	X, Y int
+}
+
 type Board struct {
-	Tasks   []*Task
-	Project *Project
-	Name    string
+	Tasks         []*Task
+	ToBeDeleted   []*Task
+	Project       *Project
+	Name          string
+	TaskLocations map[Position][]*Task
 }
 
 func NewBoard(project *Project) *Board {
@@ -23,6 +29,8 @@ func NewBoard(project *Project) *Board {
 		Project: project,
 		Name:    fmt.Sprintf("Board %d", len(project.Boards)+1),
 	}
+
+	board.UpdateTaskGrid()
 
 	return board
 }
@@ -34,23 +42,35 @@ func (board *Board) CreateNewTask() *Task {
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	board.Tasks = append(board.Tasks, newTask)
 
-	for _, task := range board.Tasks {
-		if task.Selected {
+	selected := board.SelectedTasks(true)
+
+	if len(selected) > 0 {
+
+		task := selected[0]
+		gs := float32(board.Project.GridSize)
+		x := task.Position.X
+
+		if task.Numberable() && newTask.Numberable() {
+
+			if task.TaskBelow() != nil && task.TaskBelow().Numberable() && task.Numberable() {
+
+				for i, t := range task.RestOfStack() {
+
+					if i == 0 {
+						x = t.Position.X
+					}
+
+					t.Position.Y += gs
+				}
+
+			}
+
 			newTask.Position = task.Position
-			newTask.Position.Y += float32(board.Project.GridSize)
-			below := task.TaskBelow
+			newTask.Position.X = x
+			newTask.Position.Y = task.Position.Y + gs
 
-			if below != nil && below.Position.X >= task.Position.X {
-				newTask.Position.X = below.Position.X
-			}
-
-			for below != nil {
-				below.Position.Y += float32(board.Project.GridSize)
-				below = below.TaskBelow
-			}
-			board.Project.ReorderTasks()
-			break
 		}
+
 	}
 
 	newTask.TaskType.SetChoice(board.Project.PreviousTaskType)
@@ -68,42 +88,27 @@ func (board *Board) CreateNewTask() *Task {
 	return newTask
 }
 
-func (board *Board) DeleteTaskByIndex(index int) {
-	board.Tasks[index].ReceiveMessage("delete", map[string]interface{}{"task": board.Tasks[index]})
-	board.Tasks[index] = nil
-	board.Tasks = append(board.Tasks[:index], board.Tasks[index+1:]...)
-}
-
 func (board *Board) DeleteTask(task *Task) {
-
-	for index, internalTask := range board.Tasks {
-		if internalTask == task {
-			board.Tasks[index].ReceiveMessage("delete", map[string]interface{}{"task": board.Tasks[index]})
-			board.Tasks[index] = nil
-			board.Tasks = append(board.Tasks[:index], board.Tasks[index+1:]...)
-		}
-	}
-
+	board.ToBeDeleted = append(board.ToBeDeleted, task)
+	task.ReceiveMessage("delete", map[string]interface{}{"task": task})
 }
 
 func (board *Board) DeleteSelectedTasks() {
 
 	count := 0
 
-	for i := len(board.Tasks) - 1; i >= 0; i-- {
-		if board.Tasks[i].Selected {
-			count++
-			below := board.Tasks[i].TaskBelow
-			if below != nil {
-				below.Selected = true
-			}
-			for below != nil {
-				below.Position.Y -= float32(board.Project.GridSize)
-				below = below.TaskBelow
-			}
+	selected := board.SelectedTasks(false)
 
-			board.DeleteTaskByIndex(i)
-		}
+	stackMoveUp := []*Task{}
+
+	for _, t := range selected {
+		count++
+		stackMoveUp = append(stackMoveUp, t.RestOfStack()...)
+		board.DeleteTask(t)
+	}
+
+	for _, s := range stackMoveUp {
+		s.Position.Y -= float32(board.Project.GridSize)
 	}
 
 	board.Project.Log("Deleted %d Task(s).", count)
@@ -118,12 +123,10 @@ func (board *Board) FocusViewOnSelectedTasks() {
 		center := rl.Vector2{}
 		taskCount := float32(0)
 
-		for _, task := range board.Tasks {
-			if task.Selected {
-				taskCount++
-				center.X += task.Position.X + task.Rect.Width/2
-				center.Y += task.Position.Y + task.Rect.Height/2
-			}
+		for _, task := range board.SelectedTasks(false) {
+			taskCount++
+			center.X += task.Position.X + task.Rect.Width/2
+			center.Y += task.Position.Y + task.Rect.Height/2
 		}
 
 		if taskCount > 0 {
@@ -175,14 +178,12 @@ func (board *Board) HandleDroppedFiles() {
 
 func (board *Board) CopySelectedTasks() {
 
-	board.Project.CutMode = false
+	board.Project.Cutting = false
 
 	board.Project.CopyBuffer = []*Task{}
 
-	for _, task := range board.Tasks {
-		if task.Selected {
-			board.Project.CopyBuffer = append(board.Project.CopyBuffer, task)
-		}
+	for _, task := range board.SelectedTasks(false) {
+		board.Project.CopyBuffer = append(board.Project.CopyBuffer, task)
 	}
 
 	board.Project.Log("Copied %d Task(s).", len(board.Project.CopyBuffer))
@@ -194,7 +195,7 @@ func (board *Board) CutSelectedTasks() {
 	board.Project.LogOn = false
 	board.CopySelectedTasks()
 	board.Project.LogOn = true
-	board.Project.CutMode = true
+	board.Project.Cutting = true
 	board.Project.Log("Cut %d Task(s).", len(board.Project.CopyBuffer))
 
 }
@@ -207,40 +208,72 @@ func (board *Board) PasteTasks() {
 			task.Selected = false
 		}
 
-		bottom := board.Project.CopyBuffer[len(board.Project.CopyBuffer)-1]
+		// We don't want to simply use the fact that the Task has been selected as an indication that
+		// it's in the copy buffer because that could change during the cloning process
+		inCopyBuffer := func(task *Task) bool {
+			for _, t := range board.Project.CopyBuffer {
+				if t == task {
+					return true
+				}
+			}
+			return false
+		}
 
-		// cutDiffX := camera.Target.X - board.Project.CopyBuffer[0].Rect.X
-		// cutDiffY := camera.Target.Y - board.Project.CopyBuffer[0].Rect.Y
+		clones := []*Task{}
 
-		cutDiffX := GetWorldMousePosition().X - board.Project.CopyBuffer[0].Rect.X
-		cutDiffY := GetWorldMousePosition().Y - board.Project.CopyBuffer[0].Rect.Y
+		// stack := board.Project.CopyBuffer[0].RestOfStack()
+		stack := []*Task{board.Project.CopyBuffer[0]}
+		stack = append(stack, board.Project.CopyBuffer[0].RestOfStack()...)
 
-		for i, srcTask := range board.Project.CopyBuffer {
+		cloneTask := func(srcTask *Task) *Task {
 			clone := srcTask.Clone()
-			clone.Selected = true
 			board.Tasks = append(board.Tasks, clone)
 			clone.Board = board
 			clone.LoadResource(false)
+			clones = append(clones, clone)
+			return clone
+		}
 
-			if board.Project.CutMode {
+		if board.Project.Cutting {
 
-				clone.Position.X += cutDiffX
-				clone.Position.Y += cutDiffY
+			for _, srcTask := range board.Project.CopyBuffer {
 
-			} else {
+				clone := cloneTask(srcTask)
+				clone.Position.X += GetWorldMousePosition().X - board.Project.CopyBuffer[0].Rect.X
+				clone.Position.Y += GetWorldMousePosition().Y - board.Project.CopyBuffer[0].Rect.Y
+				clone.Position.X, clone.Position.Y = board.Project.LockPositionToGrid(clone.Position.X, clone.Position.Y)
+			}
 
-				// If we're cutting, then we don't reposition the Tasks
+		} else {
 
-				clone.Position.Y = bottom.Position.Y + float32(int32(i+1)*board.Project.GridSize)
+			gs := float32(board.Project.GridSize)
+			outOfBufferMove := float32(0)
+			inBufferMove := float32(0)
 
-				below := bottom.TaskBelow
-
-				for below != nil {
-					below.Position.Y += float32(board.Project.GridSize)
-					below = below.TaskBelow
+			for _, t := range stack {
+				if inCopyBuffer(t) {
+					outOfBufferMove += gs
+					t.Position.Y += inBufferMove
+				} else {
+					inBufferMove = outOfBufferMove
+					t.Position.Y += outOfBufferMove
 				}
 			}
 
+			board.ReorderTasks()
+
+			for _, srcTask := range board.Project.CopyBuffer {
+
+				clone := cloneTask(srcTask)
+				clone.Move(0, gs)
+				board.ReorderTasks()
+
+			}
+
+		}
+
+		for _, clone := range clones {
+			clone.Selected = true
 		}
 
 		board.Project.ReorderTasks()
@@ -249,11 +282,11 @@ func (board *Board) PasteTasks() {
 
 		board.FocusViewOnSelectedTasks()
 
-		if board.Project.CutMode {
+		if board.Project.Cutting {
 			for _, task := range board.Project.CopyBuffer {
 				task.Board.DeleteTask(task)
 			}
-			board.Project.CutMode = false
+			board.Project.Cutting = false
 			board.Project.CopyBuffer = []*Task{}
 		}
 
@@ -301,8 +334,14 @@ func (board *Board) PasteContent() {
 
 func (board *Board) ReorderTasks() {
 	sort.Slice(board.Tasks, func(i, j int) bool {
-		return board.Tasks[i].Position.Y < board.Tasks[j].Position.Y
+		ba := board.Tasks[i]
+		bb := board.Tasks[j]
+		if ba.Position.Y == bb.Position.Y {
+			return ba.Position.X < bb.Position.X
+		}
+		return ba.Position.Y < bb.Position.Y
 	})
+	board.UpdateTaskGrid()
 }
 
 // Returns the index of the board in the Project's Board stack
@@ -319,4 +358,108 @@ func (board *Board) Destroy() {
 	for _, task := range board.Tasks {
 		task.ReceiveMessage("delete", map[string]interface{}{"task": task})
 	}
+}
+
+func (board *Board) GetTasksInPosition(x, y float32) []*Task {
+	cx, cy := board.Project.WorldToGrid(x, y)
+	return board.TaskLocations[Position{cx, cy}]
+}
+
+func (board *Board) GetTasksInRect(x, y, w, h float32) []*Task {
+
+	tasks := []*Task{}
+
+	added := func(t *Task) bool {
+		for _, t2 := range tasks {
+			if t2 == t {
+				return true
+			}
+		}
+		return false
+	}
+
+	for cy := y; cy < y+h; cy += float32(board.Project.GridSize) {
+
+		for cx := x; cx < x+w; cx += float32(board.Project.GridSize) {
+
+			for _, t := range board.GetTasksInPosition(cx, cy) {
+				if !added(t) {
+					tasks = append(tasks, t)
+				}
+			}
+
+		}
+
+	}
+
+	return tasks
+}
+
+func (board *Board) UpdateTaskGrid() {
+
+	board.TaskLocations = map[Position][]*Task{}
+	gs := float32(board.Project.GridSize)
+
+	for _, task := range board.Tasks {
+
+		startX, startY := int(task.Position.X/gs), int(task.Position.Y/gs)
+		endX, endY := int((task.Position.X+task.Rect.Width)/gs), int((task.Position.Y+task.Rect.Height)/gs)
+
+		for y := startY; y < endY; y++ {
+
+			for x := startX; x < endX; x++ {
+
+				p := Position{x, y}
+
+				_, exists := board.TaskLocations[p]
+
+				if !exists {
+					board.TaskLocations[p] = []*Task{}
+				}
+
+				board.TaskLocations[p] = append(board.TaskLocations[p], task)
+
+			}
+
+		}
+
+	}
+
+}
+
+func (board *Board) SelectedTasks(returnFirstSelectedTask bool) []*Task {
+
+	selected := []*Task{}
+
+	for _, task := range board.Tasks {
+
+		if task.Selected {
+
+			selected = append(selected, task)
+
+			if returnFirstSelectedTask {
+				return selected
+			}
+
+		}
+
+	}
+
+	return selected
+
+}
+
+func (board *Board) HandleDeletedTasks() {
+	for _, task := range board.ToBeDeleted {
+		for index, t := range board.Tasks {
+			if task == t {
+				board.Tasks[index] = nil
+				board.Tasks = append(board.Tasks[:index], board.Tasks[index+1:]...)
+				break
+			}
+		}
+	}
+	board.ToBeDeleted = []*Task{}
+	board.ReorderTasks()
+
 }

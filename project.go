@@ -79,7 +79,7 @@ type Project struct {
 	DoubleClickTimer        int
 	DoubleClickTaskID       int
 	CopyBuffer              []*Task
-	CutMode                 bool // If cutting, then this boolean is set
+	Cutting                 bool // If cutting, then this boolean is set
 	TaskOpen                bool
 	ThemeReloadTimer        int
 	NumberingSequence       *Spinner
@@ -242,7 +242,9 @@ func (project *Project) Save() bool {
 
 		taskData := []map[string]interface{}{}
 		for _, task := range tasksByID {
-			taskData = append(taskData, task.Serialize())
+			if task.Serializable() {
+				taskData = append(taskData, task.Serialize())
+			}
 		}
 
 		data := map[string]interface{}{
@@ -677,7 +679,6 @@ func (project *Project) Update() {
 					if clickedTask == nil {
 						project.SelectionStart = GetWorldMousePosition()
 						project.Selecting = true
-						project.SendMessage("selection rectangle", nil)
 					} else {
 						project.Selecting = false
 
@@ -859,19 +860,15 @@ func (project *Project) Update() {
 
 	}
 
+	for _, board := range project.Boards {
+		board.HandleDeletedTasks()
+	}
+
 }
 
 func (project *Project) SendMessage(message string, data map[string]interface{}) {
 
 	taskList := project.GetAllTasks()
-
-	if message == "dropped" {
-		for _, task := range taskList {
-			// Clear out neighbors before having the task proceed with it
-			task.TaskAbove = nil
-			task.TaskBelow = nil
-		}
-	}
 
 	for _, task := range taskList {
 		task.ReceiveMessage(message, data)
@@ -933,6 +930,8 @@ func (project *Project) Shortcuts() {
 			if !project.Searchbar.Focused {
 
 				panSpeed := float32(16 / camera.Zoom)
+				selectedTasks := project.CurrentBoard().SelectedTasks(false)
+				gs := float32(project.GridSize)
 
 				if holdingShift {
 					panSpeed *= 3
@@ -1034,13 +1033,11 @@ func (project *Project) Shortcuts() {
 
 					toggleCount := 0
 
-					for _, task := range project.CurrentBoard().Tasks {
-						if task.Selected {
-							if task.Completable() {
-								toggleCount++
-							}
-							task.SetCompletion(!task.IsComplete())
+					for _, task := range project.CurrentBoard().SelectedTasks(false) {
+						if task.Completable() {
+							toggleCount++
 						}
+						task.SetCompletion(!task.IsComplete())
 					}
 
 					if toggleCount > 0 {
@@ -1051,104 +1048,163 @@ func (project *Project) Shortcuts() {
 					project.CurrentBoard().DeleteSelectedTasks()
 				} else if rl.IsKeyPressed(rl.KeyF) {
 					project.CurrentBoard().FocusViewOnSelectedTasks()
-				} else if holdingCtrl && repeatableKeyDown[rl.KeyUp] {
+				} else if len(selectedTasks) > 0 && (repeatableKeyDown[rl.KeyUp] ||
+					repeatableKeyDown[rl.KeyRight] ||
+					repeatableKeyDown[rl.KeyDown] ||
+					repeatableKeyDown[rl.KeyLeft]) {
 
-					for _, task := range project.CurrentBoard().Tasks {
-						if task.Selected {
-							above := task.TaskAbove
-							for above != nil && above.Selected {
-								// If a task's neighbor is selected, then it will be moved automatically in the else statement below
-								above = above.TaskAbove
-							}
-							if above != nil {
-								above.Position.Y += float32(project.GridSize)
-							}
-							task.Position.Y -= float32(project.GridSize)
+					// Selecting + sliding
+
+					up := repeatableKeyDown[rl.KeyUp]
+					right := repeatableKeyDown[rl.KeyRight]
+					down := repeatableKeyDown[rl.KeyDown]
+					left := repeatableKeyDown[rl.KeyLeft]
+
+					if holdingCtrl {
+
+						// Shift Tasks / Slide Tasks
+
+						move := []float32{0, 0}
+
+						neighborList := []*Task{}
+
+						if up {
+							move[1] = -gs
+						} else if down {
+							move[1] = gs
 						}
-					}
-					project.CurrentBoard().FocusViewOnSelectedTasks()
-					project.ReorderTasks()
 
-				} else if holdingCtrl && repeatableKeyDown[rl.KeyDown] {
+						if right {
+							move[0] = gs
+						} else if left {
+							move[0] = -gs
+						}
 
-					for _, task := range project.CurrentBoard().Tasks {
+						for _, task := range selectedTasks {
 
-						if task.Selected {
-							below := task.TaskBelow
-							for below != nil && below.Selected {
-								below = below.TaskBelow
+							// Arrows that point to Tasks
+							arrowNeighbors := []*Task{
+								task.TaskAbove(),
+								task.TaskRight(),
+								task.TaskLeft(),
+								task.TaskBelow(),
 							}
-							if below != nil {
-								below.Position.Y -= float32(project.GridSize)
+							hasArrow := false
+
+							for _, arrow := range arrowNeighbors {
+								if arrow != nil && arrow.ArrowPointingToTask == task {
+									hasArrow = true
+									arrow.Position.X += move[0]
+									arrow.Position.Y += move[1]
+								}
 							}
-							task.Position.Y += float32(project.GridSize)
-						}
-					}
-					project.CurrentBoard().FocusViewOnSelectedTasks()
-					project.ReorderTasks()
-
-				} else if holdingCtrl && repeatableKeyDown[rl.KeyRight] {
-
-					for _, task := range project.CurrentBoard().Tasks {
-						if task.Selected {
-							task.Position.X += float32(project.GridSize)
-						}
-					}
-					project.ReorderTasks()
-					project.CurrentBoard().FocusViewOnSelectedTasks()
-
-				} else if holdingCtrl && repeatableKeyDown[rl.KeyLeft] {
-
-					for _, task := range project.CurrentBoard().Tasks {
-						if task.Selected {
-							task.Position.X -= float32(project.GridSize)
-						}
-					}
-					project.ReorderTasks()
-					project.CurrentBoard().FocusViewOnSelectedTasks()
-
-				} else if repeatableKeyDown[rl.KeyUp] || repeatableKeyDown[rl.KeyDown] {
-
-					var selected *Task
-
-					if rl.IsKeyDown(rl.KeyDown) {
-						for i := len(project.CurrentBoard().Tasks) - 1; i >= 0; i-- {
-							if project.CurrentBoard().Tasks[i].Selected {
-								selected = project.CurrentBoard().Tasks[i]
-								break
+							if hasArrow {
+								project.ReorderTasks()
 							}
-						}
-					} else {
-						for _, task := range project.CurrentBoard().Tasks {
-							if task.Selected {
-								selected = task
-								break
-							}
-						}
-					}
-					if selected != nil {
-						if rl.IsKeyDown(rl.KeyDown) && selected.TaskBelow != nil {
-							if holdingShift {
-								selected.TaskBelow.ReceiveMessage("select", map[string]interface{}{"task": selected.TaskBelow})
+
+							neighbor := task.NeighborInDirection(move[0], move[1])
+
+							if task.Numberable() && neighbor != nil && neighbor.Numberable() {
+
+								if !neighbor.Selected {
+									neighborList = append(neighborList, neighbor)
+								}
+
+								task.Position.X += move[0]
+								task.Position.Y += move[1]
+
 							} else {
-								project.SendMessage("select", map[string]interface{}{"task": selected.TaskBelow})
+								task.Move(move[0], move[1])
+								project.ReorderTasks()
 							}
-						} else if rl.IsKeyDown(rl.KeyUp) && selected.TaskAbove != nil {
-							if holdingShift {
-								selected.TaskAbove.ReceiveMessage("select", map[string]interface{}{"task": selected.TaskAbove})
-							} else {
-								project.SendMessage("select", map[string]interface{}{"task": selected.TaskAbove})
-							}
+
 						}
+
+						project.ReorderTasks()
+
+						for _, neighbor := range neighborList {
+							neighbor.Move(-move[0], -move[1])
+						}
+
 						project.CurrentBoard().FocusViewOnSelectedTasks()
+						project.ReorderTasks()
+
+					} else {
+
+						var selected *Task
+						if down || right || left {
+							selected = selectedTasks[len(selectedTasks)-1]
+						} else {
+							selected = selectedTasks[0]
+						}
+
+						if selected != nil {
+
+							others := []*Task{}
+
+							// Selection by keypress prioritizes neighbors first and foremost
+
+							if taskRight := selected.TaskRight(); right && taskRight != nil {
+
+								others = []*Task{taskRight}
+
+							} else if taskLeft := selected.TaskLeft(); left && taskLeft != nil {
+
+								others = []*Task{taskLeft}
+
+							} else if taskAbove := selected.TaskAbove(); up && taskAbove != nil {
+
+								others = []*Task{taskAbove}
+
+							} else if taskBelow := selected.TaskBelow(); down && taskBelow != nil {
+
+								others = []*Task{taskBelow}
+
+							} else {
+
+								for _, t := range selected.Board.Tasks {
+									if right && t.Position.X > selected.Position.X {
+										others = append(others, t)
+									} else if down && t.Position.Y > selected.Position.Y {
+										others = append(others, t)
+									} else if left && t.Position.X < selected.Position.X {
+										others = append(others, t)
+									} else if up && t.Position.Y < selected.Position.Y {
+										others = append(others, t)
+									}
+								}
+
+								sort.Slice(others, func(i, j int) bool {
+									return raymath.Vector2Distance(others[i].Position, selected.Position) <
+										raymath.Vector2Distance(others[j].Position, selected.Position)
+								})
+
+							}
+
+							var neighbor *Task
+							if len(others) > 0 {
+								neighbor = others[0]
+							}
+
+							if neighbor != nil {
+
+								if holdingShift {
+									neighbor.ReceiveMessage("select", map[string]interface{}{"task": neighbor})
+								} else {
+									project.SendMessage("select", map[string]interface{}{"task": neighbor})
+								}
+
+							}
+
+							project.CurrentBoard().FocusViewOnSelectedTasks()
+
+						}
+
 					}
 
 				} else if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
-					for _, task := range project.CurrentBoard().Tasks {
-						if task.Selected {
-							task.ReceiveMessage("double click", nil)
-							break
-						}
+					for _, task := range project.CurrentBoard().SelectedTasks(true) {
+						task.ReceiveMessage("double click", nil)
 					}
 				} else if holdingCtrl && holdingShift && rl.IsKeyPressed(rl.KeyS) {
 					project.SaveAs()
@@ -1164,25 +1220,23 @@ func (project *Project) Shortcuts() {
 					project.SendMessage("deselect", nil)
 					project.Log("Deselected all Task(s).")
 				} else if rl.IsKeyPressed(rl.KeyPageUp) {
-					for _, task := range project.CurrentBoard().Tasks {
-						if task.Selected {
-							next := task.TaskAbove
-							for next != nil && next.TaskAbove != nil {
-								next = next.TaskAbove
-							}
-							if next != nil {
-								project.SendMessage("select", map[string]interface{}{"task": next})
-							}
-							break
+					for _, task := range project.CurrentBoard().SelectedTasks(true) {
+						next := task.TaskAbove()
+						for next != nil && next.TaskAbove() != nil {
+							next = next.TaskAbove()
 						}
+						if next != nil {
+							project.SendMessage("select", map[string]interface{}{"task": next})
+						}
+						break
 					}
 					project.CurrentBoard().FocusViewOnSelectedTasks()
 				} else if rl.IsKeyPressed(rl.KeyPageDown) {
 					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
-							next := task.TaskBelow
-							for next != nil && next.TaskBelow != nil {
-								next = next.TaskBelow
+							next := task.TaskBelow()
+							for next != nil && next.TaskBelow() != nil {
+								next = next.TaskBelow()
 							}
 							if next != nil {
 								project.SendMessage("select", map[string]interface{}{"task": next})
@@ -1232,7 +1286,8 @@ func (project *Project) ReorderTasks() {
 		board.ReorderTasks()
 	}
 
-	project.SendMessage("dropped", nil)
+	project.SendMessage("numbering", nil)
+
 }
 
 func (project *Project) ChangeTheme(themeName string) {
@@ -1334,19 +1389,14 @@ func (project *Project) GUI() {
 
 			rect.Y -= (float32(newTaskPos) * rect.Height) // This to make it start on New Task by default
 
-			selected := []*Task{}
-			for _, task := range project.CurrentBoard().Tasks {
-				if task.Selected {
-					selected = append(selected, task)
-				}
-			}
+			selectedCount := len(project.CurrentBoard().SelectedTasks(false))
 
 			for _, option := range menuOptions {
 
 				disabled := option == "" // Spacer can't be selected
 
-				if option == "Copy Tasks" && len(selected) == 0 ||
-					option == "Delete Tasks" && len(selected) == 0 ||
+				if option == "Copy Tasks" && selectedCount == 0 ||
+					option == "Delete Tasks" && selectedCount == 0 ||
 					option == "Paste Tasks" && len(project.CopyBuffer) == 0 {
 					disabled = true
 				}
@@ -1995,4 +2045,8 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 	return loadedResource, newlyLoaded
 
+}
+
+func (project *Project) WorldToGrid(worldX, worldY float32) (int, int) {
+	return int(worldX / float32(project.GridSize)), int(worldY / float32(project.GridSize))
 }
