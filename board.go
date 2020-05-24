@@ -81,7 +81,7 @@ func (board *Board) CreateNewTask() *Task {
 		newTask.Description.Focused = true
 	}
 
-	board.Project.SendMessage("select", map[string]interface{}{"task": newTask})
+	board.Project.SendMessage(MessageSelect, map[string]interface{}{"task": newTask})
 
 	board.Project.Log("Created 1 new Task.")
 
@@ -90,7 +90,7 @@ func (board *Board) CreateNewTask() *Task {
 
 func (board *Board) DeleteTask(task *Task) {
 	board.ToBeDeleted = append(board.ToBeDeleted, task)
-	task.ReceiveMessage("delete", map[string]interface{}{"task": task})
+	task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
 }
 
 func (board *Board) DeleteSelectedTasks() {
@@ -356,7 +356,7 @@ func (board *Board) Index() int {
 
 func (board *Board) Destroy() {
 	for _, task := range board.Tasks {
-		task.ReceiveMessage("delete", map[string]interface{}{"task": task})
+		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
 	}
 }
 

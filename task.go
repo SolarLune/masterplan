@@ -233,7 +233,7 @@ func (task *Task) Clone() *Task {
 	copyData.SoundControl = nil
 	copyData.SoundStream = nil
 
-	copyData.ReceiveMessage("task close", nil) // We do this to recreate the resources for the Task, if necessary.
+	copyData.ReceiveMessage(MessageTaskClose, nil) // We do this to recreate the resources for the Task, if necessary.
 
 	return &copyData
 }
@@ -465,7 +465,7 @@ func (task *Task) Update() {
 	}
 
 	if task.Dragging && rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-		task.ReceiveMessage("dropped", nil)
+		task.ReceiveMessage(MessageDropped, nil)
 		task.Board.Project.ReorderTasks()
 	}
 
@@ -842,7 +842,7 @@ func (task *Task) Draw() {
 				if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
 					task.Resizing = true
 					task.Board.Project.ResizingImage = true
-					task.Board.Project.SendMessage("dropped", map[string]interface{}{})
+					task.Board.Project.SendMessage(MessageDropped, map[string]interface{}{})
 				} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
 					task.Resizing = false
 					task.Board.Project.ResizingImage = false
@@ -1130,7 +1130,7 @@ func (task *Task) DrawShadow() {
 		color := getThemeColor(GUI_FONT_COLOR)
 
 		for _, ending := range task.LineEndings {
-			
+
 			bp := rl.Vector2{task.Rect.X, task.Rect.Y}
 			bp.X += float32(task.Board.Project.GridSize) / 2
 			bp.Y += float32(task.Board.Project.GridSize) / 2
@@ -1181,7 +1181,7 @@ func (task *Task) PostDraw() {
 		}
 
 		if ImmediateButton(rl.Rectangle{rect.Width - 16, rect.Y, 32, 32}, "X", false) {
-			task.ReceiveMessage("task close", nil)
+			task.ReceiveMessage(MessageDropped, nil)
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
@@ -1469,19 +1469,21 @@ func (task *Task) LoadResource(forceLoad bool) {
 
 func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
-	if message == "select" {
+	if message == MessageSelect {
 
 		if data["task"] == task {
-			task.Selected = true
+			if data["invert"] != nil {
+				task.Selected = false
+			} else {
+				task.Selected = true
+			}
 		} else if data["task"] == nil || data["task"] != task {
 			task.Selected = false
 		}
-	} else if message == "deselect" {
-		task.Selected = false
-	} else if message == "double click" {
+	} else if message == MessageDoubleClick {
 
 		if task.LineBase != nil {
-			task.LineBase.ReceiveMessage("double click", nil)
+			task.LineBase.ReceiveMessage(MessageDoubleClick, nil)
 		} else {
 
 			if !task.DeadlineCheckbox.Checked {
@@ -1497,7 +1499,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Dragging = false
 		}
 
-	} else if message == "task close" {
+	} else if message == MessageTaskClose {
 		if task.Open {
 			task.Open = false
 			task.Board.Project.TaskOpen = false
@@ -1507,17 +1509,17 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 				task.CreateLineEnding()
 			}
 		}
-	} else if message == "dragging" {
+	} else if message == MessageDragging {
 		if task.Selected {
 			task.Dragging = true
 			task.MouseDragStart = GetWorldMousePosition()
 			task.TaskDragStart = task.Position
 		}
-	} else if message == "dropped" {
+	} else if message == MessageDropped {
 		task.Dragging = false
 		task.Position.X, task.Position.Y = task.Board.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
 		task.PrevPosition = task.Position
-	} else if message == "delete" {
+	} else if message == MessageDelete {
 
 		if task.LineBase != nil {
 			endings := task.LineBase.LineEndings
@@ -1550,7 +1552,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		}
 
-	} else if message == "children" {
+	} else if message == MessageChildren {
 		task.Children = []*Task{}
 		t := task.TaskBelow()
 		for t != nil {
@@ -1561,7 +1563,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			}
 			t = t.TaskBelow()
 		}
-	} else if message == "numbering" {
+	} else if message == MessageNumbering {
 		task.SetPrefix()
 	} else {
 		fmt.Println("UNKNOWN MESSAGE: ", message)

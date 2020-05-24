@@ -38,6 +38,17 @@ const (
 	NUMBERING_SEQUENCE_OFF
 )
 
+const (
+	MessageChildren    = "children"
+	MessageNumbering   = "numbering"
+	MessageDelete      = "delete"
+	MessageSelect      = "select"
+	MessageDropped     = "dropped"
+	MessageDoubleClick = "double click"
+	MessageDragging    = "dragging"
+	MessageTaskClose   = "task close"
+)
+
 var firstFreeTaskID = 0
 
 type Project struct {
@@ -691,20 +702,20 @@ func (project *Project) Update() {
 						if holdingShift {
 
 							if holdingAlt {
-								clickedTask.ReceiveMessage("select", map[string]interface{}{})
+								clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{})
 							} else {
-								clickedTask.ReceiveMessage("select", map[string]interface{}{
+								clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{
 									"task": clickedTask,
 								})
 							}
 
 						} else {
 							if !clickedTask.Selected { // This makes it so you don't have to shift+drag to move already selected Tasks
-								project.SendMessage("select", map[string]interface{}{
+								project.SendMessage(MessageSelect, map[string]interface{}{
 									"task": clickedTask,
 								})
 							} else {
-								clickedTask.ReceiveMessage("select", map[string]interface{}{
+								clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{
 									"task": clickedTask,
 								})
 							}
@@ -716,7 +727,7 @@ func (project *Project) Update() {
 
 						if project.DoubleClickTimer > 0 && project.DoubleClickTaskID == -1 {
 							task := project.CurrentBoard().CreateNewTask()
-							task.ReceiveMessage("double click", nil)
+							task.ReceiveMessage(MessageDoubleClick, nil)
 							project.Selecting = false
 						}
 
@@ -726,9 +737,9 @@ func (project *Project) Update() {
 					} else {
 
 						if clickedTask.ID == project.DoubleClickTaskID && project.DoubleClickTimer > 0 && clickedTask.Selected {
-							clickedTask.ReceiveMessage("double click", nil)
+							clickedTask.ReceiveMessage(MessageDoubleClick, nil)
 						} else {
-							project.SendMessage("dragging", nil)
+							project.SendMessage(MessageDragging, nil)
 						}
 
 						project.DoubleClickTimer = 0
@@ -776,7 +787,7 @@ func (project *Project) Update() {
 										count++
 									}
 
-									task.ReceiveMessage("deselect", map[string]interface{}{"task": t})
+									task.ReceiveMessage(MessageSelect, map[string]interface{}{"task": t, "invert": true})
 
 								}
 							} else {
@@ -787,7 +798,7 @@ func (project *Project) Update() {
 										count++
 									}
 
-									task.ReceiveMessage("select", map[string]interface{}{
+									task.ReceiveMessage(MessageSelect, map[string]interface{}{
 										"task": t,
 									})
 
@@ -874,9 +885,9 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 		task.ReceiveMessage(message, data)
 	}
 
-	if message == "dropped" {
+	if message == MessageDropped {
 		for _, task := range taskList {
-			task.ReceiveMessage("children", nil)
+			task.ReceiveMessage(MessageChildren, nil)
 		}
 	}
 
@@ -1021,7 +1032,7 @@ func (project *Project) Shortcuts() {
 					project.CurrentBoard().PasteTasks()
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
 					task := project.CurrentBoard().CreateNewTask()
-					task.ReceiveMessage("double click", nil)
+					task.ReceiveMessage(MessageDoubleClick, nil)
 				} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
 
 					for _, task := range project.GetAllTasks() {
@@ -1189,9 +1200,9 @@ func (project *Project) Shortcuts() {
 							if neighbor != nil {
 
 								if holdingShift {
-									neighbor.ReceiveMessage("select", map[string]interface{}{"task": neighbor})
+									neighbor.ReceiveMessage(MessageSelect, map[string]interface{}{"task": neighbor})
 								} else {
-									project.SendMessage("select", map[string]interface{}{"task": neighbor})
+									project.SendMessage(MessageSelect, map[string]interface{}{"task": neighbor})
 								}
 
 							}
@@ -1204,7 +1215,7 @@ func (project *Project) Shortcuts() {
 
 				} else if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
 					for _, task := range project.CurrentBoard().SelectedTasks(true) {
-						task.ReceiveMessage("double click", nil)
+						task.ReceiveMessage(MessageDoubleClick, nil)
 					}
 				} else if holdingCtrl && holdingShift && rl.IsKeyPressed(rl.KeyS) {
 					project.SaveAs()
@@ -1217,7 +1228,7 @@ func (project *Project) Shortcuts() {
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyO) {
 					project.LoadFrom()
 				} else if rl.IsKeyPressed(rl.KeyEscape) {
-					project.SendMessage("deselect", nil)
+					project.SendMessage(MessageSelect, nil)
 					project.Log("Deselected all Task(s).")
 				} else if rl.IsKeyPressed(rl.KeyPageUp) {
 					for _, task := range project.CurrentBoard().SelectedTasks(true) {
@@ -1226,7 +1237,7 @@ func (project *Project) Shortcuts() {
 							next = next.TaskAbove()
 						}
 						if next != nil {
-							project.SendMessage("select", map[string]interface{}{"task": next})
+							project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
 						}
 						break
 					}
@@ -1239,7 +1250,7 @@ func (project *Project) Shortcuts() {
 								next = next.TaskBelow()
 							}
 							if next != nil {
-								project.SendMessage("select", map[string]interface{}{"task": next})
+								project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
 							}
 							break
 						}
@@ -1273,7 +1284,7 @@ func (project *Project) Shortcuts() {
 			}
 
 		} else if rl.IsKeyPressed(rl.KeyEscape) {
-			project.SendMessage("task close", nil)
+			project.SendMessage(MessageTaskClose, nil)
 		}
 
 	}
@@ -1286,7 +1297,7 @@ func (project *Project) ReorderTasks() {
 		board.ReorderTasks()
 	}
 
-	project.SendMessage("numbering", nil)
+	project.SendMessage(MessageNumbering, nil)
 
 }
 
@@ -1448,7 +1459,7 @@ func (project *Project) GUI() {
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
-						task.ReceiveMessage("double click", nil)
+						task.ReceiveMessage(MessageDoubleClick, nil)
 
 					case "Delete Tasks":
 						project.CurrentBoard().DeleteSelectedTasks()
@@ -1790,7 +1801,7 @@ func (project *Project) RemoveBoard(board *Board) {
 
 func (project *Project) SearchForTasks() {
 
-	project.SendMessage("select", nil)
+	project.SendMessage(MessageSelect, nil)
 	project.SearchedTasks = []*Task{}
 
 	if project.Searchbar.Changed {
@@ -1823,7 +1834,7 @@ func (project *Project) SearchForTasks() {
 	if len(project.SearchedTasks) > 0 {
 		task := project.SearchedTasks[project.FocusedSearchTask]
 		project.BoardIndex = task.Board.Index()
-		project.SendMessage("select", map[string]interface{}{"task": task})
+		project.SendMessage(MessageSelect, map[string]interface{}{"task": task})
 		project.CurrentBoard().FocusViewOnSelectedTasks()
 	}
 
