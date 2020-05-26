@@ -1371,17 +1371,21 @@ func (project *Project) GUI() {
 			result = len(project.ActivePopup.SelectionChoices()) - 1
 		}
 
-		if result == 0 {
+		if result >= 0 {
+
 			if project.ActivePopup == project.RenameBoardPopup {
-				project.CurrentBoard().Name = project.RenameBoardPopup.Textbox.Text()
-				project.RenameBoardPopup.Close()
-				project.Log("Renamed Board: %s", project.CurrentBoard().Name)
-			} else {
-				project.ExecuteDestructiveAction(project.PopupAction, project.PopupArgument)
+
+				if result == 0 {
+					// Accept
+					project.CurrentBoard().Name = project.RenameBoardPopup.Textbox.Text()
+					project.Log("Renamed Board: %s", project.CurrentBoard().Name)
+				}
+
 			}
-		} else if result == 1 {
+
 			project.ActivePopup.Close()
 			project.ActivePopup = nil
+
 		}
 
 	} else {
