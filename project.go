@@ -39,6 +39,9 @@ const (
 )
 
 const (
+
+	// Task messages
+
 	MessageChildren    = "children"
 	MessageNumbering   = "numbering"
 	MessageDelete      = "delete"
@@ -47,6 +50,12 @@ const (
 	MessageDoubleClick = "double click"
 	MessageDragging    = "dragging"
 	MessageTaskClose   = "task close"
+
+	// Project actions
+
+	ActionNewProject    = "new"
+	ActionLoadProject   = "load"
+	ActionSaveAsProject = "save as"
 )
 
 var firstFreeTaskID = 0
@@ -109,8 +118,14 @@ type Project struct {
 	ShortcutKeyTimer  int
 	PreviousTaskType  string
 	Resources         map[string]*Resource
+	Modified          bool
 
-	RenameBoardPopup *TextboxPopup
+	RenameBoardPopup   *TextboxPopup
+	AbandonPlanPopup   *ButtonChoicePopup
+	OverwritePlanPopup *ButtonChoicePopup
+	ActivePopup        Popup
+	PopupAction        string
+	PopupArgument      string
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
@@ -155,7 +170,10 @@ func NewProject() *Project {
 		SampleRate:              NewSpinner(px, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
 		DisableSplashscreen:     NewCheckbox(px, 0, 32, 32),
 		AutoLoadLastProject:     NewCheckbox(px, 0, 32, 32),
-		RenameBoardPopup:        NewTextboxPopup("New Board name:", "Accept", "Cancel"),
+
+		RenameBoardPopup:   NewTextboxPopup("New Board name:", "Accept", "Cancel"),
+		AbandonPlanPopup:   NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
+		OverwritePlanPopup: NewButtonChoicePopup("A plan exists in this folder already. Overwrite?", "Yes", "No"),
 	}
 
 	// Position the settings using something more maintainable than adding 40 to each Y value in a line
@@ -202,6 +220,8 @@ func NewProject() *Project {
 	project.DoubleClickTimer = -1
 	project.PreviousTaskType = "Check Box"
 
+	currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
+
 	project.ReloadThemes()
 	project.ChangeTheme(currentTheme)
 
@@ -229,16 +249,26 @@ func (project *Project) GetAllTasks() []*Task {
 	return tasks
 }
 
-func (project *Project) SaveAs() bool {
+func (project *Project) SaveAs() {
 	dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
+
 	if success {
-		project.FilePath = filepath.Join(dirPath, "master.plan")
-		return project.Save()
+
+		projectFilepath := filepath.Join(dirPath, "master.plan")
+
+		if FileExists(projectFilepath) {
+			project.PopupAction = ActionSaveAsProject
+			project.PopupArgument = projectFilepath
+			project.ActivatePopup(project.OverwritePlanPopup)
+		} else {
+			project.ExecuteDestructiveAction(ActionSaveAsProject, projectFilepath)
+		}
+
 	}
-	return false
+
 }
 
-func (project *Project) Save() bool {
+func (project *Project) Save() {
 
 	success := true
 
@@ -292,7 +322,7 @@ func (project *Project) Save() bool {
 		f, err := os.Create(project.FilePath)
 		if err != nil {
 			log.Println(err)
-			return false
+			return
 		} else {
 			defer f.Close()
 			encoder := json.NewEncoder(f)
@@ -314,11 +344,10 @@ func (project *Project) Save() bool {
 
 	if success {
 		project.Log("Save successful.")
+		project.Modified = false
 	} else {
 		project.Log("ERROR: Save unsuccessful.")
 	}
-
-	return success
 
 }
 
@@ -619,7 +648,7 @@ func (project *Project) MousingOver() string {
 
 func (project *Project) Update() {
 
-	if !project.RenameBoardPopup.Active {
+	if project.ActivePopup == nil {
 
 		if project.AutoReloadThemes.Checked && project.ThemeReloadTimer > 30 {
 			project.ReloadThemes()
@@ -636,7 +665,7 @@ func (project *Project) Update() {
 
 		// Board name on background of project
 		boardName := project.CurrentBoard().Name
-		boardNameWidth := TextWidth(boardName) + 16
+		boardNameWidth := GUITextWidth(boardName) + 16
 		boardNameHeight, _ := TextHeight(boardName, true)
 		rl.DrawRectangle(1, 1, int32(boardNameWidth), int32(boardNameHeight), getThemeColor(GUI_INSIDE))
 		DrawGUITextColored(rl.Vector2{8, 0}, getThemeColor(GUI_INSIDE_DISABLED), boardName)
@@ -866,6 +895,7 @@ func (project *Project) Update() {
 			}
 
 			project.ReorderTasks()
+			project.Modified = false
 			project.JustLoaded = false
 		}
 
@@ -893,6 +923,10 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 
 	if project.AutoSave.Checked {
 		project.Save() // Save whenever anything important happens
+	} else {
+		if message == MessageDelete || message == MessageDragging || message == MessageTaskClose || message == MessageDropped || message == MessageSelect {
+			project.Modified = true
+		}
 	}
 
 }
@@ -1218,6 +1252,9 @@ func (project *Project) Shortcuts() {
 						task.ReceiveMessage(MessageDoubleClick, nil)
 					}
 				} else if holdingCtrl && holdingShift && rl.IsKeyPressed(rl.KeyS) {
+
+					// Project Shortcuts
+
 					project.SaveAs()
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyS) {
 					if project.FilePath == "" {
@@ -1226,7 +1263,12 @@ func (project *Project) Shortcuts() {
 						project.Save()
 					}
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyO) {
-					project.LoadFrom()
+					if project.Modified {
+						project.PopupAction = ActionLoadProject
+						project.ActivatePopup(project.AbandonPlanPopup)
+					} else {
+						project.ExecuteDestructiveAction(ActionLoadProject, "")
+					}
 				} else if rl.IsKeyPressed(rl.KeyEscape) {
 					project.SendMessage(MessageSelect, nil)
 					project.Log("Deselected all Task(s).")
@@ -1318,23 +1360,28 @@ func (project *Project) GUI() {
 		task.PostDraw()
 	}
 
-	if project.RenameBoardPopup.Active {
+	if project.ActivePopup != nil {
 
-		project.RenameBoardPopup.Update()
+		project.ActivePopup.Update()
 
-		popupResult := project.RenameBoardPopup.SelectedButton()
+		result := project.ActivePopup.SelectedIndex()
 		if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
-			popupResult = "Accept"
+			result = 0
 		} else if rl.IsKeyPressed(rl.KeyEscape) {
-			popupResult = "Cancel"
+			result = len(project.ActivePopup.SelectionChoices()) - 1
 		}
 
-		if popupResult == "Accept" {
-			project.CurrentBoard().Name = project.RenameBoardPopup.Textbox.Text()
-			project.RenameBoardPopup.Close()
-			project.Log("Renamed Board: %s", project.CurrentBoard().Name)
-		} else if popupResult == "Cancel" {
-			project.RenameBoardPopup.Close()
+		if result == 0 {
+			if project.ActivePopup == project.RenameBoardPopup {
+				project.CurrentBoard().Name = project.RenameBoardPopup.Textbox.Text()
+				project.RenameBoardPopup.Close()
+				project.Log("Renamed Board: %s", project.CurrentBoard().Name)
+			} else {
+				project.ExecuteDestructiveAction(project.PopupAction, project.PopupArgument)
+			}
+		} else if result == 1 {
+			project.ActivePopup.Close()
+			project.ActivePopup = nil
 		}
 
 	} else {
@@ -1429,9 +1476,13 @@ func (project *Project) GUI() {
 					if len(programSettings.RecentPlanList) == 0 {
 						project.LoadRecentDropdown.Options = []string{"No recent plans loaded"}
 					} else if project.LoadRecentDropdown.ChoiceAsString() != "" {
-						currentProject.Destroy()
-						currentProject = NewProject()
-						currentProject.Load(project.LoadRecentDropdown.ChoiceAsString())
+						if project.Modified {
+							project.PopupAction = ActionLoadProject
+							project.PopupArgument = project.LoadRecentDropdown.ChoiceAsString()
+							project.ActivatePopup(project.AbandonPlanPopup)
+						} else {
+							project.ExecuteDestructiveAction(ActionLoadProject, project.LoadRecentDropdown.ChoiceAsString())
+						}
 						closeMenu = true
 					}
 
@@ -1442,7 +1493,12 @@ func (project *Project) GUI() {
 					switch option {
 
 					case "New Project":
-						currentProject = NewProject()
+						if project.Modified {
+							project.PopupAction = ActionNewProject
+							project.ActivatePopup(project.AbandonPlanPopup)
+						} else {
+							project.ExecuteDestructiveAction(ActionNewProject, "")
+						}
 
 					case "Save Project":
 						project.Save()
@@ -1451,7 +1507,12 @@ func (project *Project) GUI() {
 						project.SaveAs()
 
 					case "Load Project":
-						project.LoadFrom()
+						if project.Modified {
+							project.PopupAction = ActionLoadProject
+							project.ActivatePopup(project.AbandonPlanPopup)
+						} else {
+							project.ExecuteDestructiveAction(ActionLoadProject, "")
+						}
 
 					case "Project Settings":
 						project.ReloadThemes() // Reload the themes after opening the settings window
@@ -1528,6 +1589,9 @@ func (project *Project) GUI() {
 
 				if project.AutoSave.Checked {
 					project.Save()
+				} else {
+					// After modifying the project settings, the project probably has been modified
+					project.Modified = true
 				}
 				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
 				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
@@ -1677,7 +1741,7 @@ func (project *Project) GUI() {
 
 			w := float32(0)
 			for _, b := range currentProject.Boards {
-				bw := TextWidth(b.Name)
+				bw := GUITextWidth(b.Name)
 				if bw > w {
 					w = bw
 				}
@@ -1735,7 +1799,7 @@ func (project *Project) GUI() {
 						bx -= h
 						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{160, 16, 16, 16}, 0, "", false) {
 							project.RenameBoardPopup.Textbox.SetText(project.CurrentBoard().Name)
-							project.RenameBoardPopup.Open()
+							project.ActivatePopup(project.RenameBoardPopup)
 						}
 
 					}
@@ -2060,4 +2124,30 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 func (project *Project) WorldToGrid(worldX, worldY float32) (int, int) {
 	return int(worldX / float32(project.GridSize)), int(worldY / float32(project.GridSize))
+}
+
+func (project *Project) ActivatePopup(popup Popup) {
+	project.ActivePopup = popup
+	popup.Open()
+}
+
+func (project *Project) ExecuteDestructiveAction(action string, argument string) {
+
+	switch action {
+	case ActionNewProject:
+		project.Destroy()
+		currentProject = NewProject()
+	case ActionLoadProject:
+		project.Destroy()
+		currentProject = NewProject()
+		if argument == "" {
+			currentProject.LoadFrom()
+		} else {
+			currentProject.Load(argument)
+		}
+	case ActionSaveAsProject:
+		project.FilePath = argument
+		project.Save()
+	}
+
 }

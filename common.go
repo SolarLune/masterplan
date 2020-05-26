@@ -72,3 +72,12 @@ func GetPath(folders ...string) string {
 	return filepath.Join(exeDir, filepath.Join(folders...))
 
 }
+
+func FileExists(filepath string) bool {
+	_, err := os.Stat(filepath)
+
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
+}

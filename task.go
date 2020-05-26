@@ -1181,7 +1181,7 @@ func (task *Task) PostDraw() {
 		}
 
 		if ImmediateButton(rl.Rectangle{rect.Width - 16, rect.Y, 32, 32}, "X", false) {
-			task.ReceiveMessage(MessageDropped, nil)
+			task.ReceiveMessage(MessageTaskClose, nil)
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
@@ -1508,6 +1508,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			if len(task.LineEndings) == 0 {
 				task.CreateLineEnding()
 			}
+			task.Board.Project.SendMessage(MessageNumbering, nil)
 		}
 	} else if message == MessageDragging {
 		if task.Selected {

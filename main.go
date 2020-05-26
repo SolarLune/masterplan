@@ -22,6 +22,7 @@ var spacing = float32(1)
 var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
 var font rl.Font
 var guiFont rl.Font
+var windowTitle = "MasterPlan v" + softwareVersion.String()
 
 func init() {
 	runtime.LockOSThread() // Don't know if this is necessary still
@@ -33,7 +34,6 @@ func main() {
 
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(960, 540, "MasterPlan v"+softwareVersion.String())
-
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
 	rl.SetTargetFPS(TARGET_FPS)
@@ -116,7 +116,15 @@ func main() {
 
 			color := getThemeColor(GUI_FONT_COLOR)
 			color.A = 128
-			DrawGUITextColored(rl.Vector2{float32(rl.GetScreenWidth() - 64), 8}, color, "v"+softwareVersion.String())
+
+			x := float32(rl.GetScreenWidth() - 8)
+			v := "v" + softwareVersion.String()
+
+			if currentProject.Modified {
+				v += "- Modified"
+			}
+			x -= GUITextWidth(v)
+			DrawGUITextColored(rl.Vector2{x, 8}, color, v)
 
 			color = rl.White
 			bgColor := rl.Black
@@ -186,6 +194,16 @@ func main() {
 		rl.DrawTexturePro(splashScreen, src, dst, rl.Vector2{}, 0, splashColor)
 
 		rl.EndDrawing()
+
+		title := "MasterPlan v" + softwareVersion.String()
+		if currentProject.Modified {
+			title = "MasterPlan v" + softwareVersion.String() + " *"
+		}
+
+		if windowTitle != title {
+			rl.SetWindowTitle(title)
+			windowTitle = title
+		}
 
 	}
 
