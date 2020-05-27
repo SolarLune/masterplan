@@ -465,7 +465,7 @@ func (task *Task) Update() {
 	}
 
 	if task.Dragging && rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-		task.ReceiveMessage(MessageDropped, nil)
+		task.Board.Project.SendMessage(MessageDropped, nil)
 		task.Board.Project.ReorderTasks()
 	}
 
@@ -842,7 +842,7 @@ func (task *Task) Draw() {
 				if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
 					task.Resizing = true
 					task.Board.Project.ResizingImage = true
-					task.Board.Project.SendMessage(MessageDropped, map[string]interface{}{})
+					task.Board.Project.SendMessage(MessageDropped, nil)
 				} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
 					task.Resizing = false
 					task.Board.Project.ResizingImage = false
@@ -1557,7 +1557,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Children = []*Task{}
 		t := task.TaskBelow()
 		for t != nil {
-			if int(t.Position.X) == int(task.Position.X+float32(task.Board.Project.GridSize)) {
+			if int(t.Position.X) == int(task.Position.X+float32(task.Board.Project.GridSize)) && t.Completable() {
 				task.Children = append(task.Children, t)
 			} else if int(t.Position.X) <= int(task.Position.X) {
 				break

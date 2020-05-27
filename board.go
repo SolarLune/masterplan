@@ -136,8 +136,6 @@ func (board *Board) FocusViewOnSelectedTasks() {
 			center.X *= -1
 			center.Y *= -1
 
-			center.X += float32(rl.GetScreenWidth()) / 2
-			center.Y += float32(rl.GetScreenHeight()) / 2
 			board.Project.CameraPan = center // Pan's a negative offset for the camera
 
 		}

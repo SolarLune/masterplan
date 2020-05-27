@@ -624,8 +624,8 @@ func (project *Project) HandleCamera() {
 	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * 0.2
 	project.CameraOffset.Y += float32(project.CameraPan.Y-project.CameraOffset.Y) * 0.2
 
-	camera.Target.X = float32(int(float32(rl.GetScreenWidth())/2 - project.CameraOffset.X))
-	camera.Target.Y = float32(int(float32(rl.GetScreenHeight())/2 - project.CameraOffset.Y))
+	camera.Target.X = float32(-project.CameraOffset.X)
+	camera.Target.Y = float32(-project.CameraOffset.Y)
 
 	camera.Offset.X = float32(rl.GetScreenWidth() / 2)
 	camera.Offset.Y = float32(rl.GetScreenHeight() / 2)
@@ -1046,8 +1046,8 @@ func (project *Project) Shortcuts() {
 				} else if rl.IsKeyPressed(rl.KeyFive) || rl.IsKeyPressed(rl.KeyKp5) {
 					project.ZoomLevel = 4
 				} else if rl.IsKeyPressed(rl.KeyBackspace) {
-					project.CameraPan = rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2}
-					camera.Offset = project.CameraPan
+					project.CameraPan.X = 0
+					project.CameraPan.Y = 0
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
 
 					for _, task := range project.CurrentBoard().Tasks {
@@ -1339,6 +1339,7 @@ func (project *Project) ReorderTasks() {
 		board.ReorderTasks()
 	}
 
+	project.SendMessage(MessageDropped, nil)
 	project.SendMessage(MessageNumbering, nil)
 
 }
