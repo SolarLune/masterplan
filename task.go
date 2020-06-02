@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -39,13 +40,12 @@ const (
 )
 
 type Task struct {
-	Rect         rl.Rectangle
-	Board        *Board
-	Position     rl.Vector2
-	PrevPosition rl.Vector2
-	Open         bool
-	Selected     bool
-	MinSize      rl.Vector2
+	Rect     rl.Rectangle
+	Board    *Board
+	Position rl.Vector2
+	Open     bool
+	Selected bool
+	MinSize  rl.Vector2
 
 	TaskType    *Spinner
 	Description *Textbox
@@ -87,14 +87,21 @@ type Task struct {
 	NumberingPrefix     []int
 	ID                  int
 	PostOpenDelay       int
-	Children            []*Task
 	PercentageComplete  float32
 	Visible             bool
 
-	LineEndings         []*Task
-	LineBase            *Task
-	LineBezier          *Checkbox
-	ArrowPointingToTask *Task
+	LineEndings []*Task
+	LineBase    *Task
+	LineBezier  *Checkbox
+	// ArrowPointingToTask *Task
+
+	TaskAbove     *Task
+	TaskBelow     *Task
+	TaskRight     *Task
+	TaskLeft      *Task
+	RestOfStack   []*Task
+	SubTasks      []*Task
+	GridPositions []Position
 }
 
 func NewTask(board *Board) *Task {
@@ -136,6 +143,7 @@ func NewTask(board *Board) *Task {
 		TimerName:                    NewTextbox(postX, 64, 512, 16),
 		LineEndings:                  []*Task{},
 		LineBezier:                   NewCheckbox(postX, 64, 32, 32),
+		GridPositions:                []Position{},
 		// DeadlineTimeTextbox:          NewTextbox(240, 128, 64, 16),	// Need to make textbox format for time.
 	}
 
@@ -223,7 +231,7 @@ func (task *Task) Clone() *Task {
 
 	for _, ending := range copyData.LineEndings {
 		ending.Selected = true
-		ending.Move(0, float32(ending.Board.Project.GridSize))
+		ending.Position.Y += float32(ending.Board.Project.GridSize)
 	}
 
 	copyData.TimerRunning = false // We don't want to clone the timer running
@@ -350,9 +358,10 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	}
 
 	task.Position.X = getFloat("Position.X", task.Position.X)
-	task.Rect.X = task.Position.X
 	task.Position.Y = getFloat("Position.Y", task.Position.Y)
+	task.Rect.X = task.Position.X
 	task.Rect.Y = task.Position.Y
+
 	task.ImageDisplaySize.X = getFloat("ImageDisplaySize.X", task.ImageDisplaySize.X)
 	task.ImageDisplaySize.Y = getFloat("ImageDisplaySize.Y", task.ImageDisplaySize.Y)
 	task.CompletionCheckbox.Checked = getBool("Checkbox.Checked", task.CompletionCheckbox.Checked)
@@ -400,6 +409,7 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 			ending := task.CreateLineEnding()
 			ending.Position.X = endPositions[i]
 			ending.Position.Y = endPositions[i+1]
+
 			ending.Rect.X = ending.Position.X
 			ending.Rect.Y = ending.Position.Y
 		}
@@ -433,16 +443,15 @@ func (task *Task) Update() {
 
 		speaker.Lock()
 
-		above := task.TaskAbove()
-		below := task.TaskBelow()
+		above := task.TaskAbove
 
-		if task.TaskBelow() != nil && below.TaskType.CurrentChoice == TASK_TYPE_SOUND && below.SoundControl != nil {
+		if task.TaskBelow != nil && task.TaskBelow.TaskType.CurrentChoice == TASK_TYPE_SOUND && task.TaskBelow.SoundControl != nil {
 			task.SoundControl.Paused = true
-			below.SoundControl.Paused = false
+			task.TaskBelow.SoundControl.Paused = false
 		} else if above != nil {
 
-			for above.TaskAbove() != nil && above.TaskAbove().SoundControl != nil && above.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-				above = above.TaskAbove()
+			for above.TaskAbove != nil && above.TaskAbove.SoundControl != nil && above.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+				above = above.TaskAbove
 			}
 
 			if above != nil {
@@ -530,8 +539,8 @@ func (task *Task) Update() {
 						speaker.Play(beep.Seq(stream, beep.Callback(fn)))
 					}
 
-					if below := task.TaskBelow(); below != nil && below.TaskType.CurrentChoice == TASK_TYPE_TIMER {
-						below.ToggleTimer()
+					if task.TaskBelow != nil && task.TaskBelow.TaskType.CurrentChoice == TASK_TYPE_TIMER {
+						task.TaskBelow.ToggleTimer()
 					}
 
 				} else {
@@ -583,14 +592,14 @@ func (task *Task) Draw() {
 
 	}
 
-	if len(task.Children) > 0 && task.Completable() {
+	if len(task.SubTasks) > 0 && task.Completable() {
 		currentFinished := 0
-		for _, child := range task.Children {
+		for _, child := range task.SubTasks {
 			if child.IsComplete() {
 				currentFinished++
 			}
 		}
-		name = fmt.Sprintf("%s (%d / %d)", name, currentFinished, len(task.Children))
+		name = fmt.Sprintf("%s (%d / %d)", name, currentFinished, len(task.SubTasks))
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
 		name = fmt.Sprintf("%s (%d / %d)", name, task.CompletionProgressionCurrent.GetNumber(), task.CompletionProgressionMax.GetNumber())
 	}
@@ -668,8 +677,13 @@ func (task *Task) Draw() {
 		taskDisplaySize.X = 16
 	}
 
-	task.Rect.Width = taskDisplaySize.X
-	task.Rect.Height = taskDisplaySize.Y
+	if task.Rect.Width != taskDisplaySize.X || task.Rect.Height != taskDisplaySize.Y {
+		task.Rect.Width = taskDisplaySize.X
+		task.Rect.Height = taskDisplaySize.Y
+		// We need to update the Task's position list because it changes here
+		task.Board.RemoveTaskFromGrid(task, task.GridPositions)
+		task.GridPositions = task.Board.AddTaskToGrid(task)
+	}
 
 	if task.Image.ID != 0 && task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 		if task.Rect.Width < task.ImageDisplaySize.X {
@@ -689,7 +703,7 @@ func (task *Task) Draw() {
 
 	color := getThemeColor(GUI_INSIDE)
 
-	if task.IsComplete() && task.TaskType.CurrentChoice != TASK_TYPE_PROGRESSION && len(task.Children) == 0 {
+	if task.IsComplete() && task.TaskType.CurrentChoice != TASK_TYPE_PROGRESSION && len(task.SubTasks) == 0 {
 		color = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 	}
 
@@ -740,14 +754,14 @@ func (task *Task) Draw() {
 
 	perc := float32(0)
 
-	if len(task.Children) > 0 && task.Completable() {
+	if len(task.SubTasks) > 0 && task.Completable() {
 		totalComplete := 0
-		for _, child := range task.Children {
+		for _, child := range task.SubTasks {
 			if child.IsComplete() {
 				totalComplete++
 			}
 		}
-		perc = float32(totalComplete) / float32(len(task.Children))
+		perc = float32(totalComplete) / float32(len(task.SubTasks))
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
 
 		cnum := task.CompletionProgressionCurrent.GetNumber()
@@ -936,12 +950,12 @@ func (task *Task) Draw() {
 		iconSrc.X = iconSrcIconPositions[task.TaskType.CurrentChoice][0]
 		iconSrc.Y = iconSrcIconPositions[task.TaskType.CurrentChoice][1]
 
-		if len(task.Children) > 0 && task.Completable() {
+		if len(task.SubTasks) > 0 && task.Completable() {
 			iconSrc.X = 128 // Hardcoding this because I'm an idiot
 			iconSrc.Y = 16
 		}
 
-		task.ArrowPointingToTask = nil
+		// task.ArrowPointingToTask = nil
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_LINE && task.LineBase != nil {
 
@@ -949,18 +963,18 @@ func (task *Task) Draw() {
 			iconSrc.Y = 16
 			rotation = raymath.Vector2Angle(task.LineBase.Position, task.Position)
 
-			if right := task.TaskRight(); right != nil {
+			if task.TaskRight != nil {
 				rotation = 0
-				task.ArrowPointingToTask = right
-			} else if left := task.TaskLeft(); left != nil {
+				// task.ArrowPointingToTask = task.TaskRight
+			} else if task.TaskLeft != nil {
 				rotation = 180
-				task.ArrowPointingToTask = left
-			} else if above := task.TaskAbove(); above != nil {
+				// task.ArrowPointingToTask = task.TaskLeft
+			} else if task.TaskAbove != nil {
 				rotation = -90
-				task.ArrowPointingToTask = above
-			} else if below := task.TaskBelow(); below != nil {
+				// task.ArrowPointingToTask = task.TaskAbove
+			} else if task.TaskBelow != nil {
 				rotation = 90
-				task.ArrowPointingToTask = below
+				// task.ArrowPointingToTask = task.TaskBelow
 			}
 
 		}
@@ -1050,6 +1064,62 @@ func (task *Task) Draw() {
 		r.Height += f * 2
 		c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 		rl.DrawRectangleLinesEx(r, 2, c)
+	}
+
+}
+
+func (task *Task) UpdateNeighbors() {
+
+	gs := float32(task.Board.Project.GridSize)
+
+	task.TaskRight = nil
+	task.TaskLeft = nil
+	task.TaskAbove = nil
+	task.TaskBelow = nil
+
+	// Determines whether a Task is a subtask owner or not (if completing tasks below
+	// this one counts as partial completion of this one visually)
+
+	tasks := task.Board.GetTasksInRect(task.Position.X+gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
+	sortfunc := func(i, j int) bool {
+		return tasks[i].Numberable()
+	}
+
+	sort.Slice(tasks, sortfunc)
+	for _, t := range tasks {
+		if t != task {
+			task.TaskRight = t
+			break
+		}
+	}
+
+	tasks = task.Board.GetTasksInRect(task.Position.X-gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
+	sort.Slice(tasks, sortfunc)
+
+	for _, t := range tasks {
+		if t != task {
+			task.TaskLeft = t
+			break
+		}
+	}
+
+	tasks = task.Board.GetTasksInRect(task.Position.X, task.Position.Y-gs, task.Rect.Width, task.Rect.Height)
+	sort.Slice(tasks, sortfunc)
+
+	for _, t := range tasks {
+		if t != task {
+			task.TaskAbove = t
+			break
+		}
+	}
+
+	tasks = task.Board.GetTasksInRect(task.Position.X, task.Position.Y+gs, task.Rect.Width, task.Rect.Height)
+	sort.Slice(tasks, sortfunc)
+	for _, t := range tasks {
+		if t != task {
+			task.TaskBelow = t
+			break
+		}
 	}
 
 }
@@ -1314,8 +1384,8 @@ func (task *Task) PostDraw() {
 
 func (task *Task) IsComplete() bool {
 
-	if len(task.Children) > 0 {
-		for _, child := range task.Children {
+	if task.Completable() && len(task.SubTasks) > 0 {
+		for _, child := range task.SubTasks {
 			if !child.IsComplete() {
 				return false
 			}
@@ -1326,16 +1396,6 @@ func (task *Task) IsComplete() bool {
 			return task.CompletionCheckbox.Checked
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
 			return task.CompletionProgressionMax.GetNumber() > 0 && task.CompletionProgressionCurrent.GetNumber() >= task.CompletionProgressionMax.GetNumber()
-		}
-	}
-	return false
-}
-
-func (task *Task) IsParentOf(child *Task) bool {
-	children := task.Children
-	for _, c := range children {
-		if child == c {
-			return true
 		}
 	}
 	return false
@@ -1353,12 +1413,12 @@ func (task *Task) SetCompletion(complete bool) {
 
 	if task.Completable() {
 
-		if len(task.Children) == 0 {
+		if len(task.SubTasks) == 0 {
 
 			task.CompletionCheckbox.Checked = complete
 
 			// VVV This is a nice addition but conversely makes it suuuuuper easy to screw yourself over
-			// for _, child := range task.Children {
+			// for _, child := range subTasks {
 			// 	child.SetCompletion(complete)
 			// }
 
@@ -1519,7 +1579,12 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else if message == MessageDropped {
 		task.Dragging = false
 		task.Position.X, task.Position.Y = task.Board.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
-		task.PrevPosition = task.Position
+		task.Board.RemoveTaskFromGrid(task, task.GridPositions)
+		task.GridPositions = task.Board.AddTaskToGrid(task)
+	} else if message == MessageNeighbors {
+		task.UpdateNeighbors()
+	} else if message == MessageNumbering {
+		task.SetPrefix()
 	} else if message == MessageDelete {
 
 		if task.LineBase != nil {
@@ -1553,19 +1618,6 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		}
 
-	} else if message == MessageChildren {
-		task.Children = []*Task{}
-		t := task.TaskBelow()
-		for t != nil {
-			if int(t.Position.X) == int(task.Position.X+float32(task.Board.Project.GridSize)) && t.Completable() {
-				task.Children = append(task.Children, t)
-			} else if int(t.Position.X) <= int(task.Position.X) {
-				break
-			}
-			t = t.TaskBelow()
-		}
-	} else if message == MessageNumbering {
-		task.SetPrefix()
 	} else {
 		fmt.Println("UNKNOWN MESSAGE: ", message)
 	}
@@ -1578,7 +1630,7 @@ func (task *Task) CreateLineEnding() *Task {
 		ending := task.Board.CreateNewTask()
 		ending.TaskType.CurrentChoice = TASK_TYPE_LINE
 		ending.Position = task.Position
-		ending.Position.X += 16
+		ending.Position.X += float32(task.Board.Project.GridSize) * 2
 		ending.Rect.X = ending.Position.X
 		ending.Rect.Y = ending.Position.Y
 		task.LineEndings = append(task.LineEndings, ending)
@@ -1626,101 +1678,55 @@ func (task *Task) ToggleTimer() {
 	}
 }
 
-func (task *Task) TaskAbove() *Task {
-	gs := float32(task.Board.Project.GridSize)
-	for _, neighbor := range task.Board.GetTasksInRect(task.Position.X, task.Position.Y-gs, task.Rect.Width, task.Rect.Height) {
-		if neighbor != task {
-			return neighbor
-		}
-	}
-	return nil
-}
-
-func (task *Task) TaskBelow() *Task {
-	gs := float32(task.Board.Project.GridSize)
-	for _, neighbor := range task.Board.GetTasksInRect(task.Position.X, task.Position.Y+gs, task.Rect.Width, task.Rect.Height) {
-		if neighbor != task {
-			return neighbor
-		}
-	}
-	return nil
-}
-
-func (task *Task) TaskRight() *Task {
-	gs := float32(task.Board.Project.GridSize)
-	for _, neighbor := range task.Board.GetTasksInRect(task.Position.X+gs, task.Position.Y, task.Rect.Width, task.Rect.Height) {
-		if neighbor != task {
-			return neighbor
-		}
-	}
-	return nil
-}
-
-func (task *Task) TaskLeft() *Task {
-	gs := float32(task.Board.Project.GridSize)
-	for _, neighbor := range task.Board.GetTasksInRect(task.Position.X-gs, task.Position.Y, task.Rect.Width, task.Rect.Height) {
-		if neighbor != task {
-			return neighbor
-		}
-	}
-	return nil
-}
-
-func (task *Task) HeadOfStack() *Task {
-	above := task.TaskAbove()
-	for above != nil && above.Numberable() {
-		above = above.TaskAbove()
-	}
-	if above == nil {
-		return task
-	}
-	return above
-}
-
-func (task *Task) RestOfStack() []*Task {
-	stack := []*Task{}
-	below := task.TaskBelow()
-	for below != nil && below.Numberable() {
-		stack = append(stack, below)
-		below = below.TaskBelow()
-	}
-	return stack
-}
-
 func (task *Task) NeighborInDirection(dirX, dirY float32) *Task {
 	if dirX > 0 {
-		return task.TaskRight()
+		return task.TaskRight
 	} else if dirX < 0 {
-		return task.TaskLeft()
+		return task.TaskLeft
 	} else if dirY < 0 {
-		return task.TaskAbove()
+		return task.TaskAbove
 	} else if dirY > 0 {
-		return task.TaskBelow()
+		return task.TaskBelow
 	}
 	return nil
 }
 
 func (task *Task) SetPrefix() {
 
-	gs := float32(task.Board.Project.GridSize)
+	// Establish the rest of the stack; has to be done here because it has be done after
+	// all Tasks have their positions on the Board and neighbors established.
 
-	var above *Task
-	if ta := task.Board.GetTasksInRect(task.Position.X, task.Position.Y-gs, task.Rect.Width, task.Rect.Height); len(ta) > 0 {
-		above = ta[0]
-		if !above.Numberable() {
-			above = nil
+	if task.Numberable() {
+
+		task.RestOfStack = []*Task{}
+		task.SubTasks = []*Task{}
+		below := task.TaskBelow
+		countingSubTasks := true
+
+		for below != nil && below.Numberable() && below != task {
+
+			task.RestOfStack = append(task.RestOfStack, below)
+
+			taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
+			belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
+
+			if countingSubTasks && belowX == taskX+1 {
+				task.SubTasks = append(task.SubTasks, below)
+			} else if belowX == taskX {
+				countingSubTasks = false
+			}
+
+			below = below.TaskBelow
+
 		}
+
 	}
 
-	var below *Task
-	if tb := task.Board.GetTasksInRect(task.Position.X, task.Position.Y+gs, task.Rect.Width, task.Rect.Height); len(tb) > 0 {
-		below = tb[0]
-		if !below.Numberable() {
-			below = nil
-		}
-	}
+	above := task.TaskAbove
 
-	if above != nil {
+	below := task.TaskBelow
+
+	if above != nil && above.Numberable() {
 
 		task.NumberingPrefix = append([]int{}, above.NumberingPrefix...)
 
@@ -1735,9 +1741,9 @@ func (task *Task) SetPrefix() {
 			task.NumberingPrefix = append([]int{}, above.NumberingPrefix[:d]...)
 		}
 
-		task.NumberingPrefix[len(task.NumberingPrefix)-1] += 1
+		task.NumberingPrefix[len(task.NumberingPrefix)-1]++
 
-	} else if below != nil {
+	} else if below != nil && below.Numberable() {
 		task.NumberingPrefix = []int{1}
 	} else {
 		task.NumberingPrefix = []int{-1}
@@ -1766,6 +1772,7 @@ func (task *Task) SmallButton(srcX, srcY, srcW, srcH, dstX, dstY float32) bool {
 
 }
 
+// Move moves the Task while checking to ensure it doesn't overlap with another Task in that position.
 func (task *Task) Move(dx, dy float32) {
 
 	if dx == 0 && dy == 0 {

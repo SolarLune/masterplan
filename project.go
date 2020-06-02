@@ -42,7 +42,7 @@ const (
 
 	// Task messages
 
-	MessageChildren    = "children"
+	MessageNeighbors   = "neighbors"
 	MessageNumbering   = "numbering"
 	MessageDelete      = "delete"
 	MessageSelect      = "select"
@@ -392,6 +392,8 @@ func (project *Project) Load(filepath string) bool {
 
 		if dataGood {
 
+			project.JustLoaded = true
+
 			project.FilePath = filepath
 
 			getFloat := func(name string, defaultValue float32) float32 {
@@ -552,7 +554,6 @@ func (project *Project) Load(filepath string) bool {
 			programSettings.RecentPlanList = list
 
 			programSettings.Save()
-			project.JustLoaded = true
 			project.Log("Load successful.")
 
 		} else {
@@ -845,8 +846,6 @@ func (project *Project) Update() {
 
 					}
 
-				} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-					project.ReorderTasks()
 				}
 
 			} else {
@@ -913,12 +912,6 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 
 	for _, task := range taskList {
 		task.ReceiveMessage(message, data)
-	}
-
-	if message == MessageDropped {
-		for _, task := range taskList {
-			task.ReceiveMessage(MessageChildren, nil)
-		}
 	}
 
 	if project.AutoSave.Checked {
@@ -1111,8 +1104,6 @@ func (project *Project) Shortcuts() {
 
 						move := []float32{0, 0}
 
-						neighborList := []*Task{}
-
 						if up {
 							move[1] = -gs
 						} else if down {
@@ -1125,43 +1116,51 @@ func (project *Project) Shortcuts() {
 							move[0] = -gs
 						}
 
+						neighborList := []*Task{}
+
 						for _, task := range selectedTasks {
 
 							// Arrows that point to Tasks
-							arrowNeighbors := []*Task{
-								task.TaskAbove(),
-								task.TaskRight(),
-								task.TaskLeft(),
-								task.TaskBelow(),
-							}
-							hasArrow := false
+							// arrowNeighbors := []*Task{
+							// 	task.TaskAbove,
+							// 	task.TaskRight,
+							// 	task.TaskLeft,
+							// 	task.TaskBelow,
+							// }
 
-							for _, arrow := range arrowNeighbors {
-								if arrow != nil && arrow.ArrowPointingToTask == task {
-									hasArrow = true
-									arrow.Position.X += move[0]
-									arrow.Position.Y += move[1]
-								}
-							}
-							if hasArrow {
-								project.ReorderTasks()
-							}
+							// for _, arrow := range arrowNeighbors {
+							// 	if arrow != nil && arrow.ArrowPointingToTask == task {
+							// 		arrow.Position.X += move[0]
+							// 		arrow.Position.Y += move[1]
+							// 	}
+							// }
 
-							neighbor := task.NeighborInDirection(move[0], move[1])
+							// Not quite working because arrows won't move if they're attached to a neighbor that you're sliding around
 
-							if task.Numberable() && neighbor != nil && neighbor.Numberable() {
+							if neighbor := task.NeighborInDirection(move[0], move[1]); task.Numberable() &&
+								neighbor != nil && neighbor.Numberable() {
 
 								if !neighbor.Selected {
 									neighborList = append(neighborList, neighbor)
 								}
 
-								task.Position.X += move[0]
-								task.Position.Y += move[1]
-
-							} else {
-								task.Move(move[0], move[1])
-								project.ReorderTasks()
 							}
+
+							// if task.Numberable() && neighbor != nil && neighbor.Numberable() {
+
+							// 	if !neighbor.Selected {
+							// 		neighborList = append(neighborList, neighbor)
+							// 	}
+
+							// 	task.Position.X += move[0]
+							// 	task.Position.Y += move[1]
+
+							// } else {
+							// 	task.Move(move[0], move[1])
+							// }
+
+							task.Position.X += move[0]
+							task.Position.Y += move[1]
 
 						}
 
@@ -1189,21 +1188,21 @@ func (project *Project) Shortcuts() {
 
 							// Selection by keypress prioritizes neighbors first and foremost
 
-							if taskRight := selected.TaskRight(); right && taskRight != nil {
+							if right && selected.TaskRight != nil {
 
-								others = []*Task{taskRight}
+								others = []*Task{selected.TaskRight}
 
-							} else if taskLeft := selected.TaskLeft(); left && taskLeft != nil {
+							} else if left && selected.TaskLeft != nil {
 
-								others = []*Task{taskLeft}
+								others = []*Task{selected.TaskLeft}
 
-							} else if taskAbove := selected.TaskAbove(); up && taskAbove != nil {
+							} else if up && selected.TaskAbove != nil {
 
-								others = []*Task{taskAbove}
+								others = []*Task{selected.TaskAbove}
 
-							} else if taskBelow := selected.TaskBelow(); down && taskBelow != nil {
+							} else if down && selected.TaskBelow != nil {
 
-								others = []*Task{taskBelow}
+								others = []*Task{selected.TaskBelow}
 
 							} else {
 
@@ -1274,9 +1273,9 @@ func (project *Project) Shortcuts() {
 					project.Log("Deselected all Task(s).")
 				} else if rl.IsKeyPressed(rl.KeyPageUp) {
 					for _, task := range project.CurrentBoard().SelectedTasks(true) {
-						next := task.TaskAbove()
-						for next != nil && next.TaskAbove() != nil {
-							next = next.TaskAbove()
+						next := task.TaskAbove
+						for next != nil && next.TaskAbove != nil {
+							next = next.TaskAbove
 						}
 						if next != nil {
 							project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
@@ -1287,9 +1286,9 @@ func (project *Project) Shortcuts() {
 				} else if rl.IsKeyPressed(rl.KeyPageDown) {
 					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
-							next := task.TaskBelow()
-							for next != nil && next.TaskBelow() != nil {
-								next = next.TaskBelow()
+							next := task.TaskBelow
+							for next != nil && next.TaskBelow != nil {
+								next = next.TaskBelow
 							}
 							if next != nil {
 								project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
@@ -1340,6 +1339,7 @@ func (project *Project) ReorderTasks() {
 	}
 
 	project.SendMessage(MessageDropped, nil)
+	project.SendMessage(MessageNeighbors, nil)
 	project.SendMessage(MessageNumbering, nil)
 
 }
@@ -1382,6 +1382,10 @@ func (project *Project) GUI() {
 					project.Log("Renamed Board: %s", project.CurrentBoard().Name)
 				}
 
+			} else {
+				if result == 0 {
+					project.ExecuteDestructiveAction(project.PopupAction, project.PopupArgument)
+				}
 			}
 
 			project.ActivePopup.Close()

@@ -25,12 +25,11 @@ type Board struct {
 
 func NewBoard(project *Project) *Board {
 	board := &Board{
-		Tasks:   []*Task{},
-		Project: project,
-		Name:    fmt.Sprintf("Board %d", len(project.Boards)+1),
+		Tasks:         []*Task{},
+		Project:       project,
+		Name:          fmt.Sprintf("Board %d", len(project.Boards)+1),
+		TaskLocations: map[Position][]*Task{},
 	}
-
-	board.UpdateTaskGrid()
 
 	return board
 }
@@ -44,17 +43,17 @@ func (board *Board) CreateNewTask() *Task {
 
 	selected := board.SelectedTasks(true)
 
-	if len(selected) > 0 {
-
+	if len(selected) > 0 && !board.Project.JustLoaded {
+		// If the project is loading, then we want to put everything back where it was
 		task := selected[0]
 		gs := float32(board.Project.GridSize)
 		x := task.Position.X
 
 		if task.Numberable() && newTask.Numberable() {
 
-			if task.TaskBelow() != nil && task.TaskBelow().Numberable() && task.Numberable() {
+			if task.TaskBelow != nil && task.TaskBelow.Numberable() && task.Numberable() {
 
-				for i, t := range task.RestOfStack() {
+				for i, t := range task.RestOfStack {
 
 					if i == 0 {
 						x = t.Position.X
@@ -66,12 +65,15 @@ func (board *Board) CreateNewTask() *Task {
 			}
 
 			newTask.Position = task.Position
+
 			newTask.Position.X = x
 			newTask.Position.Y = task.Position.Y + gs
 
 		}
 
 	}
+
+	board.Project.ReorderTasks()
 
 	newTask.TaskType.SetChoice(board.Project.PreviousTaskType)
 
@@ -81,9 +83,12 @@ func (board *Board) CreateNewTask() *Task {
 		newTask.Description.Focused = true
 	}
 
-	board.Project.SendMessage(MessageSelect, map[string]interface{}{"task": newTask})
-
 	board.Project.Log("Created 1 new Task.")
+
+	if !board.Project.JustLoaded {
+		// If we're loading a project, we don't want to automatically select new tasks
+		board.Project.SendMessage(MessageSelect, map[string]interface{}{"task": newTask})
+	}
 
 	return newTask
 }
@@ -103,7 +108,7 @@ func (board *Board) DeleteSelectedTasks() {
 
 	for _, t := range selected {
 		count++
-		stackMoveUp = append(stackMoveUp, t.RestOfStack()...)
+		stackMoveUp = append(stackMoveUp, t.RestOfStack...)
 		board.DeleteTask(t)
 	}
 
@@ -206,22 +211,10 @@ func (board *Board) PasteTasks() {
 			task.Selected = false
 		}
 
-		// We don't want to simply use the fact that the Task has been selected as an indication that
-		// it's in the copy buffer because that could change during the cloning process
-		inCopyBuffer := func(task *Task) bool {
-			for _, t := range board.Project.CopyBuffer {
-				if t == task {
-					return true
-				}
-			}
-			return false
-		}
-
 		clones := []*Task{}
 
-		// stack := board.Project.CopyBuffer[0].RestOfStack()
 		stack := []*Task{board.Project.CopyBuffer[0]}
-		stack = append(stack, board.Project.CopyBuffer[0].RestOfStack()...)
+		stack = append(stack, board.Project.CopyBuffer[0].RestOfStack...)
 
 		cloneTask := func(srcTask *Task) *Task {
 			clone := srcTask.Clone()
@@ -232,43 +225,24 @@ func (board *Board) PasteTasks() {
 			return clone
 		}
 
-		if board.Project.Cutting {
+		center := rl.Vector2{}
 
-			for _, srcTask := range board.Project.CopyBuffer {
+		for _, t := range board.Project.CopyBuffer {
+			center = raymath.Vector2Add(center, t.Position)
+		}
 
-				clone := cloneTask(srcTask)
-				clone.Position.X += GetWorldMousePosition().X - board.Project.CopyBuffer[0].Rect.X
-				clone.Position.Y += GetWorldMousePosition().Y - board.Project.CopyBuffer[0].Rect.Y
-				clone.Position.X, clone.Position.Y = board.Project.LockPositionToGrid(clone.Position.X, clone.Position.Y)
-			}
+		raymath.Vector2Divide(&center, float32(len(board.Project.CopyBuffer)))
 
-		} else {
+		for _, srcTask := range board.Project.CopyBuffer {
 
-			gs := float32(board.Project.GridSize)
-			outOfBufferMove := float32(0)
-			inBufferMove := float32(0)
-
-			for _, t := range stack {
-				if inCopyBuffer(t) {
-					outOfBufferMove += gs
-					t.Position.Y += inBufferMove
-				} else {
-					inBufferMove = outOfBufferMove
-					t.Position.Y += outOfBufferMove
-				}
-			}
-
-			board.ReorderTasks()
-
-			for _, srcTask := range board.Project.CopyBuffer {
-
-				clone := cloneTask(srcTask)
-				clone.Move(0, gs)
-				board.ReorderTasks()
-
-			}
+			clone := cloneTask(srcTask)
+			clone.Position.X += GetWorldMousePosition().X - center.X
+			clone.Position.Y += GetWorldMousePosition().Y - center.Y
+			clone.Position.X, clone.Position.Y = board.Project.LockPositionToGrid(clone.Position.X, clone.Position.Y)
 
 		}
+
+		board.ReorderTasks()
 
 		for _, clone := range clones {
 			clone.Selected = true
@@ -339,7 +313,6 @@ func (board *Board) ReorderTasks() {
 		}
 		return ba.Position.Y < bb.Position.Y
 	})
-	board.UpdateTaskGrid()
 }
 
 // Returns the index of the board in the Project's Board stack
@@ -393,35 +366,53 @@ func (board *Board) GetTasksInRect(x, y, w, h float32) []*Task {
 	return tasks
 }
 
-func (board *Board) UpdateTaskGrid() {
+func (board *Board) RemoveTaskFromGrid(task *Task, positions []Position) {
 
-	board.TaskLocations = map[Position][]*Task{}
-	gs := float32(board.Project.GridSize)
+	for _, position := range positions {
 
-	for _, task := range board.Tasks {
+		for i, t := range board.TaskLocations[position] {
 
-		startX, startY := int(task.Position.X/gs), int(task.Position.Y/gs)
-		endX, endY := int((task.Position.X+task.Rect.Width)/gs), int((task.Position.Y+task.Rect.Height)/gs)
-
-		for y := startY; y < endY; y++ {
-
-			for x := startX; x < endX; x++ {
-
-				p := Position{x, y}
-
-				_, exists := board.TaskLocations[p]
-
-				if !exists {
-					board.TaskLocations[p] = []*Task{}
-				}
-
-				board.TaskLocations[p] = append(board.TaskLocations[p], task)
-
+			if t == task {
+				board.TaskLocations[position][i] = nil
+				board.TaskLocations[position] = append(board.TaskLocations[position][:i], board.TaskLocations[position][i+1:]...)
+				break
 			}
 
 		}
 
 	}
+
+}
+
+func (board *Board) AddTaskToGrid(task *Task) []Position {
+
+	positions := []Position{}
+
+	gs := float32(board.Project.GridSize)
+	startX, startY := int(task.Position.X/gs), int(task.Position.Y/gs)
+	endX, endY := int((task.Position.X+task.Rect.Width)/gs), int((task.Position.Y+task.Rect.Height)/gs)
+
+	for y := startY; y < endY; y++ {
+
+		for x := startX; x < endX; x++ {
+
+			p := Position{x, y}
+
+			positions = append(positions, p)
+
+			_, exists := board.TaskLocations[p]
+
+			if !exists {
+				board.TaskLocations[p] = []*Task{}
+			}
+
+			board.TaskLocations[p] = append(board.TaskLocations[p], task)
+
+		}
+
+	}
+
+	return positions
 
 }
 
