@@ -990,43 +990,43 @@ func (project *Project) Shortcuts() {
 					project.CameraPan.X -= panSpeed
 				}
 
-				if holdingCtrl && rl.IsKeyPressed(rl.KeyOne) {
+				if holdingShift && rl.IsKeyPressed(rl.KeyOne) {
 					if len(project.Boards) > 0 {
 						project.BoardIndex = 0
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyTwo) {
+				} else if holdingShift && rl.IsKeyPressed(rl.KeyTwo) {
 					if len(project.Boards) > 1 {
 						project.BoardIndex = 1
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyThree) {
+				} else if holdingShift && rl.IsKeyPressed(rl.KeyThree) {
 					if len(project.Boards) > 2 {
 						project.BoardIndex = 2
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyFour) {
+				} else if holdingShift && rl.IsKeyPressed(rl.KeyFour) {
 					if len(project.Boards) > 3 {
 						project.BoardIndex = 3
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyFive) {
+				} else if holdingShift && rl.IsKeyPressed(rl.KeyFive) {
 					if len(project.Boards) > 4 {
 						project.BoardIndex = 4
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeySix) {
+				} else if holdingShift && rl.IsKeyPressed(rl.KeySix) {
 					if len(project.Boards) > 5 {
 						project.BoardIndex = 5
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeySeven) {
+				} else if holdingShift && rl.IsKeyPressed(rl.KeySeven) {
 					if len(project.Boards) > 6 {
 						project.BoardIndex = 6
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyEight) {
+				} else if holdingShift && rl.IsKeyPressed(rl.KeyEight) {
 					if len(project.Boards) > 7 {
 						project.BoardIndex = 7
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyNine) {
+				} else if holdingShift && rl.IsKeyPressed(rl.KeyNine) {
 					if len(project.Boards) > 8 {
 						project.BoardIndex = 8
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyZero) {
+				} else if holdingShift && rl.IsKeyPressed(rl.KeyZero) {
 					if len(project.Boards) > 9 {
 						project.BoardIndex = 9
 					}
