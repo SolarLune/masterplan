@@ -211,7 +211,6 @@ func NewProject() *Project {
 	project.Boards = []*Board{NewBoard(project)}
 
 	project.OutlineTasks.Checked = true
-	project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
 	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
 	project.TaskShadowSpinner.CurrentChoice = 2
@@ -500,9 +499,6 @@ func (project *Project) Load(filepath string) bool {
 			if colorTheme != "" {
 				project.ChangeTheme(colorTheme) // Changing theme regenerates the grid; we don't have to do it elsewhere
 			}
-
-			project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
-			project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
 
 			list := []string{}
 
@@ -1526,6 +1522,8 @@ func (project *Project) GUI() {
 					case "Project Settings":
 						project.ReloadThemes() // Reload the themes after opening the settings window
 						project.ProjectSettingsOpen = true
+						project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
+						project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
@@ -1596,14 +1594,15 @@ func (project *Project) GUI() {
 					project.LogOn = true
 				}
 
+				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
+				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
+
 				if project.AutoSave.Checked {
 					project.Save()
 				} else {
 					// After modifying the project settings, the project probably has been modified
 					project.Modified = true
 				}
-				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
-				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
 				programSettings.Save()
 			}
 
