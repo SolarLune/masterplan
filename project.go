@@ -1887,7 +1887,8 @@ func (project *Project) SearchForTasks() {
 		resourceTask := task.TaskType.CurrentChoice == TASK_TYPE_IMAGE || task.TaskType.CurrentChoice == TASK_TYPE_SOUND
 
 		if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text()), searchText) ||
-			(resourceTask && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText))) {
+			(resourceTask && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText)) ||
+			(task.TaskType.CurrentChoice == TASK_TYPE_TIMER && strings.Contains(strings.ToLower(task.TimerName.Text()), searchText))) {
 			project.SearchedTasks = append(project.SearchedTasks, task)
 		}
 
