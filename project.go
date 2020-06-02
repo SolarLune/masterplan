@@ -86,6 +86,7 @@ type Project struct {
 	SaveSoundsPlaying    *Checkbox
 	OutlineTasks         *Checkbox
 	ColorThemeSpinner    *Spinner
+	BracketSubtasks      *Checkbox
 
 	// Internal data to make stuff work
 	FullyInitialized        bool
@@ -170,6 +171,7 @@ func NewProject() *Project {
 		SampleRate:              NewSpinner(px, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
 		DisableSplashscreen:     NewCheckbox(px, 0, 32, 32),
 		AutoLoadLastProject:     NewCheckbox(px, 0, 32, 32),
+		BracketSubtasks:         NewCheckbox(px, 0, 32, 32),
 
 		RenameBoardPopup:   NewTextboxPopup("New Board name:", "Accept", "Cancel"),
 		AbandonPlanPopup:   NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
@@ -189,6 +191,7 @@ func NewProject() *Project {
 		project.AutoSave,
 		project.SaveSoundsPlaying,
 		project.SampleRate,
+		project.BracketSubtasks,
 		nil,
 		project.AutoReloadThemes,
 		project.AutoLoadLastProject,
@@ -211,6 +214,7 @@ func NewProject() *Project {
 	project.Boards = []*Board{NewBoard(project)}
 
 	project.OutlineTasks.Checked = true
+	project.BracketSubtasks.Checked = true
 	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
 	project.TaskShadowSpinner.CurrentChoice = 2
@@ -300,6 +304,7 @@ func (project *Project) Save() {
 			"SampleBuffer":            project.SampleBuffer,
 			"TaskShadow":              project.TaskShadowSpinner.CurrentChoice,
 			"OutlineTasks":            project.OutlineTasks.Checked,
+			"BracketSubtasks":         project.BracketSubtasks.Checked,
 			"GridVisible":             project.GridVisible.Checked,
 			"ShowIcons":               project.ShowIcons.Checked,
 			"NumberingIgnoreTopLevel": project.NumberingIgnoreTopLevel.Checked,
@@ -452,6 +457,7 @@ func (project *Project) Load(filepath string) bool {
 			project.SampleBuffer = getInt("SampleBuffer", project.SampleBuffer)
 			project.TaskShadowSpinner.CurrentChoice = getInt("TaskShadow", project.TaskShadowSpinner.CurrentChoice)
 			project.OutlineTasks.Checked = getBool("OutlineTasks", project.OutlineTasks.Checked)
+			project.BracketSubtasks.Checked = getBool("BracketSubtasks", project.BracketSubtasks.Checked)
 			project.GridVisible.Checked = getBool("GridVisible", project.GridVisible.Checked)
 			project.ShowIcons.Checked = getBool("ShowIcons", project.ShowIcons.Checked)
 			project.NumberingSequence.CurrentChoice = getInt("NumberingSequence", project.NumberingSequence.CurrentChoice)
@@ -1622,6 +1628,9 @@ func (project *Project) GUI() {
 
 			DrawGUIText(rl.Vector2{columnX, project.ShowIcons.Rect.Y + 4}, "Show Icons: ")
 			project.ShowIcons.Update()
+
+			DrawGUIText(rl.Vector2{columnX, project.BracketSubtasks.Rect.Y + 4}, "Bracket Sub-Tasks: ")
+			project.BracketSubtasks.Update()
 
 			if project.GridVisible.Changed {
 				project.GenerateGrid()

@@ -557,6 +557,48 @@ func (task *Task) Update() {
 
 func (task *Task) Draw() {
 
+	if task.Board.Project.BracketSubtasks.Checked && len(task.SubTasks) > 0 {
+
+		endingTask := task.SubTasks[len(task.SubTasks)-1]
+
+		for len(endingTask.SubTasks) != 0 {
+			endingTask = endingTask.SubTasks[len(endingTask.SubTasks)-1]
+		}
+
+		ep := endingTask.Position
+		ep.Y += endingTask.Rect.Height
+
+		gh := float32(task.Board.Project.GridSize / 2)
+		lines := []rl.Vector2{
+			{task.Position.X, task.Position.Y + gh},
+			{task.Position.X - gh, task.Position.Y + gh},
+			{task.Position.X - gh, ep.Y - gh},
+			{ep.X, ep.Y - gh},
+		}
+
+		lineColor := getThemeColor(GUI_INSIDE)
+
+		ts := []*Task{}
+		ts = append(ts, task.SubTasks...)
+		ts = append(ts, task)
+
+		for _, t := range ts {
+			if t.Selected {
+				lineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+				break
+			}
+		}
+
+		for i := range lines {
+			if i == len(lines)-1 {
+				break
+			}
+			rl.DrawLineEx(lines[i], lines[i+1], 1, lineColor)
+		}
+		// rl.DrawLineEx(task.Position, ep, 1, rl.White)
+
+	}
+
 	if !task.Visible {
 		return
 	}
