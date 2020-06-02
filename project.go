@@ -139,7 +139,6 @@ type Project struct {
 func NewProject() *Project {
 
 	searchBar := NewTextbox(float32(rl.GetScreenWidth())-128, float32(float32(rl.GetScreenHeight()))-23, 128, 23)
-	searchBar.MaxSize = searchBar.MinSize // Don't expand for text
 	searchBar.AllowNewlines = false
 
 	px := float32(390)
@@ -1740,7 +1739,7 @@ func (project *Project) GUI() {
 				textMeasure.X = float32(int(textMeasure.X / 2))
 				textMeasure.Y = float32(int(textMeasure.Y / 2))
 
-				if ImmediateButton(rl.Rectangle{searchTextPosX - textMeasure.X - 28, project.Searchbar.Rect.Y, project.Searchbar.Rect.Height, project.Searchbar.Rect.Height}, "<", len(project.SearchedTasks) == 0) {
+				if ImmediateButton(rl.Rectangle{searchTextPosX - textMeasure.X - 42, project.Searchbar.Rect.Y, project.Searchbar.Rect.Height, project.Searchbar.Rect.Height}, "<", len(project.SearchedTasks) == 0) {
 					project.FocusedSearchTask--
 					project.SearchForTasks()
 				}
