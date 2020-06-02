@@ -1055,6 +1055,9 @@ func (textbox *Textbox) Update() {
 	if textbox.RangeSelected() {
 		for i := textbox.SelectedRange[0]; i < textbox.SelectedRange[1]; i++ {
 			rec := textbox.CharacterToRect(i)
+			if textbox.text[i] == '\n' {
+				continue
+			}
 			if i >= textbox.CaretPos {
 				rec.X += rec.Width / 2
 			}
