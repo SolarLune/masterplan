@@ -16,5 +16,6 @@ require (
 	github.com/tanema/gween v0.0.0-20200427131925-c89ae23cc63c
 )
 
-// The below line replaces the normal raylib-go dependency with a local one that has the config.h tweaked to allow for more image formats.
-replace github.com/gen2brain/raylib-go => ../raylib-go-solarlune
+// The below line replaces the normal raylib-go dependency with my branch that has the config.h tweaked to 
+// remove screenshot-taking because we're do it manually in MasterPlan.
+replace github.com/gen2brain/raylib-go => github.com/solarlune/raylib-go v0.0.0-20200603204758-df4dce33640c

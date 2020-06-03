@@ -17,21 +17,13 @@ While these features (cloud-based, browser apps, etc.) can be beneficial for lar
 
 ## Building
 
-MasterPlan is not quite fully free software, but the source is available here. If you wish to build MasterPlan or contribute to its development, I thank you, and welcome it. I've made a build script in Go to simplify the building process. The build script is located at `build_script\main.go`. Run it with an argument of `-b` to build. The dependencies for building should be resolved automatically by `go mod` (so you should be using a recent version of Go with support for `go.mod` files).
-
-However, in order to build, you should also have my custom Raylib-go repo downloaded and sitting next to MasterPlan's directory. Specifically, it's [this](https://github.com/SolarLune/raylib-go/tree/ImgFormats) branch of the repo, known as `ImgFormats`. This particular branch is up-to-date with `raylib-go` master, but has had its `raylib/config.h` file altered to build with support for loading additional image file formats (like JPEG). With the `ImgFormats` branch cloned and sitting in the folder `raylib-go-solarlune`, next to the MasterPlan source directory, it's easy to build. Just run:
+MasterPlan is not quite fully free software, but the source is available here. If you wish to build MasterPlan or contribute to its development, I thank you, and welcome it. I've made a build script in Go to simplify the building process. The build script is located at `build_script\main.go`. The dependencies for building should be resolved automatically by `go mod` (so you should be using a recent version of Go with support for `go.mod` files). Just run:
 
 ```
 > go run ./build_script/main.go -b
 ```
 
-from the MasterPlan source directory. It should generate a folder named `bin`, and populate it with a directory with a release build for your OS and architecture.
-
-To fetch the correct branch of Raylib-Go, use the following git command on the directory where you cloned MasterPlan's repo:
-
-```
-> git clone --single-branch --branch ImgFormats https://github.com/SolarLune/raylib-go.git raylib-go-solarlune
-```
+from the MasterPlan source directory to build. It should generate a folder named `bin`, and populate it with a directory with a release build for your OS and architecture. MasterPlan's `go.mod` automatically uses my fork of raylib-go, located [here](https://github.com/SolarLune/raylib-go). It should be kept up to date with `raylib-go` master, but with its `raylib/config.h` file altered to turn off automatic screenshots (as MasterPlan handles this manually).
 
 ## License
 
