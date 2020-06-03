@@ -102,6 +102,7 @@ type Task struct {
 	RestOfStack   []*Task
 	SubTasks      []*Task
 	GridPositions []Position
+	Valid         bool
 }
 
 func NewTask(board *Board) *Task {
@@ -144,7 +145,7 @@ func NewTask(board *Board) *Task {
 		LineEndings:                  []*Task{},
 		LineBezier:                   NewCheckbox(postX, 64, 32, 32),
 		GridPositions:                []Position{},
-		// DeadlineTimeTextbox:          NewTextbox(240, 128, 64, 16),	// Need to make textbox format for time.
+		Valid:                        true,
 	}
 
 	task.CreationTime = time.Now()
@@ -1620,14 +1621,21 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		}
 	} else if message == MessageDropped {
 		task.Dragging = false
-		task.Position.X, task.Position.Y = task.Board.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
-		task.Board.RemoveTaskFromGrid(task, task.GridPositions)
-		task.GridPositions = task.Board.AddTaskToGrid(task)
+		if task.Valid {
+			// This gets called when we reorder the board / project, which can cause problems if the Task is already removed
+			// because it will then be immediately readded to the Board grid, thereby making it a "ghost" Task
+			task.Position.X, task.Position.Y = task.Board.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
+			task.Board.RemoveTaskFromGrid(task, task.GridPositions)
+			task.GridPositions = task.Board.AddTaskToGrid(task)
+		}
 	} else if message == MessageNeighbors {
 		task.UpdateNeighbors()
 	} else if message == MessageNumbering {
 		task.SetPrefix()
 	} else if message == MessageDelete {
+
+		task.Valid = false
+		task.Board.RemoveTaskFromGrid(task, task.GridPositions)
 
 		if task.LineBase != nil {
 			endings := task.LineBase.LineEndings

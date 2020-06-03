@@ -1411,7 +1411,7 @@ func (project *Project) GUI() {
 				"Load Recent...",
 				"Save Project",
 				"Save Project As...",
-				"Project Settings",
+				"Settings",
 				"",
 				"New Task",
 				"Delete Tasks",
@@ -1524,7 +1524,7 @@ func (project *Project) GUI() {
 							project.ExecuteDestructiveAction(ActionLoadProject, "")
 						}
 
-					case "Project Settings":
+					case "Settings":
 						project.ReloadThemes() // Reload the themes after opening the settings window
 						project.ProjectSettingsOpen = true
 						project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
