@@ -102,7 +102,7 @@ func main() {
 
 			if attemptAutoload == 0 {
 				if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
-					currentProject.Load(programSettings.RecentPlanList[0])
+					currentProject = LoadProject(programSettings.RecentPlanList[0])
 				}
 			}
 
@@ -120,9 +120,18 @@ func main() {
 			x := float32(rl.GetScreenWidth() - 8)
 			v := "v" + softwareVersion.String()
 
-			if currentProject.Modified {
+			if currentProject.LockProject.Checked {
+				if currentProject.Locked {
+					v += "- Locked - ENGAGED"
+				} else {
+					v += "- Locked"
+				}
+			} else if currentProject.AutoSave.Checked {
+				v += "- Autosave On"
+			} else if currentProject.Modified {
 				v += "- Modified"
 			}
+
 			x -= GUITextWidth(v)
 			DrawGUITextColored(rl.Vector2{x, 8}, color, v)
 
@@ -197,7 +206,7 @@ func main() {
 
 		title := "MasterPlan v" + softwareVersion.String()
 		if currentProject.Modified {
-			title = "MasterPlan v" + softwareVersion.String() + " *"
+			title += " *"
 		}
 
 		if windowTitle != title {

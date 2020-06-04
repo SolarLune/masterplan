@@ -34,7 +34,7 @@ type Resource struct {
 	MimeData *mimetype.MIME
 }
 
-func RegisterResource(resourcePath, localFilepath string, data interface{}) *Resource {
+func (project *Project) RegisterResource(resourcePath, localFilepath string, data interface{}) *Resource {
 
 	mime, _ := mimetype.DetectFile(localFilepath)
 
@@ -45,7 +45,7 @@ func RegisterResource(resourcePath, localFilepath string, data interface{}) *Res
 		MimeData:      mime,
 	}
 
-	currentProject.Resources[resourcePath] = res
+	project.Resources[resourcePath] = res
 	return res
 }
 

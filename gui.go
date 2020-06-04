@@ -156,6 +156,10 @@ func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 	return ImmediateIconButton(rect, rl.Rectangle{}, 0, text, disabled)
 }
 
+type PersistentGUIElement interface {
+	Update()
+}
+
 type DropdownMenu struct {
 	Rect        rl.Rectangle
 	Name        string

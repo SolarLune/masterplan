@@ -87,28 +87,29 @@ type Project struct {
 	OutlineTasks         *Checkbox
 	ColorThemeSpinner    *Spinner
 	BracketSubtasks      *Checkbox
+	LockProject          *Checkbox
 
 	// Internal data to make stuff work
-	FullyInitialized        bool
-	GridTexture             rl.Texture2D
-	ContextMenuOpen         bool
-	ContextMenuPosition     rl.Vector2
-	ProjectSettingsOpen     bool
-	RootPath                string
-	Selecting               bool
-	SelectionStart          rl.Vector2
-	DoubleClickTimer        int
-	DoubleClickTaskID       int
-	CopyBuffer              []*Task
-	Cutting                 bool // If cutting, then this boolean is set
-	TaskOpen                bool
-	ThemeReloadTimer        int
-	NumberingSequence       *Spinner
-	NumberingIgnoreTopLevel *Checkbox
-	JustLoaded              bool
-	ResizingImage           bool
-	LogOn                   bool
-	LoadRecentDropdown      *DropdownMenu
+	FullyInitialized    bool
+	GridTexture         rl.Texture2D
+	ContextMenuOpen     bool
+	ContextMenuPosition rl.Vector2
+	ProjectSettingsOpen bool
+	RootPath            string
+	Selecting           bool
+	SelectionStart      rl.Vector2
+	DoubleClickTimer    int
+	DoubleClickTaskID   int
+	CopyBuffer          []*Task
+	Cutting             bool // If cutting, then this boolean is set
+	TaskOpen            bool
+	ThemeReloadTimer    int
+	NumberingSequence   *Spinner
+	NumberTopLevel      *Checkbox
+	JustLoaded          bool
+	ResizingImage       bool
+	LogOn               bool
+	LoadRecentDropdown  *DropdownMenu
 
 	SearchedTasks     []*Task
 	FocusedSearchTask int
@@ -120,6 +121,7 @@ type Project struct {
 	PreviousTaskType  string
 	Resources         map[string]*Resource
 	Modified          bool
+	Locked            bool
 
 	RenameBoardPopup   *TextboxPopup
 	AbandonPlanPopup   *ButtonChoicePopup
@@ -127,6 +129,7 @@ type Project struct {
 	ActivePopup        Popup
 	PopupAction        string
 	PopupArgument      string
+	SettingsColumns    []*SettingsColumn
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
@@ -141,13 +144,11 @@ func NewProject() *Project {
 	searchBar := NewTextbox(float32(rl.GetScreenWidth())-128, float32(float32(rl.GetScreenHeight()))-23, 128, 23)
 	searchBar.AllowNewlines = false
 
-	px := float32(390)
-
 	project := &Project{
 		FilePath:           "",
 		GridSize:           16,
 		ZoomLevel:          -99,
-		CameraPan:          rl.Vector2{float32(rl.GetScreenWidth()) / 2, float32(rl.GetScreenHeight()) / 2},
+		CameraPan:          rl.Vector2{0, 0},
 		Searchbar:          searchBar,
 		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
 		GUI_Icons:          rl.LoadTexture(GetPath("assets", "gui_icons.png")),
@@ -156,59 +157,49 @@ func NewProject() *Project {
 		Resources:          map[string]*Resource{},
 		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
 
-		ColorThemeSpinner:       NewSpinner(px, 0, 256, 24),
-		TaskShadowSpinner:       NewSpinner(px, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
-		OutlineTasks:            NewCheckbox(px, 0, 32, 32),
-		GridVisible:             NewCheckbox(px, 0, 32, 32),
-		ShowIcons:               NewCheckbox(px, 0, 32, 32),
-		NumberingSequence:       NewSpinner(px, 0, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
-		NumberingIgnoreTopLevel: NewCheckbox(px, 0, 32, 32),
-		PulsingTaskSelection:    NewCheckbox(px, 0, 32, 32),
-		AutoSave:                NewCheckbox(px, 0, 32, 32),
-		AutoReloadThemes:        NewCheckbox(px, 0, 32, 32),
-		SaveSoundsPlaying:       NewCheckbox(px, 0, 32, 32),
-		SampleRate:              NewSpinner(px, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
-		DisableSplashscreen:     NewCheckbox(px, 0, 32, 32),
-		AutoLoadLastProject:     NewCheckbox(px, 0, 32, 32),
-		BracketSubtasks:         NewCheckbox(px, 0, 32, 32),
+		ColorThemeSpinner:    NewSpinner(0, 0, 256, 24),
+		TaskShadowSpinner:    NewSpinner(0, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
+		OutlineTasks:         NewCheckbox(0, 0, 32, 32),
+		GridVisible:          NewCheckbox(0, 0, 32, 32),
+		ShowIcons:            NewCheckbox(0, 0, 32, 32),
+		NumberingSequence:    NewSpinner(0, 0, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
+		NumberTopLevel:       NewCheckbox(0, 0, 32, 32),
+		PulsingTaskSelection: NewCheckbox(0, 0, 32, 32),
+		AutoSave:             NewCheckbox(0, 0, 32, 32),
+		AutoReloadThemes:     NewCheckbox(0, 0, 32, 32),
+		SaveSoundsPlaying:    NewCheckbox(0, 0, 32, 32),
+		SampleRate:           NewSpinner(0, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
+		DisableSplashscreen:  NewCheckbox(0, 0, 32, 32),
+		AutoLoadLastProject:  NewCheckbox(0, 0, 32, 32),
+		BracketSubtasks:      NewCheckbox(0, 0, 32, 32),
+		LockProject:          NewCheckbox(0, 0, 32, 32),
 
 		RenameBoardPopup:   NewTextboxPopup("New Board name:", "Accept", "Cancel"),
 		AbandonPlanPopup:   NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
 		OverwritePlanPopup: NewButtonChoicePopup("A plan exists in this folder already. Overwrite?", "Yes", "No"),
+		SettingsColumns:    []*SettingsColumn{},
 	}
 
-	// Position the settings using something more maintainable than adding 40 to each Y value in a line
-	settingsOptions := []interface{}{
-		project.ColorThemeSpinner,
-		project.TaskShadowSpinner,
-		project.OutlineTasks,
-		project.GridVisible,
-		project.ShowIcons,
-		project.NumberingSequence,
-		project.NumberingIgnoreTopLevel,
-		project.PulsingTaskSelection,
-		project.AutoSave,
-		project.SaveSoundsPlaying,
-		project.SampleRate,
-		project.BracketSubtasks,
-		nil,
-		project.AutoReloadThemes,
-		project.AutoLoadLastProject,
-		project.DisableSplashscreen,
-	}
+	column := project.AddSettingsColumn()
+	column.Add("Task Depth:", project.TaskShadowSpinner)
+	column.Add("Outline Tasks:", project.OutlineTasks)
+	column.Add("Color Theme:", project.ColorThemeSpinner)
+	column.Add("Grid Visible:", project.GridVisible)
+	column.Add("Show Icons:", project.ShowIcons)
+	column.Add("Bracket Sub-Tasks:", project.BracketSubtasks)
+	column.Add("Lock Project:", project.LockProject)
+	column.Add("Numbering Style:", project.NumberingSequence)
 
-	y := float32(32)
-
-	for _, option := range settingsOptions {
-
-		if cb, isCB := option.(*Checkbox); isCB {
-			cb.Rect.Y = y
-		} else if sp, isSP := option.(*Spinner); isSP {
-			sp.Rect.Y = y
-		}
-
-		y += 40
-	}
+	column = project.AddSettingsColumn()
+	column.Add("Number Top-level Tasks:", project.NumberTopLevel)
+	column.Add("Pulse Selected Tasks:", project.PulsingTaskSelection)
+	column.Add("Auto-save Project:", project.AutoSave)
+	column.Add("Auto-reload Themes:", project.AutoReloadThemes)
+	column.Add("Project Samplerate:", project.SampleRate)
+	column.Add("--Program Settings--", nil)
+	column.Add("Auto-load Last Project:", project.AutoLoadLastProject)
+	column.Add("Save Sound Playback:", project.SaveSoundsPlaying)
+	column.Add("Disable Splashscreen:", project.DisableSplashscreen)
 
 	project.Boards = []*Board{NewBoard(project)}
 
@@ -221,6 +212,7 @@ func NewProject() *Project {
 	project.ShowIcons.Checked = true
 	project.DoubleClickTimer = -1
 	project.PreviousTaskType = "Check Box"
+	project.NumberTopLevel.Checked = true
 
 	currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
 
@@ -274,107 +266,125 @@ func (project *Project) Save() {
 
 	success := true
 
-	if project.FilePath != "" {
+	if project.LockProject.Checked && project.Locked {
 
-		// Sort the Tasks by their ID, then loop through them using that slice. This way,
-		// They store data according to their creation ID, not according to their position
-		// in the world.
-		tasksByID := append([]*Task{}, project.GetAllTasks()...)
-
-		sort.Slice(tasksByID, func(i, j int) bool { return tasksByID[i].ID < tasksByID[j].ID })
-
-		taskData := []map[string]interface{}{}
-		for _, task := range tasksByID {
-			if task.Serializable() {
-				taskData = append(taskData, task.Serialize())
-			}
-		}
-
-		data := map[string]interface{}{
-			"Version":                 softwareVersion.String(),
-			"GridSize":                project.GridSize,
-			"Pan.X":                   project.CameraPan.X,
-			"Pan.Y":                   project.CameraPan.Y,
-			"ZoomLevel":               project.ZoomLevel,
-			"BoardCount":              len(project.Boards),
-			"Tasks":                   taskData,
-			"ColorTheme":              currentTheme,
-			"SampleRate":              project.SampleRate.ChoiceAsInt(),
-			"SampleBuffer":            project.SampleBuffer,
-			"TaskShadow":              project.TaskShadowSpinner.CurrentChoice,
-			"OutlineTasks":            project.OutlineTasks.Checked,
-			"BracketSubtasks":         project.BracketSubtasks.Checked,
-			"GridVisible":             project.GridVisible.Checked,
-			"ShowIcons":               project.ShowIcons.Checked,
-			"NumberingIgnoreTopLevel": project.NumberingIgnoreTopLevel.Checked,
-			"NumberingSequence":       project.NumberingSequence.CurrentChoice,
-			"PulsingTaskSelection":    project.PulsingTaskSelection.Checked,
-			"AutoSave":                project.AutoSave.Checked,
-			"AutoReloadThemes":        project.AutoReloadThemes.Checked,
-			"SaveSoundsPlaying":       project.SaveSoundsPlaying.Checked,
-			"BoardIndex":              project.BoardIndex,
-		}
-
-		boardNames := []string{}
-		for _, board := range project.Boards {
-			boardNames = append(boardNames, board.Name)
-		}
-
-		data["BoardNames"] = boardNames
-
-		f, err := os.Create(project.FilePath)
-		if err != nil {
-			log.Println(err)
-			return
-		} else {
-			defer f.Close()
-			encoder := json.NewEncoder(f)
-			encoder.SetIndent("", "\t")
-			encoder.Encode(data)
-			programSettings.Save()
-
-			err = f.Sync() // Want to make sure the file is written
-			if err != nil {
-				log.Println("ERROR: Can't write save file to system.", err)
-				success = false
-			}
-
-		}
-
-	} else {
 		success = false
-	}
+		project.Log("Project cannot be saved, as it is locked.")
 
-	if success {
-		project.Log("Save successful.")
-		project.Modified = false
 	} else {
-		project.Log("ERROR: Save unsuccessful.")
+
+		if project.FilePath != "" {
+
+			// Sort the Tasks by their ID, then loop through them using that slice. This way,
+			// They store data according to their creation ID, not according to their position
+			// in the world.
+			tasksByID := append([]*Task{}, project.GetAllTasks()...)
+
+			sort.Slice(tasksByID, func(i, j int) bool { return tasksByID[i].ID < tasksByID[j].ID })
+
+			taskData := []map[string]interface{}{}
+			for _, task := range tasksByID {
+				if task.Serializable() {
+					taskData = append(taskData, task.Serialize())
+				}
+			}
+
+			data := map[string]interface{}{
+				"Version":              softwareVersion.String(),
+				"GridSize":             project.GridSize,
+				"Pan.X":                project.CameraPan.X,
+				"Pan.Y":                project.CameraPan.Y,
+				"ZoomLevel":            project.ZoomLevel,
+				"BoardCount":           len(project.Boards),
+				"Tasks":                taskData,
+				"ColorTheme":           currentTheme,
+				"SampleRate":           project.SampleRate.ChoiceAsInt(),
+				"SampleBuffer":         project.SampleBuffer,
+				"TaskShadow":           project.TaskShadowSpinner.CurrentChoice,
+				"OutlineTasks":         project.OutlineTasks.Checked,
+				"BracketSubtasks":      project.BracketSubtasks.Checked,
+				"GridVisible":          project.GridVisible.Checked,
+				"ShowIcons":            project.ShowIcons.Checked,
+				"NumberTopLevel":       project.NumberTopLevel.Checked,
+				"NumberingSequence":    project.NumberingSequence.CurrentChoice,
+				"PulsingTaskSelection": project.PulsingTaskSelection.Checked,
+				"AutoSave":             project.AutoSave.Checked,
+				"AutoReloadThemes":     project.AutoReloadThemes.Checked,
+				"SaveSoundsPlaying":    project.SaveSoundsPlaying.Checked,
+				"LockProject":          project.LockProject.Checked,
+				"BoardIndex":           project.BoardIndex,
+			}
+
+			if project.LockProject.Checked {
+				project.Log("Project lock engaged.")
+				project.Locked = true
+			}
+
+			boardNames := []string{}
+			for _, board := range project.Boards {
+				boardNames = append(boardNames, board.Name)
+			}
+
+			data["BoardNames"] = boardNames
+
+			f, err := os.Create(project.FilePath)
+			if err != nil {
+				log.Println(err)
+				return
+			} else {
+				defer f.Close()
+				encoder := json.NewEncoder(f)
+				encoder.SetIndent("", "\t")
+				encoder.Encode(data)
+				programSettings.Save()
+
+				err = f.Sync() // Want to make sure the file is written
+				if err != nil {
+					log.Println("ERROR: Can't write save file to system.", err)
+					success = false
+				}
+
+			}
+
+		} else {
+			success = false
+		}
+
+		if success {
+			project.Log("Save successful.")
+			project.Modified = false
+		} else {
+			project.Log("ERROR: Save unsuccessful.")
+		}
+
 	}
 
 }
 
-func (project *Project) LoadFrom() bool {
+func LoadProjectFrom() *Project {
+
 	// I used to have the extension for this file selector set to "*.plan", but Mac doesn't seem to recognize
 	// MasterPlan's .plan files as having that extension... I'm just removing the extension filter for now.
+
 	file, success, _ := dlgs.File("Load Plan File", "", false)
 	if success {
-		currentProject.Destroy()
-		currentProject = NewProject()
-		// TODO: DO something if this fails
-		return currentProject.Load(file)
+		if loadedProject := LoadProject(file); loadedProject != nil {
+			return loadedProject
+		}
 	}
-	return false
+
+	return nil
+
 }
 
-func (project *Project) Load(filepath string) bool {
+func LoadProject(filepath string) *Project {
 
-	success := true
+	project := NewProject()
 
 	f, err := os.Open(filepath)
 	if err != nil {
 		log.Println(err)
-		success = false
+		project.Log("Error: " + err.Error())
 	} else {
 
 		defer f.Close()
@@ -460,12 +470,17 @@ func (project *Project) Load(filepath string) bool {
 			project.GridVisible.Checked = getBool("GridVisible", project.GridVisible.Checked)
 			project.ShowIcons.Checked = getBool("ShowIcons", project.ShowIcons.Checked)
 			project.NumberingSequence.CurrentChoice = getInt("NumberingSequence", project.NumberingSequence.CurrentChoice)
-			project.NumberingIgnoreTopLevel.Checked = getBool("NumberingIgnoreTopLevel", project.NumberingIgnoreTopLevel.Checked)
+			project.NumberTopLevel.Checked = getBool("NumberTopLevel", project.NumberTopLevel.Checked)
 			project.PulsingTaskSelection.Checked = getBool("PulsingTaskSelection", project.PulsingTaskSelection.Checked)
 			project.AutoSave.Checked = getBool("AutoSave", project.AutoSave.Checked)
 			project.AutoReloadThemes.Checked = getBool("AutoReloadThemes", project.AutoReloadThemes.Checked)
 			project.SaveSoundsPlaying.Checked = getBool("SaveSoundsPlaying", project.SaveSoundsPlaying.Checked)
 			project.BoardIndex = getInt("BoardIndex", project.BoardIndex)
+			project.LockProject.Checked = getBool("LockProject", project.LockProject.Checked)
+
+			if project.LockProject.Checked {
+				project.Locked = true
+			}
 
 			speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
 			project.SetSampleRate = project.SampleRate.ChoiceAsInt()
@@ -557,20 +572,21 @@ func (project *Project) Load(filepath string) bool {
 			programSettings.Save()
 			project.Log("Load successful.")
 
-		} else {
-
-			// It's possible for the file to be mangled and unable to be loaded; I should actually handle this
-			// with a backup system or something.
-			log.Println("Error: Could not load plan: [ %s ].", filepath)
-			currentProject.Log("Error: Could not load plan: [ %s ].", filepath)
-			currentProject.Log("Are you sure it's a valid MasterPlan project?")
-			success = false
+			return project
 
 		}
 
 	}
 
-	return success
+	// It's possible for the file to be mangled and unable to be loaded; I should actually handle this
+	// with a backup system or something.
+	log.Println("Error: Could not load plan: [ %s ].", filepath)
+
+	// We log on the current project because this project didn't load correctly
+
+	currentProject.Log("Error: Could not load plan: [ %s ].", filepath)
+	currentProject.Log("Are you sure it's a valid MasterPlan project?")
+	return nil
 
 }
 
@@ -905,6 +921,12 @@ func (project *Project) Update() {
 		board.HandleDeletedTasks()
 	}
 
+	if project.Modified && project.AutoSave.Checked {
+		project.LogOn = false
+		project.Save()
+		project.LogOn = true
+	}
+
 }
 
 func (project *Project) SendMessage(message string, data map[string]interface{}) {
@@ -915,12 +937,8 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 		task.ReceiveMessage(message, data)
 	}
 
-	if project.AutoSave.Checked {
-		project.Save() // Save whenever anything important happens
-	} else {
-		if message == MessageDelete || message == MessageDragging || message == MessageTaskClose || message == MessageDropped || message == MessageSelect {
-			project.Modified = true
-		}
+	if message == MessageDelete || message == MessageTaskClose || message == MessageDropped {
+		project.Modified = true
 	}
 
 }
@@ -1325,8 +1343,6 @@ func (project *Project) Shortcuts() {
 				}
 			}
 
-		} else if rl.IsKeyPressed(rl.KeyEscape) {
-			project.SendMessage(MessageTaskClose, nil)
 		}
 
 	}
@@ -1420,6 +1436,7 @@ func (project *Project) GUI() {
 				"Paste Tasks",
 				"Paste Content",
 				"",
+				"Manual",
 				"Visit Forums",
 				"Take Screenshot",
 			}
@@ -1549,6 +1566,16 @@ func (project *Project) GUI() {
 					case "Paste Content":
 						project.CurrentBoard().PasteContent()
 
+					case "Manual":
+						startingPlanPath := GetPath("assets", "help_manual.plan")
+						if project.Modified {
+							project.PopupAction = ActionLoadProject
+							project.PopupArgument = startingPlanPath
+							project.ActivatePopup(project.AbandonPlanPopup)
+						} else {
+							project.ExecuteDestructiveAction(ActionLoadProject, startingPlanPath)
+						}
+
 					case "Visit Forums":
 						browser.OpenURL("https://solarlune.itch.io/masterplan/community")
 
@@ -1578,18 +1605,21 @@ func (project *Project) GUI() {
 
 		} else if project.ProjectSettingsOpen {
 
-			rec := rl.Rectangle{16, 16, 750, project.DisableSplashscreen.Rect.Y + 32}
+			rec := rl.Rectangle{16, 16, 960 - 32, 540 - 32}
 			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
 
-			if ImmediateButton(rl.Rectangle{rec.Width - 16, rec.Y, 32, 32}, "X", false) {
+			if ImmediateButton(rl.Rectangle{rec.Width - 16, rec.Y, 32, 32}, "X", false) || rl.IsKeyPressed(rl.KeyEscape) {
+
 				project.ProjectSettingsOpen = false
 
 				if project.SampleRate.ChoiceAsInt() != project.SetSampleRate {
+
 					speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
 					project.SetSampleRate = project.SampleRate.ChoiceAsInt()
 					project.Log("Project sample rate changed to %s.", project.SampleRate.ChoiceAsString())
 					project.Log("Currently playing sounds have been stopped and resampled as necessary.")
+
 					project.LogOn = false
 					for _, t := range project.CurrentBoard().Tasks {
 						if t.TaskType.CurrentChoice == TASK_TYPE_SOUND {
@@ -1599,11 +1629,17 @@ func (project *Project) GUI() {
 					project.LogOn = true
 				}
 
+				if !project.LockProject.Checked {
+					project.Locked = false
+				}
+
 				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
 				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
 
 				if project.AutoSave.Checked {
+					project.LogOn = false
 					project.Save()
+					project.LogOn = true
 				} else {
 					// After modifying the project settings, the project probably has been modified
 					project.Modified = true
@@ -1611,25 +1647,44 @@ func (project *Project) GUI() {
 				programSettings.Save()
 			}
 
-			columnX := float32(32)
+			columnIndex := 0
+			columnWidth := int(rec.Width) / len(project.SettingsColumns)
 
-			DrawGUIText(rl.Vector2{columnX, project.TaskShadowSpinner.Rect.Y + 4}, "Task Depth: ")
-			project.TaskShadowSpinner.Update()
+			for _, column := range project.SettingsColumns {
 
-			DrawGUIText(rl.Vector2{columnX, project.OutlineTasks.Rect.Y + 4}, "Outline Tasks: ")
-			project.OutlineTasks.Update()
+				for textIndex, text := range column.OrderOfEntry {
 
-			DrawGUIText(rl.Vector2{columnX, project.ColorThemeSpinner.Rect.Y + 4}, "Color Theme: ")
-			project.ColorThemeSpinner.Update()
+					element := column.Data[text]
 
-			DrawGUIText(rl.Vector2{columnX, project.GridVisible.Rect.Y + 4}, "Grid Visible: ")
-			project.GridVisible.Update()
+					x := rec.X + 16
+					y := rec.Y + 16
 
-			DrawGUIText(rl.Vector2{columnX, project.ShowIcons.Rect.Y + 4}, "Show Icons: ")
-			project.ShowIcons.Update()
+					x += float32(columnWidth * columnIndex)
+					y += float32(int(rec.Height) / len(column.Data) * textIndex)
 
-			DrawGUIText(rl.Vector2{columnX, project.BracketSubtasks.Rect.Y + 4}, "Bracket Sub-Tasks: ")
-			project.BracketSubtasks.Update()
+					DrawGUIText(rl.Vector2{x, y}, text)
+
+					if element == nil {
+						continue
+					}
+
+					spinner, is := element.(*Spinner)
+					if is {
+						spinner.Rect.X = x + float32(columnWidth)/1.5 - (spinner.Rect.Width / 2)
+						spinner.Rect.Y = y + 4
+					}
+
+					checkbox, is := element.(*Checkbox)
+					if is {
+						checkbox.Rect.X = x + float32(columnWidth)/1.5
+						checkbox.Rect.Y = y
+					}
+
+					element.Update()
+
+				}
+				columnIndex++
+			}
 
 			if project.GridVisible.Changed {
 				project.GenerateGrid()
@@ -1638,33 +1693,6 @@ func (project *Project) GUI() {
 			if project.ColorThemeSpinner.Changed {
 				project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
 			}
-
-			DrawGUIText(rl.Vector2{columnX, project.NumberingSequence.Rect.Y + 4}, "Numbering Sequence: ")
-			project.NumberingSequence.Update()
-
-			DrawGUIText(rl.Vector2{columnX, project.NumberingIgnoreTopLevel.Rect.Y + 4}, "Ignore Numbering Top-level Tasks:")
-			project.NumberingIgnoreTopLevel.Update()
-
-			DrawGUIText(rl.Vector2{columnX, project.PulsingTaskSelection.Rect.Y + 4}, "Pulsing Task Selection Outlines:")
-			project.PulsingTaskSelection.Update()
-
-			DrawGUIText(rl.Vector2{columnX, project.AutoSave.Rect.Y + 4}, "Auto-save Projects on Change:")
-			project.AutoSave.Update()
-
-			DrawGUIText(rl.Vector2{columnX, project.AutoReloadThemes.Rect.Y + 4}, "Auto-reload Themes:")
-			project.AutoReloadThemes.Update()
-
-			DrawGUIText(rl.Vector2{columnX, project.SampleRate.Rect.Y + 4}, "Project Samplerate:")
-			project.SampleRate.Update()
-
-			DrawGUIText(rl.Vector2{columnX, project.AutoLoadLastProject.Rect.Y + 4}, "Auto-load Last Saved Project:")
-			project.AutoLoadLastProject.Update()
-
-			DrawGUIText(rl.Vector2{columnX, project.SaveSoundsPlaying.Rect.Y + 4}, "Save Sound Playback Status:")
-			project.SaveSoundsPlaying.Update()
-
-			DrawGUIText(rl.Vector2{columnX, project.DisableSplashscreen.Rect.Y + 4}, "Disable Splashscreen on Start:")
-			project.DisableSplashscreen.Update()
 
 		}
 
@@ -1683,7 +1711,9 @@ func (project *Project) GUI() {
 
 			for _, t := range project.CurrentBoard().Tasks {
 
-				taskCount++
+				if t.Completable() {
+					taskCount++
+				}
 				if t.IsComplete() {
 					completionCount++
 				}
@@ -1756,7 +1786,7 @@ func (project *Project) GUI() {
 			// Boards
 
 			w := float32(0)
-			for _, b := range currentProject.Boards {
+			for _, b := range project.Boards {
 				bw := GUITextWidth(b.Name)
 				if bw > w {
 					w = bw
@@ -1845,10 +1875,6 @@ func (project *Project) GUI() {
 
 			}
 
-		}
-
-		if project.AutoSave.Checked && !project.TaskOpen && (rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.GetMouseWheelMove() != 0) { // Zooming and panning are also recorded
-			project.Save()
 		}
 
 	}
@@ -2024,7 +2050,7 @@ func (project *Project) Destroy() {
 		board.Destroy()
 	}
 
-	for filepath, res := range project.Resources {
+	for _, res := range project.Resources {
 
 		if res.IsTexture() {
 			rl.UnloadTexture(res.Texture())
@@ -2033,7 +2059,7 @@ func (project *Project) Destroy() {
 		// Audio streams are closed by the Task, as each Sound Task has its own stream.
 
 		if res.Temporary {
-			os.Remove(filepath)
+			os.Remove(res.LocalFilepath)
 		}
 
 	}
@@ -2113,20 +2139,21 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 						if err != nil {
 							log.Println("Could not decode GIF: ", err.Error())
 						} else {
-							res := RegisterResource(resourcePath, localFilepath, gifFile)
+							res := project.RegisterResource(resourcePath, localFilepath, gifFile)
 							res.Temporary = downloadedFile
 							loadedResource = res
 						}
 
 					}
 				} else { // Ordinary image
-					res := RegisterResource(resourcePath, localFilepath, rl.LoadTexture(localFilepath))
+					tex := rl.LoadTexture(localFilepath)
+					res := project.RegisterResource(resourcePath, localFilepath, tex)
 					res.Temporary = downloadedFile
 					loadedResource = res
 				}
 
 			} else if strings.Contains(fileType.String(), "audio") {
-				res := RegisterResource(resourcePath, localFilepath, nil)
+				res := project.RegisterResource(resourcePath, localFilepath, nil)
 				res.Temporary = downloadedFile
 				loadedResource = res
 			}
@@ -2154,13 +2181,15 @@ func (project *Project) ExecuteDestructiveAction(action string, argument string)
 	case ActionNewProject:
 		project.Destroy()
 		currentProject = NewProject()
+		currentProject.Log("New project created.")
 	case ActionLoadProject:
-		project.Destroy()
-		currentProject = NewProject()
 		if argument == "" {
-			currentProject.LoadFrom()
+			LoadProjectFrom()
 		} else {
-			currentProject.Load(argument)
+			if loadProject := LoadProject(argument); loadProject != nil {
+				currentProject.Destroy()
+				currentProject = loadProject
+			}
 		}
 	case ActionSaveAsProject:
 		project.FilePath = argument

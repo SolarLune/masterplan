@@ -653,7 +653,7 @@ func (task *Task) Draw() {
 
 		for i, value := range task.NumberingPrefix {
 
-			if task.Board.Project.NumberingIgnoreTopLevel.Checked && i == 0 {
+			if !task.Board.Project.NumberTopLevel.Checked && i == 0 {
 				continue
 			}
 
@@ -1293,8 +1293,8 @@ func (task *Task) PostDraw() {
 			y += task.Description.Rect.Height + 16
 		}
 
-		if ImmediateButton(rl.Rectangle{rect.Width - 16, rect.Y, 32, 32}, "X", false) {
-			task.ReceiveMessage(MessageTaskClose, nil)
+		if ImmediateButton(rl.Rectangle{rect.Width - 16, rect.Y, 32, 32}, "X", false) || rl.IsKeyPressed(rl.KeyEscape) {
+			task.Board.Project.SendMessage(MessageTaskClose, nil)
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
@@ -1657,7 +1657,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		if data["task"] == task {
 
-			if task.SoundStream != nil {
+			if task.SoundStream != nil && task.SoundControl != nil {
 				task.SoundStream.Close()
 				task.SoundControl.Paused = true
 				task.SoundControl = nil
