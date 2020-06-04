@@ -1600,6 +1600,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Board.Project.TaskOpen = true
 			task.PostOpenDelay = 0
 			task.Dragging = false
+			task.Description.Focused = true
 		}
 
 	} else if message == MessageTaskClose {
