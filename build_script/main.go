@@ -13,34 +13,36 @@ import (
 
 func build() {
 
+	onWin := strings.Contains(runtime.GOOS, "windows")
+	onMac := strings.Contains(runtime.GOOS, "darwin")
+	// onLinux := !onWin && !onMac
+
+	copyTo := func(src, dest string) {
+		if err := copy.Copy(src, dest); err != nil {
+			panic(err)
+		}
+	}
+
 	// Note that this script is meant to be run from a terminal at the project root.
 	// It is specifically not meant to be built into an executable and run by double-clicking in
 	// Finder, on Mac OS.
 
-	osName := runtime.GOOS + "_" + runtime.GOARCH
-	if strings.Contains(runtime.GOOS, "darwin") {
-		osName = "mac_" + runtime.GOARCH
-	}
-
-	baseDir := filepath.Join("bin", osName)
+	baseDir := filepath.Join("bin")
 
 	// We always remove any pre-existing platform directory before building to ensure it's fresh.
 	if err := os.RemoveAll(baseDir); err != nil {
 		panic(err)
 	}
 
-	if err := copy.Copy("changelog.txt", filepath.Join(baseDir, "changelog.txt")); err != nil {
-		panic(err)
-	}
+	copyTo("changelog.txt", filepath.Join(baseDir, "changelog.txt"))
 
-	if strings.Contains(osName, "mac") {
-		baseDir = filepath.Join("bin", osName, "MasterPlan.app", "Contents", "MacOS")
+	if onMac {
+		baseDir = filepath.Join("bin", "MasterPlan.app", "Contents", "MacOS")
 	}
 
 	// Copy the assets folder to the bin directory
-	if err := copy.Copy("assets", filepath.Join(baseDir, "assets")); err != nil {
-		panic(err)
-	}
+
+	copyTo("assets", filepath.Join(baseDir, "assets"))
 
 	log.Println("Assets copied.")
 
@@ -48,9 +50,9 @@ func build() {
 
 	args := []string{"build", "-o", filename, "./"}
 
-	if strings.Contains(osName, "windows") {
+	if onWin {
 		filename += ".exe"
-		// The -H=windowsgui -ldflag is to make sure Go builds a Windows GUI app so the command prompt doesn't stay.
+		// The -H=windowsgui -ldflag is to make sure Go builds a Windows GUI app so the command prompt doesn't stay
 		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag
 		// gets passed to the compiler and XCode wouldn't build if on Mac I leave it in there.
 		args = []string{"build", "-ldflags", "-H=windowsgui", "-o", filename, "./"}
@@ -63,6 +65,15 @@ func build() {
 	if string(result) != "" {
 		log.Println(string(result))
 	}
+
+	// Add the stuff for Mac
+	if onMac {
+		copyTo(filepath.Join("other_sources", "Info.plist"), filepath.Join("bin", "MasterPlan.app", "Contents", "Info.plist"))
+		copyTo(filepath.Join("other_sources", "macicons.icns"), filepath.Join("bin", "MasterPlan.app", "Contents", "Resources", "macicons.icns"))
+	}
+
+	// The final executable should be, well, executable for everybody. 777 should do it.
+	os.Chmod(filename, 0777)
 
 	if err == nil {
 		log.Println("Build [ " + filename + " ] complete!")

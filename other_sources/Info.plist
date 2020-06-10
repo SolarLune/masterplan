@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>en_US</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleIconFile</key>
+		<string>macicons.icns</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>MasterPlan</string>
+		<key>CFBundleExecutable</key>
+		<string>MacOS/MasterPlan</string>
+		<key>CFBundleIdentifier</key>
+		<string>com.solarlune.masterplan</string>
+		<key>CFBundleVersion</key>
+		<string>0.3</string>
+		<key>CFBundleGetInfoString</key>
+		<string>MasterPlan by SolarLune</string>
+		<key>CFBundleShortVersionString</key>
+		<string>0.3.0</string>
+		<key>NSHumanReadableCopyright</key>
+		<string>Copyright SolarLune Games, 2020</string>
+	</dict>
+</plist>
