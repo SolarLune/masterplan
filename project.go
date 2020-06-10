@@ -1436,7 +1436,7 @@ func (project *Project) GUI() {
 				"Paste Tasks",
 				"Paste Content",
 				"",
-				"Manual",
+				"Help",
 				"Visit Forums",
 				"Take Screenshot",
 			}
@@ -1566,7 +1566,7 @@ func (project *Project) GUI() {
 					case "Paste Content":
 						project.CurrentBoard().PasteContent()
 
-					case "Manual":
+					case "Help":
 						startingPlanPath := GetPath("assets", "help_manual.plan")
 						if project.Modified {
 							project.PopupAction = ActionLoadProject

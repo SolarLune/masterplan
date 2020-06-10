@@ -1936,7 +1936,7 @@
 			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Jun 2 2020 17:06:31",
-			"Description": "If the deadline passes, the flashing pattern speeds up, changes,\nand the DUE icon becomes a \"LATE\" icon, indicating that you're screwed.",
+			"Description": "If the deadline passes, the flashing pattern speeds up, changes,\nand the DUE icon becomes a \"LATE\" icon, indicating that you're...\nWell, kinda dead.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -2383,6 +2383,6 @@
 			"TaskType.CurrentChoice": 2
 		}
 	],
-	"Version": "0.2.3",
+	"Version": "0.3.0",
 	"ZoomLevel": 2
 }
