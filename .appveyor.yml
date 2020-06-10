@@ -1,0 +1,36 @@
+version: 0.3.0.{build}
+
+image:
+  - macos
+  - Visual Studio 2017
+  - Ubuntu
+
+platform:
+  - x64
+
+for:
+-
+  matrix:
+    only: 
+      - image: Ubuntu
+  install:
+    sudo apt-get install libgl1-mesa-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libasound2-dev -y
+
+-
+  matrix:
+    only:
+      - image: Visual Studio 2017
+  install:
+    # Set the path to include the 64-bit MinGW
+    - set PATH=C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin;%PATH%
+  after_build:
+    # There's probably a better way to do this than copy libwinpthread-1.dll to the distribution folder but I'm stupid and 
+    # have spent, like, 20 hours getting it straightened out. This ends here.
+    - copy C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin\libwinpthread-1.dll bin\libwinpthread-1.dll
+
+build_script:
+  - go run ./build_script/main.go -b
+
+artifacts:
+  - path: bin
+    name: "MasterPlan-$(APPVEYOR_BUILD_WORKER_IMAGE)-$(APPVEYOR_BUILD_VERSION)"

@@ -1,5 +1,47 @@
 -------
 
+v0.3.0
+
+- Adding a Line Task type. Lines have arrow heads that can be positioned as desired. To make more lines from the same start point, simply copy and paste the line ending.
+- Adding help entry to right-click menu. This loads a tutorial plan to walk through to help learn the program.
+- Adding ability to rearrange the order of Boards by means of the buttons next to the active Board name.
+- Reworked how Tasks are stored internally, which should HOPEFULLY improve efficiency.
+- Default theme for new projects is now always Sunlight.
+- MasterPlan title bar now adds a * when the project has been modified.
+- Autosaving is now indicated at top-right of MasterPlan.
+- MasterPlan now asks for confirmation when destructively changing the current project (save as, new project, load project).
+- Tasks that are copy-pasted are now directly placed where the mouse points, like cutting.
+- Parent Tasks now only count their direct Sub-tasks' completion statuses for completion, not all leaves.
+- Sub-tasks can now be visually bracketed into their parent Task. This option enhances readability at a glance.
+- Adding ability to move all Tasks in all directions (not just numberable Tasks, and not just up and down) by means of holding Control.
+- Board switching shortcuts are now Shift+numbers. More comfortable, sensible defaults.
+- Adding ability to select Tasks in direction from selected Task using arrow keys.​
+- Renaming Project Settings > Settings in context menu.
+- Fix: Repositioning the "<" button for find + replace.
+- Fix: Can't close Tasks when editing them (was sending wrong message on "X" button press).
+- Fix: Tasks not being numbered properly, after closing a Task.
+- Fix: Cam center no longer depends on window size.
+- Fix: Copying and cutting pastes tasks so the center of all pasted Tasks hits where the mouse cursor is.
+- Fix: Updating excel.ttf to fix ; and : characters being too low. Adding & character as well.
+- Fix: Tasks not being selected on load when they were on save.
+- Fix: \n runes can be highlighted in Textbox.
+- Fix: Can't search for timers by their name.
+- Fix (?): Searchbar now expands as you type.
+- Fix: Project settings options are now more properly spaced.
+- Adding ability to lock Projects. This disables saving after saving once after the option has been enabled. Useful for locking projects in a specific state to ensure they aren't accidentally modified.
+- Fix: Closing task edit window doesn't flip Project.Modified tag / create the opportunity for auto-saving - this was because I was calling task.ReceiveMessage instead of project.SendMessage (which is what ESC was doing on project, so it shouldn't be a huge deal to migrate it to task.go).
+- Fix: Switching between projects should be more efficient now, as resources are now freed from the previous project.
+- Fix: Temporary files created during resource download process weren't being deleted properly.
+- Fix: Pan now defaults to 0,0 for new Projects.
+- Fix: Autosaving now works on fewer actions (just adding tasks, editing tasks, moving tasks, deleting tasks, and changing the project settings). This makes it less of a chore to work with. 
+- Fix: Autosave no longer triggers during load (this was wholly unnecessary). 
+- Fix: Description now has focus on when going to edit a Task.
+- MasterPlan now has an icon and is more "app-like" on Mac.
+
+-------
+
+-------
+
 v0.2.3
 
 -------
