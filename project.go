@@ -2184,7 +2184,8 @@ func (project *Project) ExecuteDestructiveAction(action string, argument string)
 		currentProject.Log("New project created.")
 	case ActionLoadProject:
 		if argument == "" {
-			LoadProjectFrom()
+			currentProject.Destroy()
+			currentProject = LoadProjectFrom()
 		} else {
 			if loadProject := LoadProject(argument); loadProject != nil {
 				currentProject.Destroy()

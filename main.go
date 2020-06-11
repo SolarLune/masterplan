@@ -13,7 +13,7 @@ const TARGET_FPS = 60
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.3.0")
+var softwareVersion, _ = semver.Make("0.3.1")
 var takeScreenshot = false
 
 var fontSize = float32(15)

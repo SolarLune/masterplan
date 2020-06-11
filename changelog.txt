@@ -1,6 +1,16 @@
 -------
 
+v0.3.1
+
+-------
+
+- Fix: Can't load projects (whoops, this was a major, but extremely simple, bug).
+
+-------
+
 v0.3.0
+
+-------
 
 - Adding a Line Task type. Lines have arrow heads that can be positioned as desired. To make more lines from the same start point, simply copy and paste the line ending.
 - Adding help entry to right-click menu. This loads a tutorial plan to walk through to help learn the program.
@@ -37,8 +47,6 @@ v0.3.0
 - Fix: Autosave no longer triggers during load (this was wholly unnecessary). 
 - Fix: Description now has focus on when going to edit a Task.
 - MasterPlan now has an icon and is more "app-like" on Mac.
-
--------
 
 -------
 
