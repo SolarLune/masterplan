@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -8,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/mholt/archiver"
 	"github.com/otiai10/copy"
 )
 
@@ -15,7 +18,6 @@ func build() {
 
 	onWin := strings.Contains(runtime.GOOS, "windows")
 	onMac := strings.Contains(runtime.GOOS, "darwin")
-	// onLinux := !onWin && !onMac
 
 	copyTo := func(src, dest string) {
 		if err := copy.Copy(src, dest); err != nil {
@@ -72,29 +74,58 @@ func build() {
 		copyTo(filepath.Join("other_sources", "macicons.icns"), filepath.Join("bin", "MasterPlan.app", "Contents", "Resources", "macicons.icns"))
 	}
 
-	// The final executable should be, well, executable for everybody. 777 should do it.
+	// The final executable should be, well, executable for everybody. 777 should do it for Mac and Linux.
 	os.Chmod(filename, 0777)
 
 	if err == nil {
-		log.Println("Build [ " + filename + " ] complete!")
+		log.Println("Build complete!")
 	}
+
+}
+
+// Compress the build output in bin. This is a separate step to ensure that any dependencies that need to be copied in from build
+// services (like Appveyor) can be done after building in the build service's configuration.
+func compress() {
+
+	onWin := strings.Contains(runtime.GOOS, "windows")
+	onMac := strings.Contains(runtime.GOOS, "darwin")
+
+	platformName := strings.Title(runtime.GOOS)
+	if onMac {
+		platformName = "Mac"
+	}
+
+	ending := ".tar.gz"
+	if onWin {
+		ending = ".zip"
+	}
+
+	// Archive in .tar.gz because AppVeyor doesn't handle execution bits properly and I don't want to add a ton to the source code
+	// just to box the output up into a .tar.gz.
+
+	os.Chdir("./bin") // Switch to the bin folder and then archive the contents
+
+	archiver.Archive([]string{"./"}, "MasterPlan-"+platformName+ending)
+
+	log.Println("Build successfully compressed!")
 
 }
 
 func publishToItch() {
 
-	// result, err := exec.Command("butler", "push", "solarlune/masterplan").CombinedOutput()
 	buildNames := []string{}
 
-	filepath.Walk(filepath.Join("bin"), func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(filepath.Join("./", "build_script"), func(path string, info os.FileInfo, err error) error {
 
-		directoryPath := strings.Split(path, string(filepath.Separator))
-
-		if !info.IsDir() || len(directoryPath) != 2 {
+		if info.IsDir() {
 			return nil
 		}
 
-		buildNames = append(buildNames, path)
+		ext := filepath.Ext(path)
+
+		if ext == ".gz" || ext == ".zip" {
+			buildNames = append(buildNames, path)
+		}
 
 		return nil
 
@@ -116,25 +147,30 @@ func publishToItch() {
 
 func main() {
 
-	printHelp := func() {
-		log.Println("To use this script, use the following arguments:", "-b to build the program for the current OS.", "-i to publish the bin contents to itch.")
-	}
+	buildMP := flag.Bool("b", false, "Build MasterPlan in /bin directory.")
+	compressMP := flag.Bool("c", false, "Compress build output.")
+	itch := flag.Bool("i", false, "Upload build to itch.io.")
+	flag.Parse()
 
-	if len(os.Args) != 2 {
-		printHelp()
-		return
-	}
-
-	arg := os.Args[1]
-
-	if strings.HasPrefix(arg, "-b") {
+	if *buildMP {
 		build()
-	} else if strings.HasPrefix(arg, "-i") {
+	}
+	if *compressMP {
+		compress()
+	}
+	if *itch {
 		publishToItch()
-	} else {
-		log.Println("Error: Command not recognized.")
-		printHelp()
-		return
+	}
+
+	if !*buildMP && !*compressMP && !*itch {
+
+		fmt.Println(
+			"To use this script, you can use the following arguments:\n",
+			"-b to build MasterPlan for the current OS.\n",
+			"-c to compress the build output, as a .tar.gz file for Linux or Mac, or a .zip file for Windows.\n",
+			"-i to publish the bin contents to itch.",
+		)
+
 	}
 
 }

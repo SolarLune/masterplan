@@ -8,6 +8,11 @@ image:
 platform:
   - x64
 
+# We don't want to build any other branches; just master
+branches:
+  only:
+    - master
+
 for:
 -
   matrix:
@@ -23,14 +28,23 @@ for:
   install:
     # Set the path to include the 64-bit MinGW
     - set PATH=C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin;%PATH%
-  after_build:
+  build_script:
+    - go run ./build_script/main.go -b
     # There's probably a better way to do this than copy libwinpthread-1.dll to the distribution folder but I'm stupid and 
     # have spent, like, 20 hours getting it straightened out. This ends here.
     - copy C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin\libwinpthread-1.dll bin\libwinpthread-1.dll
 
 build_script:
-  - go run ./build_script/main.go -b
+  - go run ./build_script/main.go -b # Build...
+
+after_build:
+  - go run ./build_script/main.go -c # ... Then compress.
+  
 
 artifacts:
-  - path: bin
+  
+  - path: bin\*.tar.gz
+    name: "MasterPlan-$(APPVEYOR_BUILD_WORKER_IMAGE)-$(APPVEYOR_BUILD_VERSION)"
+
+  - path: bin\*.zip
     name: "MasterPlan-$(APPVEYOR_BUILD_WORKER_IMAGE)-$(APPVEYOR_BUILD_VERSION)"

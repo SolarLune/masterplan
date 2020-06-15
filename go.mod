@@ -11,11 +11,13 @@ require (
 	github.com/gen2brain/dlgs v0.0.0-20200211102745-b9c2664df42f
 	github.com/gen2brain/raylib-go v0.0.0-20200528082952-e0f56b22753f
 	github.com/hako/durafmt v0.0.0-20191009132224-3f39dc1ed9f4
+	github.com/mholt/archiver v3.1.1+incompatible // indirect
+	github.com/mholt/archiver/v3 v3.3.0 // indirect
 	github.com/otiai10/copy v1.2.0
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/tanema/gween v0.0.0-20200427131925-c89ae23cc63c
 )
 
-// The below line replaces the normal raylib-go dependency with my branch that has the config.h tweaked to 
+// The below line replaces the normal raylib-go dependency with my branch that has the config.h tweaked to
 // remove screenshot-taking because we're do it manually in MasterPlan.
 replace github.com/gen2brain/raylib-go => github.com/solarlune/raylib-go v0.0.0-20200603204758-df4dce33640c
