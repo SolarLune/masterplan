@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -102,7 +103,9 @@ func main() {
 
 			if attemptAutoload == 0 {
 				if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
-					currentProject = LoadProject(programSettings.RecentPlanList[0])
+					if loaded := LoadProject(programSettings.RecentPlanList[0]); loaded != nil {
+						currentProject = loaded
+					}
 				}
 			}
 
@@ -138,11 +141,14 @@ func main() {
 			color = rl.White
 			bgColor := rl.Black
 
+			y := float32(24)
+
 			for i := 0; i < len(eventLogBuffer); i++ {
 
 				msg := eventLogBuffer[i]
 
-				text := msg.Time.Format("15:04:05") + " : " + msg.Text
+				text := "- " + msg.Time.Format("15:04:05") + " : " + msg.Text
+				text = strings.ReplaceAll(text, "\n", "\n                    ")
 
 				alpha, done := msg.Tween.Update(rl.GetFrameTime())
 				color.A = uint8(alpha)
@@ -150,13 +156,13 @@ func main() {
 
 				textSize := rl.MeasureTextEx(guiFont, text, guiFontSize, 1)
 				lineHeight, _ := TextHeight(text, true)
-				textPos := rl.Vector2{8, 24 + float32(i)*lineHeight}
+				textPos := rl.Vector2{8, y}
 				rectPos := textPos
 
 				rectPos.X--
 				rectPos.Y--
 				textSize.X += 2
-				textSize.Y += 2
+				textSize.Y = lineHeight
 
 				rl.DrawRectangleV(textPos, textSize, bgColor)
 				DrawGUITextColored(textPos, color, text)
@@ -165,6 +171,8 @@ func main() {
 					eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
 					i--
 				}
+
+				y += lineHeight
 
 			}
 

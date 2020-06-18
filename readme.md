@@ -25,6 +25,10 @@ MasterPlan is not quite fully free software, but the source is available here. I
 
 from the MasterPlan source directory to build. It should generate a folder named `bin`, and populate it with a directory with a release build for your OS and architecture. MasterPlan's `go.mod` automatically uses my fork of raylib-go, located [here](https://github.com/SolarLune/raylib-go). It should be kept up to date with `raylib-go` master, but with its `raylib/config.h` file altered to turn off automatic screenshots (as MasterPlan handles this manually).
 
+## Requirements
+
+All requirements for building and running MasterPlan should be filled by the go.mod and the building process automatically on all platforms. Linux additionally requires the use of `zenity`, `qarma`, or `matedialog` for opening file selection windows, and `xsel`, `xclip`, or `wl-clipboard` for clipboard copy-and-paste functions. At least one of each of these two groups will most likely be installed by default on your chosen Linux distro.
+
 ## License
 
 MasterPlan is copyright, All Rights Reserved, SolarLune Games 2019-2020. 

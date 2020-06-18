@@ -23,8 +23,8 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 
-	"github.com/gen2brain/dlgs"
 	"github.com/gen2brain/raylib-go/raymath"
+	"github.com/ncruces/zenity"
 
 	"github.com/gabriel-vasile/mimetype"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -123,13 +123,12 @@ type Project struct {
 	Modified          bool
 	Locked            bool
 
-	RenameBoardPopup   *TextboxPopup
-	AbandonPlanPopup   *ButtonChoicePopup
-	OverwritePlanPopup *ButtonChoicePopup
-	ActivePopup        Popup
-	PopupAction        string
-	PopupArgument      string
-	SettingsColumns    []*SettingsColumn
+	RenameBoardPopup *TextboxPopup
+	AbandonPlanPopup *ButtonChoicePopup
+	ActivePopup      Popup
+	PopupAction      string
+	PopupArgument    string
+	SettingsColumns  []*SettingsColumn
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
@@ -174,10 +173,9 @@ func NewProject() *Project {
 		BracketSubtasks:      NewCheckbox(0, 0, 32, 32),
 		LockProject:          NewCheckbox(0, 0, 32, 32),
 
-		RenameBoardPopup:   NewTextboxPopup("New Board name:", "Accept", "Cancel"),
-		AbandonPlanPopup:   NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
-		OverwritePlanPopup: NewButtonChoicePopup("A plan exists in this folder already. Overwrite?", "Yes", "No"),
-		SettingsColumns:    []*SettingsColumn{},
+		RenameBoardPopup: NewTextboxPopup("New Board name:", "Accept", "Cancel"),
+		AbandonPlanPopup: NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
+		SettingsColumns:  []*SettingsColumn{},
 	}
 
 	column := project.AddSettingsColumn()
@@ -244,19 +242,17 @@ func (project *Project) GetAllTasks() []*Task {
 }
 
 func (project *Project) SaveAs() {
-	dirPath, success, _ := dlgs.File("Select Project Directory", "", true)
 
-	if success {
+	if savePath, err := zenity.SelectFileSave(
+		zenity.Title("Select a location and name to save the Project."),
+		zenity.ConfirmOverwrite(),
+		zenity.FileFilters{{Name: ".plan", Patterns: []string{"*.plan"}}}); err == nil && savePath != "" {
 
-		projectFilepath := filepath.Join(dirPath, "master.plan")
-
-		if FileExists(projectFilepath) {
-			project.PopupAction = ActionSaveAsProject
-			project.PopupArgument = projectFilepath
-			project.ActivatePopup(project.OverwritePlanPopup)
-		} else {
-			project.ExecuteDestructiveAction(ActionSaveAsProject, projectFilepath)
+		if filepath.Ext(savePath) != ".plan" {
+			savePath += ".plan"
 		}
+
+		project.ExecuteDestructiveAction(ActionSaveAsProject, savePath)
 
 	}
 
@@ -366,8 +362,7 @@ func LoadProjectFrom() *Project {
 	// I used to have the extension for this file selector set to "*.plan", but Mac doesn't seem to recognize
 	// MasterPlan's .plan files as having that extension... I'm just removing the extension filter for now.
 
-	file, success, _ := dlgs.File("Load Plan File", "", false)
-	if success {
+	if file, err := zenity.SelectFile(zenity.Title("Select MasterPlan Project File")); err == nil && file != "" {
 		if loadedProject := LoadProject(file); loadedProject != nil {
 			return loadedProject
 		}
@@ -381,11 +376,7 @@ func LoadProject(filepath string) *Project {
 
 	project := NewProject()
 
-	f, err := os.Open(filepath)
-	if err != nil {
-		log.Println(err)
-		project.Log("Error: " + err.Error())
-	} else {
+	if f, err := os.Open(filepath); err == nil {
 
 		defer f.Close()
 		decoder := json.NewDecoder(f)
@@ -580,11 +571,11 @@ func LoadProject(filepath string) *Project {
 
 	// It's possible for the file to be mangled and unable to be loaded; I should actually handle this
 	// with a backup system or something.
-	log.Println("Error: Could not load plan: [ %s ].", filepath)
+	log.Println(fmt.Sprintf("Error: Could not load plan: [ %s ].", filepath))
 
 	// We log on the current project because this project didn't load correctly
 
-	currentProject.Log("Error: Could not load plan: [ %s ].", filepath)
+	currentProject.Log("Error: Could not load plan:\n[ %s ].", filepath)
 	currentProject.Log("Are you sure it's a valid MasterPlan project?")
 	return nil
 
@@ -595,7 +586,7 @@ func (project *Project) Log(text string, variables ...interface{}) {
 		if len(variables) > 0 {
 			text = fmt.Sprintf(text, variables...)
 		}
-		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text, gween.New(255, 0, 7, ease.InCubic)})
+		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text, gween.New(255, 0, 7, ease.InExpo)})
 	}
 }
 
@@ -2183,15 +2174,21 @@ func (project *Project) ExecuteDestructiveAction(action string, argument string)
 		currentProject = NewProject()
 		currentProject.Log("New project created.")
 	case ActionLoadProject:
+
+		var loadProject *Project
+
 		if argument == "" {
-			currentProject.Destroy()
-			currentProject = LoadProjectFrom()
+			loadProject = LoadProjectFrom()
 		} else {
-			if loadProject := LoadProject(argument); loadProject != nil {
-				currentProject.Destroy()
-				currentProject = loadProject
-			}
+			loadProject = LoadProject(argument)
 		}
+
+		// Unsuccessful loads will not destroy the current project
+		if loadProject != nil {
+			currentProject.Destroy()
+			currentProject = loadProject
+		}
+
 	case ActionSaveAsProject:
 		project.FilePath = argument
 		project.Save()

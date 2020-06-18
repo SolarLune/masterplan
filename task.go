@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gen2brain/raylib-go/raymath"
+	"github.com/ncruces/zenity"
 
 	"github.com/chonla/roman-number-go"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/faiface/beep/wav"
-	"github.com/gen2brain/dlgs"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -1321,9 +1321,18 @@ func (task *Task) PostDraw() {
 			task.FilePathTextbox.Update()
 
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 56, 64, 32}, "Load", false) {
-				filepath, success, _ := dlgs.File("Load Image", "*.png *.bmp *.jpeg *.jpg *.gif *.psd *.dds *.hdr *.ktx *.astc *.kpm *.pvr", false)
 
-				if success {
+				if filepath, err := zenity.SelectFile(zenity.Title("Select image file"), zenity.FileFilters{zenity.FileFilter{Name: "Image", Patterns: []string{
+					"png",
+					"bmp",
+					"jpeg",
+					"jpg",
+					"gif",
+					"dds",
+					"hdr",
+					"ktx",
+					"astc",
+				}}}); err == nil && filepath != "" {
 					task.FilePathTextbox.SetText(filepath)
 				}
 			}
@@ -1340,8 +1349,12 @@ func (task *Task) PostDraw() {
 			task.FilePathTextbox.Update()
 
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 56, 64, 32}, "Load", false) {
-				filepath, success, _ := dlgs.File("Load Sound", "*.wav *.ogg *.flac *.mp3", false)
-				if success {
+				if filepath, err := zenity.SelectFile(zenity.Title("Select sound file"), zenity.FileFilters{zenity.FileFilter{Name: "Sound files", Patterns: []string{
+					"wav",
+					"ogg",
+					"flac",
+					"mp3",
+				}}}); err == nil && filepath != "" {
 					task.FilePathTextbox.SetText(filepath)
 				}
 			}
