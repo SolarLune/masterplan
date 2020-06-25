@@ -56,46 +56,50 @@ const (
 	ActionNewProject    = "new"
 	ActionLoadProject   = "load"
 	ActionSaveAsProject = "save as"
+
+	BackupDelineator = "_bak_"
 )
 
 var firstFreeTaskID = 0
 
 type Project struct {
-	// Settings / project-specific data
-	FilePath string
-	GridSize int32
-	// Tasks                []Board
-	Boards            []*Board
-	BoardIndex        int
-	BoardPanel        rl.Rectangle
-	ZoomLevel         int
-	CameraPan         rl.Vector2
-	CameraOffset      rl.Vector2
-	TaskShadowSpinner *Spinner
-	GridVisible       *Checkbox
-	// SampleRate           beep.SampleRate
-	SampleRate           *Spinner
-	SetSampleRate        int
-	SampleBuffer         int
-	ShowIcons            *Checkbox
-	PulsingTaskSelection *Checkbox
-	AutoSave             *Checkbox
-	AutoReloadThemes     *Checkbox
-	AutoLoadLastProject  *Checkbox
-	DisableSplashscreen  *Checkbox
-	SaveSoundsPlaying    *Checkbox
-	OutlineTasks         *Checkbox
-	ColorThemeSpinner    *Spinner
-	BracketSubtasks      *Checkbox
-	LockProject          *Checkbox
+
+	// Project Settings
+	TaskShadowSpinner        *Spinner
+	GridVisible              *Checkbox
+	SampleRate               *Spinner
+	SetSampleRate            int
+	SampleBuffer             int
+	ShowIcons                *Checkbox
+	PulsingTaskSelection     *Checkbox
+	AutoSave                 *Checkbox
+	AutoReloadThemes         *Checkbox
+	AutoLoadLastProject      *Checkbox
+	DisableSplashscreen      *Checkbox
+	SaveSoundsPlaying        *Checkbox
+	OutlineTasks             *Checkbox
+	ColorThemeSpinner        *Spinner
+	BracketSubtasks          *Checkbox
+	LockProject              *Checkbox
+	NumberingSequence        *Spinner
+	NumberTopLevel           *Checkbox
+	AutomaticBackupInterval  *NumberSpinner
+	AutomaticBackupKeepCount *NumberSpinner
 
 	// Internal data to make stuff work
+	FilePath            string
+	GridSize            int32
+	Boards              []*Board
+	BoardIndex          int
+	BoardPanel          rl.Rectangle
+	ZoomLevel           int
+	CameraPan           rl.Vector2
+	CameraOffset        rl.Vector2
 	FullyInitialized    bool
 	GridTexture         rl.Texture2D
 	ContextMenuOpen     bool
 	ContextMenuPosition rl.Vector2
 	ProjectSettingsOpen bool
-	RootPath            string
 	Selecting           bool
 	SelectionStart      rl.Vector2
 	DoubleClickTimer    int
@@ -104,8 +108,6 @@ type Project struct {
 	Cutting             bool // If cutting, then this boolean is set
 	TaskOpen            bool
 	ThemeReloadTimer    int
-	NumberingSequence   *Spinner
-	NumberTopLevel      *Checkbox
 	JustLoaded          bool
 	ResizingImage       bool
 	LogOn               bool
@@ -129,6 +131,7 @@ type Project struct {
 	PopupAction      string
 	PopupArgument    string
 	SettingsColumns  []*SettingsColumn
+	BackupTimer      time.Time
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
@@ -156,22 +159,24 @@ func NewProject() *Project {
 		Resources:          map[string]*Resource{},
 		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
 
-		ColorThemeSpinner:    NewSpinner(0, 0, 256, 24),
-		TaskShadowSpinner:    NewSpinner(0, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
-		OutlineTasks:         NewCheckbox(0, 0, 32, 32),
-		GridVisible:          NewCheckbox(0, 0, 32, 32),
-		ShowIcons:            NewCheckbox(0, 0, 32, 32),
-		NumberingSequence:    NewSpinner(0, 0, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
-		NumberTopLevel:       NewCheckbox(0, 0, 32, 32),
-		PulsingTaskSelection: NewCheckbox(0, 0, 32, 32),
-		AutoSave:             NewCheckbox(0, 0, 32, 32),
-		AutoReloadThemes:     NewCheckbox(0, 0, 32, 32),
-		SaveSoundsPlaying:    NewCheckbox(0, 0, 32, 32),
-		SampleRate:           NewSpinner(0, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
-		DisableSplashscreen:  NewCheckbox(0, 0, 32, 32),
-		AutoLoadLastProject:  NewCheckbox(0, 0, 32, 32),
-		BracketSubtasks:      NewCheckbox(0, 0, 32, 32),
-		LockProject:          NewCheckbox(0, 0, 32, 32),
+		ColorThemeSpinner:        NewSpinner(0, 0, 256, 24),
+		TaskShadowSpinner:        NewSpinner(0, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
+		OutlineTasks:             NewCheckbox(0, 0, 32, 32),
+		GridVisible:              NewCheckbox(0, 0, 32, 32),
+		ShowIcons:                NewCheckbox(0, 0, 32, 32),
+		NumberingSequence:        NewSpinner(0, 0, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
+		NumberTopLevel:           NewCheckbox(0, 0, 32, 32),
+		PulsingTaskSelection:     NewCheckbox(0, 0, 32, 32),
+		AutoSave:                 NewCheckbox(0, 0, 32, 32),
+		AutoReloadThemes:         NewCheckbox(0, 0, 32, 32),
+		SaveSoundsPlaying:        NewCheckbox(0, 0, 32, 32),
+		SampleRate:               NewSpinner(0, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
+		DisableSplashscreen:      NewCheckbox(0, 0, 32, 32),
+		AutoLoadLastProject:      NewCheckbox(0, 0, 32, 32),
+		BracketSubtasks:          NewCheckbox(0, 0, 32, 32),
+		LockProject:              NewCheckbox(0, 0, 32, 32),
+		AutomaticBackupInterval:  NewNumberSpinner(0, 0, 128, 40),
+		AutomaticBackupKeepCount: NewNumberSpinner(0, 0, 128, 40),
 
 		RenameBoardPopup: NewTextboxPopup("New Board name:", "Accept", "Cancel"),
 		AbandonPlanPopup: NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
@@ -187,6 +192,8 @@ func NewProject() *Project {
 	column.Add("Bracket Sub-Tasks:", project.BracketSubtasks)
 	column.Add("Lock Project:", project.LockProject)
 	column.Add("Numbering Style:", project.NumberingSequence)
+	column.Add("Backup save every X minutes:", project.AutomaticBackupInterval)
+	column.Add("Keep X backups max:", project.AutomaticBackupKeepCount)
 
 	column = project.AddSettingsColumn()
 	column.Add("Number Top-level Tasks:", project.NumberTopLevel)
@@ -211,6 +218,10 @@ func NewProject() *Project {
 	project.DoubleClickTimer = -1
 	project.PreviousTaskType = "Check Box"
 	project.NumberTopLevel.Checked = true
+	project.AutomaticBackupInterval.Minimum = 0
+	project.AutomaticBackupInterval.Maximum = 60
+	project.AutomaticBackupKeepCount.SetNumber(3)
+	project.AutomaticBackupKeepCount.Minimum = 1
 
 	currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
 
@@ -258,14 +269,14 @@ func (project *Project) SaveAs() {
 
 }
 
-func (project *Project) Save() {
+func (project *Project) Save(backup bool) {
 
 	success := true
 
-	if project.LockProject.Checked && project.Locked {
+	if !backup && project.LockProject.Checked && project.Locked {
 
 		success = false
-		project.Log("Project cannot be saved, as it is locked.")
+		project.Log("Project cannot be manually saved, as it is locked.")
 
 	} else {
 
@@ -309,9 +320,11 @@ func (project *Project) Save() {
 				"SaveSoundsPlaying":    project.SaveSoundsPlaying.Checked,
 				"LockProject":          project.LockProject.Checked,
 				"BoardIndex":           project.BoardIndex,
+				"BackupInterval":       project.AutomaticBackupInterval.GetNumber(),
+				"BackupKeepCount":      project.AutomaticBackupKeepCount.GetNumber(),
 			}
 
-			if project.LockProject.Checked {
+			if !backup && project.LockProject.Checked {
 				project.Log("Project lock engaged.")
 				project.Locked = true
 			}
@@ -326,7 +339,6 @@ func (project *Project) Save() {
 			f, err := os.Create(project.FilePath)
 			if err != nil {
 				log.Println(err)
-				return
 			} else {
 				defer f.Close()
 				encoder := json.NewEncoder(f)
@@ -336,7 +348,7 @@ func (project *Project) Save() {
 
 				err = f.Sync() // Want to make sure the file is written
 				if err != nil {
-					log.Println("ERROR: Can't write save file to system.", err)
+					log.Println("ERROR: Can't write file to system: ", err)
 					success = false
 				}
 
@@ -347,10 +359,15 @@ func (project *Project) Save() {
 		}
 
 		if success {
-			project.Log("Save successful.")
-			project.Modified = false
+			if !backup {
+				project.Log("Save successful.")
+				// Modified flag only gets cleared on manual saves, not automatic backups
+				project.Modified = false
+			} else {
+				project.Log("Backup successful.")
+			}
 		} else {
-			project.Log("ERROR: Save unsuccessful.")
+			project.Log("ERROR: Save / backup unsuccessful.")
 		}
 
 	}
@@ -398,7 +415,11 @@ func LoadProject(filepath string) *Project {
 
 			project.JustLoaded = true
 
-			project.FilePath = filepath
+			if strings.Contains(filepath, BackupDelineator) {
+				project.FilePath = strings.Split(filepath, BackupDelineator)[0]
+			} else {
+				project.FilePath = filepath
+			}
 
 			getFloat := func(name string, defaultValue float32) float32 {
 				value, exists := data[name]
@@ -468,6 +489,8 @@ func LoadProject(filepath string) *Project {
 			project.SaveSoundsPlaying.Checked = getBool("SaveSoundsPlaying", project.SaveSoundsPlaying.Checked)
 			project.BoardIndex = getInt("BoardIndex", project.BoardIndex)
 			project.LockProject.Checked = getBool("LockProject", project.LockProject.Checked)
+			project.AutomaticBackupInterval.SetNumber(getInt("BackupInterval", project.AutomaticBackupInterval.GetNumber()))
+			project.AutomaticBackupKeepCount.SetNumber(getInt("BackupKeepCount", project.AutomaticBackupKeepCount.GetNumber()))
 
 			if project.LockProject.Checked {
 				project.Locked = true
@@ -656,6 +679,8 @@ func (project *Project) MousingOver() string {
 }
 
 func (project *Project) Update() {
+
+	project.AutoBackup()
 
 	if project.ActivePopup == nil {
 
@@ -914,8 +939,70 @@ func (project *Project) Update() {
 
 	if project.Modified && project.AutoSave.Checked {
 		project.LogOn = false
-		project.Save()
+		project.Save(false)
 		project.LogOn = true
+	}
+
+}
+
+func (project *Project) AutoBackup() {
+
+	if project.AutomaticBackupInterval.GetNumber() == 0 {
+		if !project.AutomaticBackupInterval.Textbox.Focused {
+			project.AutomaticBackupInterval.Textbox.SetText("OFF")
+		}
+	} else {
+
+		if project.BackupTimer.IsZero() {
+			project.BackupTimer = time.Now()
+		} else if time.Now().Sub(project.BackupTimer).Minutes() >= float64(project.AutomaticBackupInterval.GetNumber()) && project.FilePath != "" {
+
+			dir, _ := filepath.Split(project.FilePath)
+
+			existingBackups := []string{}
+
+			// Walk the home directory to find
+			filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+				if path != project.FilePath && strings.Contains(path, project.FilePath) {
+					existingBackups = append(existingBackups, path)
+				}
+				return nil
+			})
+
+			timeFormat := "Jan 2 2006 15:04:05"
+
+			if len(existingBackups) > 0 {
+
+				sort.Slice(existingBackups, func(i, j int) bool {
+
+					dti := strings.Split(existingBackups[i], BackupDelineator)
+					dateTextI := dti[len(dti)-1]
+					timeI, _ := time.Parse(timeFormat, dateTextI)
+
+					dtj := strings.Split(existingBackups[j], BackupDelineator)
+					dateTextJ := dtj[len(dtj)-1]
+					timeJ, _ := time.Parse(timeFormat, dateTextJ)
+
+					return timeI.Before(timeJ)
+
+				})
+
+			}
+
+			for i := 0; i < len(existingBackups)-project.AutomaticBackupKeepCount.GetNumber()+1; i++ {
+				oldest := existingBackups[0]
+				os.Remove(oldest)
+				existingBackups = existingBackups[1:]
+			}
+
+			fp := strings.Split(project.FilePath, BackupDelineator)[0]
+			project.FilePath += BackupDelineator + time.Now().Format(timeFormat)
+			project.Save(true)
+			project.BackupTimer = time.Now()
+			project.FilePath = fp
+
+		}
+
 	}
 
 }
@@ -1269,7 +1356,7 @@ func (project *Project) Shortcuts() {
 					if project.FilePath == "" {
 						project.SaveAs()
 					} else {
-						project.Save()
+						project.Save(false)
 					}
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyO) {
 					if project.Modified {
@@ -1519,7 +1606,7 @@ func (project *Project) GUI() {
 						}
 
 					case "Save Project":
-						project.Save()
+						project.Save(false)
 
 					case "Save Project As...":
 						project.SaveAs()
@@ -1629,7 +1716,7 @@ func (project *Project) GUI() {
 
 				if project.AutoSave.Checked {
 					project.LogOn = false
-					project.Save()
+					project.Save(false)
 					project.LogOn = true
 				} else {
 					// After modifying the project settings, the project probably has been modified
@@ -1669,6 +1756,12 @@ func (project *Project) GUI() {
 					if is {
 						checkbox.Rect.X = x + float32(columnWidth)/1.5
 						checkbox.Rect.Y = y
+					}
+
+					numberSpinner, is := element.(*NumberSpinner)
+					if is {
+						numberSpinner.Rect.X = x + float32(columnWidth)/1.5
+						numberSpinner.Rect.Y = y - 4
 					}
 
 					element.Update()
@@ -2191,7 +2284,7 @@ func (project *Project) ExecuteDestructiveAction(action string, argument string)
 
 	case ActionSaveAsProject:
 		project.FilePath = argument
-		project.Save()
+		project.Save(false)
 	}
 
 }

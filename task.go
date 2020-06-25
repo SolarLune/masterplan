@@ -151,6 +151,8 @@ func NewTask(board *Board) *Task {
 	task.CreationTime = time.Now()
 	task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine = 19
 	task.CompletionProgressionCurrent.Textbox.AllowNewlines = false
+	task.CompletionProgressionCurrent.Minimum = 0
+	task.CompletionProgressionMax.Minimum = 0
 
 	task.CompletionProgressionMax.Textbox.MaxCharactersPerLine = task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine
 	task.CompletionProgressionMax.Textbox.AllowNewlines = false

@@ -1,6 +1,8 @@
 {
 	"AutoReloadThemes": true,
 	"AutoSave": false,
+	"BackupInterval": 0,
+	"BackupKeepCount": 3,
 	"BoardCount": 3,
 	"BoardIndex": 0,
 	"BoardNames": [
@@ -12,11 +14,12 @@
 	"ColorTheme": "Dark Crimson",
 	"GridSize": 16,
 	"GridVisible": true,
-	"NumberingIgnoreTopLevel": true,
+	"LockProject": false,
+	"NumberTopLevel": true,
 	"NumberingSequence": 0,
 	"OutlineTasks": true,
-	"Pan.X": 1456.4265,
-	"Pan.Y": -62.878143,
+	"Pan.X": 1498,
+	"Pan.Y": -2647,
 	"PulsingTaskSelection": true,
 	"SampleBuffer": 512,
 	"SampleRate": 44100,
@@ -3408,7 +3411,7 @@
 			"BoardIndex": 0,
 			"Checkbox.Checked": false,
 			"CreationTime": "Feb 20 2020 22:53:59",
-			"Description": "Double-click words to select them.",
+			"Description": "Double-click words to select them.\nDouble-click again to select all text?",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -3416,7 +3419,7 @@
 			"Position.Y": 2528,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Selected": false,
+			"Selected": true,
 			"TaskType.CurrentChoice": 0
 		},
 		{
@@ -3621,9 +3624,10 @@
 		},
 		{
 			"BoardIndex": 0,
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Jun 24 2020 18:06:19",
 			"CreationTime": "Oct 1 2019 19:13:07",
-			"Description": "Add automatic back-up creation.\nDefaults to 1 per 5 minutes.\nFile could end in \".(backup number)\", like Blender.",
+			"Description": "Add automatic back-ups.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -3682,6 +3686,7 @@
 		{
 			"BoardIndex": 0,
 			"Checkbox.Checked": false,
+			"CompletionTime": "Jun 24 2020 22:39:15",
 			"CreationTime": "Nov 6 2019 09:49:07",
 			"Description": "Distribution",
 			"FilePath": "",
@@ -5018,9 +5023,10 @@
 		},
 		{
 			"BoardIndex": 0,
-			"Checkbox.Checked": false,
+			"Checkbox.Checked": true,
+			"CompletionTime": "Jun 24 2020 22:39:15",
 			"CreationTime": "Jun 1 2020 14:26:44",
-			"Description": "Use TravisCI or Appveyor to handle cross-platform builds more easily.",
+			"Description": "Use Appveyor to handle cross-platform builds more easily.",
 			"FilePath": "",
 			"ImageDisplaySize.X": 0,
 			"ImageDisplaySize.Y": 0,
@@ -5104,7 +5110,7 @@
 			"Position.Y": 48,
 			"Progression.Current": 0,
 			"Progression.Max": 0,
-			"Selected": true,
+			"Selected": false,
 			"TaskType.CurrentChoice": 0
 		},
 		{
@@ -5124,6 +5130,6 @@
 			"TaskType.CurrentChoice": 0
 		}
 	],
-	"Version": "0.2.3",
-	"ZoomLevel": 2
+	"Version": "0.3.1",
+	"ZoomLevel": 1
 }
