@@ -436,7 +436,7 @@ type NumberSpinner struct {
 	Loop    bool // If the spinner loops when attempting to add a number past the max
 }
 
-func NewNumberSpinner(x, y, w, h float32, options ...string) *NumberSpinner {
+func NewNumberSpinner(x, y, w, h float32) *NumberSpinner {
 	numberSpinner := &NumberSpinner{Rect: rl.Rectangle{x, y, w, h}, Textbox: NewTextbox(x+h, y, w-(h*2), h)}
 
 	numberSpinner.Textbox.AllowAlphaCharacters = false
@@ -457,7 +457,7 @@ func (numberSpinner *NumberSpinner) Update() {
 	numberSpinner.Textbox.Update()
 
 	minusButton := ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false)
-	plusButton := ImmediateButton(rl.Rectangle{numberSpinner.Rect.X + numberSpinner.Rect.Width - numberSpinner.Rect.Height, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false)
+	plusButton := ImmediateButton(rl.Rectangle{numberSpinner.Textbox.Rect.X + numberSpinner.Textbox.Rect.Width, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false)
 
 	if !numberSpinner.Textbox.Focused {
 
@@ -1040,20 +1040,21 @@ func (textbox *Textbox) Update() {
 		}
 	}
 
-	pos := rl.Vector2{textbox.Rect.X + 2, textbox.Rect.Y - 4}
+	hMargin := float32(2)
+	vMargin := float32(2)
+
+	pos := rl.Vector2{textbox.Rect.X + hMargin, textbox.Rect.Y + vMargin}
 
 	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
-		pos.X += float32(int(textbox.Rect.Width/2 - measure.X/2))
-		pos.X -= 8
+		pos.X += float32(int(textbox.Rect.Width/2-measure.X/2)) - hMargin
 	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
-		pos.X += float32(int(textbox.Rect.Width - measure.X - 4))
-		pos.X -= 8
+		pos.X += float32(int(textbox.Rect.Width - measure.X - hMargin))
 	}
 
 	if textbox.VerticalAlignment == TEXTBOX_ALIGN_CENTER {
-		pos.Y += float32(int(textbox.Rect.Height/2 - measure.Y/2))
+		pos.Y += float32(int(textbox.Rect.Height/2-measure.Y/2)) - vMargin
 	} else if textbox.VerticalAlignment == TEXTBOX_ALIGN_BOTTOM {
-		pos.Y += float32(int(textbox.Rect.Height - measure.Y - 4))
+		pos.Y += float32(int(textbox.Rect.Height - measure.Y - vMargin))
 	}
 
 	if textbox.RangeSelected() {
@@ -1067,6 +1068,10 @@ func (textbox *Textbox) Update() {
 			}
 			if rec.Width < GUITextWidth("A") {
 				rec.Width = GUITextWidth("A")
+			}
+
+			if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
+				rec.X += 8
 			}
 
 			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE_DISABLED))
