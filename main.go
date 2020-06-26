@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"runtime"
 	"strings"
 
@@ -10,6 +12,9 @@ import (
 )
 
 const TARGET_FPS = 60
+
+// Build-time variable
+var releaseMode = "false"
 
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
@@ -26,10 +31,65 @@ var guiFont rl.Font
 var windowTitle = "MasterPlan v" + softwareVersion.String()
 
 func init() {
+
+	if releaseMode == "true" {
+
+		// Redirect STDERR and STDOUT to log.txt in release mode
+
+		f, err := os.Create(GetPath("log.txt"))
+		if err != nil {
+			panic(err)
+		}
+
+		os.Stderr = f
+		os.Stdout = f
+
+		log.SetOutput(f)
+
+	}
+
 	runtime.LockOSThread() // Don't know if this is necessary still
 }
 
 func main() {
+
+	// We want to defer a function to recover out of a crash if in release mode.
+	// We do this because by default, Go's stderr points directly to the OS's syserr buffer.
+	// By deferring this function and recovering out of the crash, we can grab the crashlog by
+	// using runtime.Caller().
+
+	defer func() {
+		if releaseMode == "true" {
+			panicOut := recover()
+			if panicOut != nil {
+
+				log.Print(
+					"\n\n# ERROR #\n",
+				)
+
+				stackContinue := true
+				i := 4 // We can skip the first few crash lines, as they reach up through the main
+				// function call and into this defer() call.
+				for stackContinue {
+					// Recover the lines of the crash log and log it out.
+					_, fn, line, ok := runtime.Caller(i)
+					stackContinue = ok
+					if ok {
+						if i == 4 {
+							log.Print("\n", fn, ":", line, " | ", "Error: ", panicOut)
+						} else {
+							log.Print("\n", fn, ":", line)
+						}
+						i++
+					}
+				}
+
+				log.Print(
+					"\n\n# ERROR #\n",
+				)
+			}
+		}
+	}()
 
 	rl.SetTraceLog(rl.LogError)
 

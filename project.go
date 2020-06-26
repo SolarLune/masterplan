@@ -2202,7 +2202,8 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 			// We have to rename the resource according to what it is because raylib expects the extensions of files to be correct.
 			// png image files need to have .png as an extension, for example.
-			if filepath.Ext(localFilepath) != fileType.Extension() {
+
+			if strings.ToLower(filepath.Ext(localFilepath)) != fileType.Extension()	 {
 				newName := localFilepath + fileType.Extension()
 				os.Rename(localFilepath, newName)
 				localFilepath = newName

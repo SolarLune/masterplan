@@ -50,14 +50,14 @@ func build() {
 
 	filename := filepath.Join(baseDir, "MasterPlan")
 
-	args := []string{"build", "-o", filename, "./"}
+	args := []string{"build", "-ldflags", "-X main.releaseMode=true", "-o", filename, "./"}
 
 	if onWin {
 		filename += ".exe"
 		// The -H=windowsgui -ldflag is to make sure Go builds a Windows GUI app so the command prompt doesn't stay
 		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag
 		// gets passed to the compiler and XCode wouldn't build if on Mac I leave it in there.
-		args = []string{"build", "-ldflags", "-H=windowsgui", "-o", filename, "./"}
+		args = []string{"build", "-ldflags", "-X main.releaseMode=true", "-H=windowsgui", "-o", filename, "./"}
 	}
 
 	log.Println("Building binary...")

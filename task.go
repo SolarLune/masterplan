@@ -1325,15 +1325,15 @@ func (task *Task) PostDraw() {
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 56, 64, 32}, "Load", false) {
 
 				if filepath, err := zenity.SelectFile(zenity.Title("Select image file"), zenity.FileFilters{zenity.FileFilter{Name: "Image", Patterns: []string{
-					"png",
-					"bmp",
-					"jpeg",
-					"jpg",
-					"gif",
-					"dds",
-					"hdr",
-					"ktx",
-					"astc",
+					"*.png",
+					"*.bmp",
+					"*.jpeg",
+					"*.jpg",
+					"*.gif",
+					"*.dds",
+					"*.hdr",
+					"*.ktx",
+					"*.astc",
 				}}}); err == nil && filepath != "" {
 					task.FilePathTextbox.SetText(filepath)
 				}

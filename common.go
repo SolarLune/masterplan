@@ -4,7 +4,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/gen2brain/raylib-go/raymath"
@@ -59,14 +58,12 @@ func GetPath(folders ...string) string {
 	// now I have to make this function to do what should be done anyway and give me a relative path starting from
 	// the executable so that I can load assets from the assets directory. :,)
 
-	cwd, _ := os.Getwd()
 	exePath, _ := os.Executable()
 	exeDir := filepath.Dir(exePath)
 
-	if strings.Contains(exeDir, "go-build") {
-		// If the executable's directory contains "go-build", it's probably the result of a "go run" command, so just go with the CWD
-		// as the "root" to base the path from
-		exeDir = cwd
+	if releaseMode == "false" {
+		// Not in release mode, so current working directory is the root.
+		exeDir, _ = os.Getwd()
 	}
 
 	return filepath.Join(exeDir, filepath.Join(folders...))
