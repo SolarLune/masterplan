@@ -68,17 +68,16 @@ func main() {
 				)
 
 				stackContinue := true
-				i := 4 // We can skip the first few crash lines, as they reach up through the main
+				i := 0 // We can skip the first few crash lines, as they reach up through the main
 				// function call and into this defer() call.
 				for stackContinue {
 					// Recover the lines of the crash log and log it out.
 					_, fn, line, ok := runtime.Caller(i)
 					stackContinue = ok
 					if ok {
-						if i == 4 {
-							log.Print("\n", fn, ":", line, " | ", "Error: ", panicOut)
-						} else {
-							log.Print("\n", fn, ":", line)
+						log.Print("\n", fn, ":", line)
+						if i == 0 {
+							log.Print(" | ", "Error: ", panicOut)
 						}
 						i++
 					}

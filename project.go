@@ -377,7 +377,9 @@ func (project *Project) Save(backup bool) {
 func LoadProjectFrom() *Project {
 
 	// I used to have the extension for this file selector set to "*.plan", but Mac doesn't seem to recognize
-	// MasterPlan's .plan files as having that extension... I'm just removing the extension filter for now.
+	// MasterPlan's .plan files as having that extension, using both dlgs and zenity. Not sure why; filters work when loading
+	// files. Maybe because .plan files don't have some kind of metadata that identifies them on Mac? Maybe I should just make them
+	// JSON files; that's what they are, anyway...
 
 	if file, err := zenity.SelectFile(zenity.Title("Select MasterPlan Project File")); err == nil && file != "" {
 		if loadedProject := LoadProject(file); loadedProject != nil {
@@ -2203,7 +2205,7 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 			// We have to rename the resource according to what it is because raylib expects the extensions of files to be correct.
 			// png image files need to have .png as an extension, for example.
 
-			if strings.ToLower(filepath.Ext(localFilepath)) != fileType.Extension()	 {
+			if strings.ToLower(filepath.Ext(localFilepath)) != fileType.Extension() {
 				newName := localFilepath + fileType.Extension()
 				os.Rename(localFilepath, newName)
 				localFilepath = newName

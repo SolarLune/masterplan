@@ -561,15 +561,15 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
 	x := textbox.Rect.X
 	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
-		x = textbox.Rect.X + textbox.Rect.Width - GUITextWidth(line)
+		x = textbox.Rect.X + textbox.Rect.Width - GUITextWidth(string(line))
 		point.X += 8
 	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
-		x = textbox.Rect.X + (textbox.Rect.Width-GUITextWidth(line))/2
+		x = textbox.Rect.X + (textbox.Rect.Width-GUITextWidth(string(line)))/2
 		point.X += 8
 	}
 
 	// Adding a space so you can select the point after the line ends
-	line += " "
+	line = append(line, ' ')
 
 	closestCharIndex := -1
 	closestCharDiff := float32(-1)
@@ -627,8 +627,28 @@ func (textbox *Textbox) InsertTextAtCaret(text string) {
 	}
 }
 
-func (textbox *Textbox) Lines() []string {
-	return strings.Split(textbox.Text(), "\n")
+func (textbox *Textbox) Lines() [][]rune {
+
+	// This used to return []string, one string for each line, but a string is basically a human-readable version of a string of
+	// bytes / unicode characters. Some characters, like ß, are actually composed of multiple bytes. Since this is the case,
+	// it's wise to return an array of runes, which are individual characters, rather than a string, which can't be reliably
+	// iterated over without accidentally messing up those multi-byte characters.
+
+	lines := [][]rune{}
+
+	lines = append(lines, []rune{})
+	currentLine := 0
+	for _, t := range textbox.text {
+		if t == '\n' {
+			currentLine++
+			lines = append(lines, []rune{})
+		} else {
+			lines[currentLine] = append(lines[currentLine], t)
+		}
+	}
+
+	return lines
+
 }
 
 func (textbox *Textbox) LineNumberByPosition(position int) int {
@@ -665,9 +685,9 @@ func (textbox *Textbox) CharacterToPoint(position int) rl.Vector2 {
 	y := textbox.Rect.Y + 2
 
 	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
-		startX += textbox.Rect.Width - GUITextWidth(textbox.Lines()[textbox.LineNumberByPosition(position)]) - 8
+		startX += textbox.Rect.Width - GUITextWidth(string(textbox.Lines()[textbox.LineNumberByPosition(position)])) - 8
 	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
-		startX += (textbox.Rect.Width-GUITextWidth(textbox.Lines()[textbox.LineNumberByPosition(position)]))/2 - 8
+		startX += (textbox.Rect.Width-GUITextWidth(string(textbox.Lines()[textbox.LineNumberByPosition(position)])))/2 - 8
 	}
 
 	x := startX
@@ -728,6 +748,8 @@ func (textbox *Textbox) FindLastCharBeforeCaret(char rune) int {
 
 func (textbox *Textbox) Update() {
 
+	hMargin := float32(2)
+	vMargin := float32(2)
 	textbox.Changed = false
 
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
@@ -790,7 +812,8 @@ func (textbox *Textbox) Update() {
 		}
 
 		mousePos := GetMousePosition()
-		mousePos.Y -= textbox.lineHeight / 2
+		mousePos.X += hMargin + (rl.MeasureTextEx(guiFont, "A", guiFontSize, spacing).X / 2)
+		mousePos.Y += hMargin - (textbox.lineHeight / 2)
 
 		if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 			textbox.CaretPos = textbox.ClosestPointInText(mousePos)
@@ -1040,9 +1063,6 @@ func (textbox *Textbox) Update() {
 		}
 	}
 
-	hMargin := float32(2)
-	vMargin := float32(2)
-
 	pos := rl.Vector2{textbox.Rect.X + hMargin, textbox.Rect.Y + vMargin}
 
 	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
@@ -1055,6 +1075,13 @@ func (textbox *Textbox) Update() {
 		pos.Y += float32(int(textbox.Rect.Height/2-measure.Y/2)) - vMargin
 	} else if textbox.VerticalAlignment == TEXTBOX_ALIGN_BOTTOM {
 		pos.Y += float32(int(textbox.Rect.Height - measure.Y - vMargin))
+	}
+
+	if textbox.SelectedRange[0] > len(textbox.text) {
+		textbox.SelectedRange[0] = len(textbox.text)
+	}
+	if textbox.SelectedRange[1] > len(textbox.text) {
+		textbox.SelectedRange[1] = len(textbox.text)
 	}
 
 	if textbox.RangeSelected() {
