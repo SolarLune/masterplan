@@ -37,7 +37,10 @@ func NewBoard(project *Project) *Board {
 func (board *Board) CreateNewTask() *Task {
 	newTask := NewTask(board)
 	halfGrid := float32(board.Project.GridSize / 2)
-	newTask.Position.X, newTask.Position.Y = board.Project.LockPositionToGrid(GetWorldMousePosition().X-halfGrid, GetWorldMousePosition().Y-halfGrid)
+	gp := rl.Vector2{GetWorldMousePosition().X - halfGrid, GetWorldMousePosition().Y - halfGrid}
+
+	newTask.Position = board.Project.LockPositionToGrid(gp)
+
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	board.Tasks = append(board.Tasks, newTask)
 
@@ -110,6 +113,7 @@ func (board *Board) DeleteSelectedTasks() {
 		count++
 		stackMoveUp = append(stackMoveUp, t.RestOfStack...)
 		board.DeleteTask(t)
+		board.Project.UndoBuffer.Capture(t)
 	}
 
 	for _, s := range stackMoveUp {
@@ -238,8 +242,8 @@ func (board *Board) PasteTasks() {
 			clone := cloneTask(srcTask)
 			clone.Position.X += GetWorldMousePosition().X - center.X
 			clone.Position.Y += GetWorldMousePosition().Y - center.Y
-			clone.Position.X, clone.Position.Y = board.Project.LockPositionToGrid(clone.Position.X, clone.Position.Y)
-
+			clone.Position = board.Project.LockPositionToGrid(clone.Position)
+			clone.Board.Project.UndoBuffer.Capture(clone)
 		}
 
 		board.ReorderTasks()
@@ -257,6 +261,7 @@ func (board *Board) PasteTasks() {
 		if board.Project.Cutting {
 			for _, task := range board.Project.CopyBuffer {
 				task.Board.DeleteTask(task)
+				task.Board.Project.UndoBuffer.Capture(task)
 			}
 			board.Project.Cutting = false
 			board.Project.CopyBuffer = []*Task{}

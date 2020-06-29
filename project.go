@@ -132,6 +132,8 @@ type Project struct {
 	PopupArgument    string
 	SettingsColumns  []*SettingsColumn
 	BackupTimer      time.Time
+	UndoBuffer       *UndoBuffer // A slice of UndoCommand slices because you might undo several changes at once
+	UndoIndex        int
 
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
@@ -182,6 +184,8 @@ func NewProject() *Project {
 		AbandonPlanPopup: NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
 		SettingsColumns:  []*SettingsColumn{},
 	}
+
+	project.UndoBuffer = NewUndoBuffer(project)
 
 	column := project.AddSettingsColumn()
 	column.Add("Task Depth:", project.TaskShadowSpinner)
@@ -945,6 +949,8 @@ func (project *Project) Update() {
 		project.LogOn = true
 	}
 
+	project.UndoBuffer.Update()
+
 }
 
 func (project *Project) AutoBackup() {
@@ -1031,6 +1037,7 @@ func (project *Project) Shortcuts() {
 		rl.KeyLeft,
 		rl.KeyRight,
 		rl.KeyF,
+		rl.KeyZ,
 		rl.KeyEnter,
 		rl.KeyKpEnter,
 	}
@@ -1159,6 +1166,10 @@ func (project *Project) Shortcuts() {
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
 					task := project.CurrentBoard().CreateNewTask()
 					task.ReceiveMessage(MessageDoubleClick, nil)
+				} else if holdingCtrl && holdingShift && repeatableKeyDown[rl.KeyZ] {
+					project.UndoBuffer.Redo()
+				} else if holdingCtrl && repeatableKeyDown[rl.KeyZ] {
+					project.UndoBuffer.Undo()
 				} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
 
 					for _, task := range project.GetAllTasks() {
@@ -2065,10 +2076,10 @@ func (project *Project) GetFirstFreeID() int {
 
 }
 
-func (project *Project) LockPositionToGrid(x, y float32) (float32, float32) {
+func (project *Project) LockPositionToGrid(xy rl.Vector2) rl.Vector2 {
 
-	return float32(math.Round(float64(x/float32(project.GridSize)))) * float32(project.GridSize),
-		float32(math.Round(float64(y/float32(project.GridSize)))) * float32(project.GridSize)
+	return rl.Vector2{float32(math.Round(float64(xy.X/float32(project.GridSize)))) * float32(project.GridSize),
+		float32(math.Round(float64(xy.Y/float32(project.GridSize)))) * float32(project.GridSize)}
 
 }
 
@@ -2291,3 +2302,92 @@ func (project *Project) ExecuteDestructiveAction(action string, argument string)
 	}
 
 }
+
+// func (project *Project) AddUndoToBuffer(undo *UndoState) {
+// 	if len(project.UndoBuffer) == 0 || project.UndoBuffer[project.UndoIndex].Length() == 0 {
+// 		project.UndoBuffer = append(project.UndoBuffer, &UndoFrame{})
+// 	}
+// 	project.UndoBuffer[project.UndoIndex].Add(undo)
+// }
+
+// func (project *Project) AddUndosToBuffer(undos ...UndoCommand) {
+// 	if project.UndoIndex < 0 {
+// 		project.UndoIndex = 0
+// 		project.UndoBuffer = [][]UndoCommand{}
+// 	}
+// 	project.UndoBuffer = append(project.UndoBuffer[:project.UndoIndex], undos)
+// 	project.UndoIndex++
+// }
+
+// func (project *Project) RemoveUndoFromBuffer(undo UndoCommand) {
+
+// 	for i, u := range project.UndoBuffer {
+// 		if u == undo {
+// 			project.UndoBuffer[i] = nil
+// 			project.UndoBuffer = append(project.UndoBuffer[:i], project.UndoBuffer[i+1:]...)
+// 			break
+// 		}
+// 	}
+
+// }
+
+// func (project *Project) ApplyUndo() {
+// 	if project.UndoIndex > 0 {
+// 		project.UndoIndex--
+// 		project.LogOn = false
+// 		undos := project.UndoBuffer[project.UndoIndex]
+// 		for _, undo := range undos {
+// 			undo.Undo()
+// 		}
+// 		project.LogOn = true
+// 		project.Log("Successfully undid %d operations.", len(undos))
+// 	} else {
+// 		project.Log("Nothing to undo.")
+// 	}
+// }
+
+// func (project *Project) ApplyRedo() {
+// 	if project.UndoIndex < len(project.UndoBuffer) {
+// 		project.LogOn = false
+// 		undos := project.UndoBuffer[project.UndoIndex]
+// 		for _, undo := range undos {
+// 			undo.Redo()
+// 		}
+// 		project.LogOn = true
+// 		project.Log("Successfully redid %d operations.", len(undos))
+// 		project.UndoIndex++
+// 	} else {
+// 		project.Log("Nothing to redo.")
+// 	}
+// }
+
+// func (project *Project) ApplyUndo() {
+// 	if project.UndoIndex > 0 {
+// 		project.UndoIndex -= 2
+
+// 		undos := project.UndoBuffer[project.UndoIndex]
+// 		undos.Apply()
+
+// 		project.LogOn = false
+// 		project.LogOn = true
+// 		project.Log("Successfully undid %d operations.", undos.Length())
+// 		project.UndoBuffer = project.UndoBuffer[:project.UndoIndex]
+// 	} else {
+// 		project.Log("Nothing to undo.")
+// 	}
+// }
+
+// func (project *Project) ApplyRedo() {
+// 	// if project.UndoIndex < len(project.UndoBuffer) {
+// 	// project.LogOn = false
+// // undos := project.UndoBuffer[project.UndoIndex]
+// // for _, undo := range undos {
+// // 	undo.Redo()
+// // }
+// // project.LogOn = true
+// // project.Log("Successfully redid %d operations.", len(undos))
+// 	// project.UndoIndex++
+// // } else {
+// // 	project.Log("Nothing to redo.")
+// 	// }
+// // }

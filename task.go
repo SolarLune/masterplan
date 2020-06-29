@@ -926,7 +926,7 @@ func (task *Task) Draw() {
 					}
 
 					if !rl.IsKeyDown(rl.KeyLeftShift) && !rl.IsKeyDown(rl.KeyRightShift) {
-						task.ImageDisplaySize.X, task.ImageDisplaySize.Y = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize.X, task.ImageDisplaySize.Y)
+						task.ImageDisplaySize = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize)
 					}
 
 				}
@@ -1631,6 +1631,9 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		}
 	} else if message == MessageDragging {
 		if task.Selected {
+			if !task.Dragging {
+				task.Board.Project.UndoBuffer.Capture(task)
+			}
 			task.Dragging = true
 			task.MouseDragStart = GetWorldMousePosition()
 			task.TaskDragStart = task.Position
@@ -1640,9 +1643,13 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		if task.Valid {
 			// This gets called when we reorder the board / project, which can cause problems if the Task is already removed
 			// because it will then be immediately readded to the Board grid, thereby making it a "ghost" Task
-			task.Position.X, task.Position.Y = task.Board.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
+			task.Position = task.Board.Project.LockPositionToGrid(task.Position)
 			task.Board.RemoveTaskFromGrid(task, task.GridPositions)
 			task.GridPositions = task.Board.AddTaskToGrid(task)
+
+			if !task.Board.Project.JustLoaded && task.Selected {
+				task.Board.Project.UndoBuffer.Capture(task)
+			}
 		}
 	} else if message == MessageNeighbors {
 		task.UpdateNeighbors()
