@@ -19,6 +19,8 @@ require (
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/tanema/gween v0.0.0-20200427131925-c89ae23cc63c
+	github.com/tidwall/gjson v1.6.0
+	github.com/tidwall/sjson v1.1.1
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 )
 

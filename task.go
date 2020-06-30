@@ -11,6 +11,8 @@ import (
 
 	"github.com/gen2brain/raylib-go/raymath"
 	"github.com/ncruces/zenity"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 
 	"github.com/chonla/roman-number-go"
 
@@ -249,56 +251,60 @@ func (task *Task) Clone() *Task {
 	return &copyData
 }
 
-func (task *Task) Serialize() map[string]interface{} {
+// Serialize returns the Task's changeable properties in the form of a complete JSON object in a string.
+func (task *Task) Serialize() string {
 
-	data := map[string]interface{}{}
-	data["BoardIndex"] = task.Board.Index()
-	data["Position.X"] = task.Position.X
-	data["Position.Y"] = task.Position.Y
-	data["ImageDisplaySize.X"] = task.ImageDisplaySize.X
-	data["ImageDisplaySize.Y"] = task.ImageDisplaySize.Y
-	data["Checkbox.Checked"] = task.CompletionCheckbox.Checked
-	data["Progression.Current"] = task.CompletionProgressionCurrent.GetNumber()
-	data["Progression.Max"] = task.CompletionProgressionMax.GetNumber()
-	data["Description"] = task.Description.Text()
-	data["FilePath"] = task.FilePathTextbox.Text()
-	data["Selected"] = task.Selected
-	data["TaskType.CurrentChoice"] = task.TaskType.CurrentChoice
+	jsonData := "{}"
+
+	jsonData, _ = sjson.Set(jsonData, `BoardIndex`, task.Board.Index())
+	jsonData, _ = sjson.Set(jsonData, `Position\.X`, task.Position.X)
+	jsonData, _ = sjson.Set(jsonData, `Position\.Y`, task.Position.Y)
+	jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.X`, task.ImageDisplaySize.X)
+	jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.Y`, task.ImageDisplaySize.Y)
+	jsonData, _ = sjson.Set(jsonData, `Checkbox\.Checked`, task.CompletionCheckbox.Checked)
+	jsonData, _ = sjson.Set(jsonData, `Progression\.Current`, task.CompletionProgressionCurrent.GetNumber())
+	jsonData, _ = sjson.Set(jsonData, `Progression\.Max`, task.CompletionProgressionMax.GetNumber())
+	jsonData, _ = sjson.Set(jsonData, `Description`, task.Description.Text())
+	jsonData, _ = sjson.Set(jsonData, `FilePath`, task.FilePathTextbox.Text())
+	jsonData, _ = sjson.Set(jsonData, `Selected`, task.Selected)
+	jsonData, _ = sjson.Set(jsonData, `TaskType\.CurrentChoice`, task.TaskType.CurrentChoice)
+
 	if task.Board.Project.SaveSoundsPlaying.Checked {
-		data["SoundPaused"] = task.SoundControl != nil && task.SoundControl.Paused
+		jsonData, _ = sjson.Set(jsonData, `SoundPaused`, task.SoundControl != nil && task.SoundControl.Paused)
 	}
 
 	if task.DeadlineCheckbox.Checked {
-		data["DeadlineDaySpinner.Number"] = task.DeadlineDaySpinner.GetNumber()
-		data["DeadlineMonthSpinner.CurrentChoice"] = task.DeadlineMonthSpinner.CurrentChoice
-		data["DeadlineYearSpinner.Number"] = task.DeadlineYearSpinner.GetNumber()
+		jsonData, _ = sjson.Set(jsonData, `DeadlineDaySpinner\.Number`, task.DeadlineDaySpinner.GetNumber())
+		jsonData, _ = sjson.Set(jsonData, `DeadlineMonthSpinner\.CurrentChoice`, task.DeadlineMonthSpinner.CurrentChoice)
+		jsonData, _ = sjson.Set(jsonData, `DeadlineYearSpinner\.Number`, task.DeadlineYearSpinner.GetNumber())
 	}
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
-		data["TimerSecondSpinner.Number"] = task.TimerSecondSpinner.GetNumber()
-		data["TimerMinuteSpinner.Number"] = task.TimerMinuteSpinner.GetNumber()
-		data["TimerName.Text"] = task.TimerName.Text()
+		jsonData, _ = sjson.Set(jsonData, `TimerSecondSpinner\.Number`, task.TimerSecondSpinner.GetNumber())
+		jsonData, _ = sjson.Set(jsonData, `TimerMinuteSpinner\.Number`, task.TimerMinuteSpinner.GetNumber())
+		jsonData, _ = sjson.Set(jsonData, `TimerName\.Text`, task.TimerName.Text())
 	}
 
-	data["CreationTime"] = task.CreationTime.Format("Jan 2 2006 15:04:05")
+	jsonData, _ = sjson.Set(jsonData, `CreationTime`, task.CreationTime.Format(`Jan 2 2006 15:04:05`))
 
 	if !task.CompletionTime.IsZero() {
-		data["CompletionTime"] = task.CompletionTime.Format("Jan 2 2006 15:04:05")
+		jsonData, _ = sjson.Set(jsonData, `CompletionTime`, task.CompletionTime.Format(`Jan 2 2006 15:04:05`))
 	}
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_LINE && len(task.LineEndings) > 0 {
 
-		data["BezierLines"] = task.LineBezier.Checked
+		jsonData, _ = sjson.Set(jsonData, `BezierLines`, task.LineBezier.Checked)
 
 		lineEndingPositions := []float32{}
 		for _, ending := range task.LineEndings {
 			lineEndingPositions = append(lineEndingPositions, ending.Position.X, ending.Position.Y)
 		}
 
-		data["LineEndings"] = lineEndingPositions
+		jsonData, _ = sjson.Set(jsonData, `LineEndings`, lineEndingPositions)
+
 	}
 
-	return data
+	return jsonData
 
 }
 
@@ -307,111 +313,89 @@ func (task *Task) Serializable() bool {
 	return task.TaskType.CurrentChoice != TASK_TYPE_LINE || task.LineBase == nil
 }
 
-func (task *Task) Deserialize(data map[string]interface{}) {
+// Deserialize applies the JSON data provided to the Task, effectively "loading" it from that state. Previously,
+// this was done via a map[string]interface{} which was loaded using a Golang JSON decoder, but it seems like it's
+// significantly faster to use gjson and sjson to get and set JSON directly from a string, and for undo and redo,
+// it seems to be easier to serialize and deserialize using a string (same as saving and loading) than altering
+// the functions to work (as e.g. loading numbers from JSON gives float64s, but passing the map[string]interface{} directly from
+// deserialization to serialization contains values that may be other discrete number types).
+func (task *Task) Deserialize(jsonData string) {
 
 	// JSON encodes all numbers as 64-bit floats, so this saves us some visual ugliness.
 
-	getFloat := func(name string, defaultValue float32) float32 {
-		value, exists := data[name]
-		if exists {
-			return float32(value.(float64))
-		}
-		return defaultValue
+	getFloat := func(name string) float32 {
+		return float32(gjson.Get(jsonData, name).Float())
 	}
 
-	getInt := func(name string, defaultValue int) int {
-		value, exists := data[name]
-		if exists {
-			return int(value.(float64))
-		}
-		return defaultValue
+	getInt := func(name string) int {
+		return int(gjson.Get(jsonData, name).Int())
 	}
 
-	getBool := func(name string, defaultValue bool) bool {
-		value, exists := data[name]
-		if exists {
-			return value.(bool)
-		}
-		return defaultValue
+	getBool := func(name string) bool {
+		return gjson.Get(jsonData, name).Bool()
 	}
 
-	getString := func(name string, defaultValue string) string {
-		value, exists := data[name]
-		if exists {
-			return value.(string)
-		}
-		return defaultValue
-	}
-
-	getFloatArray := func(name string, defaultValue []float32) []float32 {
-		value, exists := data[name]
-		if exists {
-			data := []float32{}
-			for _, v := range value.([]interface{}) {
-				data = append(data, float32(v.(float64)))
-			}
-			return data
-		}
-		return defaultValue
+	getString := func(name string) string {
+		return gjson.Get(jsonData, name).String()
 	}
 
 	hasData := func(name string) bool {
-		_, exists := data[name]
-		return exists
+		return gjson.Get(jsonData, name).Exists()
 	}
 
-	task.Position.X = getFloat("Position.X", task.Position.X)
-	task.Position.Y = getFloat("Position.Y", task.Position.Y)
+	task.Position.X = getFloat(`Position\.X`)
+	task.Position.Y = getFloat(`Position\.Y`)
+
 	task.Rect.X = task.Position.X
 	task.Rect.Y = task.Position.Y
 
-	task.ImageDisplaySize.X = getFloat("ImageDisplaySize.X", task.ImageDisplaySize.X)
-	task.ImageDisplaySize.Y = getFloat("ImageDisplaySize.Y", task.ImageDisplaySize.Y)
-	task.CompletionCheckbox.Checked = getBool("Checkbox.Checked", task.CompletionCheckbox.Checked)
-	task.CompletionProgressionCurrent.SetNumber(getInt("Progression.Current", task.CompletionProgressionCurrent.GetNumber()))
-	task.CompletionProgressionMax.SetNumber(getInt("Progression.Max", task.CompletionProgressionMax.GetNumber()))
-	task.Description.SetText(getString("Description", task.Description.Text()))
-	task.FilePathTextbox.SetText(getString("FilePath", task.FilePathTextbox.Text()))
-	task.Selected = getBool("Selected", task.Selected)
-	task.TaskType.CurrentChoice = getInt("TaskType.CurrentChoice", task.TaskType.CurrentChoice)
+	task.ImageDisplaySize.X = getFloat(`ImageDisplaySize\.X`)
+	task.ImageDisplaySize.Y = getFloat(`ImageDisplaySize\.Y`)
+	task.CompletionCheckbox.Checked = getBool(`Checkbox\.Checked`)
+	task.CompletionProgressionCurrent.SetNumber(getInt(`Progression\.Current`))
+	task.CompletionProgressionMax.SetNumber(getInt(`Progression\.Max`))
+	task.Description.SetText(getString(`Description`))
+	task.FilePathTextbox.SetText(getString(`FilePath`))
+	task.Selected = getBool(`Selected`)
+	task.TaskType.CurrentChoice = getInt(`TaskType\.CurrentChoice`)
 
-	if hasData("DeadlineDaySpinner.Number") {
+	if hasData(`DeadlineDaySpinner\.Number`) {
 		task.DeadlineCheckbox.Checked = true
-		task.DeadlineDaySpinner.SetNumber(getInt("DeadlineDaySpinner.Number", task.DeadlineDaySpinner.GetNumber()))
-		task.DeadlineMonthSpinner.CurrentChoice = getInt("DeadlineMonthSpinner.CurrentChoice", task.DeadlineMonthSpinner.CurrentChoice)
-		task.DeadlineYearSpinner.SetNumber(getInt("DeadlineYearSpinner.Number", task.DeadlineYearSpinner.GetNumber()))
+		task.DeadlineDaySpinner.SetNumber(getInt(`DeadlineDaySpinner\.Number`))
+		task.DeadlineMonthSpinner.CurrentChoice = getInt(`DeadlineMonthSpinner\.CurrentChoice`)
+		task.DeadlineYearSpinner.SetNumber(getInt(`DeadlineYearSpinner\.Number`))
 	}
 
-	if hasData("TimerSecondSpinner.Number") {
-		task.TimerSecondSpinner.SetNumber(getInt("TimerSecondSpinner.Number", task.TimerSecondSpinner.GetNumber()))
-		task.TimerMinuteSpinner.SetNumber(getInt("TimerMinuteSpinner.Number", task.TimerMinuteSpinner.GetNumber()))
-		task.TimerName.SetText(getString("TimerName.Text", task.TimerName.Text()))
+	if hasData(`TimerSecondSpinner\.Number`) {
+		task.TimerSecondSpinner.SetNumber(getInt(`TimerSecondSpinner\.Number`))
+		task.TimerMinuteSpinner.SetNumber(getInt(`TimerMinuteSpinner\.Number`))
+		task.TimerName.SetText(getString(`TimerName\.Text`))
 	}
 
-	creationTime, err := time.Parse("Jan 2 2006 15:04:05", getString("CreationTime", task.CreationTime.String()))
+	creationTime, err := time.Parse(`Jan 2 2006 15:04:05`, getString(`CreationTime`))
 	if err == nil {
 		task.CreationTime = creationTime
 	}
 
-	if hasData("CompletionTime") {
+	if hasData(`CompletionTime`) {
 		// Wouldn't be strange to not have a completion for incomplete Tasks.
-		ctString := data["CompletionTime"].(string)
-		completionTime, err := time.Parse("Jan 2 2006 15:04:05", ctString)
+		ctString := getString(`CompletionTime`)
+		completionTime, err := time.Parse(`Jan 2 2006 15:04:05`, ctString)
 		if err == nil {
 			task.CompletionTime = completionTime
 		}
 	}
 
-	if hasData("BezierLines") {
-		task.LineBezier.Checked = getBool("BezierLines", false)
+	if hasData(`BezierLines`) {
+		task.LineBezier.Checked = getBool(`BezierLines`)
 	}
 
-	if hasData("LineEndings") {
-		endPositions := getFloatArray("LineEndings", []float32{})
+	if hasData(`LineEndings`) {
+		endPositions := gjson.Get(jsonData, `LineEndings`).Array()
 		for i := 0; i < len(endPositions); i += 2 {
 			ending := task.CreateLineEnding()
-			ending.Position.X = endPositions[i]
-			ending.Position.Y = endPositions[i+1]
+			ending.Position.X = float32(endPositions[i].Float())
+			ending.Position.Y = float32(endPositions[i+1].Float())
 
 			ending.Rect.X = ending.Position.X
 			ending.Rect.Y = ending.Position.Y
@@ -422,7 +406,10 @@ func (task *Task) Deserialize(data map[string]interface{}) {
 	task.LoadResource(false)
 
 	if task.SoundControl != nil {
-		task.SoundControl.Paused = getBool("SoundPaused", true)
+		task.SoundControl.Paused = true
+		if gjson.Get(jsonData, `SoundPaused`).Exists() {
+			task.SoundControl.Paused = getBool(`SoundPaused`)
+		}
 	}
 }
 

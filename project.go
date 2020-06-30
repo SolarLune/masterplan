@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"image/gif"
 	"io"
@@ -19,6 +18,8 @@ import (
 	"github.com/pkg/browser"
 	"github.com/tanema/gween"
 	"github.com/tanema/gween/ease"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
@@ -289,40 +290,49 @@ func (project *Project) Save(backup bool) {
 
 			sort.Slice(tasksByID, func(i, j int) bool { return tasksByID[i].ID < tasksByID[j].ID })
 
-			taskData := []map[string]interface{}{}
+			taskData := "["
+			firstTask := true
 			for _, task := range tasksByID {
 				if task.Serializable() {
-					taskData = append(taskData, task.Serialize())
+					if firstTask {
+						firstTask = false
+					} else {
+						taskData += ","
+					}
+					taskData += task.Serialize()
 				}
 			}
+			taskData += "]"
 
-			data := map[string]interface{}{
-				"Version":              softwareVersion.String(),
-				"GridSize":             project.GridSize,
-				"Pan.X":                project.CameraPan.X,
-				"Pan.Y":                project.CameraPan.Y,
-				"ZoomLevel":            project.ZoomLevel,
-				"BoardCount":           len(project.Boards),
-				"Tasks":                taskData,
-				"ColorTheme":           currentTheme,
-				"SampleRate":           project.SampleRate.ChoiceAsInt(),
-				"SampleBuffer":         project.SampleBuffer,
-				"TaskShadow":           project.TaskShadowSpinner.CurrentChoice,
-				"OutlineTasks":         project.OutlineTasks.Checked,
-				"BracketSubtasks":      project.BracketSubtasks.Checked,
-				"GridVisible":          project.GridVisible.Checked,
-				"ShowIcons":            project.ShowIcons.Checked,
-				"NumberTopLevel":       project.NumberTopLevel.Checked,
-				"NumberingSequence":    project.NumberingSequence.CurrentChoice,
-				"PulsingTaskSelection": project.PulsingTaskSelection.Checked,
-				"AutoSave":             project.AutoSave.Checked,
-				"AutoReloadThemes":     project.AutoReloadThemes.Checked,
-				"SaveSoundsPlaying":    project.SaveSoundsPlaying.Checked,
-				"LockProject":          project.LockProject.Checked,
-				"BoardIndex":           project.BoardIndex,
-				"BackupInterval":       project.AutomaticBackupInterval.GetNumber(),
-				"BackupKeepCount":      project.AutomaticBackupKeepCount.GetNumber(),
-			}
+			data := `{}`
+
+			// Not handling any of these errors because uuuuuuuuuh idkkkkkk should there ever really be errors
+			// with a blank JSON {} object????
+			data, _ = sjson.Set(data, `Version`, softwareVersion.String())
+			data, _ = sjson.Set(data, `LockProject`, project.LockProject.Checked)
+			data, _ = sjson.Set(data, `BoardIndex`, project.BoardIndex)
+			data, _ = sjson.Set(data, `BoardCount`, len(project.Boards))
+			data, _ = sjson.Set(data, `AutoSave`, project.AutoSave.Checked)
+			data, _ = sjson.Set(data, `Pan\.X`, project.CameraPan.X)
+			data, _ = sjson.Set(data, `Pan\.Y`, project.CameraPan.Y)
+			data, _ = sjson.Set(data, `ZoomLevel`, project.ZoomLevel)
+			data, _ = sjson.Set(data, `ColorTheme`, currentTheme)
+			data, _ = sjson.Set(data, `OutlineTasks`, project.OutlineTasks.Checked)
+			data, _ = sjson.Set(data, `BracketSubtasks`, project.BracketSubtasks.Checked)
+			data, _ = sjson.Set(data, `TaskShadow`, project.TaskShadowSpinner.CurrentChoice)
+			data, _ = sjson.Set(data, `ShowIcons`, project.ShowIcons.Checked)
+			data, _ = sjson.Set(data, `NumberTopLevel`, project.NumberTopLevel.Checked)
+			data, _ = sjson.Set(data, `NumberingSequence`, project.NumberingSequence.CurrentChoice)
+			data, _ = sjson.Set(data, `PulsingTaskSelection`, project.PulsingTaskSelection.Checked)
+			data, _ = sjson.Set(data, `GridVisible`, project.GridVisible.Checked)
+			data, _ = sjson.Set(data, `GridSize`, project.GridSize)
+			data, _ = sjson.Set(data, `SampleRate`, project.SampleRate.ChoiceAsInt())
+			data, _ = sjson.Set(data, `SampleBuffer`, project.SampleBuffer)
+			data, _ = sjson.Set(data, `SaveSoundsPlaying`, project.SaveSoundsPlaying.Checked)
+			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.GetNumber())
+			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.GetNumber())
+			data, _ = sjson.Set(data, `AutoReloadThemes`, project.AutoReloadThemes.Checked)
+			data, _ = sjson.SetRaw(data, `Tasks`, taskData) // taskData is already properly encoded and formatted JSON
 
 			if !backup && project.LockProject.Checked {
 				project.Log("Project lock engaged.")
@@ -333,17 +343,17 @@ func (project *Project) Save(backup bool) {
 			for _, board := range project.Boards {
 				boardNames = append(boardNames, board.Name)
 			}
-
-			data["BoardNames"] = boardNames
+			sjson.Set(data, `BoardNames`, boardNames)
 
 			f, err := os.Create(project.FilePath)
 			if err != nil {
 				log.Println(err)
 			} else {
 				defer f.Close()
-				encoder := json.NewEncoder(f)
-				encoder.SetIndent("", "\t")
-				encoder.Encode(data)
+
+				data = gjson.Parse(data).Get("@pretty").String() // Pretty print it so it's visually nice in the .plan file.
+
+				f.Write([]byte(data))
 				programSettings.Save()
 
 				err = f.Sync() // Want to make sure the file is written
@@ -395,25 +405,11 @@ func LoadProject(filepath string) *Project {
 
 	project := NewProject()
 
-	if f, err := os.Open(filepath); err == nil {
+	if fileData, err := ioutil.ReadFile(filepath); err == nil {
 
-		defer f.Close()
-		decoder := json.NewDecoder(f)
-		data := map[string]interface{}{}
-		decoder.Decode(&data)
+		data := gjson.Parse(string(fileData))
 
-		dataGood := true
-
-		if len(data) != 0 {
-			_, exists := data["Tasks"]
-			if !exists {
-				dataGood = false
-			}
-		} else {
-			dataGood = false
-		}
-
-		if dataGood {
+		if data.Get("Tasks").Exists() {
 
 			project.JustLoaded = true
 
@@ -423,76 +419,43 @@ func LoadProject(filepath string) *Project {
 				project.FilePath = filepath
 			}
 
-			getFloat := func(name string, defaultValue float32) float32 {
-				value, exists := data[name]
-				if exists {
-					return float32(value.(float64))
-				} else {
-					return defaultValue
-				}
+			getFloat := func(name string) float32 {
+				return float32(data.Get(name).Float())
 			}
 
-			getInt := func(name string, defaultValue int) int {
-				value, exists := data[name]
-				if exists {
-					return int(value.(float64))
-				} else {
-					return defaultValue
-				}
+			getInt := func(name string) int {
+				return int(data.Get(name).Int())
 			}
 
-			getString := func(name string, defaultValue string) string {
-				value, exists := data[name]
-				if exists {
-					return value.(string)
-				} else {
-					return defaultValue
-				}
+			getString := func(name string) string {
+				return data.Get(name).String()
 			}
 
-			getStringArray := func(name string, defaultValue []string) []string {
-				array, exists := data[name]
-				if exists {
-					data := []string{}
-					for _, v := range array.([]interface{}) {
-						data = append(data, v.(string))
-					}
-					return data
-				} else {
-					return defaultValue
-				}
+			getBool := func(name string) bool {
+				return data.Get(name).Bool()
 			}
 
-			getBool := func(name string, defaultValue bool) bool {
-				value, exists := data[name]
-				if exists {
-					return value.(bool)
-				} else {
-					return defaultValue
-				}
-			}
-
-			project.GridSize = int32(getInt("GridSize", int(project.GridSize)))
-			project.CameraPan.X = getFloat("Pan.X", project.CameraPan.X)
-			project.CameraPan.Y = getFloat("Pan.Y", project.CameraPan.Y)
-			project.ZoomLevel = getInt("ZoomLevel", project.ZoomLevel)
-			project.SampleRate.SetChoice(string(getInt("SampleRate", project.SampleRate.ChoiceAsInt())))
-			project.SampleBuffer = getInt("SampleBuffer", project.SampleBuffer)
-			project.TaskShadowSpinner.CurrentChoice = getInt("TaskShadow", project.TaskShadowSpinner.CurrentChoice)
-			project.OutlineTasks.Checked = getBool("OutlineTasks", project.OutlineTasks.Checked)
-			project.BracketSubtasks.Checked = getBool("BracketSubtasks", project.BracketSubtasks.Checked)
-			project.GridVisible.Checked = getBool("GridVisible", project.GridVisible.Checked)
-			project.ShowIcons.Checked = getBool("ShowIcons", project.ShowIcons.Checked)
-			project.NumberingSequence.CurrentChoice = getInt("NumberingSequence", project.NumberingSequence.CurrentChoice)
-			project.NumberTopLevel.Checked = getBool("NumberTopLevel", project.NumberTopLevel.Checked)
-			project.PulsingTaskSelection.Checked = getBool("PulsingTaskSelection", project.PulsingTaskSelection.Checked)
-			project.AutoSave.Checked = getBool("AutoSave", project.AutoSave.Checked)
-			project.AutoReloadThemes.Checked = getBool("AutoReloadThemes", project.AutoReloadThemes.Checked)
-			project.SaveSoundsPlaying.Checked = getBool("SaveSoundsPlaying", project.SaveSoundsPlaying.Checked)
-			project.BoardIndex = getInt("BoardIndex", project.BoardIndex)
-			project.LockProject.Checked = getBool("LockProject", project.LockProject.Checked)
-			project.AutomaticBackupInterval.SetNumber(getInt("BackupInterval", project.AutomaticBackupInterval.GetNumber()))
-			project.AutomaticBackupKeepCount.SetNumber(getInt("BackupKeepCount", project.AutomaticBackupKeepCount.GetNumber()))
+			project.GridSize = int32(getInt(`GridSize`))
+			project.CameraPan.X = getFloat(`Pan\.X`)
+			project.CameraPan.Y = getFloat(`Pan\.Y`)
+			project.ZoomLevel = getInt(`ZoomLevel`)
+			project.SampleRate.SetChoice(getString(`SampleRate`))
+			project.SampleBuffer = getInt(`SampleBuffer`)
+			project.TaskShadowSpinner.CurrentChoice = getInt(`TaskShadow`)
+			project.OutlineTasks.Checked = getBool(`OutlineTasks`)
+			project.BracketSubtasks.Checked = getBool(`BracketSubtasks`)
+			project.GridVisible.Checked = getBool(`GridVisible`)
+			project.ShowIcons.Checked = getBool(`ShowIcons`)
+			project.NumberingSequence.CurrentChoice = getInt(`NumberingSequence`)
+			project.NumberTopLevel.Checked = getBool(`NumberTopLevel`)
+			project.PulsingTaskSelection.Checked = getBool(`PulsingTaskSelection`)
+			project.AutoSave.Checked = getBool(`AutoSave`)
+			project.AutoReloadThemes.Checked = getBool(`AutoReloadThemes`)
+			project.SaveSoundsPlaying.Checked = getBool(`SaveSoundsPlaying`)
+			project.BoardIndex = getInt(`BoardIndex`)
+			project.LockProject.Checked = getBool(`LockProject`)
+			project.AutomaticBackupInterval.SetNumber(getInt(`BackupInterval`))
+			project.AutomaticBackupKeepCount.SetNumber(getInt(`BackupKeepCount`))
 
 			if project.LockProject.Checked {
 				project.Locked = true
@@ -503,9 +466,12 @@ func LoadProject(filepath string) *Project {
 
 			project.LogOn = false
 
-			boardNames := getStringArray("BoardNames", []string{})
+			boardNames := []string{}
+			for _, name := range data.Get(`BoardNames`).Array() {
+				boardNames = append(boardNames, name.String())
+			}
 
-			for i := 0; i < getInt("BoardCount", 0)-1; i++ {
+			for i := 0; i < getInt(`BoardCount`)-1; i++ {
 				project.AddBoard()
 			}
 
@@ -515,23 +481,21 @@ func LoadProject(filepath string) *Project {
 				}
 			}
 
-			for _, t := range data["Tasks"].([]interface{}) {
-				taskData := t.(map[string]interface{})
+			for _, taskData := range data.Get(`Tasks`).Array() {
 
-				bi, exists := taskData["BoardIndex"]
 				boardIndex := 0
 
-				if exists {
-					boardIndex = int(bi.(float64))
+				if taskData.Get(`BoardIndex`).Exists() {
+					boardIndex = int(taskData.Get(`BoardIndex`).Int())
 				}
 
 				task := project.Boards[boardIndex].CreateNewTask()
-				task.Deserialize(taskData)
+				task.Deserialize(taskData.String())
 			}
 
 			project.LogOn = true
 
-			colorTheme := getString("ColorTheme", currentTheme)
+			colorTheme := getString(`ColorTheme`)
 			if colorTheme != "" {
 				project.ChangeTheme(colorTheme) // Changing theme regenerates the grid; we don't have to do it elsewhere
 			}
