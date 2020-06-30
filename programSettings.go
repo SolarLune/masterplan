@@ -8,6 +8,7 @@ import (
 
 type ProgramSettings struct {
 	AutoloadLastPlan    bool
+	AutoReloadThemes    bool
 	RecentPlanList      []string
 	DisableSplashscreen bool
 }

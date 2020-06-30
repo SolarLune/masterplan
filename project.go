@@ -159,6 +159,9 @@ func NewProject() *Project {
 		Patterns:           rl.LoadTexture(GetPath("assets", "patterns.png")),
 		Resources:          map[string]*Resource{},
 		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
+		RenameBoardPopup:   NewTextboxPopup("New Board name:", "Accept", "Cancel"),
+		AbandonPlanPopup:   NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
+		SettingsColumns:    []*SettingsColumn{},
 
 		ColorThemeSpinner:        NewSpinner(0, 0, 256, 24),
 		TaskShadowSpinner:        NewSpinner(0, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
@@ -169,19 +172,17 @@ func NewProject() *Project {
 		NumberTopLevel:           NewCheckbox(0, 0, 32, 32),
 		PulsingTaskSelection:     NewCheckbox(0, 0, 32, 32),
 		AutoSave:                 NewCheckbox(0, 0, 32, 32),
-		AutoReloadThemes:         NewCheckbox(0, 0, 32, 32),
 		SaveSoundsPlaying:        NewCheckbox(0, 0, 32, 32),
 		SampleRate:               NewSpinner(0, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
-		DisableSplashscreen:      NewCheckbox(0, 0, 32, 32),
-		AutoLoadLastProject:      NewCheckbox(0, 0, 32, 32),
 		BracketSubtasks:          NewCheckbox(0, 0, 32, 32),
 		LockProject:              NewCheckbox(0, 0, 32, 32),
 		AutomaticBackupInterval:  NewNumberSpinner(0, 0, 128, 40),
 		AutomaticBackupKeepCount: NewNumberSpinner(0, 0, 128, 40),
 
-		RenameBoardPopup: NewTextboxPopup("New Board name:", "Accept", "Cancel"),
-		AbandonPlanPopup: NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
-		SettingsColumns:  []*SettingsColumn{},
+		// Program settings GUI elements
+		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
+		AutoReloadThemes:    NewCheckbox(0, 0, 32, 32),
+		DisableSplashscreen: NewCheckbox(0, 0, 32, 32),
 	}
 
 	column := project.AddSettingsColumn()
@@ -200,11 +201,11 @@ func NewProject() *Project {
 	column.Add("Number Top-level Tasks:", project.NumberTopLevel)
 	column.Add("Pulse Selected Tasks:", project.PulsingTaskSelection)
 	column.Add("Auto-save Project:", project.AutoSave)
-	column.Add("Auto-reload Themes:", project.AutoReloadThemes)
 	column.Add("Project Samplerate:", project.SampleRate)
-	column.Add("--Program Settings--", nil)
-	column.Add("Auto-load Last Project:", project.AutoLoadLastProject)
 	column.Add("Save Sound Playback:", project.SaveSoundsPlaying)
+	column.Add("--Program Settings--", nil)
+	column.Add("Auto-reload Themes:", project.AutoReloadThemes)
+	column.Add("Auto-load Last Project:", project.AutoLoadLastProject)
 	column.Add("Disable Splashscreen:", project.DisableSplashscreen)
 
 	project.Boards = []*Board{NewBoard(project)}
@@ -331,7 +332,6 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `SaveSoundsPlaying`, project.SaveSoundsPlaying.Checked)
 			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.GetNumber())
 			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.GetNumber())
-			data, _ = sjson.Set(data, `AutoReloadThemes`, project.AutoReloadThemes.Checked)
 			data, _ = sjson.SetRaw(data, `Tasks`, taskData) // taskData is already properly encoded and formatted JSON
 
 			if !backup && project.LockProject.Checked {
@@ -450,7 +450,6 @@ func LoadProject(filepath string) *Project {
 			project.NumberTopLevel.Checked = getBool(`NumberTopLevel`)
 			project.PulsingTaskSelection.Checked = getBool(`PulsingTaskSelection`)
 			project.AutoSave.Checked = getBool(`AutoSave`)
-			project.AutoReloadThemes.Checked = getBool(`AutoReloadThemes`)
 			project.SaveSoundsPlaying.Checked = getBool(`SaveSoundsPlaying`)
 			project.BoardIndex = getInt(`BoardIndex`)
 			project.LockProject.Checked = getBool(`LockProject`)
@@ -1590,6 +1589,7 @@ func (project *Project) GUI() {
 						project.ProjectSettingsOpen = true
 						project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
 						project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
+						project.AutoReloadThemes.Checked = programSettings.AutoReloadThemes
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
@@ -1679,6 +1679,7 @@ func (project *Project) GUI() {
 
 				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
 				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
+				programSettings.AutoReloadThemes = project.AutoReloadThemes.Checked
 
 				if project.AutoSave.Checked {
 					project.LogOn = false
