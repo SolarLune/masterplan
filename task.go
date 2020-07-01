@@ -1339,10 +1339,10 @@ func (task *Task) PostDraw() {
 
 			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 56, 64, 32}, "Load", false) {
 				if filepath, err := zenity.SelectFile(zenity.Title("Select sound file"), zenity.FileFilters{zenity.FileFilter{Name: "Sound files", Patterns: []string{
-					"wav",
-					"ogg",
-					"flac",
-					"mp3",
+					"*.wav",
+					"*.ogg",
+					"*.flac",
+					"*.mp3",
 				}}}); err == nil && filepath != "" {
 					task.FilePathTextbox.SetText(filepath)
 				}
