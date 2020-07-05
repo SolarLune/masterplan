@@ -86,6 +86,7 @@ type Project struct {
 	NumberTopLevel           *Checkbox
 	AutomaticBackupInterval  *NumberSpinner
 	AutomaticBackupKeepCount *NumberSpinner
+	MaxUndoSteps             *NumberSpinner
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -133,7 +134,8 @@ type Project struct {
 	PopupArgument    string
 	SettingsColumns  []*SettingsColumn
 	BackupTimer      time.Time
-
+	UndoFade         *gween.Sequence
+	Undoing          int
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
 	// This would be simple, but could be prohibitive if the size becomes large. Upside is that since we're storing the buffer to disk, you can undo
@@ -162,6 +164,7 @@ func NewProject() *Project {
 		RenameBoardPopup:   NewTextboxPopup("New Board name:", "Accept", "Cancel"),
 		AbandonPlanPopup:   NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
 		SettingsColumns:    []*SettingsColumn{},
+		UndoFade:           gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
 
 		ColorThemeSpinner:        NewSpinner(0, 0, 256, 24),
 		TaskShadowSpinner:        NewSpinner(0, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
@@ -178,6 +181,7 @@ func NewProject() *Project {
 		LockProject:              NewCheckbox(0, 0, 32, 32),
 		AutomaticBackupInterval:  NewNumberSpinner(0, 0, 128, 40),
 		AutomaticBackupKeepCount: NewNumberSpinner(0, 0, 128, 40),
+		MaxUndoSteps:             NewNumberSpinner(0, 0, 160, 32),
 
 		// Program settings GUI elements
 		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
@@ -186,15 +190,15 @@ func NewProject() *Project {
 	}
 
 	column := project.AddSettingsColumn()
+	column.Add("Color Theme:", project.ColorThemeSpinner)
 	column.Add("Task Depth:", project.TaskShadowSpinner)
 	column.Add("Outline Tasks:", project.OutlineTasks)
-	column.Add("Color Theme:", project.ColorThemeSpinner)
 	column.Add("Grid Visible:", project.GridVisible)
 	column.Add("Show Icons:", project.ShowIcons)
 	column.Add("Bracket Sub-Tasks:", project.BracketSubtasks)
 	column.Add("Lock Project:", project.LockProject)
 	column.Add("Numbering Style:", project.NumberingSequence)
-	column.Add("Backup save every X minutes:", project.AutomaticBackupInterval)
+	column.Add("Backup every X minutes:", project.AutomaticBackupInterval)
 	column.Add("Keep X backups max:", project.AutomaticBackupKeepCount)
 
 	column = project.AddSettingsColumn()
@@ -203,6 +207,7 @@ func NewProject() *Project {
 	column.Add("Auto-save Project:", project.AutoSave)
 	column.Add("Project Samplerate:", project.SampleRate)
 	column.Add("Save Sound Playback:", project.SaveSoundsPlaying)
+	column.Add("Maximum Undo Steps:", project.MaxUndoSteps)
 	column.Add("--Program Settings--", nil)
 	column.Add("Auto-reload Themes:", project.AutoReloadThemes)
 	column.Add("Auto-load Last Project:", project.AutoLoadLastProject)
@@ -220,10 +225,14 @@ func NewProject() *Project {
 	project.DoubleClickTimer = -1
 	project.PreviousTaskType = "Check Box"
 	project.NumberTopLevel.Checked = true
+
+	project.AutomaticBackupInterval.SetNumber(15) // Seems sensible to make new projects have this as a default.
 	project.AutomaticBackupInterval.Minimum = 0
 	project.AutomaticBackupInterval.Maximum = 60
 	project.AutomaticBackupKeepCount.SetNumber(3)
 	project.AutomaticBackupKeepCount.Minimum = 1
+
+	project.MaxUndoSteps.Minimum = 0
 
 	currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
 
@@ -291,15 +300,17 @@ func (project *Project) Save(backup bool) {
 
 			sort.Slice(tasksByID, func(i, j int) bool { return tasksByID[i].ID < tasksByID[j].ID })
 
+			// We're passing in actual JSON strings for task serlizations, so we have to actually construct the
+			// string containing our JSON array of tasks ourselves.
 			taskData := "["
 			firstTask := true
 			for _, task := range tasksByID {
+				if firstTask {
+					firstTask = false
+				} else {
+					taskData += ","
+				}
 				if task.Serializable() {
-					if firstTask {
-						firstTask = false
-					} else {
-						taskData += ","
-					}
 					taskData += task.Serialize()
 				}
 			}
@@ -332,6 +343,7 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `SaveSoundsPlaying`, project.SaveSoundsPlaying.Checked)
 			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.GetNumber())
 			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.GetNumber())
+			data, _ = sjson.Set(data, `UndoMaxSteps`, project.MaxUndoSteps.GetNumber())
 			data, _ = sjson.SetRaw(data, `Tasks`, taskData) // taskData is already properly encoded and formatted JSON
 
 			if !backup && project.LockProject.Checked {
@@ -455,6 +467,7 @@ func LoadProject(filepath string) *Project {
 			project.LockProject.Checked = getBool(`LockProject`)
 			project.AutomaticBackupInterval.SetNumber(getInt(`BackupInterval`))
 			project.AutomaticBackupKeepCount.SetNumber(getInt(`BackupKeepCount`))
+			project.MaxUndoSteps.SetNumber(getInt(`UndoMaxSteps`))
 
 			if project.LockProject.Checked {
 				project.Locked = true
@@ -475,6 +488,7 @@ func LoadProject(filepath string) *Project {
 			}
 
 			for i := range project.Boards {
+				project.Boards[i].UndoBuffer.On = false // No undoing for the loading process
 				if i < len(boardNames) {
 					project.Boards[i].Name = boardNames[i]
 				}
@@ -551,6 +565,9 @@ func LoadProject(filepath string) *Project {
 			programSettings.Save()
 			project.Log("Load successful.")
 
+			for _, b := range project.Boards {
+				b.UndoBuffer.On = true
+			}
 			return project
 
 		}
@@ -908,6 +925,8 @@ func (project *Project) Update() {
 		project.LogOn = true
 	}
 
+	project.CurrentBoard().UndoBuffer.Update()
+
 }
 
 func (project *Project) AutoBackup() {
@@ -994,6 +1013,7 @@ func (project *Project) Shortcuts() {
 		rl.KeyLeft,
 		rl.KeyRight,
 		rl.KeyF,
+		rl.KeyZ,
 		rl.KeyEnter,
 		rl.KeyKpEnter,
 	}
@@ -1122,6 +1142,16 @@ func (project *Project) Shortcuts() {
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
 					task := project.CurrentBoard().CreateNewTask()
 					task.ReceiveMessage(MessageDoubleClick, nil)
+				} else if holdingCtrl && holdingShift && repeatableKeyDown[rl.KeyZ] {
+					if project.CurrentBoard().UndoBuffer.Redo() {
+						project.UndoFade.Reset()
+						project.Undoing = 1
+					}
+				} else if holdingCtrl && repeatableKeyDown[rl.KeyZ] {
+					if project.CurrentBoard().UndoBuffer.Undo() {
+						project.UndoFade.Reset()
+						project.Undoing = -1
+					}
 				} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
 
 					for _, task := range project.GetAllTasks() {
@@ -1208,19 +1238,6 @@ func (project *Project) Shortcuts() {
 
 							}
 
-							// if task.Numberable() && neighbor != nil && neighbor.Numberable() {
-
-							// 	if !neighbor.Selected {
-							// 		neighborList = append(neighborList, neighbor)
-							// 	}
-
-							// 	task.Position.X += move[0]
-							// 	task.Position.Y += move[1]
-
-							// } else {
-							// 	task.Move(move[0], move[1])
-							// }
-
 							task.Position.X += move[0]
 							task.Position.Y += move[1]
 
@@ -1229,7 +1246,12 @@ func (project *Project) Shortcuts() {
 						project.ReorderTasks()
 
 						for _, neighbor := range neighborList {
+							project.CurrentBoard().UndoBuffer.Capture(neighbor)
 							neighbor.Move(-move[0], -move[1])
+						}
+
+						for _, neighbor := range neighborList {
+							project.CurrentBoard().UndoBuffer.Capture(neighbor)
 						}
 
 						project.CurrentBoard().FocusViewOnSelectedTasks()
@@ -1455,7 +1477,7 @@ func (project *Project) GUI() {
 
 	} else {
 
-		if rl.IsMouseButtonReleased(rl.MouseRightButton) && !project.TaskOpen && !project.ContextMenuOpen {
+		if rl.IsMouseButtonReleased(rl.MouseRightButton) && !project.TaskOpen && !project.ContextMenuOpen && !project.ProjectSettingsOpen {
 			project.ContextMenuOpen = true
 			project.ContextMenuPosition = GetMousePosition()
 		} else if project.ContextMenuOpen {
@@ -1727,7 +1749,7 @@ func (project *Project) GUI() {
 
 					numberSpinner, is := element.(*NumberSpinner)
 					if is {
-						numberSpinner.Rect.X = x + float32(columnWidth)/1.5
+						numberSpinner.Rect.X = x + float32(columnWidth)/1.5 - (numberSpinner.Rect.Width / 2)
 						numberSpinner.Rect.Y = y - 4
 					}
 
@@ -1743,6 +1765,10 @@ func (project *Project) GUI() {
 
 			if project.ColorThemeSpinner.Changed {
 				project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
+			}
+
+			if project.MaxUndoSteps.GetNumber() == 0 {
+				project.MaxUndoSteps.Textbox.SetText("Unlimited")
 			}
 
 		}
@@ -1930,6 +1956,29 @@ func (project *Project) GUI() {
 
 	}
 
+	if project.Undoing != 0 {
+
+		fade, _, finished := project.UndoFade.Update(rl.GetFrameTime())
+
+		c := getThemeColor(GUI_FONT_COLOR)
+		c.A = uint8(fade)
+
+		src := rl.Rectangle{192, 16, 16, 16}
+		dst := rl.Rectangle{float32(rl.GetScreenWidth() / 2), float32(rl.GetScreenHeight() / 2), 16, 16}
+		rotation := -rl.GetTime() * 1440
+		if project.Undoing > 0 {
+			rotation *= -1
+			src.Width *= -1
+		}
+		rl.DrawTexturePro(project.GUI_Icons, src, dst, rl.Vector2{8, 8}, rotation, c)
+
+		if finished {
+			project.Undoing = 0
+			project.UndoFade.Reset()
+		}
+
+	}
+
 }
 
 func (project *Project) GetEmptyBoard() *Board {
@@ -1998,7 +2047,7 @@ func (project *Project) SearchForTasks() {
 
 }
 
-func (project *Project) GetFirstFreeID() int {
+func (project *Project) FirstFreeID() int {
 
 	usedIDs := map[int]bool{}
 
@@ -2030,10 +2079,10 @@ func (project *Project) GetFirstFreeID() int {
 
 }
 
-func (project *Project) LockPositionToGrid(x, y float32) (float32, float32) {
+func (project *Project) LockPositionToGrid(xy rl.Vector2) rl.Vector2 {
 
-	return float32(math.Round(float64(x/float32(project.GridSize)))) * float32(project.GridSize),
-		float32(math.Round(float64(y/float32(project.GridSize)))) * float32(project.GridSize)
+	return rl.Vector2{float32(math.Round(float64(xy.X/float32(project.GridSize)))) * float32(project.GridSize),
+		float32(math.Round(float64(xy.Y/float32(project.GridSize)))) * float32(project.GridSize)}
 
 }
 

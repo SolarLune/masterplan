@@ -18,9 +18,11 @@ type Position struct {
 type Board struct {
 	Tasks         []*Task
 	ToBeDeleted   []*Task
+	ToBeRestored  []*Task
 	Project       *Project
 	Name          string
 	TaskLocations map[Position][]*Task
+	UndoBuffer    *UndoBuffer
 }
 
 func NewBoard(project *Project) *Board {
@@ -29,6 +31,7 @@ func NewBoard(project *Project) *Board {
 		Project:       project,
 		Name:          fmt.Sprintf("Board %d", len(project.Boards)+1),
 		TaskLocations: map[Position][]*Task{},
+		UndoBuffer:    NewUndoBuffer(project),
 	}
 
 	return board
@@ -37,7 +40,10 @@ func NewBoard(project *Project) *Board {
 func (board *Board) CreateNewTask() *Task {
 	newTask := NewTask(board)
 	halfGrid := float32(board.Project.GridSize / 2)
-	newTask.Position.X, newTask.Position.Y = board.Project.LockPositionToGrid(GetWorldMousePosition().X-halfGrid, GetWorldMousePosition().Y-halfGrid)
+	gp := rl.Vector2{GetWorldMousePosition().X - halfGrid, GetWorldMousePosition().Y - halfGrid}
+
+	newTask.Position = board.Project.LockPositionToGrid(gp)
+
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	board.Tasks = append(board.Tasks, newTask)
 
@@ -49,7 +55,7 @@ func (board *Board) CreateNewTask() *Task {
 		gs := float32(board.Project.GridSize)
 		x := task.Position.X
 
-		if task.Numberable() && newTask.Numberable() {
+		if task.Numberable() {
 
 			if task.TaskBelow != nil && task.TaskBelow.Numberable() && task.Numberable() {
 
@@ -90,12 +96,42 @@ func (board *Board) CreateNewTask() *Task {
 		board.Project.SendMessage(MessageSelect, map[string]interface{}{"task": newTask})
 	}
 
+	// We need to record both the Task being invalid, as well as being valid, for undoing / redoing
+	newTask.Valid = false
+	board.UndoBuffer.Capture(newTask)
+	newTask.Valid = true
+	board.UndoBuffer.Capture(newTask)
+
 	return newTask
 }
 
 func (board *Board) DeleteTask(task *Task) {
-	board.ToBeDeleted = append(board.ToBeDeleted, task)
-	task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
+
+	if task.Valid {
+
+		board.UndoBuffer.Capture(task)
+		task.Valid = false
+		board.UndoBuffer.Capture(task)
+
+		board.ToBeDeleted = append(board.ToBeDeleted, task)
+		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
+	}
+
+}
+
+func (board *Board) RestoreTask(task *Task) {
+
+	if !task.Valid {
+
+		board.UndoBuffer.Capture(task)
+		task.Valid = true
+		board.UndoBuffer.Capture(task)
+
+		board.ToBeRestored = append(board.ToBeRestored, task)
+		task.ReceiveMessage(MessageDropped, map[string]interface{}{"task": task})
+
+	}
+
 }
 
 func (board *Board) DeleteSelectedTasks() {
@@ -108,17 +144,30 @@ func (board *Board) DeleteSelectedTasks() {
 
 	for _, t := range selected {
 		count++
-		stackMoveUp = append(stackMoveUp, t.RestOfStack...)
+		for _, rest := range t.RestOfStack {
+			if !rest.Selected {
+				stackMoveUp = append(stackMoveUp, rest)
+			}
+		}
 		board.DeleteTask(t)
+	}
+
+	for _, s := range stackMoveUp {
+		board.UndoBuffer.Capture(s)
 	}
 
 	for _, s := range stackMoveUp {
 		s.Position.Y -= float32(board.Project.GridSize)
 	}
 
+	for _, s := range stackMoveUp {
+		board.UndoBuffer.Capture(s)
+	}
+
 	board.Project.Log("Deleted %d Task(s).", count)
 
 	board.Project.ReorderTasks()
+
 }
 
 func (board *Board) FocusViewOnSelectedTasks() {
@@ -238,13 +287,18 @@ func (board *Board) PasteTasks() {
 			clone := cloneTask(srcTask)
 			clone.Position.X += GetWorldMousePosition().X - center.X
 			clone.Position.Y += GetWorldMousePosition().Y - center.Y
-			clone.Position.X, clone.Position.Y = board.Project.LockPositionToGrid(clone.Position.X, clone.Position.Y)
-
+			clone.Position = board.Project.LockPositionToGrid(clone.Position)
 		}
 
 		board.ReorderTasks()
 
 		for _, clone := range clones {
+
+			clone.Valid = false
+			board.UndoBuffer.Capture(clone)
+			clone.Valid = true
+			board.UndoBuffer.Capture(clone)
+
 			clone.Selected = true
 		}
 
@@ -313,6 +367,7 @@ func (board *Board) ReorderTasks() {
 		}
 		return ba.Position.Y < bb.Position.Y
 	})
+
 }
 
 // Returns the index of the board in the Project's Board stack
@@ -328,6 +383,7 @@ func (board *Board) Index() int {
 func (board *Board) Destroy() {
 	for _, task := range board.Tasks {
 		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
+		task.Destroy()
 	}
 }
 
@@ -439,16 +495,30 @@ func (board *Board) SelectedTasks(returnFirstSelectedTask bool) []*Task {
 }
 
 func (board *Board) HandleDeletedTasks() {
+
+	changed := false
+
 	for _, task := range board.ToBeDeleted {
 		for index, t := range board.Tasks {
 			if task == t {
 				board.Tasks[index] = nil
 				board.Tasks = append(board.Tasks[:index], board.Tasks[index+1:]...)
+				changed = true
 				break
 			}
 		}
 	}
 	board.ToBeDeleted = []*Task{}
-	board.ReorderTasks()
+
+	for _, task := range board.ToBeRestored {
+		board.Tasks = append(board.Tasks, task)
+		changed = true
+	}
+	board.ToBeRestored = []*Task{}
+
+	// We only want to reorder tasks if tasks were actually deleted or restored, as it is costly.
+	if changed {
+		board.Project.ReorderTasks()
+	}
 
 }

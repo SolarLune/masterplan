@@ -1,12 +1,12 @@
 {
-  "Version": "0.3.1",
+  "Version": "0.4.0",
   "LockProject": false,
   "BoardIndex": 0,
   "BoardCount": 3,
   "AutoSave": false,
-  "Pan.X": 1498,
-  "Pan.Y": -2647,
-  "ZoomLevel": 1,
+  "Pan.X": 1375,
+  "Pan.Y": -2717.5,
+  "ZoomLevel": 2,
   "ColorTheme": "Dark Crimson",
   "OutlineTasks": true,
   "BracketSubtasks": true,
@@ -22,7 +22,7 @@
   "SaveSoundsPlaying": false,
   "BackupInterval": 0,
   "BackupKeepCount": 3,
-  "AutoReloadThemes": true,
+  "UndoMaxSteps": 0,
   "Tasks": [
     {
       "BoardIndex": 0,
@@ -3415,7 +3415,7 @@
       "Progression.Max": 0,
       "Description": "Double-click words to select them.\nDouble-click again to select all text?",
       "FilePath": "",
-      "Selected": true,
+      "Selected": false,
       "TaskType.CurrentChoice": 0,
       "CreationTime": "Feb 20 2020 22:53:59"
     }, 
@@ -3610,14 +3610,15 @@
       "Position.Y": 2752,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
-      "Checkbox.Checked": false,
+      "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Add undo + redo to project.\nAs for an idea of how to do this, I think I'm probably just going to store a buffer of the current project\nstate in memory for each change you make? It doesn't seem like a big enough deal to actually build a \"right\"\nundo system, and less prone to error. The current to-do list for MasterPlan has about 161 completable tasks\nand sits at about 91 KB, so a 1000-level undo system for this project would sit at about 91 MB of memory \n(assuming I was just storing a save of the project file itself, and not the entire project in memory).\n\nNote that the above approach only really works if I constantly save the project, which isn't really feasible\nfor large projects in terms of time taken...",
+      "Description": "Add undo + redo to project.\nDone by using an undo buffer composed of serialized versions of Tasks saved per \"change\".",
       "FilePath": "",
-      "Selected": false,
+      "Selected": true,
       "TaskType.CurrentChoice": 0,
-      "CreationTime": "Oct 1 2019 19:13:07"
+      "CreationTime": "Oct 1 2019 19:13:07",
+      "CompletionTime": "Jul 5 2020 00:18:43"
     }, 
     {
       "BoardIndex": 0,
@@ -5013,7 +5014,7 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "May 28 2020 00:25:27",
       "BezierLines": false,
-      "LineEndings": [-1600, -16]
+      "LineEndings": [-1600, -48]
     }, 
     {
       "BoardIndex": 0,

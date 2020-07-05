@@ -135,7 +135,7 @@ func NewTask(board *Board) *Task {
 		CompletionProgressionCurrent: NewNumberSpinner(postX, 96, 128, 40),
 		CompletionProgressionMax:     NewNumberSpinner(postX+80, 96, 128, 40),
 		NumberingPrefix:              []int{-1},
-		ID:                           board.Project.GetFirstFreeID(),
+		ID:                           board.Project.FirstFreeID(),
 		FilePathTextbox:              NewTextbox(postX, 64, 512, 16),
 		DeadlineCheckbox:             NewCheckbox(postX, 112, 32, 32),
 		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 160, 40, months...),
@@ -245,6 +245,7 @@ func (task *Task) Clone() *Task {
 	copyData.GifAnimation = nil
 	copyData.SoundControl = nil
 	copyData.SoundStream = nil
+	copyData.ID = copyData.Board.Project.FirstFreeID()
 
 	copyData.ReceiveMessage(MessageTaskClose, nil) // We do this to recreate the resources for the Task, if necessary.
 
@@ -297,7 +298,9 @@ func (task *Task) Serialize() string {
 
 		lineEndingPositions := []float32{}
 		for _, ending := range task.LineEndings {
-			lineEndingPositions = append(lineEndingPositions, ending.Position.X, ending.Position.Y)
+			if ending.Valid {
+				lineEndingPositions = append(lineEndingPositions, ending.Position.X, ending.Position.Y)
+			}
 		}
 
 		jsonData, _ = sjson.Set(jsonData, `LineEndings`, lineEndingPositions)
@@ -308,8 +311,8 @@ func (task *Task) Serialize() string {
 
 }
 
+// Serializable returns if Tasks are able to be serialized properly. Only line endings aren't properly serializeable
 func (task *Task) Serializable() bool {
-	// Only line endings aren't properly serializeable
 	return task.TaskType.CurrentChoice != TASK_TYPE_LINE || task.LineBase == nil
 }
 
@@ -913,7 +916,7 @@ func (task *Task) Draw() {
 					}
 
 					if !rl.IsKeyDown(rl.KeyLeftShift) && !rl.IsKeyDown(rl.KeyRightShift) {
-						task.ImageDisplaySize.X, task.ImageDisplaySize.Y = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize.X, task.ImageDisplaySize.Y)
+						task.ImageDisplaySize = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize)
 					}
 
 				}
@@ -1109,9 +1112,6 @@ func (task *Task) UpdateNeighbors() {
 	task.TaskAbove = nil
 	task.TaskBelow = nil
 
-	// Determines whether a Task is a subtask owner or not (if completing tasks below
-	// this one counts as partial completion of this one visually)
-
 	tasks := task.Board.GetTasksInRect(task.Position.X+gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
 	sortfunc := func(i, j int) bool {
 		return tasks[i].Numberable()
@@ -1232,6 +1232,10 @@ func (task *Task) DrawShadow() {
 		color := getThemeColor(GUI_FONT_COLOR)
 
 		for _, ending := range task.LineEndings {
+
+			if !ending.Valid {
+				continue
+			}
 
 			bp := rl.Vector2{task.Rect.X, task.Rect.Y}
 			bp.X += float32(task.Board.Project.GridSize) / 2
@@ -1576,6 +1580,8 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 	if message == MessageSelect {
 
+		prevSelection := task.Selected
+
 		if data["task"] == task {
 			if data["invert"] != nil {
 				task.Selected = false
@@ -1585,6 +1591,11 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		} else if data["task"] == nil || data["task"] != task {
 			task.Selected = false
 		}
+
+		if prevSelection != task.Selected {
+			task.Board.UndoBuffer.Capture(task)
+		}
+
 	} else if message == MessageDoubleClick {
 
 		if task.LineBase != nil {
@@ -1615,9 +1626,13 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 				task.CreateLineEnding()
 			}
 			task.Board.Project.SendMessage(MessageNumbering, nil)
+			task.Board.UndoBuffer.Capture(task)
 		}
 	} else if message == MessageDragging {
 		if task.Selected {
+			if !task.Dragging {
+				task.Board.UndoBuffer.Capture(task)
+			}
 			task.Dragging = true
 			task.MouseDragStart = GetWorldMousePosition()
 			task.TaskDragStart = task.Position
@@ -1627,9 +1642,13 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		if task.Valid {
 			// This gets called when we reorder the board / project, which can cause problems if the Task is already removed
 			// because it will then be immediately readded to the Board grid, thereby making it a "ghost" Task
-			task.Position.X, task.Position.Y = task.Board.Project.LockPositionToGrid(task.Position.X, task.Position.Y)
+			task.Position = task.Board.Project.LockPositionToGrid(task.Position)
 			task.Board.RemoveTaskFromGrid(task, task.GridPositions)
 			task.GridPositions = task.Board.AddTaskToGrid(task)
+
+			if !task.Board.Project.JustLoaded && task.Selected {
+				task.Board.UndoBuffer.Capture(task)
+			}
 		}
 	} else if message == MessageNeighbors {
 		task.UpdateNeighbors()
@@ -1637,38 +1656,31 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.SetPrefix()
 	} else if message == MessageDelete {
 
-		task.Valid = false
+		// We remove the Task from the grid but not change the GridPositions list because undos need to
+		// re-place the Task at the original position.
 		task.Board.RemoveTaskFromGrid(task, task.GridPositions)
 
-		if task.LineBase != nil {
-			endings := task.LineBase.LineEndings
-			for i, t := range endings {
-				if t == task {
-					endings[i] = nil
-					endings = append(endings[:i], endings[i+1:]...)
+		if task.LineBase == nil {
+			if len(task.LineEndings) > 0 {
+				for _, ending := range task.LineEndings {
+					task.Board.DeleteTask(ending)
 				}
 			}
-			task.LineBase.LineEndings = endings
-			if len(task.LineBase.LineEndings) == 0 {
-				task.Board.DeleteTask(task.LineBase)
+		} else {
+			hasOne := false
+			for _, ending := range task.LineBase.LineEndings {
+				if ending.Valid {
+					hasOne = true
+					break
+				}
 			}
-		} else if len(task.LineEndings) > 0 {
-			for _, ending := range task.LineEndings {
-				task.Board.DeleteTask(ending)
+			if !hasOne {
+				task.Board.DeleteTask(task.LineBase)
 			}
 		}
 
-		if data["task"] == task {
-
-			if task.SoundStream != nil && task.SoundControl != nil {
-				task.SoundStream.Close()
-				task.SoundControl.Paused = true
-				task.SoundControl = nil
-			}
-			if task.GifAnimation != nil {
-				task.GifAnimation.Destroy()
-			}
-
+		if data["task"] == task && task.SoundStream != nil && task.SoundControl != nil {
+			task.SoundControl.Paused = true
 		}
 
 	} else {
@@ -1680,6 +1692,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 func (task *Task) CreateLineEnding() *Task {
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_LINE && task.LineBase == nil {
+
 		ending := task.Board.CreateNewTask()
 		ending.TaskType.CurrentChoice = TASK_TYPE_LINE
 		ending.Position = task.Position
@@ -1859,6 +1872,30 @@ func (task *Task) Move(dx, dy float32) {
 			dy -= gs
 		}
 
+	}
+
+}
+
+func (task *Task) Destroy() {
+
+	if task.LineBase != nil {
+
+		for i, t := range task.LineBase.LineEndings {
+			if t == task {
+				task.LineBase.LineEndings[i] = nil
+				task.LineBase.LineEndings = append(task.LineBase.LineEndings[:i], task.LineBase.LineEndings[i+1:]...)
+			}
+		}
+
+	}
+
+	if task.SoundStream != nil && task.SoundControl != nil {
+		task.SoundStream.Close()
+		task.SoundControl = nil
+	}
+
+	if task.GifAnimation != nil {
+		task.GifAnimation.Destroy()
 	}
 
 }
