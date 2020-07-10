@@ -265,7 +265,7 @@ func main() {
 			}
 		}
 
-		src := rl.Rectangle{0, 0, 1920, 1080}
+		src := rl.Rectangle{0, 0, float32(splashScreen.Width), float32(splashScreen.Height)}
 		dst := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
 		rl.DrawTexturePro(splashScreen, src, dst, rl.Vector2{}, 0, splashColor)
 
