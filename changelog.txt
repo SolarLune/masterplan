@@ -1,5 +1,27 @@
 -------
 
+v0.4.0
+
+-------
+
+- Updating splashscreen.
+- Adding undo / redo. FINALLY. Note that Tasks no longer are deleted like before; - this is done because they could be restored. HOPEFULLY THIS DOESN'T COME BACK TO BITE ME.
+- Fix: Cloned Tasks have unique IDs.
+- Fix: Right clicking when project settings is open closes the menu.
+- Fix: NumberSpinner is positioned properly (or just more correctly) in settings menu.
+- Serialization (saving and loading) of Tasks / Projects improved.
+- FIX: Project SampleRate isn't loaded properly. 
+- Redirecting log output of MasterPlan to a file ("log.txt", in the same folder as MasterPlan) so that errors and crashes can be sent to me by reference. 
+- Adding automatic backups. Automatic backups happen every X minutes, configurable by the user. MP will automatically delete the oldest backups that exceed the maximum count.
+- FIX: Progression completion current and max can no longer go below 0.
+- MasterPlan no longer asks for project directory on save. Now it asks for the project file name itself, sensibly.
+- FIX: If the last loaded project doesn't exist, MP no longer crashes.
+- FIX: Messages logged are clearer and easier to read with indentations and dashes ("-").
+- FIX: Errors for failures when loading projects are no longer displayed (and logged) twice.
+- FIX: Message logging now works correctly with multiple lines per message (\n).
+
+-------
+
 v0.3.1
 
 -------
