@@ -225,9 +225,9 @@ func (task *Task) Clone() *Task {
 	if task.LineBase != nil {
 		copyData.LineBase = task.LineBase
 		copyData.LineBase.LineEndings = append(copyData.LineBase.LineEndings, &copyData)
-	} else if len(task.LineEndings) > 0 {
+	} else if len(task.ValidLineEndings()) > 0 {
 		copyData.LineEndings = []*Task{}
-		for _, end := range task.LineEndings {
+		for _, end := range task.ValidLineEndings() {
 			newEnding := copyData.CreateLineEnding()
 			newEnding.Position = end.Position
 			newEnding.Board.ReorderTasks()
@@ -292,18 +292,24 @@ func (task *Task) Serialize() string {
 		jsonData, _ = sjson.Set(jsonData, `CompletionTime`, task.CompletionTime.Format(`Jan 2 2006 15:04:05`))
 	}
 
-	if task.TaskType.CurrentChoice == TASK_TYPE_LINE && len(task.LineEndings) > 0 {
+	if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
 
+		// We want to set this in all cases, not just if it's a Line with valid line ending Task pointers;
+		// that way it serializes consistently regardless of how many line endings it has.
 		jsonData, _ = sjson.Set(jsonData, `BezierLines`, task.LineBezier.Checked)
 
-		lineEndingPositions := []float32{}
-		for _, ending := range task.LineEndings {
-			if ending.Valid {
-				lineEndingPositions = append(lineEndingPositions, ending.Position.X, ending.Position.Y)
-			}
-		}
+		if lineEndings := task.ValidLineEndings(); len(lineEndings) > 0 {
 
-		jsonData, _ = sjson.Set(jsonData, `LineEndings`, lineEndingPositions)
+			lineEndingPositions := []float32{}
+			for _, ending := range task.ValidLineEndings() {
+				if ending.Valid {
+					lineEndingPositions = append(lineEndingPositions, ending.Position.X, ending.Position.Y)
+				}
+			}
+
+			jsonData, _ = sjson.Set(jsonData, `LineEndings`, lineEndingPositions)
+
+		}
 
 	}
 
@@ -495,9 +501,9 @@ func (task *Task) Update() {
 	cameraRect := rl.Rectangle{camera.Target.X - (scrW / 2), camera.Target.Y - (scrH / 2), scrW, scrH}
 
 	if task.Board.Project.FullyInitialized {
-		if task.IsComplete() && task.CompletionTime.IsZero() {
+		if task.Complete() && task.CompletionTime.IsZero() {
 			task.CompletionTime = time.Now()
-		} else if !task.IsComplete() {
+		} else if !task.Complete() {
 			task.CompletionTime = time.Time{}
 		}
 
@@ -630,7 +636,7 @@ func (task *Task) Draw() {
 	if len(task.SubTasks) > 0 && task.Completable() {
 		currentFinished := 0
 		for _, child := range task.SubTasks {
-			if child.IsComplete() {
+			if child.Complete() {
 				currentFinished++
 			}
 		}
@@ -675,7 +681,7 @@ func (task *Task) Draw() {
 		name = ""
 	}
 
-	if !task.IsComplete() && task.DeadlineCheckbox.Checked {
+	if !task.Complete() && task.DeadlineCheckbox.Checked {
 		// If there's a deadline, let's tell you how long you have
 		deadlineDuration := task.CalculateDeadlineDuration()
 		deadlineDuration += time.Hour * 24
@@ -738,7 +744,7 @@ func (task *Task) Draw() {
 
 	color := getThemeColor(GUI_INSIDE)
 
-	if task.IsComplete() && task.TaskType.CurrentChoice != TASK_TYPE_PROGRESSION && len(task.SubTasks) == 0 {
+	if task.Complete() && task.TaskType.CurrentChoice != TASK_TYPE_PROGRESSION && len(task.SubTasks) == 0 {
 		color = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 	}
 
@@ -792,7 +798,7 @@ func (task *Task) Draw() {
 	if len(task.SubTasks) > 0 && task.Completable() {
 		totalComplete := 0
 		for _, child := range task.SubTasks {
-			if child.IsComplete() {
+			if child.Complete() {
 				totalComplete++
 			}
 		}
@@ -941,7 +947,7 @@ func (task *Task) Draw() {
 	if task.Board.Project.OutlineTasks.Checked {
 		rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
 	}
-	if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage {
+	if (task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage) && task.TaskType.CurrentChoice != TASK_TYPE_LINE {
 
 		textPos := rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}
 
@@ -1014,7 +1020,7 @@ func (task *Task) Draw() {
 
 		}
 
-		if task.IsComplete() {
+		if task.Complete() {
 			iconSrc.X += 16
 			iconColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 		}
@@ -1034,7 +1040,7 @@ func (task *Task) Draw() {
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
 		}
 
-		if !task.IsComplete() && task.DeadlineCheckbox.Checked {
+		if task.Completable() && !task.Complete() && task.DeadlineCheckbox.Checked {
 			clockPos := rl.Vector2{0, 0}
 			iconSrc = rl.Rectangle{144, 0, 16, 16}
 
@@ -1165,7 +1171,7 @@ func (task *Task) CalculateDeadlineDuration() time.Duration {
 }
 
 func (task *Task) Due() int {
-	if !task.IsComplete() && task.DeadlineCheckbox.Checked {
+	if !task.Complete() && task.Completable() && task.DeadlineCheckbox.Checked {
 		// If there's a deadline, let's tell you how long you have
 		deadlineDuration := task.CalculateDeadlineDuration()
 		if deadlineDuration.Hours() > 0 {
@@ -1231,11 +1237,7 @@ func (task *Task) DrawShadow() {
 
 		color := getThemeColor(GUI_FONT_COLOR)
 
-		for _, ending := range task.LineEndings {
-
-			if !ending.Valid {
-				continue
-			}
+		for _, ending := range task.ValidLineEndings() {
 
 			bp := rl.Vector2{task.Rect.X, task.Rect.Y}
 			bp.X += float32(task.Board.Project.GridSize) / 2
@@ -1431,11 +1433,11 @@ func (task *Task) PostDraw() {
 
 }
 
-func (task *Task) IsComplete() bool {
+func (task *Task) Complete() bool {
 
 	if task.Completable() && len(task.SubTasks) > 0 {
 		for _, child := range task.SubTasks {
-			if !child.IsComplete() {
+			if !child.Complete() {
 				return false
 			}
 		}
@@ -1487,7 +1489,7 @@ func (task *Task) SetCompletion(complete bool) {
 			task.LineBase.Selected = true
 			task.LineBase.SetCompletion(true) // Select base
 		} else {
-			for _, ending := range task.LineEndings {
+			for _, ending := range task.ValidLineEndings() {
 				ending.Selected = true
 			}
 			task.Board.FocusViewOnSelectedTasks()
@@ -1578,9 +1580,19 @@ func (task *Task) LoadResource(forceLoad bool) {
 
 func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
-	if message == MessageSelect {
+	// This exists because Line type Tasks should have an ending, either after
+	// creation, or after setting the type and closing
+	createAtLeastOneLineEnding := func() {
+		if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
+			if len(task.ValidLineEndings()) == 0 {
+				task.Board.UndoBuffer.On = false
+				task.CreateLineEnding()
+				task.Board.UndoBuffer.On = true
+			}
+		}
+	}
 
-		prevSelection := task.Selected
+	if message == MessageSelect {
 
 		if data["task"] == task {
 			if data["invert"] != nil {
@@ -1590,10 +1602,6 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			}
 		} else if data["task"] == nil || data["task"] != task {
 			task.Selected = false
-		}
-
-		if prevSelection != task.Selected {
-			task.Board.UndoBuffer.Capture(task)
 		}
 
 	} else if message == MessageDoubleClick {
@@ -1614,6 +1622,10 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.PostOpenDelay = 0
 			task.Dragging = false
 			task.Description.Focused = true
+
+			createAtLeastOneLineEnding()
+			task.Board.UndoBuffer.Capture(task)
+
 		}
 
 	} else if message == MessageTaskClose {
@@ -1622,11 +1634,18 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Board.Project.TaskOpen = false
 			task.LoadResource(false)
 			task.Board.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
-			if len(task.LineEndings) == 0 {
-				task.CreateLineEnding()
+
+			if task.TaskType.CurrentChoice != TASK_TYPE_LINE {
+				for _, ending := range task.ValidLineEndings() {
+					// Delete your endings if you're no longer a Line Task
+					task.Board.DeleteTask(ending)
+				}
 			}
 			task.Board.Project.SendMessage(MessageNumbering, nil)
+
+			createAtLeastOneLineEnding()
 			task.Board.UndoBuffer.Capture(task)
+
 		}
 	} else if message == MessageDragging {
 		if task.Selected {
@@ -1649,6 +1668,14 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			if !task.Board.Project.JustLoaded && task.Selected {
 				task.Board.UndoBuffer.Capture(task)
 			}
+
+			// Delete your endings if you're no longer a Line Task
+			if task.TaskType.CurrentChoice != TASK_TYPE_LINE {
+				for _, ending := range task.ValidLineEndings() {
+					task.Board.DeleteTask(ending)
+				}
+			}
+
 		}
 	} else if message == MessageNeighbors {
 		task.UpdateNeighbors()
@@ -1661,20 +1688,14 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Board.RemoveTaskFromGrid(task, task.GridPositions)
 
 		if task.LineBase == nil {
-			if len(task.LineEndings) > 0 {
-				for _, ending := range task.LineEndings {
+			if len(task.ValidLineEndings()) > 0 {
+				for _, ending := range task.ValidLineEndings() {
 					task.Board.DeleteTask(ending)
 				}
 			}
-		} else {
-			hasOne := false
-			for _, ending := range task.LineBase.LineEndings {
-				if ending.Valid {
-					hasOne = true
-					break
-				}
-			}
-			if !hasOne {
+		} else if task.LineBase.TaskType.CurrentChoice == TASK_TYPE_LINE {
+			// task.LineBase implicity is not nil here, indicating that this is a line ending
+			if len(task.LineBase.ValidLineEndings()) == 0 {
 				task.Board.DeleteTask(task.LineBase)
 			}
 		}
@@ -1689,11 +1710,24 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 }
 
+func (task *Task) ValidLineEndings() []*Task {
+	endings := []*Task{}
+	for _, ending := range task.LineEndings {
+		if ending.Valid {
+			endings = append(endings, ending)
+		}
+	}
+
+	return endings
+}
+
 func (task *Task) CreateLineEnding() *Task {
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_LINE && task.LineBase == nil {
 
+		task.Board.UndoBuffer.On = false
 		ending := task.Board.CreateNewTask()
+		task.Board.UndoBuffer.On = true
 		ending.TaskType.CurrentChoice = TASK_TYPE_LINE
 		ending.Position = task.Position
 		ending.Position.X += float32(task.Board.Project.GridSize) * 2
@@ -1701,6 +1735,15 @@ func (task *Task) CreateLineEnding() *Task {
 		ending.Rect.Y = ending.Position.Y
 		task.LineEndings = append(task.LineEndings, ending)
 		ending.LineBase = task
+
+		// We have to disable and re-enable the undo system because we need to capture the original state of the line
+		// ending ourselves. This is because we position it immediately after creation and that should be considered
+		// the "original" state of the ending.
+		ending.Valid = false
+		task.Board.UndoBuffer.Capture(ending)
+		ending.Valid = true
+		task.Board.UndoBuffer.Capture(ending)
+
 		return ending
 	}
 	return nil
@@ -1878,7 +1921,7 @@ func (task *Task) Move(dx, dy float32) {
 
 func (task *Task) Destroy() {
 
-	if task.LineBase != nil {
+	if task.LineBase != nil && task.LineBase.TaskType.CurrentChoice == TASK_TYPE_LINE {
 
 		for i, t := range task.LineBase.LineEndings {
 			if t == task {

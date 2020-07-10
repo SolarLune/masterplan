@@ -91,16 +91,16 @@ func (board *Board) CreateNewTask() *Task {
 
 	board.Project.Log("Created 1 new Task.")
 
-	if !board.Project.JustLoaded {
-		// If we're loading a project, we don't want to automatically select new tasks
-		board.Project.SendMessage(MessageSelect, map[string]interface{}{"task": newTask})
-	}
-
 	// We need to record both the Task being invalid, as well as being valid, for undoing / redoing
 	newTask.Valid = false
 	board.UndoBuffer.Capture(newTask)
 	newTask.Valid = true
 	board.UndoBuffer.Capture(newTask)
+
+	if !board.Project.JustLoaded {
+		// If we're loading a project, we don't want to automatically select new tasks
+		board.Project.SendMessage(MessageSelect, map[string]interface{}{"task": newTask})
+	}
 
 	return newTask
 }

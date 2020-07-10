@@ -869,6 +869,8 @@ func (project *Project) Update() {
 				}
 			}
 
+			project.CurrentBoard().UndoBuffer.Update()
+
 		}
 
 		for _, task := range project.GetAllTasks() {
@@ -924,8 +926,6 @@ func (project *Project) Update() {
 		project.Save(false)
 		project.LogOn = true
 	}
-
-	project.CurrentBoard().UndoBuffer.Update()
 
 }
 
@@ -1167,7 +1167,7 @@ func (project *Project) Shortcuts() {
 						if task.Completable() {
 							toggleCount++
 						}
-						task.SetCompletion(!task.IsComplete())
+						task.SetCompletion(!task.Complete())
 					}
 
 					if toggleCount > 0 {
@@ -1791,7 +1791,7 @@ func (project *Project) GUI() {
 				if t.Completable() {
 					taskCount++
 				}
-				if t.IsComplete() {
+				if t.Complete() {
 					completionCount++
 				}
 

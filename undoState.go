@@ -38,6 +38,7 @@ func (ub *UndoBuffer) Capture(task *Task) {
 
 func (ub *UndoBuffer) Update() {
 
+	// Add the NewCaptures list's states to the Steps history
 	if len(ub.NewCaptures.States) > 0 {
 
 		if len(ub.Steps) > 0 && ub.Index >= len(ub.Steps) {
@@ -104,8 +105,8 @@ func (ub *UndoBuffer) Update() {
 		for len(ub.Steps) > max {
 
 			// This big block is actually super simple in terms of what it does; it just loops through the buffer to
-			// see if every Task in the first step that is forgotten in case of exceeding the maximum undo step number
-			// is used again elsewhere. If not, then the Task is to be destroyed.
+			// see if every Task in the step that is being forgotten in case of exceeding the maximum undo step number
+			// is used again elsewhere. If not, then the Task is to be destroyed (its resources freed).
 			old := ub.Steps[0]
 			for _, t := range old.States {
 				if !t.SourceTask.Valid {
