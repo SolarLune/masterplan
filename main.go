@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"path/filepath"
 
 	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -161,7 +162,12 @@ func main() {
 			attemptAutoload--
 
 			if attemptAutoload == 0 {
-				if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
+				//loads file when passed in as argument
+				if len(os.Args) > 1 && strings.EqualFold(filepath.Ext(os.Args[1]), ".plan") {
+					if loaded := LoadProject(os.Args[1]); loaded != nil {
+						currentProject = loaded
+					}
+				} else if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
 					if loaded := LoadProject(programSettings.RecentPlanList[0]); loaded != nil {
 						currentProject = loaded
 					}
