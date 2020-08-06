@@ -351,11 +351,10 @@ func (project *Project) Save(backup bool) {
 				project.Locked = true
 			}
 
-			boardNames := []string{}
-			for _, board := range project.Boards {
-				boardNames = append(boardNames, board.Name)
+			sjson.SetRaw(data, `BoardNames`, "[]")
+			for i, board := range project.Boards {
+				data, _ = sjson.Set(data, "BoardNames." + fmt.Sprintf("%d", i), board.Name)
 			}
-			sjson.Set(data, `BoardNames`, boardNames)
 
 			f, err := os.Create(project.FilePath)
 			if err != nil {
