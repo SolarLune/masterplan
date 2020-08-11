@@ -355,7 +355,7 @@ func (project *Project) Save(backup bool) {
 			for _, board := range project.Boards {
 				boardNames = append(boardNames, board.Name)
 			}
-			sjson.Set(data, `BoardNames`, boardNames)
+			data, _ = sjson.Set(data, `BoardNames`, boardNames)
 
 			f, err := os.Create(project.FilePath)
 			if err != nil {
@@ -479,6 +479,7 @@ func LoadProject(filepath string) *Project {
 			project.LogOn = false
 
 			boardNames := []string{}
+			fmt.Println("Board Names:", data.Get(`BoardNames`))
 			for _, name := range data.Get(`BoardNames`).Array() {
 				boardNames = append(boardNames, name.String())
 			}
