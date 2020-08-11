@@ -19,6 +19,7 @@ v0.4.0
 - FIX: Messages logged are clearer and easier to read with indentations and dashes ("-").
 - FIX: Errors for failures when loading projects are no longer displayed (and logged) twice.
 - FIX: Message logging now works correctly with multiple lines per message (\n).
+- FIX: Deadlines can no longer show up on un-completable Tasks by setting the deadline on a un-completable​ Task, and then changing its type.
 
 -------
 
