@@ -117,14 +117,10 @@ func publishToItch() {
 
 	filepath.Walk(filepath.Join("./", "build_script"), func(path string, info os.FileInfo, err error) error {
 
-		if info.IsDir() {
-			return nil
-		}
+		dirCount := strings.Split(path, string(os.PathSeparator))
 
-		ext := filepath.Ext(path)
-
-		if ext == ".gz" || ext == ".zip" {
-			buildNames = append(buildNames, path)
+		if info.IsDir() && len(dirCount) == 2 {
+			buildNames = append(buildNames, path) // We want to upload the build directories
 		}
 
 		return nil
@@ -133,7 +129,9 @@ func publishToItch() {
 
 	for _, build := range buildNames {
 
-		result, err := exec.Command("butler", "push", build, "solarlune/masterplan:"+build).CombinedOutput()
+		buildName := strings.Split(build, string(os.PathSeparator))[1]
+
+		result, err := exec.Command("butler", "push", build, "solarlune/masterplan:"+buildName).CombinedOutput()
 
 		if err == nil {
 			log.Println("Published", build, "to itch!")
