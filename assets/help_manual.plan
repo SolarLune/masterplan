@@ -4,8 +4,8 @@
   "BoardIndex": 0,
   "BoardCount": 1,
   "AutoSave": false,
-  "Pan.X": -5598.33251953125,
-  "Pan.Y": -302.48260498046875,
+  "Pan.X": 0,
+  "Pan.Y": 0,
   "ZoomLevel": 2,
   "ColorTheme": "Sunlight",
   "OutlineTasks": true,
@@ -23,6 +23,7 @@
   "BackupInterval": 0,
   "BackupKeepCount": 1,
   "UndoMaxSteps": 0,
+  "BoardNames": ["Welcome"],
   "Tasks": [
     {
       "BoardIndex": 0,
@@ -2379,6 +2380,5 @@
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Aug 10 2020 23:55:06"
     }
-  ],
-  "BoardNames": ["Welcome"]
+  ]
 }

@@ -11,6 +11,7 @@ type ProgramSettings struct {
 	AutoReloadThemes    bool
 	RecentPlanList      []string
 	DisableSplashscreen bool
+	DisableMessageLog   bool
 }
 
 func NewProgramSettings() ProgramSettings {

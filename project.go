@@ -87,6 +87,7 @@ type Project struct {
 	AutomaticBackupInterval  *NumberSpinner
 	AutomaticBackupKeepCount *NumberSpinner
 	MaxUndoSteps             *NumberSpinner
+	DisableMessageLog        *Checkbox
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -187,6 +188,7 @@ func NewProject() *Project {
 		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
 		AutoReloadThemes:    NewCheckbox(0, 0, 32, 32),
 		DisableSplashscreen: NewCheckbox(0, 0, 32, 32),
+		DisableMessageLog:   NewCheckbox(0, 0, 32, 32),
 	}
 
 	column := project.AddSettingsColumn()
@@ -212,6 +214,7 @@ func NewProject() *Project {
 	column.Add("Auto-reload Themes:", project.AutoReloadThemes)
 	column.Add("Auto-load Last Project:", project.AutoLoadLastProject)
 	column.Add("Disable Splashscreen:", project.DisableSplashscreen)
+	column.Add("Disable Message Log:", project.DisableMessageLog)
 
 	project.Boards = []*Board{NewBoard(project)}
 
@@ -344,18 +347,19 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.GetNumber())
 			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.GetNumber())
 			data, _ = sjson.Set(data, `UndoMaxSteps`, project.MaxUndoSteps.GetNumber())
-			data, _ = sjson.SetRaw(data, `Tasks`, taskData) // taskData is already properly encoded and formatted JSON
-
-			if !backup && project.LockProject.Checked {
-				project.Log("Project lock engaged.")
-				project.Locked = true
-			}
 
 			boardNames := []string{}
 			for _, board := range project.Boards {
 				boardNames = append(boardNames, board.Name)
 			}
 			data, _ = sjson.Set(data, `BoardNames`, boardNames)
+
+			if !backup && project.LockProject.Checked {
+				project.Log("Project lock engaged.")
+				project.Locked = true
+			}
+
+			data, _ = sjson.SetRaw(data, `Tasks`, taskData) // taskData is already properly encoded and formatted JSON
 
 			f, err := os.Create(project.FilePath)
 			if err != nil {
@@ -1613,6 +1617,7 @@ func (project *Project) GUI() {
 						project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
 						project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
 						project.AutoReloadThemes.Checked = programSettings.AutoReloadThemes
+						project.DisableMessageLog.Checked = programSettings.DisableMessageLog
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
@@ -1703,6 +1708,7 @@ func (project *Project) GUI() {
 				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
 				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
 				programSettings.AutoReloadThemes = project.AutoReloadThemes.Checked
+				programSettings.DisableMessageLog = project.DisableMessageLog.Checked
 
 				if project.AutoSave.Checked {
 					project.LogOn = false

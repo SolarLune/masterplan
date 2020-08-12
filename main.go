@@ -202,36 +202,40 @@ func main() {
 
 			y := float32(24)
 
-			for i := 0; i < len(eventLogBuffer); i++ {
+			if !programSettings.DisableMessageLog {
 
-				msg := eventLogBuffer[i]
+				for i := 0; i < len(eventLogBuffer); i++ {
 
-				text := "- " + msg.Time.Format("15:04:05") + " : " + msg.Text
-				text = strings.ReplaceAll(text, "\n", "\n                    ")
+					msg := eventLogBuffer[i]
 
-				alpha, done := msg.Tween.Update(rl.GetFrameTime())
-				color.A = uint8(alpha)
-				bgColor.A = color.A
+					text := "- " + msg.Time.Format("15:04:05") + " : " + msg.Text
+					text = strings.ReplaceAll(text, "\n", "\n                    ")
 
-				textSize := rl.MeasureTextEx(guiFont, text, guiFontSize, 1)
-				lineHeight, _ := TextHeight(text, true)
-				textPos := rl.Vector2{8, y}
-				rectPos := textPos
+					alpha, done := msg.Tween.Update(rl.GetFrameTime())
+					color.A = uint8(alpha)
+					bgColor.A = color.A
 
-				rectPos.X--
-				rectPos.Y--
-				textSize.X += 2
-				textSize.Y = lineHeight
+					textSize := rl.MeasureTextEx(guiFont, text, guiFontSize, 1)
+					lineHeight, _ := TextHeight(text, true)
+					textPos := rl.Vector2{8, y}
+					rectPos := textPos
 
-				rl.DrawRectangleV(textPos, textSize, bgColor)
-				DrawGUITextColored(textPos, color, text)
+					rectPos.X--
+					rectPos.Y--
+					textSize.X += 2
+					textSize.Y = lineHeight
 
-				if done {
-					eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
-					i--
+					rl.DrawRectangleV(textPos, textSize, bgColor)
+					DrawGUITextColored(textPos, color, text)
+
+					if done {
+						eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
+						i--
+					}
+
+					y += lineHeight
+
 				}
-
-				y += lineHeight
 
 			}
 
