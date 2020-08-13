@@ -529,7 +529,7 @@ func (task *Task) Update() {
 					task.TimerValue = 0
 					task.Board.Project.Log("Timer [%s] elapsed.", task.TimerName.Text())
 
-					f, err := os.Open(filepath.Join("assets", "alarm.wav"))
+					f, err := os.Open(GetPath("assets", "alarm.wav"))
 					if err == nil {
 						stream, _, _ := wav.Decode(f)
 						fn := func() {
