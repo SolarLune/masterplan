@@ -134,7 +134,7 @@ func NewTask(board *Board) *Task {
 	task := &Task{
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Board:                        board,
-		TaskType:                     NewSpinner(postX, 32, 192, 24, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line"),
+		TaskType:                     NewSpinner(postX, 32, 192, 32, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line"),
 		Description:                  NewTextbox(postX, 64, 256, 16),
 		TimerName:                    NewTextbox(postX, 64, 256, 16),
 		CompletionCheckbox:           NewCheckbox(postX, 96, 32, 32),
