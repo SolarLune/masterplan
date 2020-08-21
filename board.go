@@ -277,7 +277,10 @@ func (board *Board) PasteTasks() {
 		center := rl.Vector2{}
 
 		for _, t := range board.Project.CopyBuffer {
-			center = raymath.Vector2Add(center, t.Position)
+			tp := t.Position
+			tp.X += t.Rect.Width / 2
+			tp.Y += t.Rect.Height / 2
+			center = raymath.Vector2Add(center, tp)
 		}
 
 		raymath.Vector2Divide(&center, float32(len(board.Project.CopyBuffer)))
