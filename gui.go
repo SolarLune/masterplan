@@ -428,10 +428,10 @@ func (panel *Panel) Update() {
 			}
 
 			if newHeight != panel.Rect.Height {
-				panel.RenderTexture = rl.LoadRenderTexture(int32(panel.Rect.Width), int32(newHeight))
+				panel.Rect.Height = newHeight
+				panel.recreateRenderTexture()
 			}
 
-			panel.Rect.Height = newHeight
 		}
 
 		src := rl.Rectangle{panel.ViewPosition.X, panel.ViewPosition.Y, panel.OriginalWidth, panel.OriginalHeight}
@@ -507,7 +507,7 @@ func (panel *Panel) Resize(newWidth, newHeight float32) {
 }
 
 func (panel *Panel) recreateRenderTexture() {
-	// rl.UnloadRenderTexture(panel.RenderTexture)
+	// This is a memory leak; I believe it needs to be unloaded first if it has been created already, but it causes issues with rendering for now.
 	panel.RenderTexture = rl.LoadRenderTexture(int32(panel.Rect.Width), int32(panel.Rect.Height))
 }
 
