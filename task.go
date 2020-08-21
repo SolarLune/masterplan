@@ -199,8 +199,8 @@ func NewTask(board *Board) *Task {
 	column.Add("Deadline Month:", task.DeadlineMonthSpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
 	column.Add("Deadline Year:", task.DeadlineYearSpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
 
-	column.Add("Minute: ", task.TimerMinuteSpinner, TASK_TYPE_TIMER)
-	column.Add("Second: ", task.TimerSecondSpinner, TASK_TYPE_TIMER)
+	column.Add("Minutes: ", task.TimerMinuteSpinner, TASK_TYPE_TIMER)
+	column.Add("Seconds: ", task.TimerSecondSpinner, TASK_TYPE_TIMER)
 	column.Add("Bezier Lines: ", task.LineBezier, TASK_TYPE_LINE)
 
 	task.DeadlineMonthSpinner.ExpandUpwards = true
