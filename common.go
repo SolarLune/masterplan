@@ -9,15 +9,18 @@ import (
 	"github.com/gen2brain/raylib-go/raymath"
 )
 
+// We have a global mouse offset specifically for panels that render GUI elements
+// to a texture and then draw the texture elsewhere.
+var globalMouseOffset = rl.Vector2{}
+
 func GetMousePosition() rl.Vector2 {
 
 	pos := rl.GetMousePosition()
 
-	// pos.X *= float32(screenWidth) / float32(rl.GetScreenWidth())
-	// pos.Y *= float32(screenHeight) / float32(rl.GetScreenHeight())
-
 	pos.X = float32(math.Round(float64(pos.X)))
 	pos.Y = float32(math.Round(float64(pos.Y)))
+
+	pos = raymath.Vector2Subtract(pos, globalMouseOffset)
 
 	return pos
 
@@ -77,4 +80,60 @@ func FileExists(filepath string) bool {
 		return false
 	}
 	return true
+}
+
+var mouseInputs = map[int32]int{}
+
+func handleMouseInputs() {
+
+	inputs := []int32{
+		rl.MouseLeftButton,
+		rl.MouseMiddleButton,
+		rl.MouseRightButton,
+	}
+
+	for _, button := range inputs {
+
+		v := getMouseEventValue(button)
+
+		if rl.IsMouseButtonPressed(button) && v == 0 {
+			mouseInputs[button] = 1
+		}
+
+		if rl.IsMouseButtonDown(button) && v == 1 {
+			mouseInputs[button] = 2
+		}
+
+		if rl.IsMouseButtonReleased(button) && v == 2 {
+			mouseInputs[button] = 3
+		} else if !rl.IsMouseButtonDown(button) {
+			mouseInputs[button] = 0
+		}
+
+	}
+
+}
+
+func getMouseEventValue(input int32) int {
+	value, exists := mouseInputs[input]
+	if !exists {
+		return 0
+	}
+	return value
+}
+
+func MousePressed(button int32) bool {
+	return mouseInputs[button] == 1
+}
+
+func MouseDown(button int32) bool {
+	return mouseInputs[button] == 2
+}
+
+func MouseReleased(button int32) bool {
+	return mouseInputs[button] == 3
+}
+
+func ConsumeMouseInput(button int32) {
+	mouseInputs[button] = 0
 }

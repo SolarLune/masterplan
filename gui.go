@@ -4,15 +4,18 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/atotto/clipboard"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/tanema/gween/ease"
 )
 
 const (
@@ -28,18 +31,22 @@ const (
 )
 
 const (
-	TEXTBOX_ALIGN_LEFT = iota
-	TEXTBOX_ALIGN_CENTER
-	TEXTBOX_ALIGN_RIGHT
+	ALIGN_LEFT = iota
+	ALIGN_CENTER
+	ALIGN_RIGHT
 
-	TEXTBOX_ALIGN_UPPER = iota
-	_                   // Center works for this, too
-	TEXTBOX_ALIGN_BOTTOM
+	ALIGN_UPPER = iota
+	_           // Center works for this, too
+	ALIGN_BOTTOM
 )
 
 var currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
 
 var guiColors map[string]map[string]rl.Color
+
+var worldMousePosition = false
+
+var prioritizedGUIElement GUIElement
 
 func getThemeColor(colorConstant string) rl.Color {
 	return guiColors[currentTheme][colorConstant]
@@ -100,7 +107,7 @@ func loadThemes() {
 
 }
 
-func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, rotation float32, text string, disabled bool) bool {
+func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, disabled bool) bool {
 
 	clicked := false
 
@@ -112,13 +119,20 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, rotation float32, text s
 		insideColor = getThemeColor(GUI_INSIDE_DISABLED)
 	} else {
 
-		if rl.CheckCollisionPointRec(GetMousePosition(), rect) {
+		pos := rl.Vector2{}
+		if worldMousePosition {
+			pos = GetWorldMousePosition()
+		} else {
+			pos = GetMousePosition()
+		}
+
+		if rl.CheckCollisionPointRec(pos, rect) {
 			outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 			insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
-			if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+			if MouseDown(rl.MouseLeftButton) {
 				outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
 				insideColor = getThemeColor(GUI_INSIDE_DISABLED)
-			} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+			} else if MouseReleased(rl.MouseLeftButton) {
 				clicked = true
 			}
 		}
@@ -144,10 +158,14 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, rotation float32, text s
 		iconSrcRec,
 		iconDstRec,
 		rl.Vector2{iconSrcRec.Width / 2, iconSrcRec.Height / 2},
-		rotation,
+		iconRotation,
 		getThemeColor(GUI_FONT_COLOR))
 
 	DrawGUIText(pos, text)
+
+	if clicked && prioritizedGUIElement != nil {
+		clicked = false
+	}
 
 	return clicked
 }
@@ -156,8 +174,427 @@ func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
 	return ImmediateIconButton(rect, rl.Rectangle{}, 0, text, disabled)
 }
 
-type PersistentGUIElement interface {
+type Button struct {
+	Rect         rl.Rectangle
+	IconSrcRec   rl.Rectangle
+	IconRotation float32
+	Text         string
+	Disabled     bool
+	Clicked      bool
+}
+
+func (button *Button) Update() {
+	button.Clicked = ImmediateIconButton(button.Rect, button.IconSrcRec, button.IconRotation, button.Text, button.Disabled)
+}
+
+func (button *Button) Depth() int32 {
+	return 0
+}
+
+func (button *Button) Rectangle() rl.Rectangle {
+	return button.Rect
+}
+
+func (button *Button) SetRectangle(rect rl.Rectangle) {
+	button.Rect = rect
+}
+
+func NewButton(x, y, w, h float32, text string, disabled bool) *Button {
+	return &Button{
+		Rect:         rl.Rectangle{x, y, w, h},
+		IconSrcRec:   rl.Rectangle{},
+		IconRotation: 0,
+		Text:         text,
+		Disabled:     disabled,
+	}
+}
+
+type PanelItem struct {
+	Name                string
+	Element             GUIElement
+	On                  bool
+	HorizontalAlignment int
+	HorizontalPadding   float32
+	Modes               []int
+}
+
+func NewPanelItem(name string, element GUIElement, modes ...int) *PanelItem {
+	return &PanelItem{Name: name, Element: element, HorizontalAlignment: ALIGN_CENTER, Modes: modes, On: true}
+}
+
+func (pi *PanelItem) InMode(mode int) bool {
+
+	for _, m := range pi.Modes {
+
+		if m == -1 { // -1 is a stand-in for all tasks
+			return true
+		}
+
+		if m == mode {
+			return true
+		}
+	}
+
+	return false
+
+}
+
+type PanelColumn struct {
+	// Names    []string
+	// Elements []PersistentGUIElement
+	OrderOfEntry []string
+	Items        map[string]*PanelItem
+	Mode         int
+}
+
+func NewPanelColumn() *PanelColumn {
+	return &PanelColumn{
+		OrderOfEntry: []string{},
+		Items:        map[string]*PanelItem{},
+		Mode:         0,
+	}
+}
+
+func (panelColumn *PanelColumn) Add(name string, element GUIElement, modes ...int) *PanelItem {
+	_, exists := panelColumn.Items[name]
+	if exists {
+		log.Printf("ERROR: Panel already contains item: \"%s\"\n", name)
+	}
+	panelColumn.OrderOfEntry = append(panelColumn.OrderOfEntry, name)
+
+	if len(modes) == 0 {
+		modes = append(modes, -1)
+	}
+
+	item := NewPanelItem(name, element, modes...)
+	panelColumn.Items[name] = item
+	return item
+}
+
+func (panelColumn *PanelColumn) ItemFromElement(element GUIElement) *PanelItem {
+	for _, item := range panelColumn.Items {
+		if item.Element == element {
+			return item
+		}
+	}
+	return nil
+}
+
+type Panel struct {
+	Rect            rl.Rectangle
+	OriginalWidth   float32
+	OriginalHeight  float32
+	ViewPosition    rl.Vector2
+	Columns         []*PanelColumn
+	Exited          bool
+	RenderTexture   rl.RenderTexture2D
+	Scrollbar       *Scrollbar
+	AutoExpand      bool
+	EnableScrolling bool
+	VerticalSpacing int32 // If the Panel should automatically space out the elements, or use a margin.
+	// If Spacing < 0, the elements will be spaced out across the height of the column.
+	// If Spacing >= 0, the elements will be spaced out according to their heights, with an additional padding of [Spacing] pixels.
+}
+
+func NewPanel(x, y, w, h float32) *Panel {
+
+	panel := &Panel{
+		Rect:            rl.Rectangle{x, y, w, h},
+		OriginalWidth:   w,
+		OriginalHeight:  h,
+		VerticalSpacing: -1,
+		AutoExpand:      true,
+		Scrollbar:       NewScrollbar(0, 0, 16, h-80),
+		EnableScrolling: true,
+	}
+
+	panel.ViewPosition = rl.Vector2{0, 0}
+
+	panel.recreateRenderTexture()
+
+	return panel
+
+}
+
+func (panel *Panel) Update() {
+
+	dst := rl.Rectangle{panel.Rect.X, panel.Rect.Y, panel.OriginalWidth, panel.OriginalHeight}
+
+	panel.Exited = false
+
+	if MousePressed(rl.MouseLeftButton) && !rl.CheckCollisionPointRec(GetMousePosition(), dst) {
+		panel.Exited = true
+		ConsumeMouseInput(rl.MouseLeftButton)
+	}
+
+	if panel.Scrollbar.Horizontal {
+
+	} else {
+		panel.Scrollbar.Rect.X = dst.X + dst.Width - panel.Scrollbar.Rect.Width
+		panel.Scrollbar.Rect.Y = dst.Y + 48
+	}
+
+	rl.DrawRectangleRec(dst, getThemeColor(GUI_INSIDE))
+
+	scroll := panel.Scrollbar.ScrollAmount * (float32(panel.RenderTexture.Texture.Height) - panel.OriginalHeight)
+
+	if len(panel.Columns) > 0 {
+
+		rl.BeginTextureMode(panel.RenderTexture)
+		rl.ClearBackground(getThemeColor(GUI_INSIDE))
+
+		columnIndex := 0
+		columnWidth := int(panel.Rect.Width) / len(panel.Columns)
+
+		x := float32(16)
+		y := float32(16)
+
+		globalMouseOffset.X = panel.Rect.X
+		globalMouseOffset.Y = panel.Rect.Y - scroll
+
+		for _, column := range panel.Columns {
+
+			x += float32(columnWidth * columnIndex)
+			y = 16
+
+			sorted := append([]string{}, column.OrderOfEntry...)
+			sort.Slice(sorted, func(i, j int) bool {
+				return column.Items[sorted[i]].Element.Depth() > column.Items[sorted[j]].Element.Depth()
+			})
+
+			for _, name := range column.OrderOfEntry {
+
+				item := column.Items[name]
+
+				if !item.InMode(column.Mode) || !item.On {
+					continue
+				}
+
+				DrawGUIText(rl.Vector2{x, y}, item.Name)
+
+				if item == nil {
+					continue
+				}
+
+				rect := item.Element.Rectangle()
+
+				rect.X = x + float32(columnWidth/4*3) + item.HorizontalPadding
+
+				if item.HorizontalAlignment == ALIGN_CENTER {
+					rect.X -= rect.Width / 2
+				} else if item.HorizontalAlignment == ALIGN_RIGHT {
+					rect.X -= rect.Width
+				}
+
+				rect.Y = y
+
+				item.Element.SetRectangle(rect)
+
+				if panel.VerticalSpacing >= 0 {
+					y += rect.Height + float32(panel.VerticalSpacing)
+				} else {
+					y += float32(int(panel.Rect.Height) / len(column.Items)) // Automatic spacing
+				}
+
+			}
+
+			for _, name := range sorted {
+
+				item := column.Items[name]
+
+				if !item.InMode(column.Mode) || !item.On || item == nil {
+					continue
+				}
+
+				item.Element.Update()
+
+			}
+
+			columnIndex++
+
+		}
+
+		globalMouseOffset.X = 0
+		globalMouseOffset.Y = 0
+
+		rl.EndTextureMode()
+
+		if panel.AutoExpand && panel.VerticalSpacing >= 0 && panel.EnableScrolling {
+
+			newHeight := y
+
+			if newHeight < panel.OriginalHeight {
+				newHeight = panel.OriginalHeight
+			}
+
+			if newHeight != panel.Rect.Height {
+				panel.RenderTexture = rl.LoadRenderTexture(int32(panel.Rect.Width), int32(newHeight))
+			}
+
+			panel.Rect.Height = newHeight
+		}
+
+		src := rl.Rectangle{panel.ViewPosition.X, panel.ViewPosition.Y, panel.OriginalWidth, panel.OriginalHeight}
+		src.Height *= -1
+		src.Y -= float32(panel.RenderTexture.Texture.Height) - src.Height + scroll
+
+		src.X = float32(int32(src.X))
+		src.Y = float32(int32(src.Y))
+
+		dst.X = float32(int32(dst.X))
+		dst.Y = float32(int32(dst.Y))
+
+		rl.DrawTexturePro(panel.RenderTexture.Texture,
+			src,
+			dst,
+			rl.Vector2{}, 0, rl.White)
+
+		if panel.OriginalHeight < panel.Rect.Height && panel.EnableScrolling {
+			panel.Scrollbar.Update()
+		} else {
+			panel.Scrollbar.ScrollAmount = 0 // Reset the scrollbar to the top
+		}
+
+	}
+
+	exitButtonSize := float32(32)
+
+	if ImmediateButton(rl.Rectangle{float32(int32(panel.Rect.X + panel.Rect.Width - exitButtonSize)), float32(int32(panel.Rect.Y)), exitButtonSize, exitButtonSize}, "X", false) {
+		panel.Exited = true
+		ConsumeMouseInput(rl.MouseLeftButton)
+	}
+
+	rl.DrawRectangleLinesEx(dst, 1, getThemeColor(GUI_OUTLINE))
+
+}
+
+func (panel *Panel) Depth() int32 {
+	return 0
+}
+
+// Centers the panel on the screen, using the alignment values (0 - 1 being the left to right or top to bottom edges; 0.5, 0.5 would be dead center)
+func (panel *Panel) Center(xAlign, yAlign float32) {
+	panel.Rect.X = (float32(rl.GetScreenWidth()) - panel.OriginalWidth) * xAlign
+	panel.Rect.Y = (float32(rl.GetScreenHeight()) - panel.OriginalHeight) * yAlign
+}
+
+func (panel *Panel) AddColumn() *PanelColumn {
+	newColumn := NewPanelColumn()
+	panel.Columns = append(panel.Columns, newColumn)
+	return newColumn
+}
+
+func (panel *Panel) Resize(newWidth, newHeight float32) {
+
+	changed := false
+
+	if newWidth > 0 && panel.OriginalWidth != newWidth {
+		panel.OriginalWidth = newWidth
+		panel.Rect.Width = newWidth
+		changed = true
+	}
+
+	if newHeight > 0 && panel.OriginalHeight != newHeight {
+		panel.OriginalHeight = newHeight
+		panel.Rect.Height = newHeight
+		changed = true
+	}
+
+	if changed {
+		panel.recreateRenderTexture()
+	}
+
+}
+
+func (panel *Panel) recreateRenderTexture() {
+	// rl.UnloadRenderTexture(panel.RenderTexture)
+	panel.RenderTexture = rl.LoadRenderTexture(int32(panel.Rect.Width), int32(panel.Rect.Height))
+}
+
+type Label struct {
+	Position rl.Vector2
+	Text     string
+}
+
+func NewLabel(x, y float32, text string) *Label {
+	return &Label{Position: rl.Vector2{x, y}, Text: text}
+}
+
+func (label *Label) Update() {
+	DrawGUIText(label.Position, label.Text)
+}
+
+func (label *Label) Depth() int32 {
+	return 0
+}
+
+func (label *Label) Rectangle() rl.Rectangle {
+	height, _ := TextHeight(label.Text, true)
+	return rl.Rectangle{label.Position.X, label.Position.Y, GUITextWidth(label.Text), height}
+}
+
+func (label *Label) SetRectangle(rect rl.Rectangle) {
+	label.Position.X = rect.X
+	label.Position.Y = rect.Y
+}
+
+type Scrollbar struct {
+	Rect         rl.Rectangle
+	Horizontal   bool
+	ScrollAmount float32
+}
+
+func NewScrollbar(x, y, w, h float32) *Scrollbar {
+	return &Scrollbar{Rect: rl.Rectangle{x, y, w, h}}
+}
+
+func (scrollBar *Scrollbar) Update() {
+
+	rl.DrawRectangleRec(scrollBar.Rect, getThemeColor(GUI_OUTLINE))
+
+	scrollBox := scrollBar.Rect
+	if scrollBar.Horizontal {
+		scrollBox.Width = scrollBox.Height
+	} else {
+		scrollBox.Height = scrollBox.Width
+	}
+
+	scrollBox.Y = scrollBar.Rect.Y + (scrollBar.ScrollAmount * scrollBar.Rect.Height) - (scrollBox.Height / 2)
+
+	if scrollBox.Y < scrollBar.Rect.Y {
+		scrollBox.Y = scrollBar.Rect.Y
+	}
+
+	if scrollBox.Y+scrollBox.Height > scrollBar.Rect.Y+scrollBar.Rect.Height {
+		scrollBox.Y = scrollBar.Rect.Y + scrollBar.Rect.Height - scrollBox.Height
+	}
+
+	if MouseDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), scrollBar.Rect) {
+		scrollBar.ScrollAmount = ease.Linear(
+			GetMousePosition().Y-scrollBar.Rect.Y-(scrollBox.Height/2),
+			0,
+			1,
+			scrollBar.Rect.Height-(scrollBox.Height))
+	}
+
+	scrollBar.ScrollAmount -= float32(rl.GetMouseWheelMove()) * .25
+
+	if scrollBar.ScrollAmount < 0 {
+		scrollBar.ScrollAmount = 0
+	}
+	if scrollBar.ScrollAmount > 1 {
+		scrollBar.ScrollAmount = 1
+	}
+
+	ImmediateButton(scrollBox, "", false)
+
+}
+
+type GUIElement interface {
 	Update()
+	Depth() int32
+	Rectangle() rl.Rectangle
+	SetRectangle(rl.Rectangle)
 }
 
 type DropdownMenu struct {
@@ -187,15 +624,22 @@ func (dropdown *DropdownMenu) Update() {
 
 	arrowColor := getThemeColor(GUI_FONT_COLOR)
 
-	if rl.CheckCollisionPointRec(GetMousePosition(), dropdown.Rect) {
+	pos := rl.Vector2{}
+	if worldMousePosition {
+		pos = GetWorldMousePosition()
+	} else {
+		pos = GetMousePosition()
+	}
+
+	if rl.CheckCollisionPointRec(pos, dropdown.Rect) {
 		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 		insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 		arrowColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
-		if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+		if MouseDown(rl.MouseLeftButton) {
 			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
 			insideColor = getThemeColor(GUI_INSIDE_DISABLED)
 			arrowColor = getThemeColor(GUI_OUTLINE_DISABLED)
-		} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+		} else if MouseReleased(rl.MouseLeftButton) {
 			dropdown.Open = !dropdown.Open
 			dropdown.Clicked = true
 		}
@@ -209,11 +653,11 @@ func (dropdown *DropdownMenu) Update() {
 	rl.DrawRectangleLinesEx(dropdown.Rect, 1, outlineColor)
 
 	textWidth := rl.MeasureTextEx(guiFont, dropdown.Name, guiFontSize, spacing)
-	pos := rl.Vector2{dropdown.Rect.X + (dropdown.Rect.Width / 2) - textWidth.X/2, dropdown.Rect.Y + (dropdown.Rect.Height / 2) - textWidth.Y/2}
-	pos.X = float32(math.Round(float64(pos.X)))
-	pos.Y = float32(math.Round(float64(pos.Y)))
+	ddPos := rl.Vector2{dropdown.Rect.X + (dropdown.Rect.Width / 2) - textWidth.X/2, dropdown.Rect.Y + (dropdown.Rect.Height / 2) - textWidth.Y/2}
+	ddPos.X = float32(math.Round(float64(ddPos.X)))
+	ddPos.Y = float32(math.Round(float64(ddPos.Y)))
 
-	DrawGUIText(pos, dropdown.Name)
+	DrawGUIText(ddPos, dropdown.Name)
 
 	rl.DrawTexturePro(currentProject.GUI_Icons, rl.Rectangle{16, 16, 16, 16}, rl.Rectangle{dropdown.Rect.X + (dropdown.Rect.Width - 24), dropdown.Rect.Y + 8, 16, 16}, rl.Vector2{}, 0, arrowColor)
 	// rl.DrawPoly(rl.Vector2{dropdown.Rect.X + dropdown.Rect.Width - 14, dropdown.Rect.Y + dropdown.Rect.Height/2}, 3, 7, 26, getThemeColor(GUI_FONT_COLOR))
@@ -272,7 +716,14 @@ func (checkbox *Checkbox) Update() {
 	rl.DrawRectangleRec(checkbox.Rect, getThemeColor(GUI_INSIDE))
 	outlineColor := getThemeColor(GUI_OUTLINE)
 
-	if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), checkbox.Rect) {
+	pos := rl.Vector2{}
+	if worldMousePosition {
+		pos = GetWorldMousePosition()
+	} else {
+		pos = GetMousePosition()
+	}
+
+	if rl.CheckCollisionPointRec(pos, checkbox.Rect) && MousePressed(rl.MouseLeftButton) && prioritizedGUIElement == nil {
 		checkbox.Checked = !checkbox.Checked
 		checkbox.Changed = true
 	}
@@ -291,12 +742,26 @@ func (checkbox *Checkbox) Update() {
 
 }
 
+func (checkbox *Checkbox) Depth() int32 {
+	return 0
+}
+
+func (checkbox *Checkbox) Rectangle() rl.Rectangle {
+	return checkbox.Rect
+}
+
+func (checkbox *Checkbox) SetRectangle(rect rl.Rectangle) {
+	checkbox.Rect = rect
+}
+
 type Spinner struct {
-	Rect          rl.Rectangle
-	Options       []string
-	CurrentChoice int
-	Changed       bool
-	// Expanded      bool
+	Rect              rl.Rectangle
+	Options           []string
+	CurrentChoice     int
+	Changed           bool
+	Expanded          bool
+	ExpandUpwards     bool
+	ExpandMaxRowCount int
 }
 
 func NewSpinner(x, y, w, h float32, options ...string) *Spinner {
@@ -310,44 +775,6 @@ func (spinner *Spinner) Update() {
 
 	// This kind of works, but not really, because you can click on an item in the menu, but then
 	// you also click on the item underneath the menu. :(
-
-	// clickedSpinner := false
-
-	// if ImmediateButton(rect, spinner.ChoiceAsString(), false) {
-	// 	spinner.Expanded = !spinner.Expanded
-	// 	clickedSpinner = true
-	// }
-
-	// if spinner.Expanded {
-	// 	for i, choice := range spinner.Options {
-	// 		if choice == spinner.ChoiceAsString() {
-	// 			continue
-	// 		}
-	// 		rect.Y += rect.Height
-	// 		if ImmediateButton(rect, choice, false) {
-	// 			spinner.CurrentChoice = i
-	// 			spinner.Expanded = false
-	// 			spinner.Changed = true
-	// 			clickedSpinner = true
-	// 		}
-
-	// 	}
-
-	// }
-
-	// if rl.IsMouseButtonReleased(rl.MouseLeftButton) && !clickedSpinner {
-	// 	spinner.Expanded = false
-	// }
-
-	rl.DrawRectangleRec(spinner.Rect, getThemeColor(GUI_INSIDE))
-	rl.DrawRectangleLinesEx(spinner.Rect, 1, getThemeColor(GUI_OUTLINE))
-	if len(spinner.Options) > 0 {
-		text := spinner.ChoiceAsString()
-		textLength := rl.MeasureTextEx(guiFont, text, guiFontSize, spacing)
-		x := float32(math.Round(float64(spinner.Rect.X + spinner.Rect.Width/2 - textLength.X/2)))
-		y := float32(math.Round(float64(spinner.Rect.Y + spinner.Rect.Height/2 - textLength.Y/2)))
-		DrawGUIText(rl.Vector2{x, y}, text)
-	}
 
 	if ImmediateButton(rl.Rectangle{spinner.Rect.X, spinner.Rect.Y, spinner.Rect.Height, spinner.Rect.Height}, "<", false) {
 		spinner.CurrentChoice--
@@ -365,6 +792,76 @@ func (spinner *Spinner) Update() {
 		spinner.CurrentChoice = 0
 	}
 
+	clickedSpinner := false
+
+	rect := spinner.Rect
+	rect.X += spinner.Rect.Height
+	rect.Width -= spinner.Rect.Height * 2
+
+	if ImmediateButton(rect, spinner.ChoiceAsString(), false) {
+		ConsumeMouseInput(rl.MouseLeftButton)
+		spinner.Expanded = !spinner.Expanded
+		clickedSpinner = true
+	}
+
+	if spinner.Expanded {
+
+		prioritizedGUIElement = nil // We want these buttons specifically to work despite the spinner being expanded
+
+		for i, choice := range spinner.Options {
+			if choice == spinner.ChoiceAsString() {
+				continue
+			}
+
+			if spinner.ExpandUpwards {
+				rect.Y -= rect.Height
+			} else {
+				rect.Y += rect.Height
+			}
+
+			if spinner.ExpandMaxRowCount > 0 && i > 0 && i%(spinner.ExpandMaxRowCount+1) == 0 {
+				rect.Y = spinner.Rect.Y - rect.Height
+				rect.X += rect.Width
+			}
+
+			if ImmediateButton(rect, choice, false) {
+				ConsumeMouseInput(rl.MouseLeftButton)
+				spinner.CurrentChoice = i
+				spinner.Expanded = false
+				spinner.Changed = true
+				clickedSpinner = true
+			}
+
+		}
+
+		prioritizedGUIElement = spinner
+
+	}
+
+	if MouseReleased(rl.MouseLeftButton) && !clickedSpinner {
+		if spinner.Expanded {
+			ConsumeMouseInput(rl.MouseLeftButton)
+		}
+		spinner.Expanded = false
+	}
+
+	if spinner.Expanded {
+		prioritizedGUIElement = spinner
+	} else if prioritizedGUIElement == spinner {
+		prioritizedGUIElement = nil
+	}
+
+}
+
+func (spinner *Spinner) Depth() int32 {
+	if spinner.Expanded {
+		return -100
+	}
+	return 0
+}
+
+func (spinner *Spinner) ExpandedHeight() float32 {
+	return spinner.Rect.Height + (float32(len(spinner.Options)) * spinner.Rect.Height)
 }
 
 func (spinner *Spinner) SetChoice(choice string) bool {
@@ -387,45 +884,12 @@ func (spinner *Spinner) ChoiceAsInt() int {
 	return n
 }
 
-type ProgressBar struct {
-	Rect       rl.Rectangle
-	Percentage int32
+func (spinner *Spinner) Rectangle() rl.Rectangle {
+	return spinner.Rect
 }
 
-func NewProgressBar(x, y, w, h float32, options ...string) *ProgressBar {
-	progressBar := &ProgressBar{Rect: rl.Rectangle{x, y, w, h}}
-	return progressBar
-}
-
-func (progressBar *ProgressBar) Update() {
-
-	rl.DrawRectangleRec(progressBar.Rect, getThemeColor(GUI_INSIDE))
-	rl.DrawRectangleLinesEx(progressBar.Rect, 1, getThemeColor(GUI_OUTLINE))
-
-	if ImmediateButton(rl.Rectangle{progressBar.Rect.X, progressBar.Rect.Y, progressBar.Rect.Height, progressBar.Rect.Height}, "-", false) {
-		progressBar.Percentage -= 5
-	}
-
-	if ImmediateButton(rl.Rectangle{progressBar.Rect.X + progressBar.Rect.Width - progressBar.Rect.Height, progressBar.Rect.Y, progressBar.Rect.Height, progressBar.Rect.Height}, "+", false) {
-		progressBar.Percentage += 5
-	}
-
-	w := progressBar.Rect.Width - 4 - (progressBar.Rect.Height * 2)
-	f := float32(progressBar.Percentage) / 100
-	r := rl.Rectangle{progressBar.Rect.X + 2 + progressBar.Rect.Height, progressBar.Rect.Y + 2, w * f, progressBar.Rect.Height - 4}
-
-	if progressBar.Percentage < 0 {
-		progressBar.Percentage = 0
-	} else if progressBar.Percentage > 100 {
-		progressBar.Percentage = 100
-	}
-
-	rl.DrawRectangleRec(r, getThemeColor(GUI_OUTLINE))
-
-	pos := rl.Vector2{progressBar.Rect.X + progressBar.Rect.X/2 + 2, progressBar.Rect.Y + progressBar.Rect.Height/2 - 4}
-
-	DrawGUIText(pos, "%d"+"%", progressBar.Percentage)
-
+func (spinner *Spinner) SetRectangle(rect rl.Rectangle) {
+	spinner.Rect = rect
 }
 
 type NumberSpinner struct {
@@ -441,8 +905,8 @@ func NewNumberSpinner(x, y, w, h float32) *NumberSpinner {
 
 	numberSpinner.Textbox.AllowAlphaCharacters = false
 	numberSpinner.Textbox.AllowNewlines = false
-	numberSpinner.Textbox.HorizontalAlignment = TEXTBOX_ALIGN_CENTER
-	numberSpinner.Textbox.VerticalAlignment = TEXTBOX_ALIGN_CENTER
+	numberSpinner.Textbox.HorizontalAlignment = ALIGN_CENTER
+	numberSpinner.Textbox.VerticalAlignment = ALIGN_CENTER
 	numberSpinner.Textbox.SetText("0")
 	numberSpinner.Minimum = -math.MaxInt64
 	numberSpinner.Maximum = math.MaxInt64
@@ -493,6 +957,18 @@ func (numberSpinner *NumberSpinner) Update() {
 
 	}
 
+}
+
+func (numberSpinner *NumberSpinner) Depth() int32 {
+	return 0
+}
+
+func (numberSpinner *NumberSpinner) Rectangle() rl.Rectangle {
+	return numberSpinner.Rect
+}
+
+func (numberSpinner *NumberSpinner) SetRectangle(rect rl.Rectangle) {
+	numberSpinner.Rect = rect
 }
 
 func (numberSpinner *NumberSpinner) GetNumber() int {
@@ -560,10 +1036,10 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 	line := textbox.Lines()[closestLineIndex]
 
 	x := textbox.Rect.X
-	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
+	if textbox.HorizontalAlignment == ALIGN_RIGHT {
 		x = textbox.Rect.X + textbox.Rect.Width - GUITextWidth(string(line))
 		point.X += 8
-	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
+	} else if textbox.HorizontalAlignment == ALIGN_CENTER {
 		x = textbox.Rect.X + (textbox.Rect.Width-GUITextWidth(string(line)))/2
 		point.X += 8
 	}
@@ -684,9 +1160,9 @@ func (textbox *Textbox) CharacterToPoint(position int) rl.Vector2 {
 	startX := textbox.Rect.X
 	y := textbox.Rect.Y + 2
 
-	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
+	if textbox.HorizontalAlignment == ALIGN_RIGHT {
 		startX += textbox.Rect.Width - GUITextWidth(string(textbox.Lines()[textbox.LineNumberByPosition(position)])) - 8
-	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
+	} else if textbox.HorizontalAlignment == ALIGN_CENTER {
 		startX += (textbox.Rect.Width-GUITextWidth(string(textbox.Lines()[textbox.LineNumberByPosition(position)])))/2 - 8
 	}
 
@@ -752,8 +1228,19 @@ func (textbox *Textbox) Update() {
 	vMargin := float32(2)
 	textbox.Changed = false
 
-	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
-		textbox.Focused = rl.CheckCollisionPointRec(GetMousePosition(), textbox.Rect)
+	pos := rl.Vector2{}
+	if worldMousePosition {
+		pos = GetWorldMousePosition()
+	} else {
+		pos = GetMousePosition()
+	}
+
+	if MousePressed(rl.MouseLeftButton) {
+		if rl.CheckCollisionPointRec(pos, textbox.Rect) && prioritizedGUIElement == nil {
+			textbox.Focused = true
+		} else {
+			textbox.Focused = false
+		}
 	}
 
 	if textbox.Focused {
@@ -811,11 +1298,11 @@ func (textbox *Textbox) Update() {
 			}
 		}
 
-		mousePos := GetMousePosition()
+		mousePos := pos
 		mousePos.X += hMargin + (rl.MeasureTextEx(guiFont, "A", guiFontSize, spacing).X / 2)
 		mousePos.Y += hMargin - (textbox.lineHeight / 2)
 
-		if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+		if MousePressed(rl.MouseLeftButton) {
 			textbox.CaretPos = textbox.ClosestPointInText(mousePos)
 			if !shift {
 				textbox.ClearSelection()
@@ -824,7 +1311,7 @@ func (textbox *Textbox) Update() {
 				textbox.SelectionStart = textbox.CaretPos
 			}
 		}
-		if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+		if MouseDown(rl.MouseLeftButton) {
 			textbox.SelectedRange[0] = textbox.SelectionStart
 			textbox.CaretPos = textbox.ClosestPointInText(mousePos)
 			textbox.SelectedRange[1] = textbox.CaretPos
@@ -1063,18 +1550,18 @@ func (textbox *Textbox) Update() {
 		}
 	}
 
-	pos := rl.Vector2{textbox.Rect.X + hMargin, textbox.Rect.Y + vMargin}
+	tbpos := rl.Vector2{textbox.Rect.X + hMargin, textbox.Rect.Y + vMargin}
 
-	if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
-		pos.X += float32(int(textbox.Rect.Width/2-measure.X/2)) - hMargin
-	} else if textbox.HorizontalAlignment == TEXTBOX_ALIGN_RIGHT {
-		pos.X += float32(int(textbox.Rect.Width - measure.X - hMargin))
+	if textbox.HorizontalAlignment == ALIGN_CENTER {
+		tbpos.X += float32(int(textbox.Rect.Width/2-measure.X/2)) - hMargin
+	} else if textbox.HorizontalAlignment == ALIGN_RIGHT {
+		tbpos.X += float32(int(textbox.Rect.Width - measure.X - hMargin))
 	}
 
-	if textbox.VerticalAlignment == TEXTBOX_ALIGN_CENTER {
-		pos.Y += float32(int(textbox.Rect.Height/2-measure.Y/2)) - vMargin
-	} else if textbox.VerticalAlignment == TEXTBOX_ALIGN_BOTTOM {
-		pos.Y += float32(int(textbox.Rect.Height - measure.Y - vMargin))
+	if textbox.VerticalAlignment == ALIGN_CENTER {
+		tbpos.Y += float32(int(textbox.Rect.Height/2-measure.Y/2)) - vMargin
+	} else if textbox.VerticalAlignment == ALIGN_BOTTOM {
+		tbpos.Y += float32(int(textbox.Rect.Height - measure.Y - vMargin))
 	}
 
 	if textbox.SelectedRange[0] > len(textbox.text) {
@@ -1097,7 +1584,7 @@ func (textbox *Textbox) Update() {
 				rec.Width = GUITextWidth("A")
 			}
 
-			if textbox.HorizontalAlignment == TEXTBOX_ALIGN_CENTER {
+			if textbox.HorizontalAlignment == ALIGN_CENTER {
 				rec.X += 8
 			}
 
@@ -1105,8 +1592,20 @@ func (textbox *Textbox) Update() {
 		}
 	}
 
-	DrawGUIText(pos, txt)
+	DrawGUIText(tbpos, txt)
 
+}
+
+func (textbox *Textbox) Depth() int32 {
+	return 0
+}
+
+func (textbox *Textbox) Rectangle() rl.Rectangle {
+	return textbox.Rect
+}
+
+func (textbox *Textbox) SetRectangle(rect rl.Rectangle) {
+	textbox.Rect = rect
 }
 
 func (textbox *Textbox) SetText(text string) {
@@ -1375,9 +1874,12 @@ func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bo
 
 	height, lineCount := TextHeight(text, guiMode)
 
+	pos.X = float32(int32(pos.X))
+	pos.Y = float32(int32(pos.Y))
+
 	for _, line := range strings.Split(text, "\n") {
 		rl.DrawTextEx(f, line, pos, size, spacing, fontColor)
-		pos.Y += height / float32(lineCount)
+		pos.Y += float32(int32(height / float32(lineCount)))
 	}
 
 }

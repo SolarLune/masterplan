@@ -123,6 +123,8 @@ func main() {
 
 	for !rl.WindowShouldClose() {
 
+		handleMouseInputs()
+
 		if rl.IsKeyPressed(rl.KeyF1) {
 			drawFPS = !drawFPS
 		}

@@ -133,7 +133,7 @@ type Project struct {
 	ActivePopup      Popup
 	PopupAction      string
 	PopupArgument    string
-	SettingsColumns  []*SettingsColumn
+	SettingsPanel    *Panel
 	BackupTimer      time.Time
 	UndoFade         *gween.Sequence
 	Undoing          int
@@ -164,7 +164,7 @@ func NewProject() *Project {
 		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
 		RenameBoardPopup:   NewTextboxPopup("New Board name:", "Accept", "Cancel"),
 		AbandonPlanPopup:   NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
-		SettingsColumns:    []*SettingsColumn{},
+		SettingsPanel:      NewPanel(0, 0, 930, 530),
 		UndoFade:           gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
 
 		ColorThemeSpinner:        NewSpinner(0, 0, 256, 24),
@@ -182,7 +182,7 @@ func NewProject() *Project {
 		LockProject:              NewCheckbox(0, 0, 32, 32),
 		AutomaticBackupInterval:  NewNumberSpinner(0, 0, 128, 40),
 		AutomaticBackupKeepCount: NewNumberSpinner(0, 0, 128, 40),
-		MaxUndoSteps:             NewNumberSpinner(0, 0, 160, 32),
+		MaxUndoSteps:             NewNumberSpinner(0, 0, 160, 40),
 
 		// Program settings GUI elements
 		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
@@ -191,30 +191,38 @@ func NewProject() *Project {
 		DisableMessageLog:   NewCheckbox(0, 0, 32, 32),
 	}
 
-	column := project.AddSettingsColumn()
+	column := project.SettingsPanel.AddColumn()
 	column.Add("Color Theme:", project.ColorThemeSpinner)
 	column.Add("Task Depth:", project.TaskShadowSpinner)
 	column.Add("Outline Tasks:", project.OutlineTasks)
-	column.Add("Grid Visible:", project.GridVisible)
+	column.Add("Pulse Selected Tasks:", project.PulsingTaskSelection)
 	column.Add("Show Icons:", project.ShowIcons)
+	column.Add("Number Top-level Tasks:", project.NumberTopLevel)
 	column.Add("Bracket Sub-Tasks:", project.BracketSubtasks)
-	column.Add("Lock Project:", project.LockProject)
 	column.Add("Numbering Style:", project.NumberingSequence)
 	column.Add("Backup every X minutes:", project.AutomaticBackupInterval)
 	column.Add("Keep X backups max:", project.AutomaticBackupKeepCount)
 
-	column = project.AddSettingsColumn()
-	column.Add("Number Top-level Tasks:", project.NumberTopLevel)
-	column.Add("Pulse Selected Tasks:", project.PulsingTaskSelection)
+	for _, item := range column.Items {
+		item.HorizontalPadding -= 32
+	}
+
+	column = project.SettingsPanel.AddColumn()
+	column.Add("Grid Visible:", project.GridVisible)
+	column.Add("Lock Project:", project.LockProject)
 	column.Add("Auto-save Project:", project.AutoSave)
 	column.Add("Project Samplerate:", project.SampleRate)
 	column.Add("Save Sound Playback:", project.SaveSoundsPlaying)
 	column.Add("Maximum Undo Steps:", project.MaxUndoSteps)
-	column.Add("--Program Settings--", nil)
+	column.Add("--Program Settings--", NewLabel(0, 0, " "))
 	column.Add("Auto-reload Themes:", project.AutoReloadThemes)
 	column.Add("Auto-load Last Project:", project.AutoLoadLastProject)
 	column.Add("Disable Splashscreen:", project.DisableSplashscreen)
 	column.Add("Disable Message Log:", project.DisableMessageLog)
+
+	for _, item := range column.Items {
+		item.HorizontalPadding -= 32
+	}
 
 	project.Boards = []*Board{NewBoard(project)}
 
@@ -634,7 +642,7 @@ func (project *Project) HandleCamera() {
 		camera.Zoom = targetZoom
 	}
 
-	if rl.IsMouseButtonDown(rl.MouseMiddleButton) {
+	if MouseDown(rl.MouseMiddleButton) {
 		diff := GetMouseDelta()
 		project.CameraPan.X += diff.X
 		project.CameraPan.Y += diff.Y
@@ -697,17 +705,18 @@ func (project *Project) Update() {
 
 		selectionRect := rl.Rectangle{}
 
-		if !project.TaskOpen && !project.ProjectSettingsOpen {
+		project.HandleCamera()
+
+		if !project.TaskOpen {
 
 			project.CurrentBoard().HandleDroppedFiles()
-			project.HandleCamera()
 
 			var clickedTask *Task
 			clicked := false
 
 			// We update the tasks from top (last) down, because if you click on one, you click on the top-most one.
 
-			if rl.IsMouseButtonPressed(rl.MouseLeftButton) && !project.ContextMenuOpen && !project.ProjectSettingsOpen {
+			if !project.ContextMenuOpen && !project.ProjectSettingsOpen && MousePressed(rl.MouseLeftButton) {
 				clicked = true
 			}
 
@@ -776,6 +785,7 @@ func (project *Project) Update() {
 					if clickedTask == nil {
 
 						if project.DoubleClickTimer > 0 && project.DoubleClickTaskID == -1 {
+							ConsumeMouseInput(rl.MouseLeftButton)
 							task := project.CurrentBoard().CreateNewTask()
 							task.ReceiveMessage(MessageDoubleClick, nil)
 							project.Selecting = false
@@ -814,7 +824,7 @@ func (project *Project) Update() {
 
 					selectionRect = rl.Rectangle{x1, y1, x2, y2}
 
-					if rl.IsMouseButtonReleased(rl.MouseLeftButton) && !project.ResizingImage {
+					if !project.ResizingImage && MouseReleased(rl.MouseLeftButton) {
 
 						project.Selecting = false // We're done with the selection process
 
@@ -869,7 +879,7 @@ func (project *Project) Update() {
 				}
 
 			} else {
-				if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				if MouseReleased(rl.MouseLeftButton) {
 					project.Selecting = false
 				}
 			}
@@ -1482,7 +1492,7 @@ func (project *Project) GUI() {
 
 	} else {
 
-		if rl.IsMouseButtonReleased(rl.MouseRightButton) && !project.TaskOpen && !project.ContextMenuOpen && !project.ProjectSettingsOpen {
+		if !project.TaskOpen && !project.ContextMenuOpen && !project.ProjectSettingsOpen && MouseReleased(rl.MouseRightButton) {
 			project.ContextMenuOpen = true
 			project.ContextMenuPosition = GetMousePosition()
 		} else if project.ContextMenuOpen {
@@ -1666,7 +1676,7 @@ func (project *Project) GUI() {
 
 			}
 
-			if (rl.IsMouseButtonReleased(rl.MouseLeftButton) && !closeMenu && !project.LoadRecentDropdown.Clicked) || rl.IsMouseButtonReleased(rl.MouseMiddleButton) || rl.IsMouseButtonReleased(rl.MouseRightButton) {
+			if (!closeMenu && !project.LoadRecentDropdown.Clicked && MouseReleased(rl.MouseLeftButton)) || MouseReleased(rl.MouseMiddleButton) || MouseReleased(rl.MouseRightButton) {
 				closeMenu = true
 			}
 
@@ -1677,11 +1687,11 @@ func (project *Project) GUI() {
 
 		} else if project.ProjectSettingsOpen {
 
-			rec := rl.Rectangle{16, 16, 960 - 32, 540 - 32}
-			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
-			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_OUTLINE))
+			project.SettingsPanel.Center(0.5, 0.5)
 
-			if ImmediateButton(rl.Rectangle{rec.Width - 16, rec.Y, 32, 32}, "X", false) || rl.IsKeyPressed(rl.KeyEscape) {
+			project.SettingsPanel.Update()
+
+			if project.SettingsPanel.Exited || rl.IsKeyPressed(rl.KeyEscape) {
 
 				project.ProjectSettingsOpen = false
 
@@ -1719,51 +1729,6 @@ func (project *Project) GUI() {
 					project.Modified = true
 				}
 				programSettings.Save()
-			}
-
-			columnIndex := 0
-			columnWidth := int(rec.Width) / len(project.SettingsColumns)
-
-			for _, column := range project.SettingsColumns {
-
-				for textIndex, text := range column.OrderOfEntry {
-
-					element := column.Data[text]
-
-					x := rec.X + 16
-					y := rec.Y + 16
-
-					x += float32(columnWidth * columnIndex)
-					y += float32(int(rec.Height) / len(column.Data) * textIndex)
-
-					DrawGUIText(rl.Vector2{x, y}, text)
-
-					if element == nil {
-						continue
-					}
-
-					spinner, is := element.(*Spinner)
-					if is {
-						spinner.Rect.X = x + float32(columnWidth)/1.5 - (spinner.Rect.Width / 2)
-						spinner.Rect.Y = y + 4
-					}
-
-					checkbox, is := element.(*Checkbox)
-					if is {
-						checkbox.Rect.X = x + float32(columnWidth)/1.5
-						checkbox.Rect.Y = y
-					}
-
-					numberSpinner, is := element.(*NumberSpinner)
-					if is {
-						numberSpinner.Rect.X = x + float32(columnWidth)/1.5 - (numberSpinner.Rect.Width / 2)
-						numberSpinner.Rect.Y = y - 4
-					}
-
-					element.Update()
-
-				}
-				columnIndex++
 			}
 
 			if project.GridVisible.Changed {

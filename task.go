@@ -88,7 +88,6 @@ type Task struct {
 	OriginalIndentation int
 	NumberingPrefix     []int
 	ID                  int
-	PostOpenDelay       int
 	PercentageComplete  float32
 	Visible             bool
 
@@ -105,6 +104,12 @@ type Task struct {
 	SubTasks      []*Task
 	GridPositions []Position
 	Valid         bool
+
+	EditPanel           *Panel
+	CompletionTimeLabel *Label
+	LoadMediaButton     *Button
+	ClearMediaButton    *Button
+	CreationLabel       *Label
 }
 
 func NewTask(board *Board) *Task {
@@ -130,24 +135,79 @@ func NewTask(board *Board) *Task {
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Board:                        board,
 		TaskType:                     NewSpinner(postX, 32, 192, 24, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line"),
-		Description:                  NewTextbox(postX, 64, 512, 64),
+		Description:                  NewTextbox(postX, 64, 256, 16),
+		TimerName:                    NewTextbox(postX, 64, 256, 16),
 		CompletionCheckbox:           NewCheckbox(postX, 96, 32, 32),
 		CompletionProgressionCurrent: NewNumberSpinner(postX, 96, 128, 40),
 		CompletionProgressionMax:     NewNumberSpinner(postX+80, 96, 128, 40),
 		NumberingPrefix:              []int{-1},
 		ID:                           board.Project.FirstFreeID(),
-		FilePathTextbox:              NewTextbox(postX, 64, 512, 16),
+		FilePathTextbox:              NewTextbox(postX, 64, 256, 16),
 		DeadlineCheckbox:             NewCheckbox(postX, 112, 32, 32),
-		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 160, 40, months...),
+		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 200, 40, months...),
 		DeadlineDaySpinner:           NewNumberSpinner(postX+100, 80, 160, 40),
 		DeadlineYearSpinner:          NewNumberSpinner(postX+240, 128, 160, 40),
 		TimerMinuteSpinner:           NewNumberSpinner(postX, 0, 160, 40),
 		TimerSecondSpinner:           NewNumberSpinner(postX, 0, 160, 40),
-		TimerName:                    NewTextbox(postX, 64, 512, 16),
 		LineEndings:                  []*Task{},
 		LineBezier:                   NewCheckbox(postX, 64, 32, 32),
 		GridPositions:                []Position{},
 		Valid:                        true,
+		EditPanel:                    NewPanel(63, 64, 960/4*3, 560/4*3),
+		LoadMediaButton:              NewButton(0, 0, 128, 32, "Load", false),
+		CompletionTimeLabel:          NewLabel(0, 0, "Completion time"),
+		CreationLabel:                NewLabel(0, 0, "Creation time"),
+	}
+
+	task.EditPanel.VerticalSpacing = 16
+
+	column := task.EditPanel.AddColumn()
+	column.Add("Task Type: ", task.TaskType,
+		TASK_TYPE_BOOLEAN,
+		TASK_TYPE_PROGRESSION,
+		TASK_TYPE_NOTE,
+		TASK_TYPE_IMAGE,
+		TASK_TYPE_SOUND,
+		TASK_TYPE_TIMER,
+		TASK_TYPE_LINE)
+
+	column.Add("Created On: ", task.CreationLabel)
+
+	column.Add("Description: ", task.Description,
+		TASK_TYPE_BOOLEAN,
+		TASK_TYPE_PROGRESSION,
+		TASK_TYPE_NOTE)
+
+	// desc.HorizontalAlignment = ALIGN_LEFT
+	// desc.HorizontalPadding = -task.Description.Rect.Width / 2
+
+	column.Add("Name: ", task.TimerName, TASK_TYPE_TIMER)
+	// timerName.HorizontalAlignment = ALIGN_LEFT
+	// timerName.HorizontalPadding = -task.TimerName.Rect.Width / 2
+
+	column.Add("Filepath: ", task.FilePathTextbox, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
+
+	loadPath := column.Add("Load Path: ", task.LoadMediaButton, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
+	loadPath.Name = "" // We don't want a label for this, actually
+
+	column.Add("Completed: ", task.CompletionCheckbox, TASK_TYPE_BOOLEAN)
+	column.Add("Currently Completed: ", task.CompletionProgressionCurrent, TASK_TYPE_PROGRESSION)
+	column.Add("Maximum Completed: ", task.CompletionProgressionMax, TASK_TYPE_PROGRESSION)
+	column.Add("Completed On: ", task.CompletionTimeLabel, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+	column.Add("Deadline: ", task.DeadlineCheckbox, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+	column.Add("Deadline Day:", task.DeadlineDaySpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+	column.Add("Deadline Month:", task.DeadlineMonthSpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+	column.Add("Deadline Year:", task.DeadlineYearSpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+
+	column.Add("Minute: ", task.TimerMinuteSpinner, TASK_TYPE_TIMER)
+	column.Add("Second: ", task.TimerSecondSpinner, TASK_TYPE_TIMER)
+	column.Add("Bezier Lines: ", task.LineBezier, TASK_TYPE_LINE)
+
+	task.DeadlineMonthSpinner.ExpandUpwards = true
+	task.DeadlineMonthSpinner.ExpandMaxRowCount = 5
+
+	for _, item := range column.Items {
+		item.HorizontalPadding -= 128
 	}
 
 	task.CreationTime = time.Now()
@@ -171,7 +231,6 @@ func NewTask(board *Board) *Task {
 
 	task.TimerSecondSpinner.Minimum = 0
 	task.TimerSecondSpinner.Maximum = 59
-
 	task.TimerMinuteSpinner.Minimum = 0
 
 	return task
@@ -424,8 +483,6 @@ func (task *Task) Deserialize(jsonData string) {
 
 func (task *Task) Update() {
 
-	task.PostOpenDelay++
-
 	if task.SoundComplete {
 
 		// We want to lock and unlock the speaker as little as possible, and only when manipulating streams or controls.
@@ -472,7 +529,7 @@ func (task *Task) Update() {
 		task.Rect.Y = task.Position.Y
 	}
 
-	if task.Dragging && rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+	if task.Dragging && MouseReleased(rl.MouseLeftButton) {
 		task.Board.Project.SendMessage(MessageDropped, nil)
 		task.Board.Project.ReorderTasks()
 	}
@@ -681,7 +738,7 @@ func (task *Task) Draw() {
 		name = ""
 	}
 
-	if !task.Complete() && task.DeadlineCheckbox.Checked {
+	if task.Completable() && !task.Complete() && task.DeadlineCheckbox.Checked {
 		// If there's a deadline, let's tell you how long you have
 		deadlineDuration := task.CalculateDeadlineDuration()
 		deadlineDuration += time.Hour * 24
@@ -692,8 +749,11 @@ func (task *Task) Draw() {
 		} else if deadlineDuration.Hours() >= 0 {
 			name += " | Due today!"
 		} else {
-			name += " | Overdue!"
+			duration, _ := durafmt.ParseString((-deadlineDuration).String())
+			duration.LimitFirstN(1)
+			name += fmt.Sprintf(" | Overdue by %s!", duration.String())
 		}
+
 	}
 
 	taskDisplaySize := rl.MeasureTextEx(font, name, fontSize, spacing)
@@ -894,11 +954,11 @@ func (task *Task) Draw() {
 				rec.Y += task.Rect.Height - rec.Height
 				rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 				rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
-				if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
+				if rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) && MousePressed(rl.MouseLeftButton) {
 					task.Resizing = true
 					task.Board.Project.ResizingImage = true
 					task.Board.Project.SendMessage(MessageDropped, nil)
-				} else if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+				} else if MouseReleased(rl.MouseLeftButton) {
 					task.Resizing = false
 					task.Board.Project.ResizingImage = false
 				}
@@ -933,7 +993,7 @@ func (task *Task) Draw() {
 				rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
 				rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
 
-				if rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) {
+				if rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) && MousePressed(rl.MouseLeftButton) {
 					task.ImageDisplaySize.X = float32(task.Image.Width)
 					task.ImageDisplaySize.Y = float32(task.Image.Height)
 				}
@@ -1260,64 +1320,42 @@ func (task *Task) DrawShadow() {
 
 func (task *Task) PostDraw() {
 
-	// PostOpenDelay makes it so that at least some time passes between double-clicking to open a Task and
-	// clicking on a UI element within the Task Edit window. That way you can't double-click to open a Task
-	// and accidentally click a button.
-	if task.Open && task.PostOpenDelay > 5 {
+	if task.Open {
 
-		rect := rl.Rectangle{16, 16, float32(rl.GetScreenWidth()) - 32, float32(rl.GetScreenHeight()) - 32}
+		task.EditPanel.Center(0.5, 0.5)
 
-		rl.DrawRectangleRec(rect, getThemeColor(GUI_INSIDE))
-		rl.DrawRectangleLinesEx(rect, 1, getThemeColor(GUI_OUTLINE))
+		column := task.EditPanel.Columns[0]
 
-		DrawGUIText(rl.Vector2{32, task.TaskType.Rect.Y + 4}, "Task Type: ")
+		column.Mode = task.TaskType.CurrentChoice
 
-		task.TaskType.Update()
+		deadlineCheck := column.ItemFromElement(task.DeadlineCheckbox)
+		deadlineCheck.On = task.Completable()
 
-		y := task.TaskType.Rect.Y + 40
+		if task.Completable() {
 
-		DrawGUIText(rl.Vector2{32, y + 8}, "Created On:")
-		DrawGUIText(rl.Vector2{180, y + 8}, task.CreationTime.Format("Monday, Jan 2, 2006, 15:04"))
+			completionTime := task.CompletionTime.Format("Monday, Jan 2, 2006, 15:04")
+			if task.CompletionTime.IsZero() {
+				completionTime = "N/A"
+			}
+			task.CompletionTimeLabel.Text = completionTime
 
-		y += 48
-
-		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE && task.TaskType.CurrentChoice != TASK_TYPE_SOUND && task.TaskType.CurrentChoice != TASK_TYPE_TIMER && task.TaskType.CurrentChoice != TASK_TYPE_LINE {
-			task.Description.Rect.Y = y
-			task.Description.Update()
-			DrawGUIText(rl.Vector2{32, y + 4}, "Description: ")
-			y += task.Description.Rect.Height + 16
 		}
 
-		if ImmediateButton(rl.Rectangle{rect.Width - 16, rect.Y, 32, 32}, "X", false) || rl.IsKeyPressed(rl.KeyEscape) {
-			task.Board.Project.SendMessage(MessageTaskClose, nil)
-		}
+		column.ItemFromElement(task.DeadlineDaySpinner).On = deadlineCheck.On && task.DeadlineCheckbox.Checked
+		column.ItemFromElement(task.DeadlineMonthSpinner).On = deadlineCheck.On && task.DeadlineCheckbox.Checked
+		column.ItemFromElement(task.DeadlineYearSpinner).On = deadlineCheck.On && task.DeadlineCheckbox.Checked
+		task.CreationLabel.Text = task.CreationTime.Format("Monday, Jan 2, 2006, 15:04")
 
-		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
-			DrawGUIText(rl.Vector2{32, y + 12}, "Completed: ")
-			task.CompletionCheckbox.Rect.Y = y + 8
-			task.CompletionCheckbox.Update()
-		} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
-			DrawGUIText(rl.Vector2{32, y + 12}, "Completed: ")
-			task.CompletionProgressionCurrent.Rect.Y = y + 8
-			task.CompletionProgressionCurrent.Update()
+		task.EditPanel.Update()
 
-			r := task.CompletionProgressionCurrent.Rect
-			r.X += r.Width
+		if task.LoadMediaButton.Clicked {
 
-			DrawGUIText(rl.Vector2{r.X + 10, r.Y + 4}, "/")
+			filepath := ""
+			var err error
 
-			task.CompletionProgressionMax.Rect.X = r.X + 24
-			task.CompletionProgressionMax.Rect.Y = r.Y
-			task.CompletionProgressionMax.Update()
-		} else if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+			if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 
-			DrawGUIText(rl.Vector2{32, y + 8}, "Image File: ")
-			task.FilePathTextbox.Rect.Y = y + 4
-			task.FilePathTextbox.Update()
-
-			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 56, 64, 32}, "Load", false) {
-
-				if filepath, err := zenity.SelectFile(zenity.Title("Select image file"), zenity.FileFilters{zenity.FileFilter{Name: "Image", Patterns: []string{
+				filepath, err = zenity.SelectFile(zenity.Title("Select image file"), zenity.FileFilters{zenity.FileFilter{Name: "Image File", Patterns: []string{
 					"*.png",
 					"*.bmp",
 					"*.jpeg",
@@ -1327,106 +1365,27 @@ func (task *Task) PostDraw() {
 					"*.hdr",
 					"*.ktx",
 					"*.astc",
-				}}}); err == nil && filepath != "" {
-					task.FilePathTextbox.SetText(filepath)
-				}
-			}
-			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 56, 64, 32}, "Clear", false) {
-				task.FilePathTextbox.SetText("")
-			}
+				}}})
 
-			y += 56
+			} else {
 
-		} else if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-
-			DrawGUIText(rl.Vector2{32, y + 8}, "Sound File: ")
-			task.FilePathTextbox.Rect.Y = y + 4
-			task.FilePathTextbox.Update()
-
-			if ImmediateButton(rl.Rectangle{rect.X + 16, y + 56, 64, 32}, "Load", false) {
-				if filepath, err := zenity.SelectFile(zenity.Title("Select sound file"), zenity.FileFilters{zenity.FileFilter{Name: "Sound files", Patterns: []string{
+				filepath, err = zenity.SelectFile(zenity.Title("Select sound file"), zenity.FileFilters{zenity.FileFilter{Name: "Sound File", Patterns: []string{
 					"*.wav",
 					"*.ogg",
 					"*.flac",
 					"*.mp3",
-				}}}); err == nil && filepath != "" {
-					task.FilePathTextbox.SetText(filepath)
-				}
-			}
-			if ImmediateButton(rl.Rectangle{rect.X + 96, y + 56, 64, 32}, "Clear", false) {
-				task.FilePathTextbox.SetText("")
+				}}})
+
 			}
 
-			y += 56
-
-		} else if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
-
-			task.TimerName.Rect.Y = y
-			task.TimerName.Update()
-			DrawGUIText(rl.Vector2{32, y + 4}, "Name: ")
-			y += task.TimerName.Rect.Height + 16
-
-			DrawGUIText(rl.Vector2{32, y + 8}, "Countdown")
-
-			y += 40
-
-			DrawGUIText(rl.Vector2{32, y + 8}, "Minutes: ")
-
-			task.TimerMinuteSpinner.Rect.Y = y + 4
-			task.TimerMinuteSpinner.Update()
-
-			y += 48
-
-			DrawGUIText(rl.Vector2{32, y + 8}, "Seconds: ")
-
-			task.TimerSecondSpinner.Rect.Y = y + 4
-			task.TimerSecondSpinner.Update()
-
-			y += 48
-
-		} else if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
-
-			task.LineBezier.Rect.Y = y
-			task.LineBezier.Update()
-			DrawGUIText(rl.Vector2{32, y + 4}, "Bezier Lines: ")
-
-			y += task.LineBezier.Rect.Height + 16
+			if err == nil && filepath != "" {
+				task.FilePathTextbox.SetText(filepath)
+			}
 
 		}
 
-		y += 56
-
-		if task.Completable() {
-
-			DrawGUIText(rl.Vector2{32, y + 4}, "Completed On:")
-			completionTime := task.CompletionTime.Format("Monday, Jan 2, 2006, 15:04")
-			if task.CompletionTime.IsZero() {
-				completionTime = "N/A"
-			}
-			DrawGUIText(rl.Vector2{180, y + 4}, completionTime)
-
-			y += 48
-
-			DrawGUIText(rl.Vector2{32, y + 4}, "Deadline: ")
-
-			task.DeadlineCheckbox.Rect.Y = y
-			task.DeadlineCheckbox.Update()
-
-			if task.DeadlineCheckbox.Checked {
-
-				task.DeadlineDaySpinner.Rect.Y = y
-				task.DeadlineDaySpinner.Update()
-
-				task.DeadlineMonthSpinner.Rect.Y = y
-				task.DeadlineMonthSpinner.Update()
-
-				task.DeadlineYearSpinner.Rect.Y = y
-				task.DeadlineYearSpinner.Update()
-
-			}
-
-			y += 40
-
+		if task.EditPanel.Exited || rl.IsKeyPressed(rl.KeyEscape) {
+			task.Board.Project.SendMessage(MessageTaskClose, nil)
 		}
 
 	}
@@ -1619,9 +1578,9 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 			task.Open = true
 			task.Board.Project.TaskOpen = true
-			task.PostOpenDelay = 0
 			task.Dragging = false
 			task.Description.Focused = true
+			task.Board.FocusViewOnSelectedTasks()
 
 			createAtLeastOneLineEnding()
 			task.Board.UndoBuffer.Capture(task)
@@ -1877,7 +1836,7 @@ func (task *Task) SmallButton(srcX, srcY, srcW, srcH, dstX, dstY float32) bool {
 		getThemeColor(GUI_FONT_COLOR))
 	// getThemeColor(GUI_INSIDE_HIGHLIGHTED))
 
-	return task.Selected && rl.IsMouseButtonPressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetWorldMousePosition(), dstRect)
+	return task.Selected && rl.CheckCollisionPointRec(GetWorldMousePosition(), dstRect) && MousePressed(rl.MouseLeftButton)
 
 }
 
