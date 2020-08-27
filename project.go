@@ -832,6 +832,9 @@ func (project *Project) Update() {
 
 						if clickedTask.ID == project.DoubleClickTaskID && project.DoubleClickTimer > 0 && clickedTask.Selected {
 							clickedTask.ReceiveMessage(MessageDoubleClick, nil)
+							// We have to consume after double-clicking so you don't click outside of the new panel and exit it immediately
+							// or actuate a GUI element accidentally.
+							ConsumeMouseInput(rl.MouseLeftButton)
 						} else {
 							project.SendMessage(MessageDragging, nil)
 						}
