@@ -51,6 +51,7 @@ const (
 	MessageDoubleClick = "double click"
 	MessageDragging    = "dragging"
 	MessageTaskClose   = "task close"
+	MessageThemeChange = "theme change"
 
 	// Project actions
 
@@ -88,6 +89,7 @@ type Project struct {
 	AutomaticBackupKeepCount *NumberSpinner
 	MaxUndoSteps             *NumberSpinner
 	DisableMessageLog        *Checkbox
+	TaskTransparency         *NumberSpinner
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -183,6 +185,7 @@ func NewProject() *Project {
 		AutomaticBackupInterval:  NewNumberSpinner(0, 0, 128, 40),
 		AutomaticBackupKeepCount: NewNumberSpinner(0, 0, 128, 40),
 		MaxUndoSteps:             NewNumberSpinner(0, 0, 160, 40),
+		TaskTransparency:         NewNumberSpinner(0, 0, 128, 32),
 
 		// Program settings GUI elements
 		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
@@ -193,6 +196,7 @@ func NewProject() *Project {
 
 	column := project.SettingsPanel.AddColumn()
 	column.Add("Color Theme:", project.ColorThemeSpinner)
+	column.Add("Task Transparency: ", project.TaskTransparency)
 	column.Add("Task Depth:", project.TaskShadowSpinner)
 	column.Add("Outline Tasks:", project.OutlineTasks)
 	column.Add("Pulse Selected Tasks:", project.PulsingTaskSelection)
@@ -236,6 +240,9 @@ func NewProject() *Project {
 	project.DoubleClickTimer = -1
 	project.PreviousTaskType = "Check Box"
 	project.NumberTopLevel.Checked = true
+	project.TaskTransparency.Maximum = 5
+	project.TaskTransparency.Minimum = 1
+	project.TaskTransparency.SetNumber(5)
 
 	project.AutomaticBackupInterval.SetNumber(15) // Seems sensible to make new projects have this as a default.
 	project.AutomaticBackupInterval.Minimum = 0
@@ -340,6 +347,7 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `Pan\.Y`, project.CameraPan.Y)
 			data, _ = sjson.Set(data, `ZoomLevel`, project.ZoomLevel)
 			data, _ = sjson.Set(data, `ColorTheme`, currentTheme)
+			data, _ = sjson.Set(data, `TaskTransparency`, project.TaskTransparency.GetNumber())
 			data, _ = sjson.Set(data, `OutlineTasks`, project.OutlineTasks.Checked)
 			data, _ = sjson.Set(data, `BracketSubtasks`, project.BracketSubtasks.Checked)
 			data, _ = sjson.Set(data, `TaskShadow`, project.TaskShadowSpinner.CurrentChoice)
@@ -481,6 +489,10 @@ func LoadProject(filepath string) *Project {
 			project.AutomaticBackupKeepCount.SetNumber(getInt(`BackupKeepCount`))
 			project.MaxUndoSteps.SetNumber(getInt(`UndoMaxSteps`))
 
+			if data.Get(`TaskTransparency`).Exists() {
+				project.TaskTransparency.SetNumber(getInt(`TaskTransparency`))
+			}
+
 			if project.LockProject.Checked {
 				project.Locked = true
 			}
@@ -491,7 +503,6 @@ func LoadProject(filepath string) *Project {
 			project.LogOn = false
 
 			boardNames := []string{}
-			fmt.Println("Board Names:", data.Get(`BoardNames`))
 			for _, name := range data.Get(`BoardNames`).Array() {
 				boardNames = append(boardNames, name.String())
 			}
@@ -707,6 +718,29 @@ func (project *Project) Update() {
 
 		project.HandleCamera()
 
+		for _, task := range project.GetAllTasks() {
+			task.Update()
+		}
+
+		// Additive blending should be out here to avoid state changes mid-task drawing.
+		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+
+		if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
+			rl.BeginBlendMode(rl.BlendAdditive)
+		}
+
+		for _, task := range project.CurrentBoard().Tasks {
+			task.DrawShadow()
+		}
+
+		if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
+			rl.EndBlendMode()
+		}
+
+		for _, task := range project.CurrentBoard().Tasks {
+			task.Draw()
+		}
+
 		if !project.TaskOpen {
 
 			project.CurrentBoard().HandleDroppedFiles()
@@ -886,29 +920,6 @@ func (project *Project) Update() {
 
 			project.CurrentBoard().UndoBuffer.Update()
 
-		}
-
-		for _, task := range project.GetAllTasks() {
-			task.Update()
-		}
-
-		// Additive blending should be out here to avoid state changes mid-task drawing.
-		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
-
-		if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
-			rl.BeginBlendMode(rl.BlendAdditive)
-		}
-
-		for _, task := range project.CurrentBoard().Tasks {
-			task.DrawShadow()
-		}
-
-		if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
-			rl.EndBlendMode()
-		}
-
-		for _, task := range project.CurrentBoard().Tasks {
-			task.Draw()
 		}
 
 		// This is true once at least one loop has happened
@@ -1737,6 +1748,7 @@ func (project *Project) GUI() {
 
 			if project.ColorThemeSpinner.Changed {
 				project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
+				project.SendMessage(MessageThemeChange, nil)
 			}
 
 			if project.MaxUndoSteps.GetNumber() == 0 {

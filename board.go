@@ -89,6 +89,10 @@ func (board *Board) CreateNewTask() *Task {
 		newTask.Description.Focused = true
 	}
 
+	if newTask.TaskType.CurrentChoice == TASK_TYPE_MAP {
+		newTask.MapImage = NewMapImage(newTask)
+	}
+
 	board.Project.Log("Created 1 new Task.")
 
 	// We need to record both the Task being invalid, as well as being valid, for undoing / redoing

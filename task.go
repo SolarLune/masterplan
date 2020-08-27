@@ -32,6 +32,7 @@ const (
 	TASK_TYPE_SOUND
 	TASK_TYPE_TIMER
 	TASK_TYPE_LINE
+	TASK_TYPE_MAP
 )
 
 const (
@@ -48,6 +49,7 @@ type Task struct {
 	Open     bool
 	Selected bool
 	MinSize  rl.Vector2
+	MaxSize  rl.Vector2
 
 	TaskType    *Spinner
 	Description *Textbox
@@ -110,6 +112,8 @@ type Task struct {
 	LoadMediaButton     *Button
 	ClearMediaButton    *Button
 	CreationLabel       *Label
+
+	MapImage *MapImage
 }
 
 func NewTask(board *Board) *Task {
@@ -134,7 +138,7 @@ func NewTask(board *Board) *Task {
 	task := &Task{
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Board:                        board,
-		TaskType:                     NewSpinner(postX, 32, 192, 32, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line"),
+		TaskType:                     NewSpinner(postX, 32, 192, 32, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line", "Map"),
 		Description:                  NewTextbox(postX, 64, 256, 16),
 		TimerName:                    NewTextbox(postX, 64, 256, 16),
 		CompletionCheckbox:           NewCheckbox(postX, 96, 32, 32),
@@ -153,23 +157,51 @@ func NewTask(board *Board) *Task {
 		LineBezier:                   NewCheckbox(postX, 64, 32, 32),
 		GridPositions:                []Position{},
 		Valid:                        true,
-		EditPanel:                    NewPanel(63, 64, 960/4*3, 560/4*3),
 		LoadMediaButton:              NewButton(0, 0, 128, 32, "Load", false),
 		CompletionTimeLabel:          NewLabel(0, 0, "Completion time"),
 		CreationLabel:                NewLabel(0, 0, "Creation time"),
 	}
 
+	task.SetPanel()
+
+	task.DeadlineMonthSpinner.ExpandUpwards = true
+	task.DeadlineMonthSpinner.ExpandMaxRowCount = 5
+
+	task.CreationTime = time.Now()
+	task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine = 19
+	task.CompletionProgressionCurrent.Textbox.AllowNewlines = false
+	task.CompletionProgressionCurrent.Minimum = 0
+	task.CompletionProgressionMax.Minimum = 0
+
+	task.CompletionProgressionMax.Textbox.MaxCharactersPerLine = task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine
+	task.CompletionProgressionMax.Textbox.AllowNewlines = false
+
+	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
+	task.MaxSize = rl.Vector2{0, 0}
+	task.Description.AllowNewlines = true
+	task.FilePathTextbox.AllowNewlines = false
+
+	task.DeadlineDaySpinner.Minimum = 1
+	task.DeadlineDaySpinner.Maximum = 31
+	task.DeadlineDaySpinner.Loop = true
+	task.DeadlineDaySpinner.Rect.X = task.DeadlineMonthSpinner.Rect.X + task.DeadlineMonthSpinner.Rect.Width + 8
+	task.DeadlineYearSpinner.Rect.X = task.DeadlineDaySpinner.Rect.X + task.DeadlineDaySpinner.Rect.Width + 8
+
+	task.TimerSecondSpinner.Minimum = 0
+	task.TimerSecondSpinner.Maximum = 59
+	task.TimerMinuteSpinner.Minimum = 0
+
+	return task
+}
+
+func (task *Task) SetPanel() {
+
+	task.EditPanel = NewPanel(63, 64, 960/4*3, 560/4*3)
+
 	task.EditPanel.VerticalSpacing = 16
 
 	column := task.EditPanel.AddColumn()
-	column.Add("Task Type: ", task.TaskType,
-		TASK_TYPE_BOOLEAN,
-		TASK_TYPE_PROGRESSION,
-		TASK_TYPE_NOTE,
-		TASK_TYPE_IMAGE,
-		TASK_TYPE_SOUND,
-		TASK_TYPE_TIMER,
-		TASK_TYPE_LINE)
+	column.Add("Task Type: ", task.TaskType)
 
 	column.Add("Created On: ", task.CreationLabel)
 
@@ -203,37 +235,10 @@ func NewTask(board *Board) *Task {
 	column.Add("Seconds: ", task.TimerSecondSpinner, TASK_TYPE_TIMER)
 	column.Add("Bezier Lines: ", task.LineBezier, TASK_TYPE_LINE)
 
-	task.DeadlineMonthSpinner.ExpandUpwards = true
-	task.DeadlineMonthSpinner.ExpandMaxRowCount = 5
-
 	for _, item := range column.Items {
 		item.HorizontalPadding -= 128
 	}
 
-	task.CreationTime = time.Now()
-	task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine = 19
-	task.CompletionProgressionCurrent.Textbox.AllowNewlines = false
-	task.CompletionProgressionCurrent.Minimum = 0
-	task.CompletionProgressionMax.Minimum = 0
-
-	task.CompletionProgressionMax.Textbox.MaxCharactersPerLine = task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine
-	task.CompletionProgressionMax.Textbox.AllowNewlines = false
-
-	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
-	task.Description.AllowNewlines = true
-	task.FilePathTextbox.AllowNewlines = false
-
-	task.DeadlineDaySpinner.Minimum = 1
-	task.DeadlineDaySpinner.Maximum = 31
-	task.DeadlineDaySpinner.Loop = true
-	task.DeadlineDaySpinner.Rect.X = task.DeadlineMonthSpinner.Rect.X + task.DeadlineMonthSpinner.Rect.Width + 8
-	task.DeadlineYearSpinner.Rect.X = task.DeadlineDaySpinner.Rect.X + task.DeadlineDaySpinner.Rect.Width + 8
-
-	task.TimerSecondSpinner.Minimum = 0
-	task.TimerSecondSpinner.Maximum = 59
-	task.TimerMinuteSpinner.Minimum = 0
-
-	return task
 }
 
 func (task *Task) Clone() *Task {
@@ -308,6 +313,13 @@ func (task *Task) Clone() *Task {
 
 	copyData.ReceiveMessage(MessageTaskClose, nil) // We do this to recreate the resources for the Task, if necessary.
 
+	copyData.SetPanel()
+
+	if task.MapImage != nil {
+		copyData.MapImage = NewMapImage(&copyData)
+		copyData.MapImage.Copy(task.MapImage)
+	}
+
 	return &copyData
 }
 
@@ -370,6 +382,10 @@ func (task *Task) Serialize() string {
 
 		}
 
+	}
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_MAP && task.MapImage != nil {
+		jsonData, _ = sjson.Set(jsonData, `MapData`, task.MapImage.Data)
 	}
 
 	return jsonData
@@ -470,6 +486,22 @@ func (task *Task) Deserialize(jsonData string) {
 		}
 	}
 
+	if hasData(`MapData`) {
+		data := [][]int32{}
+		for i, row := range gjson.Get(jsonData, `MapData`).Array() {
+			data = append(data, []int32{})
+			for _, value := range row.Array() {
+				data[i] = append(data[i], int32(value.Int()))
+			}
+		}
+
+		task.MapImage = NewMapImage(task)
+		task.MapImage.Data = data
+		task.MapImage.Width = int32(task.ImageDisplaySize.X) / task.Board.Project.GridSize
+		task.MapImage.Height = (int32(task.ImageDisplaySize.Y) - task.Board.Project.GridSize) / task.Board.Project.GridSize
+		task.MapImage.Changed = true
+	}
+
 	// We do this to update the task after loading all of the information.
 	task.LoadResource(false)
 
@@ -482,6 +514,14 @@ func (task *Task) Deserialize(jsonData string) {
 }
 
 func (task *Task) Update() {
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_MAP {
+		task.MinSize = rl.Vector2{64, 80}
+		task.MaxSize = rl.Vector2{512, 512 + 16}
+	} else {
+		task.MinSize = rl.Vector2{16, 16}
+		task.MaxSize = rl.Vector2{-1, -1}
+	}
 
 	if task.SoundComplete {
 
@@ -655,6 +695,29 @@ func (task *Task) Draw() {
 
 	}
 
+	if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
+
+		color := getThemeColor(GUI_FONT_COLOR)
+
+		for _, ending := range task.ValidLineEndings() {
+
+			bp := rl.Vector2{task.Rect.X, task.Rect.Y}
+			bp.X += float32(task.Board.Project.GridSize) / 2
+			bp.Y += float32(task.Board.Project.GridSize) / 2
+			ep := rl.Vector2{ending.Rect.X, ending.Rect.Y}
+			ep.X += float32(task.Board.Project.GridSize) / 2
+			ep.Y += float32(task.Board.Project.GridSize) / 2
+
+			if task.LineBezier.Checked {
+				rl.DrawLineBezier(bp, ep, 2, color)
+			} else {
+				rl.DrawLineEx(bp, ep, 2, color)
+			}
+
+		}
+
+	}
+
 	if !task.Visible {
 		return
 	}
@@ -662,6 +725,8 @@ func (task *Task) Draw() {
 	name := task.Description.Text()
 
 	extendedText := false
+
+	task.Resizeable = false
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 		_, filename := filepath.Split(task.FilePathTextbox.Text())
@@ -679,7 +744,6 @@ func (task *Task) Draw() {
 			}
 			name = name[:cut]
 		}
-		task.Resizeable = false
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
 
 		minutes := int(task.TimerValue / 60)
@@ -786,20 +850,13 @@ func (task *Task) Draw() {
 		task.GridPositions = task.Board.AddTaskToGrid(task)
 	}
 
-	if task.Image.ID != 0 && task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+	if (task.TaskType.CurrentChoice == TASK_TYPE_IMAGE && task.Image.ID != 0) || task.TaskType.CurrentChoice == TASK_TYPE_MAP {
 		if task.Rect.Width < task.ImageDisplaySize.X {
 			task.Rect.Width = task.ImageDisplaySize.X
 		}
 		if task.Rect.Height < task.ImageDisplaySize.Y {
 			task.Rect.Height = task.ImageDisplaySize.Y
 		}
-	}
-
-	if task.Rect.Width < task.MinSize.X {
-		task.Rect.Width = task.MinSize.X
-	}
-	if task.Rect.Height < task.MinSize.Y {
-		task.Rect.Height = task.MinSize.Y
 	}
 
 	color := getThemeColor(GUI_INSIDE)
@@ -826,25 +883,11 @@ func (task *Task) Draw() {
 		if task.Selected {
 			glowVariance = 80
 		}
-		glow := uint8(math.Sin(float64((rl.GetTime()*math.Pi*2-(float32(task.ID)*0.1))))*(glowVariance/2) + (glowVariance / 2))
 
-		if color.R >= glow {
-			color.R -= glow
-		} else {
-			color.R = 0
-		}
+		glow := int32(math.Sin(float64((rl.GetTime()*math.Pi*4-(float32(task.ID)*0.1))))*(glowVariance/2) + (glowVariance / 2))
 
-		if color.G >= glow {
-			color.G -= glow
-		} else {
-			color.G = 0
-		}
+		color = ColorAdd(color, -glow)
 
-		if color.B >= glow {
-			color.B -= glow
-		} else {
-			color.B = 0
-		}
 		return color
 	}
 
@@ -906,7 +949,19 @@ func (task *Task) Draw() {
 		task.PercentageComplete = 1
 	}
 
-	rl.DrawRectangleRec(task.Rect, color)
+	alpha := uint8(255)
+
+	if task.Board.Project.TaskTransparency.GetNumber() < 255 {
+		t := float32(task.Board.Project.TaskTransparency.GetNumber())
+		alpha = uint8((t / float32(task.Board.Project.TaskTransparency.Maximum)) * (255 - 32))
+		color.A = 32 + alpha
+	}
+
+	mapRect := task.Rect
+	if task.TaskType.CurrentChoice == TASK_TYPE_MAP {
+		mapRect.Height = 16 // For a Map, the background is effectively transparent
+	}
+	rl.DrawRectangleRec(mapRect, color)
 
 	if task.Due() == TASK_DUE_TODAY {
 		src := rl.Rectangle{208 + rl.GetTime()*30, 0, task.Rect.Width, task.Rect.Height}
@@ -921,7 +976,9 @@ func (task *Task) Draw() {
 	if task.PercentageComplete != 0 {
 		rect := task.Rect
 		rect.Width *= task.PercentageComplete
-		rl.DrawRectangleRec(rect, applyGlow(getThemeColor(GUI_INSIDE_HIGHLIGHTED)))
+		rectColor := applyGlow(getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+		rectColor.A = alpha
+		rl.DrawRectangleRec(rect, rectColor)
 	}
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
@@ -938,68 +995,131 @@ func (task *Task) Draw() {
 			dst.Width = task.ImageDisplaySize.X
 			dst.Height = task.ImageDisplaySize.Y
 			rl.SetTextureFilter(task.Image, rl.FilterAnisotropic4x)
-			rl.DrawTexturePro(task.Image, src, dst, rl.Vector2{}, 0, rl.White)
+			color := rl.White
+			color.A = alpha
+			rl.DrawTexturePro(task.Image, src, dst, rl.Vector2{}, 0, color)
 
-			if task.Resizeable && task.Selected {
-				rec := task.Rect
-				rec.Width = 8
-				rec.Height = 8
+		}
 
-				if task.Board.Project.ZoomLevel <= 1 {
-					rec.Width *= 2
-					rec.Height *= 2
+	}
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_MAP && task.MapImage != nil {
+
+		task.Resizeable = true
+		bgColor := rl.Color{0, 0, 0, 128}
+		color := rl.White
+		color.A = alpha + 32
+
+		gs := float32(task.Board.Project.GridSize)
+		src := rl.Rectangle{0, 0, float32(task.MapImage.Texture.Texture.Width), -float32(task.MapImage.Texture.Texture.Height)}
+		dst := rl.Rectangle{task.Rect.X, task.Rect.Y + gs, float32(task.MapImage.Texture.Texture.Width), float32(task.MapImage.Texture.Texture.Height)}
+
+		if task.MapImage.Editing {
+			bgColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+			color.A = 255
+		}
+
+		rl.DrawRectanglePro(
+			rl.Rectangle{task.Rect.X,
+				task.Rect.Y + gs,
+				float32(task.MapImage.Width) * gs,
+				float32(task.MapImage.Height) * gs},
+			rl.Vector2{},
+			0,
+			[]rl.Color{bgColor})
+
+		rl.DrawTexturePro(task.MapImage.Texture.Texture, src, dst, rl.Vector2{}, 0, color)
+
+		task.MapImage.Update()
+
+	}
+
+	if task.Resizeable && task.Selected {
+		rec := task.Rect
+		rec.Width = 8
+		rec.Height = 8
+
+		if task.Board.Project.ZoomLevel <= 1 && task.Image.Width >= 32 && task.Image.Height >= 32 {
+			rec.Width *= 2
+			rec.Height *= 2
+		}
+
+		rec.X += task.Rect.Width - rec.Width
+		rec.Y += task.Rect.Height - rec.Height
+
+		rec.X = float32(int32(rec.X))
+		rec.Y = float32(int32(rec.Y))
+		rec.Width = float32(int32(rec.Width))
+		rec.Height = float32(int32(rec.Height))
+
+		rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
+		rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
+
+		if rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) && MousePressed(rl.MouseLeftButton) {
+			task.Resizing = true
+			task.Board.Project.ResizingImage = true
+			task.Board.Project.SendMessage(MessageDropped, nil)
+		} else if MouseReleased(rl.MouseLeftButton) {
+			task.Resizing = false
+			task.Board.Project.ResizingImage = false
+		}
+
+		if task.Resizing {
+
+			endPoint := GetWorldMousePosition()
+
+			task.ImageDisplaySize.X = endPoint.X - task.Rect.X
+			task.ImageDisplaySize.Y = endPoint.Y - task.Rect.Y
+
+			if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+
+				if !rl.IsKeyDown(rl.KeyLeftAlt) && !rl.IsKeyDown(rl.KeyRightAlt) {
+					asr := float32(task.Image.Height) / float32(task.Image.Width)
+					task.ImageDisplaySize.Y = task.ImageDisplaySize.X * asr
+
 				}
 
-				rec.X += task.Rect.Width - rec.Width
-				rec.Y += task.Rect.Height - rec.Height
-				rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
-				rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
-				if rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) && MousePressed(rl.MouseLeftButton) {
-					task.Resizing = true
-					task.Board.Project.ResizingImage = true
-					task.Board.Project.SendMessage(MessageDropped, nil)
-				} else if MouseReleased(rl.MouseLeftButton) {
-					task.Resizing = false
-					task.Board.Project.ResizingImage = false
+				if !rl.IsKeyDown(rl.KeyLeftShift) && !rl.IsKeyDown(rl.KeyRightShift) {
+					task.ImageDisplaySize = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize)
 				}
 
-				if task.Resizing {
-					endPoint := GetWorldMousePosition()
-
-					task.ImageDisplaySize.X = endPoint.X - task.Rect.X
-					task.ImageDisplaySize.Y = endPoint.Y - task.Rect.Y
-
-					if task.ImageDisplaySize.X < task.MinSize.X {
-						task.ImageDisplaySize.X = task.MinSize.X
-					}
-					if task.ImageDisplaySize.Y < task.MinSize.Y {
-						task.ImageDisplaySize.Y = task.MinSize.Y
-					}
-
-					if !rl.IsKeyDown(rl.KeyLeftAlt) && !rl.IsKeyDown(rl.KeyRightAlt) {
-						asr := float32(task.Image.Height) / float32(task.Image.Width)
-						task.ImageDisplaySize.Y = task.ImageDisplaySize.X * asr
-					}
-
-					if !rl.IsKeyDown(rl.KeyLeftShift) && !rl.IsKeyDown(rl.KeyRightShift) {
-						task.ImageDisplaySize = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize)
-					}
-
-				}
-
-				rec.X = task.Rect.X
-				rec.Y = task.Rect.Y
-
-				rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
-				rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
-
-				if rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) && MousePressed(rl.MouseLeftButton) {
-					task.ImageDisplaySize.X = float32(task.Image.Width)
-					task.ImageDisplaySize.Y = float32(task.Image.Height)
-				}
-
+			} else {
+				task.ImageDisplaySize = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize)
 			}
 
+		}
+
+		if task.ImageDisplaySize.X < task.MinSize.X {
+			task.ImageDisplaySize.X = task.MinSize.X
+		}
+		if task.ImageDisplaySize.Y < task.MinSize.Y {
+			task.ImageDisplaySize.Y = task.MinSize.Y
+		}
+
+		if task.MaxSize.X > 0 && task.ImageDisplaySize.X > task.MaxSize.X {
+			task.ImageDisplaySize.X = task.MaxSize.X
+		}
+		if task.MaxSize.Y > 0 && task.ImageDisplaySize.Y > task.MaxSize.Y {
+			task.ImageDisplaySize.Y = task.MaxSize.Y
+		}
+
+		if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
+
+			rec.X = task.Rect.X
+			rec.Y = task.Rect.Y
+
+			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE))
+			rl.DrawRectangleLinesEx(rec, 1, getThemeColor(GUI_FONT_COLOR))
+
+			if rl.CheckCollisionPointRec(GetWorldMousePosition(), rec) && MousePressed(rl.MouseLeftButton) {
+				task.ImageDisplaySize.X = float32(task.Image.Width)
+				task.ImageDisplaySize.Y = float32(task.Image.Height)
+			}
+
+		}
+
+		if task.TaskType.CurrentChoice == TASK_TYPE_MAP && task.ImageDisplaySize.X > 0 && task.ImageDisplaySize.Y > 0 {
+			task.MapImage.Resize(task.ImageDisplaySize.X, task.ImageDisplaySize.Y)
 		}
 
 	}
@@ -1040,6 +1160,7 @@ func (task *Task) Draw() {
 			TASK_TYPE_IMAGE:       {96, 0},
 			TASK_TYPE_TIMER:       {0, 16},
 			TASK_TYPE_LINE:        {64, 16},
+			TASK_TYPE_MAP:         {0, 32},
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_SOUND {
@@ -1064,18 +1185,29 @@ func (task *Task) Draw() {
 			iconSrc.Y = 16
 			rotation = raymath.Vector2Angle(task.LineBase.Position, task.Position)
 
+			insideCount := 0
+
 			if task.TaskRight != nil {
 				rotation = 0
-				// task.ArrowPointingToTask = task.TaskRight
-			} else if task.TaskLeft != nil {
+				insideCount++
+			}
+			if task.TaskLeft != nil {
 				rotation = 180
-				// task.ArrowPointingToTask = task.TaskLeft
-			} else if task.TaskAbove != nil {
+				insideCount++
+			}
+			if task.TaskAbove != nil {
 				rotation = -90
-				// task.ArrowPointingToTask = task.TaskAbove
-			} else if task.TaskBelow != nil {
+				insideCount++
+			}
+			if task.TaskBelow != nil {
 				rotation = 90
-				// task.ArrowPointingToTask = task.TaskBelow
+				insideCount++
+			}
+
+			if insideCount > 1 {
+				// Line endings that are inside Task Rectangles become dots
+				iconSrc.X = 64
+				iconSrc.Y = 16
 			}
 
 		}
@@ -1252,6 +1384,12 @@ func (task *Task) DrawShadow() {
 		depthRect := task.Rect
 		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
 
+		if task.Board.Project.TaskTransparency.GetNumber() < 255 {
+			t := float32(task.Board.Project.TaskTransparency.GetNumber())
+			alpha := uint8((t / float32(task.Board.Project.TaskTransparency.Maximum)) * (255 - 32))
+			shadowColor.A = 32 + alpha
+		}
+
 		if task.Board.Project.TaskShadowSpinner.CurrentChoice == 2 || task.Board.Project.TaskShadowSpinner.CurrentChoice == 3 {
 
 			src := rl.Rectangle{224, 0, 8, 8}
@@ -1289,29 +1427,6 @@ func (task *Task) DrawShadow() {
 			depthRect.X += 4
 			depthRect.Y += 4
 			rl.DrawRectangleRec(depthRect, shadowColor)
-		}
-
-	}
-
-	if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
-
-		color := getThemeColor(GUI_FONT_COLOR)
-
-		for _, ending := range task.ValidLineEndings() {
-
-			bp := rl.Vector2{task.Rect.X, task.Rect.Y}
-			bp.X += float32(task.Board.Project.GridSize) / 2
-			bp.Y += float32(task.Board.Project.GridSize) / 2
-			ep := rl.Vector2{ending.Rect.X, ending.Rect.Y}
-			ep.X += float32(task.Board.Project.GridSize) / 2
-			ep.Y += float32(task.Board.Project.GridSize) / 2
-
-			if task.LineBezier.Checked {
-				rl.DrawLineBezier(bp, ep, 2, color)
-			} else {
-				rl.DrawLineEx(bp, ep, 2, color)
-			}
-
 		}
 
 	}
@@ -1567,7 +1682,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		if task.LineBase != nil {
 			task.LineBase.ReceiveMessage(MessageDoubleClick, nil)
-		} else {
+		} else if task.TaskType.CurrentChoice != TASK_TYPE_MAP || task.MapImage == nil || !task.MapImage.Editing {
 
 			if !task.DeadlineCheckbox.Checked {
 				now := time.Now()
@@ -1594,6 +1709,15 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.LoadResource(false)
 			task.Board.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
 
+			if task.TaskType.CurrentChoice == TASK_TYPE_MAP {
+				if task.MapImage == nil {
+					task.MapImage = NewMapImage(task)
+				}
+				task.ImageDisplaySize.X = float32(task.MapImage.Width * task.Board.Project.GridSize)
+				task.ImageDisplaySize.Y = float32(task.MapImage.Height*task.Board.Project.GridSize + task.Board.Project.GridSize)
+				task.MapImage.Update()
+			}
+
 			if task.TaskType.CurrentChoice != TASK_TYPE_LINE {
 				for _, ending := range task.ValidLineEndings() {
 					// Delete your endings if you're no longer a Line Task
@@ -1607,7 +1731,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		}
 	} else if message == MessageDragging {
-		if task.Selected {
+		if task.Selected && (task.MapImage == nil || !task.MapImage.Editing) {
 			if !task.Dragging {
 				task.Board.UndoBuffer.Capture(task)
 			}
@@ -1663,6 +1787,10 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.SoundControl.Paused = true
 		}
 
+	} else if message == MessageThemeChange {
+		if task.TaskType.CurrentChoice == TASK_TYPE_MAP && task.MapImage != nil {
+			task.MapImage.Changed = true // Force update to change color palette
+		}
 	} else {
 		fmt.Println("UNKNOWN MESSAGE: ", message)
 	}
@@ -1898,6 +2026,11 @@ func (task *Task) Destroy() {
 
 	if task.GifAnimation != nil {
 		task.GifAnimation.Destroy()
+	}
+
+	if task.MapImage != nil {
+		rl.UnloadRenderTexture(task.MapImage.Texture)
+		task.MapImage = nil
 	}
 
 }
