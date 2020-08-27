@@ -360,13 +360,13 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1024,
+      "Position.Y": 1056,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "There are both linear and bezier (smoothed) line types.\nYou can toggle between them by opening and editing the\nLine Task itself; double-clicking on either the Line's\nbase or arrowhead is fine.",
+      "Description": "There are both linear and bezier (smoothed) line types.\nYou can toggle between them by opening the Line task\nand selecting the option. Double-clicking on either the\nLine's base or arrowhead will display the option.",
       "FilePath": "",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
@@ -374,8 +374,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 5568,
-      "Position.Y": 1120,
+      "Position.X": 5616,
+      "Position.Y": 1152,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -387,12 +387,12 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:44:44",
       "BezierLines": true,
-      "LineEndings": [5632, 1168, 5632, 1088]
+      "LineEndings": [5680, 1200, 5680, 1136]
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 5712,
-      "Position.Y": 992,
+      "Position.Y": 1024,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -407,7 +407,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5664,
-      "Position.Y": 864,
+      "Position.Y": 896,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -422,7 +422,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5616,
-      "Position.Y": 896,
+      "Position.Y": 928,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -437,7 +437,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5552,
-      "Position.Y": 944,
+      "Position.Y": 976,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -451,8 +451,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 5488,
-      "Position.Y": 1152,
+      "Position.X": 5536,
+      "Position.Y": 1184,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -463,13 +463,13 @@
       "Selected": false,
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:44:44",
-      "BezierLines": true,
-      "LineEndings": [5552, 1120]
+      "BezierLines": false,
+      "LineEndings": [5600, 1152]
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 5504,
-      "Position.Y": 976,
+      "Position.Y": 1008,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -484,7 +484,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5424,
-      "Position.Y": 848,
+      "Position.Y": 880,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -741,7 +741,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2336,
-      "Position.Y": 320,
+      "Position.Y": 336,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -817,7 +817,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 784,
+      "Position.Y": 816,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -894,7 +894,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5760,
-      "Position.Y": 800,
+      "Position.Y": 832,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -906,12 +906,12 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:56:05",
       "BezierLines": false,
-      "LineEndings": [5712, 800]
+      "LineEndings": [5712, 832]
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 752,
+      "Position.Y": 784,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -923,7 +923,7 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:56:05",
       "BezierLines": false,
-      "LineEndings": [5728, 752]
+      "LineEndings": [5728, 784]
     }, 
     {
       "BoardIndex": 0,
@@ -1020,7 +1020,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2336,
-      "Position.Y": 240,
+      "Position.Y": 256,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -1095,7 +1095,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2368,
-      "Position.Y": 464,
+      "Position.Y": 480,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -1131,7 +1131,7 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "You can create a new Task by pressing the key combo Contrl+N,\nor by right-clicking and choosing the New Task option from the\ncontext menu.",
+      "Description": "You can create a new Task by pressing the key combo Control+N,\nor by right-clicking and choosing the New Task option from the\ncontext menu. You can also double-click on empty space to\ncreate a new Task.",
       "FilePath": "",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
@@ -1244,7 +1244,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 3760,
+      "Position.X": 3744,
       "Position.Y": 304,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
@@ -1425,7 +1425,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5488,
-      "Position.Y": 992,
+      "Position.Y": 1024,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -1437,7 +1437,7 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:42:36",
       "BezierLines": false,
-      "LineEndings": [5696, 992, 5488, 864]
+      "LineEndings": [5696, 1024, 5488, 896]
     }, 
     {
       "BoardIndex": 0,
@@ -1457,13 +1457,13 @@
     {
       "BoardIndex": 0,
       "Position.X": 5440,
-      "Position.Y": 656,
+      "Position.Y": 688,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Line Tasks are lines that can be placed wherever you want\non your board. You can add more arrowheads by copying the\narrow end of the Line specifically. You can delete arrowheads\nsimilarly simply. If all arrows are deleted, the Line Task is also\ndeleted.",
+      "Description": "Line Tasks are lines that can be placed wherever you want\non your board. You can add more arrowheads by copying \nand pasting the arrow end of the Line specifically. You can\ndelete arrowheads similarly simply. If all arrows are\ndeleted, the base also deleted.",
       "FilePath": "",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
@@ -1493,7 +1493,7 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Try moving Tasks around or completing sub-tasks to see how\nthey react.",
+      "Description": "Try moving Tasks around or completing sub-tasks to see how\nthe parent Tasks react.",
       "FilePath": "",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
@@ -1562,7 +1562,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5472,
-      "Position.Y": 336,
+      "Position.Y": 368,
       "ImageDisplaySize.X": 256,
       "ImageDisplaySize.Y": 128,
       "Checkbox.Checked": false,
@@ -1583,7 +1583,7 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Image Tasks display images on your board. You can browse for an image\non your computer, or give it a URL to an image on the Internet for\nMasterPlan to download and put in a temporary folder for use in your\nproject. Note that this process can take time depending on the\ndownloaded file's size.",
+      "Description": "Image Tasks display images on your board. You can browse for an image\non your computer, or give it a URL to an image on the Internet for\nMasterPlan to download and put in a temporary folder for use in your\nproject. Note that this process can take time depending on the\ndownloaded file's size, and that MasterPlan will download the\nresource only for the current project session. (The file will be\ndeleted when MasterPlan exits.)",
       "FilePath": "",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
@@ -1652,7 +1652,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2336,
-      "Position.Y": 352,
+      "Position.Y": 368,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -1682,13 +1682,13 @@
     {
       "BoardIndex": 0,
       "Position.X": 5424,
-      "Position.Y": 480,
+      "Position.Y": 512,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Sound Tasks are similar to Image Tasks, but take a path or URL\nto a sound file, either on a computer, or on a web server.",
+      "Description": "Sound Tasks are similar to Image Tasks, but take a path or URL\nto a sound file instead of an image.",
       "FilePath": "",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
@@ -1697,7 +1697,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5392,
-      "Position.Y": 576,
+      "Position.Y": 608,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -1715,7 +1715,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 528,
+      "Position.Y": 560,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -1730,7 +1730,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5440,
-      "Position.Y": 608,
+      "Position.Y": 640,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -1993,14 +1993,14 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 6896,
+      "Position.X": 6880,
       "Position.Y": 288,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Color Theme: This controls which theme is used for the overall style and feel of your Project.",
+      "Description": "Color Theme: This controls which color theme is used for the overall style and feel of your Project.",
       "FilePath": "",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
@@ -2203,8 +2203,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 6976,
-      "Position.Y": 976,
+      "Position.X": 6944,
+      "Position.Y": 1440,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -2300,7 +2300,7 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "The Status Bar is the opaque bar at the bottom of MasterPlan.\nThere, you'll find some minor information about your Plan.",
+      "Description": "The Status Bar is the opaque bar at the bottom of MasterPlan.\nThere, you'll find some minor information about your project.",
       "FilePath": "",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
@@ -2345,9 +2345,9 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "On the right-hand side, you'll find the search bar.\nYou can use this search bar to find any text in\nthe description or name of any Task, or in the\nfilepath of any Image or Sound Task.",
+      "Description": "On the right-hand side, you'll find the search bar.\nYou can use this search bar to find any text in\nthe description or name or filepath of any Task.",
       "FilePath": "",
-      "Selected": false,
+      "Selected": true,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 4 2020 01:01:37"
     }, 
@@ -2369,7 +2369,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5424,
-      "Position.Y": 208,
+      "Position.Y": 240,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -2384,7 +2384,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5520,
-      "Position.Y": 1216,
+      "Position.Y": 1248,
       "ImageDisplaySize.X": 16,
       "ImageDisplaySize.Y": 16,
       "Checkbox.Checked": false,
@@ -2398,8 +2398,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 5456,
-      "Position.Y": 1248,
+      "Position.X": 5440,
+      "Position.Y": 1280,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -2414,7 +2414,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1472,
+      "Position.Y": 1504,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -2429,13 +2429,13 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1552,
+      "Position.Y": 1584,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "When editing, left-click places blocks, and right-click\nerases them.",
+      "Description": "When editing, left-click places blocks, and right-click\nerases them. Similarly to Image Tasks, Map Tasks can\nbe resized by clicking and dragging on the bottom-\nright corner. Note that there is a maximum size for\nMaps.",
       "FilePath": "",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
@@ -2444,7 +2444,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1600,
+      "Position.Y": 1680,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -2459,8 +2459,8 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1344,
-      "ImageDisplaySize.X": 288,
+      "Position.Y": 1376,
+      "ImageDisplaySize.X": 304,
       "ImageDisplaySize.Y": 112,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -3564,7 +3564,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5488,
-      "Position.Y": 1408,
+      "Position.Y": 1440,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -3579,7 +3579,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5776,
-      "Position.Y": 1408,
+      "Position.Y": 1440,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -3594,7 +3594,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5760,
-      "Position.Y": 1408,
+      "Position.Y": 1440,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -3606,12 +3606,12 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Aug 26 2020 23:38:50",
       "BezierLines": false,
-      "LineEndings": [5696, 1408]
+      "LineEndings": [5696, 1440]
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 5648,
-      "Position.Y": 1376,
+      "Position.Y": 1408,
       "ImageDisplaySize.X": 0,
       "ImageDisplaySize.Y": 0,
       "Checkbox.Checked": false,
@@ -3622,6 +3622,81 @@
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Aug 26 2020 23:38:59"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 6944,
+      "Position.Y": 976,
+      "ImageDisplaySize.X": 0,
+      "ImageDisplaySize.Y": 0,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Task Transparency: This controls how transparent\nall Tasks appear. Its value ranges from 1 - 5.",
+      "FilePath": "",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Jun 4 2020 00:46:32"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 6944,
+      "Position.Y": 1024,
+      "ImageDisplaySize.X": 0,
+      "ImageDisplaySize.Y": 0,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Backup every X minutes: This will enable automatic back-\nups. When this value (X) is greater than 0 (and so, is enabled),\nevery X minutes, MasterPlan will save a copy \nof the currently opened project using a variant\nof the original name, but with a timestamp appended to it. \nThe save will inhabit the same directory as the original \nproject file. Note that the project has to have been saved\nonce for this to work.",
+      "FilePath": "",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Aug 26 2020 23:58:52"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 6944,
+      "Position.Y": 1168,
+      "ImageDisplaySize.X": 0,
+      "ImageDisplaySize.Y": 0,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Keep X backups max: This will force MasterPlan to only\ncreate so many backups of a single original MasterPlan\nproject file. If too many backups exist, MasterPlan will\ndelete the older ones.",
+      "FilePath": "",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Aug 27 2020 00:00:39"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 6944,
+      "Position.Y": 1248,
+      "ImageDisplaySize.X": 0,
+      "ImageDisplaySize.Y": 0,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Save Sound Playback: When this is enabled, saving\nthe Project will also save which Sound Tasks are\ncurrently playing back, so that loading the Project\nwill automatically begin playback of those same Tasks.",
+      "FilePath": "",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Aug 27 2020 00:01:41"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 6944,
+      "Position.Y": 1328,
+      "ImageDisplaySize.X": 0,
+      "ImageDisplaySize.Y": 0,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Maximum Undo Steps: This controls how many undo\nsteps (per Board) are allowed when using MasterPlan.",
+      "FilePath": "",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Aug 27 2020 00:02:19"
     }
   ]
 }
