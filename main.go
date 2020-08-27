@@ -186,9 +186,9 @@ func main() {
 
 			if currentProject.LockProject.Checked {
 				if currentProject.Locked {
-					v += "- Locked - ENGAGED"
+					v += "- Project Lock Engaged"
 				} else {
-					v += "- Locked"
+					v += "- Project Lock Present"
 				}
 			} else if currentProject.AutoSave.Checked {
 				v += "- Autosave On"
