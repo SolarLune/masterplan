@@ -385,7 +385,14 @@ func (task *Task) Serialize() string {
 	}
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_MAP && task.MapImage != nil {
-		jsonData, _ = sjson.Set(jsonData, `MapData`, task.MapImage.Data)
+		data := [][]int32{}
+		for y := 0; y < int(task.MapImage.Height); y++ {
+			data = append(data, []int32{})
+			for x := 0; x < int(task.MapImage.Width); x++ {
+				data[y] = append(data[y], task.MapImage.Data[y][x])
+			}
+		}
+		jsonData, _ = sjson.Set(jsonData, `MapData`, data)
 	}
 
 	return jsonData
