@@ -1657,12 +1657,11 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	// This exists because Line type Tasks should have an ending, either after
 	// creation, or after setting the type and closing
 	createAtLeastOneLineEnding := func() {
-		if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
-			if len(task.ValidLineEndings()) == 0 {
-				task.Board.UndoBuffer.On = false
-				task.CreateLineEnding()
-				task.Board.UndoBuffer.On = true
-			}
+		if task.TaskType.CurrentChoice == TASK_TYPE_LINE && len(task.ValidLineEndings()) == 0 {
+			prevUndoOn := task.Board.UndoBuffer.On
+			task.Board.UndoBuffer.On = false
+			task.CreateLineEnding()
+			task.Board.UndoBuffer.On = prevUndoOn
 		}
 	}
 
@@ -1812,9 +1811,10 @@ func (task *Task) CreateLineEnding() *Task {
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_LINE && task.LineBase == nil {
 
+		prevUndoOn := task.Board.UndoBuffer.On
 		task.Board.UndoBuffer.On = false
 		ending := task.Board.CreateNewTask()
-		task.Board.UndoBuffer.On = true
+		task.Board.UndoBuffer.On = prevUndoOn
 		ending.TaskType.CurrentChoice = TASK_TYPE_LINE
 		ending.Position = task.Position
 		ending.Position.X += float32(task.Board.Project.GridSize) * 2
@@ -2026,11 +2026,6 @@ func (task *Task) Destroy() {
 
 	if task.GifAnimation != nil {
 		task.GifAnimation.Destroy()
-	}
-
-	if task.MapImage != nil {
-		rl.UnloadRenderTexture(task.MapImage.Texture)
-		task.MapImage = nil
 	}
 
 }

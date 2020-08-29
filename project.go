@@ -589,9 +589,6 @@ func LoadProject(filepath string) *Project {
 			programSettings.Save()
 			project.Log("Load successful.")
 
-			for _, b := range project.Boards {
-				b.UndoBuffer.On = true
-			}
 			return project
 
 		}
@@ -942,6 +939,14 @@ func (project *Project) Update() {
 			project.ReorderTasks()
 			project.Modified = false
 			project.JustLoaded = false
+
+			for _, b := range project.Boards {
+				b.UndoBuffer.On = true
+				for _, task := range b.Tasks {
+					b.UndoBuffer.Capture(task)
+				}
+			}
+
 		}
 
 	}

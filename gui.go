@@ -507,7 +507,7 @@ func (panel *Panel) Resize(newWidth, newHeight float32) {
 }
 
 func (panel *Panel) recreateRenderTexture() {
-	// This is a memory leak; I believe it needs to be unloaded first if it has been created already, but it causes issues with rendering for now.
+	// This might be a memory leak; I believe it needs to be unloaded first if it has been created already, but it causes issues with rendering for now.
 	panel.RenderTexture = rl.LoadRenderTexture(int32(panel.Rect.Width), int32(panel.Rect.Height))
 }
 
