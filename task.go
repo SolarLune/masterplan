@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -20,7 +19,6 @@ import (
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
-	"github.com/faiface/beep/wav"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -633,14 +631,14 @@ func (task *Task) Update() {
 					task.TimerValue = 0
 					task.Board.Project.Log("Timer [%s] elapsed.", task.TimerName.Text())
 
-					f, err := os.Open(GetPath("assets", "alarm.wav"))
-					if err == nil {
-						stream, _, _ := wav.Decode(f)
-						fn := func() {
-							stream.Close()
-						}
-						speaker.Play(beep.Seq(stream, beep.Callback(fn)))
+					audioFile, _ := task.Board.Project.LoadResource(GetPath("assets", "alarm.wav"))
+					stream, format, _ := audioFile.Audio()
+
+					fn := func() {
+						stream.Close()
 					}
+
+					speaker.Play(beep.Seq(beep.Resample(1, format.SampleRate, beep.SampleRate(task.Board.Project.SampleRate.ChoiceAsInt()), stream), beep.Callback(fn)))
 
 					if task.TaskBelow != nil && task.TaskBelow.TaskType.CurrentChoice == TASK_TYPE_TIMER {
 						task.TaskBelow.ToggleTimer()
