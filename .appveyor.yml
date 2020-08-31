@@ -1,7 +1,7 @@
-version: 0.4.0.{build}
+version: 0.5.0.{build}
 
 image:
-  - macos
+  - macos-mojave
   - Visual Studio 2017
   - Ubuntu
 

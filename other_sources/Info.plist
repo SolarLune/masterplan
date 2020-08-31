@@ -24,5 +24,7 @@
 		<string>0.3.0</string>
 		<key>NSHumanReadableCopyright</key>
 		<string>Copyright SolarLune Games, 2020</string>
+		<key>LSMinimumSystemVersion</key>
+		<string>10.14</string>
 	</dict>
 </plist>
