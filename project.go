@@ -2158,6 +2158,8 @@ func (project *Project) Destroy() {
 
 }
 
+// LoadResource returns the resource loaded from the filepath and a boolean indicating if it was just loaded (true), or
+// loaded previously and retrieved (false).
 func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 	downloadedFile := false

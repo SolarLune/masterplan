@@ -335,7 +335,31 @@ func (task *Task) Serialize() string {
 	jsonData, _ = sjson.Set(jsonData, `Progression\.Current`, task.CompletionProgressionCurrent.GetNumber())
 	jsonData, _ = sjson.Set(jsonData, `Progression\.Max`, task.CompletionProgressionMax.GetNumber())
 	jsonData, _ = sjson.Set(jsonData, `Description`, task.Description.Text())
-	jsonData, _ = sjson.Set(jsonData, `FilePath`, task.FilePathTextbox.Text())
+
+	// Turn the file path absolute if it's not a remote path
+	if task.FilePathTextbox.Text() != "" {
+
+		resourcePath := task.FilePathTextbox.Text()
+
+		if resource, _ := task.Board.Project.LoadResource(resourcePath); resource != nil && !resource.Temporary {
+
+			relative, err := filepath.Rel(WorkingDirectory(), resourcePath)
+
+			if err == nil {
+
+				jsonData, _ = sjson.Set(jsonData, `FilePath`, strings.Split(relative, string(filepath.Separator)))
+				resourcePath = ""
+
+			}
+
+		}
+
+		if resourcePath != "" {
+			jsonData, _ = sjson.Set(jsonData, `FilePath`, resourcePath)
+		}
+
+	}
+
 	jsonData, _ = sjson.Set(jsonData, `Selected`, task.Selected)
 	jsonData, _ = sjson.Set(jsonData, `TaskType\.CurrentChoice`, task.TaskType.CurrentChoice)
 
@@ -411,7 +435,6 @@ func (task *Task) Serializable() bool {
 func (task *Task) Deserialize(jsonData string) {
 
 	// JSON encodes all numbers as 64-bit floats, so this saves us some visual ugliness.
-
 	getFloat := func(name string) float32 {
 		return float32(gjson.Get(jsonData, name).Float())
 	}
@@ -444,7 +467,22 @@ func (task *Task) Deserialize(jsonData string) {
 	task.CompletionProgressionCurrent.SetNumber(getInt(`Progression\.Current`))
 	task.CompletionProgressionMax.SetNumber(getInt(`Progression\.Max`))
 	task.Description.SetText(getString(`Description`))
-	task.FilePathTextbox.SetText(getString(`FilePath`))
+
+	if f := gjson.Get(jsonData, `FilePath`); f.Exists() {
+
+		if f.IsArray() {
+			str := []string{}
+			for _, component := range f.Array() {
+				str = append(str, component.String())
+			}
+			abs, _ := filepath.Abs(strings.Join(str, string(filepath.Separator)))
+			task.FilePathTextbox.SetText(abs)
+		} else {
+			task.FilePathTextbox.SetText(getString(`FilePath`))
+		}
+
+	}
+
 	task.Selected = getBool(`Selected`)
 	task.TaskType.CurrentChoice = getInt(`TaskType\.CurrentChoice`)
 
@@ -1064,7 +1102,7 @@ func (task *Task) Draw() {
 			task.Resizing = true
 			task.Board.Project.ResizingImage = true
 			task.Board.Project.SendMessage(MessageDropped, nil)
-		} else if MouseReleased(rl.MouseLeftButton) {
+		} else if !MouseDown(rl.MouseLeftButton) || task.Open || task.Board.Project.ContextMenuOpen {
 			task.Resizing = false
 			task.Board.Project.ResizingImage = false
 		}

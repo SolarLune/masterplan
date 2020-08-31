@@ -61,16 +61,22 @@ func GetPath(folders ...string) string {
 	// now I have to make this function to do what should be done anyway and give me a relative path starting from
 	// the executable so that I can load assets from the assets directory. :,)
 
+	return filepath.Join(WorkingDirectory(), filepath.Join(folders...))
+
+}
+
+func WorkingDirectory() string {
+
+	workingDirectory := ""
 	exePath, _ := os.Executable()
-	exeDir := filepath.Dir(exePath)
+	workingDirectory = filepath.Dir(exePath)
 
 	if releaseMode == "false" {
 		// Not in release mode, so current working directory is the root.
-		exeDir, _ = os.Getwd()
+		workingDirectory, _ = os.Getwd()
 	}
 
-	return filepath.Join(exeDir, filepath.Join(folders...))
-
+	return workingDirectory
 }
 
 func FileExists(filepath string) bool {
