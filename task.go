@@ -1132,18 +1132,22 @@ func (task *Task) Draw() {
 
 		}
 
-		if task.ImageDisplaySize.X < task.MinSize.X {
-			task.ImageDisplaySize.X = task.MinSize.X
-		}
-		if task.ImageDisplaySize.Y < task.MinSize.Y {
-			task.ImageDisplaySize.Y = task.MinSize.Y
-		}
+		if task.Image.ID > 0 || task.GifAnimation != nil || task.MapImage != nil {
 
-		if task.MaxSize.X > 0 && task.ImageDisplaySize.X > task.MaxSize.X {
-			task.ImageDisplaySize.X = task.MaxSize.X
-		}
-		if task.MaxSize.Y > 0 && task.ImageDisplaySize.Y > task.MaxSize.Y {
-			task.ImageDisplaySize.Y = task.MaxSize.Y
+			if task.ImageDisplaySize.X < task.MinSize.X {
+				task.ImageDisplaySize.X = task.MinSize.X
+			}
+			if task.ImageDisplaySize.Y < task.MinSize.Y {
+				task.ImageDisplaySize.Y = task.MinSize.Y
+			}
+
+			if task.MaxSize.X > 0 && task.ImageDisplaySize.X > task.MaxSize.X {
+				task.ImageDisplaySize.X = task.MaxSize.X
+			}
+			if task.MaxSize.Y > 0 && task.ImageDisplaySize.Y > task.MaxSize.Y {
+				task.ImageDisplaySize.Y = task.MaxSize.Y
+			}
+
 		}
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
