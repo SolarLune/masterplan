@@ -1174,7 +1174,7 @@ func (task *Task) Draw() {
 	if task.Board.Project.OutlineTasks.Checked {
 		rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
 	}
-	if (task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage) && task.TaskType.CurrentChoice != TASK_TYPE_LINE {
+	if (task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage) && task.TaskType.CurrentChoice != TASK_TYPE_LINE && task.TaskType.CurrentChoice != TASK_TYPE_MAP {
 
 		textPos := rl.Vector2{task.Rect.X + 2, task.Rect.Y + 2}
 
@@ -1484,7 +1484,7 @@ func (task *Task) PostDraw() {
 
 	if task.Open {
 
-		task.EditPanel.Center(0.5, 0.5)
+		// task.EditPanel.Center(0.5, 0.5)
 
 		column := task.EditPanel.Columns[0]
 
@@ -1747,6 +1747,8 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Board.UndoBuffer.Capture(task)
 
 		}
+
+		task.EditPanel.Center(0.5, 0.5)
 
 	} else if message == MessageTaskClose {
 		if task.Open {

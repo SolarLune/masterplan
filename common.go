@@ -89,6 +89,7 @@ func FileExists(filepath string) bool {
 }
 
 var mouseInputs = map[int32]int{}
+var hiddenMouseInputs = map[int32]bool{}
 
 func handleMouseInputs() {
 
@@ -129,19 +130,36 @@ func getMouseEventValue(input int32) int {
 }
 
 func MousePressed(button int32) bool {
+	if hiddenMouseInputs[button] {
+		return false
+	}
 	return mouseInputs[button] == 1
 }
 
 func MouseDown(button int32) bool {
+	if hiddenMouseInputs[button] {
+		return false
+	}
 	return mouseInputs[button] == 2
 }
 
 func MouseReleased(button int32) bool {
+	if hiddenMouseInputs[button] {
+		return false
+	}
 	return mouseInputs[button] == 3
 }
 
 func ConsumeMouseInput(button int32) {
 	mouseInputs[button] = 0
+}
+
+func HideMouseInput(button int32) {
+	hiddenMouseInputs[button] = true
+}
+
+func UnhideMouseInput(button int32) {
+	hiddenMouseInputs[button] = false
 }
 
 func ColorAdd(color rl.Color, value int32) rl.Color {

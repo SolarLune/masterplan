@@ -1643,6 +1643,7 @@ func (project *Project) GUI() {
 					case "Settings":
 						project.ReloadThemes() // Reload the themes after opening the settings window
 						project.ProjectSettingsOpen = true
+						project.SettingsPanel.Center(0.5, 0.5)
 						project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
 						project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
 						project.AutoReloadThemes.Checked = programSettings.AutoReloadThemes
@@ -1705,8 +1706,6 @@ func (project *Project) GUI() {
 			}
 
 		} else if project.ProjectSettingsOpen {
-
-			project.SettingsPanel.Center(0.5, 0.5)
 
 			project.SettingsPanel.Update()
 

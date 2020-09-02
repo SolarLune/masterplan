@@ -15,6 +15,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/gen2brain/raylib-go/raymath"
 	"github.com/tanema/gween/ease"
 )
 
@@ -291,6 +292,7 @@ type Panel struct {
 	Scrollbar       *Scrollbar
 	AutoExpand      bool
 	EnableScrolling bool
+	DragStart       rl.Vector2
 	VerticalSpacing int32 // If the Panel should automatically space out the elements, or use a margin.
 	// If Spacing < 0, the elements will be spaced out across the height of the column.
 	// If Spacing >= 0, the elements will be spaced out according to their heights, with an additional padding of [Spacing] pixels.
@@ -306,6 +308,7 @@ func NewPanel(x, y, w, h float32) *Panel {
 		AutoExpand:      true,
 		Scrollbar:       NewScrollbar(0, 0, 16, h-80),
 		EnableScrolling: true,
+		DragStart:       rl.Vector2{-1, -1},
 	}
 
 	panel.ViewPosition = rl.Vector2{0, 0}
@@ -319,13 +322,45 @@ func NewPanel(x, y, w, h float32) *Panel {
 func (panel *Panel) Update() {
 
 	dst := rl.Rectangle{panel.Rect.X, panel.Rect.Y, panel.OriginalWidth, panel.OriginalHeight}
-
+	exitButtonSize := float32(32)
 	panel.Exited = false
 
 	if MousePressed(rl.MouseLeftButton) && !rl.CheckCollisionPointRec(GetMousePosition(), dst) {
 		panel.Exited = true
 		ConsumeMouseInput(rl.MouseLeftButton)
 	}
+
+	// Draggable Panel
+
+	topBar := dst
+	topBar.Height = exitButtonSize * 0.5
+	topBar.Width -= exitButtonSize
+
+	if MousePressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), topBar) {
+		panel.DragStart = raymath.Vector2Subtract(GetMousePosition(), rl.Vector2{panel.Rect.X, panel.Rect.Y})
+	}
+
+	if panel.DragStart.X >= 0 && panel.DragStart.Y >= 0 {
+		panel.Rect.X = GetMousePosition().X - panel.DragStart.X
+		panel.Rect.Y = GetMousePosition().Y - panel.DragStart.Y
+		HideMouseInput(rl.MouseLeftButton)
+	}
+
+	if panel.Rect.X < 0 {
+		panel.Rect.X = 0
+	}
+	if panel.Rect.X+panel.Rect.Width > float32(rl.GetScreenWidth()) {
+		panel.Rect.X = float32(rl.GetScreenWidth()) - panel.Rect.Width
+	}
+
+	if panel.Rect.Y < 0 {
+		panel.Rect.Y = 0
+	}
+	if panel.Rect.Y+panel.Rect.Height > float32(rl.GetScreenHeight()) {
+		panel.Rect.Y = float32(rl.GetScreenHeight()) - panel.Rect.Height
+	}
+
+	// Scrollbar
 
 	if panel.Scrollbar.Horizontal {
 
@@ -347,7 +382,7 @@ func (panel *Panel) Update() {
 		columnWidth := int(panel.Rect.Width) / len(panel.Columns)
 
 		x := float32(16)
-		y := float32(16)
+		y := float32(0)
 
 		globalMouseOffset.X = panel.Rect.X
 		globalMouseOffset.Y = panel.Rect.Y - scroll
@@ -355,7 +390,7 @@ func (panel *Panel) Update() {
 		for _, column := range panel.Columns {
 
 			x += float32(columnWidth * columnIndex)
-			y = 16
+			y = 32
 
 			sorted := append([]string{}, column.OrderOfEntry...)
 			sort.Slice(sorted, func(i, j int) bool {
@@ -393,7 +428,7 @@ func (panel *Panel) Update() {
 				if panel.VerticalSpacing >= 0 {
 					y += rect.Height + float32(panel.VerticalSpacing)
 				} else {
-					y += float32(int(panel.Rect.Height) / len(column.Items)) // Automatic spacing
+					y += float32(int(panel.Rect.Height-32) / len(column.Items)) // Automatic spacing
 				}
 
 			}
@@ -457,12 +492,17 @@ func (panel *Panel) Update() {
 
 	}
 
-	exitButtonSize := float32(32)
-
 	if ImmediateButton(rl.Rectangle{float32(int32(panel.Rect.X + panel.Rect.Width - exitButtonSize)), float32(int32(panel.Rect.Y)), exitButtonSize, exitButtonSize}, "X", false) {
 		panel.Exited = true
 		ConsumeMouseInput(rl.MouseLeftButton)
 	}
+
+	if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+		panel.DragStart = rl.Vector2{-1, -1}
+		UnhideMouseInput(rl.MouseLeftButton)
+	}
+
+	rl.DrawRectangleRec(topBar, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
 	rl.DrawRectangleLinesEx(dst, 1, getThemeColor(GUI_OUTLINE))
 
