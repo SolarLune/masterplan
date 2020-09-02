@@ -105,7 +105,7 @@ func compress() {
 
 	os.Chdir("./bin") // Switch to the bin folder and then archive the contents
 
-	archiver.Archive([]string{"./"}, "MasterPlan-"+platformName+ending)
+	archiver.Archive([]string{"./"}, platformName+ending)
 
 	log.Println("Build successfully compressed!")
 
