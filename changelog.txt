@@ -1,5 +1,35 @@
 -------
 
+v0.5.0
+
+-------
+
+- Adding Map Task. Map Tasks allow you to draw a shape (like a room layout, or basic map for a town / continent) for your projects.
+- Adding global Task Transparency to project settings.
+- Adding option to disable message log in project settings.
+- Line Tasks now end in a point if placed on other Tasks (like Map Tasks).
+- Working on GUI; project settings and task editing windows are now smaller and can be moved by dragging the top bar.
+- You can now click outside windows to close them.
+- Option Choice GUI elements (like the theme or a Task's type) can now be clicked in the center to open a menu showing their options.
+- Image / Sound Tasks now automatically use cross-platform friendly relative paths when saving and loading.
+- Rewording project lock text at top-right when a project is locked.
+- Adding improved graphic for checkboxes.
+- Golden Hour theme's inside panel color is now a bit more contrasting.
+- Sunlight theme now has a slightly brighter blue.
+- Dark Crimson theme's note color altered to be visually distinct from other colors.
+- Updated manual.
+- FIX: Resizeable Tasks get stuck resizing if not released over overview window.
+- FIX: Undo after load destroys Line Tasks.
+- FIX: Only completable Tasks should display their due date.
+- FIX: Alarm sound not playing correctly sometimes.
+- FIX: Board names aren't being saved.
+- FIX: Pasting Tasks now centers on the cursor.
+- FIX: Image resizing squares only get doubled in size to improve "grabability" if at least 32x32.
+- FIX: Tasks now cannot be resized by clicking on them when unselected in the resizing area.
+- MacOS system requirements should now be 10.14 and above.
+
+-------
+
 v0.4.0
 
 -------
