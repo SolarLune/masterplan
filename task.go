@@ -137,14 +137,14 @@ func NewTask(board *Board) *Task {
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Board:                        board,
 		TaskType:                     NewSpinner(postX, 32, 192, 32, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line", "Map"),
-		Description:                  NewTextbox(postX, 64, 256, 16),
+		Description:                  NewTextbox(postX, 64, 512, 16),
 		TimerName:                    NewTextbox(postX, 64, 256, 16),
 		CompletionCheckbox:           NewCheckbox(postX, 96, 32, 32),
 		CompletionProgressionCurrent: NewNumberSpinner(postX, 96, 128, 40),
 		CompletionProgressionMax:     NewNumberSpinner(postX+80, 96, 128, 40),
 		NumberingPrefix:              []int{-1},
 		ID:                           board.Project.FirstFreeID(),
-		FilePathTextbox:              NewTextbox(postX, 64, 256, 16),
+		FilePathTextbox:              NewTextbox(postX, 64, 512, 16),
 		DeadlineCheckbox:             NewCheckbox(postX, 112, 32, 32),
 		DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 200, 40, months...),
 		DeadlineDaySpinner:           NewNumberSpinner(postX+100, 80, 160, 40),
@@ -203,10 +203,15 @@ func (task *Task) SetPanel() {
 
 	column.Add("Created On: ", task.CreationLabel)
 
-	column.Add("Description: ", task.Description,
+	column.Add("description label", NewLabel(0, 0, "Description:"),
 		TASK_TYPE_BOOLEAN,
 		TASK_TYPE_PROGRESSION,
-		TASK_TYPE_NOTE)
+		TASK_TYPE_NOTE).Label = ""
+
+	column.Add("description box", task.Description,
+		TASK_TYPE_BOOLEAN,
+		TASK_TYPE_PROGRESSION,
+		TASK_TYPE_NOTE).Label = ""
 
 	// desc.HorizontalAlignment = ALIGN_LEFT
 	// desc.HorizontalPadding = -task.Description.Rect.Width / 2
@@ -215,10 +220,9 @@ func (task *Task) SetPanel() {
 	// timerName.HorizontalAlignment = ALIGN_LEFT
 	// timerName.HorizontalPadding = -task.TimerName.Rect.Width / 2
 
-	column.Add("Filepath: ", task.FilePathTextbox, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
-
-	loadPath := column.Add("Load Path: ", task.LoadMediaButton, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
-	loadPath.Name = "" // We don't want a label for this, actually
+	column.Add("filepath label", NewLabel(0, 0, "Filepath:"), TASK_TYPE_IMAGE, TASK_TYPE_SOUND).Label = ""
+	column.Add("filepath box", task.FilePathTextbox, TASK_TYPE_IMAGE, TASK_TYPE_SOUND).Label = ""
+	column.Add("Load Path: ", task.LoadMediaButton, TASK_TYPE_IMAGE, TASK_TYPE_SOUND).Label = ""
 
 	column.Add("Completed: ", task.CompletionCheckbox, TASK_TYPE_BOOLEAN)
 	column.Add("Currently Completed: ", task.CompletionProgressionCurrent, TASK_TYPE_PROGRESSION)
@@ -232,6 +236,12 @@ func (task *Task) SetPanel() {
 	column.Add("Minutes: ", task.TimerMinuteSpinner, TASK_TYPE_TIMER)
 	column.Add("Seconds: ", task.TimerSecondSpinner, TASK_TYPE_TIMER)
 	column.Add("Bezier Lines: ", task.LineBezier, TASK_TYPE_LINE)
+
+	column.Add("shift map label", NewLabel(0, 0, "Shift Map:"), TASK_TYPE_MAP).Label = ""
+	column.Add("shift map up", NewButton(0, 0, 128, 32, "Up", false), TASK_TYPE_MAP).Label = ""
+	column.Add("shift map right", NewButton(0, 0, 128, 32, "Right", false), TASK_TYPE_MAP).Label = ""
+	column.Add("shift map left", NewButton(0, 0, 128, 32, "Left", false), TASK_TYPE_MAP).Label = ""
+	column.Add("shift map down", NewButton(0, 0, 128, 32, "Down", false), TASK_TYPE_MAP).Label = ""
 
 	for _, item := range column.Items {
 		item.HorizontalPadding -= 128
@@ -329,8 +339,12 @@ func (task *Task) Serialize() string {
 	jsonData, _ = sjson.Set(jsonData, `BoardIndex`, task.Board.Index())
 	jsonData, _ = sjson.Set(jsonData, `Position\.X`, task.Position.X)
 	jsonData, _ = sjson.Set(jsonData, `Position\.Y`, task.Position.Y)
-	jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.X`, task.ImageDisplaySize.X)
-	jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.Y`, task.ImageDisplaySize.Y)
+
+	if task.Resizeable {
+		jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.X`, task.ImageDisplaySize.X)
+		jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.Y`, task.ImageDisplaySize.Y)
+	}
+
 	jsonData, _ = sjson.Set(jsonData, `Checkbox\.Checked`, task.CompletionCheckbox.Checked)
 	jsonData, _ = sjson.Set(jsonData, `Progression\.Current`, task.CompletionProgressionCurrent.GetNumber())
 	jsonData, _ = sjson.Set(jsonData, `Progression\.Max`, task.CompletionProgressionMax.GetNumber())
@@ -461,8 +475,11 @@ func (task *Task) Deserialize(jsonData string) {
 	task.Rect.X = task.Position.X
 	task.Rect.Y = task.Position.Y
 
-	task.ImageDisplaySize.X = getFloat(`ImageDisplaySize\.X`)
-	task.ImageDisplaySize.Y = getFloat(`ImageDisplaySize\.Y`)
+	if gjson.Get(jsonData, `ImageDisplaySize\.X`).Exists() {
+		task.ImageDisplaySize.X = getFloat(`ImageDisplaySize\.X`)
+		task.ImageDisplaySize.Y = getFloat(`ImageDisplaySize\.Y`)
+	}
+
 	task.CompletionCheckbox.Checked = getBool(`Checkbox\.Checked`)
 	task.CompletionProgressionCurrent.SetNumber(getInt(`Progression\.Current`))
 	task.CompletionProgressionMax.SetNumber(getInt(`Progression\.Max`))
@@ -883,23 +900,36 @@ func (task *Task) Draw() {
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
 		taskDisplaySize.X = 16
+		taskDisplaySize.Y = 16
 	}
 
-	if task.Rect.Width != taskDisplaySize.X || task.Rect.Height != taskDisplaySize.Y {
+	if task.ImageDisplaySize.X < task.MinSize.X {
+		task.ImageDisplaySize.X = task.MinSize.X
+	}
+	if task.ImageDisplaySize.Y < task.MinSize.Y {
+		task.ImageDisplaySize.Y = task.MinSize.Y
+	}
+
+	if task.MaxSize.X > 0 && task.ImageDisplaySize.X > task.MaxSize.X {
+		task.ImageDisplaySize.X = task.MaxSize.X
+	}
+	if task.MaxSize.Y > 0 && task.ImageDisplaySize.Y > task.MaxSize.Y {
+		task.ImageDisplaySize.Y = task.MaxSize.Y
+	}
+
+	if (task.TaskType.CurrentChoice == TASK_TYPE_IMAGE && task.Image.ID != 0) || task.TaskType.CurrentChoice == TASK_TYPE_MAP {
+		if task.Rect.Width != task.ImageDisplaySize.X || task.Rect.Height != task.ImageDisplaySize.Y {
+			task.Rect.Width = task.ImageDisplaySize.X
+			task.Rect.Height = task.ImageDisplaySize.Y
+			task.Board.RemoveTaskFromGrid(task, task.GridPositions)
+			task.GridPositions = task.Board.AddTaskToGrid(task)
+		}
+	} else if task.Rect.Width != taskDisplaySize.X || task.Rect.Height != taskDisplaySize.Y {
 		task.Rect.Width = taskDisplaySize.X
 		task.Rect.Height = taskDisplaySize.Y
 		// We need to update the Task's position list because it changes here
 		task.Board.RemoveTaskFromGrid(task, task.GridPositions)
 		task.GridPositions = task.Board.AddTaskToGrid(task)
-	}
-
-	if (task.TaskType.CurrentChoice == TASK_TYPE_IMAGE && task.Image.ID != 0) || task.TaskType.CurrentChoice == TASK_TYPE_MAP {
-		if task.Rect.Width < task.ImageDisplaySize.X {
-			task.Rect.Width = task.ImageDisplaySize.X
-		}
-		if task.Rect.Height < task.ImageDisplaySize.Y {
-			task.Rect.Height = task.ImageDisplaySize.Y
-		}
 	}
 
 	color := getThemeColor(GUI_INSIDE)
@@ -1128,24 +1158,6 @@ func (task *Task) Draw() {
 
 			} else {
 				task.ImageDisplaySize = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize)
-			}
-
-		}
-
-		if task.Image.ID > 0 || task.GifAnimation != nil || task.MapImage != nil {
-
-			if task.ImageDisplaySize.X < task.MinSize.X {
-				task.ImageDisplaySize.X = task.MinSize.X
-			}
-			if task.ImageDisplaySize.Y < task.MinSize.Y {
-				task.ImageDisplaySize.Y = task.MinSize.Y
-			}
-
-			if task.MaxSize.X > 0 && task.ImageDisplaySize.X > task.MaxSize.X {
-				task.ImageDisplaySize.X = task.MaxSize.X
-			}
-			if task.MaxSize.Y > 0 && task.ImageDisplaySize.Y > task.MaxSize.Y {
-				task.ImageDisplaySize.Y = task.MaxSize.Y
 			}
 
 		}
@@ -1484,8 +1496,6 @@ func (task *Task) PostDraw() {
 
 	if task.Open {
 
-		// task.EditPanel.Center(0.5, 0.5)
-
 		column := task.EditPanel.Columns[0]
 
 		column.Mode = task.TaskType.CurrentChoice
@@ -1544,6 +1554,16 @@ func (task *Task) PostDraw() {
 				task.FilePathTextbox.SetText(filepath)
 			}
 
+		}
+
+		if column.Items["shift map left"].Element.(*Button).Clicked {
+			task.MapImage.Shift(-1, 0)
+		} else if column.Items["shift map right"].Element.(*Button).Clicked {
+			task.MapImage.Shift(1, 0)
+		} else if column.Items["shift map up"].Element.(*Button).Clicked {
+			task.MapImage.Shift(0, -1)
+		} else if column.Items["shift map down"].Element.(*Button).Clicked {
+			task.MapImage.Shift(0, 1)
 		}
 
 		if task.EditPanel.Exited || rl.IsKeyPressed(rl.KeyEscape) {
@@ -1741,17 +1761,24 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Board.Project.TaskOpen = true
 			task.Dragging = false
 			task.Description.Focused = true
-			task.Board.FocusViewOnSelectedTasks()
+
+			if task.Board.Project.TaskEditRect.Width != 0 && task.Board.Project.TaskEditRect.Height != 0 {
+				task.EditPanel.Rect = task.Board.Project.TaskEditRect
+			} else {
+				task.EditPanel.Center(0.5, 0.5)
+			}
 
 			createAtLeastOneLineEnding()
 			task.Board.UndoBuffer.Capture(task)
 
 		}
 
-		task.EditPanel.Center(0.5, 0.5)
-
 	} else if message == MessageTaskClose {
+
 		if task.Open {
+
+			task.Board.Project.TaskEditRect = task.EditPanel.Rect
+
 			task.Open = false
 			task.Board.Project.TaskOpen = false
 			task.LoadResource(false)

@@ -211,7 +211,7 @@ func NewButton(x, y, w, h float32, text string, disabled bool) *Button {
 }
 
 type PanelItem struct {
-	Name                string
+	Label               string
 	Element             GUIElement
 	On                  bool
 	HorizontalAlignment int
@@ -219,8 +219,8 @@ type PanelItem struct {
 	Modes               []int
 }
 
-func NewPanelItem(name string, element GUIElement, modes ...int) *PanelItem {
-	return &PanelItem{Name: name, Element: element, HorizontalAlignment: ALIGN_CENTER, Modes: modes, On: true}
+func NewPanelItem(label string, element GUIElement, modes ...int) *PanelItem {
+	return &PanelItem{Label: label, Element: element, HorizontalAlignment: ALIGN_CENTER, Modes: modes, On: true}
 }
 
 func (pi *PanelItem) InMode(mode int) bool {
@@ -344,20 +344,21 @@ func (panel *Panel) Update() {
 		panel.Rect.X = GetMousePosition().X - panel.DragStart.X
 		panel.Rect.Y = GetMousePosition().Y - panel.DragStart.Y
 		HideMouseInput(rl.MouseLeftButton)
-	}
 
-	if panel.Rect.X < 0 {
-		panel.Rect.X = 0
-	}
-	if panel.Rect.X+panel.Rect.Width > float32(rl.GetScreenWidth()) {
-		panel.Rect.X = float32(rl.GetScreenWidth()) - panel.Rect.Width
-	}
+		if panel.Rect.X < 0 {
+			panel.Rect.X = 0
+		}
+		if panel.Rect.X+panel.OriginalWidth > float32(rl.GetScreenWidth()) {
+			panel.Rect.X = float32(rl.GetScreenWidth()) - panel.OriginalWidth
+		}
 
-	if panel.Rect.Y < 0 {
-		panel.Rect.Y = 0
-	}
-	if panel.Rect.Y+panel.Rect.Height > float32(rl.GetScreenHeight()) {
-		panel.Rect.Y = float32(rl.GetScreenHeight()) - panel.Rect.Height
+		if panel.Rect.Y < 0 {
+			panel.Rect.Y = 0
+		}
+		if panel.Rect.Y+panel.OriginalHeight > float32(rl.GetScreenHeight()) {
+			panel.Rect.Y = float32(rl.GetScreenHeight()) - panel.OriginalHeight
+		}
+
 	}
 
 	// Scrollbar
@@ -378,10 +379,12 @@ func (panel *Panel) Update() {
 		rl.BeginTextureMode(panel.RenderTexture)
 		rl.ClearBackground(getThemeColor(GUI_INSIDE))
 
-		columnIndex := 0
-		columnWidth := int(panel.Rect.Width) / len(panel.Columns)
+		horizontalMargin := float32(32)
 
-		x := float32(16)
+		columnIndex := 0
+		columnWidth := float32(int(panel.Rect.Width-horizontalMargin) / len(panel.Columns))
+
+		x := float32(horizontalMargin / 2)
 		y := float32(0)
 
 		globalMouseOffset.X = panel.Rect.X
@@ -389,8 +392,8 @@ func (panel *Panel) Update() {
 
 		for _, column := range panel.Columns {
 
-			x += float32(columnWidth * columnIndex)
-			y = 32
+			x += columnWidth * float32(columnIndex)
+			y = 16 + topBar.Height
 
 			sorted := append([]string{}, column.OrderOfEntry...)
 			sort.Slice(sorted, func(i, j int) bool {
@@ -405,7 +408,7 @@ func (panel *Panel) Update() {
 					continue
 				}
 
-				DrawGUIText(rl.Vector2{x, y}, item.Name)
+				DrawGUIText(rl.Vector2{x, y}, item.Label)
 
 				if item == nil {
 					continue
@@ -413,7 +416,11 @@ func (panel *Panel) Update() {
 
 				rect := item.Element.Rectangle()
 
-				rect.X = x + float32(columnWidth/4*3) + item.HorizontalPadding
+				if item.Label != "" {
+					rect.X = x + columnWidth/4*3 + item.HorizontalPadding
+				} else {
+					rect.X = x + (columnWidth / 2)
+				}
 
 				if item.HorizontalAlignment == ALIGN_CENTER {
 					rect.X -= rect.Width / 2
@@ -522,28 +529,6 @@ func (panel *Panel) AddColumn() *PanelColumn {
 	newColumn := NewPanelColumn()
 	panel.Columns = append(panel.Columns, newColumn)
 	return newColumn
-}
-
-func (panel *Panel) Resize(newWidth, newHeight float32) {
-
-	changed := false
-
-	if newWidth > 0 && panel.OriginalWidth != newWidth {
-		panel.OriginalWidth = newWidth
-		panel.Rect.Width = newWidth
-		changed = true
-	}
-
-	if newHeight > 0 && panel.OriginalHeight != newHeight {
-		panel.OriginalHeight = newHeight
-		panel.Rect.Height = newHeight
-		changed = true
-	}
-
-	if changed {
-		panel.recreateRenderTexture()
-	}
-
 }
 
 func (panel *Panel) recreateRenderTexture() {
@@ -745,7 +730,7 @@ type Checkbox struct {
 }
 
 func NewCheckbox(x, y, w, h float32) *Checkbox {
-	checkbox := &Checkbox{Rect: rl.Rectangle{x, y, w, h}}
+	checkbox := &Checkbox{Rect: rl.Rectangle{float32(int32(x)), float32(int32(y)), float32(int32(w)), float32(int32(h))}}
 	return checkbox
 }
 
@@ -754,7 +739,7 @@ func (checkbox *Checkbox) Update() {
 	checkbox.Changed = false
 
 	rl.DrawRectangleRec(checkbox.Rect, getThemeColor(GUI_INSIDE))
-	outlineColor := getThemeColor(GUI_OUTLINE)
+	color := getThemeColor(GUI_OUTLINE)
 
 	pos := rl.Vector2{}
 	if worldMousePosition {
@@ -763,22 +748,23 @@ func (checkbox *Checkbox) Update() {
 		pos = GetMousePosition()
 	}
 
-	if rl.CheckCollisionPointRec(pos, checkbox.Rect) && MousePressed(rl.MouseLeftButton) && prioritizedGUIElement == nil {
-		checkbox.Checked = !checkbox.Checked
-		checkbox.Changed = true
-	}
+	src := rl.Rectangle{96, 32, 16, 16}
+	dst := rl.Rectangle{checkbox.Rect.X, checkbox.Rect.Y, checkbox.Rect.Width, checkbox.Rect.Height}
 
 	if checkbox.Checked {
-		r := checkbox.Rect
-		r.X += 4
-		r.Y += 4
-		r.Width -= 8
-		r.Height -= 8
-		rl.DrawRectangleRec(r, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
-		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		src.X += 16
+		color = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 	}
 
-	rl.DrawRectangleLinesEx(checkbox.Rect, 1, outlineColor)
+	if rl.CheckCollisionPointRec(pos, checkbox.Rect) && prioritizedGUIElement == nil {
+		color = getThemeColor(GUI_FONT_COLOR)
+		if MousePressed(rl.MouseLeftButton) {
+			checkbox.Checked = !checkbox.Checked
+			checkbox.Changed = true
+		}
+	}
+
+	rl.DrawTexturePro(currentProject.GUI_Icons, src, dst, rl.Vector2{}, 0, color)
 
 }
 

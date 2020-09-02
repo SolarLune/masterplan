@@ -152,6 +152,10 @@ func (mapImage *MapImage) Update() {
 		editButton = mapImage.Task.SmallButton(16, 32, 16, 16, mapImage.Task.Rect.X+16, mapImage.Task.Rect.Y)
 	}
 
+	if mapImage.Task.Open {
+		editButton = false
+	}	
+
 	shift := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
 
 	if !editButton && mapImage.Task.Selected && (rl.IsKeyPressed(rl.KeyC) && !shift) {
@@ -191,5 +195,46 @@ func (mapImage *MapImage) Copy(otherMapImage *MapImage) {
 			mapImage.Data[y][x] = otherMapImage.Data[y][x]
 		}
 	}
+
+}
+
+func (mapImage *MapImage) Shift(shiftX, shiftY int) {
+
+	newData := [][]int32{}
+
+	for y := 0; y < len(mapImage.Data); y++ {
+		newData = append(newData, []int32{})
+		for x := 0; x < len(mapImage.Data[y]); x++ {
+			newData[y] = append(newData[y], 0)
+		}
+	}
+
+	height := int(mapImage.Height)
+	width := int(mapImage.Width)
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+
+			newX := x - shiftX
+			newY := y - shiftY
+
+			if newY < 0 {
+				newY += height
+			} else if newY >= height {
+				newY -= height
+			}
+
+			if newX < 0 {
+				newX += width
+			} else if newX >= width {
+				newX -= width
+			}
+
+			newData[y][x] = mapImage.Data[newY][newX]
+
+		}
+	}
+
+	mapImage.Data = newData
 
 }

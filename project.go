@@ -139,6 +139,7 @@ type Project struct {
 	BackupTimer      time.Time
 	UndoFade         *gween.Sequence
 	Undoing          int
+	TaskEditRect     rl.Rectangle
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
 	// This would be simple, but could be prohibitive if the size becomes large. Upside is that since we're storing the buffer to disk, you can undo
@@ -193,6 +194,8 @@ func NewProject() *Project {
 		DisableSplashscreen: NewCheckbox(0, 0, 32, 32),
 		DisableMessageLog:   NewCheckbox(0, 0, 32, 32),
 	}
+
+	project.SettingsPanel.Center(0.5, 0.5)
 
 	column := project.SettingsPanel.AddColumn()
 	column.Add("Color Theme:", project.ColorThemeSpinner)
@@ -1643,7 +1646,6 @@ func (project *Project) GUI() {
 					case "Settings":
 						project.ReloadThemes() // Reload the themes after opening the settings window
 						project.ProjectSettingsOpen = true
-						project.SettingsPanel.Center(0.5, 0.5)
 						project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
 						project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
 						project.AutoReloadThemes.Checked = programSettings.AutoReloadThemes
@@ -1794,8 +1796,6 @@ func (project *Project) GUI() {
 			}
 
 			DrawGUIText(rl.Vector2{6, project.StatusBar.Y - 2}, "%d / %d Tasks completed (%d%%)", completionCount, taskCount, percentage)
-
-			PrevMousePosition = GetMousePosition()
 
 			todayText := time.Now().Format("Monday, January 2, 2006, 15:04:05")
 			textLength := rl.MeasureTextEx(guiFont, todayText, guiFontSize, spacing)
@@ -1969,6 +1969,8 @@ func (project *Project) GUI() {
 		}
 
 	}
+
+	PrevMousePosition = GetMousePosition()
 
 }
 
