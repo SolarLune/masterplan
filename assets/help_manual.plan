@@ -1,11 +1,11 @@
 {
   "Version": "0.5.0",
-  "LockProject": false,
+  "LockProject": true,
   "BoardIndex": 0,
   "BoardCount": 1,
   "AutoSave": false,
-  "Pan.X": -2521.5,
-  "Pan.Y": -290.5,
+  "Pan.X": 0,
+  "Pan.Y": 0,
   "ZoomLevel": 2,
   "ColorTheme": "Sunlight",
   "TaskTransparency": 5,
@@ -600,7 +600,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2336,
-      "Position.Y": 432,
+      "Position.Y": 448,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -824,12 +824,12 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 2336,
+      "Position.X": 2352,
       "Position.Y": 352,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Tasks that have multi-line descriptions are abbreviated to just\nshow their first line. Anything after that is only visible if you edit\nthe Task, with a [...] icon showing at the right end of the Task \nif it contains more information.",
+      "Description": "Completeable Tasks that have multi-line descriptions \nare abbreviated to just show their first line. Anything\nafter that is only visible if you edit the Task, with a [...]\nicon showing at the right end of the Task if it contains\nmore information.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "May 26 2020 17:35:18"
@@ -885,7 +885,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2368,
-      "Position.Y": 576,
+      "Position.Y": 592,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1334,7 +1334,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2336,
-      "Position.Y": 464,
+      "Position.Y": 480,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2119,7 +2119,7 @@
       "Progression.Current": 0,
       "Progression.Max": 0,
       "Description": "You can drag a window around by clicking and dragging on the top bar\n(which is the blue part of the window, for this theme).",
-      "Selected": true,
+      "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Sep 1 2020 21:58:41"
     }
