@@ -19,7 +19,8 @@ for:
     only: 
       - image: Ubuntu
   install:
-    sudo apt-get install libgl1-mesa-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libasound2-dev -y
+    - sudo apt-get update
+    - sudo apt-get install libgl1-mesa-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libasound2-dev -y
 
 -
   matrix:
