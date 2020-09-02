@@ -547,16 +547,15 @@ func (task *Task) Deserialize(jsonData string) {
 	}
 
 	if hasData(`MapData`) {
-		data := [][]int32{}
-		for i, row := range gjson.Get(jsonData, `MapData`).Array() {
-			data = append(data, []int32{})
-			for _, value := range row.Array() {
-				data[i] = append(data[i], int32(value.Int()))
+
+		task.MapImage = NewMapImage(task)
+
+		for y, row := range gjson.Get(jsonData, `MapData`).Array() {
+			for x, value := range row.Array() {
+				task.MapImage.Data[y][x] = int32(value.Int())
 			}
 		}
 
-		task.MapImage = NewMapImage(task)
-		task.MapImage.Data = data
 		task.MapImage.Width = int32(task.ImageDisplaySize.X) / task.Board.Project.GridSize
 		task.MapImage.Height = (int32(task.ImageDisplaySize.Y) - task.Board.Project.GridSize) / task.Board.Project.GridSize
 		task.MapImage.Changed = true
@@ -1177,8 +1176,18 @@ func (task *Task) Draw() {
 
 		}
 
-		if task.TaskType.CurrentChoice == TASK_TYPE_MAP && task.ImageDisplaySize.X > 0 && task.ImageDisplaySize.Y > 0 {
-			task.MapImage.Resize(task.ImageDisplaySize.X, task.ImageDisplaySize.Y)
+		if task.TaskType.CurrentChoice == TASK_TYPE_MAP {
+			ix, iy := task.ImageDisplaySize.X, task.ImageDisplaySize.Y
+
+			// I'm doing this again here because the we're resizing without regard for the minimum size limitation above
+			if ix < task.MinSize.X {
+				ix = task.MinSize.X
+			}
+
+			if iy < task.MinSize.Y {
+				iy = task.MinSize.Y
+			}
+			task.MapImage.Resize(ix, iy)
 		}
 
 	}
@@ -1764,8 +1773,6 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 			if task.Board.Project.TaskEditRect.Width != 0 && task.Board.Project.TaskEditRect.Height != 0 {
 				task.EditPanel.Rect = task.Board.Project.TaskEditRect
-			} else {
-				task.EditPanel.Center(0.5, 0.5)
 			}
 
 			createAtLeastOneLineEnding()

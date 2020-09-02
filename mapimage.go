@@ -154,7 +154,7 @@ func (mapImage *MapImage) Update() {
 
 	if mapImage.Task.Open {
 		editButton = false
-	}	
+	}
 
 	shift := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
 
@@ -169,11 +169,6 @@ func (mapImage *MapImage) Update() {
 	if editButton {
 		mapImage.Editing = !mapImage.Editing
 		mapImage.Changed = true
-		// if mapImage.Editing {
-		// 	mapImage.Task.Board.Project.Log("Editing of Map Task enabled.")
-		// } else {
-		// 	mapImage.Task.Board.Project.Log("Editing of Map Task disabled.")
-		// }
 	}
 
 	if mapImage.Changed {
@@ -183,9 +178,20 @@ func (mapImage *MapImage) Update() {
 }
 
 func (mapImage *MapImage) Resize(w, h float32) {
+
 	mapImage.Width = int32(w) / mapImage.Task.Board.Project.GridSize
 	mapImage.Height = (int32(h) - mapImage.Task.Board.Project.GridSize) / mapImage.Task.Board.Project.GridSize
+
+	if mapImage.Height > int32(len(mapImage.Data)) {
+		mapImage.Height = int32(len(mapImage.Data))
+	}
+
+	if mapImage.Width > int32(len(mapImage.Data[0])) {
+		mapImage.Width = int32(len(mapImage.Data[0]))
+	}
+
 	mapImage.Changed = true
+
 }
 
 func (mapImage *MapImage) Copy(otherMapImage *MapImage) {

@@ -18,7 +18,7 @@ v0.5.0
 - Sunlight theme now has a slightly brighter blue.
 - Dark Crimson theme's note color altered to be visually distinct from other colors.
 - Updated manual.
-- FIX: Resizeable Tasks get stuck resizing if not released over overview window.
+- FIX: Resizeable Tasks get stuck resizing if not released over MasterPlan window.
 - FIX: Undo after load destroys Line Tasks.
 - FIX: Only completable Tasks should display their due date.
 - FIX: Alarm sound not playing correctly sometimes.

@@ -293,6 +293,7 @@ type Panel struct {
 	AutoExpand      bool
 	EnableScrolling bool
 	DragStart       rl.Vector2
+	PrevWindowSize  rl.Vector2
 	VerticalSpacing int32 // If the Panel should automatically space out the elements, or use a margin.
 	// If Spacing < 0, the elements will be spaced out across the height of the column.
 	// If Spacing >= 0, the elements will be spaced out according to their heights, with an additional padding of [Spacing] pixels.
@@ -322,6 +323,7 @@ func NewPanel(x, y, w, h float32) *Panel {
 func (panel *Panel) Update() {
 
 	dst := rl.Rectangle{panel.Rect.X, panel.Rect.Y, panel.OriginalWidth, panel.OriginalHeight}
+	winSize := rl.Vector2{float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
 	exitButtonSize := float32(32)
 	panel.Exited = false
 
@@ -340,10 +342,12 @@ func (panel *Panel) Update() {
 		panel.DragStart = raymath.Vector2Subtract(GetMousePosition(), rl.Vector2{panel.Rect.X, panel.Rect.Y})
 	}
 
-	if panel.DragStart.X >= 0 && panel.DragStart.Y >= 0 {
-		panel.Rect.X = GetMousePosition().X - panel.DragStart.X
-		panel.Rect.Y = GetMousePosition().Y - panel.DragStart.Y
-		HideMouseInput(rl.MouseLeftButton)
+	if (panel.DragStart.X >= 0 && panel.DragStart.Y >= 0) || panel.PrevWindowSize != winSize {
+		if panel.DragStart.X >= 0 && panel.DragStart.Y >= 0 {
+			panel.Rect.X = GetMousePosition().X - panel.DragStart.X
+			panel.Rect.Y = GetMousePosition().Y - panel.DragStart.Y
+			HideMouseInput(rl.MouseLeftButton)
+		}
 
 		if panel.Rect.X < 0 {
 			panel.Rect.X = 0
@@ -512,6 +516,8 @@ func (panel *Panel) Update() {
 	rl.DrawRectangleRec(topBar, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
 	rl.DrawRectangleLinesEx(dst, 1, getThemeColor(GUI_OUTLINE))
+
+	panel.PrevWindowSize = winSize
 
 }
 
