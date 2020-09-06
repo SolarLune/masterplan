@@ -990,7 +990,7 @@ func (project *Project) AutoBackup() {
 				return nil
 			})
 
-			timeFormat := "Jan 2 2006 15:04:05"
+			timeFormat := "1.2.06.15.04"
 
 			if len(existingBackups) > 0 {
 
