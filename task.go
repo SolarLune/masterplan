@@ -1565,14 +1565,18 @@ func (task *Task) PostDraw() {
 
 		}
 
-		if column.Items["shift map left"].Element.(*Button).Clicked {
-			task.MapImage.Shift(-1, 0)
-		} else if column.Items["shift map right"].Element.(*Button).Clicked {
-			task.MapImage.Shift(1, 0)
-		} else if column.Items["shift map up"].Element.(*Button).Clicked {
-			task.MapImage.Shift(0, -1)
-		} else if column.Items["shift map down"].Element.(*Button).Clicked {
-			task.MapImage.Shift(0, 1)
+		if task.MapImage != nil {
+
+			if column.Items["shift map left"].Element.(*Button).Clicked {
+				task.MapImage.Shift(-1, 0)
+			} else if column.Items["shift map right"].Element.(*Button).Clicked {
+				task.MapImage.Shift(1, 0)
+			} else if column.Items["shift map up"].Element.(*Button).Clicked {
+				task.MapImage.Shift(0, -1)
+			} else if column.Items["shift map down"].Element.(*Button).Clicked {
+				task.MapImage.Shift(0, 1)
+			}
+
 		}
 
 		if task.EditPanel.Exited || rl.IsKeyPressed(rl.KeyEscape) {

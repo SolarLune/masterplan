@@ -716,8 +716,6 @@ func (project *Project) Update() {
 
 		selectionRect := rl.Rectangle{}
 
-		project.HandleCamera()
-
 		for _, task := range project.GetAllTasks() {
 			task.Update()
 		}
@@ -740,6 +738,8 @@ func (project *Project) Update() {
 		for _, task := range project.CurrentBoard().Tasks {
 			task.Draw()
 		}
+
+		project.HandleCamera()
 
 		if !project.TaskOpen {
 

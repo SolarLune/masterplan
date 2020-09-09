@@ -76,6 +76,8 @@ func (mapImage *MapImage) Update() {
 				rotation := float32(0)
 				dst.X = float32(x*16) + 8
 				dst.Y = float32(y*16) + 8
+				gridColor := rl.White
+				gridColor.A = 128
 
 				if getValue(x, y) > 0 {
 
@@ -94,7 +96,15 @@ func (mapImage *MapImage) Update() {
 
 					rl.DrawTexturePro(mapImage.Task.Board.Project.GUI_Icons, src, dst, rl.Vector2{8, 8}, rotation, color)
 
+					gridColor = rl.Black
+					gridColor.A = 32
+
 				}
+
+				src.X = 80
+				src.Y = 32
+
+				rl.DrawTexturePro(mapImage.Task.Board.Project.GUI_Icons, src, dst, rl.Vector2{8, 8}, 0, gridColor)
 
 			}
 
@@ -125,6 +135,13 @@ func (mapImage *MapImage) Update() {
 		cy := int32(math.Floor(float64((mousePos.Y - rect.Y) / gs)))
 
 		if cx >= 0 && cx <= mapImage.Width-1 && cy >= 0 && cy <= mapImage.Height-1 {
+			r := rl.Rectangle{mapImage.Task.Rect.X + float32(cx)*gs, mapImage.Task.Rect.Y + float32(cy)*gs + gs, gs, gs}
+			c := rl.Color{127, 127, 127, 255}
+			f := uint8(((math.Sin(float64(rl.GetTime())*math.Pi) + 1) / 2) * 128)
+			c.R += f
+			c.G += f
+			c.B += f
+			rl.DrawRectangleLinesEx(r, 2, c)
 
 			if MouseDown(rl.MouseLeftButton) {
 				mapImage.Data[cy][cx] = 1
