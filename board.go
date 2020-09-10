@@ -222,7 +222,7 @@ func (board *Board) HandleDroppedFiles() {
 				}
 
 				task.FilePathTextbox.SetText(filePath)
-				task.LoadResource(false)
+				task.LoadResource()
 				board.Tasks = append(board.Tasks, task)
 				continue
 			}
@@ -273,7 +273,7 @@ func (board *Board) PasteTasks() {
 			clone := srcTask.Clone()
 			board.Tasks = append(board.Tasks, clone)
 			clone.Board = board
-			clone.LoadResource(false)
+			clone.LoadResource()
 			clones = append(clones, clone)
 			return clone
 		}
@@ -351,7 +351,7 @@ func (board *Board) PasteContent() {
 				task.TaskType.CurrentChoice = TASK_TYPE_SOUND
 			}
 
-			task.LoadResource(false)
+			task.LoadResource()
 
 		} else {
 			task.Description.SetText(clipboardData)

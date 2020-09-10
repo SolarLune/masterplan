@@ -1725,7 +1725,7 @@ func (project *Project) GUI() {
 					project.LogOn = false
 					for _, t := range project.CurrentBoard().Tasks {
 						if t.TaskType.CurrentChoice == TASK_TYPE_SOUND {
-							t.LoadResource(true) // Force reloading to resample as necessary
+							t.LoadResource() // Force reloading to resample as necessary
 						}
 					}
 					project.LogOn = true

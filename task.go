@@ -568,7 +568,7 @@ func (task *Task) Deserialize(jsonData string) {
 	}
 
 	// We do this to update the task after loading all of the information.
-	task.LoadResource(false)
+	task.LoadResource()
 
 	if task.SoundControl != nil {
 		task.SoundControl.Paused = true
@@ -1658,9 +1658,9 @@ func (task *Task) SetCompletion(complete bool) {
 
 }
 
-func (task *Task) LoadResource(forceLoad bool) {
+func (task *Task) LoadResource() {
 
-	if task.FilePathTextbox.Text() != "" && (task.PrevFilePath != task.FilePathTextbox.Text() || forceLoad) {
+	if task.FilePathTextbox.Text() != "" {
 
 		res, _ := task.Board.Project.LoadResource(task.FilePathTextbox.Text())
 
@@ -1675,10 +1675,8 @@ func (task *Task) LoadResource(forceLoad bool) {
 						task.GifAnimation = nil
 					}
 					task.Image = res.Texture()
-					if task.ImageDisplaySize.X == 0 || task.ImageDisplaySize.Y == 0 {
-						task.ImageDisplaySize.X = float32(task.Image.Width)
-						task.ImageDisplaySize.Y = float32(task.Image.Height)
-					}
+					task.ImageDisplaySize.X = float32(task.Image.Width)
+					task.ImageDisplaySize.Y = float32(task.Image.Height)
 
 				} else if res.IsGIF() {
 
@@ -1798,7 +1796,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 			task.Open = false
 			task.Board.Project.TaskOpen = false
-			task.LoadResource(false)
+			task.LoadResource()
 			task.Board.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
 
 			if task.TaskType.CurrentChoice == TASK_TYPE_MAP {
