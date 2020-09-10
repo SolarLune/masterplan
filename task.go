@@ -492,7 +492,13 @@ func (task *Task) Deserialize(jsonData string) {
 			for _, component := range f.Array() {
 				str = append(str, component.String())
 			}
-			abs, _ := filepath.Abs(strings.Join(str, string(filepath.Separator)))
+
+			// We need to go from the project file as the "root", as otherwise it will be relative
+			// to the current working directory (which is not ideal).
+			str = append([]string{filepath.Dir(task.Board.Project.FilePath)}, str...)
+			joinedElements := strings.Join(str, string(filepath.Separator))
+			abs, _ := filepath.Abs(joinedElements)
+
 			task.FilePathTextbox.SetText(abs)
 		} else {
 			task.FilePathTextbox.SetText(getString(`FilePath`))
