@@ -9,6 +9,8 @@ v0.5.1
 - FIX: Shifting new Map Task crashed MP.
 - FIX: There was a slight lag between panning camera and task position updating (this could have caused a bit of a motion sickness inducing effect when panning previously).
 - FIX: Backups weren't being made on Windows.
+- FIX: Loading resources had the working directory as root for determining the path to the resources, not the project's filepath.
+- FIX: Images weren't loading with proper size.
 
 -------
 
