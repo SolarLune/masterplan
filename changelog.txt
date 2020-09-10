@@ -1,5 +1,17 @@
 -------
 
+v0.5.1
+
+-------
+
+- Project lock is now undone when the corresponding setting is unchecked in project settings, not just when the settings panel is actually closed.
+- Adding a grid and a placement indicator to editing MapImages.
+- FIX: Shifting new Map Task crashed MP.
+- FIX: There was a slight lag between panning camera and task position updating (this could have caused a bit of a motion sickness inducing effect when panning previously).
+- FIX: Backups weren't being made on Windows.
+
+-------
+
 v0.5.0
 
 -------
