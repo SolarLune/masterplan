@@ -1,5 +1,5 @@
 {
-  "Version": "0.5.0",
+  "Version": "0.5.1",
   "LockProject": true,
   "BoardIndex": 0,
   "BoardCount": 1,
@@ -1890,7 +1890,7 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "On the right-hand side, you'll find the search bar.\nYou can use this search bar to find any text in\nthe description or name or filepath of any Task.",
+      "Description": "On the right-hand side, you'll find the search bar.\nYou can use this search bar to find any text in\nthe description, name, or filepath of any Task.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 4 2020 01:01:37"

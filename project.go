@@ -1731,10 +1731,6 @@ func (project *Project) GUI() {
 					project.LogOn = true
 				}
 
-				if !project.LockProject.Checked {
-					project.Locked = false
-				}
-
 				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
 				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
 				programSettings.AutoReloadThemes = project.AutoReloadThemes.Checked
@@ -1762,6 +1758,10 @@ func (project *Project) GUI() {
 
 			if project.MaxUndoSteps.GetNumber() == 0 {
 				project.MaxUndoSteps.Textbox.SetText("Unlimited")
+			}
+
+			if !project.LockProject.Checked {
+				project.Locked = false
 			}
 
 		}
