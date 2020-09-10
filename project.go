@@ -24,7 +24,6 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 
-	"github.com/gen2brain/raylib-go/raymath"
 	"github.com/ncruces/zenity"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -847,7 +846,7 @@ func (project *Project) Update() {
 
 				if project.Selecting {
 
-					diff := raymath.Vector2Subtract(GetWorldMousePosition(), project.SelectionStart)
+					diff := rl.Vector2Subtract(GetWorldMousePosition(), project.SelectionStart)
 					x1, y1 := project.SelectionStart.X, project.SelectionStart.Y
 					x2, y2 := diff.X, diff.Y
 					if x2 < 0 {
@@ -1340,8 +1339,8 @@ func (project *Project) Shortcuts() {
 								}
 
 								sort.Slice(others, func(i, j int) bool {
-									return raymath.Vector2Distance(others[i].Position, selected.Position) <
-										raymath.Vector2Distance(others[j].Position, selected.Position)
+									return rl.Vector2Distance(others[i].Position, selected.Position) <
+									rl.Vector2Distance(others[j].Position, selected.Position)
 								})
 
 							}

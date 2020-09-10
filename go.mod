@@ -26,4 +26,4 @@ require (
 
 // The below line replaces the normal raylib-go dependency with my branch that has the config.h tweaked to
 // remove screenshot-taking because we're do it manually in MasterPlan.
-replace github.com/gen2brain/raylib-go => github.com/solarlune/raylib-go v0.0.0-20200603204758-df4dce33640c
+replace github.com/gen2brain/raylib-go => github.com/solarlune/raylib-go v0.0.0-20200910174213-b57d2a82dca4

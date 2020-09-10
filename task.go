@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gen2brain/raylib-go/raymath"
 	"github.com/ncruces/zenity"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -628,8 +627,8 @@ func (task *Task) Update() {
 	}
 
 	if task.Selected && task.Dragging && !task.Resizing {
-		delta := raymath.Vector2Subtract(GetWorldMousePosition(), task.MouseDragStart)
-		task.Position = raymath.Vector2Add(task.TaskDragStart, delta)
+		delta := rl.Vector2Subtract(GetWorldMousePosition(), task.MouseDragStart)
+		task.Position = rl.Vector2Add(task.TaskDragStart, delta)
 		task.Rect.X = task.Position.X
 		task.Rect.Y = task.Position.Y
 	}
@@ -1257,7 +1256,7 @@ func (task *Task) Draw() {
 
 			iconSrc.X = 176
 			iconSrc.Y = 16
-			rotation = raymath.Vector2Angle(task.LineBase.Position, task.Position)
+			rotation = rl.Vector2Angle(task.LineBase.Position, task.Position)
 
 			insideCount := 0
 

@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"github.com/gen2brain/raylib-go/raymath"
 )
 
 // We have a global mouse offset specifically for panels that render GUI elements
@@ -20,7 +19,7 @@ func GetMousePosition() rl.Vector2 {
 	pos.X = float32(math.Round(float64(pos.X)))
 	pos.Y = float32(math.Round(float64(pos.Y)))
 
-	pos = raymath.Vector2Subtract(pos, globalMouseOffset)
+	pos = rl.Vector2Subtract(pos, globalMouseOffset)
 
 	return pos
 
@@ -50,8 +49,8 @@ func GetWorldMousePosition() rl.Vector2 {
 var PrevMousePosition rl.Vector2 = rl.Vector2{}
 
 func GetMouseDelta() rl.Vector2 {
-	vec := raymath.Vector2Subtract(GetMousePosition(), PrevMousePosition)
-	raymath.Vector2Scale(&vec, 1/camera.Zoom)
+	vec := rl.Vector2Subtract(GetMousePosition(), PrevMousePosition)
+	vec = rl.Vector2Scale(vec, 1/camera.Zoom)
 	return vec
 }
 

@@ -15,7 +15,6 @@ import (
 
 	"github.com/atotto/clipboard"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"github.com/gen2brain/raylib-go/raymath"
 	"github.com/tanema/gween/ease"
 )
 
@@ -339,7 +338,7 @@ func (panel *Panel) Update() {
 	topBar.Width -= exitButtonSize
 
 	if MousePressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), topBar) {
-		panel.DragStart = raymath.Vector2Subtract(GetMousePosition(), rl.Vector2{panel.Rect.X, panel.Rect.Y})
+		panel.DragStart = rl.Vector2Subtract(GetMousePosition(), rl.Vector2{panel.Rect.X, panel.Rect.Y})
 	}
 
 	if (panel.DragStart.X >= 0 && panel.DragStart.Y >= 0) || panel.PrevWindowSize != winSize {

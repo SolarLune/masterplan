@@ -8,7 +8,6 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/gabriel-vasile/mimetype"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"github.com/gen2brain/raylib-go/raymath"
 )
 
 type Position struct {
@@ -189,7 +188,8 @@ func (board *Board) FocusViewOnSelectedTasks() {
 
 		if taskCount > 0 {
 
-			raymath.Vector2Divide(&center, taskCount)
+			center.X = center.X / taskCount
+			center.Y = center.Y / taskCount
 
 			center.X *= -1
 			center.Y *= -1
@@ -284,10 +284,11 @@ func (board *Board) PasteTasks() {
 			tp := t.Position
 			tp.X += t.Rect.Width / 2
 			tp.Y += t.Rect.Height / 2
-			center = raymath.Vector2Add(center, tp)
+			center = rl.Vector2Add(center, tp)
 		}
 
-		raymath.Vector2Divide(&center, float32(len(board.Project.CopyBuffer)))
+		center.X /= float32(len(board.Project.CopyBuffer))
+		center.Y /= float32(len(board.Project.CopyBuffer))
 
 		for _, srcTask := range board.Project.CopyBuffer {
 

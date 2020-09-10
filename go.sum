@@ -69,6 +69,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/solarlune/raylib-go v0.0.0-20200603204758-df4dce33640c h1:GjPB3J0F4XCgl0ZjHvnc98bOYZas97IFqLv8tC36ugQ=
 github.com/solarlune/raylib-go v0.0.0-20200603204758-df4dce33640c/go.mod h1:fkiXAHEtyT3L8Y5qjQWQCU5exdOohojdpwGsSEUptdM=
+github.com/solarlune/raylib-go v0.0.0-20200910174213-b57d2a82dca4 h1:cT7vNxAJaa883MZAXtu/kaEvyTBGJM8qLGTL1Hd5Hwk=
+github.com/solarlune/raylib-go v0.0.0-20200910174213-b57d2a82dca4/go.mod h1:fkiXAHEtyT3L8Y5qjQWQCU5exdOohojdpwGsSEUptdM=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
