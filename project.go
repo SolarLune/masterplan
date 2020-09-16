@@ -1340,7 +1340,7 @@ func (project *Project) Shortcuts() {
 
 								sort.Slice(others, func(i, j int) bool {
 									return rl.Vector2Distance(others[i].Position, selected.Position) <
-									rl.Vector2Distance(others[j].Position, selected.Position)
+										rl.Vector2Distance(others[j].Position, selected.Position)
 								})
 
 							}
@@ -2129,9 +2129,9 @@ func (project *Project) ReloadThemes() {
 
 func (project *Project) GetFrameTime() float32 {
 	ft := rl.GetFrameTime()
-	if ft > (1/float32(TARGET_FPS))*2 {
+	if ft > (1/float32(TARGET_FPS))*10 {
 		// This artificial limiting is done to ensure the delta time never gets so high that it makes major problems.
-		ft = (1 / float32(TARGET_FPS)) * 2
+		ft = (1 / float32(TARGET_FPS)) * 10
 	}
 	return ft
 }

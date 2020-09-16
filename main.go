@@ -92,11 +92,12 @@ func main() {
 
 	rl.SetTraceLog(rl.LogError)
 
-	rl.SetConfigFlags(rl.FlagWindowResizable)
+	// rl.SetConfigFlags(rl.FlagWindowResizable)
+	rl.SetConfigFlags(rl.FlagWindowResizable + rl.FlagVsyncHint)
 	rl.InitWindow(960, 540, "MasterPlan v"+softwareVersion.String())
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
-	rl.SetTargetFPS(TARGET_FPS)
+	// rl.SetTargetFPS(TARGET_FPS)
 
 	font = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(fontSize), nil, 256)
 	guiFont = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(guiFontSize), nil, 256)
