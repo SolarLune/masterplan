@@ -761,7 +761,7 @@ func (task *Task) Draw() {
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
 
-		color := getThemeColor(GUI_FONT_COLOR)
+		color := getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 
 		for _, ending := range task.ValidLineEndings() {
 
@@ -773,8 +773,10 @@ func (task *Task) Draw() {
 			ep.Y += float32(task.Board.Project.GridSize) / 2
 
 			if task.LineBezier.Checked {
+				rl.DrawLineBezier(bp, ep, 4, getThemeColor(GUI_FONT_COLOR))
 				rl.DrawLineBezier(bp, ep, 2, color)
 			} else {
+				rl.DrawLineEx(bp, ep, 4, getThemeColor(GUI_FONT_COLOR))
 				rl.DrawLineEx(bp, ep, 2, color)
 			}
 
