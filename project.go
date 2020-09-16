@@ -817,15 +817,17 @@ func (project *Project) Update() {
 
 					if clickedTask == nil {
 
+						project.DoubleClickTaskID = -1
+
 						if project.DoubleClickTimer > 0 && project.DoubleClickTaskID == -1 {
 							ConsumeMouseInput(rl.MouseLeftButton)
 							task := project.CurrentBoard().CreateNewTask()
 							task.ReceiveMessage(MessageDoubleClick, nil)
 							project.Selecting = false
+							project.DoubleClickTimer = -1
+						} else {
+							project.DoubleClickTimer = 0
 						}
-
-						project.DoubleClickTaskID = -1
-						project.DoubleClickTimer = 0
 
 					} else {
 
@@ -834,12 +836,13 @@ func (project *Project) Update() {
 							// We have to consume after double-clicking so you don't click outside of the new panel and exit it immediately
 							// or actuate a GUI element accidentally.
 							ConsumeMouseInput(rl.MouseLeftButton)
+							project.DoubleClickTimer = -1
 						} else {
 							project.SendMessage(MessageDragging, nil)
+							project.DoubleClickTimer = 0
+							project.DoubleClickTaskID = clickedTask.ID
 						}
 
-						project.DoubleClickTimer = 0
-						project.DoubleClickTaskID = clickedTask.ID
 					}
 
 				}
