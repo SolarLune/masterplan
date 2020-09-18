@@ -314,8 +314,6 @@ func (board *Board) PasteTasks() {
 
 		board.Project.Log("Pasted %d Task(s).", len(board.Project.CopyBuffer))
 
-		board.FocusViewOnSelectedTasks()
-
 		if board.Project.Cutting {
 			for _, task := range board.Project.CopyBuffer {
 				task.Board.DeleteTask(task)

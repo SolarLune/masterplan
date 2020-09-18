@@ -168,10 +168,10 @@ func NewTask(board *Board) *Task {
 	task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine = 19
 	task.CompletionProgressionCurrent.Textbox.AllowNewlines = false
 	task.CompletionProgressionCurrent.Minimum = 0
-	task.CompletionProgressionMax.Minimum = 0
 
-	task.CompletionProgressionMax.Textbox.MaxCharactersPerLine = task.CompletionProgressionCurrent.Textbox.MaxCharactersPerLine
+	task.CompletionProgressionMax.Textbox.MaxCharactersPerLine = 19
 	task.CompletionProgressionMax.Textbox.AllowNewlines = false
+	task.CompletionProgressionMax.Minimum = 0
 
 	task.MinSize = rl.Vector2{task.Rect.Width, task.Rect.Height}
 	task.MaxSize = rl.Vector2{0, 0}
@@ -280,20 +280,15 @@ func (task *Task) Clone() *Task {
 	cc := *copyData.CompletionCheckbox
 	copyData.CompletionCheckbox = &cc
 
-	cpc := *copyData.CompletionProgressionCurrent
-	copyData.CompletionProgressionCurrent = &cpc
-
-	cpm := *copyData.CompletionProgressionMax
-	copyData.CompletionProgressionMax = &cpm
+	// We have to make explicit clones of some elements, though, as they have references otherwise
+	copyData.CompletionProgressionCurrent = task.CompletionProgressionCurrent.Clone()
+	copyData.CompletionProgressionMax = task.CompletionProgressionMax.Clone()
 
 	cPath := *copyData.FilePathTextbox
 	copyData.FilePathTextbox = &cPath
 
-	timerSec := *copyData.TimerSecondSpinner
-	copyData.TimerSecondSpinner = &timerSec
-
-	timerMinute := *copyData.TimerMinuteSpinner
-	copyData.TimerMinuteSpinner = &timerMinute
+	copyData.TimerMinuteSpinner = task.TimerMinuteSpinner.Clone()
+	copyData.TimerSecondSpinner = task.TimerSecondSpinner.Clone()
 
 	timerName := *copyData.TimerName
 	copyData.TimerName = &timerName
@@ -301,14 +296,12 @@ func (task *Task) Clone() *Task {
 	dlc := *copyData.DeadlineCheckbox
 	copyData.DeadlineCheckbox = &dlc
 
-	dds := *copyData.DeadlineDaySpinner
-	copyData.DeadlineDaySpinner = &dds
+	copyData.DeadlineDaySpinner = task.DeadlineDaySpinner.Clone()
 
 	dms := *copyData.DeadlineMonthSpinner
 	copyData.DeadlineMonthSpinner = &dms
 
-	dys := *copyData.DeadlineYearSpinner
-	copyData.DeadlineYearSpinner = &dys
+	copyData.DeadlineYearSpinner = task.DeadlineYearSpinner.Clone()
 
 	bl := *copyData.LineBezier
 	copyData.LineBezier = &bl

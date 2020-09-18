@@ -1070,6 +1070,15 @@ func (numberSpinner *NumberSpinner) SetNumber(number int) {
 	numberSpinner.Textbox.SetText(strconv.Itoa(number))
 }
 
+func (numberSpinner *NumberSpinner) Clone() *NumberSpinner {
+	newSpinner := NewNumberSpinner(numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Width, numberSpinner.Rect.Height)
+	newSpinner.Textbox.MaxCharactersPerLine = numberSpinner.Textbox.MaxCharactersPerLine
+	newSpinner.Textbox.HorizontalAlignment = numberSpinner.Textbox.HorizontalAlignment
+	newSpinner.Textbox.VerticalAlignment = numberSpinner.Textbox.VerticalAlignment
+	newSpinner.Textbox.SetText(numberSpinner.Textbox.Text())
+	return newSpinner
+}
+
 type Textbox struct {
 	// Used to be a string, but now is a []rune so it can deal with UTF8 characters like À properly, HOPEFULLY
 	text                 []rune
