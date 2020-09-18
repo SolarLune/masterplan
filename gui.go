@@ -349,6 +349,9 @@ func (panel *Panel) Update() {
 	}
 
 	if (panel.DragStart.X >= 0 && panel.DragStart.Y >= 0) || panel.PrevWindowSize != winSize {
+
+		// Dragging
+
 		if panel.DragStart.X >= 0 && panel.DragStart.Y >= 0 {
 			panel.Rect.X = GetMousePosition().X - panel.DragStart.X
 			panel.Rect.Y = GetMousePosition().Y - panel.DragStart.Y
@@ -380,9 +383,18 @@ func (panel *Panel) Update() {
 		panel.Scrollbar.Rect.Y = dst.Y + 48
 	}
 
+	shadowRect := dst
+	shadowRect.X += 8
+	shadowRect.Y += 8
+	shadowColor := rl.Black
+	shadowColor.A = 64
+	rl.DrawRectangleRec(shadowRect, shadowColor)
+
 	rl.DrawRectangleRec(dst, getThemeColor(GUI_INSIDE))
 
 	scroll := panel.Scrollbar.ScrollAmount * (float32(panel.RenderTexture.Texture.Height) - panel.OriginalHeight)
+
+	quitButton := false
 
 	if len(panel.Columns) > 0 {
 
@@ -488,6 +500,8 @@ func (panel *Panel) Update() {
 			item.Element.Update()
 		}
 
+		quitButton = ImmediateButton(rl.Rectangle{float32(int32(panel.Rect.Width - exitButtonSize)), 0, exitButtonSize, exitButtonSize}, "X", false)
+
 		globalMouseOffset.X = 0
 		globalMouseOffset.Y = 0
 
@@ -531,7 +545,7 @@ func (panel *Panel) Update() {
 
 	}
 
-	if ImmediateButton(rl.Rectangle{float32(int32(panel.Rect.X + panel.Rect.Width - exitButtonSize)), float32(int32(panel.Rect.Y)), exitButtonSize, exitButtonSize}, "X", false) {
+	if quitButton {
 		panel.Exited = true
 		ConsumeMouseInput(rl.MouseLeftButton)
 	}
@@ -583,7 +597,7 @@ func (panel *Panel) FindItems(name string) []*PanelItem {
 			}
 		}
 	}
-	
+
 	return items
 }
 
@@ -886,9 +900,8 @@ func (spinner *Spinner) Update() {
 		prioritizedGUIElement = nil // We want these buttons specifically to work despite the spinner being expanded
 
 		for i, choice := range spinner.Options {
-			if choice == spinner.ChoiceAsString() {
-				continue
-			}
+
+			disabled := choice == spinner.ChoiceAsString()
 
 			if spinner.ExpandUpwards {
 				rect.Y -= rect.Height
@@ -901,7 +914,7 @@ func (spinner *Spinner) Update() {
 				rect.X += rect.Width
 			}
 
-			if ImmediateButton(rect, choice, false) {
+			if ImmediateButton(rect, choice, disabled) {
 				ConsumeMouseInput(rl.MouseLeftButton)
 				spinner.CurrentChoice = i
 				spinner.Expanded = false

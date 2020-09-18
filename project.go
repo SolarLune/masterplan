@@ -184,7 +184,7 @@ func NewProject() *Project {
 		AutomaticBackupInterval:  NewNumberSpinner(0, 0, 128, 40),
 		AutomaticBackupKeepCount: NewNumberSpinner(0, 0, 128, 40),
 		MaxUndoSteps:             NewNumberSpinner(0, 0, 160, 40),
-		TaskTransparency:         NewNumberSpinner(0, 0, 128, 32),
+		TaskTransparency:         NewNumberSpinner(0, 0, 128, 40),
 
 		// Program settings GUI elements
 		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
@@ -701,7 +701,7 @@ func (project *Project) HandleCamera() {
 
 	wheel := rl.GetMouseWheelMove()
 
-	if !project.ContextMenuOpen {
+	if !project.ContextMenuOpen && !project.TaskOpen && project.PopupAction == "" && !project.ProjectSettingsOpen {
 		if wheel > 0 {
 			project.ZoomLevel += 1
 		} else if wheel < 0 {
