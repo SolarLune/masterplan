@@ -215,6 +215,8 @@ func (task *Task) SetPanel() {
 
 	row = column.Row()
 	row.Item(NewLabel("Name:"), TASK_TYPE_TIMER)
+
+	row = column.Row()
 	row.Item(task.TimerName, TASK_TYPE_TIMER)
 
 	row = column.Row()
@@ -728,6 +730,35 @@ func (task *Task) Update() {
 
 }
 
+func (task *Task) DrawLine() {
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
+
+		color := getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+
+		for _, ending := range task.ValidLineEndings() {
+
+			bp := rl.Vector2{task.Rect.X, task.Rect.Y}
+			bp.X += float32(task.Board.Project.GridSize) / 2
+			bp.Y += float32(task.Board.Project.GridSize) / 2
+			ep := rl.Vector2{ending.Rect.X, ending.Rect.Y}
+			ep.X += float32(task.Board.Project.GridSize) / 2
+			ep.Y += float32(task.Board.Project.GridSize) / 2
+
+			if task.LineBezier.Checked {
+				rl.DrawLineBezier(bp, ep, 4, getThemeColor(GUI_FONT_COLOR))
+				rl.DrawLineBezier(bp, ep, 2, color)
+			} else {
+				rl.DrawLineEx(bp, ep, 4, getThemeColor(GUI_FONT_COLOR))
+				rl.DrawLineEx(bp, ep, 2, color)
+			}
+
+		}
+
+	}
+
+}
+
 func (task *Task) Draw() {
 
 	if task.Board.Project.BracketSubtasks.Checked && len(task.SubTasks) > 0 {
@@ -769,31 +800,6 @@ func (task *Task) Draw() {
 			rl.DrawLineEx(lines[i], lines[i+1], 1, lineColor)
 		}
 		// rl.DrawLineEx(task.Position, ep, 1, rl.White)
-
-	}
-
-	if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
-
-		color := getThemeColor(GUI_INSIDE_HIGHLIGHTED)
-
-		for _, ending := range task.ValidLineEndings() {
-
-			bp := rl.Vector2{task.Rect.X, task.Rect.Y}
-			bp.X += float32(task.Board.Project.GridSize) / 2
-			bp.Y += float32(task.Board.Project.GridSize) / 2
-			ep := rl.Vector2{ending.Rect.X, ending.Rect.Y}
-			ep.X += float32(task.Board.Project.GridSize) / 2
-			ep.Y += float32(task.Board.Project.GridSize) / 2
-
-			if task.LineBezier.Checked {
-				rl.DrawLineBezier(bp, ep, 4, getThemeColor(GUI_FONT_COLOR))
-				rl.DrawLineBezier(bp, ep, 2, color)
-			} else {
-				rl.DrawLineEx(bp, ep, 4, getThemeColor(GUI_FONT_COLOR))
-				rl.DrawLineEx(bp, ep, 2, color)
-			}
-
-		}
 
 	}
 

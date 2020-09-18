@@ -168,17 +168,17 @@ func NewProject() *Project {
 		PopupPanel:    NewPanel(0, 0, 480, 270),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
 
-		ColorThemeSpinner:        NewSpinner(0, 0, 256, 24),
-		TaskShadowSpinner:        NewSpinner(0, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
+		ColorThemeSpinner:        NewSpinner(0, 0, 256, 32),
+		TaskShadowSpinner:        NewSpinner(0, 0, 192, 32, "Off", "Flat", "Smooth", "3D"),
 		OutlineTasks:             NewCheckbox(0, 0, 32, 32),
 		GridVisible:              NewCheckbox(0, 0, 32, 32),
 		ShowIcons:                NewCheckbox(0, 0, 32, 32),
-		NumberingSequence:        NewSpinner(0, 0, 128, 24, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
+		NumberingSequence:        NewSpinner(0, 0, 192, 32, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
 		NumberTopLevel:           NewCheckbox(0, 0, 32, 32),
 		PulsingTaskSelection:     NewCheckbox(0, 0, 32, 32),
 		AutoSave:                 NewCheckbox(0, 0, 32, 32),
 		SaveSoundsPlaying:        NewCheckbox(0, 0, 32, 32),
-		SampleRate:               NewSpinner(0, 0, 128, 24, "22050", "44100", "48000", "88200", "96000"),
+		SampleRate:               NewSpinner(0, 0, 192, 32, "22050", "44100", "48000", "88200", "96000"),
 		BracketSubtasks:          NewCheckbox(0, 0, 32, 32),
 		LockProject:              NewCheckbox(0, 0, 32, 32),
 		AutomaticBackupInterval:  NewNumberSpinner(0, 0, 128, 40),
@@ -235,12 +235,12 @@ func NewProject() *Project {
 	row.Item(project.ShowIcons)
 
 	row = column.Row()
-	row.Item(NewLabel("Number Top-level Tasks:"))
-	row.Item(project.NumberTopLevel)
-
-	row = column.Row()
 	row.Item(NewLabel("Numbering Style:"))
 	row.Item(project.NumberingSequence)
+
+	row = column.Row()
+	row.Item(NewLabel("Number Top-level Tasks:"))
+	row.Item(project.NumberTopLevel)
 
 	row = column.Row()
 	row.Item(NewLabel("Bracket Sub-Tasks:"))
@@ -809,6 +809,10 @@ func (project *Project) Update() {
 
 	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
 		rl.EndBlendMode()
+	}
+
+	for _, task := range project.CurrentBoard().Tasks {
+		task.DrawLine()
 	}
 
 	for _, task := range project.CurrentBoard().Tasks {
