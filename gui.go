@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"path/filepath"
@@ -210,74 +209,86 @@ func NewButton(x, y, w, h float32, text string, disabled bool) *Button {
 }
 
 type PanelItem struct {
-	Label               string
 	Element             GUIElement
 	On                  bool
 	HorizontalAlignment int
-	HorizontalPadding   float32
 	Modes               []int
+	Name                string
 }
 
-func NewPanelItem(label string, element GUIElement, modes ...int) *PanelItem {
-	return &PanelItem{Label: label, Element: element, HorizontalAlignment: ALIGN_CENTER, Modes: modes, On: true}
+func NewPanelItem(element GUIElement, modes ...int) *PanelItem {
+
+	if len(modes) == 0 {
+		modes = append(modes, -1)
+	}
+
+	return &PanelItem{Element: element, HorizontalAlignment: ALIGN_CENTER, Modes: modes, On: true}
 }
 
 func (pi *PanelItem) InMode(mode int) bool {
 
 	for _, m := range pi.Modes {
 
-		if m == -1 { // -1 is a stand-in for all tasks
+		if m == -1 || m == mode { // -1 is a stand-in for all tasks
 			return true
 		}
 
-		if m == mode {
-			return true
-		}
 	}
 
 	return false
 
 }
 
+type PanelRow struct {
+	Column          *PanelColumn
+	Items           []*PanelItem
+	VerticalSpacing int
+}
+
+func NewPanelRow(column *PanelColumn) *PanelRow {
+	return &PanelRow{Column: column, Items: []*PanelItem{}, VerticalSpacing: -1}
+}
+
+func (row *PanelRow) Item(element GUIElement, modes ...int) *PanelItem {
+	item := NewPanelItem(element, modes...)
+	row.Items = append(row.Items, item)
+	return item
+}
+
+func (row *PanelRow) ActiveItems() []*PanelItem {
+
+	activeItems := []*PanelItem{}
+
+	for _, item := range row.Items {
+
+		if !item.InMode(row.Column.Mode) || !item.On {
+			continue
+		}
+
+		activeItems = append(activeItems, item)
+
+	}
+
+	return activeItems
+
+}
+
 type PanelColumn struct {
-	// Names    []string
-	// Elements []PersistentGUIElement
-	OrderOfEntry []string
-	Items        map[string]*PanelItem
-	Mode         int
+	Rows []*PanelRow
+	Mode int
 }
 
 func NewPanelColumn() *PanelColumn {
 	return &PanelColumn{
-		OrderOfEntry: []string{},
-		Items:        map[string]*PanelItem{},
-		Mode:         0,
+		Rows: []*PanelRow{},
+		Mode: 0,
 	}
 }
 
-func (panelColumn *PanelColumn) Add(name string, element GUIElement, modes ...int) *PanelItem {
-	_, exists := panelColumn.Items[name]
-	if exists {
-		log.Printf("ERROR: Panel already contains item: \"%s\"\n", name)
-	}
-	panelColumn.OrderOfEntry = append(panelColumn.OrderOfEntry, name)
-
-	if len(modes) == 0 {
-		modes = append(modes, -1)
-	}
-
-	item := NewPanelItem(name, element, modes...)
-	panelColumn.Items[name] = item
-	return item
-}
-
-func (panelColumn *PanelColumn) ItemFromElement(element GUIElement) *PanelItem {
-	for _, item := range panelColumn.Items {
-		if item.Element == element {
-			return item
-		}
-	}
-	return nil
+func (column *PanelColumn) Row() *PanelRow {
+	row := NewPanelRow(column)
+	column.Rows = append(column.Rows, row)
+	return row
 }
 
 type Panel struct {
@@ -293,9 +304,6 @@ type Panel struct {
 	EnableScrolling bool
 	DragStart       rl.Vector2
 	PrevWindowSize  rl.Vector2
-	VerticalSpacing int32 // If the Panel should automatically space out the elements, or use a margin.
-	// If Spacing < 0, the elements will be spaced out across the height of the column.
-	// If Spacing >= 0, the elements will be spaced out according to their heights, with an additional padding of [Spacing] pixels.
 }
 
 func NewPanel(x, y, w, h float32) *Panel {
@@ -304,7 +312,6 @@ func NewPanel(x, y, w, h float32) *Panel {
 		Rect:            rl.Rectangle{x, y, w, h},
 		OriginalWidth:   w,
 		OriginalHeight:  h,
-		VerticalSpacing: -1,
 		AutoExpand:      true,
 		Scrollbar:       NewScrollbar(0, 0, 16, h-80),
 		EnableScrolling: true,
@@ -326,7 +333,7 @@ func (panel *Panel) Update() {
 	exitButtonSize := float32(32)
 	panel.Exited = false
 
-	if MousePressed(rl.MouseLeftButton) && !rl.CheckCollisionPointRec(GetMousePosition(), dst) {
+	if MousePressed(rl.MouseLeftButton) && !rl.CheckCollisionPointRec(GetMousePosition(), dst) || rl.IsKeyPressed(rl.KeyEscape) {
 		panel.Exited = true
 		ConsumeMouseInput(rl.MouseLeftButton)
 	}
@@ -384,79 +391,101 @@ func (panel *Panel) Update() {
 
 		horizontalMargin := float32(32)
 
-		columnIndex := 0
-		columnWidth := float32(int(panel.Rect.Width-horizontalMargin) / len(panel.Columns))
-
-		x := float32(horizontalMargin / 2)
 		y := float32(0)
 
 		globalMouseOffset.X = panel.Rect.X
 		globalMouseOffset.Y = panel.Rect.Y - scroll
 
+		sorted := []*PanelItem{}
+
 		for _, column := range panel.Columns {
+			for _, row := range column.Rows {
 
-			x += columnWidth * float32(columnIndex)
-			y = 16 + topBar.Height
+				sorted = append(sorted, row.ActiveItems()...)
+			}
+		}
 
-			sorted := append([]string{}, column.OrderOfEntry...)
-			sort.Slice(sorted, func(i, j int) bool {
-				return column.Items[sorted[i]].Element.Depth() > column.Items[sorted[j]].Element.Depth()
-			})
+		sort.Slice(sorted, func(i, j int) bool {
 
-			for _, name := range column.OrderOfEntry {
+			if sorted[i].Element == nil {
+				return false
+			} else if sorted[j].Element == nil {
+				return true
+			}
 
-				item := column.Items[name]
+			return sorted[i].Element.Depth() > sorted[j].Element.Depth()
+		})
 
-				if !item.InMode(column.Mode) || !item.On {
-					continue
+		x := float32(horizontalMargin / 2)
+
+		for i, column := range panel.Columns {
+
+			columnWidth := float32(int(panel.Rect.Width-horizontalMargin) / len(panel.Columns))
+			columnX := horizontalMargin/2 + (columnWidth * float32(i))
+
+			x = columnX
+			y = 32 + topBar.Height
+
+			for _, row := range column.Rows {
+
+				activeItems := row.ActiveItems()
+
+				w := columnWidth / float32(len(activeItems))
+
+				lastHeight := float32(0)
+
+				for _, item := range activeItems {
+
+					rect := item.Element.Rectangle()
+
+					rect.X = x + (w / 2)
+
+					if item.HorizontalAlignment == ALIGN_CENTER {
+						rect.X -= rect.Width / 2
+					} else if item.HorizontalAlignment == ALIGN_RIGHT {
+						rect.X -= rect.Width
+					}
+
+					_, isTextbox := item.Element.(*Textbox)
+					if isTextbox {
+						h, _ := TextHeight("A", true)
+						rect.Y = y - (h / 2)
+					} else {
+						rect.Y = y - (rect.Height / 2)
+					}
+
+					item.Element.SetRectangle(rect)
+
+					x += w
+
+					lastHeight = rect.Height
+
 				}
 
-				DrawGUIText(rl.Vector2{x, y}, item.Label)
+				if len(activeItems) > 0 {
 
-				if item == nil {
-					continue
+					if row.VerticalSpacing >= 0 {
+						y += lastHeight + float32(row.VerticalSpacing)
+					} else {
+						activeRowCount := 0
+						for _, row := range column.Rows {
+							if len(row.ActiveItems()) > 0 {
+								activeRowCount++
+							}
+						}
+						y += float32(int(panel.OriginalHeight-32) / activeRowCount) // Automatic spacing
+					}
+
 				}
 
-				rect := item.Element.Rectangle()
-
-				if item.Label != "" {
-					rect.X = x + columnWidth/4*3 + item.HorizontalPadding
-				} else {
-					rect.X = x + (columnWidth / 2)
-				}
-
-				if item.HorizontalAlignment == ALIGN_CENTER {
-					rect.X -= rect.Width / 2
-				} else if item.HorizontalAlignment == ALIGN_RIGHT {
-					rect.X -= rect.Width
-				}
-
-				rect.Y = y
-
-				item.Element.SetRectangle(rect)
-
-				if panel.VerticalSpacing >= 0 {
-					y += rect.Height + float32(panel.VerticalSpacing)
-				} else {
-					y += float32(int(panel.Rect.Height-32) / len(column.Items)) // Automatic spacing
-				}
+				x = columnX
 
 			}
 
-			for _, name := range sorted {
+		}
 
-				item := column.Items[name]
-
-				if !item.InMode(column.Mode) || !item.On || item == nil {
-					continue
-				}
-
-				item.Element.Update()
-
-			}
-
-			columnIndex++
-
+		for _, item := range sorted {
+			item.Element.Update()
 		}
 
 		globalMouseOffset.X = 0
@@ -464,7 +493,7 @@ func (panel *Panel) Update() {
 
 		rl.EndTextureMode()
 
-		if panel.AutoExpand && panel.VerticalSpacing >= 0 && panel.EnableScrolling {
+		if panel.AutoExpand && panel.EnableScrolling {
 
 			newHeight := y
 
@@ -541,13 +570,30 @@ func (panel *Panel) recreateRenderTexture() {
 	panel.RenderTexture = rl.LoadRenderTexture(int32(panel.Rect.Width), int32(panel.Rect.Height))
 }
 
+func (panel *Panel) FindItems(name string) []*PanelItem {
+
+	items := []*PanelItem{}
+
+	for _, column := range panel.Columns {
+		for _, row := range column.Rows {
+			for _, item := range row.Items {
+				if item.Name == name {
+					items = append(items, item)
+				}
+			}
+		}
+	}
+	
+	return items
+}
+
 type Label struct {
 	Position rl.Vector2
 	Text     string
 }
 
-func NewLabel(x, y float32, text string) *Label {
-	return &Label{Position: rl.Vector2{x, y}, Text: text}
+func NewLabel(text string) *Label {
+	return &Label{Text: text}
 }
 
 func (label *Label) Update() {
@@ -743,7 +789,6 @@ func (checkbox *Checkbox) Update() {
 
 	checkbox.Changed = false
 
-	rl.DrawRectangleRec(checkbox.Rect, getThemeColor(GUI_INSIDE))
 	color := getThemeColor(GUI_OUTLINE)
 
 	pos := rl.Vector2{}
@@ -766,6 +811,7 @@ func (checkbox *Checkbox) Update() {
 		if MousePressed(rl.MouseLeftButton) {
 			checkbox.Checked = !checkbox.Checked
 			checkbox.Changed = true
+			ConsumeMouseInput(rl.MouseLeftButton)
 		}
 	}
 
@@ -1688,183 +1734,6 @@ func (textbox *Textbox) SelectAllText() {
 	textbox.SelectedRange[0] = textbox.SelectionStart
 	textbox.CaretPos = len(textbox.text)
 	textbox.SelectedRange[1] = textbox.CaretPos
-}
-
-type Popup interface {
-	Update()
-	Open()
-	Close()
-	SelectedIndex() int
-	SelectionChoices() []string
-}
-
-type TextboxPopup struct {
-	Textbox         *Textbox
-	Buttons         []string
-	Rect            rl.Rectangle
-	Active          bool
-	DescriptionText string
-	selectionIndex  int
-}
-
-func NewTextboxPopup(descriptionText string, buttonChoices ...string) *TextboxPopup {
-	p := &TextboxPopup{
-		Textbox:         NewTextbox(16, 16, 256, 32),
-		Buttons:         buttonChoices,
-		Rect:            rl.NewRectangle(64, 64, 16, 16),
-		DescriptionText: descriptionText,
-		selectionIndex:  -1,
-	}
-
-	p.Textbox.AllowNewlines = false
-
-	return p
-}
-
-func (p *TextboxPopup) Update() {
-
-	if p.Active {
-
-		p.Rect.Width = 512
-		p.Rect.Height = 256
-		p.Rect.X = (float32(rl.GetScreenWidth()) - p.Rect.Width) * 0.5
-		p.Rect.Y = (float32(rl.GetScreenHeight()) - p.Rect.Height) * 0.5
-
-		outlineColor := getThemeColor(GUI_OUTLINE)
-		insideColor := getThemeColor(GUI_INSIDE)
-
-		rl.DrawRectangleRec(p.Rect, insideColor)
-		rl.DrawRectangleLinesEx(p.Rect, 1, outlineColor)
-
-		s := (p.Rect.Width - 64) / float32(len(p.Buttons))
-
-		buttonRect := rl.Rectangle{
-			p.Rect.X + 32,
-			p.Rect.Y + p.Rect.Height - 64,
-			float32(128),
-			float32(32),
-		}
-
-		textPos := rl.Vector2{p.Rect.X + 32, p.Rect.Y + 72}
-
-		p.Textbox.Rect.X = textPos.X + 200
-		p.Textbox.Rect.Y = textPos.Y
-
-		DrawGUIText(textPos, p.DescriptionText)
-
-		buttonRect.X -= buttonRect.Width/2 + s/2
-
-		for i, button := range p.Buttons {
-			buttonRect.X += s
-			if ImmediateButton(buttonRect, button, false) {
-				p.selectionIndex = i
-			}
-
-		}
-
-		p.Textbox.Update()
-
-	}
-
-}
-
-func (p *TextboxPopup) Open() {
-	p.Active = true
-	p.Textbox.Focused = true
-	p.Textbox.SelectAllText()
-}
-
-func (p *TextboxPopup) Close() {
-	p.Active = false
-	p.selectionIndex = -1
-}
-
-func (p *TextboxPopup) SelectedIndex() int {
-	return p.selectionIndex
-}
-
-func (p *TextboxPopup) SelectionChoices() []string {
-	return p.Buttons
-}
-
-type ButtonChoicePopup struct {
-	Buttons         []string
-	Rect            rl.Rectangle
-	Active          bool
-	DescriptionText string
-	selectionIndex  int
-}
-
-func NewButtonChoicePopup(descriptionText string, buttonChoices ...string) *ButtonChoicePopup {
-
-	p := &ButtonChoicePopup{
-		Buttons:         buttonChoices,
-		Rect:            rl.NewRectangle(64, 64, 16, 16),
-		DescriptionText: descriptionText,
-		selectionIndex:  -1,
-	}
-
-	return p
-
-}
-
-func (p *ButtonChoicePopup) Update() {
-
-	if p.Active {
-
-		p.Rect.Width = 512
-		p.Rect.Height = 256
-		p.Rect.X = (float32(rl.GetScreenWidth()) - p.Rect.Width) * 0.5
-		p.Rect.Y = (float32(rl.GetScreenHeight()) - p.Rect.Height) * 0.5
-
-		outlineColor := getThemeColor(GUI_OUTLINE)
-		insideColor := getThemeColor(GUI_INSIDE)
-
-		rl.DrawRectangleRec(p.Rect, insideColor)
-		rl.DrawRectangleLinesEx(p.Rect, 1, outlineColor)
-
-		s := (p.Rect.Width - 64) / float32(len(p.Buttons))
-
-		buttonRect := rl.Rectangle{
-			p.Rect.X + 32,
-			p.Rect.Y + p.Rect.Height - 64,
-			float32(128),
-			float32(32),
-		}
-
-		textPos := rl.Vector2{p.Rect.X + 32, p.Rect.Y + 72}
-
-		DrawGUIText(textPos, p.DescriptionText)
-
-		buttonRect.X -= buttonRect.Width/2 + s/2
-
-		for i, button := range p.Buttons {
-			buttonRect.X += s
-			if ImmediateButton(buttonRect, button, false) {
-				p.selectionIndex = i
-			}
-
-		}
-
-	}
-
-}
-
-func (p *ButtonChoicePopup) Open() {
-	p.Active = true
-}
-
-func (p *ButtonChoicePopup) Close() {
-	p.Active = false
-	p.selectionIndex = -1
-}
-
-func (p *ButtonChoicePopup) SelectedIndex() int {
-	return p.selectionIndex
-}
-
-func (p *ButtonChoicePopup) SelectionChoices() []string {
-	return p.Buttons
 }
 
 // TextHeight returns the height of the text, as well as how many lines are in the provided text.

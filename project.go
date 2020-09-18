@@ -57,6 +57,7 @@ const (
 	ActionNewProject    = "new"
 	ActionLoadProject   = "load"
 	ActionSaveAsProject = "save as"
+	ActionRenameBoard   = "rename"
 
 	BackupDelineator = "_bak_"
 )
@@ -129,16 +130,14 @@ type Project struct {
 	Modified          bool
 	Locked            bool
 
-	RenameBoardPopup *TextboxPopup
-	AbandonPlanPopup *ButtonChoicePopup
-	ActivePopup      Popup
-	PopupAction      string
-	PopupArgument    string
-	SettingsPanel    *Panel
-	BackupTimer      time.Time
-	UndoFade         *gween.Sequence
-	Undoing          int
-	TaskEditRect     rl.Rectangle
+	PopupPanel    *Panel
+	PopupAction   string
+	PopupArgument string
+	SettingsPanel *Panel
+	BackupTimer   time.Time
+	UndoFade      *gween.Sequence
+	Undoing       int
+	TaskEditRect  rl.Rectangle
 	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
 	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
 	// This would be simple, but could be prohibitive if the size becomes large. Upside is that since we're storing the buffer to disk, you can undo
@@ -164,10 +163,10 @@ func NewProject() *Project {
 		Patterns:           rl.LoadTexture(GetPath("assets", "patterns.png")),
 		Resources:          map[string]*Resource{},
 		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
-		RenameBoardPopup:   NewTextboxPopup("New Board name:", "Accept", "Cancel"),
-		AbandonPlanPopup:   NewButtonChoicePopup("This plan has been modified; Abandon plan?", "Yes", "No"),
-		SettingsPanel:      NewPanel(0, 0, 930, 530),
 		UndoFade:           gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
+
+		PopupPanel:    NewPanel(0, 0, 480, 270),
+		SettingsPanel: NewPanel(0, 0, 930, 530),
 
 		ColorThemeSpinner:        NewSpinner(0, 0, 256, 24),
 		TaskShadowSpinner:        NewSpinner(0, 0, 128, 24, "Off", "Flat", "Smooth", "3D"),
@@ -196,39 +195,119 @@ func NewProject() *Project {
 
 	project.SettingsPanel.Center(0.5, 0.5)
 
-	column := project.SettingsPanel.AddColumn()
-	column.Add("Color Theme:", project.ColorThemeSpinner)
-	column.Add("Task Transparency: ", project.TaskTransparency)
-	column.Add("Task Depth:", project.TaskShadowSpinner)
-	column.Add("Outline Tasks:", project.OutlineTasks)
-	column.Add("Pulse Selected Tasks:", project.PulsingTaskSelection)
-	column.Add("Show Icons:", project.ShowIcons)
-	column.Add("Number Top-level Tasks:", project.NumberTopLevel)
-	column.Add("Bracket Sub-Tasks:", project.BracketSubtasks)
-	column.Add("Numbering Style:", project.NumberingSequence)
-	column.Add("Backup every X minutes:", project.AutomaticBackupInterval)
-	column.Add("Keep X backups max:", project.AutomaticBackupKeepCount)
+	column := project.PopupPanel.AddColumn()
 
-	for _, item := range column.Items {
-		item.HorizontalPadding -= 32
-	}
+	column.Row().Item(NewLabel("Rename Board")).Name = "rename label"
+
+	column.Row().Item(NewLabel("Current project has changed.")).Name = "abandon label"
+	column.Row().Item(NewLabel("Abandon project?")).Name = "abandon label"
+
+	column.Row().Item(NewTextbox(0, 0, 256, 16)).Name = "rename textbox"
+	row := column.Row()
+	row.Item(NewButton(0, 0, 128, 32, "Accept", false)).Name = "accept button"
+	row.Item(NewButton(0, 0, 128, 32, "Cancel", false)).Name = "cancel button"
+	project.PopupPanel.EnableScrolling = false
+	project.PopupPanel.Center(0.5, 0.5)
 
 	column = project.SettingsPanel.AddColumn()
-	column.Add("Grid Visible:", project.GridVisible)
-	column.Add("Lock Project:", project.LockProject)
-	column.Add("Auto-save Project:", project.AutoSave)
-	column.Add("Project Samplerate:", project.SampleRate)
-	column.Add("Save Sound Playback:", project.SaveSoundsPlaying)
-	column.Add("Maximum Undo Steps:", project.MaxUndoSteps)
-	column.Add("--Program Settings--", NewLabel(0, 0, " "))
-	column.Add("Auto-reload Themes:", project.AutoReloadThemes)
-	column.Add("Auto-load Last Project:", project.AutoLoadLastProject)
-	column.Add("Disable Splashscreen:", project.DisableSplashscreen)
-	column.Add("Disable Message Log:", project.DisableMessageLog)
+	row = column.Row()
+	row.Item(NewLabel("Color Theme:"))
+	row.Item(project.ColorThemeSpinner)
 
-	for _, item := range column.Items {
-		item.HorizontalPadding -= 32
-	}
+	row = column.Row()
+	row.Item(NewLabel("Task Transparency:"))
+	row.Item(project.TaskTransparency)
+
+	row = column.Row()
+	row.Item(NewLabel("Task Depth:"))
+	row.Item(project.TaskShadowSpinner)
+
+	row = column.Row()
+	row.Item(NewLabel("Outline Tasks:"))
+	row.Item(project.OutlineTasks)
+
+	row = column.Row()
+	row.Item(NewLabel("Pulse Selected Tasks:"))
+	row.Item(project.PulsingTaskSelection)
+
+	row = column.Row()
+	row.Item(NewLabel("Show Icons:"))
+	row.Item(project.ShowIcons)
+
+	row = column.Row()
+	row.Item(NewLabel("Number Top-level Tasks:"))
+	row.Item(project.NumberTopLevel)
+
+	row = column.Row()
+	row.Item(NewLabel("Numbering Style:"))
+	row.Item(project.NumberingSequence)
+
+	row = column.Row()
+	row.Item(NewLabel("Bracket Sub-Tasks:"))
+	row.Item(project.BracketSubtasks)
+
+	row = column.Row()
+	row.Item(NewLabel("Backup every X minutes:"))
+	row.Item(project.AutomaticBackupInterval)
+
+	row = column.Row()
+	row.Item(NewLabel("Keep X backups max:"))
+	row.Item(project.AutomaticBackupKeepCount)
+
+	// for _, item := range column.Items {
+	// 	item.HorizontalPadding -= 32
+	// }
+
+	column = project.SettingsPanel.AddColumn()
+
+	row = column.Row()
+	row.Item(NewLabel("Grid Visible:"))
+	row.Item(project.GridVisible)
+
+	row = column.Row()
+	row.Item(NewLabel("Lock Project:"))
+	row.Item(project.LockProject)
+
+	row = column.Row()
+	row.Item(NewLabel("Auto-save Project:"))
+	row.Item(project.AutoSave)
+
+	row = column.Row()
+	row.Item(NewLabel("Project Samplerate:"))
+	row.Item(project.SampleRate)
+
+	row = column.Row()
+	row.Item(NewLabel("Save Sound Playback:"))
+	row.Item(project.SaveSoundsPlaying)
+
+	row = column.Row()
+	row.Item(NewLabel("Maximum Undo Steps:"))
+	row.Item(project.MaxUndoSteps)
+
+	row = column.Row()
+	row.Item(NewLabel("~ Program Settings ~"))
+
+	row = column.Row()
+	row.Item(NewLabel("Auto-reload Themes:"))
+	row.Item(project.AutoReloadThemes)
+
+	row = column.Row()
+	row.Item(NewLabel("Auto-load Last Project:"))
+	row.Item(project.AutoLoadLastProject)
+
+	row = column.Row()
+	row.Item(NewLabel("Disable Splashscreen:"))
+	row.Item(project.DisableSplashscreen)
+
+	row = column.Row()
+	row.Item(NewLabel("Disable Message Log:"))
+	row.Item(project.DisableMessageLog)
+
+	// for _, item := range column.Items {
+	// 	item.HorizontalPadding -= 32
+	// }
+
+	project.SettingsPanel.EnableScrolling = false
 
 	project.Boards = []*Board{NewBoard(project)}
 
@@ -622,7 +701,7 @@ func (project *Project) HandleCamera() {
 
 	wheel := rl.GetMouseWheelMove()
 
-	if !project.ContextMenuOpen && !project.ProjectSettingsOpen && !project.TaskOpen {
+	if !project.ContextMenuOpen {
 		if wheel > 0 {
 			project.ZoomLevel += 1
 		} else if wheel < 0 {
@@ -687,271 +766,267 @@ func (project *Project) Update() {
 
 	project.AutoBackup()
 
-	if project.ActivePopup == nil {
+	if project.AutoReloadThemes.Checked && project.ThemeReloadTimer > 30 {
+		project.ReloadThemes()
+		project.ThemeReloadTimer = 0
+	}
+	project.ThemeReloadTimer++
 
-		if project.AutoReloadThemes.Checked && project.ThemeReloadTimer > 30 {
-			project.ReloadThemes()
-			project.ThemeReloadTimer = 0
+	holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
+	holdingAlt := rl.IsKeyDown(rl.KeyLeftAlt) || rl.IsKeyDown(rl.KeyRightAlt)
+
+	src := rl.Rectangle{-100000, -100000, 200000, 200000}
+	dst := src
+	rl.DrawTexturePro(project.GridTexture, src, dst, rl.Vector2{}, 0, rl.White)
+
+	// Board name on background of project
+	boardName := project.CurrentBoard().Name
+	boardNameWidth := GUITextWidth(boardName) + 16
+	boardNameHeight, _ := TextHeight(boardName, true)
+	rl.DrawRectangle(1, 1, int32(boardNameWidth), int32(boardNameHeight), getThemeColor(GUI_INSIDE))
+	DrawGUITextColored(rl.Vector2{8, 0}, getThemeColor(GUI_INSIDE_DISABLED), boardName)
+
+	// This is the origin crosshair
+	rl.DrawLineEx(rl.Vector2{0, -100000}, rl.Vector2{0, 100000}, 2, getThemeColor(GUI_INSIDE))
+	rl.DrawLineEx(rl.Vector2{-100000, 0}, rl.Vector2{100000, 0}, 2, getThemeColor(GUI_INSIDE))
+
+	selectionRect := rl.Rectangle{}
+
+	for _, task := range project.GetAllTasks() {
+		task.Update()
+	}
+
+	// Additive blending should be out here to avoid state changes mid-task drawing.
+	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+
+	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
+		rl.BeginBlendMode(rl.BlendAdditive)
+	}
+
+	for _, task := range project.CurrentBoard().Tasks {
+		task.DrawShadow()
+	}
+
+	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
+		rl.EndBlendMode()
+	}
+
+	for _, task := range project.CurrentBoard().Tasks {
+		task.Draw()
+	}
+
+	project.HandleCamera()
+
+	if !project.TaskOpen {
+
+		project.CurrentBoard().HandleDroppedFiles()
+
+		var clickedTask *Task
+		clicked := false
+
+		// We update the tasks from top (last) down, because if you click on one, you click on the top-most one.
+
+		if !project.ContextMenuOpen && !project.ProjectSettingsOpen && project.PopupAction == "" && MousePressed(rl.MouseLeftButton) {
+			clicked = true
 		}
-		project.ThemeReloadTimer++
 
-		holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
-		holdingAlt := rl.IsKeyDown(rl.KeyLeftAlt) || rl.IsKeyDown(rl.KeyRightAlt)
-
-		src := rl.Rectangle{-100000, -100000, 200000, 200000}
-		dst := src
-		rl.DrawTexturePro(project.GridTexture, src, dst, rl.Vector2{}, 0, rl.White)
-
-		// Board name on background of project
-		boardName := project.CurrentBoard().Name
-		boardNameWidth := GUITextWidth(boardName) + 16
-		boardNameHeight, _ := TextHeight(boardName, true)
-		rl.DrawRectangle(1, 1, int32(boardNameWidth), int32(boardNameHeight), getThemeColor(GUI_INSIDE))
-		DrawGUITextColored(rl.Vector2{8, 0}, getThemeColor(GUI_INSIDE_DISABLED), boardName)
-
-		// This is the origin crosshair
-		rl.DrawLineEx(rl.Vector2{0, -100000}, rl.Vector2{0, 100000}, 2, getThemeColor(GUI_INSIDE))
-		rl.DrawLineEx(rl.Vector2{-100000, 0}, rl.Vector2{100000, 0}, 2, getThemeColor(GUI_INSIDE))
-
-		selectionRect := rl.Rectangle{}
-
-		for _, task := range project.GetAllTasks() {
-			task.Update()
+		if project.ResizingImage {
+			project.Selecting = false
 		}
 
-		// Additive blending should be out here to avoid state changes mid-task drawing.
-		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+		if project.MousingOver() == "Project" {
 
-		if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
-			rl.BeginBlendMode(rl.BlendAdditive)
-		}
+			for i := len(project.CurrentBoard().Tasks) - 1; i >= 0; i-- {
 
-		for _, task := range project.CurrentBoard().Tasks {
-			task.DrawShadow()
-		}
+				task := project.CurrentBoard().Tasks[i]
 
-		if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
-			rl.EndBlendMode()
-		}
+				if rl.CheckCollisionPointRec(GetWorldMousePosition(), task.Rect) && clickedTask == nil {
+					clickedTask = task
+				}
 
-		for _, task := range project.CurrentBoard().Tasks {
-			task.Draw()
-		}
-
-		project.HandleCamera()
-
-		if !project.TaskOpen {
-
-			project.CurrentBoard().HandleDroppedFiles()
-
-			var clickedTask *Task
-			clicked := false
-
-			// We update the tasks from top (last) down, because if you click on one, you click on the top-most one.
-
-			if !project.ContextMenuOpen && !project.ProjectSettingsOpen && MousePressed(rl.MouseLeftButton) {
-				clicked = true
 			}
 
-			if project.ResizingImage {
-				project.Selecting = false
+			if project.DoubleClickTimer >= 0 {
+				project.DoubleClickTimer++
 			}
 
-			if project.MousingOver() == "Project" {
+			if project.DoubleClickTimer >= 20 {
+				project.DoubleClickTimer = -1
+			}
 
-				for i := len(project.CurrentBoard().Tasks) - 1; i >= 0; i-- {
+			if clicked {
 
-					task := project.CurrentBoard().Tasks[i]
+				if clickedTask == nil {
+					project.SelectionStart = GetWorldMousePosition()
+					project.Selecting = true
+				} else {
+					project.Selecting = false
 
-					if rl.CheckCollisionPointRec(GetWorldMousePosition(), task.Rect) && clickedTask == nil {
-						clickedTask = task
+					if holdingAlt && clickedTask.Selected {
+						project.Log("Deselected 1 Task.")
+					} else if !holdingAlt && !clickedTask.Selected {
+						project.Log("Selected 1 Task.")
+					}
+
+					if holdingShift {
+
+						if holdingAlt {
+							clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{})
+						} else {
+							clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{
+								"task": clickedTask,
+							})
+						}
+
+					} else {
+						if !clickedTask.Selected { // This makes it so you don't have to shift+drag to move already selected Tasks
+							project.SendMessage(MessageSelect, map[string]interface{}{
+								"task": clickedTask,
+							})
+						} else {
+							clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{
+								"task": clickedTask,
+							})
+						}
 					}
 
 				}
 
-				if project.DoubleClickTimer >= 0 {
-					project.DoubleClickTimer++
-				}
+				if clickedTask == nil {
 
-				if project.DoubleClickTimer >= 20 {
-					project.DoubleClickTimer = -1
-				}
+					project.DoubleClickTaskID = -1
 
-				if clicked {
-
-					if clickedTask == nil {
-						project.SelectionStart = GetWorldMousePosition()
-						project.Selecting = true
-					} else {
+					if project.DoubleClickTimer > 0 && project.DoubleClickTaskID == -1 {
+						ConsumeMouseInput(rl.MouseLeftButton)
+						task := project.CurrentBoard().CreateNewTask()
+						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.Selecting = false
-
-						if holdingAlt && clickedTask.Selected {
-							project.Log("Deselected 1 Task.")
-						} else if !holdingAlt && !clickedTask.Selected {
-							project.Log("Selected 1 Task.")
-						}
-
-						if holdingShift {
-
-							if holdingAlt {
-								clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{})
-							} else {
-								clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{
-									"task": clickedTask,
-								})
-							}
-
-						} else {
-							if !clickedTask.Selected { // This makes it so you don't have to shift+drag to move already selected Tasks
-								project.SendMessage(MessageSelect, map[string]interface{}{
-									"task": clickedTask,
-								})
-							} else {
-								clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{
-									"task": clickedTask,
-								})
-							}
-						}
-
+						project.DoubleClickTimer = -1
+					} else {
+						project.DoubleClickTimer = 0
 					}
 
-					if clickedTask == nil {
+				} else {
 
-						project.DoubleClickTaskID = -1
-
-						if project.DoubleClickTimer > 0 && project.DoubleClickTaskID == -1 {
-							ConsumeMouseInput(rl.MouseLeftButton)
-							task := project.CurrentBoard().CreateNewTask()
-							task.ReceiveMessage(MessageDoubleClick, nil)
-							project.Selecting = false
-							project.DoubleClickTimer = -1
-						} else {
-							project.DoubleClickTimer = 0
-						}
-
+					if clickedTask.ID == project.DoubleClickTaskID && project.DoubleClickTimer > 0 && clickedTask.Selected {
+						clickedTask.ReceiveMessage(MessageDoubleClick, nil)
+						// We have to consume after double-clicking so you don't click outside of the new panel and exit it immediately
+						// or actuate a GUI element accidentally.
+						ConsumeMouseInput(rl.MouseLeftButton)
+						project.DoubleClickTimer = -1
 					} else {
-
-						if clickedTask.ID == project.DoubleClickTaskID && project.DoubleClickTimer > 0 && clickedTask.Selected {
-							clickedTask.ReceiveMessage(MessageDoubleClick, nil)
-							// We have to consume after double-clicking so you don't click outside of the new panel and exit it immediately
-							// or actuate a GUI element accidentally.
-							ConsumeMouseInput(rl.MouseLeftButton)
-							project.DoubleClickTimer = -1
-						} else {
-							project.SendMessage(MessageDragging, nil)
-							project.DoubleClickTimer = 0
-							project.DoubleClickTaskID = clickedTask.ID
-						}
-
+						project.SendMessage(MessageDragging, nil)
+						project.DoubleClickTimer = 0
+						project.DoubleClickTaskID = clickedTask.ID
 					}
 
 				}
 
-				if project.Selecting {
+			}
 
-					diff := rl.Vector2Subtract(GetWorldMousePosition(), project.SelectionStart)
-					x1, y1 := project.SelectionStart.X, project.SelectionStart.Y
-					x2, y2 := diff.X, diff.Y
-					if x2 < 0 {
-						x2 *= -1
-						x1 = GetWorldMousePosition().X
-					}
-					if y2 < 0 {
-						y2 *= -1
-						y1 = GetWorldMousePosition().Y
-					}
+			if project.Selecting {
 
-					selectionRect = rl.Rectangle{x1, y1, x2, y2}
+				diff := rl.Vector2Subtract(GetWorldMousePosition(), project.SelectionStart)
+				x1, y1 := project.SelectionStart.X, project.SelectionStart.Y
+				x2, y2 := diff.X, diff.Y
+				if x2 < 0 {
+					x2 *= -1
+					x1 = GetWorldMousePosition().X
+				}
+				if y2 < 0 {
+					y2 *= -1
+					y1 = GetWorldMousePosition().Y
+				}
 
-					if !project.ResizingImage && MouseReleased(rl.MouseLeftButton) {
+				selectionRect = rl.Rectangle{x1, y1, x2, y2}
 
-						project.Selecting = false // We're done with the selection process
+				if !project.ResizingImage && MouseReleased(rl.MouseLeftButton) {
 
-						count := 0
+					project.Selecting = false // We're done with the selection process
 
-						for _, task := range project.CurrentBoard().Tasks {
+					count := 0
 
-							inSelectionRect := false
-							var t *Task
+					for _, task := range project.CurrentBoard().Tasks {
 
-							if rl.CheckCollisionRecs(selectionRect, task.Rect) {
-								inSelectionRect = true
-								t = task
-							}
+						inSelectionRect := false
+						var t *Task
 
-							if holdingAlt {
-								if inSelectionRect {
-
-									if task.Selected {
-										count++
-									}
-
-									task.ReceiveMessage(MessageSelect, map[string]interface{}{"task": t, "invert": true})
-
-								}
-							} else {
-
-								if !holdingShift || inSelectionRect {
-
-									if (!task.Selected && inSelectionRect) || (!holdingShift && inSelectionRect) {
-										count++
-									}
-
-									task.ReceiveMessage(MessageSelect, map[string]interface{}{
-										"task": t,
-									})
-
-								}
-
-							}
-
+						if rl.CheckCollisionRecs(selectionRect, task.Rect) {
+							inSelectionRect = true
+							t = task
 						}
 
 						if holdingAlt {
-							project.Log("Deselected %d Task(s).", count)
+							if inSelectionRect {
+
+								if task.Selected {
+									count++
+								}
+
+								task.ReceiveMessage(MessageSelect, map[string]interface{}{"task": t, "invert": true})
+
+							}
 						} else {
-							project.Log("Selected %d Task(s).", count)
+
+							if !holdingShift || inSelectionRect {
+
+								if (!task.Selected && inSelectionRect) || (!holdingShift && inSelectionRect) {
+									count++
+								}
+
+								task.ReceiveMessage(MessageSelect, map[string]interface{}{
+									"task": t,
+								})
+
+							}
+
 						}
 
 					}
 
+					if holdingAlt {
+						project.Log("Deselected %d Task(s).", count)
+					} else {
+						project.Log("Selected %d Task(s).", count)
+					}
+
 				}
 
-			} else {
-				if MouseReleased(rl.MouseLeftButton) {
-					project.Selecting = false
-				}
 			}
 
-			project.CurrentBoard().UndoBuffer.Update()
-
+		} else {
+			if MouseReleased(rl.MouseLeftButton) {
+				project.Selecting = false
+			}
 		}
 
-		// This is true once at least one loop has happened
-		project.FullyInitialized = true
+		project.CurrentBoard().UndoBuffer.Update()
 
-		rl.DrawRectangleLinesEx(selectionRect, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+	}
 
-		project.Shortcuts()
+	// This is true once at least one loop has happened
+	project.FullyInitialized = true
 
-		if project.JustLoaded {
+	rl.DrawRectangleLinesEx(selectionRect, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
-			for _, t := range project.GetAllTasks() {
-				t.Draw() // We need to draw the task at least once to ensure the rects are updated by the Task's contents.
-				// This makes it so that neighbors can be correct.
+	project.Shortcuts()
+
+	if project.JustLoaded {
+
+		for _, t := range project.GetAllTasks() {
+			t.Draw() // We need to draw the task at least once to ensure the rects are updated by the Task's contents.
+			// This makes it so that neighbors can be correct.
+		}
+
+		project.ReorderTasks()
+		project.Modified = false
+		project.JustLoaded = false
+
+		for _, b := range project.Boards {
+			b.UndoBuffer.On = true
+			for _, task := range b.Tasks {
+				b.UndoBuffer.Capture(task)
 			}
-
-			project.ReorderTasks()
-			project.Modified = false
-			project.JustLoaded = false
-
-			for _, b := range project.Boards {
-				b.UndoBuffer.On = true
-				for _, task := range b.Tasks {
-					b.UndoBuffer.Capture(task)
-				}
-			}
-
 		}
 
 	}
@@ -1082,7 +1157,7 @@ func (project *Project) Shortcuts() {
 		holdingCtrl = rl.IsKeyDown(rl.KeyLeftSuper) || rl.IsKeyDown(rl.KeyRightSuper)
 	}
 
-	if !project.ProjectSettingsOpen {
+	if !project.ProjectSettingsOpen && project.PopupAction == "" {
 
 		if !project.TaskOpen {
 
@@ -1387,7 +1462,6 @@ func (project *Project) Shortcuts() {
 				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyO) {
 					if project.Modified {
 						project.PopupAction = ActionLoadProject
-						project.ActivatePopup(project.AbandonPlanPopup)
 					} else {
 						project.ExecuteDestructiveAction(ActionLoadProject, "")
 					}
@@ -1482,41 +1556,68 @@ func (project *Project) GUI() {
 		task.PostDraw()
 	}
 
-	if project.ActivePopup != nil {
+	if project.PopupAction != "" {
 
-		project.ActivePopup.Update()
+		project.PopupPanel.Update()
 
-		result := project.ActivePopup.SelectedIndex()
-		if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
-			result = 0
-		} else if rl.IsKeyPressed(rl.KeyEscape) {
-			result = len(project.ActivePopup.SelectionChoices()) - 1
+		accept := project.PopupPanel.FindItems("accept button")[0].Element.(*Button).Clicked
+		cancel := project.PopupPanel.FindItems("cancel button")[0].Element.(*Button).Clicked
+
+		if project.PopupPanel.Exited || cancel {
+			project.PopupAction = ""
 		}
 
-		if result >= 0 {
+		if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
+			accept = true
+		}
 
-			if project.ActivePopup == project.RenameBoardPopup {
+		textboxElement := project.PopupPanel.FindItems("rename textbox")[0]
+		textbox := textboxElement.Element.(*Textbox)
 
-				if result == 0 {
-					// Accept
-					project.CurrentBoard().Name = project.RenameBoardPopup.Textbox.Text()
-					project.Log("Renamed Board: %s", project.CurrentBoard().Name)
-				}
+		if project.PopupAction == ActionRenameBoard {
 
-			} else {
-				if result == 0 {
-					project.ExecuteDestructiveAction(project.PopupAction, project.PopupArgument)
-				}
+			project.PopupPanel.FindItems("rename label")[0].On = true
+
+			for _, element := range project.PopupPanel.FindItems("abandon label") {
+				element.On = false
 			}
 
-			project.ActivePopup.Close()
-			project.ActivePopup = nil
+			textboxElement.On = true
+
+			if project.PopupArgument != "" {
+				textbox.SetText(project.PopupArgument)
+				project.PopupArgument = ""
+				textbox.Focused = true
+				textbox.SelectAllText()
+			}
+
+			if accept {
+				project.CurrentBoard().Name = textbox.Text()
+				project.Log("Renamed Board: %s", project.CurrentBoard().Name)
+				project.Modified = true
+				project.PopupAction = ""
+			}
+
+		} else {
+
+			project.PopupPanel.FindItems("rename label")[0].On = false
+
+			for _, element := range project.PopupPanel.FindItems("abandon label") {
+				element.On = true
+			}
+
+			if accept {
+				project.ExecuteDestructiveAction(project.PopupAction, project.PopupArgument)
+				project.PopupAction = ""
+			}
+
+			textboxElement.On = false
 
 		}
 
 	} else {
 
-		if !project.TaskOpen && !project.ContextMenuOpen && !project.ProjectSettingsOpen && MouseReleased(rl.MouseRightButton) {
+		if !project.TaskOpen && !project.ContextMenuOpen && !project.ProjectSettingsOpen && project.PopupAction == "" && MouseReleased(rl.MouseRightButton) {
 			project.ContextMenuOpen = true
 			project.ContextMenuPosition = GetMousePosition()
 		} else if project.ContextMenuOpen {
@@ -1610,7 +1711,6 @@ func (project *Project) GUI() {
 						if project.Modified {
 							project.PopupAction = ActionLoadProject
 							project.PopupArgument = project.LoadRecentDropdown.ChoiceAsString()
-							project.ActivatePopup(project.AbandonPlanPopup)
 						} else {
 							project.ExecuteDestructiveAction(ActionLoadProject, project.LoadRecentDropdown.ChoiceAsString())
 						}
@@ -1626,7 +1726,6 @@ func (project *Project) GUI() {
 					case "New Project":
 						if project.Modified {
 							project.PopupAction = ActionNewProject
-							project.ActivatePopup(project.AbandonPlanPopup)
 						} else {
 							project.ExecuteDestructiveAction(ActionNewProject, "")
 						}
@@ -1640,7 +1739,6 @@ func (project *Project) GUI() {
 					case "Load Project":
 						if project.Modified {
 							project.PopupAction = ActionLoadProject
-							project.ActivatePopup(project.AbandonPlanPopup)
 						} else {
 							project.ExecuteDestructiveAction(ActionLoadProject, "")
 						}
@@ -1677,7 +1775,6 @@ func (project *Project) GUI() {
 						if project.Modified {
 							project.PopupAction = ActionLoadProject
 							project.PopupArgument = startingPlanPath
-							project.ActivatePopup(project.AbandonPlanPopup)
 						} else {
 							project.ExecuteDestructiveAction(ActionLoadProject, startingPlanPath)
 						}
@@ -1713,7 +1810,7 @@ func (project *Project) GUI() {
 
 			project.SettingsPanel.Update()
 
-			if project.SettingsPanel.Exited || rl.IsKeyPressed(rl.KeyEscape) {
+			if project.SettingsPanel.Exited {
 
 				project.ProjectSettingsOpen = false
 
@@ -1914,8 +2011,8 @@ func (project *Project) GUI() {
 						}
 						bx -= h
 						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{160, 16, 16, 16}, 0, "", false) {
-							project.RenameBoardPopup.Textbox.SetText(project.CurrentBoard().Name)
-							project.ActivatePopup(project.RenameBoardPopup)
+							project.PopupArgument = project.CurrentBoard().Name
+							project.PopupAction = ActionRenameBoard
 						}
 
 					}
@@ -2266,11 +2363,6 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 func (project *Project) WorldToGrid(worldX, worldY float32) (int, int) {
 	return int(worldX / float32(project.GridSize)), int(worldY / float32(project.GridSize))
-}
-
-func (project *Project) ActivatePopup(popup Popup) {
-	project.ActivePopup = popup
-	popup.Open()
 }
 
 func (project *Project) ExecuteDestructiveAction(action string, argument string) {

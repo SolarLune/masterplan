@@ -155,8 +155,8 @@ func NewTask(board *Board) *Task {
 		GridPositions:                []Position{},
 		Valid:                        true,
 		LoadMediaButton:              NewButton(0, 0, 128, 32, "Load", false),
-		CompletionTimeLabel:          NewLabel(0, 0, "Completion time"),
-		CreationLabel:                NewLabel(0, 0, "Creation time"),
+		CompletionTimeLabel:          NewLabel("Completion time"),
+		CreationLabel:                NewLabel("Creation time"),
 	}
 
 	task.SetPanel()
@@ -195,55 +195,75 @@ func (task *Task) SetPanel() {
 
 	task.EditPanel = NewPanel(63, 64, 960/4*3, 560/4*3)
 
-	task.EditPanel.VerticalSpacing = 16
-
 	column := task.EditPanel.AddColumn()
-	column.Add("Task Type: ", task.TaskType)
+	row := column.Row()
+	row.Item(NewLabel("Task Type:"))
+	row.Item(task.TaskType)
 
-	column.Add("Created On: ", task.CreationLabel)
+	row = column.Row()
+	row.Item(NewLabel("Created On:"))
+	row.Item(task.CreationLabel)
 
-	column.Add("description label", NewLabel(0, 0, "Description:"),
+	column.Row().Item(NewLabel("Description:"),
 		TASK_TYPE_BOOLEAN,
 		TASK_TYPE_PROGRESSION,
-		TASK_TYPE_NOTE).Label = ""
-
-	column.Add("description box", task.Description,
+		TASK_TYPE_NOTE)
+	column.Row().Item(task.Description,
 		TASK_TYPE_BOOLEAN,
 		TASK_TYPE_PROGRESSION,
-		TASK_TYPE_NOTE).Label = ""
+		TASK_TYPE_NOTE)
 
-	// desc.HorizontalAlignment = ALIGN_LEFT
-	// desc.HorizontalPadding = -task.Description.Rect.Width / 2
+	row = column.Row()
+	row.Item(NewLabel("Name:"), TASK_TYPE_TIMER)
+	row.Item(task.TimerName, TASK_TYPE_TIMER)
 
-	column.Add("Name: ", task.TimerName, TASK_TYPE_TIMER)
-	// timerName.HorizontalAlignment = ALIGN_LEFT
-	// timerName.HorizontalPadding = -task.TimerName.Rect.Width / 2
+	row = column.Row()
+	row.Item(NewLabel("Filepath:"), TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
+	row = column.Row()
+	row.Item(task.FilePathTextbox, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
+	row = column.Row()
+	row.Item(task.LoadMediaButton, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
 
-	column.Add("filepath label", NewLabel(0, 0, "Filepath:"), TASK_TYPE_IMAGE, TASK_TYPE_SOUND).Label = ""
-	column.Add("filepath box", task.FilePathTextbox, TASK_TYPE_IMAGE, TASK_TYPE_SOUND).Label = ""
-	column.Add("Load Path: ", task.LoadMediaButton, TASK_TYPE_IMAGE, TASK_TYPE_SOUND).Label = ""
+	row = column.Row()
+	row.Item(NewLabel("Completed:"), TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+	row.Item(task.CompletionCheckbox, TASK_TYPE_BOOLEAN)
+	row.Item(task.CompletionProgressionCurrent, TASK_TYPE_PROGRESSION)
+	row.Item(NewLabel("out of"), TASK_TYPE_PROGRESSION)
+	row.Item(task.CompletionProgressionMax, TASK_TYPE_PROGRESSION)
 
-	column.Add("Completed: ", task.CompletionCheckbox, TASK_TYPE_BOOLEAN)
-	column.Add("Currently Completed: ", task.CompletionProgressionCurrent, TASK_TYPE_PROGRESSION)
-	column.Add("Maximum Completed: ", task.CompletionProgressionMax, TASK_TYPE_PROGRESSION)
-	column.Add("Completed On: ", task.CompletionTimeLabel, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
-	column.Add("Deadline: ", task.DeadlineCheckbox, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
-	column.Add("Deadline Day:", task.DeadlineDaySpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
-	column.Add("Deadline Month:", task.DeadlineMonthSpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
-	column.Add("Deadline Year:", task.DeadlineYearSpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+	row = column.Row()
+	row.Item(NewLabel("Completion Date:"), TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+	row.Item(task.CompletionTimeLabel, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
 
-	column.Add("Minutes: ", task.TimerMinuteSpinner, TASK_TYPE_TIMER)
-	column.Add("Seconds: ", task.TimerSecondSpinner, TASK_TYPE_TIMER)
-	column.Add("Bezier Lines: ", task.LineBezier, TASK_TYPE_LINE)
+	row = column.Row()
+	row.Item(NewLabel("Deadline:"), TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+	row.Item(task.DeadlineCheckbox, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "deadline_on"
 
-	column.Add("shift map label", NewLabel(0, 0, "Shift Map:"), TASK_TYPE_MAP).Label = ""
-	column.Add("shift map up", NewButton(0, 0, 128, 32, "Up", false), TASK_TYPE_MAP).Label = ""
-	column.Add("shift map right", NewButton(0, 0, 128, 32, "Right", false), TASK_TYPE_MAP).Label = ""
-	column.Add("shift map left", NewButton(0, 0, 128, 32, "Left", false), TASK_TYPE_MAP).Label = ""
-	column.Add("shift map down", NewButton(0, 0, 128, 32, "Down", false), TASK_TYPE_MAP).Label = ""
+	row = column.Row()
+	row.Item(task.DeadlineDaySpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "deadline_sub"
+	row.Item(task.DeadlineMonthSpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "deadline_sub"
+	row.Item(task.DeadlineYearSpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "deadline_sub"
 
-	for _, item := range column.Items {
-		item.HorizontalPadding -= 128
+	row = column.Row()
+	row.Item(NewLabel("Minutes:"), TASK_TYPE_TIMER)
+	row.Item(task.TimerMinuteSpinner, TASK_TYPE_TIMER)
+	row.Item(NewLabel("Seconds:"), TASK_TYPE_TIMER)
+	row.Item(task.TimerSecondSpinner, TASK_TYPE_TIMER)
+
+	row = column.Row()
+	row.Item(NewLabel("Bezier Lines:"), TASK_TYPE_LINE)
+	row.Item(task.LineBezier, TASK_TYPE_LINE)
+
+	row = column.Row()
+	row.Item(NewButton(0, 0, 128, 32, "Shift Up", false), TASK_TYPE_MAP).Name = "shift up"
+	row = column.Row()
+	row.Item(NewButton(0, 0, 128, 32, "Shift Left", false), TASK_TYPE_MAP).Name = "shift left"
+	row.Item(NewButton(0, 0, 128, 32, "Shift Right", false), TASK_TYPE_MAP).Name = "shift right"
+	row = column.Row()
+	row.Item(NewButton(0, 0, 128, 32, "Shift Down", false), TASK_TYPE_MAP).Name = "shift down"
+
+	for _, row := range column.Rows {
+		row.VerticalSpacing = 16
 	}
 
 }
@@ -1516,7 +1536,7 @@ func (task *Task) PostDraw() {
 
 		column.Mode = task.TaskType.CurrentChoice
 
-		deadlineCheck := column.ItemFromElement(task.DeadlineCheckbox)
+		deadlineCheck := task.EditPanel.FindItems("deadline_on")[0]
 		deadlineCheck.On = task.Completable()
 
 		if task.Completable() {
@@ -1529,9 +1549,10 @@ func (task *Task) PostDraw() {
 
 		}
 
-		column.ItemFromElement(task.DeadlineDaySpinner).On = deadlineCheck.On && task.DeadlineCheckbox.Checked
-		column.ItemFromElement(task.DeadlineMonthSpinner).On = deadlineCheck.On && task.DeadlineCheckbox.Checked
-		column.ItemFromElement(task.DeadlineYearSpinner).On = deadlineCheck.On && task.DeadlineCheckbox.Checked
+		for _, option := range task.EditPanel.FindItems("deadline_sub") {
+			option.On = deadlineCheck.On && task.DeadlineCheckbox.Checked
+		}
+
 		task.CreationLabel.Text = task.CreationTime.Format("Monday, Jan 2, 2006, 15:04")
 
 		task.EditPanel.Update()
@@ -1574,19 +1595,24 @@ func (task *Task) PostDraw() {
 
 		if task.MapImage != nil {
 
-			if column.Items["shift map left"].Element.(*Button).Clicked {
+			shiftLeft := task.EditPanel.FindItems("shift left")[0].Element.(*Button)
+			shiftRight := task.EditPanel.FindItems("shift right")[0].Element.(*Button)
+			shiftUp := task.EditPanel.FindItems("shift up")[0].Element.(*Button)
+			shiftDown := task.EditPanel.FindItems("shift down")[0].Element.(*Button)
+
+			if shiftLeft.Clicked {
 				task.MapImage.Shift(-1, 0)
-			} else if column.Items["shift map right"].Element.(*Button).Clicked {
+			} else if shiftRight.Clicked {
 				task.MapImage.Shift(1, 0)
-			} else if column.Items["shift map up"].Element.(*Button).Clicked {
+			} else if shiftUp.Clicked {
 				task.MapImage.Shift(0, -1)
-			} else if column.Items["shift map down"].Element.(*Button).Clicked {
+			} else if shiftDown.Clicked {
 				task.MapImage.Shift(0, 1)
 			}
 
 		}
 
-		if task.EditPanel.Exited || rl.IsKeyPressed(rl.KeyEscape) {
+		if task.EditPanel.Exited {
 			task.Board.Project.SendMessage(MessageTaskClose, nil)
 		}
 
