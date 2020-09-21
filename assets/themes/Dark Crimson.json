@@ -1,7 +1,7 @@
 {
     "GUI_OUTLINE":             [130, 130, 130, 255],
     "GUI_OUTLINE_HIGHLIGHTED": [230, 41, 55, 255],
-    "GUI_OUTLINE_DISABLED":    [190, 33, 55, 255],
+    "GUI_OUTLINE_DISABLED":    [90, 33, 55, 255],
     "GUI_INSIDE":              [30, 30, 30, 255],
     "GUI_INSIDE_HIGHLIGHTED":  [100, 40, 40, 255],
     "GUI_INSIDE_DISABLED":     [10, 10, 10, 255],

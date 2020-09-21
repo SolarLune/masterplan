@@ -386,8 +386,8 @@ func (panel *Panel) Update() {
 	shadowRect := dst
 	shadowRect.X += 8
 	shadowRect.Y += 8
-	shadowColor := rl.Black
-	shadowColor.A = 64
+	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+	shadowColor.A = 192
 	rl.DrawRectangleRec(shadowRect, shadowColor)
 
 	rl.DrawRectangleRec(dst, getThemeColor(GUI_INSIDE))
@@ -893,6 +893,12 @@ func (spinner *Spinner) Update() {
 		ConsumeMouseInput(rl.MouseLeftButton)
 		spinner.Expanded = !spinner.Expanded
 		clickedSpinner = true
+	}
+
+	if rl.IsKeyPressed(rl.KeyEscape) {
+		// We need to do this because otherwise, the Spinner could remain expanded after pressing ESC,
+		// Causing buttons (like the right-click Project Settings one) to not fire
+		spinner.Expanded = false
 	}
 
 	if spinner.Expanded {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ncruces/zenity"
+	"github.com/tanema/gween/ease"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 
@@ -99,6 +100,7 @@ type Task struct {
 	TaskBelow     *Task
 	TaskRight     *Task
 	TaskLeft      *Task
+	TaskUnder     *Task
 	RestOfStack   []*Task
 	SubTasks      []*Task
 	GridPositions []Position
@@ -734,7 +736,8 @@ func (task *Task) DrawLine() {
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
 
-		color := getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+		outlineColor := getThemeColor(GUI_INSIDE)
+		color := getThemeColor(GUI_FONT_COLOR)
 
 		for _, ending := range task.ValidLineEndings() {
 
@@ -746,10 +749,14 @@ func (task *Task) DrawLine() {
 			ep.Y += float32(task.Board.Project.GridSize) / 2
 
 			if task.LineBezier.Checked {
-				rl.DrawLineBezier(bp, ep, 4, getThemeColor(GUI_FONT_COLOR))
+				if task.Board.Project.OutlineTasks.Checked {
+					rl.DrawLineBezier(bp, ep, 4, outlineColor)
+				}
 				rl.DrawLineBezier(bp, ep, 2, color)
 			} else {
-				rl.DrawLineEx(bp, ep, 4, getThemeColor(GUI_FONT_COLOR))
+				if task.Board.Project.OutlineTasks.Checked {
+					rl.DrawLineEx(bp, ep, 4, outlineColor)
+				}
 				rl.DrawLineEx(bp, ep, 2, color)
 			}
 
@@ -1055,11 +1062,13 @@ func (task *Task) Draw() {
 		color.A = 32 + alpha
 	}
 
-	mapRect := task.Rect
+	bgRect := task.Rect
 	if task.TaskType.CurrentChoice == TASK_TYPE_MAP {
-		mapRect.Height = 16 // For a Map, the background is effectively transparent
+		bgRect.Height = 16 // For a Map, the background is effectively transparent
 	}
-	rl.DrawRectangleRec(mapRect, color)
+	if task.TaskType.CurrentChoice != TASK_TYPE_LINE {
+		rl.DrawRectangleRec(bgRect, color)
+	}
 
 	if task.Due() == TASK_DUE_TODAY {
 		src := rl.Rectangle{208 + rl.GetTime()*30, 0, task.Rect.Width, task.Rect.Height}
@@ -1104,7 +1113,8 @@ func (task *Task) Draw() {
 	if task.TaskType.CurrentChoice == TASK_TYPE_MAP && task.MapImage != nil {
 
 		task.Resizeable = true
-		bgColor := rl.Color{0, 0, 0, 128}
+		bgColor := rl.Black
+		bgColor.A = 64
 		color := rl.White
 		color.A = alpha + 32
 
@@ -1115,6 +1125,13 @@ func (task *Task) Draw() {
 		if task.MapImage.Editing {
 			bgColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 			color.A = 255
+		} else {
+			themeColor := getThemeColor(GUI_INSIDE_DISABLED)
+			if themeColor.R < 128 && themeColor.G < 128 && themeColor.B < 128 {
+				bgColor.R = rl.White.R
+				bgColor.G = rl.White.G
+				bgColor.B = rl.White.B
+			}
 		}
 
 		rl.DrawRectanglePro(
@@ -1218,7 +1235,7 @@ func (task *Task) Draw() {
 
 	}
 
-	if task.Board.Project.OutlineTasks.Checked {
+	if task.Board.Project.OutlineTasks.Checked && task.TaskType.CurrentChoice != TASK_TYPE_LINE {
 		rl.DrawRectangleLinesEx(task.Rect, 1, outlineColor)
 	}
 	if (task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage) && task.TaskType.CurrentChoice != TASK_TYPE_LINE && task.TaskType.CurrentChoice != TASK_TYPE_MAP {
@@ -1253,7 +1270,7 @@ func (task *Task) Draw() {
 			TASK_TYPE_SOUND:       {80, 0},
 			TASK_TYPE_IMAGE:       {96, 0},
 			TASK_TYPE_TIMER:       {0, 16},
-			TASK_TYPE_LINE:        {64, 16},
+			TASK_TYPE_LINE:        {128, 32},
 			TASK_TYPE_MAP:         {0, 32},
 		}
 
@@ -1275,33 +1292,23 @@ func (task *Task) Draw() {
 
 		if task.TaskType.CurrentChoice == TASK_TYPE_LINE && task.LineBase != nil {
 
-			iconSrc.X = 176
-			iconSrc.Y = 16
+			iconSrc.X = 144
+			iconSrc.Y = 32
 			rotation = rl.Vector2Angle(task.LineBase.Position, task.Position)
-
-			insideCount := 0
 
 			if task.TaskRight != nil {
 				rotation = 0
-				insideCount++
-			}
-			if task.TaskLeft != nil {
+			} else if task.TaskLeft != nil {
 				rotation = 180
-				insideCount++
-			}
-			if task.TaskAbove != nil {
+			} else if task.TaskAbove != nil {
 				rotation = -90
-				insideCount++
-			}
-			if task.TaskBelow != nil {
+			} else if task.TaskBelow != nil {
 				rotation = 90
-				insideCount++
 			}
 
-			if insideCount > 1 {
+			if task.TaskUnder != nil {
 				// Line endings that are inside Task Rectangles become dots
-				iconSrc.X = 64
-				iconSrc.Y = 16
+				iconSrc.X = 160
 			}
 
 		}
@@ -1316,6 +1323,12 @@ func (task *Task) Draw() {
 		}
 
 		if task.TaskType.CurrentChoice != TASK_TYPE_IMAGE || invalidImage {
+			if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
+				if task.Board.Project.OutlineTasks.Checked {
+					rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + 8, task.Rect.Y + 8, 16, 16}, rl.Vector2{8, 8}, rotation, getThemeColor(GUI_INSIDE))
+				}
+				iconSrc.Y += 16
+			}
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + 8, task.Rect.Y + 8, 16, 16}, rl.Vector2{8, 8}, rotation, iconColor)
 		}
 
@@ -1384,14 +1397,45 @@ func (task *Task) Draw() {
 
 	if task.Selected && task.Board.Project.PulsingTaskSelection.Checked { // Drawing selection indicator
 		r := task.Rect
-		f := float32(int(2 + float32(math.Sin(float64(rl.GetTime()-(float32(task.ID)*0.1))*math.Pi*4))*2))
-		r.X -= f
-		r.Y -= f
-		r.Width += f * 2
-		r.Height += f * 2
+		t := float32(math.Sin(float64(rl.GetTime()-(float32(task.ID)*0.1))*math.Pi*4))/2 + 0.5
+		f := t * 4
+
+		margin := float32(2)
+
+		r.X -= f + margin
+		r.Y -= f + margin
+		r.Width += (f + 1 + margin) * 2
+		r.Height += (f + 1 + margin) * 2
+
+		r.X = float32(int32(r.X))
+		r.Y = float32(int32(r.Y))
+		r.Width = float32(int32(r.Width))
+		r.Height = float32(int32(r.Height))
+
 		c := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		end := getThemeColor(GUI_OUTLINE_DISABLED)
+
+		changeR := ease.Linear(t, float32(end.R), float32(c.R)-float32(end.R), 1)
+		changeG := ease.Linear(t, float32(end.G), float32(c.G)-float32(end.G), 1)
+		changeB := ease.Linear(t, float32(end.B), float32(c.B)-float32(end.B), 1)
+
+		c.R = uint8(changeR)
+		c.G = uint8(changeG)
+		c.B = uint8(changeB)
+
 		rl.DrawRectangleLinesEx(r, 2, c)
 	}
+
+}
+
+func (task *Task) Depth() int {
+
+	if task.TaskType.CurrentChoice == TASK_TYPE_MAP {
+		return -100
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
+		return 100
+	}
+	return 0
 
 }
 
@@ -1403,6 +1447,7 @@ func (task *Task) UpdateNeighbors() {
 	task.TaskLeft = nil
 	task.TaskAbove = nil
 	task.TaskBelow = nil
+	task.TaskUnder = nil
 
 	tasks := task.Board.GetTasksInRect(task.Position.X+gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
 	sortfunc := func(i, j int) bool {
@@ -1446,6 +1491,15 @@ func (task *Task) UpdateNeighbors() {
 		}
 	}
 
+	tasks = task.Board.GetTasksInRect(task.Position.X, task.Position.Y, task.Rect.Width, task.Rect.Height)
+	sort.Slice(tasks, sortfunc)
+	for _, t := range tasks {
+		if t != task {
+			task.TaskUnder = t
+			break
+		}
+	}
+
 }
 
 func (task *Task) DeadlineTime() time.Time {
@@ -1473,7 +1527,7 @@ func (task *Task) Due() int {
 
 func (task *Task) DrawShadow() {
 
-	if task.Visible {
+	if task.Visible && task.TaskType.CurrentChoice != TASK_TYPE_LINE {
 
 		depthRect := task.Rect
 		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
@@ -1518,9 +1572,18 @@ func (task *Task) DrawShadow() {
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{0, 0}, 0, shadowColor)
 
 		} else if task.Board.Project.TaskShadowSpinner.CurrentChoice == 1 {
+
+			depthRect.Y += depthRect.Height
+			depthRect.Height = 4
 			depthRect.X += 4
-			depthRect.Y += 4
 			rl.DrawRectangleRec(depthRect, shadowColor)
+
+			depthRect.X = task.Rect.X + task.Rect.Width
+			depthRect.Y = task.Rect.Y + 4
+			depthRect.Width = 4
+			depthRect.Height = task.Rect.Height
+			rl.DrawRectangleRec(depthRect, shadowColor)
+
 		}
 
 	}

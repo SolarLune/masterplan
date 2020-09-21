@@ -703,13 +703,13 @@ func (project *Project) HandleCamera() {
 
 	if !project.ContextMenuOpen && !project.TaskOpen && project.PopupAction == "" && !project.ProjectSettingsOpen {
 		if wheel > 0 {
-			project.ZoomLevel += 1
+			project.ZoomLevel++
 		} else if wheel < 0 {
-			project.ZoomLevel -= 1
+			project.ZoomLevel--
 		}
 	}
 
-	zoomLevels := []float32{0.5, 1, 2, 3, 4}
+	zoomLevels := []float32{0.5, 0.75, 1, 2, 3, 4, 5, 6, 7, 8, 10}
 
 	if project.ZoomLevel == -99 {
 		project.ZoomLevel = 1
@@ -799,11 +799,23 @@ func (project *Project) Update() {
 	// Additive blending should be out here to avoid state changes mid-task drawing.
 	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
 
+	sorted := append([]*Task{}, project.CurrentBoard().Tasks...)
+
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Depth() == sorted[j].Depth() {
+			if sorted[i].Rect.Y == sorted[j].Rect.Y {
+				return sorted[i].Rect.X < sorted[j].Rect.X
+			}
+			return sorted[i].Rect.Y < sorted[j].Rect.Y
+		}
+		return sorted[i].Depth() < sorted[j].Depth()
+	})
+
 	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
 		rl.BeginBlendMode(rl.BlendAdditive)
 	}
 
-	for _, task := range project.CurrentBoard().Tasks {
+	for _, task := range sorted {
 		task.DrawShadow()
 	}
 
@@ -811,12 +823,12 @@ func (project *Project) Update() {
 		rl.EndBlendMode()
 	}
 
-	for _, task := range project.CurrentBoard().Tasks {
-		task.DrawLine()
+	for _, task := range sorted {
+		task.Draw()
 	}
 
-	for _, task := range project.CurrentBoard().Tasks {
-		task.Draw()
+	for _, task := range sorted {
+		task.DrawLine()
 	}
 
 	project.HandleCamera()
@@ -1231,13 +1243,13 @@ func (project *Project) Shortcuts() {
 				} else if rl.IsKeyPressed(rl.KeyOne) || rl.IsKeyPressed(rl.KeyKp1) {
 					project.ZoomLevel = 0
 				} else if rl.IsKeyPressed(rl.KeyTwo) || rl.IsKeyPressed(rl.KeyKp2) {
-					project.ZoomLevel = 1
-				} else if rl.IsKeyPressed(rl.KeyThree) || rl.IsKeyPressed(rl.KeyKp3) {
 					project.ZoomLevel = 2
-				} else if rl.IsKeyPressed(rl.KeyFour) || rl.IsKeyPressed(rl.KeyKp4) {
+				} else if rl.IsKeyPressed(rl.KeyThree) || rl.IsKeyPressed(rl.KeyKp3) {
 					project.ZoomLevel = 3
+				} else if rl.IsKeyPressed(rl.KeyFour) || rl.IsKeyPressed(rl.KeyKp4) {
+					project.ZoomLevel = 5
 				} else if rl.IsKeyPressed(rl.KeyFive) || rl.IsKeyPressed(rl.KeyKp5) {
-					project.ZoomLevel = 4
+					project.ZoomLevel = 10
 				} else if rl.IsKeyPressed(rl.KeyBackspace) {
 					project.CameraPan.X = 0
 					project.CameraPan.Y = 0
