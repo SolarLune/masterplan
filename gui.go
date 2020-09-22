@@ -43,7 +43,7 @@ var currentTheme = "Sunlight" // Default theme for new projects and new sessions
 
 var guiColors map[string]map[string]rl.Color
 
-var worldMousePosition = false
+var worldGUI = false // Controls whether to use world coordinates for input and rendering
 
 var prioritizedGUIElement GUIElement
 
@@ -119,7 +119,7 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 	} else {
 
 		pos := rl.Vector2{}
-		if worldMousePosition {
+		if worldGUI {
 			pos = GetWorldMousePosition()
 		} else {
 			pos = GetMousePosition()
@@ -138,10 +138,18 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 
 	}
 
+	rect.X = float32(int32(rect.X))
+	rect.Y = float32(int32(rect.Y))
+	rect.Width = float32(int32(rect.Width))
+	rect.Height = float32(int32(rect.Height))
+
 	rl.DrawRectangleRec(rect, insideColor)
 	rl.DrawRectangleLinesEx(rect, 1, outlineColor)
 
 	textWidth := rl.MeasureTextEx(guiFont, text, guiFontSize, spacing)
+	if worldGUI {
+		textWidth = rl.MeasureTextEx(font, text, fontSize, spacing)
+	}
 	pos := rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2 + (iconSrcRec.Width / 2), rect.Y + (rect.Height / 2) - textWidth.Y/2}
 	pos.X = float32(math.Round(float64(pos.X)))
 	pos.Y = float32(math.Round(float64(pos.Y)))
@@ -160,7 +168,11 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 		iconRotation,
 		getThemeColor(GUI_FONT_COLOR))
 
-	DrawGUIText(pos, text)
+	if worldGUI {
+		DrawText(pos, text)
+	} else {
+		DrawGUIText(pos, text)
+	}
 
 	if clicked && prioritizedGUIElement != nil {
 		clicked = false
@@ -715,7 +727,7 @@ func (dropdown *DropdownMenu) Update() {
 	arrowColor := getThemeColor(GUI_FONT_COLOR)
 
 	pos := rl.Vector2{}
-	if worldMousePosition {
+	if worldGUI {
 		pos = GetWorldMousePosition()
 	} else {
 		pos = GetMousePosition()
@@ -806,7 +818,7 @@ func (checkbox *Checkbox) Update() {
 	color := getThemeColor(GUI_OUTLINE)
 
 	pos := rl.Vector2{}
-	if worldMousePosition {
+	if worldGUI {
 		pos = GetWorldMousePosition()
 	} else {
 		pos = GetMousePosition()
@@ -1334,7 +1346,7 @@ func (textbox *Textbox) Update() {
 	textbox.Changed = false
 
 	pos := rl.Vector2{}
-	if worldMousePosition {
+	if worldGUI {
 		pos = GetWorldMousePosition()
 	} else {
 		pos = GetMousePosition()

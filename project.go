@@ -90,6 +90,7 @@ type Project struct {
 	MaxUndoSteps             *NumberSpinner
 	DisableMessageLog        *Checkbox
 	TaskTransparency         *NumberSpinner
+	AlwaysShowURLButtons     *Checkbox
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -185,6 +186,7 @@ func NewProject() *Project {
 		AutomaticBackupKeepCount: NewNumberSpinner(0, 0, 128, 40),
 		MaxUndoSteps:             NewNumberSpinner(0, 0, 160, 40),
 		TaskTransparency:         NewNumberSpinner(0, 0, 128, 40),
+		AlwaysShowURLButtons:     NewCheckbox(0, 0, 32, 32),
 
 		// Program settings GUI elements
 		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
@@ -235,6 +237,10 @@ func NewProject() *Project {
 	row.Item(project.ShowIcons)
 
 	row = column.Row()
+	row.Item(NewLabel("Always Show URL Buttons:"))
+	row.Item(project.AlwaysShowURLButtons)
+
+	row = column.Row()
 	row.Item(NewLabel("Numbering Style:"))
 	row.Item(project.NumberingSequence)
 
@@ -250,15 +256,11 @@ func NewProject() *Project {
 	row.Item(NewLabel("Backup every X minutes:"))
 	row.Item(project.AutomaticBackupInterval)
 
+	column = project.SettingsPanel.AddColumn()
+
 	row = column.Row()
 	row.Item(NewLabel("Keep X backups max:"))
 	row.Item(project.AutomaticBackupKeepCount)
-
-	// for _, item := range column.Items {
-	// 	item.HorizontalPadding -= 32
-	// }
-
-	column = project.SettingsPanel.AddColumn()
 
 	row = column.Row()
 	row.Item(NewLabel("Grid Visible:"))
@@ -302,10 +304,6 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Disable Message Log:"))
 	row.Item(project.DisableMessageLog)
-
-	// for _, item := range column.Items {
-	// 	item.HorizontalPadding -= 32
-	// }
 
 	project.SettingsPanel.EnableScrolling = false
 
@@ -444,6 +442,7 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.GetNumber())
 			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.GetNumber())
 			data, _ = sjson.Set(data, `UndoMaxSteps`, project.MaxUndoSteps.GetNumber())
+			data, _ = sjson.Set(data, `AlwaysShowURLButtons`, project.AlwaysShowURLButtons.Checked)
 
 			boardNames := []string{}
 			for _, board := range project.Boards {
@@ -569,6 +568,7 @@ func LoadProject(filepath string) *Project {
 			project.AutomaticBackupInterval.SetNumber(getInt(`BackupInterval`))
 			project.AutomaticBackupKeepCount.SetNumber(getInt(`BackupKeepCount`))
 			project.MaxUndoSteps.SetNumber(getInt(`UndoMaxSteps`))
+			project.AlwaysShowURLButtons.Checked = getBool(`AlwaysShowURLButtons`)
 
 			if data.Get(`TaskTransparency`).Exists() {
 				project.TaskTransparency.SetNumber(getInt(`TaskTransparency`))

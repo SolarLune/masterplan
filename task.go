@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ncruces/zenity"
+	"github.com/pkg/browser"
 	"github.com/tanema/gween/ease"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -39,6 +40,12 @@ const (
 	TASK_DUE_TODAY
 	TASK_DUE_LATE
 )
+
+type URLButton struct {
+	Pos  rl.Vector2
+	Text string
+	Size rl.Vector2
+}
 
 type Task struct {
 	Rect     rl.Rectangle
@@ -111,6 +118,8 @@ type Task struct {
 	LoadMediaButton     *Button
 	ClearMediaButton    *Button
 	CreationLabel       *Label
+	DisplayedText       string
+	URLButtons          []URLButton
 
 	MapImage *MapImage
 }
@@ -1251,6 +1260,39 @@ func (task *Task) Draw() {
 
 		DrawText(textPos, name)
 
+		if !task.Board.Project.TaskOpen && !task.Board.Project.Searchbar.Focused && !task.Board.Project.ProjectSettingsOpen && task.Board.Project.PopupAction == "" && (task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN || task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION || task.TaskType.CurrentChoice == TASK_TYPE_NOTE) {
+
+			if name != task.DisplayedText {
+				task.ScanTextForURLs(name)
+				task.DisplayedText = name
+			}
+
+			worldGUI = true
+
+			for _, urlButton := range task.URLButtons {
+
+				control := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
+
+				if control || task.Board.Project.AlwaysShowURLButtons.Checked {
+
+					margin := float32(2)
+					dst := rl.Rectangle{textPos.X + urlButton.Pos.X - margin, textPos.Y + urlButton.Pos.Y, urlButton.Size.X + (margin * 2), urlButton.Size.Y}
+					if ImmediateButton(dst, urlButton.Text, false) {
+						urlText := urlButton.Text
+						if !strings.HasPrefix(urlText, "http://") {
+							urlText = "http://" + urlText
+						}
+						browser.OpenURL(urlText)
+					}
+
+				}
+
+			}
+
+			worldGUI = false
+
+		}
+
 	}
 
 	controlPos := float32(0)
@@ -1973,6 +2015,60 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else {
 		fmt.Println("UNKNOWN MESSAGE: ", message)
 	}
+
+}
+
+func (task *Task) ScanTextForURLs(text string) {
+
+	task.URLButtons = []URLButton{}
+
+	currentURLButton := URLButton{}
+	wordStart := rl.Vector2{}
+
+	for i, letter := range []rune(text) {
+
+		if letter != ' ' && letter != '\n' {
+			currentURLButton.Text += string(letter)
+			wordStart.X += rl.MeasureTextEx(font, string(letter), fontSize, spacing).X + 1
+		}
+
+		if letter == ' ' || letter == '\n' || i == len(text)-1 {
+
+			if len(currentURLButton.Text) > 0 {
+				currentURLButton.Size.X = rl.MeasureTextEx(font, currentURLButton.Text, fontSize, spacing).X
+				currentURLButton.Size.Y, _ = TextHeight("A", false)
+
+				urlText := strings.Trim(strings.Trim(strings.TrimSpace(currentURLButton.Text), "."), ":")
+
+				if strings.Contains(urlText, ".") || strings.Contains(urlText, ":") {
+
+					if !strings.HasPrefix(urlText, "http://") {
+						urlText = "http://" + urlText
+					}
+
+					// We assume it's a valid URL if it has a period or colon that't not at the beginning or end (e.g. "website." is not valid, while "web.site" is)
+					task.URLButtons = append(task.URLButtons, currentURLButton)
+
+				}
+
+			}
+
+			if letter == '\n' {
+				height, _ := TextHeight("A", false)
+				wordStart.Y += height
+				wordStart.X = 0
+			} else if letter == ' ' {
+				wordStart.X += rl.MeasureTextEx(font, " ", fontSize, spacing).X + 1
+			}
+
+			currentURLButton = URLButton{}
+			currentURLButton.Pos = wordStart
+
+		}
+
+	}
+
+	fmt.Println(task.URLButtons)
 
 }
 
