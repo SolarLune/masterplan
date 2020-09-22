@@ -39,6 +39,13 @@ const (
 )
 
 const (
+	SETTINGS_GENERAL = iota
+	SETTINGS_AUDIO
+	SETTINGS_TASKS
+	SETTINGS_GLOBAL
+)
+
+const (
 
 	// Task messages
 
@@ -91,6 +98,7 @@ type Project struct {
 	DisableMessageLog        *Checkbox
 	TaskTransparency         *NumberSpinner
 	AlwaysShowURLButtons     *Checkbox
+	SettingsSection          *ButtonGroup
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -187,6 +195,7 @@ func NewProject() *Project {
 		MaxUndoSteps:             NewNumberSpinner(0, 0, 160, 40),
 		TaskTransparency:         NewNumberSpinner(0, 0, 128, 40),
 		AlwaysShowURLButtons:     NewCheckbox(0, 0, 32, 32),
+		SettingsSection:          NewButtonGroup(0, 0, 512, 32, "General", "Audio", "Tasks", "Global"),
 
 		// Program settings GUI elements
 		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
@@ -212,100 +221,103 @@ func NewProject() *Project {
 	project.PopupPanel.Center(0.5, 0.5)
 
 	column = project.SettingsPanel.AddColumn()
-	row = column.Row()
-	row.Item(NewLabel("Color Theme:"))
-	row.Item(project.ColorThemeSpinner)
+	column.Row().Item(project.SettingsSection)
+
+	// General settings
 
 	row = column.Row()
-	row.Item(NewLabel("Task Transparency:"))
-	row.Item(project.TaskTransparency)
+	row.Item(NewLabel("Color Theme:"), SETTINGS_GENERAL)
+	row.Item(project.ColorThemeSpinner, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Task Depth:"))
-	row.Item(project.TaskShadowSpinner)
+	row.Item(NewLabel("Backup every X minutes:"), SETTINGS_GENERAL)
+	row.Item(project.AutomaticBackupInterval, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Outline Tasks:"))
-	row.Item(project.OutlineTasks)
+	row.Item(NewLabel("Keep X backups max:"), SETTINGS_GENERAL)
+	row.Item(project.AutomaticBackupKeepCount, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Pulse Selected Tasks:"))
-	row.Item(project.PulsingTaskSelection)
+	row.Item(NewLabel("Grid Visible:"), SETTINGS_GENERAL)
+	row.Item(project.GridVisible, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Show Icons:"))
-	row.Item(project.ShowIcons)
+	row.Item(NewLabel("Lock Project:"), SETTINGS_GENERAL)
+	row.Item(project.LockProject, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Always Show URL Buttons:"))
-	row.Item(project.AlwaysShowURLButtons)
+	row.Item(NewLabel("Auto-save Project:"), SETTINGS_GENERAL)
+	row.Item(project.AutoSave, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Numbering Style:"))
-	row.Item(project.NumberingSequence)
+	row.Item(NewLabel("Maximum Undo Steps:"), SETTINGS_GENERAL)
+	row.Item(project.MaxUndoSteps, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Number Top-level Tasks:"))
-	row.Item(project.NumberTopLevel)
+	row.Item(NewLabel("Always Show URL Buttons:"), SETTINGS_GENERAL)
+	row.Item(project.AlwaysShowURLButtons, SETTINGS_GENERAL)
+
+	// TASKS
 
 	row = column.Row()
-	row.Item(NewLabel("Bracket Sub-Tasks:"))
-	row.Item(project.BracketSubtasks)
+	row.Item(NewLabel("Task Transparency:"), SETTINGS_TASKS)
+	row.Item(project.TaskTransparency, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Backup every X minutes:"))
-	row.Item(project.AutomaticBackupInterval)
-
-	column = project.SettingsPanel.AddColumn()
+	row.Item(NewLabel("Task Depth:"), SETTINGS_TASKS)
+	row.Item(project.TaskShadowSpinner, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Keep X backups max:"))
-	row.Item(project.AutomaticBackupKeepCount)
+	row.Item(NewLabel("Outline Tasks:"), SETTINGS_TASKS)
+	row.Item(project.OutlineTasks, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Grid Visible:"))
-	row.Item(project.GridVisible)
+	row.Item(NewLabel("Pulse Selected Tasks:"), SETTINGS_TASKS)
+	row.Item(project.PulsingTaskSelection, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Lock Project:"))
-	row.Item(project.LockProject)
+	row.Item(NewLabel("Show Icons:"), SETTINGS_TASKS)
+	row.Item(project.ShowIcons, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Auto-save Project:"))
-	row.Item(project.AutoSave)
+	row.Item(NewLabel("Numbering Style:"), SETTINGS_TASKS)
+	row.Item(project.NumberingSequence, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Project Samplerate:"))
-	row.Item(project.SampleRate)
+	row.Item(NewLabel("Number Top-level Tasks:"), SETTINGS_TASKS)
+	row.Item(project.NumberTopLevel, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Save Sound Playback:"))
-	row.Item(project.SaveSoundsPlaying)
+	row.Item(NewLabel("Bracket Sub-Tasks:"), SETTINGS_TASKS)
+	row.Item(project.BracketSubtasks, SETTINGS_TASKS)
+
+	// Audio
 
 	row = column.Row()
-	row.Item(NewLabel("Maximum Undo Steps:"))
-	row.Item(project.MaxUndoSteps)
+	row.Item(NewLabel("Project Samplerate:"), SETTINGS_AUDIO)
+	row.Item(project.SampleRate, SETTINGS_AUDIO)
 
 	row = column.Row()
-	row.Item(NewLabel("~ Program Settings ~"))
+	row.Item(NewLabel("Save Sound Playback:"), SETTINGS_AUDIO)
+	row.Item(project.SaveSoundsPlaying, SETTINGS_AUDIO)
+
+	// Global
 
 	row = column.Row()
-	row.Item(NewLabel("Auto-reload Themes:"))
-	row.Item(project.AutoReloadThemes)
+	row.Item(NewLabel("Auto-reload Themes:"), SETTINGS_GLOBAL)
+	row.Item(project.AutoReloadThemes, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Auto-load Last Project:"))
-	row.Item(project.AutoLoadLastProject)
+	row.Item(NewLabel("Auto-load Last Project:"), SETTINGS_GLOBAL)
+	row.Item(project.AutoLoadLastProject, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Disable Splashscreen:"))
-	row.Item(project.DisableSplashscreen)
+	row.Item(NewLabel("Disable Splashscreen:"), SETTINGS_GLOBAL)
+	row.Item(project.DisableSplashscreen, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Disable Message Log:"))
-	row.Item(project.DisableMessageLog)
-
-	project.SettingsPanel.EnableScrolling = false
+	row.Item(NewLabel("Disable Message Log:"), SETTINGS_GLOBAL)
+	row.Item(project.DisableMessageLog, SETTINGS_GLOBAL)
 
 	project.Boards = []*Board{NewBoard(project)}
 
@@ -1824,6 +1836,7 @@ func (project *Project) GUI() {
 
 		} else if project.ProjectSettingsOpen {
 
+			project.SettingsPanel.Columns[0].Mode = project.SettingsSection.CurrentChoice
 			project.SettingsPanel.Update()
 
 			if project.SettingsPanel.Exited {

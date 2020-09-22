@@ -132,6 +132,8 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 				outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
 				insideColor = getThemeColor(GUI_INSIDE_DISABLED)
 			} else if MouseReleased(rl.MouseLeftButton) {
+				outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+				insideColor = getThemeColor(GUI_INSIDE_DISABLED)
 				clicked = true
 			}
 		}
@@ -218,6 +220,43 @@ func NewButton(x, y, w, h float32, text string, disabled bool) *Button {
 		Text:         text,
 		Disabled:     disabled,
 	}
+}
+
+type ButtonGroup struct {
+	Rect          rl.Rectangle
+	Options       []string
+	CurrentChoice int
+}
+
+func NewButtonGroup(x, y, w, h float32, options ...string) *ButtonGroup {
+	return &ButtonGroup{
+		Rect:    rl.Rectangle{x, y, w, h},
+		Options: options,
+	}
+}
+
+func (bg *ButtonGroup) Update() {
+
+	r := bg.Rect
+	r.Width /= float32(len(bg.Options))
+
+	for i, option := range bg.Options {
+		if ImmediateButton(r, option, i == bg.CurrentChoice) {
+			bg.CurrentChoice = i
+		}
+		r.X += r.Width
+	}
+
+}
+
+func (bg *ButtonGroup) Depth() int32 { return 0 }
+
+func (bg *ButtonGroup) Rectangle() rl.Rectangle {
+	return bg.Rect
+}
+
+func (bg *ButtonGroup) SetRectangle(rect rl.Rectangle) {
+	bg.Rect = rect
 }
 
 type PanelItem struct {
@@ -367,6 +406,12 @@ func (panel *Panel) Update() {
 		if panel.DragStart.X >= 0 && panel.DragStart.Y >= 0 {
 			panel.Rect.X = GetMousePosition().X - panel.DragStart.X
 			panel.Rect.Y = GetMousePosition().Y - panel.DragStart.Y
+
+			dst.X = panel.Rect.X
+			dst.Y = panel.Rect.Y
+			topBar.X = panel.Rect.X
+			topBar.Y = panel.Rect.Y
+
 			HideMouseInput(rl.MouseLeftButton)
 		}
 
@@ -416,6 +461,7 @@ func (panel *Panel) Update() {
 		horizontalMargin := float32(32)
 
 		y := float32(0)
+		lowestY := float32(0)
 
 		globalMouseOffset.X = panel.Rect.X
 		globalMouseOffset.Y = panel.Rect.Y - scroll
@@ -478,6 +524,10 @@ func (panel *Panel) Update() {
 						rect.Y = y - (rect.Height / 2)
 					}
 
+					if spinner, isSpinner := item.Element.(*Spinner); isSpinner && spinner.Expanded {
+						lowestY += spinner.ExpandedHeight()
+					}
+
 					item.Element.SetRectangle(rect)
 
 					x += w
@@ -497,9 +547,13 @@ func (panel *Panel) Update() {
 								activeRowCount++
 							}
 						}
-						y += float32(int(panel.OriginalHeight-32) / activeRowCount) // Automatic spacing
+						y += float32(int(panel.OriginalHeight-32-topBar.Height) / activeRowCount) // Automatic spacing
 					}
 
+				}
+
+				if y > lowestY {
+					lowestY = y
 				}
 
 				x = columnX
@@ -512,27 +566,10 @@ func (panel *Panel) Update() {
 			item.Element.Update()
 		}
 
-		quitButton = ImmediateButton(rl.Rectangle{float32(int32(panel.Rect.Width - exitButtonSize)), 0, exitButtonSize, exitButtonSize}, "X", false)
-
 		globalMouseOffset.X = 0
 		globalMouseOffset.Y = 0
 
 		rl.EndTextureMode()
-
-		if panel.AutoExpand && panel.EnableScrolling {
-
-			newHeight := y
-
-			if newHeight < panel.OriginalHeight {
-				newHeight = panel.OriginalHeight
-			}
-
-			if newHeight != panel.Rect.Height {
-				panel.Rect.Height = newHeight
-				panel.recreateRenderTexture()
-			}
-
-		}
 
 		src := rl.Rectangle{panel.ViewPosition.X, panel.ViewPosition.Y, panel.OriginalWidth, panel.OriginalHeight}
 		src.Height *= -1
@@ -549,6 +586,21 @@ func (panel *Panel) Update() {
 			dst,
 			rl.Vector2{}, 0, rl.White)
 
+		if panel.AutoExpand && panel.EnableScrolling {
+
+			newHeight := lowestY
+
+			if newHeight < panel.OriginalHeight {
+				newHeight = panel.OriginalHeight
+			}
+
+			if newHeight != panel.Rect.Height {
+				panel.Rect.Height = newHeight
+				panel.recreateRenderTexture()
+			}
+
+		}
+
 		if panel.OriginalHeight < panel.Rect.Height && panel.EnableScrolling {
 			panel.Scrollbar.Update()
 		} else {
@@ -556,6 +608,8 @@ func (panel *Panel) Update() {
 		}
 
 	}
+
+	quitButton = ImmediateButton(rl.Rectangle{float32(int32(panel.Rect.X + panel.Rect.Width - exitButtonSize)), panel.Rect.Y, exitButtonSize, exitButtonSize}, "X", false)
 
 	if quitButton {
 		panel.Exited = true
