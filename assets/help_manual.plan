@@ -6,7 +6,7 @@
   "AutoSave": false,
   "Pan.X": 0,
   "Pan.Y": 0,
-  "ZoomLevel": 2,
+  "ZoomLevel": 3,
   "ColorTheme": "Sunlight",
   "TaskTransparency": 5,
   "OutlineTasks": true,
@@ -24,6 +24,7 @@
   "BackupInterval": 0,
   "BackupKeepCount": 1,
   "UndoMaxSteps": 0,
+  "AlwaysShowURLButtons": false,
   "BoardNames": ["Welcome"],
   "Tasks": [
     {
