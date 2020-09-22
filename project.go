@@ -2176,6 +2176,10 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 		localFilepath := resourcePath
 
+		if strings.HasPrefix(resourcePath, "./") || strings.HasPrefix(resourcePath, "../") {
+			localFilepath = filepath.Join(filepath.Dir(project.FilePath), localFilepath)
+		}
+
 		// Attempt downloading it if it's an HTTP file
 		if strings.HasPrefix(resourcePath, "http://") || strings.HasPrefix(resourcePath, "https://") {
 
@@ -2300,3 +2304,4 @@ func (project *Project) ExecuteDestructiveAction(action string, argument string)
 	}
 
 }
+
