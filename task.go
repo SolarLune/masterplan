@@ -1020,22 +1020,24 @@ func (task *Task) Draw() {
 	// progress bar for progression-based Tasks.
 	applyGlow := func(color rl.Color) rl.Color {
 
-		glowVariance := float64(10)
-		if task.Selected {
-			glowVariance = 80
+		if (task.Completable() && ((task.Complete() && task.Board.Project.CompleteTasksGlow.Checked) || (!task.Complete() && task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
+
+			glowVariance := float64(20)
+			if task.Selected {
+				glowVariance = 80
+			}
+
+			glow := int32(math.Sin(float64((rl.GetTime()*math.Pi*2-(float32(task.ID)*0.1))))*(glowVariance/2) + (glowVariance / 2))
+
+			color = ColorAdd(color, -glow)
 		}
 
-		glow := int32(math.Sin(float64((rl.GetTime()*math.Pi*4-(float32(task.ID)*0.1))))*(glowVariance/2) + (glowVariance / 2))
-
-		color = ColorAdd(color, -glow)
-
 		return color
+
 	}
 
-	if task.Completable() || task.Selected {
-		color = applyGlow(color)
-		outlineColor = applyGlow(outlineColor)
-	}
+	color = applyGlow(color)
+	outlineColor = applyGlow(outlineColor)
 
 	perc := float32(0)
 

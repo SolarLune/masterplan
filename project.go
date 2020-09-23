@@ -100,6 +100,9 @@ type Project struct {
 	AlwaysShowURLButtons     *Checkbox
 	SettingsSection          *ButtonGroup
 	SoundVolume              *NumberSpinner
+	IncompleteTasksGlow      *Checkbox
+	CompleteTasksGlow        *Checkbox
+	SelectedTasksGlow        *Checkbox
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -198,6 +201,9 @@ func NewProject() *Project {
 		AlwaysShowURLButtons:     NewCheckbox(0, 0, 32, 32),
 		SettingsSection:          NewButtonGroup(0, 0, 512, 32, "General", "Audio", "Tasks", "Global"),
 		SoundVolume:              NewNumberSpinner(0, 0, 128, 40),
+		IncompleteTasksGlow:      NewCheckbox(0, 0, 32, 32),
+		CompleteTasksGlow:        NewCheckbox(0, 0, 32, 32),
+		SelectedTasksGlow:        NewCheckbox(0, 0, 32, 32),
 		// Program settings GUI elements
 		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
 		AutoReloadThemes:    NewCheckbox(0, 0, 32, 32),
@@ -292,6 +298,18 @@ func NewProject() *Project {
 	row.Item(NewLabel("Bracket Sub-Tasks:"), SETTINGS_TASKS)
 	row.Item(project.BracketSubtasks, SETTINGS_TASKS)
 
+	row = column.Row()
+	row.Item(NewLabel("Incomplete Tasks Glow:"), SETTINGS_TASKS)
+	row.Item(project.IncompleteTasksGlow, SETTINGS_TASKS)
+
+	row = column.Row()
+	row.Item(NewLabel("Completed Tasks Glow:"), SETTINGS_TASKS)
+	row.Item(project.CompleteTasksGlow, SETTINGS_TASKS)
+
+	row = column.Row()
+	row.Item(NewLabel("Selected Tasks Glow:"), SETTINGS_TASKS)
+	row.Item(project.SelectedTasksGlow, SETTINGS_TASKS)
+
 	// Audio
 
 	row = column.Row()
@@ -342,6 +360,9 @@ func NewProject() *Project {
 	project.SoundVolume.Maximum = 10
 	project.SoundVolume.Minimum = 0
 	project.SoundVolume.SetNumber(8)
+	project.IncompleteTasksGlow.Checked = true
+	project.CompleteTasksGlow.Checked = true
+	project.SelectedTasksGlow.Checked = true
 
 	project.AutomaticBackupInterval.SetNumber(15) // Seems sensible to make new projects have this as a default.
 	project.AutomaticBackupInterval.Minimum = 0
@@ -464,6 +485,9 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `UndoMaxSteps`, project.MaxUndoSteps.Number())
 			data, _ = sjson.Set(data, `AlwaysShowURLButtons`, project.AlwaysShowURLButtons.Checked)
 			data, _ = sjson.Set(data, `SoundVolume`, project.SoundVolume.Number())
+			data, _ = sjson.Set(data, `IncompleteTasksGlow`, project.IncompleteTasksGlow.Checked)
+			data, _ = sjson.Set(data, `CompleteTasksGlow`, project.CompleteTasksGlow.Checked)
+			data, _ = sjson.Set(data, `SelectedTasksGlow`, project.SelectedTasksGlow.Checked)
 
 			boardNames := []string{}
 			for _, board := range project.Boards {
@@ -597,6 +621,12 @@ func LoadProject(filepath string) *Project {
 
 			if data.Get(`TaskTransparency`).Exists() {
 				project.TaskTransparency.SetNumber(getInt(`TaskTransparency`))
+			}
+
+			if data.Get(`CompleteTasksGlow`).Exists() {
+				project.CompleteTasksGlow.Checked = getBool(`CompleteTasksGlow`)
+				project.IncompleteTasksGlow.Checked = getBool(`IncompleteTasksGlow`)
+				project.SelectedTasksGlow.Checked = getBool(`SelectedTasksGlow`)
 			}
 
 			if project.LockProject.Checked {
