@@ -196,7 +196,7 @@ func NewProject() *Project {
 		LockProject:              NewCheckbox(0, 0, 32, 32),
 		AutomaticBackupInterval:  NewNumberSpinner(0, 0, 128, 40),
 		AutomaticBackupKeepCount: NewNumberSpinner(0, 0, 128, 40),
-		MaxUndoSteps:             NewNumberSpinner(0, 0, 160, 40),
+		MaxUndoSteps:             NewNumberSpinner(0, 0, 192, 40),
 		TaskTransparency:         NewNumberSpinner(0, 0, 128, 40),
 		AlwaysShowURLButtons:     NewCheckbox(0, 0, 32, 32),
 		SettingsSection:          NewButtonGroup(0, 0, 512, 32, "General", "Audio", "Tasks", "Global"),
@@ -260,17 +260,12 @@ func NewProject() *Project {
 	row.Item(NewLabel("Maximum Undo Steps:"), SETTINGS_GENERAL)
 	row.Item(project.MaxUndoSteps, SETTINGS_GENERAL)
 
-	row = column.Row()
-	row.Item(NewLabel("Always Show URL Buttons:"), SETTINGS_GENERAL)
-	row.Item(project.AlwaysShowURLButtons, SETTINGS_GENERAL)
-
 	// TASKS
 
 	row = column.Row()
 	row.Item(NewLabel("Task Transparency:"), SETTINGS_TASKS)
 	row.Item(project.TaskTransparency, SETTINGS_TASKS)
 
-	row = column.Row()
 	row.Item(NewLabel("Task Depth:"), SETTINGS_TASKS)
 	row.Item(project.TaskShadowSpinner, SETTINGS_TASKS)
 
@@ -278,7 +273,6 @@ func NewProject() *Project {
 	row.Item(NewLabel("Outline Tasks:"), SETTINGS_TASKS)
 	row.Item(project.OutlineTasks, SETTINGS_TASKS)
 
-	row = column.Row()
 	row.Item(NewLabel("Pulse Selected Tasks:"), SETTINGS_TASKS)
 	row.Item(project.PulsingTaskSelection, SETTINGS_TASKS)
 
@@ -286,7 +280,6 @@ func NewProject() *Project {
 	row.Item(NewLabel("Show Icons:"), SETTINGS_TASKS)
 	row.Item(project.ShowIcons, SETTINGS_TASKS)
 
-	row = column.Row()
 	row.Item(NewLabel("Numbering Style:"), SETTINGS_TASKS)
 	row.Item(project.NumberingSequence, SETTINGS_TASKS)
 
@@ -294,7 +287,6 @@ func NewProject() *Project {
 	row.Item(NewLabel("Number Top-level Tasks:"), SETTINGS_TASKS)
 	row.Item(project.NumberTopLevel, SETTINGS_TASKS)
 
-	row = column.Row()
 	row.Item(NewLabel("Bracket Sub-Tasks Under Parent:"), SETTINGS_TASKS)
 	row.Item(project.BracketSubtasks, SETTINGS_TASKS)
 
@@ -302,13 +294,15 @@ func NewProject() *Project {
 	row.Item(NewLabel("Incomplete Tasks Glow:"), SETTINGS_TASKS)
 	row.Item(project.IncompleteTasksGlow, SETTINGS_TASKS)
 
-	row = column.Row()
 	row.Item(NewLabel("Completed Tasks Glow:"), SETTINGS_TASKS)
 	row.Item(project.CompleteTasksGlow, SETTINGS_TASKS)
 
 	row = column.Row()
 	row.Item(NewLabel("Selected Tasks Glow:"), SETTINGS_TASKS)
 	row.Item(project.SelectedTasksGlow, SETTINGS_TASKS)
+
+	row.Item(NewLabel("Always Show URL Buttons:"), SETTINGS_TASKS)
+	row.Item(project.AlwaysShowURLButtons, SETTINGS_TASKS)
 
 	// Audio
 

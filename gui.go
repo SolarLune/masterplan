@@ -458,7 +458,7 @@ func (panel *Panel) Update() {
 		rl.BeginTextureMode(panel.RenderTexture)
 		rl.ClearBackground(getThemeColor(GUI_INSIDE))
 
-		horizontalMargin := float32(32)
+		horizontalMargin := float32(64)
 
 		y := float32(0)
 		lowestY := float32(0)
@@ -486,7 +486,7 @@ func (panel *Panel) Update() {
 			return sorted[i].Element.Depth() > sorted[j].Element.Depth()
 		})
 
-		x := float32(horizontalMargin / 2)
+		x := float32(0)
 
 		for i, column := range panel.Columns {
 
