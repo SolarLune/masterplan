@@ -295,7 +295,7 @@ func NewProject() *Project {
 	row.Item(project.NumberTopLevel, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Bracket Sub-Tasks:"), SETTINGS_TASKS)
+	row.Item(NewLabel("Bracket Sub-Tasks Under Parent:"), SETTINGS_TASKS)
 	row.Item(project.BracketSubtasks, SETTINGS_TASKS)
 
 	row = column.Row()

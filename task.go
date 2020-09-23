@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goware/urlx"
 	"github.com/ncruces/zenity"
 	"github.com/pkg/browser"
 	"github.com/tanema/gween/ease"
@@ -45,6 +46,7 @@ const (
 type URLButton struct {
 	Pos  rl.Vector2
 	Text string
+	Link string
 	Size rl.Vector2
 }
 
@@ -96,6 +98,7 @@ type Task struct {
 
 	OriginalIndentation int
 	NumberingPrefix     []int
+	PrefixText          string
 	ID                  int
 	PercentageComplete  float32
 	Visible             bool
@@ -922,7 +925,8 @@ func (task *Task) Draw() {
 
 			}
 		}
-		name = fmt.Sprintf("%s %s", n, name)
+		task.PrefixText = n
+		name = fmt.Sprintf("%s %s", task.PrefixText, name)
 	}
 
 	invalidImage := task.Image.ID == 0 && task.GifAnimation == nil
@@ -1307,11 +1311,7 @@ func (task *Task) Draw() {
 					margin := float32(2)
 					dst := rl.Rectangle{textPos.X + urlButton.Pos.X - margin, textPos.Y + urlButton.Pos.Y, urlButton.Size.X + (margin * 2), urlButton.Size.Y}
 					if ImmediateButton(dst, urlButton.Text, false) {
-						urlText := urlButton.Text
-						if !strings.HasPrefix(urlText, "http://") {
-							urlText = "http://" + urlText
-						}
-						browser.OpenURL(urlText)
+						browser.OpenURL(urlButton.Link)
 					}
 
 				}
@@ -2064,8 +2064,16 @@ func (task *Task) ScanTextForURLs(text string) {
 
 	for i, letter := range []rune(text) {
 
+		validRune := true
+
+		if i < len([]rune(task.PrefixText)) { // The numbering prefix cannot be part of the URL
+			validRune = false
+		}
+
 		if letter != ' ' && letter != '\n' {
-			currentURLButton.Text += string(letter)
+			if validRune {
+				currentURLButton.Text += string(letter)
+			}
 			wordStart.X += rl.MeasureTextEx(font, string(letter), fontSize, spacing).X + 1
 		}
 
@@ -2079,12 +2087,12 @@ func (task *Task) ScanTextForURLs(text string) {
 
 				if strings.Contains(urlText, ".") || strings.Contains(urlText, ":") {
 
-					if !strings.HasPrefix(urlText, "http://") {
-						urlText = "http://" + urlText
-					}
+					url, err := urlx.Parse(urlText)
 
-					// We assume it's a valid URL if it has a period or colon that't not at the beginning or end (e.g. "website." is not valid, while "web.site" is)
-					task.URLButtons = append(task.URLButtons, currentURLButton)
+					if err == nil && url.Host != "" && url.Scheme != "" {
+						currentURLButton.Link = url.String()
+						task.URLButtons = append(task.URLButtons, currentURLButton)
+					}
 
 				}
 
