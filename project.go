@@ -99,6 +99,7 @@ type Project struct {
 	TaskTransparency         *NumberSpinner
 	AlwaysShowURLButtons     *Checkbox
 	SettingsSection          *ButtonGroup
+	SoundVolume              *NumberSpinner
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -196,7 +197,7 @@ func NewProject() *Project {
 		TaskTransparency:         NewNumberSpinner(0, 0, 128, 40),
 		AlwaysShowURLButtons:     NewCheckbox(0, 0, 32, 32),
 		SettingsSection:          NewButtonGroup(0, 0, 512, 32, "General", "Audio", "Tasks", "Global"),
-
+		SoundVolume:              NewNumberSpinner(0, 0, 128, 40),
 		// Program settings GUI elements
 		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
 		AutoReloadThemes:    NewCheckbox(0, 0, 32, 32),
@@ -294,6 +295,10 @@ func NewProject() *Project {
 	// Audio
 
 	row = column.Row()
+	row.Item(NewLabel("Volume:"), SETTINGS_AUDIO)
+	row.Item(project.SoundVolume, SETTINGS_AUDIO)
+
+	row = column.Row()
 	row.Item(NewLabel("Project Samplerate:"), SETTINGS_AUDIO)
 	row.Item(project.SampleRate, SETTINGS_AUDIO)
 
@@ -334,6 +339,9 @@ func NewProject() *Project {
 	project.TaskTransparency.Maximum = 5
 	project.TaskTransparency.Minimum = 1
 	project.TaskTransparency.SetNumber(5)
+	project.SoundVolume.Maximum = 10
+	project.SoundVolume.Minimum = 0
+	project.SoundVolume.SetNumber(8)
 
 	project.AutomaticBackupInterval.SetNumber(15) // Seems sensible to make new projects have this as a default.
 	project.AutomaticBackupInterval.Minimum = 0
@@ -438,7 +446,7 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `Pan\.Y`, project.CameraPan.Y)
 			data, _ = sjson.Set(data, `ZoomLevel`, project.ZoomLevel)
 			data, _ = sjson.Set(data, `ColorTheme`, currentTheme)
-			data, _ = sjson.Set(data, `TaskTransparency`, project.TaskTransparency.GetNumber())
+			data, _ = sjson.Set(data, `TaskTransparency`, project.TaskTransparency.Number())
 			data, _ = sjson.Set(data, `OutlineTasks`, project.OutlineTasks.Checked)
 			data, _ = sjson.Set(data, `BracketSubtasks`, project.BracketSubtasks.Checked)
 			data, _ = sjson.Set(data, `TaskShadow`, project.TaskShadowSpinner.CurrentChoice)
@@ -451,10 +459,11 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `SampleRate`, project.SampleRate.ChoiceAsInt())
 			data, _ = sjson.Set(data, `SampleBuffer`, project.SampleBuffer)
 			data, _ = sjson.Set(data, `SaveSoundsPlaying`, project.SaveSoundsPlaying.Checked)
-			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.GetNumber())
-			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.GetNumber())
-			data, _ = sjson.Set(data, `UndoMaxSteps`, project.MaxUndoSteps.GetNumber())
+			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.Number())
+			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.Number())
+			data, _ = sjson.Set(data, `UndoMaxSteps`, project.MaxUndoSteps.Number())
 			data, _ = sjson.Set(data, `AlwaysShowURLButtons`, project.AlwaysShowURLButtons.Checked)
+			data, _ = sjson.Set(data, `SoundVolume`, project.SoundVolume.Number())
 
 			boardNames := []string{}
 			for _, board := range project.Boards {
@@ -581,6 +590,10 @@ func LoadProject(filepath string) *Project {
 			project.AutomaticBackupKeepCount.SetNumber(getInt(`BackupKeepCount`))
 			project.MaxUndoSteps.SetNumber(getInt(`UndoMaxSteps`))
 			project.AlwaysShowURLButtons.Checked = getBool(`AlwaysShowURLButtons`)
+
+			if data.Get(`SoundVolume`).Exists() {
+				project.SoundVolume.SetNumber(getInt(`SoundVolume`))
+			}
 
 			if data.Get(`TaskTransparency`).Exists() {
 				project.TaskTransparency.SetNumber(getInt(`TaskTransparency`))
@@ -1073,7 +1086,7 @@ func (project *Project) Update() {
 
 func (project *Project) AutoBackup() {
 
-	if project.AutomaticBackupInterval.GetNumber() == 0 {
+	if project.AutomaticBackupInterval.Number() == 0 {
 		if !project.AutomaticBackupInterval.Textbox.Focused {
 			project.AutomaticBackupInterval.Textbox.SetText("OFF")
 		}
@@ -1081,7 +1094,7 @@ func (project *Project) AutoBackup() {
 
 		if project.BackupTimer.IsZero() {
 			project.BackupTimer = time.Now()
-		} else if time.Now().Sub(project.BackupTimer).Minutes() >= float64(project.AutomaticBackupInterval.GetNumber()) && project.FilePath != "" {
+		} else if time.Now().Sub(project.BackupTimer).Minutes() >= float64(project.AutomaticBackupInterval.Number()) && project.FilePath != "" {
 
 			dir, _ := filepath.Split(project.FilePath)
 
@@ -1115,7 +1128,7 @@ func (project *Project) AutoBackup() {
 
 			}
 
-			for i := 0; i < len(existingBackups)-project.AutomaticBackupKeepCount.GetNumber()+1; i++ {
+			for i := 0; i < len(existingBackups)-project.AutomaticBackupKeepCount.Number()+1; i++ {
 				oldest := existingBackups[0]
 				os.Remove(oldest)
 				existingBackups = existingBackups[1:]
@@ -1839,6 +1852,14 @@ func (project *Project) GUI() {
 			project.SettingsPanel.Columns[0].Mode = project.SettingsSection.CurrentChoice
 			project.SettingsPanel.Update()
 
+			if project.SoundVolume.Changed {
+
+				for _, t := range project.CurrentBoard().Tasks {
+					t.UpdateSoundVolume()
+				}
+
+			}
+
 			if project.SettingsPanel.Exited {
 
 				project.ProjectSettingsOpen = false
@@ -1884,7 +1905,7 @@ func (project *Project) GUI() {
 				project.SendMessage(MessageThemeChange, nil)
 			}
 
-			if project.MaxUndoSteps.GetNumber() == 0 {
+			if project.MaxUndoSteps.Number() == 0 {
 				project.MaxUndoSteps.Textbox.SetText("Unlimited")
 			}
 

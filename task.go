@@ -19,6 +19,7 @@ import (
 	"github.com/hako/durafmt"
 
 	"github.com/faiface/beep"
+	"github.com/faiface/beep/effects"
 	"github.com/faiface/beep/speaker"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -81,6 +82,7 @@ type Task struct {
 	GifAnimation *GifAnimation
 
 	SoundControl     *beep.Ctrl
+	SoundVolume      *effects.Volume
 	SoundStream      beep.StreamSeekCloser
 	SoundComplete    bool
 	FilePathTextbox  *Textbox
@@ -198,6 +200,12 @@ func NewTask(board *Board) *Task {
 	task.TimerSecondSpinner.Minimum = 0
 	task.TimerSecondSpinner.Maximum = 59
 	task.TimerMinuteSpinner.Minimum = 0
+
+	task.SoundVolume = &effects.Volume{
+		Base: 2,
+	}
+
+	task.UpdateSoundVolume()
 
 	return task
 }
@@ -342,6 +350,15 @@ func (task *Task) Clone() *Task {
 	copyData.GifAnimation = nil
 	copyData.SoundControl = nil
 	copyData.SoundStream = nil
+
+	if copyData.SoundVolume != nil {
+		speaker.Lock()
+		ov := *copyData.SoundVolume
+		copyData.SoundVolume = &ov
+		copyData.SoundVolume.Streamer = nil
+		speaker.Unlock()
+	}
+
 	copyData.ID = copyData.Board.Project.FirstFreeID()
 
 	copyData.ReceiveMessage(MessageTaskClose, nil) // We do this to recreate the resources for the Task, if necessary.
@@ -371,8 +388,8 @@ func (task *Task) Serialize() string {
 	}
 
 	jsonData, _ = sjson.Set(jsonData, `Checkbox\.Checked`, task.CompletionCheckbox.Checked)
-	jsonData, _ = sjson.Set(jsonData, `Progression\.Current`, task.CompletionProgressionCurrent.GetNumber())
-	jsonData, _ = sjson.Set(jsonData, `Progression\.Max`, task.CompletionProgressionMax.GetNumber())
+	jsonData, _ = sjson.Set(jsonData, `Progression\.Current`, task.CompletionProgressionCurrent.Number())
+	jsonData, _ = sjson.Set(jsonData, `Progression\.Max`, task.CompletionProgressionMax.Number())
 	jsonData, _ = sjson.Set(jsonData, `Description`, task.Description.Text())
 
 	// Turn the file path absolute if it's not a remote path
@@ -407,14 +424,14 @@ func (task *Task) Serialize() string {
 	}
 
 	if task.DeadlineCheckbox.Checked {
-		jsonData, _ = sjson.Set(jsonData, `DeadlineDaySpinner\.Number`, task.DeadlineDaySpinner.GetNumber())
+		jsonData, _ = sjson.Set(jsonData, `DeadlineDaySpinner\.Number`, task.DeadlineDaySpinner.Number())
 		jsonData, _ = sjson.Set(jsonData, `DeadlineMonthSpinner\.CurrentChoice`, task.DeadlineMonthSpinner.CurrentChoice)
-		jsonData, _ = sjson.Set(jsonData, `DeadlineYearSpinner\.Number`, task.DeadlineYearSpinner.GetNumber())
+		jsonData, _ = sjson.Set(jsonData, `DeadlineYearSpinner\.Number`, task.DeadlineYearSpinner.Number())
 	}
 
 	if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
-		jsonData, _ = sjson.Set(jsonData, `TimerSecondSpinner\.Number`, task.TimerSecondSpinner.GetNumber())
-		jsonData, _ = sjson.Set(jsonData, `TimerMinuteSpinner\.Number`, task.TimerMinuteSpinner.GetNumber())
+		jsonData, _ = sjson.Set(jsonData, `TimerSecondSpinner\.Number`, task.TimerSecondSpinner.Number())
+		jsonData, _ = sjson.Set(jsonData, `TimerMinuteSpinner\.Number`, task.TimerMinuteSpinner.Number())
 		jsonData, _ = sjson.Set(jsonData, `TimerName\.Text`, task.TimerName.Text())
 	}
 
@@ -703,7 +720,7 @@ func (task *Task) Update() {
 
 		if task.TimerRunning {
 
-			countdownMax := float32(task.TimerSecondSpinner.GetNumber() + (task.TimerMinuteSpinner.GetNumber() * 60))
+			countdownMax := float32(task.TimerSecondSpinner.Number() + (task.TimerMinuteSpinner.Number() * 60))
 
 			if countdownMax <= 0 {
 				task.TimerRunning = false
@@ -716,14 +733,24 @@ func (task *Task) Update() {
 					task.TimerValue = 0
 					task.Board.Project.Log("Timer [%s] elapsed.", task.TimerName.Text())
 
-					audioFile, _ := task.Board.Project.LoadResource(GetPath("assets", "alarm.wav"))
-					stream, format, _ := audioFile.Audio()
+					if task.Board.Project.SoundVolume.Number() > 0 {
 
-					fn := func() {
-						stream.Close()
+						audioFile, _ := task.Board.Project.LoadResource(GetPath("assets", "alarm.wav"))
+						stream, format, _ := audioFile.Audio()
+
+						fn := func() {
+							stream.Close()
+						}
+
+						volumed := &effects.Volume{
+							Streamer: stream,
+							Base:     2,
+							Volume:   float64(task.Board.Project.SoundVolume.Number()-10) / 2,
+						}
+
+						speaker.Play(beep.Seq(beep.Resample(1, format.SampleRate, beep.SampleRate(task.Board.Project.SampleRate.ChoiceAsInt()), volumed), beep.Callback(fn)))
+
 					}
-
-					speaker.Play(beep.Seq(beep.Resample(1, format.SampleRate, beep.SampleRate(task.Board.Project.SampleRate.ChoiceAsInt()), stream), beep.Callback(fn)))
 
 					if task.TaskBelow != nil && task.TaskBelow.TaskType.CurrentChoice == TASK_TYPE_TIMER {
 						task.TaskBelow.ToggleTimer()
@@ -850,7 +877,7 @@ func (task *Task) Draw() {
 		minutes := int(task.TimerValue / 60)
 		seconds := int(task.TimerValue) % 60
 		timeString := fmt.Sprintf("%02d:%02d", minutes, seconds)
-		maxTimeString := fmt.Sprintf("%02d:%02d", task.TimerMinuteSpinner.GetNumber(), task.TimerSecondSpinner.GetNumber())
+		maxTimeString := fmt.Sprintf("%02d:%02d", task.TimerMinuteSpinner.Number(), task.TimerSecondSpinner.Number())
 		name = task.TimerName.Text() + " : " + timeString + " / " + maxTimeString
 
 	}
@@ -864,7 +891,7 @@ func (task *Task) Draw() {
 		}
 		name = fmt.Sprintf("%s (%d / %d)", name, currentFinished, len(task.SubTasks))
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
-		name = fmt.Sprintf("%s (%d / %d)", name, task.CompletionProgressionCurrent.GetNumber(), task.CompletionProgressionMax.GetNumber())
+		name = fmt.Sprintf("%s (%d / %d)", name, task.CompletionProgressionCurrent.Number(), task.CompletionProgressionMax.Number())
 	}
 
 	sequenceType := task.Board.Project.NumberingSequence.CurrentChoice
@@ -1022,8 +1049,8 @@ func (task *Task) Draw() {
 		perc = float32(totalComplete) / float32(len(task.SubTasks))
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
 
-		cnum := task.CompletionProgressionCurrent.GetNumber()
-		mnum := task.CompletionProgressionMax.GetNumber()
+		cnum := task.CompletionProgressionCurrent.Number()
+		mnum := task.CompletionProgressionMax.Number()
 
 		if mnum < cnum {
 			task.CompletionProgressionMax.SetNumber(cnum)
@@ -1040,7 +1067,7 @@ func (task *Task) Draw() {
 		perc = float32(pos) / float32(len)
 	} else if task.TaskType.CurrentChoice == TASK_TYPE_TIMER {
 
-		countdownMax := float32(task.TimerSecondSpinner.GetNumber() + (task.TimerMinuteSpinner.GetNumber() * 60))
+		countdownMax := float32(task.TimerSecondSpinner.Number() + (task.TimerMinuteSpinner.Number() * 60))
 
 		// If countdownMax == 0, then task.TimerValue / countdownMax can equal a NaN, which breaks drawing the
 		// filling rectangle.
@@ -1065,8 +1092,8 @@ func (task *Task) Draw() {
 
 	alpha := uint8(255)
 
-	if task.Board.Project.TaskTransparency.GetNumber() < 255 {
-		t := float32(task.Board.Project.TaskTransparency.GetNumber())
+	if task.Board.Project.TaskTransparency.Number() < 255 {
+		t := float32(task.Board.Project.TaskTransparency.Number())
 		alpha = uint8((t / float32(task.Board.Project.TaskTransparency.Maximum)) * (255 - 32))
 		color.A = 32 + alpha
 	}
@@ -1408,7 +1435,7 @@ func (task *Task) Draw() {
 			srcX += 16
 		}
 
-		if task.SmallButton(srcX, 16, 16, 16, x, y) && (task.TimerMinuteSpinner.GetNumber() > 0 || task.TimerSecondSpinner.GetNumber() > 0) {
+		if task.SmallButton(srcX, 16, 16, 16, x, y) && (task.TimerMinuteSpinner.Number() > 0 || task.TimerSecondSpinner.Number() > 0) {
 			task.ToggleTimer()
 		}
 		if task.SmallButton(48, 16, 16, 16, x+16, y) {
@@ -1545,7 +1572,7 @@ func (task *Task) UpdateNeighbors() {
 }
 
 func (task *Task) DeadlineTime() time.Time {
-	return time.Date(task.DeadlineYearSpinner.GetNumber(), time.Month(task.DeadlineMonthSpinner.CurrentChoice+1), task.DeadlineDaySpinner.GetNumber(), 0, 0, 0, 0, time.Now().Location())
+	return time.Date(task.DeadlineYearSpinner.Number(), time.Month(task.DeadlineMonthSpinner.CurrentChoice+1), task.DeadlineDaySpinner.Number(), 0, 0, 0, 0, time.Now().Location())
 }
 
 func (task *Task) CalculateDeadlineDuration() time.Duration {
@@ -1574,8 +1601,8 @@ func (task *Task) DrawShadow() {
 		depthRect := task.Rect
 		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
 
-		if task.Board.Project.TaskTransparency.GetNumber() < 255 {
-			t := float32(task.Board.Project.TaskTransparency.GetNumber())
+		if task.Board.Project.TaskTransparency.Number() < 255 {
+			t := float32(task.Board.Project.TaskTransparency.Number())
 			alpha := uint8((t / float32(task.Board.Project.TaskTransparency.Maximum)) * (255 - 32))
 			shadowColor.A = 32 + alpha
 		}
@@ -1737,7 +1764,7 @@ func (task *Task) Complete() bool {
 		if task.TaskType.CurrentChoice == TASK_TYPE_BOOLEAN {
 			return task.CompletionCheckbox.Checked
 		} else if task.TaskType.CurrentChoice == TASK_TYPE_PROGRESSION {
-			return task.CompletionProgressionMax.GetNumber() > 0 && task.CompletionProgressionCurrent.GetNumber() >= task.CompletionProgressionMax.GetNumber()
+			return task.CompletionProgressionMax.Number() > 0 && task.CompletionProgressionCurrent.Number() >= task.CompletionProgressionMax.Number()
 		}
 	}
 	return false
@@ -1765,7 +1792,7 @@ func (task *Task) SetCompletion(complete bool) {
 			// }
 
 			if complete {
-				task.CompletionProgressionCurrent.SetNumber(task.CompletionProgressionMax.GetNumber())
+				task.CompletionProgressionCurrent.SetNumber(task.CompletionProgressionMax.Number())
 			} else {
 				task.CompletionProgressionCurrent.SetNumber(0)
 			}
@@ -1827,8 +1854,8 @@ func (task *Task) LoadResource() {
 
 				if task.SoundStream != nil {
 					speaker.Lock()
-					task.SoundStream.Close()
 					task.SoundControl.Paused = true
+					task.SoundControl.Streamer = nil
 					task.SoundControl = nil
 					speaker.Unlock()
 				}
@@ -1852,8 +1879,16 @@ func (task *Task) LoadResource() {
 					} else {
 						task.SoundControl = &beep.Ctrl{Streamer: stream, Paused: true}
 					}
+
+					task.SoundVolume = &effects.Volume{
+						Streamer: task.SoundControl,
+						Base:     2,
+					}
+
+					task.UpdateSoundVolume()
+
 					task.Board.Project.Log("Sound file %s loaded properly.", res.ResourcePath)
-					speaker.Play(beep.Seq(task.SoundControl, beep.Callback(task.OnSoundCompletion)))
+					speaker.Play(beep.Seq(task.SoundVolume, beep.Callback(task.OnSoundCompletion)))
 
 				}
 
@@ -2068,8 +2103,6 @@ func (task *Task) ScanTextForURLs(text string) {
 
 	}
 
-	fmt.Println(task.URLButtons)
-
 }
 
 func (task *Task) ValidLineEndings() []*Task {
@@ -2138,7 +2171,16 @@ func (task *Task) StopSound() {
 }
 
 func (task *Task) OnSoundCompletion() {
-	task.SoundComplete = true
+	if task.SoundControl != nil && !task.SoundControl.Paused {
+		task.SoundComplete = true
+	}
+}
+
+func (task *Task) UpdateSoundVolume() {
+	speaker.Lock()
+	task.SoundVolume.Volume = float64(task.Board.Project.SoundVolume.Number()-10) / 2
+	task.SoundVolume.Silent = task.Board.Project.SoundVolume.Number() == 0
+	speaker.Unlock()
 }
 
 func (task *Task) ToggleTimer() {

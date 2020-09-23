@@ -99,7 +99,7 @@ func (ub *UndoBuffer) Update() {
 
 	ub.NewCaptures = NewUndoStep()
 
-	max := ub.Project.MaxUndoSteps.GetNumber()
+	max := ub.Project.MaxUndoSteps.Number()
 
 	if max > 0 {
 		for len(ub.Steps) > max {

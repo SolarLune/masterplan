@@ -1060,6 +1060,7 @@ type NumberSpinner struct {
 	Minimum int
 	Maximum int
 	Loop    bool // If the spinner loops when attempting to add a number past the max
+	Changed bool
 }
 
 func NewNumberSpinner(x, y, w, h float32) *NumberSpinner {
@@ -1085,20 +1086,28 @@ func (numberSpinner *NumberSpinner) Update() {
 	minusButton := ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false)
 	plusButton := ImmediateButton(rl.Rectangle{numberSpinner.Textbox.Rect.X + numberSpinner.Textbox.Rect.Width, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false)
 
+	if numberSpinner.Textbox.Changed {
+		numberSpinner.Changed = true
+	} else {
+		numberSpinner.Changed = false
+	}
+
 	if !numberSpinner.Textbox.Focused {
 
 		if numberSpinner.Textbox.Text() == "" {
 			numberSpinner.Textbox.SetText("0")
 		}
 
-		num := numberSpinner.GetNumber()
+		num := numberSpinner.Number()
 
 		if minusButton {
 			num--
+			numberSpinner.Changed = true
 		}
 
 		if plusButton {
 			num++
+			numberSpinner.Changed = true
 		}
 
 		if num < numberSpinner.Minimum {
@@ -1133,7 +1142,7 @@ func (numberSpinner *NumberSpinner) SetRectangle(rect rl.Rectangle) {
 	numberSpinner.Rect = rect
 }
 
-func (numberSpinner *NumberSpinner) GetNumber() int {
+func (numberSpinner *NumberSpinner) Number() int {
 	num, _ := strconv.Atoi(numberSpinner.Textbox.Text())
 	return num
 }
@@ -1780,6 +1789,9 @@ func (textbox *Textbox) SetRectangle(rect rl.Rectangle) {
 }
 
 func (textbox *Textbox) SetText(text string) {
+	if textbox.Text() != text {
+		textbox.Changed = true
+	}
 	textbox.text = []rune(text)
 }
 
