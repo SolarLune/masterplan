@@ -35,13 +35,15 @@ const (
 	NUMBERING_SEQUENCE_NUMBER_DASH
 	NUMBERING_SEQUENCE_ROMAN
 	NUMBERING_SEQUENCE_BULLET
+	NUMBERING_SEQUENCE_SQUARE
+	NUMBERING_SEQUENCE_STAR
 	NUMBERING_SEQUENCE_OFF
 )
 
 const (
 	SETTINGS_GENERAL = iota
-	SETTINGS_AUDIO
 	SETTINGS_TASKS
+	SETTINGS_AUDIO
 	SETTINGS_GLOBAL
 )
 
@@ -186,7 +188,7 @@ func NewProject() *Project {
 		OutlineTasks:             NewCheckbox(0, 0, 32, 32),
 		GridVisible:              NewCheckbox(0, 0, 32, 32),
 		ShowIcons:                NewCheckbox(0, 0, 32, 32),
-		NumberingSequence:        NewSpinner(0, 0, 192, 32, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
+		NumberingSequence:        NewSpinner(0, 0, 192, 32, "1.1.", "1-1)", "I.I.", "Bullets", "Squares", "Stars", "Off"),
 		NumberTopLevel:           NewCheckbox(0, 0, 32, 32),
 		PulsingTaskSelection:     NewCheckbox(0, 0, 32, 32),
 		AutoSave:                 NewCheckbox(0, 0, 32, 32),
@@ -199,7 +201,7 @@ func NewProject() *Project {
 		MaxUndoSteps:             NewNumberSpinner(0, 0, 192, 40),
 		TaskTransparency:         NewNumberSpinner(0, 0, 128, 40),
 		AlwaysShowURLButtons:     NewCheckbox(0, 0, 32, 32),
-		SettingsSection:          NewButtonGroup(0, 0, 512, 32, "General", "Audio", "Tasks", "Global"),
+		SettingsSection:          NewButtonGroup(0, 0, 512, 32, "General", "Tasks", "Audio", "Global"),
 		SoundVolume:              NewNumberSpinner(0, 0, 128, 40),
 		IncompleteTasksGlow:      NewCheckbox(0, 0, 32, 32),
 		CompleteTasksGlow:        NewCheckbox(0, 0, 32, 32),
@@ -284,11 +286,11 @@ func NewProject() *Project {
 	row.Item(project.NumberingSequence, SETTINGS_TASKS)
 
 	row = column.Row()
+	row.Item(NewLabel("Bracket Sub-Tasks\nUnder Parent:"), SETTINGS_TASKS)
+	row.Item(project.BracketSubtasks, SETTINGS_TASKS)
+
 	row.Item(NewLabel("Number Top-level Tasks:"), SETTINGS_TASKS)
 	row.Item(project.NumberTopLevel, SETTINGS_TASKS)
-
-	row.Item(NewLabel("Bracket Sub-Tasks Under Parent:"), SETTINGS_TASKS)
-	row.Item(project.BracketSubtasks, SETTINGS_TASKS)
 
 	row = column.Row()
 	row.Item(NewLabel("Incomplete Tasks Glow:"), SETTINGS_TASKS)

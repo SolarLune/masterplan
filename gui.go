@@ -685,8 +685,19 @@ func (label *Label) Depth() int32 {
 }
 
 func (label *Label) Rectangle() rl.Rectangle {
+
+	width := float32(0)
+
+	for _, line := range strings.Split(label.Text, "\n") {
+		if GUITextWidth(line) > width {
+			width = GUITextWidth(line)
+		}
+	}
+
 	height, _ := TextHeight(label.Text, true)
-	return rl.Rectangle{label.Position.X, label.Position.Y, GUITextWidth(label.Text), height}
+
+	return rl.Rectangle{label.Position.X, label.Position.Y, width, height}
+
 }
 
 func (label *Label) SetRectangle(rect rl.Rectangle) {

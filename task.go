@@ -919,7 +919,11 @@ func (task *Task) Draw() {
 					n += fmt.Sprintf("%d-", value)
 				}
 			case NUMBERING_SEQUENCE_BULLET:
-				n += "o"
+				fallthrough
+			case NUMBERING_SEQUENCE_SQUARE:
+				fallthrough
+			case NUMBERING_SEQUENCE_STAR:
+				n += "   "
 			case NUMBERING_SEQUENCE_ROMAN:
 				n += fmt.Sprintf("%s.", romanNumber)
 
@@ -1408,6 +1412,29 @@ func (task *Task) Draw() {
 			iconSrc.X = 112
 			iconSrc.Y = 0
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+		}
+
+		if task.NumberingPrefix[0] != -1 && task.Completable() {
+
+			numberingIcon := map[int]rl.Rectangle{
+				NUMBERING_SEQUENCE_BULLET: rl.Rectangle{176, 32, 8, 8},
+				NUMBERING_SEQUENCE_SQUARE: rl.Rectangle{184, 32, 8, 8},
+				NUMBERING_SEQUENCE_STAR:   rl.Rectangle{192, 32, 8, 8},
+			}
+
+			if src, exists := numberingIcon[task.Board.Project.NumberingSequence.CurrentChoice]; exists {
+				x := float32(18)
+				bulletCount := len(task.NumberingPrefix)
+				if !task.Board.Project.NumberTopLevel.Checked {
+					bulletCount--
+				}
+				for i := 0; i < bulletCount; i++ {
+					rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, rl.Rectangle{task.Rect.X + x, task.Rect.Y + 4, src.Width, src.Height}, rl.Vector2{}, 0, iconColor)
+					x += src.Width
+				}
+
+			}
+
 		}
 
 		if task.Completable() && !task.Complete() && task.DeadlineCheckbox.Checked {
