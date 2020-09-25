@@ -1419,29 +1419,6 @@ func (task *Task) Draw() {
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X + taskDisplaySize.X - 16, task.Rect.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
 		}
 
-		if task.NumberingPrefix[0] != -1 && task.Completable() {
-
-			numberingIcon := map[int]rl.Rectangle{
-				NUMBERING_SEQUENCE_BULLET: rl.Rectangle{176, 32, 8, 8},
-				NUMBERING_SEQUENCE_SQUARE: rl.Rectangle{184, 32, 8, 8},
-				NUMBERING_SEQUENCE_STAR:   rl.Rectangle{192, 32, 8, 8},
-			}
-
-			if src, exists := numberingIcon[task.Board.Project.NumberingSequence.CurrentChoice]; exists {
-				x := float32(18)
-				bulletCount := len(task.NumberingPrefix)
-				if !task.Board.Project.NumberTopLevel.Checked {
-					bulletCount--
-				}
-				for i := 0; i < bulletCount; i++ {
-					rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, rl.Rectangle{task.Rect.X + x, task.Rect.Y + 4, src.Width, src.Height}, rl.Vector2{}, 0, iconColor)
-					x += src.Width
-				}
-
-			}
-
-		}
-
 		if task.Completable() && !task.Complete() && task.DeadlineCheckbox.Checked {
 			clockPos := rl.Vector2{0, 0}
 			iconSrc = rl.Rectangle{144, 0, 16, 16}
@@ -1455,6 +1432,35 @@ func (task *Task) Draw() {
 			clockPos.X += float32(math.Sin(float64(float32(task.ID)*0.1)+float64(rl.GetTime())*3.1415)) * 4
 
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X - 16 + clockPos.X, task.Rect.Y + clockPos.Y, 16, 16}, rl.Vector2{0, 0}, 0, rl.White)
+		}
+
+	}
+
+	if task.NumberingPrefix[0] != -1 && task.Completable() {
+
+		numberingIcon := map[int]rl.Rectangle{
+			NUMBERING_SEQUENCE_BULLET: rl.Rectangle{176, 32, 8, 8},
+			NUMBERING_SEQUENCE_SQUARE: rl.Rectangle{184, 32, 8, 8},
+			NUMBERING_SEQUENCE_STAR:   rl.Rectangle{192, 32, 8, 8},
+		}
+
+		if src, exists := numberingIcon[task.Board.Project.NumberingSequence.CurrentChoice]; exists {
+			x := float32(18)
+
+			if !task.Board.Project.ShowIcons.Checked {
+				x -= 16
+			}
+
+			bulletCount := len(task.NumberingPrefix)
+			if !task.Board.Project.NumberTopLevel.Checked {
+				bulletCount--
+			}
+
+			for i := 0; i < bulletCount; i++ {
+				rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, rl.Rectangle{task.Rect.X + x, task.Rect.Y + 4, src.Width, src.Height}, rl.Vector2{}, 0, getThemeColor(GUI_FONT_COLOR))
+				x += src.Width
+			}
+
 		}
 
 	}
