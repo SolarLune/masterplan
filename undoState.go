@@ -30,7 +30,7 @@ func (ub *UndoBuffer) Capture(task *Task) {
 
 	newState := NewUndoState(task)
 
-	if (len(ub.Steps) == 0 && len(ub.NewCaptures.States) == 0) || (len(ub.Steps) > 0 && ub.Steps[len(ub.Steps)-1].UniqueUndoState(newState) && ub.NewCaptures.UniqueUndoState(newState)) {
+	if ub.NewCaptures.UniqueUndoState(newState) {
 		ub.NewCaptures.Add(newState)
 	}
 
@@ -259,6 +259,8 @@ func NewUndoState(task *Task) *UndoState {
 	} else {
 		state.Status, _ = sjson.Set(state.Status, "valid", false)
 	}
+
+	state.Status, _ = sjson.Set(state.Status, "id", task.ID) // We care about the ID because, for example, two different Tasks of the same kind could be in the same location
 
 	state.Status, _ = sjson.Delete(state.Status, "Selected") // We don't care about selection being a mark of distinction
 

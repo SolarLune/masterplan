@@ -343,8 +343,12 @@ func (task *Task) Clone() *Task {
 	}
 
 	for _, ending := range copyData.LineEndings {
+		ending.Valid = false
+		task.Board.UndoBuffer.Capture(ending)
+		ending.Valid = true
+		task.Board.UndoBuffer.Capture(ending)
+
 		ending.Selected = true
-		ending.Position.Y += float32(ending.Board.Project.GridSize)
 	}
 
 	copyData.TimerRunning = false // We don't want to clone the timer running
@@ -1382,8 +1386,9 @@ func (task *Task) Draw() {
 			}
 
 			if task.TaskUnder != nil {
-				// Line endings that are inside Task Rectangles become dots
+				// Line endings that are inside Task Rectangles become "X"
 				iconSrc.X = 160
+				rotation = 0
 			}
 
 		}
@@ -2168,14 +2173,6 @@ func (task *Task) CreateLineEnding() *Task {
 		ending.Rect.Y = ending.Position.Y
 		task.LineEndings = append(task.LineEndings, ending)
 		ending.LineBase = task
-
-		// We have to disable and re-enable the undo system because we need to capture the original state of the line
-		// ending ourselves. This is because we position it immediately after creation and that should be considered
-		// the "original" state of the ending.
-		ending.Valid = false
-		task.Board.UndoBuffer.Capture(ending)
-		ending.Valid = true
-		task.Board.UndoBuffer.Capture(ending)
 
 		return ending
 	}

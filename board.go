@@ -260,22 +260,32 @@ func (board *Board) PasteTasks() {
 
 	if len(board.Project.CopyBuffer) > 0 {
 
+		board.UndoBuffer.On = false
+
 		for _, task := range board.Tasks {
 			task.Selected = false
 		}
 
 		clones := []*Task{}
 
-		stack := []*Task{board.Project.CopyBuffer[0]}
-		stack = append(stack, board.Project.CopyBuffer[0].RestOfStack...)
-
 		cloneTask := func(srcTask *Task) *Task {
+			ogBoard := srcTask.Board
+			srcTask.Board = board
 			clone := srcTask.Clone()
+			srcTask.Board = ogBoard
 			board.Tasks = append(board.Tasks, clone)
-			clone.Board = board
 			clone.LoadResource()
 			clones = append(clones, clone)
 			return clone
+		}
+
+		copied := func(task *Task) bool {
+			for _, copy := range board.Project.CopyBuffer {
+				if copy == task {
+					return true
+				}
+			}
+			return false
 		}
 
 		center := rl.Vector2{}
@@ -292,13 +302,41 @@ func (board *Board) PasteTasks() {
 
 		for _, srcTask := range board.Project.CopyBuffer {
 
-			clone := cloneTask(srcTask)
-			clone.Position.X += GetWorldMousePosition().X - center.X
-			clone.Position.Y += GetWorldMousePosition().Y - center.Y
-			clone.Position = board.Project.LockPositionToGrid(clone.Position)
+			if srcTask.TaskType.CurrentChoice == TASK_TYPE_LINE && srcTask.LineBase != nil && srcTask.Board != board {
+				if !copied(srcTask.LineBase) {
+					board.Project.Log("WARNING: Cannot paste Line arrows on a different board than the Line base.")
+				}
+			} else if srcTask.LineBase == nil || !copied(srcTask.LineBase) {
+
+				clone := cloneTask(srcTask)
+				diff := rl.Vector2Subtract(GetWorldMousePosition(), center)
+				clone.Position = rl.Vector2Add(clone.Position, diff)
+				clone.Position = board.Project.LockPositionToGrid(clone.Position)
+
+				if clone.TaskType.CurrentChoice == TASK_TYPE_LINE {
+					for _, ending := range clone.LineEndings {
+						ending.Position = rl.Vector2Add(ending.Position, diff)
+						ending.Position = board.Project.LockPositionToGrid(ending.Position)
+					}
+				}
+
+			}
+
 		}
 
 		board.ReorderTasks()
+
+		if len(clones) > 0 {
+			board.Project.Log("Pasted %d Task(s).", len(clones))
+		}
+
+		for _, clone := range clones {
+			if clone.TaskType.CurrentChoice == TASK_TYPE_LINE && len(clone.LineEndings) > 0 {
+				clones = append(clones, clone.LineEndings...)
+			}
+		}
+
+		board.UndoBuffer.On = true
 
 		for _, clone := range clones {
 
@@ -311,8 +349,6 @@ func (board *Board) PasteTasks() {
 		}
 
 		board.Project.ReorderTasks()
-
-		board.Project.Log("Pasted %d Task(s).", len(board.Project.CopyBuffer))
 
 		if board.Project.Cutting {
 			for _, task := range board.Project.CopyBuffer {
