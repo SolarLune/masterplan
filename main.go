@@ -109,6 +109,7 @@ func main() {
 	rl.SetExitKey(0) /// We don't want Escape to close the program.
 
 	attemptAutoload := 5
+	showedAboutDialog := false
 	splashScreenTime := float32(0)
 	splashScreen := rl.LoadTexture(GetPath("assets", "splashscreen.png"))
 	splashColor := rl.White
@@ -173,6 +174,14 @@ func main() {
 
 		} else {
 
+			if !showedAboutDialog {
+				showedAboutDialog = true
+				if !programSettings.DisableAboutDialogOnStart {
+					currentProject.ProjectSettingsOpen = true
+					currentProject.SettingsSection.CurrentChoice = len(currentProject.SettingsSection.Options) - 1 // Set the settings section to "ABOUT" (the last option)
+				}
+			}
+
 			rl.BeginMode2D(camera)
 
 			currentProject.Update()
@@ -183,22 +192,24 @@ func main() {
 			color.A = 128
 
 			x := float32(rl.GetScreenWidth() - 8)
-			v := "v" + softwareVersion.String()
+			v := ""
 
 			if currentProject.LockProject.Checked {
 				if currentProject.Locked {
-					v += "- Project Lock Engaged"
+					v += "Project Lock Engaged"
 				} else {
-					v += "- Project Lock Present"
+					v += "Project Lock Present"
 				}
 			} else if currentProject.AutoSave.Checked {
-				v += "- Autosave On"
+				v += "Autosave On"
 			} else if currentProject.Modified {
-				v += "- Modified"
+				v += "Modified"
 			}
 
-			x -= GUITextWidth(v)
-			DrawGUITextColored(rl.Vector2{x, 8}, color, v)
+			if len(v) > 0 {
+				x -= GUITextWidth(v)
+				DrawGUITextColored(rl.Vector2{x, 8}, color, v)
+			}
 
 			color = rl.White
 			bgColor := rl.Black

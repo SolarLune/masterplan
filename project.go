@@ -45,6 +45,7 @@ const (
 	SETTINGS_TASKS
 	SETTINGS_AUDIO
 	SETTINGS_GLOBAL
+	SETTINGS_ABOUT
 )
 
 const (
@@ -76,35 +77,39 @@ var firstFreeTaskID = 0
 type Project struct {
 
 	// Project Settings
-	TaskShadowSpinner        *Spinner
-	GridVisible              *Checkbox
-	SampleRate               *Spinner
-	SetSampleRate            int
-	SampleBuffer             int
-	ShowIcons                *Checkbox
-	PulsingTaskSelection     *Checkbox
-	AutoSave                 *Checkbox
-	AutoReloadThemes         *Checkbox
-	AutoLoadLastProject      *Checkbox
-	DisableSplashscreen      *Checkbox
-	SaveSoundsPlaying        *Checkbox
-	OutlineTasks             *Checkbox
-	ColorThemeSpinner        *Spinner
-	BracketSubtasks          *Checkbox
-	LockProject              *Checkbox
-	NumberingSequence        *Spinner
-	NumberTopLevel           *Checkbox
-	AutomaticBackupInterval  *NumberSpinner
-	AutomaticBackupKeepCount *NumberSpinner
-	MaxUndoSteps             *NumberSpinner
-	DisableMessageLog        *Checkbox
-	TaskTransparency         *NumberSpinner
-	AlwaysShowURLButtons     *Checkbox
-	SettingsSection          *ButtonGroup
-	SoundVolume              *NumberSpinner
-	IncompleteTasksGlow      *Checkbox
-	CompleteTasksGlow        *Checkbox
-	SelectedTasksGlow        *Checkbox
+	TaskShadowSpinner         *Spinner
+	GridVisible               *Checkbox
+	SampleRate                *Spinner
+	SetSampleRate             int
+	SampleBuffer              int
+	ShowIcons                 *Checkbox
+	PulsingTaskSelection      *Checkbox
+	AutoSave                  *Checkbox
+	AutoReloadThemes          *Checkbox
+	AutoLoadLastProject       *Checkbox
+	DisableSplashscreen       *Checkbox
+	SaveSoundsPlaying         *Checkbox
+	OutlineTasks              *Checkbox
+	ColorThemeSpinner         *Spinner
+	BracketSubtasks           *Checkbox
+	LockProject               *Checkbox
+	NumberingSequence         *Spinner
+	NumberTopLevel            *Checkbox
+	AutomaticBackupInterval   *NumberSpinner
+	AutomaticBackupKeepCount  *NumberSpinner
+	MaxUndoSteps              *NumberSpinner
+	DisableMessageLog         *Checkbox
+	TaskTransparency          *NumberSpinner
+	AlwaysShowURLButtons      *Checkbox
+	SettingsSection           *ButtonGroup
+	SoundVolume               *NumberSpinner
+	IncompleteTasksGlow       *Checkbox
+	CompleteTasksGlow         *Checkbox
+	SelectedTasksGlow         *Checkbox
+	AboutDiscordButton        *Button
+	AboutTwitterButton        *Button
+	AboutForumsButton         *Button
+	DisableAboutDialogOnStart *Checkbox
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -201,7 +206,7 @@ func NewProject() *Project {
 		MaxUndoSteps:             NewNumberSpinner(0, 0, 192, 40),
 		TaskTransparency:         NewNumberSpinner(0, 0, 128, 40),
 		AlwaysShowURLButtons:     NewCheckbox(0, 0, 32, 32),
-		SettingsSection:          NewButtonGroup(0, 0, 512, 32, "General", "Tasks", "Audio", "Global"),
+		SettingsSection:          NewButtonGroup(0, 0, 512, 32, "General", "Tasks", "Audio", "Global", "About"),
 		SoundVolume:              NewNumberSpinner(0, 0, 128, 40),
 		IncompleteTasksGlow:      NewCheckbox(0, 0, 32, 32),
 		CompleteTasksGlow:        NewCheckbox(0, 0, 32, 32),
@@ -211,6 +216,11 @@ func NewProject() *Project {
 		AutoReloadThemes:    NewCheckbox(0, 0, 32, 32),
 		DisableSplashscreen: NewCheckbox(0, 0, 32, 32),
 		DisableMessageLog:   NewCheckbox(0, 0, 32, 32),
+
+		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
+		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
+		AboutTwitterButton:        NewButton(0, 0, 128, 24, "Twitter", false),
+		DisableAboutDialogOnStart: NewCheckbox(0, 0, 32, 32),
 	}
 
 	project.SettingsPanel.Center(0.5, 0.5)
@@ -337,6 +347,56 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Disable Message Log:"), SETTINGS_GLOBAL)
 	row.Item(project.DisableMessageLog, SETTINGS_GLOBAL)
+
+	// About
+
+	row = column.Row()
+	row.Item(NewLabel(""), SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel(`"Hello! Thank you for purchasing and using MasterPlan! I truly do appreciate`), SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel(`your support, and hope MasterPlan becomes a true aid in your creative process."`), SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel(""), SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel(`"While it is still in development, please feel free to talk about MasterPlan with others,`), SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel(`and share your feedback with me as you use it. Thank you, again!" ~ SolarLune`), SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel(""), SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel("Community / Social Media:"), SETTINGS_ABOUT)
+
+	row = column.Row()
+
+	project.AboutForumsButton.IconSrcRec = rl.Rectangle{16, 48, 16, 16}
+	row.Item(project.AboutForumsButton, SETTINGS_ABOUT)
+
+	project.AboutDiscordButton.IconSrcRec = rl.Rectangle{0, 48, 16, 16}
+	row.Item(project.AboutDiscordButton, SETTINGS_ABOUT)
+
+	project.AboutTwitterButton.IconSrcRec = rl.Rectangle{32, 48, 16, 16}
+	row.Item(project.AboutTwitterButton, SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel(""), SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel("Don't open this window\nat program start:"), SETTINGS_ABOUT)
+	row.Item(project.DisableAboutDialogOnStart, SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel(""), SETTINGS_ABOUT)
+
+	row = column.Row()
+	row.Item(NewLabel("MasterPlan v"+softwareVersion.String()), SETTINGS_ABOUT)
 
 	project.Boards = []*Board{NewBoard(project)}
 
@@ -1817,6 +1877,7 @@ func (project *Project) GUI() {
 						project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
 						project.AutoReloadThemes.Checked = programSettings.AutoReloadThemes
 						project.DisableMessageLog.Checked = programSettings.DisableMessageLog
+						project.DisableAboutDialogOnStart.Checked = programSettings.DisableAboutDialogOnStart
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
@@ -1886,6 +1947,18 @@ func (project *Project) GUI() {
 
 			}
 
+			if project.AboutForumsButton.Clicked {
+				browser.OpenURL("https://solarlune.itch.io/masterplan/community")
+			}
+
+			if project.AboutDiscordButton.Clicked {
+				browser.OpenURL("https://discord.gg/tRVf7qd")
+			}
+
+			if project.AboutTwitterButton.Clicked {
+				browser.OpenURL("https://twitter.com/MasterPlanApp")
+			}
+
 			if project.SettingsPanel.Exited {
 
 				project.ProjectSettingsOpen = false
@@ -1910,6 +1983,7 @@ func (project *Project) GUI() {
 				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
 				programSettings.AutoReloadThemes = project.AutoReloadThemes.Checked
 				programSettings.DisableMessageLog = project.DisableMessageLog.Checked
+				programSettings.DisableAboutDialogOnStart = project.DisableAboutDialogOnStart.Checked
 
 				if project.AutoSave.Checked {
 					project.LogOn = false
@@ -2071,6 +2145,7 @@ func (project *Project) GUI() {
 
 						bx := x + buttonRange - h
 						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{16, 16, 16, 16}, 90, "", boardIndex == len(project.Boards)-1) {
+							// Move board down
 							b := project.Boards[boardIndex+1]
 							project.Boards[boardIndex] = b
 							project.Boards[boardIndex+1] = board
@@ -2079,6 +2154,7 @@ func (project *Project) GUI() {
 						}
 						bx -= h
 						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{16, 16, 16, 16}, -90, "", boardIndex == 0) {
+							// Move board Up
 							b := project.Boards[boardIndex-1]
 							project.Boards[boardIndex] = b
 							project.Boards[boardIndex-1] = board
@@ -2087,6 +2163,7 @@ func (project *Project) GUI() {
 						}
 						bx -= h
 						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{160, 16, 16, 16}, 0, "", false) {
+							// Rename board
 							project.PopupArgument = project.CurrentBoard().Name
 							project.PopupAction = ActionRenameBoard
 						}

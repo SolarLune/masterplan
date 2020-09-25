@@ -7,11 +7,12 @@ import (
 )
 
 type ProgramSettings struct {
-	AutoloadLastPlan    bool
-	AutoReloadThemes    bool
-	RecentPlanList      []string
-	DisableSplashscreen bool
-	DisableMessageLog   bool
+	AutoloadLastPlan          bool
+	AutoReloadThemes          bool
+	RecentPlanList            []string
+	DisableSplashscreen       bool
+	DisableMessageLog         bool
+	DisableAboutDialogOnStart bool
 }
 
 func NewProgramSettings() ProgramSettings {
