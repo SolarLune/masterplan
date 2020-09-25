@@ -406,7 +406,7 @@ func (task *Task) Serialize() string {
 
 		if resource, _ := task.Board.Project.LoadResource(resourcePath); resource != nil && !resource.Temporary {
 
-			relative, err := filepath.Rel(WorkingDirectory(), resourcePath)
+			relative, err := filepath.Rel(filepath.Dir(task.Board.Project.FilePath), resourcePath)
 
 			if err == nil {
 
