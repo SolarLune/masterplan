@@ -1768,9 +1768,8 @@ func (project *Project) GUI() {
 				"Paste Tasks",
 				"Paste Content",
 				"",
-				"Help",
-				"Visit Forums",
 				"Take Screenshot",
+				"Open Tutorial",
 			}
 
 			menuWidth := float32(192)
@@ -1898,7 +1897,10 @@ func (project *Project) GUI() {
 					case "Paste Content":
 						project.CurrentBoard().PasteContent()
 
-					case "Help":
+					case "Take Screenshot":
+						takeScreenshot = true
+
+					case "Open Tutorial":
 						startingPlanPath := GetPath("assets", "help_manual.plan")
 						if project.Modified {
 							project.PopupAction = ActionLoadProject
@@ -1906,12 +1908,6 @@ func (project *Project) GUI() {
 						} else {
 							project.ExecuteDestructiveAction(ActionLoadProject, startingPlanPath)
 						}
-
-					case "Visit Forums":
-						browser.OpenURL("https://solarlune.itch.io/masterplan/community")
-
-					case "Take Screenshot":
-						takeScreenshot = true
 
 					}
 
