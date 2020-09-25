@@ -1,5 +1,51 @@
 -------
 
+v0.5.2
+
+-------
+
+- FIX: Paths are serialized relative to the project root.
+- FIX: Images weren't loading with proper size.
+- Lines now have outlines.
+- Line Tasks no longer draw inside of squares.
+- Map background colors are darker for light themes and lighter for dark themes.
+- Remove FPS cap. Instead, MasterPlan will be tied to Vsync for timing; this seems to keep the CPU from using busy wait loop idling (see raylib's issue #217), lowering CPU requirements.
+- FIX: Double-clicking errors. It was previously possible to double-click to edit or create a Task right out of editing a Task or changing Project Settings. This has been fixed.
+- Allowing panning with the middle mouse button while editing Tasks or Project settings.
+- Minor graphical fixes and changes.
+- Pressing a Spinner to expand its menu will now display all options in the list.
+- EventHorizon theme's colors tweaked to be more readable.
+- FIX: Tasks and their copies were linked unintentionally (where changing the deadline or completion status on one would influence the other).
+- The view no longer focuses on pasted Tasks.
+- Lines are drawn on top of Tasks now.
+- Bullet numbering sequences use a proper icon rather than the letter "o".
+- Adding Square and Star numbering sequences.
+- Rearranging GUI elements for editing Tasks and Project settings.
+- Maps are now always behind other Tasks.
+- Panel shadows have been added, and are now colored according to the theme.
+- Adding smoother zoom steps to mouse wheel.
+- Making zoom reach further on keyboard.
+- The Task selection square changes color to increase visibility.
+- FIX: Can't open project settings after opening a Spinner and closing with Escape.
+- Adding option to turn off glowing for incomplete, complete, and selected Tasks.
+- FIX: Flat shadows darken Maps' backgrounds.
+- Adding SoundVolume project property to control how loudly sounds play through MasterPlan.
+- Theme colors tweaked for Dark Crimson, Moonlight, and ZERO.
+- URLs entered in Tasks (e.g. "google.com") now become buttons that take you to the site when clicked. URL Buttons are displayed when holding the Ctrl key, or are always displayed if the new project settings option is enabled. They display on Note, Progression, and Checkbox Tasks.
+- Settings panel fleshed out to be separated into categories using a button group.
+- FIX: Panels weren't properly sized, and would require scrollbars even when all of their elements were properly being displayed.
+- FIX: Spinners' menus expanding should expand the Panel, creating a scrollbar if necessary.
+- FIX: Can no longer paste Line Endings to a different Board than their base.
+- FIX: Copying Lines works more reliably now.
+- FIX: Copying Lines no longer moves the ending down a cell.
+- FIX: You can now properly undo line movement and creation if two Line Tasks end on the same point.
+- FIX: Line endings that were on the same location no longer rotate when being dragged.
+- Adding About page to settings with buttons leading to community / social media pages.
+- Removing version name from top-right.
+- Renaming "Help" option "Open Tutorial" and moving it lower in the context menu.
+
+-------
+
 v0.5.1
 
 -------
