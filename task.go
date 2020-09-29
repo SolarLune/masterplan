@@ -118,13 +118,14 @@ type Task struct {
 	GridPositions []Position
 	Valid         bool
 
-	EditPanel           *Panel
-	CompletionTimeLabel *Label
-	LoadMediaButton     *Button
-	ClearMediaButton    *Button
-	CreationLabel       *Label
-	DisplayedText       string
-	URLButtons          []URLButton
+	EditPanel                      *Panel
+	CompletionTimeLabel            *Label
+	LoadMediaButton                *Button
+	ClearMediaButton               *Button
+	CreationLabel                  *Label
+	DisplayedText                  string
+	URLButtons                     []URLButton
+	SuccessfullyLoadedResourceOnce bool
 
 	MapImage *MapImage
 }
@@ -399,13 +400,13 @@ func (task *Task) Serialize() string {
 	jsonData, _ = sjson.Set(jsonData, `Progression\.Max`, task.CompletionProgressionMax.Number())
 	jsonData, _ = sjson.Set(jsonData, `Description`, task.Description.Text())
 
-	// Turn the file path absolute if it's not a remote path
-	if task.FilePathTextbox.Text() != "" {
+	if task.UsesMedia() && task.FilePathTextbox.Text() != "" {
 
 		resourcePath := task.FilePathTextbox.Text()
 
 		if resource, _ := task.Board.Project.LoadResource(resourcePath); resource != nil && !resource.Temporary {
 
+			// Turn the file path absolute if it's not a remote path
 			relative, err := filepath.Rel(filepath.Dir(task.Board.Project.FilePath), resourcePath)
 
 			if err == nil {
@@ -1858,11 +1859,15 @@ func (task *Task) SetCompletion(complete bool) {
 
 func (task *Task) LoadResource() {
 
+	task.SuccessfullyLoadedResourceOnce = false
+
 	if task.FilePathTextbox.Text() != "" {
 
 		res, _ := task.Board.Project.LoadResource(task.FilePathTextbox.Text())
 
 		if res != nil {
+
+			task.SuccessfullyLoadedResourceOnce = true
 
 			if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 
@@ -1873,12 +1878,14 @@ func (task *Task) LoadResource() {
 						task.GifAnimation = nil
 					}
 					task.Image = res.Texture()
-					task.ImageDisplaySize.X = float32(task.Image.Width)
-					task.ImageDisplaySize.Y = float32(task.Image.Height)
+					if task.PrevFilePath != task.FilePathTextbox.Text() {
+						task.ImageDisplaySize.X = float32(task.Image.Width)
+						task.ImageDisplaySize.Y = float32(task.Image.Height)
+					}
 
 				} else if res.IsGIF() {
 
-					if task.GifAnimation != nil {
+					if task.GifAnimation != nil && task.PrevFilePath != task.FilePathTextbox.Text() {
 						task.ImageDisplaySize.X = 0
 						task.ImageDisplaySize.Y = 0
 					}
@@ -2386,4 +2393,8 @@ func (task *Task) Destroy() {
 		task.GifAnimation.Destroy()
 	}
 
+}
+
+func (task *Task) UsesMedia() bool {
+	return task.TaskType.CurrentChoice == TASK_TYPE_IMAGE || task.TaskType.CurrentChoice == TASK_TYPE_SOUND
 }

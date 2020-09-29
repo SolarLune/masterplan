@@ -110,6 +110,8 @@ type Project struct {
 	AboutTwitterButton        *Button
 	AboutForumsButton         *Button
 	DisableAboutDialogOnStart *Checkbox
+	AutoReloadResources       *Checkbox
+	TargetFPS                 *NumberSpinner
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -127,7 +129,7 @@ type Project struct {
 	ProjectSettingsOpen bool
 	Selecting           bool
 	SelectionStart      rl.Vector2
-	DoubleClickTimer    int
+	DoubleClickTimer    time.Time
 	DoubleClickTaskID   int
 	CopyBuffer          []*Task
 	Cutting             bool // If cutting, then this boolean is set
@@ -216,6 +218,8 @@ func NewProject() *Project {
 		AutoReloadThemes:    NewCheckbox(0, 0, 32, 32),
 		DisableSplashscreen: NewCheckbox(0, 0, 32, 32),
 		DisableMessageLog:   NewCheckbox(0, 0, 32, 32),
+		AutoReloadResources: NewCheckbox(0, 0, 32, 32),
+		TargetFPS:           NewNumberSpinner(0, 0, 128, 40),
 
 		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
@@ -348,6 +352,14 @@ func NewProject() *Project {
 	row.Item(NewLabel("Disable Message Log:"), SETTINGS_GLOBAL)
 	row.Item(project.DisableMessageLog, SETTINGS_GLOBAL)
 
+	row = column.Row()
+	row.Item(NewLabel("Target FPS:"), SETTINGS_GLOBAL)
+	row.Item(project.TargetFPS, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Automatically reload changed\nlocal resources (experimental!):"), SETTINGS_GLOBAL)
+	row.Item(project.AutoReloadResources, SETTINGS_GLOBAL)
+
 	// About
 
 	row = column.Row()
@@ -407,7 +419,7 @@ func NewProject() *Project {
 	project.TaskShadowSpinner.CurrentChoice = 2
 	project.GridVisible.Checked = true
 	project.ShowIcons.Checked = true
-	project.DoubleClickTimer = -1
+	project.DoubleClickTimer = time.Time{}
 	project.PreviousTaskType = "Check Box"
 	project.NumberTopLevel.Checked = true
 	project.TaskTransparency.Maximum = 5
@@ -419,6 +431,9 @@ func NewProject() *Project {
 	project.IncompleteTasksGlow.Checked = true
 	project.CompleteTasksGlow.Checked = true
 	project.SelectedTasksGlow.Checked = true
+	project.AutoReloadResources.Checked = true
+	project.TargetFPS.SetNumber(60)
+	project.TargetFPS.Minimum = 10
 
 	project.AutomaticBackupInterval.SetNumber(15) // Seems sensible to make new projects have this as a default.
 	project.AutomaticBackupInterval.Minimum = 0
@@ -836,7 +851,7 @@ func (project *Project) HandleCamera() {
 
 	targetZoom := zoomLevels[project.ZoomLevel]
 
-	camera.Zoom += (targetZoom - camera.Zoom) * 0.2
+	camera.Zoom += (targetZoom - camera.Zoom) * (project.GetFrameTime() * 12)
 
 	if math.Abs(float64(targetZoom-camera.Zoom)) < 0.001 {
 		camera.Zoom = targetZoom
@@ -848,8 +863,8 @@ func (project *Project) HandleCamera() {
 		project.CameraPan.Y += diff.Y
 	}
 
-	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * 0.2
-	project.CameraOffset.Y += float32(project.CameraPan.Y-project.CameraOffset.Y) * 0.2
+	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * project.GetFrameTime() * 12
+	project.CameraOffset.Y += float32(project.CameraPan.Y-project.CameraOffset.Y) * project.GetFrameTime() * 12
 
 	camera.Target.X = float32(-project.CameraOffset.X)
 	camera.Target.Y = float32(-project.CameraOffset.Y)
@@ -905,6 +920,15 @@ func (project *Project) Update() {
 
 	for _, task := range project.GetAllTasks() {
 		task.Update()
+
+		if project.AutoReloadResources.Checked && task.FilePathTextbox.Text() != "" {
+			if task.SuccessfullyLoadedResourceOnce {
+				if res, newlyLoaded := project.LoadResource(task.FilePathTextbox.Text()); res != nil && newlyLoaded {
+					task.LoadResource()
+				}
+			}
+		}
+
 	}
 
 	// Additive blending should be out here to avoid state changes mid-task drawing.
@@ -973,12 +997,8 @@ func (project *Project) Update() {
 
 			}
 
-			if project.DoubleClickTimer >= 0 {
-				project.DoubleClickTimer++
-			}
-
-			if project.DoubleClickTimer >= 20 {
-				project.DoubleClickTimer = -1
+			if time.Since(project.DoubleClickTimer).Seconds() > 0.33 {
+				project.DoubleClickTimer = time.Time{}
 			}
 
 			if clicked {
@@ -1023,27 +1043,27 @@ func (project *Project) Update() {
 
 					project.DoubleClickTaskID = -1
 
-					if project.DoubleClickTimer > 0 && project.DoubleClickTaskID == -1 {
+					if !project.DoubleClickTimer.IsZero() && project.DoubleClickTaskID == -1 {
 						ConsumeMouseInput(rl.MouseLeftButton)
 						task := project.CurrentBoard().CreateNewTask()
 						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.Selecting = false
-						project.DoubleClickTimer = -1
+						project.DoubleClickTimer = time.Time{}
 					} else {
-						project.DoubleClickTimer = 0
+						project.DoubleClickTimer = time.Now()
 					}
 
 				} else {
 
-					if clickedTask.ID == project.DoubleClickTaskID && project.DoubleClickTimer > 0 && clickedTask.Selected {
+					if clickedTask.ID == project.DoubleClickTaskID && !project.DoubleClickTimer.IsZero() && clickedTask.Selected {
 						clickedTask.ReceiveMessage(MessageDoubleClick, nil)
 						// We have to consume after double-clicking so you don't click outside of the new panel and exit it immediately
 						// or actuate a GUI element accidentally.
 						ConsumeMouseInput(rl.MouseLeftButton)
-						project.DoubleClickTimer = -1
+						project.DoubleClickTimer = time.Time{}
 					} else {
+						project.DoubleClickTimer = time.Now()
 						project.SendMessage(MessageDragging, nil)
-						project.DoubleClickTimer = 0
 						project.DoubleClickTaskID = clickedTask.ID
 					}
 
@@ -1180,7 +1200,7 @@ func (project *Project) AutoBackup() {
 
 		if project.BackupTimer.IsZero() {
 			project.BackupTimer = time.Now()
-		} else if time.Now().Sub(project.BackupTimer).Minutes() >= float64(project.AutomaticBackupInterval.Number()) && project.FilePath != "" {
+		} else if time.Since(project.BackupTimer).Minutes() >= float64(project.AutomaticBackupInterval.Number()) && project.FilePath != "" {
 
 			dir, _ := filepath.Split(project.FilePath)
 
@@ -1877,6 +1897,8 @@ func (project *Project) GUI() {
 						project.AutoReloadThemes.Checked = programSettings.AutoReloadThemes
 						project.DisableMessageLog.Checked = programSettings.DisableMessageLog
 						project.DisableAboutDialogOnStart.Checked = programSettings.DisableAboutDialogOnStart
+						project.AutoReloadResources.Checked = programSettings.AutoReloadResources
+						project.TargetFPS.SetNumber(programSettings.TargetFPS)
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
@@ -1980,6 +2002,8 @@ func (project *Project) GUI() {
 				programSettings.AutoReloadThemes = project.AutoReloadThemes.Checked
 				programSettings.DisableMessageLog = project.DisableMessageLog.Checked
 				programSettings.DisableAboutDialogOnStart = project.DisableAboutDialogOnStart.Checked
+				programSettings.AutoReloadResources = project.AutoReloadResources.Checked
+				programSettings.TargetFPS = project.TargetFPS.Number()
 
 				if project.AutoSave.Checked {
 					project.LogOn = false
@@ -2259,10 +2283,8 @@ func (project *Project) SearchForTasks() {
 
 		searchText := strings.ToLower(project.Searchbar.Text())
 
-		resourceTask := task.TaskType.CurrentChoice == TASK_TYPE_IMAGE || task.TaskType.CurrentChoice == TASK_TYPE_SOUND
-
 		if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text()), searchText) ||
-			(resourceTask && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText)) ||
+			(task.UsesMedia() && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText)) ||
 			(task.TaskType.CurrentChoice == TASK_TYPE_TIMER && strings.Contains(strings.ToLower(task.TimerName.Text()), searchText))) {
 			project.SearchedTasks = append(project.SearchedTasks, task)
 		}
@@ -2377,10 +2399,10 @@ func (project *Project) ReloadThemes() {
 }
 
 func (project *Project) GetFrameTime() float32 {
-	ft := rl.GetFrameTime()
-	if ft > (1/float32(TARGET_FPS))*10 {
+	ft := deltaTime
+	if ft > (1/float32(programSettings.TargetFPS))*4 {
 		// This artificial limiting is done to ensure the delta time never gets so high that it makes major problems.
-		ft = (1 / float32(TARGET_FPS)) * 10
+		ft = (1 / float32(programSettings.TargetFPS)) * 4
 	}
 	return ft
 }
@@ -2392,17 +2414,7 @@ func (project *Project) Destroy() {
 	}
 
 	for _, res := range project.Resources {
-
-		if res.IsTexture() {
-			rl.UnloadTexture(res.Texture())
-		}
-		// GIFs don't need to be disposed of directly here; the file handle was already Closed.
-		// Audio streams are closed by the Task, as each Sound Task has its own stream.
-
-		if res.Temporary {
-			os.Remove(res.LocalFilepath)
-		}
-
+		res.Destroy()
 	}
 
 }
@@ -2419,7 +2431,26 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 	existingResource, exists := project.Resources[resourcePath]
 
 	if exists {
+
 		loadedResource = existingResource
+
+		// We check to see if the mod time isn't the same; if so, we destroy the old one and load it again
+
+		if file, err := os.Open(loadedResource.LocalFilepath); !loadedResource.Temporary && err == nil {
+
+			if stats, err := file.Stat(); err == nil {
+				// We have to check if the size is greater than 0 because it's possible we're seeing the file before it's been written fully to disk;
+				if stats.Size() > 0 && stats.ModTime().After(loadedResource.ModTime) {
+					loadedResource.Destroy()
+					delete(project.Resources, resourcePath)
+					loadedResource, newlyLoaded = project.LoadResource(resourcePath) // Force reloading if the file is outdated
+				}
+			}
+
+			file.Close()
+
+		}
+
 	} else if resourcePath != "" {
 
 		localFilepath := resourcePath
@@ -2461,6 +2492,8 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 			// We have to rename the resource according to what it is because raylib expects the extensions of files to be correct.
 			// png image files need to have .png as an extension, for example.
+
+			newlyLoaded = true
 
 			if strings.ToLower(filepath.Ext(localFilepath)) != fileType.Extension() {
 				newName := localFilepath + fileType.Extension()

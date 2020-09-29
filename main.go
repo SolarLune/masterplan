@@ -6,12 +6,11 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
-
-const TARGET_FPS = 60
 
 // Build-time variable
 var releaseMode = "false"
@@ -29,6 +28,7 @@ var lineSpacing = float32(1) // This is assuming font size is the height, which 
 var font rl.Font
 var guiFont rl.Font
 var windowTitle = "MasterPlan v" + softwareVersion.String()
+var deltaTime = float32(0)
 
 func init() {
 
@@ -92,12 +92,10 @@ func main() {
 
 	rl.SetTraceLog(rl.LogError)
 
-	// rl.SetConfigFlags(rl.FlagWindowResizable)
-	rl.SetConfigFlags(rl.FlagWindowResizable + rl.FlagVsyncHint)
+	rl.SetConfigFlags(rl.FlagWindowResizable)
+	// rl.SetConfigFlags(rl.FlagWindowResizable + rl.FlagVsyncHint)
 	rl.InitWindow(960, 540, "MasterPlan v"+softwareVersion.String())
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
-
-	// rl.SetTargetFPS(TARGET_FPS)
 
 	font = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(fontSize), nil, 256)
 	guiFont = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(guiFontSize), nil, 256)
@@ -120,10 +118,17 @@ func main() {
 	}
 
 	screenshotIndex := 0
+	fpsDisplayValue := float32(0)
+	fpsDisplayAccumulator := float32(0)
+	fpsDisplayTimer := time.Now()
 
 	// profiling := false
 
+	elapsed := time.Duration(0)
+
 	for !rl.WindowShouldClose() {
+
+		currentTime := time.Now()
 
 		handleMouseInputs()
 
@@ -268,16 +273,16 @@ func main() {
 			currentProject.GUI()
 
 			if drawFPS {
-				rl.DrawFPS(4, 4)
+				rl.DrawTextEx(guiFont, fmt.Sprintf("%.2f", fpsDisplayValue), rl.Vector2{0, 0}, 60, spacing, rl.Red)
 			}
 
 		}
 
-		splashScreenTime += rl.GetFrameTime()
+		splashScreenTime += currentProject.GetFrameTime()
 
 		if splashScreenTime >= 1.5 {
 			if splashColor.A > 5 {
-				splashColor.A -= 5
+				splashColor.A -= uint8(255 * currentProject.GetFrameTime())
 			} else {
 				splashColor.A = 0
 			}
@@ -299,6 +304,27 @@ func main() {
 			windowTitle = title
 		}
 
+		elapsed += time.Since(currentTime)
+		attemptedSleep := (time.Second / time.Duration(programSettings.TargetFPS)) - elapsed
+
+		beforeSleep := time.Now()
+		time.Sleep(attemptedSleep)
+		sleepDifference := time.Since(beforeSleep) - attemptedSleep
+
+		if attemptedSleep > 0 {
+			deltaTime = float32((attemptedSleep + elapsed).Seconds())
+		} else {
+			deltaTime = float32(elapsed.Seconds())
+		}
+
+		if time.Since(fpsDisplayTimer).Seconds() >= 1 {
+			fpsDisplayTimer = time.Now()
+			fpsDisplayValue = fpsDisplayAccumulator * float32(programSettings.TargetFPS)
+			fpsDisplayAccumulator = 0
+		}
+		fpsDisplayAccumulator += deltaTime
+		// currentTime +=
+		elapsed = sleepDifference // Sleeping doesn't sleep for exact amounts; carry this into next frame for sleep attempt
 	}
 
 	currentProject.Destroy()

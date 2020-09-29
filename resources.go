@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/flac"
@@ -16,7 +17,7 @@ import (
 )
 
 type Resource struct {
-
+	ModTime time.Time
 	// Path facing the object requesting the resouce (e.g. "~/home/pictures/test.png" or "https://solarlune.com/media/bartender.png")
 	ResourcePath string
 
@@ -38,11 +39,20 @@ func (project *Project) RegisterResource(resourcePath, localFilepath string, dat
 
 	mime, _ := mimetype.DetectFile(localFilepath)
 
+	modTime := time.Time{}
+
+	if localFile, err := os.Open(localFilepath); err == nil {
+		if stats, err := localFile.Stat(); err == nil {
+			modTime = stats.ModTime()
+		}
+	}
+
 	res := &Resource{
 		ResourcePath:  resourcePath,
 		LocalFilepath: localFilepath,
 		Data:          data,
 		MimeData:      mime,
+		ModTime:       modTime,
 	}
 
 	project.Resources[resourcePath] = res
@@ -111,5 +121,19 @@ func (res *Resource) Audio() (beep.StreamSeekCloser, beep.Format, error) {
 	}
 
 	return stream, format, err
+
+}
+
+func (res *Resource) Destroy() {
+
+	if res.IsTexture() {
+		rl.UnloadTexture(res.Texture())
+	}
+	// GIFs don't need to be disposed of directly here; the file handle was already Closed.
+	// Audio streams are closed by the Task, as each Sound Task has its own stream.
+
+	if res.Temporary {
+		os.Remove(res.LocalFilepath)
+	}
 
 }

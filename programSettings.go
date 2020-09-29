@@ -13,11 +13,14 @@ type ProgramSettings struct {
 	DisableSplashscreen       bool
 	DisableMessageLog         bool
 	DisableAboutDialogOnStart bool
+	AutoReloadResources       bool
+	TargetFPS                 int
 }
 
 func NewProgramSettings() ProgramSettings {
 	return ProgramSettings{
 		RecentPlanList: []string{},
+		TargetFPS:      60,
 	}
 }
 
@@ -33,10 +36,10 @@ func (ps *ProgramSettings) Save() {
 
 func (ps *ProgramSettings) Load() {
 	settingsJSON, err := ioutil.ReadFile(GetPath("masterplan-settings.json"))
-
 	if err == nil {
 		json.Unmarshal(settingsJSON, ps)
 	}
+
 }
 
-var programSettings = ProgramSettings{}
+var programSettings = NewProgramSettings()
