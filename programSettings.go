@@ -15,6 +15,8 @@ type ProgramSettings struct {
 	DisableAboutDialogOnStart bool
 	AutoReloadResources       bool
 	TargetFPS                 int
+	TransparentBackground     bool
+	BorderlessWindow          bool
 }
 
 func NewProgramSettings() ProgramSettings {

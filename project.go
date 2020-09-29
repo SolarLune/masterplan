@@ -68,6 +68,7 @@ const (
 	ActionLoadProject   = "load"
 	ActionSaveAsProject = "save as"
 	ActionRenameBoard   = "rename"
+	ActionQuit          = "quit"
 
 	BackupDelineator = "_bak_"
 )
@@ -112,6 +113,8 @@ type Project struct {
 	DisableAboutDialogOnStart *Checkbox
 	AutoReloadResources       *Checkbox
 	TargetFPS                 *NumberSpinner
+	TransparentBackground     *Checkbox
+	BorderlessWindow          *Checkbox
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -225,6 +228,8 @@ func NewProject() *Project {
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
 		AboutTwitterButton:        NewButton(0, 0, 128, 24, "Twitter", false),
 		DisableAboutDialogOnStart: NewCheckbox(0, 0, 32, 32),
+		TransparentBackground:     NewCheckbox(0, 0, 32, 32),
+		BorderlessWindow:          NewCheckbox(0, 0, 32, 32),
 	}
 
 	project.SettingsPanel.Center(0.5, 0.5)
@@ -359,6 +364,18 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Automatically reload changed\nlocal resources (experimental!):"), SETTINGS_GLOBAL)
 	row.Item(project.AutoReloadResources, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	label := NewLabel("Window alterations (requires restart)")
+	label.Underline = true
+	row.Item(label, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Borderless Window:"), SETTINGS_GLOBAL)
+	row.Item(project.BorderlessWindow, SETTINGS_GLOBAL)
+
+	row.Item(NewLabel("Transparent Window:"), SETTINGS_GLOBAL)
+	row.Item(project.TransparentBackground, SETTINGS_GLOBAL)
 
 	// About
 
@@ -1780,20 +1797,19 @@ func (project *Project) GUI() {
 				"Save Project",
 				"Save Project As...",
 				"Settings",
-				"",
 				"New Task",
 				"Delete Tasks",
 				"Cut Tasks",
 				"Copy Tasks",
 				"Paste Tasks",
 				"Paste Content",
-				"",
 				"Take Screenshot",
 				"Open Tutorial",
+				"Quit MasterPlan",
 			}
 
 			menuWidth := float32(192)
-			menuHeight := float32(32 * len(menuOptions))
+			menuHeight := float32(28 * len(menuOptions))
 
 			pos.X -= menuWidth / 2
 			pos.Y += 16
@@ -1810,7 +1826,7 @@ func (project *Project) GUI() {
 				pos.Y = float32(rl.GetScreenHeight()) - menuHeight/2
 			}
 
-			rect := rl.Rectangle{pos.X, pos.Y, menuWidth, 32}
+			rect := rl.Rectangle{pos.X, pos.Y, menuWidth, 28}
 
 			newTaskPos := float32(1)
 			for _, option := range menuOptions {
@@ -1829,7 +1845,7 @@ func (project *Project) GUI() {
 
 			for _, option := range menuOptions {
 
-				disabled := option == "" // Spacer can't be selected
+				disabled := false
 
 				if option == "Copy Tasks" && selectedCount == 0 ||
 					option == "Delete Tasks" && selectedCount == 0 ||
@@ -1841,8 +1857,10 @@ func (project *Project) GUI() {
 					disabled = true
 				}
 
+				rect.Height = 32
+
 				if option == "" {
-					rect.Height /= 2
+					rect.Height = 8
 				}
 
 				if option == "Load Recent..." {
@@ -1899,6 +1917,8 @@ func (project *Project) GUI() {
 						project.DisableAboutDialogOnStart.Checked = programSettings.DisableAboutDialogOnStart
 						project.AutoReloadResources.Checked = programSettings.AutoReloadResources
 						project.TargetFPS.SetNumber(programSettings.TargetFPS)
+						project.BorderlessWindow.Checked = programSettings.BorderlessWindow
+						project.TransparentBackground.Checked = programSettings.TransparentBackground
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
@@ -1931,6 +1951,12 @@ func (project *Project) GUI() {
 							project.ExecuteDestructiveAction(ActionLoadProject, startingPlanPath)
 						}
 
+					case "Quit MasterPlan":
+						if project.Modified {
+							project.PopupAction = ActionQuit
+						} else {
+							project.ExecuteDestructiveAction(ActionQuit, "")
+						}
 					}
 
 				}
@@ -2004,6 +2030,8 @@ func (project *Project) GUI() {
 				programSettings.DisableAboutDialogOnStart = project.DisableAboutDialogOnStart.Checked
 				programSettings.AutoReloadResources = project.AutoReloadResources.Checked
 				programSettings.TargetFPS = project.TargetFPS.Number()
+				programSettings.BorderlessWindow = project.BorderlessWindow.Checked
+				programSettings.TransparentBackground = project.TransparentBackground.Checked
 
 				if project.AutoSave.Checked {
 					project.LogOn = false
@@ -2356,7 +2384,7 @@ func (project *Project) GenerateGrid() {
 	for y := int32(0); y < project.GridSize*2; y++ {
 		for x := int32(0); x < project.GridSize*2; x++ {
 
-			c := getThemeColor(GUI_INSIDE_DISABLED)
+			c := rl.Color{}
 			if project.GridVisible.Checked && (x%project.GridSize == 0 || x%project.GridSize == project.GridSize-1) && (y%project.GridSize == 0 || y%project.GridSize == project.GridSize-1) {
 				c = getThemeColor(GUI_INSIDE)
 			}
@@ -2573,6 +2601,8 @@ func (project *Project) ExecuteDestructiveAction(action string, argument string)
 	case ActionSaveAsProject:
 		project.FilePath = argument
 		project.Save(false)
+	case ActionQuit:
+		quit = true
 	}
 
 }

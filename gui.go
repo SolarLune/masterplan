@@ -668,8 +668,9 @@ func (panel *Panel) FindItems(name string) []*PanelItem {
 }
 
 type Label struct {
-	Position rl.Vector2
-	Text     string
+	Position  rl.Vector2
+	Text      string
+	Underline bool
 }
 
 func NewLabel(text string) *Label {
@@ -678,6 +679,14 @@ func NewLabel(text string) *Label {
 
 func (label *Label) Update() {
 	DrawGUIText(label.Position, label.Text)
+	rect := label.Rectangle()
+	if label.Underline {
+		rl.DrawLineEx(
+			rl.Vector2{rect.X, rect.Y + rect.Height + 1},
+			rl.Vector2{rect.X + rect.Width, rect.Y + rect.Height + 1},
+			2,
+			getThemeColor(GUI_FONT_COLOR))
+	}
 }
 
 func (label *Label) Depth() int32 {

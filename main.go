@@ -29,6 +29,7 @@ var font rl.Font
 var guiFont rl.Font
 var windowTitle = "MasterPlan v" + softwareVersion.String()
 var deltaTime = float32(0)
+var quit = false
 
 func init() {
 
@@ -92,15 +93,24 @@ func main() {
 
 	rl.SetTraceLog(rl.LogError)
 
-	rl.SetConfigFlags(rl.FlagWindowResizable)
-	// rl.SetConfigFlags(rl.FlagWindowResizable + rl.FlagVsyncHint)
+	programSettings.Load()
+
+	windowFlags := byte(rl.FlagWindowResizable)
+
+	if programSettings.BorderlessWindow {
+		windowFlags += rl.FlagWindowUndecorated
+	}
+
+	if programSettings.TransparentBackground {
+		windowFlags += rl.FlagWindowTransparent
+	}
+
+	rl.SetConfigFlags(windowFlags)
 	rl.InitWindow(960, 540, "MasterPlan v"+softwareVersion.String())
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
 	font = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(fontSize), nil, 256)
 	guiFont = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(guiFontSize), nil, 256)
-
-	programSettings.Load()
 
 	currentProject = NewProject()
 
@@ -126,7 +136,7 @@ func main() {
 
 	elapsed := time.Duration(0)
 
-	for !rl.WindowShouldClose() {
+	for !rl.WindowShouldClose() && !quit {
 
 		currentTime := time.Now()
 
@@ -161,7 +171,13 @@ func main() {
 			rl.ToggleFullscreen()
 		}
 
-		rl.ClearBackground(rl.Black)
+		clearColor := getThemeColor(GUI_INSIDE_DISABLED)
+		
+		if windowFlags&byte(rl.FlagWindowTransparent) > 0 {
+			clearColor = rl.Color{}
+		}
+
+		rl.ClearBackground(clearColor)
 
 		rl.BeginDrawing()
 
