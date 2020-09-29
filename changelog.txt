@@ -1,5 +1,26 @@
 -------
 
+v0.5.3
+
+-------
+
+- Timing improvements. Previously, MasterPlan was timed using Vsync; this is now replaced with my own timing system using time.sleep(), which should be more cross-platform friendly and make the main goroutine pause without consuming CPU execution. Otherwise, higher refresh rates would cause faster execution speeds (making things like double-clicking or moving using WASD quasi-impossible) or making the CPU idle at high cost as raylib currently seems to internally use a busy-wait-while loop by default on Mac and Linux. This timing mechanism isn't perfect, but is relatively easy to implement and seems accurate enough.
+- Adding experimental option to automatically reload media. This is experimental because it seems like it might be possible to mangle media if MP detects and goes to load a file before the OS is finished writing it. I believe I've mitigated this, but it's still experimental until more people test it out. It also does this every frame for every Task, so it's also a bit slow for the moment.
+- Adding transparent and borderless window. Props to pureref.com for the idea!
+- Adding quit option to context menu; the context menu is now slightly thinner and no longer has spacers to account for this.
+- Adding Target FPS option to global program settings.
+- FIX: Previously was unable to "refresh" a Task that used media; whatever was loaded was stuck like that until you reloaded the project or MasterPlan. Now when prompted to load media (e.g. after closing the Task), MasterPlan will check to see if the media on disk is newer than the media already loaded; if so, it will reload it.
+
+-------
+
+v0.5.2-1
+
+-------
+
+- FIX: JPG images aren't loading.
+
+-------
+
 v0.5.2
 
 -------
