@@ -8,6 +8,8 @@ import (
 	"github.com/tidwall/sjson"
 )
 
+var newStepIndex = 0
+
 type UndoBuffer struct {
 	Steps       []*UndoStep
 	Index       int
@@ -85,9 +87,14 @@ func (ub *UndoBuffer) Update() {
 				step = NewUndoStep()
 				ub.Steps = append(ub.Steps, step)
 				added = true
+				newStepIndex++
 			}
 
 			step.Add(cap)
+
+			if newStepIndex > 1 {
+				ub.Project.Modified = true
+			}
 
 		}
 
@@ -156,6 +163,8 @@ func (ub *UndoBuffer) apply(direction int) bool {
 		}
 
 		ub.Project.ReorderTasks()
+
+		ub.Project.Modified = true
 
 		ub.Project.LogOn = true
 

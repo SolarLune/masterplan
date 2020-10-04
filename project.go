@@ -163,12 +163,6 @@ type Project struct {
 	UndoFade      *gween.Sequence
 	Undoing       int
 	TaskEditRect  rl.Rectangle
-	//UndoBuffer		// This is going to be difficult, because it needs to store a set of changes to execute for each change;
-	// There's two ways to go about this I suppose. 1) Store the changes to disk whenever a change happens, then restore it when you undo, and vice-versa when redoing.
-	// This would be simple, but could be prohibitive if the size becomes large. Upside is that since we're storing the buffer to disk, you can undo
-	// things even between program sessions which is pretty insane.
-	// 2) Make actual functions, I guess, for each user-controllable change that can happen to the project, and then store references to these functions
-	// in a buffer; then walk backwards through them to change them, I suppose?
 }
 
 func NewProject() *Project {
@@ -1275,10 +1269,6 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 
 	for _, task := range taskList {
 		task.ReceiveMessage(message, data)
-	}
-
-	if message == MessageDelete || message == MessageTaskClose || message == MessageDropped {
-		project.Modified = true
 	}
 
 }
