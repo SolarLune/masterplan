@@ -979,29 +979,31 @@ func (task *Task) Draw() {
 	taskDisplaySize.X = float32((math.Ceil(float64((taskDisplaySize.X + 4) / float32(task.Board.Project.GridSize))))) * float32(task.Board.Project.GridSize)
 	taskDisplaySize.Y = float32((math.Ceil(float64((taskDisplaySize.Y) / float32(task.Board.Project.GridSize))))) * float32(task.Board.Project.GridSize)
 
+	imageDisplaySize := task.ImageDisplaySize
+
 	if task.TaskType.CurrentChoice == TASK_TYPE_LINE {
 		taskDisplaySize.X = 16
 		taskDisplaySize.Y = 16
 	}
 
-	if task.ImageDisplaySize.X < task.MinSize.X {
-		task.ImageDisplaySize.X = task.MinSize.X
+	if imageDisplaySize.X < task.MinSize.X {
+		imageDisplaySize.X = task.MinSize.X
 	}
-	if task.ImageDisplaySize.Y < task.MinSize.Y {
-		task.ImageDisplaySize.Y = task.MinSize.Y
+	if imageDisplaySize.Y < task.MinSize.Y {
+		imageDisplaySize.Y = task.MinSize.Y
 	}
 
-	if task.MaxSize.X > 0 && task.ImageDisplaySize.X > task.MaxSize.X {
-		task.ImageDisplaySize.X = task.MaxSize.X
+	if task.MaxSize.X > 0 && imageDisplaySize.X > task.MaxSize.X {
+		imageDisplaySize.X = task.MaxSize.X
 	}
-	if task.MaxSize.Y > 0 && task.ImageDisplaySize.Y > task.MaxSize.Y {
-		task.ImageDisplaySize.Y = task.MaxSize.Y
+	if task.MaxSize.Y > 0 && imageDisplaySize.Y > task.MaxSize.Y {
+		imageDisplaySize.Y = task.MaxSize.Y
 	}
 
 	if (task.TaskType.CurrentChoice == TASK_TYPE_IMAGE && task.Image.ID != 0) || task.TaskType.CurrentChoice == TASK_TYPE_MAP {
-		if task.Rect.Width != task.ImageDisplaySize.X || task.Rect.Height != task.ImageDisplaySize.Y {
-			task.Rect.Width = task.ImageDisplaySize.X
-			task.Rect.Height = task.ImageDisplaySize.Y
+		if task.Rect.Width != imageDisplaySize.X || task.Rect.Height != imageDisplaySize.Y {
+			task.Rect.Width = imageDisplaySize.X
+			task.Rect.Height = imageDisplaySize.Y
 			task.Board.RemoveTaskFromGrid(task, task.GridPositions)
 			task.GridPositions = task.Board.AddTaskToGrid(task)
 		}
@@ -1150,8 +1152,8 @@ func (task *Task) Draw() {
 
 			src := rl.Rectangle{0, 0, float32(task.Image.Width), float32(task.Image.Height)}
 			dst := task.Rect
-			dst.Width = task.ImageDisplaySize.X
-			dst.Height = task.ImageDisplaySize.Y
+			dst.Width = imageDisplaySize.X
+			dst.Height = imageDisplaySize.Y
 			rl.SetTextureFilter(task.Image, rl.FilterAnisotropic4x)
 			color := rl.White
 			color.A = alpha
@@ -1878,7 +1880,7 @@ func (task *Task) LoadResource() {
 						task.GifAnimation = nil
 					}
 					task.Image = res.Texture()
-					if task.PrevFilePath != task.FilePathTextbox.Text() {
+					if task.PrevFilePath != task.FilePathTextbox.Text() && task.ImageDisplaySize.X == 0 && task.ImageDisplaySize.Y == 0 {
 						task.ImageDisplaySize.X = float32(task.Image.Width)
 						task.ImageDisplaySize.Y = float32(task.Image.Height)
 					}
