@@ -172,7 +172,7 @@ func main() {
 		}
 
 		clearColor := getThemeColor(GUI_INSIDE_DISABLED)
-		
+
 		if windowFlags&byte(rl.FlagWindowTransparent) > 0 {
 			clearColor = rl.Color{}
 		}
@@ -282,7 +282,12 @@ func main() {
 			if takeScreenshot {
 				currentProject.Log("Screenshot saved successfully.")
 				screenshotIndex++
-				rl.TakeScreenshot(GetPath(fmt.Sprintf("screenshot%d.png", screenshotIndex)))
+				screenshotFileName := fmt.Sprintf("screenshot%d.png", screenshotIndex)
+				screenshotPath := GetPath(screenshotFileName)
+				if programSettings.ScreenshotsPath != "" {
+					screenshotPath = ValidatePath(programSettings.ScreenshotsPath, screenshotFileName, screenshotPath)
+				}
+				rl.TakeScreenshot(screenshotPath)
 				takeScreenshot = false
 			}
 

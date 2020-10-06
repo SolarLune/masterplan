@@ -115,6 +115,7 @@ type Project struct {
 	TargetFPS                 *NumberSpinner
 	TransparentBackground     *Checkbox
 	BorderlessWindow          *Checkbox
+	ScreenshotsPath           *Textbox
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -223,6 +224,7 @@ func NewProject() *Project {
 		DisableMessageLog:   NewCheckbox(0, 0, 32, 32),
 		AutoReloadResources: NewCheckbox(0, 0, 32, 32),
 		TargetFPS:           NewNumberSpinner(0, 0, 128, 40),
+		ScreenshotsPath:     NewTextbox(0, 0, 32, 32),
 
 		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
@@ -360,6 +362,10 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Target FPS:"), SETTINGS_GLOBAL)
 	row.Item(project.TargetFPS, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Screenshots Path:"), SETTINGS_GLOBAL)
+	row.Item(project.ScreenshotsPath, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Automatically reload changed\nlocal resources (experimental!):"), SETTINGS_GLOBAL)
@@ -2030,6 +2036,7 @@ func (project *Project) GUI() {
 				programSettings.DisableAboutDialogOnStart = project.DisableAboutDialogOnStart.Checked
 				programSettings.AutoReloadResources = project.AutoReloadResources.Checked
 				programSettings.TargetFPS = project.TargetFPS.Number()
+				programSettings.ScreenshotsPath = project.ScreenshotsPath.Text()
 				programSettings.BorderlessWindow = project.BorderlessWindow.Checked
 				programSettings.TransparentBackground = project.TransparentBackground.Checked
 

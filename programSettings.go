@@ -7,14 +7,15 @@ import (
 )
 
 type ProgramSettings struct {
+	RecentPlanList            []string
+	TargetFPS                 int
+	ScreenshotsPath           string
 	AutoloadLastPlan          bool
 	AutoReloadThemes          bool
-	RecentPlanList            []string
 	DisableSplashscreen       bool
 	DisableMessageLog         bool
 	DisableAboutDialogOnStart bool
 	AutoReloadResources       bool
-	TargetFPS                 int
 	TransparentBackground     bool
 	BorderlessWindow          bool
 }

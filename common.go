@@ -64,6 +64,15 @@ func GetPath(folders ...string) string {
 
 }
 
+func ValidatePath(path, filename, fallback string) string {
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fallback
+	}
+
+	return filepath.Join(path, filename)
+}
+
 func WorkingDirectory() string {
 
 	workingDirectory := ""
