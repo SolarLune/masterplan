@@ -14,7 +14,9 @@ import (
 	"github.com/otiai10/copy"
 )
 
-func build() {
+func buildExecutable(baseDir string, args []string) {
+
+	fmt.Println(fmt.Sprintf("Beginning build to %s.", baseDir))
 
 	onWin := strings.Contains(runtime.GOOS, "windows")
 	onMac := strings.Contains(runtime.GOOS, "darwin")
@@ -29,8 +31,6 @@ func build() {
 	// It is specifically not meant to be built into an executable and run by double-clicking in
 	// Finder, on Mac OS.
 
-	baseDir := filepath.Join("bin")
-
 	// We always remove any pre-existing platform directory before building to ensure it's fresh.
 	if err := os.RemoveAll(baseDir); err != nil {
 		panic(err)
@@ -39,7 +39,7 @@ func build() {
 	copyTo("changelog.txt", filepath.Join(baseDir, "changelog.txt"))
 
 	if onMac {
-		baseDir = filepath.Join("bin", "MasterPlan.app", "Contents", "MacOS")
+		baseDir = filepath.Join(baseDir, "MasterPlan.app", "Contents", "MacOS")
 	}
 
 	// Copy the assets folder to the bin directory
@@ -50,15 +50,15 @@ func build() {
 
 	filename := filepath.Join(baseDir, "MasterPlan")
 
-	args := []string{"build", "-ldflags", "-X main.releaseMode=true", "-o", filename, "./"}
-
 	if onWin {
 		filename += ".exe"
 		// The -H=windowsgui -ldflag is to make sure Go builds a Windows GUI app so the command prompt doesn't stay
 		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag
 		// gets passed to the compiler and XCode wouldn't build if on Mac I leave it in there.
-		args = []string{"build", "-ldflags=-X main.releaseMode=true -H=windowsgui", "-o", filename, "./"}
+		args = append(args, "-H=windowsgui")
 	}
+
+	args = append(args, "-o", filename, "./")
 
 	log.Println("Building binary...")
 
@@ -70,8 +70,9 @@ func build() {
 
 	// Add the stuff for Mac
 	if onMac {
-		copyTo(filepath.Join("other_sources", "Info.plist"), filepath.Join("bin", "MasterPlan.app", "Contents", "Info.plist"))
-		copyTo(filepath.Join("other_sources", "macicons.icns"), filepath.Join("bin", "MasterPlan.app", "Contents", "Resources", "macicons.icns"))
+		baseDir = filepath.Join(baseDir, "..")
+		copyTo(filepath.Join("other_sources", "Info.plist"), filepath.Join(baseDir, "Info.plist"))
+		copyTo(filepath.Join("other_sources", "macicons.icns"), filepath.Join(baseDir, "Resources", "macicons.icns"))
 	}
 
 	// The final executable should be, well, executable for everybody. 777 should do it for Mac and Linux.
@@ -80,6 +81,13 @@ func build() {
 	if err == nil {
 		log.Println("Build complete!")
 	}
+
+}
+
+func build() {
+
+	buildExecutable(filepath.Join("bin", "release"), []string{"build", "-ldflags", "-X main.releaseMode=true"})
+	buildExecutable(filepath.Join("bin", "demo"), []string{"build", "-ldflags", "-X main.releaseMode=true -X main.demoMode=DEMO"})
 
 }
 

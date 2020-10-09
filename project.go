@@ -110,6 +110,7 @@ type Project struct {
 	AboutDiscordButton        *Button
 	AboutTwitterButton        *Button
 	AboutForumsButton         *Button
+	StorePageButton           *Button
 	DisableAboutDialogOnStart *Checkbox
 	AutoReloadResources       *Checkbox
 	TargetFPS                 *NumberSpinner
@@ -221,6 +222,7 @@ func NewProject() *Project {
 		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
 		AboutTwitterButton:        NewButton(0, 0, 128, 24, "Twitter", false),
+		StorePageButton:           NewButton(0, 0, 128, 24, "Purchase", false),
 		DisableAboutDialogOnStart: NewCheckbox(0, 0, 32, 32),
 		TransparentBackground:     NewCheckbox(0, 0, 32, 32),
 		BorderlessWindow:          NewCheckbox(0, 0, 32, 32),
@@ -373,23 +375,51 @@ func NewProject() *Project {
 
 	// About
 
-	row = column.Row()
-	row.Item(NewLabel(""), SETTINGS_ABOUT)
+	if demoMode == "" {
 
-	row = column.Row()
-	row.Item(NewLabel(`"Hello! Thank you for purchasing and using MasterPlan! I truly do appreciate`), SETTINGS_ABOUT)
+		row = column.Row()
+		row.Item(NewLabel(""), SETTINGS_ABOUT)
 
-	row = column.Row()
-	row.Item(NewLabel(`your support, and hope MasterPlan becomes a true aid in your creative process."`), SETTINGS_ABOUT)
+		row = column.Row()
+		row.Item(NewLabel(`"Hello! Thank you for purchasing and using MasterPlan! I truly do appreciate`), SETTINGS_ABOUT)
 
-	row = column.Row()
-	row.Item(NewLabel(""), SETTINGS_ABOUT)
+		row = column.Row()
+		row.Item(NewLabel(`your support, and hope MasterPlan becomes a true aid in your creative process."`), SETTINGS_ABOUT)
 
-	row = column.Row()
-	row.Item(NewLabel(`"While it is still in development, please feel free to talk about MasterPlan with others,`), SETTINGS_ABOUT)
+		row = column.Row()
+		row.Item(NewLabel(""), SETTINGS_ABOUT)
 
-	row = column.Row()
-	row.Item(NewLabel(`and share your feedback with me as you use it. Thank you, again!" ~ SolarLune`), SETTINGS_ABOUT)
+		row = column.Row()
+		row.Item(NewLabel(`"While it is still in development, please feel free to talk about MasterPlan with others,`), SETTINGS_ABOUT)
+
+		row = column.Row()
+		row.Item(NewLabel(`and share your feedback with me as you use it. Thank you, again!" ~ SolarLune`), SETTINGS_ABOUT)
+
+	} else {
+
+		row = column.Row()
+		row.Item(NewLabel(""), SETTINGS_ABOUT)
+
+		row = column.Row()
+		row.Item(NewLabel(`"Hello! Thank you for trying out MasterPlan! I truly do appreciate it.`), SETTINGS_ABOUT)
+
+		row = column.Row()
+		row.Item(NewLabel(`In this free demo, you can fully try out MasterPlan; only saving is disabled.`), SETTINGS_ABOUT)
+
+		row = column.Row()
+		row.Item(NewLabel(`Hopefully you will find it useful and you'll consider supporting development by`), SETTINGS_ABOUT)
+
+		row = column.Row()
+		row.Item(NewLabel(`purchasing it. You can click the below button to head to the store page."`), SETTINGS_ABOUT)
+
+		row = column.Row()
+		row.Item(NewLabel(`Thank you!" ~ SolarLune`), SETTINGS_ABOUT)
+
+		row = column.Row()
+		project.StorePageButton.IconSrcRec = rl.Rectangle{16, 48, 16, 16}
+		row.Item(project.StorePageButton, SETTINGS_ABOUT)
+
+	}
 
 	row = column.Row()
 	row.Item(NewLabel(""), SETTINGS_ABOUT)
@@ -419,7 +449,7 @@ func NewProject() *Project {
 	row.Item(NewLabel(""), SETTINGS_ABOUT)
 
 	row = column.Row()
-	row.Item(NewLabel("MasterPlan v"+softwareVersion.String()), SETTINGS_ABOUT)
+	row.Item(NewLabel("MasterPlan v"+softwareVersion.String()+demoMode), SETTINGS_ABOUT)
 
 	project.Boards = []*Board{NewBoard(project)}
 
@@ -1847,6 +1877,10 @@ func (project *Project) GUI() {
 					disabled = true
 				}
 
+				if demoMode != "" && (option == "Save Project" || option == "Save Project As...") {
+					disabled = true
+				}
+
 				rect.Height = 32
 
 				if option == "" {
@@ -1979,6 +2013,10 @@ func (project *Project) GUI() {
 					t.UpdateSoundVolume()
 				}
 
+			}
+
+			if project.StorePageButton.Clicked {
+				browser.OpenURL("https://solarlune.itch.io/masterplan")
 			}
 
 			if project.AboutForumsButton.Clicked {

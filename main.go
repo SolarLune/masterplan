@@ -30,6 +30,7 @@ var guiFont rl.Font
 var windowTitle = "MasterPlan v" + softwareVersion.String()
 var deltaTime = float32(0)
 var quit = false
+var demoMode = "" // If set to something other than "", it's a demo
 
 func init() {
 
@@ -105,8 +106,12 @@ func main() {
 		windowFlags += rl.FlagWindowTransparent
 	}
 
+	if demoMode != "" {
+		demoMode = " " + demoMode
+	}
+
 	rl.SetConfigFlags(windowFlags)
-	rl.InitWindow(960, 540, "MasterPlan v"+softwareVersion.String())
+	rl.InitWindow(960, 540, "MasterPlan v"+softwareVersion.String()+demoMode)
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
 	font = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(fontSize), nil, 256)
@@ -172,7 +177,7 @@ func main() {
 		}
 
 		clearColor := getThemeColor(GUI_INSIDE_DISABLED)
-		
+
 		if windowFlags&byte(rl.FlagWindowTransparent) > 0 {
 			clearColor = rl.Color{}
 		}
@@ -310,7 +315,7 @@ func main() {
 
 		rl.EndDrawing()
 
-		title := "MasterPlan v" + softwareVersion.String()
+		title := "MasterPlan v" + softwareVersion.String() + demoMode
 		if currentProject.Modified {
 			title += " *"
 		}
