@@ -413,7 +413,10 @@ func NewProject() *Project {
 		row.Item(NewLabel(`purchasing it. You can click the below button to head to the store page."`), SETTINGS_ABOUT)
 
 		row = column.Row()
-		row.Item(NewLabel(`Thank you!" ~ SolarLune`), SETTINGS_ABOUT)
+		row.Item(NewLabel(""), SETTINGS_ABOUT)
+
+		row = column.Row()
+		row.Item(NewLabel(`"Thank you!" ~ SolarLune`), SETTINGS_ABOUT)
 
 		row = column.Row()
 		project.StorePageButton.IconSrcRec = rl.Rectangle{16, 48, 16, 16}

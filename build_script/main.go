@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,7 +13,7 @@ import (
 	"github.com/otiai10/copy"
 )
 
-func buildExecutable(baseDir string, args []string) {
+func buildExecutable(baseDir string, ldFlags string) {
 
 	fmt.Println(fmt.Sprintf("Beginning build to %s.", baseDir))
 
@@ -46,7 +45,7 @@ func buildExecutable(baseDir string, args []string) {
 
 	copyTo("assets", filepath.Join(baseDir, "assets"))
 
-	log.Println("Assets copied.")
+	fmt.Println("Assets copied.")
 
 	filename := filepath.Join(baseDir, "MasterPlan")
 
@@ -55,17 +54,17 @@ func buildExecutable(baseDir string, args []string) {
 		// The -H=windowsgui -ldflag is to make sure Go builds a Windows GUI app so the command prompt doesn't stay
 		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag
 		// gets passed to the compiler and XCode wouldn't build if on Mac I leave it in there.
-		args = append(args, "-H=windowsgui")
+		ldFlags += " -H=windowsgui"
 	}
 
-	args = append(args, "-o", filename, "./")
+	args := []string{"build", "-ldflags", ldFlags, "-o", filename, "./"}
 
-	log.Println("Building binary...")
+	fmt.Println(fmt.Sprintf("Building binary with flags %s...", args))
 
 	result, err := exec.Command("go", args...).CombinedOutput()
 
 	if string(result) != "" {
-		log.Println(string(result))
+		fmt.Println(string(result))
 	}
 
 	// Add the stuff for Mac
@@ -79,15 +78,16 @@ func buildExecutable(baseDir string, args []string) {
 	os.Chmod(filename, 0777)
 
 	if err == nil {
-		log.Println("Build complete!")
+		fmt.Println("Build complete!")
+		fmt.Println("")
 	}
 
 }
 
 func build() {
 
-	buildExecutable(filepath.Join("bin", "release"), []string{"build", "-ldflags", "-X main.releaseMode=true"})
-	buildExecutable(filepath.Join("bin", "demo"), []string{"build", "-ldflags", "-X main.releaseMode=true -X main.demoMode=DEMO"})
+	buildExecutable(filepath.Join("bin", "release"), "-X main.releaseMode=true")
+	buildExecutable(filepath.Join("bin", "demo"), "-X main.releaseMode=true -X main.demoMode=DEMO")
 
 }
 
@@ -115,7 +115,7 @@ func compress() {
 
 	archiver.Archive([]string{"./"}, platformName+ending)
 
-	log.Println("Build successfully compressed!")
+	fmt.Println("Build successfully compressed!")
 
 }
 
@@ -142,9 +142,9 @@ func publishToItch() {
 		result, err := exec.Command("butler", "push", build, "solarlune/masterplan:"+buildName).CombinedOutput()
 
 		if err == nil {
-			log.Println("Published", build, "to itch!")
+			fmt.Println("Published", build, "to itch!")
 		} else {
-			log.Println(string(result))
+			fmt.Println(string(result))
 		}
 
 	}
