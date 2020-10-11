@@ -13,6 +13,7 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/goware/urlx v0.3.1
 	github.com/hako/durafmt v0.0.0-20191009132224-3f39dc1ed9f4
+	github.com/josephspurrier/goversioninfo v1.2.0 // indirect
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/ncruces/zenity v0.4.2
 	github.com/nwaples/rardecode v1.0.0 // indirect

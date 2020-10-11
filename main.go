@@ -1,3 +1,5 @@
+// Erase the space before "go" to enable generating the version info from the version info file when it's in the root directory
+// go:generate goversioninfo -64=true
 package main
 
 import (

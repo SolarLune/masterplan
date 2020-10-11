@@ -13,7 +13,7 @@ import (
 	"github.com/otiai10/copy"
 )
 
-func buildExecutable(baseDir string, ldFlags string) {
+func build(baseDir string, ldFlags string) {
 
 	fmt.Println(fmt.Sprintf("Beginning build to %s.", baseDir))
 
@@ -50,6 +50,11 @@ func buildExecutable(baseDir string, ldFlags string) {
 	filename := filepath.Join(baseDir, "MasterPlan")
 
 	if onWin {
+
+		// Copy the resources.syso so the executable has the generated icon and executable properties compiled in.
+		// This is done using go generate with goversioninfo downloaded and "// go:generate goversioninfo -64=true" in main.go.
+		copyTo(filepath.Join("other_sources", "resource.syso"), "resource.syso")
+
 		filename += ".exe"
 		// The -H=windowsgui -ldflag is to make sure Go builds a Windows GUI app so the command prompt doesn't stay
 		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag
@@ -69,12 +74,12 @@ func buildExecutable(baseDir string, ldFlags string) {
 
 	// Add the stuff for Mac
 	if onMac {
-		baseDir = filepath.Join(baseDir, "..")
+		baseDir = filepath.Clean(filepath.Join(baseDir, ".."))
 		copyTo(filepath.Join("other_sources", "Info.plist"), filepath.Join(baseDir, "Info.plist"))
 		copyTo(filepath.Join("other_sources", "macicons.icns"), filepath.Join(baseDir, "Resources", "macicons.icns"))
 	}
 
-	// The final executable should be, well, executable for everybody. 777 should do it for Mac and Linux.
+	// The final executable should be, well, executable for everybody. 0777 should do it for Mac and Linux.
 	os.Chmod(filename, 0777)
 
 	if err == nil {
@@ -82,12 +87,10 @@ func buildExecutable(baseDir string, ldFlags string) {
 		fmt.Println("")
 	}
 
-}
-
-func build() {
-
-	buildExecutable(filepath.Join("bin", "release"), "-X main.releaseMode=true")
-	buildExecutable(filepath.Join("bin", "demo"), "-X main.releaseMode=true -X main.demoMode=DEMO")
+	if onWin {
+		// Remove Resources; we don't need it in the root directory anymore after building.
+		os.Remove("resources.syso")
+	}
 
 }
 
@@ -96,13 +99,6 @@ func build() {
 func compress() {
 
 	onWin := strings.Contains(runtime.GOOS, "windows")
-	onMac := strings.Contains(runtime.GOOS, "darwin")
-
-	platformName := strings.Title(runtime.GOOS)
-	if onMac {
-		platformName = "Mac"
-	}
-
 	ending := ".tar.gz"
 	if onWin {
 		ending = ".zip"
@@ -113,7 +109,24 @@ func compress() {
 
 	os.Chdir("./bin") // Switch to the bin folder and then archive the contents
 
-	archiver.Archive([]string{"./"}, platformName+ending)
+	versions := []string{}
+
+	filepath.Walk(filepath.Clean("."), func(path string, info os.FileInfo, err error) error {
+
+		dirCount := len(strings.Split(path, string(os.PathSeparator)))
+
+		if info.IsDir() && dirCount == 1 && path != "." {
+			versions = append(versions, path)
+		}
+
+		return nil
+
+	})
+
+	for _, version := range versions {
+		// We want to create separate archives for each version (e.g. release and demo)
+		archiver.Archive([]string{version}, version+ending)
+	}
 
 	fmt.Println("Build successfully compressed!")
 
@@ -125,9 +138,9 @@ func publishToItch() {
 
 	filepath.Walk(filepath.Join("./", "build_script"), func(path string, info os.FileInfo, err error) error {
 
-		dirCount := strings.Split(path, string(os.PathSeparator))
+		dirCount := len(strings.Split(path, string(os.PathSeparator)))
 
-		if info.IsDir() && len(dirCount) == 2 {
+		if info.IsDir() && dirCount == 2 {
 			buildNames = append(buildNames, path) // We want to upload the build directories
 		}
 
@@ -153,13 +166,14 @@ func publishToItch() {
 
 func main() {
 
-	buildMP := flag.Bool("b", false, "Build MasterPlan in /bin directory.")
+	buildMP := flag.Bool("b", false, "Build MasterPlan into the bin directory.")
 	compressMP := flag.Bool("c", false, "Compress build output.")
 	itch := flag.Bool("i", false, "Upload build to itch.io.")
 	flag.Parse()
 
 	if *buildMP {
-		build()
+		build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", getOSName())), "-X main.releaseMode=true")
+		build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Demo", getOSName())), "-X main.releaseMode=true -X main.demoMode=DEMO")
 	}
 	if *compressMP {
 		compress()
@@ -178,5 +192,16 @@ func main() {
 		)
 
 	}
+
+}
+
+func getOSName() string {
+
+	platformName := strings.Title(runtime.GOOS)
+	if strings.Contains(runtime.GOOS, "darwin") {
+		platformName = "Mac"
+	}
+
+	return platformName
 
 }
