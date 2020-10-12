@@ -78,45 +78,46 @@ var firstFreeTaskID = 0
 type Project struct {
 
 	// Project Settings
-	TaskShadowSpinner         *Spinner
-	GridVisible               *Checkbox
-	SampleRate                *Spinner
-	SetSampleRate             int
-	SampleBuffer              int
-	ShowIcons                 *Checkbox
-	PulsingTaskSelection      *Checkbox
-	AutoSave                  *Checkbox
-	AutoReloadThemes          *Checkbox
-	AutoLoadLastProject       *Checkbox
-	DisableSplashscreen       *Checkbox
-	SaveSoundsPlaying         *Checkbox
-	OutlineTasks              *Checkbox
-	ColorThemeSpinner         *Spinner
-	BracketSubtasks           *Checkbox
-	LockProject               *Checkbox
-	NumberingSequence         *Spinner
-	NumberTopLevel            *Checkbox
-	AutomaticBackupInterval   *NumberSpinner
-	AutomaticBackupKeepCount  *NumberSpinner
-	MaxUndoSteps              *NumberSpinner
-	DisableMessageLog         *Checkbox
-	TaskTransparency          *NumberSpinner
-	AlwaysShowURLButtons      *Checkbox
-	SettingsSection           *ButtonGroup
-	SoundVolume               *NumberSpinner
-	IncompleteTasksGlow       *Checkbox
-	CompleteTasksGlow         *Checkbox
-	SelectedTasksGlow         *Checkbox
-	AboutDiscordButton        *Button
-	AboutTwitterButton        *Button
-	AboutForumsButton         *Button
-	StorePageButton           *Button
-	DisableAboutDialogOnStart *Checkbox
-	AutoReloadResources       *Checkbox
-	TargetFPS                 *NumberSpinner
-	TransparentBackground     *Checkbox
-	BorderlessWindow          *Checkbox
-	ScreenshotsPath           *Textbox
+	TaskShadowSpinner           *Spinner
+	GridVisible                 *Checkbox
+	SampleRate                  *Spinner
+	SetSampleRate               int
+	SampleBuffer                int
+	ShowIcons                   *Checkbox
+	PulsingTaskSelection        *Checkbox
+	AutoSave                    *Checkbox
+	AutoReloadThemes            *Checkbox
+	AutoLoadLastProject         *Checkbox
+	DisableSplashscreen         *Checkbox
+	SaveSoundsPlaying           *Checkbox
+	OutlineTasks                *Checkbox
+	ColorThemeSpinner           *Spinner
+	BracketSubtasks             *Checkbox
+	LockProject                 *Checkbox
+	NumberingSequence           *Spinner
+	NumberTopLevel              *Checkbox
+	AutomaticBackupInterval     *NumberSpinner
+	AutomaticBackupKeepCount    *NumberSpinner
+	MaxUndoSteps                *NumberSpinner
+	DisableMessageLog           *Checkbox
+	TaskTransparency            *NumberSpinner
+	AlwaysShowURLButtons        *Checkbox
+	SettingsSection             *ButtonGroup
+	SoundVolume                 *NumberSpinner
+	IncompleteTasksGlow         *Checkbox
+	CompleteTasksGlow           *Checkbox
+	SelectedTasksGlow           *Checkbox
+	AboutDiscordButton          *Button
+	AboutTwitterButton          *Button
+	AboutForumsButton           *Button
+	StorePageButton             *Button
+	DisableAboutDialogOnStart   *Checkbox
+	AutoReloadResources         *Checkbox
+	TargetFPS                   *NumberSpinner
+	TransparentBackground       *Checkbox
+	BorderlessWindow            *Checkbox
+	ScreenshotsPath             *Textbox
+	ScreenshotsPathBrowseButton *Button
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -213,13 +214,14 @@ func NewProject() *Project {
 		CompleteTasksGlow:        NewCheckbox(0, 0, 32, 32),
 		SelectedTasksGlow:        NewCheckbox(0, 0, 32, 32),
 		// Program settings GUI elements
-		AutoLoadLastProject: NewCheckbox(0, 0, 32, 32),
-		AutoReloadThemes:    NewCheckbox(0, 0, 32, 32),
-		DisableSplashscreen: NewCheckbox(0, 0, 32, 32),
-		DisableMessageLog:   NewCheckbox(0, 0, 32, 32),
-		AutoReloadResources: NewCheckbox(0, 0, 32, 32),
-		TargetFPS:           NewNumberSpinner(0, 0, 128, 40),
-		ScreenshotsPath:     NewTextbox(0, 0, 32, 32),
+		AutoLoadLastProject:         NewCheckbox(0, 0, 32, 32),
+		AutoReloadThemes:            NewCheckbox(0, 0, 32, 32),
+		DisableSplashscreen:         NewCheckbox(0, 0, 32, 32),
+		DisableMessageLog:           NewCheckbox(0, 0, 32, 32),
+		AutoReloadResources:         NewCheckbox(0, 0, 32, 32),
+		TargetFPS:                   NewNumberSpinner(0, 0, 128, 40),
+		ScreenshotsPath:             NewTextbox(0, 0, 400, 32),
+		ScreenshotsPathBrowseButton: NewButton(0, 0, 128, 24, "Browse", false),
 
 		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
@@ -280,8 +282,10 @@ func NewProject() *Project {
 	row.Item(project.MaxUndoSteps, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Screenshots Path:"), SETTINGS_GENERAL)
+	row.Item(NewLabel("Screenshots Path (If empty, plan directory is used):"), SETTINGS_GENERAL)
+	row = column.Row()
 	row.Item(project.ScreenshotsPath, SETTINGS_GENERAL)
+	row.Item(project.ScreenshotsPathBrowseButton, SETTINGS_GENERAL)
 
 	// TASKS
 
@@ -2039,6 +2043,12 @@ func (project *Project) GUI() {
 
 			if project.AboutTwitterButton.Clicked {
 				browser.OpenURL("https://twitter.com/MasterPlanApp")
+			}
+
+			if project.ScreenshotsPathBrowseButton.Clicked {
+				if screenshotDirectory, err := zenity.SelectFile(zenity.Directory()); err == nil {
+					project.ScreenshotsPath.SetText(screenshotDirectory)
+				}
 			}
 
 			if project.SettingsPanel.Exited {

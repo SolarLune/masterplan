@@ -288,7 +288,6 @@ func main() {
 			}
 
 			if takeScreenshot {
-				currentProject.Log("Screenshot saved successfully.")
 				screenshotIndex++
 				screenshotFileName := fmt.Sprintf("screenshot%d.png", screenshotIndex)
 				screenshotPath := GetPath(screenshotFileName)
@@ -298,6 +297,7 @@ func main() {
 					}
 				}
 				rl.TakeScreenshot(screenshotPath)
+				currentProject.Log("Screenshot saved successfully to %s.", screenshotPath)
 				takeScreenshot = false
 			}
 
