@@ -117,6 +117,11 @@ func main() {
 	rl.InitWindow(960, 540, "MasterPlan v"+softwareVersion.String()+demoMode)
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
+	if programSettings.SaveWindowPosition && programSettings.WindowPosition.Width > 0 && programSettings.WindowPosition.Height > 0 {
+		rl.SetWindowPosition(int(programSettings.WindowPosition.X), int(programSettings.WindowPosition.Y))
+		rl.SetWindowSize(int(programSettings.WindowPosition.Width), int(programSettings.WindowPosition.Height))
+	}
+
 	font = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(fontSize), nil, 256)
 	guiFont = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(guiFontSize), nil, 256)
 
@@ -309,11 +314,11 @@ func main() {
 
 		}
 
-		splashScreenTime += currentProject.GetFrameTime()
+		splashScreenTime += deltaTime
 
 		if splashScreenTime >= 1.5 {
 			if splashColor.A > 5 {
-				splashColor.A -= uint8(255 * currentProject.GetFrameTime())
+				splashColor.A -= 5
 			} else {
 				splashColor.A = 0
 			}
@@ -358,6 +363,14 @@ func main() {
 		fpsDisplayAccumulator += deltaTime
 		// currentTime +=
 		elapsed = sleepDifference // Sleeping doesn't sleep for exact amounts; carry this into next frame for sleep attempt
+	}
+
+	if programSettings.SaveWindowPosition {
+		// This is outside the main loop because we can save the window properties just before quitting
+		wp := rl.GetWindowPosition()
+		wr := rl.Rectangle{wp.X, wp.Y, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
+		programSettings.WindowPosition = wr
+		programSettings.Save()
 	}
 
 	currentProject.Destroy()

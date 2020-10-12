@@ -112,6 +112,7 @@ type Project struct {
 	AboutForumsButton           *Button
 	StorePageButton             *Button
 	DisableAboutDialogOnStart   *Checkbox
+	SaveWindowPosition          *Checkbox
 	AutoReloadResources         *Checkbox
 	TargetFPS                   *NumberSpinner
 	TransparentBackground       *Checkbox
@@ -230,6 +231,7 @@ func NewProject() *Project {
 		DisableAboutDialogOnStart: NewCheckbox(0, 0, 32, 32),
 		TransparentBackground:     NewCheckbox(0, 0, 32, 32),
 		BorderlessWindow:          NewCheckbox(0, 0, 32, 32),
+		SaveWindowPosition:        NewCheckbox(0, 0, 32, 32),
 	}
 
 	project.SettingsPanel.Center(0.5, 0.5)
@@ -366,6 +368,10 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Target FPS:"), SETTINGS_GLOBAL)
 	row.Item(project.TargetFPS, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Save Window Position On Exit:"), SETTINGS_GLOBAL)
+	row.Item(project.SaveWindowPosition, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Automatically reload changed\nlocal resources (experimental!):"), SETTINGS_GLOBAL)
@@ -1953,6 +1959,7 @@ func (project *Project) GUI() {
 						project.AutoReloadThemes.Checked = programSettings.AutoReloadThemes
 						project.DisableMessageLog.Checked = programSettings.DisableMessageLog
 						project.DisableAboutDialogOnStart.Checked = programSettings.DisableAboutDialogOnStart
+						project.SaveWindowPosition.Checked = programSettings.SaveWindowPosition
 						project.AutoReloadResources.Checked = programSettings.AutoReloadResources
 						project.TargetFPS.SetNumber(programSettings.TargetFPS)
 						project.BorderlessWindow.Checked = programSettings.BorderlessWindow
@@ -2076,6 +2083,7 @@ func (project *Project) GUI() {
 				programSettings.AutoReloadThemes = project.AutoReloadThemes.Checked
 				programSettings.DisableMessageLog = project.DisableMessageLog.Checked
 				programSettings.DisableAboutDialogOnStart = project.DisableAboutDialogOnStart.Checked
+				programSettings.SaveWindowPosition = project.SaveWindowPosition.Checked
 				programSettings.AutoReloadResources = project.AutoReloadResources.Checked
 				programSettings.TargetFPS = project.TargetFPS.Number()
 				programSettings.BorderlessWindow = project.BorderlessWindow.Checked
