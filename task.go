@@ -1911,7 +1911,7 @@ func (task *Task) LoadResource() {
 
 				stream, format, err := res.Audio()
 
-				if err == nil {
+				if err == nil && stream != nil {
 
 					task.SoundStream = stream
 					projectSampleRate := beep.SampleRate(task.Board.Project.SampleRate.ChoiceAsInt())

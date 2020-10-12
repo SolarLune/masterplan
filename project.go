@@ -2549,12 +2549,11 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 			log.Println("Error identifying file: %s", err.Error())
 		} else {
 
-			// We have to rename the resource according to what it is because raylib expects the extensions of files to be correct.
-			// png image files need to have .png as an extension, for example.
-
 			newlyLoaded = true
 
-			if strings.ToLower(filepath.Ext(localFilepath)) != fileType.Extension() {
+			// We have to rename the resource according to what it is because raylib expects the extensions of files to be correct.
+			// png image files need to have .png as an extension, for example.
+			if downloadedFile && !fileType.Is(strings.ToLower(filepath.Ext(localFilepath))) {
 				newName := localFilepath + fileType.Extension()
 				os.Rename(localFilepath, newName)
 				localFilepath = newName
@@ -2592,6 +2591,8 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 				res := project.RegisterResource(resourcePath, localFilepath, nil)
 				res.Temporary = downloadedFile
 				loadedResource = res
+			} else {
+				project.Log("Unable to load resource [%s].", resourcePath)
 			}
 
 		}

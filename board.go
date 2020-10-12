@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"sort"
 	"strings"
 
@@ -205,29 +206,53 @@ func (board *Board) FocusViewOnSelectedTasks() {
 func (board *Board) HandleDroppedFiles() {
 
 	if rl.IsFileDropped() {
+
 		fileCount := int32(0)
 		for _, filePath := range rl.GetDroppedFiles(&fileCount) {
 
 			taskType, _ := mimetype.DetectFile(filePath)
 
 			if taskType != nil {
+
 				task := NewTask(board)
 				task.Position.X = camera.Target.X
 				task.Position.Y = camera.Target.Y
+				success := true
 
 				if strings.Contains(taskType.String(), "image") {
+					board.Project.Log("Added Image for [%s] successfully.", filePath)
 					task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
+					task.FilePathTextbox.SetText(filePath)
+					task.LoadResource()
 				} else if strings.Contains(taskType.String(), "audio") {
+					board.Project.Log("Added Sound for [%s] successfully.", filePath)
 					task.TaskType.CurrentChoice = TASK_TYPE_SOUND
+					task.FilePathTextbox.SetText(filePath)
+					task.LoadResource()
+				} else if strings.HasPrefix(taskType.String(), "text/") {
+					board.Project.Log("Added Note for [%s] successfully.", filePath)
+
+					// Attempt to read it in
+					data, err := ioutil.ReadFile(filePath)
+					if err == nil {
+						task.Description.SetText(string(data))
+						task.TaskType.CurrentChoice = TASK_TYPE_NOTE
+					}
+
+				} else {
+					board.Project.Log("Could not create a Task for incompatible file at [%s].", filePath)
+					success = false
 				}
 
-				task.FilePathTextbox.SetText(filePath)
-				task.LoadResource()
 				board.Tasks = append(board.Tasks, task)
+				if !success {
+					board.DeleteTask(task)
+				}
 				continue
 			}
 		}
 		rl.ClearDroppedFiles()
+
 	}
 
 }

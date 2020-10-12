@@ -106,6 +106,7 @@ func (res *Resource) Audio() (beep.StreamSeekCloser, beep.Format, error) {
 			case ".flac":
 				stream, format, err = flac.Decode(file)
 			case ".ogg":
+			case ".oga":
 				stream, format, err = vorbis.Decode(file)
 			case ".mp3":
 				stream, format, err = mp3.Decode(file)
