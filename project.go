@@ -552,6 +552,10 @@ func (project *Project) Save(backup bool) {
 		success = false
 		project.Log("Project cannot be manually saved, as it is locked.")
 
+	} else if demoMode != "" {
+
+		project.Log("Cannot save in MasterPlan demo mode.")
+
 	} else {
 
 		if project.FilePath != "" {
@@ -1888,10 +1892,6 @@ func (project *Project) GUI() {
 				}
 
 				if option == "Save Project" && project.FilePath == "" {
-					disabled = true
-				}
-
-				if demoMode != "" && (option == "Save Project" || option == "Save Project As...") {
 					disabled = true
 				}
 

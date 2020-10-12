@@ -17,11 +17,12 @@ import (
 
 // Build-time variable
 var releaseMode = "false"
+var demoMode = "" // If set to something other than "", it's a demo
 
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.5.4")
+var softwareVersion, _ = semver.Make("0.5.4-1")
 var takeScreenshot = false
 
 var fontSize = float32(15)
@@ -33,7 +34,6 @@ var guiFont rl.Font
 var windowTitle = "MasterPlan v" + softwareVersion.String()
 var deltaTime = float32(0)
 var quit = false
-var demoMode = "" // If set to something other than "", it's a demo
 
 func init() {
 
@@ -319,9 +319,11 @@ func main() {
 			}
 		}
 
-		src := rl.Rectangle{0, 0, float32(splashScreen.Width), float32(splashScreen.Height)}
-		dst := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
-		rl.DrawTexturePro(splashScreen, src, dst, rl.Vector2{}, 0, splashColor)
+		if splashColor.A > 0 {
+			src := rl.Rectangle{0, 0, float32(splashScreen.Width), float32(splashScreen.Height)}
+			dst := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
+			rl.DrawTexturePro(splashScreen, src, dst, rl.Vector2{}, 0, splashColor)
+		}
 
 		rl.EndDrawing()
 
