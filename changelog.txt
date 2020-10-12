@@ -1,5 +1,20 @@
 -------
 
+v0.5.4
+
+-------
+
+Adding a demo. The demo mode is the same as the paid version, just with the inability to save projects and a different "About" section in the settings.
+Improving general autosave reliability.
+Windows executable now has proper MasterPlan icon and propertiess.
+Dropping a text file onto MasterPlan will now create a Note of its contents.
+FIX: Images not saving / loading size properly.
+FIX: Task.LoadResource() shouldn't attempt to use an Audio Resource that didn't load properly. This fixes a crash where you can attempt to play a sound that didn't load.
+FIX: Add logging messages for when you drop an image, sound, or text file onto MasterPlan successfully.
+FIX: Dropping a local sound file onto MasterPlan no longer renames it if it has an incorrect extension name.
+
+-------
+
 v0.5.3
 
 -------
