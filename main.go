@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -284,8 +285,10 @@ func main() {
 				screenshotIndex++
 				screenshotFileName := fmt.Sprintf("screenshot%d.png", screenshotIndex)
 				screenshotPath := GetPath(screenshotFileName)
-				if programSettings.ScreenshotsPath != "" {
-					screenshotPath = ValidatePath(programSettings.ScreenshotsPath, screenshotFileName, screenshotPath)
+				if projectScreenshotsPath := currentProject.ScreenshotsPath.Text(); projectScreenshotsPath != "" {
+					if _, err := os.Stat(projectScreenshotsPath); err == nil {
+						screenshotPath = filepath.Join(projectScreenshotsPath, screenshotFileName)
+					}
 				}
 				rl.TakeScreenshot(screenshotPath)
 				takeScreenshot = false

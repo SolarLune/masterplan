@@ -283,6 +283,10 @@ func NewProject() *Project {
 	row.Item(NewLabel("Maximum Undo Steps:"), SETTINGS_GENERAL)
 	row.Item(project.MaxUndoSteps, SETTINGS_GENERAL)
 
+	row = column.Row()
+	row.Item(NewLabel("Screenshots Path:"), SETTINGS_GENERAL)
+	row.Item(project.ScreenshotsPath, SETTINGS_GENERAL)
+
 	// TASKS
 
 	row = column.Row()
@@ -362,10 +366,6 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Target FPS:"), SETTINGS_GLOBAL)
 	row.Item(project.TargetFPS, SETTINGS_GLOBAL)
-
-	row = column.Row()
-	row.Item(NewLabel("Screenshots Path:"), SETTINGS_GLOBAL)
-	row.Item(project.ScreenshotsPath, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Automatically reload changed\nlocal resources (experimental!):"), SETTINGS_GLOBAL)
@@ -582,6 +582,7 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `IncompleteTasksGlow`, project.IncompleteTasksGlow.Checked)
 			data, _ = sjson.Set(data, `CompleteTasksGlow`, project.CompleteTasksGlow.Checked)
 			data, _ = sjson.Set(data, `SelectedTasksGlow`, project.SelectedTasksGlow.Checked)
+			data, _ = sjson.Set(data, `ScreenshotsPath`, project.ScreenshotsPath.Text())
 
 			boardNames := []string{}
 			for _, board := range project.Boards {
@@ -2036,7 +2037,6 @@ func (project *Project) GUI() {
 				programSettings.DisableAboutDialogOnStart = project.DisableAboutDialogOnStart.Checked
 				programSettings.AutoReloadResources = project.AutoReloadResources.Checked
 				programSettings.TargetFPS = project.TargetFPS.Number()
-				programSettings.ScreenshotsPath = project.ScreenshotsPath.Text()
 				programSettings.BorderlessWindow = project.BorderlessWindow.Checked
 				programSettings.TransparentBackground = project.TransparentBackground.Checked
 
