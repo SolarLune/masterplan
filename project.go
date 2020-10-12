@@ -116,6 +116,7 @@ type Project struct {
 	TargetFPS                 *NumberSpinner
 	TransparentBackground     *Checkbox
 	BorderlessWindow          *Checkbox
+	ScreenshotsPath           *Textbox
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -218,6 +219,7 @@ func NewProject() *Project {
 		DisableMessageLog:   NewCheckbox(0, 0, 32, 32),
 		AutoReloadResources: NewCheckbox(0, 0, 32, 32),
 		TargetFPS:           NewNumberSpinner(0, 0, 128, 40),
+		ScreenshotsPath:     NewTextbox(0, 0, 32, 32),
 
 		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
@@ -276,6 +278,10 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Maximum Undo Steps:"), SETTINGS_GENERAL)
 	row.Item(project.MaxUndoSteps, SETTINGS_GENERAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Screenshots Path:"), SETTINGS_GENERAL)
+	row.Item(project.ScreenshotsPath, SETTINGS_GENERAL)
 
 	// TASKS
 
@@ -603,6 +609,7 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `IncompleteTasksGlow`, project.IncompleteTasksGlow.Checked)
 			data, _ = sjson.Set(data, `CompleteTasksGlow`, project.CompleteTasksGlow.Checked)
 			data, _ = sjson.Set(data, `SelectedTasksGlow`, project.SelectedTasksGlow.Checked)
+			data, _ = sjson.Set(data, `ScreenshotsPath`, project.ScreenshotsPath.Text())
 
 			boardNames := []string{}
 			for _, board := range project.Boards {
