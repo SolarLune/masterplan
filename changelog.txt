@@ -4,6 +4,7 @@ v0.5.4-1
 
 -------
 
+MasterPlan can now save window position on exit.
 Screenshot save directory can now be customized on a per-project basis.
 MasterPlan now alerts you to where a screenshot is saved.
 Visually cleaned up splashscreen.
