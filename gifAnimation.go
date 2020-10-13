@@ -64,8 +64,6 @@ func (gifAnim *GifAnimation) GetTexture() rl.Texture2D {
 				} else {
 					if disposalMode == gif.DisposalBackground {
 						gifAnim.frameImg.Set(x, y, color.RGBA{0, 0, 0, 0})
-					} else if disposalMode == gif.DisposalPrevious && gifAnim.CurrentFrame > 0 {
-						gifAnim.frameImg.Set(x, y, gifAnim.Data.Image[gifAnim.CurrentFrame-1].At(x, y))
 					}
 					// For gif.DisposalNone, it doesn't matter, I think?
 					// For clarification on disposal method specs, see: https://www.w3.org/Graphics/GIF/spec-gif89a.txt
