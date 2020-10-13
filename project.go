@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goware/urlx"
 	"github.com/pkg/browser"
 	"github.com/tanema/gween"
 	"github.com/tanema/gween/ease"
@@ -2540,9 +2541,9 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 		localFilepath := resourcePath
 
 		// Attempt downloading it if it's an HTTP file
-		if strings.HasPrefix(resourcePath, "http://") || strings.HasPrefix(resourcePath, "https://") {
+		if url, err := urlx.Parse(resourcePath); err == nil && url.Host != "" && url.Scheme != "" {
 
-			response, err := http.Get(resourcePath)
+			response, err := http.Get(url.String())
 
 			if err != nil {
 
@@ -2551,10 +2552,7 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 			} else {
 
-				defer response.Body.Close()
-
 				tempFile, err := ioutil.TempFile("", "masterplan_resource")
-				defer tempFile.Close()
 				if err != nil {
 					log.Println(err)
 				} else {
@@ -2563,6 +2561,10 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 					localFilepath = tempFile.Name()
 					downloadedFile = true
 				}
+
+				response.Body.Close()
+
+				tempFile.Close()
 
 			}
 

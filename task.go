@@ -2134,9 +2134,7 @@ func (task *Task) ScanTextForURLs(text string) {
 
 				if strings.Contains(urlText, ".") || strings.Contains(urlText, ":") {
 
-					url, err := urlx.Parse(urlText)
-
-					if err == nil && url.Host != "" && url.Scheme != "" {
+					if url, err := urlx.Parse(urlText); err == nil && url.Host != "" && url.Scheme != "" {
 						currentURLButton.Link = url.String()
 						task.URLButtons = append(task.URLButtons, currentURLButton)
 					}
