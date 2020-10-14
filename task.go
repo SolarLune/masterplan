@@ -1378,13 +1378,13 @@ func (task *Task) Draw() {
 			iconSrc.Y = 32
 			rotation = rl.Vector2Angle(task.LineBase.Position, task.Position)
 
-			if task.TaskRight != nil {
+			if task.TaskRight != nil && task.TaskRight != task.LineBase {
 				rotation = 0
-			} else if task.TaskLeft != nil {
+			} else if task.TaskLeft != nil && task.TaskLeft != task.LineBase {
 				rotation = 180
-			} else if task.TaskAbove != nil {
+			} else if task.TaskAbove != nil && task.TaskAbove != task.LineBase {
 				rotation = -90
-			} else if task.TaskBelow != nil {
+			} else if task.TaskBelow != nil && task.TaskBelow != task.LineBase {
 				rotation = 90
 			}
 
