@@ -1109,7 +1109,7 @@ func (task *Task) Draw() {
 
 	alpha := uint8(255)
 
-	if task.Board.Project.TaskTransparency.Number() < 255 {
+	if task.Board.Project.TaskTransparency.Number() < 5 {
 		t := float32(task.Board.Project.TaskTransparency.Number())
 		alpha = uint8((t / float32(task.Board.Project.TaskTransparency.Maximum)) * (255 - 32))
 		color.A = 32 + alpha
