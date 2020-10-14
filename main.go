@@ -317,8 +317,9 @@ func main() {
 		splashScreenTime += deltaTime
 
 		if splashScreenTime >= 1.5 {
-			if splashColor.A > 5 {
-				splashColor.A -= 5
+			sub := uint8(255 * deltaTime)
+			if splashColor.A > sub {
+				splashColor.A -= sub
 			} else {
 				splashColor.A = 0
 			}
@@ -352,6 +353,7 @@ func main() {
 		if attemptedSleep > 0 {
 			deltaTime = float32((attemptedSleep + elapsed).Seconds())
 		} else {
+			sleepDifference = 0
 			deltaTime = float32(elapsed.Seconds())
 		}
 
@@ -360,8 +362,8 @@ func main() {
 			fpsDisplayValue = fpsDisplayAccumulator * float32(programSettings.TargetFPS)
 			fpsDisplayAccumulator = 0
 		}
-		fpsDisplayAccumulator += deltaTime
-		// currentTime +=
+		fpsDisplayAccumulator += 1.0 / float32(programSettings.TargetFPS)
+
 		elapsed = sleepDifference // Sleeping doesn't sleep for exact amounts; carry this into next frame for sleep attempt
 	}
 
