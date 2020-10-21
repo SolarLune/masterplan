@@ -2102,7 +2102,7 @@ func (project *Project) GUI() {
 							if len(project.RebindingHeldKeys) > 1 {
 								programSettings.Keybindings.Shortcuts[shortcutName].Modifiers = project.RebindingHeldKeys[:len(project.RebindingHeldKeys)-1]
 								programSettings.Keybindings.Shortcuts[shortcutName].Key = project.RebindingHeldKeys[len(project.RebindingHeldKeys)-1]
-							} else {
+							} else if len(project.RebindingHeldKeys) == 1 {
 								programSettings.Keybindings.Shortcuts[shortcutName].Modifiers = []int32{}
 								programSettings.Keybindings.Shortcuts[shortcutName].Key = project.RebindingHeldKeys[0]
 							}
