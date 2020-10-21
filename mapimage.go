@@ -169,29 +169,23 @@ func (mapImage *MapImage) Update() {
 		editButton = mapImage.Task.SmallButton(16, 32, 16, 16, mapImage.Task.Rect.X+16, mapImage.Task.Rect.Y)
 	}
 
-	if mapImage.Task.Open {
-		editButton = false
-	}
-
-	shift := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
-
-	if !editButton && mapImage.Task.Selected && (rl.IsKeyPressed(rl.KeyC) && !shift) {
-		editButton = true
+	if editButton || (mapImage.Editing && !mapImage.Task.Selected) {
+		mapImage.ToggleEditing()
 	}
 
 	if !mapImage.Task.Selected && mapImage.Editing {
 		mapImage.Editing = false
 	}
 
-	if editButton {
-		mapImage.Editing = !mapImage.Editing
-		mapImage.Changed = true
-	}
-
 	if mapImage.Changed {
 		mapImage.Task.Board.UndoBuffer.Capture(mapImage.Task)
 	}
 
+}
+
+func (mapImage *MapImage) ToggleEditing() {
+	mapImage.Editing = !mapImage.Editing
+	mapImage.Changed = true
 }
 
 func (mapImage *MapImage) Resize(w, h float32) {

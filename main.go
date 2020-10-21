@@ -334,6 +334,12 @@ func main() {
 		rl.EndDrawing()
 
 		title := "MasterPlan v" + softwareVersion.String() + demoMode
+
+		if currentProject.FilePath != "" {
+			_, fileName := filepath.Split(currentProject.FilePath)
+			title += fmt.Sprintf(" - %s", fileName)
+		}
+
 		if currentProject.Modified {
 			title += " *"
 		}

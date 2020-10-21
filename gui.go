@@ -355,6 +355,7 @@ type Panel struct {
 	EnableScrolling bool
 	DragStart       rl.Vector2
 	PrevWindowSize  rl.Vector2
+	JustOpened      bool
 }
 
 func NewPanel(x, y, w, h float32) *Panel {
@@ -384,7 +385,7 @@ func (panel *Panel) Update() {
 	exitButtonSize := float32(32)
 	panel.Exited = false
 
-	if MousePressed(rl.MouseLeftButton) && !rl.CheckCollisionPointRec(GetMousePosition(), dst) || rl.IsKeyPressed(rl.KeyEscape) {
+	if prioritizedGUIElement == nil && ((MousePressed(rl.MouseLeftButton) && !rl.CheckCollisionPointRec(GetMousePosition(), dst)) || rl.IsKeyPressed(rl.KeyEscape)) {
 		panel.Exited = true
 		ConsumeMouseInput(rl.MouseLeftButton)
 	}
@@ -547,7 +548,11 @@ func (panel *Panel) Update() {
 								activeRowCount++
 							}
 						}
-						y += float32(int(panel.OriginalHeight-32-topBar.Height) / activeRowCount) // Automatic spacing
+						spacing := float32(int(panel.OriginalHeight-32-topBar.Height) / activeRowCount)
+						if spacing <= lastHeight {
+							spacing = lastHeight
+						}
+						y += spacing // Automatic spacing
 					}
 
 				}
@@ -563,7 +568,11 @@ func (panel *Panel) Update() {
 		}
 
 		for _, item := range sorted {
-			item.Element.Update()
+			// Draw the elements
+			if !panel.JustOpened {
+				// Keeps from executing, say, a Textbox's Update() on the same frame that Enter is pressed, adding a new line to the description
+				item.Element.Update()
+			}
 		}
 
 		globalMouseOffset.X = 0
@@ -626,6 +635,12 @@ func (panel *Panel) Update() {
 	rl.DrawRectangleLinesEx(dst, 1, getThemeColor(GUI_OUTLINE))
 
 	panel.PrevWindowSize = winSize
+
+	panel.JustOpened = false
+
+	if panel.Exited {
+		panel.JustOpened = true
+	}
 
 }
 
@@ -753,7 +768,7 @@ func (scrollBar *Scrollbar) Update() {
 			scrollBar.Rect.Height-(scrollBox.Height))
 	}
 
-	scrollBar.ScrollAmount -= float32(rl.GetMouseWheelMove()) * .25
+	scrollBar.ScrollAmount -= float32(rl.GetMouseWheelMove()) * .1
 
 	if scrollBar.ScrollAmount < 0 {
 		scrollBar.ScrollAmount = 0
@@ -1466,10 +1481,9 @@ func (textbox *Textbox) Update() {
 			control = rl.IsKeyDown(rl.KeyLeftSuper) || rl.IsKeyDown(rl.KeyRightSuper)
 		}
 
-		if control {
-			if rl.IsKeyPressed(rl.KeyA) {
-				textbox.SelectAllText()
-			}
+		// Shortcuts
+		if programSettings.Keybindings.On(KBSelectAllTasks) {
+			textbox.SelectAllText()
 		}
 
 		letter := int(rl.GetKeyPressed())
@@ -1618,7 +1632,7 @@ func (textbox *Textbox) Update() {
 			if !shift {
 				textbox.ClearSelection()
 			}
-		} else if keyState[rl.KeyV] > 0 && control {
+		} else if programSettings.Keybindings.On(KBPaste) {
 			clipboardText, _ := clipboard.ReadAll()
 			if clipboardText != "" {
 
@@ -1653,20 +1667,16 @@ func (textbox *Textbox) Update() {
 		// Specifically want these two shortcuts to be here, underneath the above code block to ensure the selected range is valid before
 		// we mess with it
 
-		if control {
+		if textbox.RangeSelected() {
 
-			if textbox.RangeSelected() {
+			if programSettings.Keybindings.On(KBCopyTasks) {
 
-				if rl.IsKeyPressed(rl.KeyC) {
+				clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
 
-					clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
+			} else if programSettings.Keybindings.On(KBCutTasks) {
 
-				} else if rl.IsKeyPressed(rl.KeyX) {
-
-					clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
-					textbox.DeleteSelectedText()
-
-				}
+				clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
+				textbox.DeleteSelectedText()
 
 			}
 

@@ -46,6 +46,7 @@ const (
 	SETTINGS_TASKS
 	SETTINGS_AUDIO
 	SETTINGS_GLOBAL
+	SETTINGS_KEYBOARD
 	SETTINGS_ABOUT
 )
 
@@ -120,6 +121,9 @@ type Project struct {
 	BorderlessWindow            *Checkbox
 	ScreenshotsPath             *Textbox
 	ScreenshotsPathBrowseButton *Button
+	RebindingButtons            []*Button
+	RebindingAction             *Button
+	RebindingHeldKeys           []int32
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -210,7 +214,9 @@ func NewProject() *Project {
 		MaxUndoSteps:             NewNumberSpinner(0, 0, 192, 40),
 		TaskTransparency:         NewNumberSpinner(0, 0, 128, 40),
 		AlwaysShowURLButtons:     NewCheckbox(0, 0, 32, 32),
-		SettingsSection:          NewButtonGroup(0, 0, 512, 32, "General", "Tasks", "Audio", "Global", "About"),
+		SettingsSection:          NewButtonGroup(0, 0, 700, 32, "General", "Tasks", "Audio", "Global", "Shortcuts", "About"),
+		RebindingButtons:         []*Button{},
+		RebindingHeldKeys:        []int32{},
 		SoundVolume:              NewNumberSpinner(0, 0, 128, 40),
 		IncompleteTasksGlow:      NewCheckbox(0, 0, 32, 32),
 		CompleteTasksGlow:        NewCheckbox(0, 0, 32, 32),
@@ -252,7 +258,9 @@ func NewProject() *Project {
 	project.PopupPanel.Center(0.5, 0.5)
 
 	column = project.SettingsPanel.AddColumn()
-	column.Row().Item(project.SettingsSection)
+	row = column.Row()
+	row.Item(project.SettingsSection)
+	row.VerticalSpacing = 24
 
 	// General settings
 
@@ -348,6 +356,23 @@ func NewProject() *Project {
 	row.Item(NewLabel("Save Sound Playback:"), SETTINGS_AUDIO)
 	row.Item(project.SaveSoundsPlaying, SETTINGS_AUDIO)
 
+	// Keyboard
+
+	row = column.Row()
+	row.Item(NewLabel("Click a button for a shortcut and enter a key sequence to reassign it."), SETTINGS_KEYBOARD)
+	row.VerticalSpacing = 16
+	row = column.Row()
+	row.Item(NewLabel("ESC cancels the assignment."), SETTINGS_KEYBOARD)
+	row.VerticalSpacing = 16
+
+	for _, shortcutName := range programSettings.Keybindings.creationOrder {
+		row = column.Row()
+		row.Item(NewLabel(shortcutName), SETTINGS_KEYBOARD)
+		button := NewButton(0, 0, 300, 32, programSettings.Keybindings.Shortcuts[shortcutName].String(), false)
+		project.RebindingButtons = append(project.RebindingButtons, button)
+		row.Item(button, SETTINGS_KEYBOARD)
+	}
+
 	// Global
 
 	row = column.Row()
@@ -393,9 +418,6 @@ func NewProject() *Project {
 	// About
 
 	if demoMode == "" {
-
-		row = column.Row()
-		row.Item(NewLabel(""), SETTINGS_ABOUT)
 
 		row = column.Row()
 		row.Item(NewLabel(`"Hello! Thank you for purchasing and using MasterPlan! I truly do appreciate`), SETTINGS_ABOUT)
@@ -901,7 +923,7 @@ func (project *Project) HandleCamera() {
 		}
 	}
 
-	zoomLevels := []float32{0.5, 0.75, 1, 2, 3, 4, 5, 6, 7, 8, 10}
+	zoomLevels := []float32{0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 10}
 
 	if project.ZoomLevel == -99 {
 		project.ZoomLevel = 1
@@ -964,8 +986,8 @@ func (project *Project) Update() {
 	}
 	project.ThemeReloadTimer++
 
-	holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
-	holdingAlt := rl.IsKeyDown(rl.KeyLeftAlt) || rl.IsKeyDown(rl.KeyRightAlt)
+	addToSelection := programSettings.Keybindings.On(KBAddToSelection)
+	removeFromSelection := programSettings.Keybindings.On(KBRemoveFromSelection)
 
 	src := rl.Rectangle{-100000, -100000, 200000, 200000}
 	dst := src
@@ -1075,22 +1097,18 @@ func (project *Project) Update() {
 				} else {
 					project.Selecting = false
 
-					if holdingAlt && clickedTask.Selected {
+					if removeFromSelection && clickedTask.Selected {
 						project.Log("Deselected 1 Task.")
-					} else if !holdingAlt && !clickedTask.Selected {
+					} else if !removeFromSelection && !clickedTask.Selected {
 						project.Log("Selected 1 Task.")
 					}
 
-					if holdingShift {
-
-						if holdingAlt {
-							clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{})
-						} else {
-							clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{
-								"task": clickedTask,
-							})
-						}
-
+					if removeFromSelection {
+						clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{})
+					} else if addToSelection {
+						clickedTask.ReceiveMessage(MessageSelect, map[string]interface{}{
+							"task": clickedTask,
+						})
 					} else {
 						if !clickedTask.Selected { // This makes it so you don't have to shift+drag to move already selected Tasks
 							project.SendMessage(MessageSelect, map[string]interface{}{
@@ -1169,7 +1187,7 @@ func (project *Project) Update() {
 							t = task
 						}
 
-						if holdingAlt {
+						if removeFromSelection {
 							if inSelectionRect {
 
 								if task.Selected {
@@ -1181,9 +1199,9 @@ func (project *Project) Update() {
 							}
 						} else {
 
-							if !holdingShift || inSelectionRect {
+							if !addToSelection || inSelectionRect {
 
-								if (!task.Selected && inSelectionRect) || (!holdingShift && inSelectionRect) {
+								if (!task.Selected && inSelectionRect) || (!addToSelection && inSelectionRect) {
 									count++
 								}
 
@@ -1197,7 +1215,7 @@ func (project *Project) Update() {
 
 					}
 
-					if holdingAlt {
+					if removeFromSelection {
 						project.Log("Deselected %d Task(s).", count)
 					} else {
 						project.Log("Selected %d Task(s).", count)
@@ -1330,40 +1348,12 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 
 func (project *Project) Shortcuts() {
 
-	repeatKeys := []int32{
-		rl.KeyUp,
-		rl.KeyDown,
-		rl.KeyLeft,
-		rl.KeyRight,
-		rl.KeyF,
-		rl.KeyZ,
-		rl.KeyEnter,
-		rl.KeyKpEnter,
-	}
+	keybindings := programSettings.Keybindings
 
-	repeatableKeyDown := map[int32]bool{}
+	keybindings.ReenableAllShortcuts()
 
-	for _, key := range repeatKeys {
-		repeatableKeyDown[key] = false
-
-		if rl.IsKeyPressed(key) {
-			project.ShortcutKeyTimer = 0
-			repeatableKeyDown[key] = true
-		} else if rl.IsKeyDown(key) {
-			project.ShortcutKeyTimer++
-			if project.ShortcutKeyTimer >= 30 && project.ShortcutKeyTimer%2 == 0 {
-				repeatableKeyDown[key] = true
-			}
-		} else if rl.IsKeyReleased(key) {
-			project.ShortcutKeyTimer = 0
-		}
-	}
-
-	holdingShift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
-	holdingCtrl := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
-
-	if strings.Contains(runtime.GOOS, "darwin") && !holdingCtrl {
-		holdingCtrl = rl.IsKeyDown(rl.KeyLeftSuper) || rl.IsKeyDown(rl.KeyRightSuper)
+	for _, clash := range keybindings.GetClashes() {
+		clash.Enabled = false
 	}
 
 	if !project.ProjectSettingsOpen && project.PopupAction == "" {
@@ -1376,77 +1366,96 @@ func (project *Project) Shortcuts() {
 				selectedTasks := project.CurrentBoard().SelectedTasks(false)
 				gs := float32(project.GridSize)
 
-				if holdingShift {
+				if keybindings.On(KBFasterPan) {
 					panSpeed *= 3
 				}
 
-				if !holdingCtrl && rl.IsKeyDown(rl.KeyW) {
+				if keybindings.On(KBPanUp) {
 					project.CameraPan.Y += panSpeed
 				}
-				if !holdingCtrl && rl.IsKeyDown(rl.KeyS) {
+				if keybindings.On(KBPanDown) {
 					project.CameraPan.Y -= panSpeed
 				}
-				if !holdingCtrl && rl.IsKeyDown(rl.KeyA) {
+				if keybindings.On(KBPanLeft) {
 					project.CameraPan.X += panSpeed
 				}
-				if !holdingCtrl && rl.IsKeyDown(rl.KeyD) {
+				if keybindings.On(KBPanRight) {
 					project.CameraPan.X -= panSpeed
 				}
 
-				if holdingShift && rl.IsKeyPressed(rl.KeyOne) {
+				if keybindings.On(KBBoard1) {
 					if len(project.Boards) > 0 {
 						project.BoardIndex = 0
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeyTwo) {
+				} else if keybindings.On(KBBoard2) {
 					if len(project.Boards) > 1 {
 						project.BoardIndex = 1
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeyThree) {
+				} else if keybindings.On(KBBoard2) {
+					if len(project.Boards) > 1 {
+						project.BoardIndex = 1
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
+					}
+				} else if keybindings.On(KBBoard3) {
 					if len(project.Boards) > 2 {
 						project.BoardIndex = 2
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeyFour) {
+				} else if keybindings.On(KBBoard4) {
 					if len(project.Boards) > 3 {
 						project.BoardIndex = 3
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeyFive) {
+				} else if keybindings.On(KBBoard5) {
 					if len(project.Boards) > 4 {
 						project.BoardIndex = 4
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeySix) {
+				} else if keybindings.On(KBBoard6) {
 					if len(project.Boards) > 5 {
 						project.BoardIndex = 5
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeySeven) {
+				} else if keybindings.On(KBBoard7) {
 					if len(project.Boards) > 6 {
 						project.BoardIndex = 6
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeyEight) {
+				} else if keybindings.On(KBBoard8) {
 					if len(project.Boards) > 7 {
 						project.BoardIndex = 7
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeyNine) {
+				} else if keybindings.On(KBBoard9) {
 					if len(project.Boards) > 8 {
 						project.BoardIndex = 8
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeyZero) {
+				} else if keybindings.On(KBBoard10) {
 					if len(project.Boards) > 9 {
 						project.BoardIndex = 9
+						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if rl.IsKeyPressed(rl.KeyOne) || rl.IsKeyPressed(rl.KeyKp1) {
+				} else if keybindings.On(KBZoomLevel50) {
 					project.ZoomLevel = 0
-				} else if rl.IsKeyPressed(rl.KeyTwo) || rl.IsKeyPressed(rl.KeyKp2) {
+				} else if keybindings.On(KBZoomLevel100) {
 					project.ZoomLevel = 2
-				} else if rl.IsKeyPressed(rl.KeyThree) || rl.IsKeyPressed(rl.KeyKp3) {
-					project.ZoomLevel = 3
-				} else if rl.IsKeyPressed(rl.KeyFour) || rl.IsKeyPressed(rl.KeyKp4) {
-					project.ZoomLevel = 5
-				} else if rl.IsKeyPressed(rl.KeyFive) || rl.IsKeyPressed(rl.KeyKp5) {
-					project.ZoomLevel = 10
-				} else if rl.IsKeyPressed(rl.KeyBackspace) {
+				} else if keybindings.On(KBZoomLevel200) {
+					project.ZoomLevel = 4
+				} else if keybindings.On(KBZoomLevel400) {
+					project.ZoomLevel = 6
+				} else if keybindings.On(KBZoomLevel1000) {
+					project.ZoomLevel = 9
+				} else if keybindings.On(KBZoomIn) {
+					project.ZoomLevel++
+				} else if keybindings.On(KBZoomOut) {
+					project.ZoomLevel--
+				} else if keybindings.On(KBCenterView) {
 					project.CameraPan.X = 0
 					project.CameraPan.Y = 0
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyA) {
+				} else if keybindings.On(KBSelectAllTasks) {
 
 					for _, task := range project.CurrentBoard().Tasks {
 						task.Selected = true
@@ -1454,35 +1463,35 @@ func (project *Project) Shortcuts() {
 
 					project.Log("Selected all %d Task(s).", len(project.CurrentBoard().Tasks))
 
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyC) {
+				} else if keybindings.On(KBCopyTasks) {
 					project.CurrentBoard().CopySelectedTasks()
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyX) {
+				} else if keybindings.On(KBCutTasks) {
 					project.CurrentBoard().CutSelectedTasks()
-				} else if holdingCtrl && holdingShift && rl.IsKeyPressed(rl.KeyV) {
+				} else if keybindings.On(KBPasteContent) {
 					project.CurrentBoard().PasteContent()
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyV) {
+				} else if keybindings.On(KBPaste) {
 					project.CurrentBoard().PasteTasks()
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyN) {
+				} else if keybindings.On(KBCreateTask) {
 					task := project.CurrentBoard().CreateNewTask()
 					task.ReceiveMessage(MessageDoubleClick, nil)
-				} else if holdingCtrl && holdingShift && repeatableKeyDown[rl.KeyZ] {
+				} else if keybindings.On(KBRedo) {
 					if project.CurrentBoard().UndoBuffer.Redo() {
 						project.UndoFade.Reset()
 						project.Undoing = 1
 					}
-				} else if holdingCtrl && repeatableKeyDown[rl.KeyZ] {
+				} else if keybindings.On(KBUndo) {
 					if project.CurrentBoard().UndoBuffer.Undo() {
 						project.UndoFade.Reset()
 						project.Undoing = -1
 					}
-				} else if holdingShift && rl.IsKeyPressed(rl.KeyC) {
+				} else if keybindings.On(KBStopAllSounds) {
 
 					for _, task := range project.GetAllTasks() {
 						task.StopSound()
 					}
 					project.Log("Stopped all playing Sounds.")
 
-				} else if rl.IsKeyPressed(rl.KeyC) {
+				} else if keybindings.On(KBToggleTasks) {
 
 					toggleCount := 0
 
@@ -1497,23 +1506,23 @@ func (project *Project) Shortcuts() {
 						project.Log("Completion toggled on %d Task(s).", toggleCount)
 					}
 
-				} else if rl.IsKeyPressed(rl.KeyDelete) {
+				} else if keybindings.On(KBDeleteTasks) {
 					project.CurrentBoard().DeleteSelectedTasks()
-				} else if rl.IsKeyPressed(rl.KeyF) {
+				} else if keybindings.On(KBFocusOnTasks) {
 					project.CurrentBoard().FocusViewOnSelectedTasks()
-				} else if len(selectedTasks) > 0 && (repeatableKeyDown[rl.KeyUp] ||
-					repeatableKeyDown[rl.KeyRight] ||
-					repeatableKeyDown[rl.KeyDown] ||
-					repeatableKeyDown[rl.KeyLeft]) {
+				} else if len(selectedTasks) > 0 && (keybindings.On(KBSelectTaskAbove) ||
+					keybindings.On(KBSelectTaskRight) ||
+					keybindings.On(KBSelectTaskLeft) ||
+					keybindings.On(KBSelectTaskBelow)) {
 
 					// Selecting + sliding
 
-					up := repeatableKeyDown[rl.KeyUp]
-					right := repeatableKeyDown[rl.KeyRight]
-					down := repeatableKeyDown[rl.KeyDown]
-					left := repeatableKeyDown[rl.KeyLeft]
+					up := keybindings.On(KBSelectTaskAbove)
+					right := keybindings.On(KBSelectTaskRight)
+					down := keybindings.On(KBSelectTaskBelow)
+					left := keybindings.On(KBSelectTaskLeft)
 
-					if holdingCtrl {
+					if keybindings.On(KBSlideTask) {
 
 						// Shift Tasks / Slide Tasks
 
@@ -1639,7 +1648,7 @@ func (project *Project) Shortcuts() {
 
 							if neighbor != nil {
 
-								if holdingShift {
+								if keybindings.On(KBAddToSelection) {
 									neighbor.ReceiveMessage(MessageSelect, map[string]interface{}{"task": neighbor})
 								} else {
 									project.SendMessage(MessageSelect, map[string]interface{}{"task": neighbor})
@@ -1653,31 +1662,31 @@ func (project *Project) Shortcuts() {
 
 					}
 
-				} else if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
+				} else if keybindings.On(KBEditTasks) {
 					for _, task := range project.CurrentBoard().SelectedTasks(true) {
 						task.ReceiveMessage(MessageDoubleClick, nil)
 					}
-				} else if holdingCtrl && holdingShift && rl.IsKeyPressed(rl.KeyS) {
+				} else if keybindings.On(KBSaveAs) {
 
 					// Project Shortcuts
 
 					project.SaveAs()
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyS) {
+				} else if keybindings.On(KBSave) {
 					if project.FilePath == "" {
 						project.SaveAs()
 					} else {
 						project.Save(false)
 					}
-				} else if holdingCtrl && rl.IsKeyPressed(rl.KeyO) {
+				} else if keybindings.On(KBLoad) {
 					if project.Modified {
 						project.PopupAction = ActionLoadProject
 					} else {
 						project.ExecuteDestructiveAction(ActionLoadProject, "")
 					}
-				} else if rl.IsKeyPressed(rl.KeyEscape) {
+				} else if keybindings.On(KBDeselectTasks) {
 					project.SendMessage(MessageSelect, nil)
 					project.Log("Deselected all Task(s).")
-				} else if rl.IsKeyPressed(rl.KeyPageUp) {
+				} else if keybindings.On(KBSelectTopTaskInStack) {
 					for _, task := range project.CurrentBoard().SelectedTasks(true) {
 						next := task.TaskAbove
 						for next != nil && next.TaskAbove != nil {
@@ -1689,7 +1698,7 @@ func (project *Project) Shortcuts() {
 						break
 					}
 					project.CurrentBoard().FocusViewOnSelectedTasks()
-				} else if rl.IsKeyPressed(rl.KeyPageDown) {
+				} else if keybindings.On(KBSelectBottomTaskInStack) {
 					for _, task := range project.CurrentBoard().Tasks {
 						if task.Selected {
 							next := task.TaskBelow
@@ -1707,8 +1716,8 @@ func (project *Project) Shortcuts() {
 
 			}
 
-			if project.Searchbar.Focused && (repeatableKeyDown[rl.KeyEnter] || repeatableKeyDown[rl.KeyKpEnter]) {
-				if holdingShift {
+			if project.Searchbar.Focused && rl.IsKeyPressed(rl.KeyEnter) {
+				if keybindings.On(KBAddToSelection) {
 					project.FocusedSearchTask--
 				} else {
 					project.FocusedSearchTask++
@@ -1716,15 +1725,20 @@ func (project *Project) Shortcuts() {
 				project.SearchForTasks()
 			}
 
-			if holdingCtrl && repeatableKeyDown[rl.KeyF] {
-				if project.Searchbar.Focused {
-					if holdingShift {
-						project.FocusedSearchTask--
-					} else {
-						project.FocusedSearchTask++
-					}
-					project.SearchForTasks()
-				} else {
+			if project.Searchbar.Focused {
+
+				if rl.IsKeyPressed(rl.KeyEnter) {
+					project.FocusedSearchTask++
+				}
+
+				if keybindings.On(KBFindPreviousTask) {
+					project.FocusedSearchTask--
+				} else if keybindings.On(KBFindNextTask) {
+					project.FocusedSearchTask++
+				}
+				project.SearchForTasks()
+			} else {
+				if keybindings.On(KBFindNextTask) || keybindings.On(KBFindPreviousTask) {
 					project.SearchForTasks()
 					project.Searchbar.Focused = true
 				}
@@ -2051,6 +2065,61 @@ func (project *Project) GUI() {
 
 			if project.AboutTwitterButton.Clicked {
 				browser.OpenURL("https://twitter.com/MasterPlanApp")
+			}
+
+			if project.SettingsSection.CurrentChoice == SETTINGS_KEYBOARD {
+
+				for i, shortcutName := range programSettings.Keybindings.creationOrder {
+					button := project.RebindingButtons[i]
+
+					if button.Clicked {
+						project.RebindingAction = button
+					}
+
+					if project.RebindingAction == button {
+
+						project.RebindingAction.Disabled = true
+						prioritizedGUIElement = project.RebindingAction
+
+						assignKeys := false
+
+						for keyCode := range keyNames {
+							if rl.IsKeyPressed(keyCode) {
+								if keyCode == rl.KeyEscape {
+									project.RebindingAction.Disabled = false
+									project.RebindingAction = nil
+									prioritizedGUIElement = nil
+								} else {
+									project.RebindingHeldKeys = append(project.RebindingHeldKeys, keyCode)
+								}
+							} else if rl.IsKeyReleased(keyCode) && keyCode != rl.KeyEscape {
+								assignKeys = true
+							}
+						}
+
+						if assignKeys {
+
+							if len(project.RebindingHeldKeys) > 1 {
+								programSettings.Keybindings.Shortcuts[shortcutName].Modifiers = project.RebindingHeldKeys[:len(project.RebindingHeldKeys)-1]
+								programSettings.Keybindings.Shortcuts[shortcutName].Key = project.RebindingHeldKeys[len(project.RebindingHeldKeys)-1]
+							} else {
+								programSettings.Keybindings.Shortcuts[shortcutName].Modifiers = []int32{}
+								programSettings.Keybindings.Shortcuts[shortcutName].Key = project.RebindingHeldKeys[0]
+							}
+
+							project.RebindingHeldKeys = []int32{}
+							project.RebindingAction.Disabled = false
+							project.RebindingAction = nil
+							prioritizedGUIElement = nil
+
+						}
+
+					}
+
+					button.Text = programSettings.Keybindings.Shortcuts[shortcutName].String()
+
+				}
+
 			}
 
 			if project.ScreenshotsPathBrowseButton.Clicked {

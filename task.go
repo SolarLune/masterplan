@@ -1169,7 +1169,7 @@ func (task *Task) Draw() {
 		bgColor := rl.Black
 		bgColor.A = 64
 		color := rl.White
-		color.A = alpha + 32
+		color.A = alpha
 
 		gs := float32(task.Board.Project.GridSize)
 		src := rl.Rectangle{0, 0, float32(task.MapImage.Texture.Texture.Width), -float32(task.MapImage.Texture.Texture.Height)}
@@ -1241,13 +1241,13 @@ func (task *Task) Draw() {
 
 			if task.TaskType.CurrentChoice == TASK_TYPE_IMAGE {
 
-				if !rl.IsKeyDown(rl.KeyLeftAlt) && !rl.IsKeyDown(rl.KeyRightAlt) {
+				if !programSettings.Keybindings.On(KBUnlockImageASR) {
 					asr := float32(task.Image.Height) / float32(task.Image.Width)
 					task.ImageDisplaySize.Y = task.ImageDisplaySize.X * asr
 
 				}
 
-				if !rl.IsKeyDown(rl.KeyLeftShift) && !rl.IsKeyDown(rl.KeyRightShift) {
+				if !programSettings.Keybindings.On(KBUnlockImageGrid) {
 					task.ImageDisplaySize = task.Board.Project.LockPositionToGrid(task.ImageDisplaySize)
 				}
 
@@ -1315,9 +1315,7 @@ func (task *Task) Draw() {
 
 			for _, urlButton := range task.URLButtons {
 
-				control := rl.IsKeyDown(rl.KeyLeftControl) || rl.IsKeyDown(rl.KeyRightControl)
-
-				if control || task.Board.Project.AlwaysShowURLButtons.Checked {
+				if programSettings.Keybindings.On(KBURLButton) || task.Board.Project.AlwaysShowURLButtons.Checked {
 
 					margin := float32(2)
 					dst := rl.Rectangle{textPos.X + urlButton.Pos.X - margin, textPos.Y + urlButton.Pos.Y, urlButton.Size.X + (margin * 2), urlButton.Size.Y}
@@ -1855,6 +1853,8 @@ func (task *Task) SetCompletion(complete bool) {
 			}
 			task.Board.FocusViewOnSelectedTasks()
 		}
+	} else if task.TaskType.CurrentChoice == TASK_TYPE_MAP && task.MapImage != nil {
+		task.MapImage.ToggleEditing()
 	}
 
 }

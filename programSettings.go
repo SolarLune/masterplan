@@ -23,15 +23,18 @@ type ProgramSettings struct {
 	BorderlessWindow          bool
 	WindowPosition            rl.Rectangle
 	SaveWindowPosition        bool
+	Keybindings               *Keybindings
 }
 
 func NewProgramSettings() ProgramSettings {
-	return ProgramSettings{
+	ps := ProgramSettings{
 		RecentPlanList:     []string{},
 		TargetFPS:          60,
 		WindowPosition:     rl.NewRectangle(-1, -1, 0, 0),
 		SaveWindowPosition: true,
+		Keybindings:        NewKeybindings(),
 	}
+	return ps
 }
 
 func (ps *ProgramSettings) Save() {
