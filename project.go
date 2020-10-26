@@ -514,7 +514,6 @@ func NewProject() *Project {
 	project.IncompleteTasksGlow.Checked = true
 	project.CompleteTasksGlow.Checked = true
 	project.SelectedTasksGlow.Checked = true
-	project.AutoReloadResources.Checked = true
 	project.TargetFPS.SetNumber(60)
 	project.TargetFPS.Minimum = 10
 
@@ -898,6 +897,7 @@ func LoadProject(filepath string) *Project {
 
 	currentProject.Log("Error: Could not load plan:\n[ %s ].", filepath)
 	currentProject.Log("Are you sure it's a valid MasterPlan project?")
+
 	return nil
 
 }
@@ -926,7 +926,7 @@ func (project *Project) HandleCamera() {
 	zoomLevels := []float32{0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 10}
 
 	if project.ZoomLevel == -99 {
-		project.ZoomLevel = 1
+		project.ZoomLevel = 2
 	}
 
 	if project.ZoomLevel >= len(zoomLevels) {
@@ -1128,7 +1128,6 @@ func (project *Project) Update() {
 					project.DoubleClickTaskID = -1
 
 					if !project.DoubleClickTimer.IsZero() && project.DoubleClickTaskID == -1 {
-						ConsumeMouseInput(rl.MouseLeftButton)
 						task := project.CurrentBoard().CreateNewTask()
 						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.Selecting = false
@@ -1141,9 +1140,6 @@ func (project *Project) Update() {
 
 					if clickedTask.ID == project.DoubleClickTaskID && !project.DoubleClickTimer.IsZero() && clickedTask.Selected {
 						clickedTask.ReceiveMessage(MessageDoubleClick, nil)
-						// We have to consume after double-clicking so you don't click outside of the new panel and exit it immediately
-						// or actuate a GUI element accidentally.
-						ConsumeMouseInput(rl.MouseLeftButton)
 						project.DoubleClickTimer = time.Time{}
 					} else {
 						project.DoubleClickTimer = time.Now()
@@ -1753,12 +1749,17 @@ func (project *Project) Shortcuts() {
 func (project *Project) ReorderTasks() {
 
 	for _, board := range project.Boards {
+		board.UndoBuffer.On = false
 		board.ReorderTasks()
 	}
 
 	project.SendMessage(MessageDropped, nil)
 	project.SendMessage(MessageNeighbors, nil)
 	project.SendMessage(MessageNumbering, nil)
+
+	for _, board := range project.Boards {
+		board.UndoBuffer.On = true
+	}
 
 }
 
@@ -1841,6 +1842,7 @@ func (project *Project) GUI() {
 	} else {
 
 		if !project.TaskOpen && !project.ContextMenuOpen && !project.ProjectSettingsOpen && project.PopupAction == "" && MouseReleased(rl.MouseRightButton) {
+			programSettings.CleanUpRecentPlanList()
 			project.ContextMenuOpen = true
 			project.ContextMenuPosition = GetMousePosition()
 		} else if project.ContextMenuOpen {
@@ -2092,7 +2094,7 @@ func (project *Project) GUI() {
 								} else {
 									project.RebindingHeldKeys = append(project.RebindingHeldKeys, keyCode)
 								}
-							} else if rl.IsKeyReleased(keyCode) && keyCode != rl.KeyEscape {
+							} else if rl.IsKeyReleased(keyCode) && keyCode != rl.KeyEscape && len(project.RebindingHeldKeys) > 0 {
 								assignKeys = true
 							}
 						}
@@ -2102,7 +2104,7 @@ func (project *Project) GUI() {
 							if len(project.RebindingHeldKeys) > 1 {
 								programSettings.Keybindings.Shortcuts[shortcutName].Modifiers = project.RebindingHeldKeys[:len(project.RebindingHeldKeys)-1]
 								programSettings.Keybindings.Shortcuts[shortcutName].Key = project.RebindingHeldKeys[len(project.RebindingHeldKeys)-1]
-							} else if len(project.RebindingHeldKeys) == 1 {
+							} else {
 								programSettings.Keybindings.Shortcuts[shortcutName].Modifiers = []int32{}
 								programSettings.Keybindings.Shortcuts[shortcutName].Key = project.RebindingHeldKeys[0]
 							}
@@ -2141,7 +2143,7 @@ func (project *Project) GUI() {
 
 					project.LogOn = false
 					for _, t := range project.CurrentBoard().Tasks {
-						if t.TaskType.CurrentChoice == TASK_TYPE_SOUND {
+						if t.Is(TASK_TYPE_SOUND) {
 							t.LoadResource() // Force reloading to resample as necessary
 						}
 					}
@@ -2439,7 +2441,7 @@ func (project *Project) SearchForTasks() {
 
 		if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text()), searchText) ||
 			(task.UsesMedia() && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText)) ||
-			(task.TaskType.CurrentChoice == TASK_TYPE_TIMER && strings.Contains(strings.ToLower(task.TimerName.Text()), searchText))) {
+			(task.Is(TASK_TYPE_TIMER) && strings.Contains(strings.ToLower(task.TimerName.Text()), searchText))) {
 			project.SearchedTasks = append(project.SearchedTasks, task)
 		}
 
@@ -2570,6 +2572,17 @@ func (project *Project) Destroy() {
 	for _, res := range project.Resources {
 		res.Destroy()
 	}
+
+}
+
+func (project *Project) RetrieveResource(resourcePath string) *Resource {
+
+	existingResource, exists := project.Resources[resourcePath]
+
+	if exists {
+		return existingResource
+	}
+	return nil
 
 }
 

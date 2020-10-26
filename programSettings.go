@@ -37,6 +37,15 @@ func NewProgramSettings() ProgramSettings {
 	return ps
 }
 
+func (ps *ProgramSettings) CleanUpRecentPlanList() {
+	for i, s := range ps.RecentPlanList {
+		_, err := os.Stat(s)
+		if err != nil {
+			ps.RecentPlanList = append(ps.RecentPlanList[:i], ps.RecentPlanList[i+1:]...) // Cut out the deleted plans
+		}
+	}
+}
+
 func (ps *ProgramSettings) Save() {
 	f, err := os.Create(GetPath("masterplan-settings.json")) // Use GetPath to ensure it's coming from the home directory, not somewhere else
 	if err == nil {

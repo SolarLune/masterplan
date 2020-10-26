@@ -1,12 +1,12 @@
 {
-  "Version": "0.5.1",
+  "Version": "0.5.4-1",
   "LockProject": true,
   "BoardIndex": 0,
   "BoardCount": 1,
   "AutoSave": false,
   "Pan.X": 0,
   "Pan.Y": 0,
-  "ZoomLevel": 3,
+  "ZoomLevel": 4,
   "ColorTheme": "Sunlight",
   "TaskTransparency": 5,
   "OutlineTasks": true,
@@ -25,6 +25,11 @@
   "BackupKeepCount": 1,
   "UndoMaxSteps": 0,
   "AlwaysShowURLButtons": false,
+  "SoundVolume": 8,
+  "IncompleteTasksGlow": true,
+  "CompleteTasksGlow": true,
+  "SelectedTasksGlow": true,
+  "ScreenshotsPath": "",
   "BoardNames": ["Welcome"],
   "Tasks": [
     {
@@ -270,20 +275,20 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 6128,
-      "Position.Y": 544,
+      "Position.X": 5504,
+      "Position.Y": 1760,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Visit Forums - Clicking this will open MasterPlan's forum on itch.io in your default\ninternet browser.",
+      "Description": "Finally, there are Whiteboard Tasks.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
-      "CreationTime": "May 26 2020 17:20:33"
+      "CreationTime": "Oct 25 2020 21:33:07"
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 6128,
-      "Position.Y": 576,
+      "Position.Y": 544,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1315,7 +1320,7 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "There are a variety of options; most of them are for\naltering the visualization of your project to suit\nyour taste, including varying themes, turning off\nfeatures like outlines, and changing the numbering\nscheme for Tasks.",
+      "Description": "There are a variety of options; most of them are for\naltering the visualization of your project to suit\nyour taste, including varying themes, turning off\nfeatures like outlines, and changing the numbering\nscheme for Tasks.\n\nSome of the options available in the Settings menu\nare:",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 2 2020 17:10:09"
@@ -1346,7 +1351,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 8528,
+      "Position.X": 9024,
       "Position.Y": -64,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1481,7 +1486,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 3760,
+      "Position.X": 3776,
       "Position.Y": 80,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1489,9 +1494,9 @@
       "Description": "Wake the sleeping giant to restore peace to the Earth",
       "Selected": false,
       "TaskType.CurrentChoice": 0,
-      "DeadlineDaySpinner.Number": 2,
-      "DeadlineMonthSpinner.CurrentChoice": 5,
-      "DeadlineYearSpinner.Number": 2021,
+      "DeadlineDaySpinner.Number": 31,
+      "DeadlineMonthSpinner.CurrentChoice": 11,
+      "DeadlineYearSpinner.Number": 2025,
       "CreationTime": "Jun 2 2020 17:03:22"
     }, 
     {
@@ -1520,23 +1525,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 3824,
-      "Position.Y": 192,
-      "Checkbox.Checked": false,
-      "Progression.Current": 0,
-      "Progression.Max": 0,
-      "Description": "I'm talking wake him up NOW",
-      "Selected": false,
-      "TaskType.CurrentChoice": 0,
-      "DeadlineDaySpinner.Number": 2,
-      "DeadlineMonthSpinner.CurrentChoice": 5,
-      "DeadlineYearSpinner.Number": 2020,
-      "CreationTime": "Jun 2 2020 17:05:01"
-    }, 
-    {
-      "BoardIndex": 0,
-      "Position.X": 3792,
-      "Position.Y": 288,
+      "Position.X": 3776,
+      "Position.Y": 256,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1551,18 +1541,18 @@
     {
       "BoardIndex": 0,
       "Position.X": 3776,
-      "Position.Y": 224,
+      "Position.Y": 192,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "If the deadline passes, the flashing pattern speeds up, changes,\nand the DUE icon becomes a \"LATE\" icon, indicating that you're...\nWell, kinda dead.",
+      "Description": "If the deadline passes, the flashing pattern speeds up, changes,\nand the DUE icon becomes a \"LATE\" icon, indicating that you've\novershot your deadline time.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 2 2020 17:06:31"
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 8624,
+      "Position.X": 9120,
       "Position.Y": -96,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1574,20 +1564,20 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 7024,
-      "Position.Y": 192,
+      "Position.X": 7568,
+      "Position.Y": -96,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "I'll outline some of the options below:",
+      "Description": "SHORTCUTS",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
-      "CreationTime": "Jun 4 2020 00:36:49"
+      "CreationTime": "Oct 25 2020 21:57:01"
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 6928,
-      "Position.Y": 224,
+      "Position.Y": 240,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1599,7 +1589,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6944,
-      "Position.Y": 256,
+      "Position.Y": 272,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1611,7 +1601,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6880,
-      "Position.Y": 288,
+      "Position.Y": 304,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1623,7 +1613,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6912,
-      "Position.Y": 320,
+      "Position.Y": 336,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1635,7 +1625,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6896,
-      "Position.Y": 352,
+      "Position.Y": 368,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1647,7 +1637,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6896,
-      "Position.Y": 384,
+      "Position.Y": 400,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1659,7 +1649,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6896,
-      "Position.Y": 432,
+      "Position.Y": 448,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1671,7 +1661,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6896,
-      "Position.Y": 496,
+      "Position.Y": 512,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1683,7 +1673,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6912,
-      "Position.Y": 544,
+      "Position.Y": 560,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1695,7 +1685,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6928,
-      "Position.Y": 592,
+      "Position.Y": 608,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1707,7 +1697,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6912,
-      "Position.Y": 640,
+      "Position.Y": 656,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1719,7 +1709,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6928,
-      "Position.Y": 704,
+      "Position.Y": 720,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1731,7 +1721,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6896,
-      "Position.Y": 768,
+      "Position.Y": 784,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1743,7 +1733,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6928,
-      "Position.Y": 816,
+      "Position.Y": 832,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1755,7 +1745,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6944,
-      "Position.Y": 864,
+      "Position.Y": 880,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1767,7 +1757,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6944,
-      "Position.Y": 928,
+      "Position.Y": 944,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1790,7 +1780,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 7616,
+      "Position.X": 8112,
       "Position.Y": -96,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1802,7 +1792,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 8128,
+      "Position.X": 8624,
       "Position.Y": -96,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1814,7 +1804,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 7456,
+      "Position.X": 7952,
       "Position.Y": -64,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1826,7 +1816,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 7472,
+      "Position.X": 7968,
       "Position.Y": 16,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1838,7 +1828,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 7488,
+      "Position.X": 7984,
       "Position.Y": 80,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1850,7 +1840,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 8000,
+      "Position.X": 8496,
       "Position.Y": -64,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1862,7 +1852,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 8032,
+      "Position.X": 8528,
       "Position.Y": -16,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1874,7 +1864,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 8048,
+      "Position.X": 8544,
       "Position.Y": 48,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1886,7 +1876,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 8032,
+      "Position.X": 8528,
       "Position.Y": 80,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1898,12 +1888,12 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 7488,
+      "Position.X": 7984,
       "Position.Y": 144,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "You can quickly switch between Boards by holding Shift and\npressing one of the number keys.",
+      "Description": "You can quickly switch between Boards by holding Shift and\npressing one of the number keys at the top of the keyboard,\nfrom 1 through 0.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 4 2020 01:03:06"
@@ -1946,12 +1936,12 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 5456,
+      "Position.X": 5440,
       "Position.Y": 1504,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Simply click on the pencil icon in the Map Task header\nto go into edit mode. You can also press the C key to\ndo so. When editing, the Map background turns opaque.\nOtherwise, it's transparent.",
+      "Description": "Simply select the Map Task and click on the pencil icon\nto go into edit mode. You can also press the C key to\ndo so. \n\nWhen editing, the Map background turns opaque; otherwise,\nit's transparent.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Aug 26 2020 23:36:01"
@@ -1959,11 +1949,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1584,
+      "Position.Y": 1616,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "When editing, left-click places blocks, and right-click\nerases them. Similarly to Image Tasks, Map Tasks can\nbe resized by clicking and dragging on the bottom-\nright corner. Note that there is a maximum size for\nMaps.",
+      "Description": "When editing, left-click places blocks, and right-click\nerases them. Similarly to Image Tasks, Map Tasks can\nbe resized by clicking and dragging on the bottom-\nright corner. Note that there is a maximum size for\nMaps, which is 512x512 pixels, or 32x32 cells.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Aug 26 2020 23:36:27"
@@ -1971,7 +1961,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1680,
+      "Position.Y": 1712,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2055,7 +2045,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6944,
-      "Position.Y": 976,
+      "Position.Y": 992,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2067,7 +2057,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6944,
-      "Position.Y": 1024,
+      "Position.Y": 1040,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2079,7 +2069,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6944,
-      "Position.Y": 1168,
+      "Position.Y": 1184,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2091,7 +2081,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6944,
-      "Position.Y": 1248,
+      "Position.Y": 1264,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2103,7 +2093,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 6944,
-      "Position.Y": 1328,
+      "Position.Y": 1344,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2123,6 +2113,122 @@
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Sep 1 2020 21:58:41"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5456,
+      "Position.Y": 2096,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "You can drag and drop files from your computer onto\nMasterPlan, and it will attempt to turn them into\nrelevant Tasks (i.e. image files become Image Tasks,\nsound files become Sound Tasks, text files become\nNotes, etc). You can also do this by using the Paste\nContent context menu option (defaulted to Control+\nShift+V), which will attempt to use the information in\nthe computer clipboard to paste a relevant Task\ninto MasterPlan.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Oct 17 2020 19:24:40"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5472,
+      "Position.Y": 1792,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Whiteboard Tasks serve to allow you to draw,\ngiving you the ability to draw drafts or story-\nboards. Similarly to the Map Task, you can press\nthe C key or click on the pencil icon to begin\nediting. Left click draws, while right-click erases.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Oct 25 2020 21:33:14"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5456,
+      "Position.Y": 1888,
+      "ImageDisplaySize.X": 304,
+      "ImageDisplaySize.Y": 96,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "",
+      "Selected": false,
+      "TaskType.CurrentChoice": 8,
+      "CreationTime": "Oct 25 2020 21:43:02",
+      "Whiteboard": [
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAAAAAAAAAAAAAAAAAAABAQEBAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEAAAAAAAAAAAAAAAAAAAABAQEBAQEAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAABAQEBAQEAAQEAAAABAQEBAAEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAAAAAAEBAQEBAQEAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAAABAQEAAQEBAAABAQEBAQEAAQEAAAEBAQEBAAEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQAAAAABAQEBAQAAAAAAAAAAAAAAAQEBAAAAAAAAAQEBAQEAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=", 
+        "AAAAAAAAAAEBAQEAAAAAAAAAAAAAAAABAQEBAAEBAQEAAQEBAQABAQEBAQEAAQEAAAEBAAEBAAEBAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAAAAQEBAQEBAQEAAAAAAAAAAAAAAAEBAQAAAAAAAAAAAQEAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=", 
+        "AAAAAAEBAQEBAQEAAAABAQEAAAEBAQABAQEBAAEAAQEAAQEBAQABAQEBAAAAAQEAAAEBAAEBAAEBAAABAQAAAAAAAAAAAAAAAAABAQEBAQEAAQEBAAAAAQEBAAAAAAAAAAAAAAAAAAAAAAEBAQAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEAAQEBAQEBAQEBAQEBAQEBAQE=", 
+        "AAAAAQEBAQEBAQEBAAEBAQEBAAEBAAABAQAAAQEAAQEAAQEBAQABAQEAAAAAAQEAAAEBAQEBAAEBAAABAQAAAAAAAAAAAAAAAQEBAQEBAQEAAQEBAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAAABAQEBAQEBAQEBAQEBAQE=", 
+        "AAAAAQEBAQEAAQEBAAEBAAEBAAEBAAABAQEAAQEBAQAAAQEAAAABAQEAAAAAAQEAAAABAQEBAAEBAAABAQAAAAAAAAAAAAEBAQEBAAAAAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAAAAAAAAAAEBAQEBAQEBAQE=", 
+        "AAAAAQEAAQEAAAEBAAEBAQEBAAABAQABAQEAAQEBAQEAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQAAAAAAAAEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQE=", 
+        "AAABAQAAAQEAAAEBAAEBAQEBAAEBAQAAAQEAAAEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAAAAAAAAAAEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQE=", 
+        "AAABAQAAAQEAAAEBAAABAQEBAAEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEAAAAAAAAAAAEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQE=", 
+        "AAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQAAAAAAAAAAAQEBAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEAAAAAAAAAAQEAAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEAAAAAAAAAAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAAAAAAAAAAAAAAEBAAAAAAABAQEAAAABAQAAAAAAAAAAAAAAAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAAAAAAABAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQAAAAAAAAABAQAAAAABAQEAAAABAQAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEAAAAAAAAAAQEBAAAAAAABAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAAABAQEBAQEBAQEAAAAAAQEAAAABAQEAAAAAAQEAAAAAAAAAAAAAAAEBAQEAAAABAQEBAQEAAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQE=", 
+        "AAAAAAAAAQEAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAAAAAAAAAAAAAQEBAQEBAAAAAQEAAAAAAQEAAAAAAQEBAAAAAAAAAAAAAQEBAQEAAAAAAAABAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQE=", 
+        "AAAAAAAAAQEAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQAAAAAAAAAAAAAAAQEBAQAAAAEBAAAAAQEAAAAAAAEBAQAAAAAAAAAAAQEBAQEBAAAAAAAAAAEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQE=", 
+        "AAAAAAABAQEAAAAAAAEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEAAAAAAAAAAAEBAQAAAAEBAAAAAAEBAAAAAAEBAQEAAAAAAAAAAQEBAQEBAAAAAAAAAAAAAAEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAA=", 
+        "AAAAAAABAQAAAAAAAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAAAAAAEBAQEBAAAAAAAAAAABAQEAAAABAAAAAAEBAAAAAAABAQEAAAAAAAAAAQEBAQEBAQAAAAAAAAAAAAAAAAEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", 
+        "AAAAAAAAAAAAAAAAAQEAAAAAAAAAAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEAAAAAAAAAAQEBAQAAAAAAAAAAAQEAAAABAAAAAAEBAAAAAAABAQEBAQAAAAAAAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAEBAQEBAQAAAAAAAAAAAAABAQEBAAAAAAAAAAAAAAAAAAA=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQAAAAAAAAAAAAABAQEAAAAAAAAAAQEAAAABAAAAAAEBAAAAAAAAAQEBAQAAAAAAAAEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAQEBAQEAAAAAAAAAAAABAQEBAQAAAAAAAAAAAAAAAAA=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQAAAAAAAAAAAAAAAQEBAAAAAAAAAAEBAAABAAAAAAEBAAAAAAABAQEBAQEAAAAAAAEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAQEBAQEAAAAAAAAAAAAAAAEBAQEAAAAAAAAAAAAAAAA=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAAAAAAAAAAAAAAEBAQAAAAAAAAEBAQEBAAAAAAEBAAAAAQEBAQEBAQEBAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAABAQEAAAAAAAAAAAAAAAA=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEAAAAAAAABAQEAAAAAAAEBAQEAAAAAAQEBAAEBAQEBAQABAQEBAQAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAA=", 
+        "AAEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAAAAAQEBAQEBAAAAAAABAQEAAAAAAAEBAQAAAAABAQEAAQEBAQAAAAAAAQEBAQAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAA=", 
+        "AQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAEBAQAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAEBAQAAAAAAAQEAAAAAAQEBAQAAAAEBAQEBAQEBAAAAAAAAAAEBAQEAAAAAAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", 
+        "AQEBAAAAAAAAAAABAQEBAQAAAAAAAAAAAAAAAQEBAQAAAAAAAAAAAAAAAAABAQEAAAAAAAAAAAABAQEAAAAAAQEAAAABAQEAAAAAAAEBAQEBAQEAAAAAAAAAAAABAQEBAQAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", 
+        "AAAAAAAAAAAAAQEAAAABAQEBAAAAAAAAAQEBAQEBAAAAAAAAAAAAAAAAAAABAQEAAAAAAAAAAAABAQEAAAAAAQEAAAEBAQAAAAAAAQEBAAEBAQAAAAAAAAAAAAAAAAEBAQEBAAAAAAAAAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", 
+        "AAAAAAAAAAAAAQEAAAAAAQEBAQAAAAAAAQEBAAAAAAAAAAAAAAAAAAAAAAABAQEBAAAAAAAAAAAAAQEAAAAAAQEAAQEBAAAAAAABAQEAAAABAQAAAAAAAAAAAAAAAAABAQEBAQAAAAAAAAAAAAEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", 
+        "AAABAQAAAAAAAAAAAAAAAAEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAAAAAAAAAAAAAQEBAQEBAQEBAQEBAAAAAQEBAQEAAAABAQEAAAAAAAAAAAAAAAAAAAEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", 
+        "AAABAQAAAAAAAAAAAAAAAAABAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAAAAAAAAAAAAAQEBAQEBAQEBAQEAAAABAQEBAQAAAAAAAQEAAAAAAAAAAAAAAAAAAAABAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAAAAAAEBAQEBAQAAAAAAAAAAAAEBAQEBAQAAAAAAAQEBAAAAAAAAAAAAAAAAAAAAAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQE=", 
+        "AAAAAAAAAAABAQEBAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAEBAQEBAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQE=", 
+        "AAAAAAAAAAABAAABAAAAAAAAAQEAAAAAAAAAAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEAAAAAAAAAAAAAAAAAAQEBAQEAAAAAAAAAAAEBAQAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQE=", 
+        "AAAAAAAAAAABAAABAAAAAAAAAQEAAAAAAAAAAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQAAAAAAAAAAAAAAAAEBAQEBAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQE=", 
+        "AAAAAAAAAAABAQEBAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEBAQE=", 
+        "AAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAAAAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAQEBAQEBAQEAAAA="
+      ]
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5472,
+      "Position.Y": 2000,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "When editing a Whiteboard Task, you can change the\ndrawing pencil size by clicking on the circled dot on\nthe header.\n\nThere are three sizes: small, medium, and large.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Oct 25 2020 21:54:39"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5504,
+      "Position.Y": 2256,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "When you're ready to move on, pan back\nup and over to the right.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Oct 25 2020 21:55:27"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 7472,
+      "Position.Y": -64,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Shortcuts are customizeable from the Settings menu.\n\nNote that MasterPlan currently best supports US\n(QWERTY) Keyboards and US keyboard layouts. Other\nlayouts currently don't always properly report the\nkeys pressed to the input system that MasterPlan\nuses.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Oct 25 2020 21:57:06"
     }
   ]
 }

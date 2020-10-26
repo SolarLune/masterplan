@@ -89,7 +89,7 @@ func (board *Board) CreateNewTask() *Task {
 		newTask.Description.Focused = true
 	}
 
-	if newTask.TaskType.CurrentChoice == TASK_TYPE_MAP {
+	if newTask.Is(TASK_TYPE_MAP) {
 		newTask.MapImage = NewMapImage(newTask)
 	}
 
@@ -327,7 +327,7 @@ func (board *Board) PasteTasks() {
 
 		for _, srcTask := range board.Project.CopyBuffer {
 
-			if srcTask.TaskType.CurrentChoice == TASK_TYPE_LINE && srcTask.LineBase != nil && srcTask.Board != board {
+			if srcTask.Is(TASK_TYPE_LINE) && srcTask.LineBase != nil && srcTask.Board != board {
 				if !copied(srcTask.LineBase) {
 					board.Project.Log("WARNING: Cannot paste Line arrows on a different board than the Line base.")
 				}
@@ -338,7 +338,7 @@ func (board *Board) PasteTasks() {
 				clone.Position = rl.Vector2Add(clone.Position, diff)
 				clone.Position = board.Project.LockPositionToGrid(clone.Position)
 
-				if clone.TaskType.CurrentChoice == TASK_TYPE_LINE {
+				if clone.Is(TASK_TYPE_LINE) {
 					for _, ending := range clone.LineEndings {
 						ending.Position = rl.Vector2Add(ending.Position, diff)
 						ending.Position = board.Project.LockPositionToGrid(ending.Position)
@@ -356,7 +356,7 @@ func (board *Board) PasteTasks() {
 		}
 
 		for _, clone := range clones {
-			if clone.TaskType.CurrentChoice == TASK_TYPE_LINE && len(clone.LineEndings) > 0 {
+			if clone.Is(TASK_TYPE_LINE) && len(clone.LineEndings) > 0 {
 				clones = append(clones, clone.LineEndings...)
 			}
 		}

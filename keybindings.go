@@ -205,7 +205,6 @@ type Shortcut struct {
 	Key         int32
 	Modifiers   []int32
 	triggerMode int
-	activated   bool
 }
 
 func NewShortcut(name string, keycode int32, modifiers ...int32) *Shortcut {
@@ -386,14 +385,7 @@ func (kb *Keybindings) On(bindingName string) bool {
 
 	if sc.triggerMode == TriggerModeHold {
 
-		if rl.IsKeyPressed(sc.Key) {
-			sc.activated = true
-		}
-		if !rl.IsKeyDown(sc.Key) {
-			sc.activated = false
-		}
-
-		out = sc.activated
+		out = rl.IsKeyDown(sc.Key)
 
 	} else if sc.triggerMode == TriggerModeRepeating {
 

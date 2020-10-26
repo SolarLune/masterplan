@@ -7,23 +7,23 @@ import (
 )
 
 type MapImage struct {
-	Data    [][]int32
-	Task    *Task
-	Texture rl.RenderTexture2D
-	Changed bool
-	Editing bool
-	Width   int32
-	Height  int32
+	Data       [][]int32
+	Task       *Task
+	Texture    rl.RenderTexture2D
+	Changed    bool
+	Editing    bool
+	cellWidth  int
+	cellHeight int
 }
 
 func NewMapImage(task *Task) *MapImage {
 
 	mi := &MapImage{
-		Task:    task,
-		Data:    [][]int32{},
-		Width:   4,
-		Height:  4,
-		Texture: rl.LoadRenderTexture(512, 512),
+		Task:       task,
+		Data:       [][]int32{},
+		cellWidth:  4,
+		cellHeight: 4,
+		Texture:    rl.LoadRenderTexture(512, 512),
 	}
 
 	gridSize := 512 / task.Board.Project.GridSize
@@ -51,13 +51,13 @@ func (mapImage *MapImage) Update() {
 		dst := rl.Rectangle{0, 0, 16, 16}
 
 		getValue := func(x, y int) int32 {
-			if y >= int(mapImage.Height) {
+			if y >= mapImage.cellHeight {
 				return 0
 			} else if y < 0 {
 				return 0
 			}
 
-			if x >= int(mapImage.Width) {
+			if x >= mapImage.cellWidth {
 				return 0
 			} else if x < 0 {
 				return 0
@@ -67,9 +67,9 @@ func (mapImage *MapImage) Update() {
 
 		}
 
-		for y := 0; y < int(mapImage.Height); y++ {
+		for y := 0; y < mapImage.cellHeight; y++ {
 
-			for x := 0; x < int(mapImage.Width); x++ {
+			for x := 0; x < mapImage.cellWidth; x++ {
 
 				color := getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 				src := rl.Rectangle{48, 32, 16, 16}
@@ -119,7 +119,7 @@ func (mapImage *MapImage) Update() {
 
 	}
 
-	if mapImage.Task.Board.Project.ProjectSettingsOpen {
+	if mapImage.Task.Board.Project.ProjectSettingsOpen || mapImage.Task.Resizing {
 		mapImage.Editing = false
 	}
 
@@ -131,10 +131,10 @@ func (mapImage *MapImage) Update() {
 		mousePos.Y -= rect.Height
 
 		gs := float32(mapImage.Task.Board.Project.GridSize)
-		cx := int32(math.Floor(float64((mousePos.X - rect.X) / gs)))
-		cy := int32(math.Floor(float64((mousePos.Y - rect.Y) / gs)))
+		cx := int(math.Floor(float64((mousePos.X - rect.X) / gs)))
+		cy := int(math.Floor(float64((mousePos.Y - rect.Y) / gs)))
 
-		if cx >= 0 && cx <= mapImage.Width-1 && cy >= 0 && cy <= mapImage.Height-1 {
+		if cx >= 0 && cx <= mapImage.cellWidth-1 && cy >= 0 && cy <= mapImage.cellHeight-1 {
 			r := rl.Rectangle{mapImage.Task.Rect.X + float32(cx)*gs, mapImage.Task.Rect.Y + float32(cy)*gs + gs, gs, gs}
 			c := rl.Color{127, 127, 127, 255}
 			f := uint8(((math.Sin(float64(rl.GetTime())*math.Pi) + 1) / 2) * 128)
@@ -163,10 +163,14 @@ func (mapImage *MapImage) Update() {
 
 	editButton := false
 
-	if mapImage.Editing {
-		editButton = mapImage.Task.SmallButton(32, 32, 16, 16, mapImage.Task.Rect.X+16, mapImage.Task.Rect.Y)
-	} else {
-		editButton = mapImage.Task.SmallButton(16, 32, 16, 16, mapImage.Task.Rect.X+16, mapImage.Task.Rect.Y)
+	if mapImage.Task.Selected {
+
+		if mapImage.Editing {
+			editButton = mapImage.Task.SmallButton(32, 32, 16, 16, mapImage.Task.Rect.X+16, mapImage.Task.Rect.Y)
+		} else {
+			editButton = mapImage.Task.SmallButton(16, 32, 16, 16, mapImage.Task.Rect.X+16, mapImage.Task.Rect.Y)
+		}
+
 	}
 
 	if editButton || (mapImage.Editing && !mapImage.Task.Selected) {
@@ -190,18 +194,22 @@ func (mapImage *MapImage) ToggleEditing() {
 
 func (mapImage *MapImage) Resize(w, h float32) {
 
-	mapImage.Width = int32(w) / mapImage.Task.Board.Project.GridSize
-	mapImage.Height = (int32(h) - mapImage.Task.Board.Project.GridSize) / mapImage.Task.Board.Project.GridSize
+	ogW, ogH := mapImage.cellWidth, mapImage.cellHeight
 
-	if mapImage.Height > int32(len(mapImage.Data)) {
-		mapImage.Height = int32(len(mapImage.Data))
+	mapImage.cellWidth = int(w) / int(mapImage.Task.Board.Project.GridSize)
+	mapImage.cellHeight = int(h) / int(mapImage.Task.Board.Project.GridSize)
+
+	if mapImage.cellHeight > len(mapImage.Data) {
+		mapImage.cellHeight = len(mapImage.Data)
 	}
 
-	if mapImage.Width > int32(len(mapImage.Data[0])) {
-		mapImage.Width = int32(len(mapImage.Data[0]))
+	if mapImage.cellWidth > len(mapImage.Data[0]) {
+		mapImage.cellWidth = len(mapImage.Data[0])
 	}
 
-	mapImage.Changed = true
+	if ogW != mapImage.cellWidth || ogH != mapImage.cellHeight {
+		mapImage.Changed = true
+	}
 
 }
 
@@ -212,6 +220,8 @@ func (mapImage *MapImage) Copy(otherMapImage *MapImage) {
 			mapImage.Data[y][x] = otherMapImage.Data[y][x]
 		}
 	}
+
+	mapImage.Changed = true
 
 }
 
@@ -226,25 +236,22 @@ func (mapImage *MapImage) Shift(shiftX, shiftY int) {
 		}
 	}
 
-	height := int(mapImage.Height)
-	width := int(mapImage.Width)
-
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := 0; y < mapImage.cellHeight; y++ {
+		for x := 0; x < mapImage.cellWidth; x++ {
 
 			newX := x - shiftX
 			newY := y - shiftY
 
 			if newY < 0 {
-				newY += height
-			} else if newY >= height {
-				newY -= height
+				newY += mapImage.cellHeight
+			} else if newY >= mapImage.cellHeight {
+				newY -= mapImage.cellHeight
 			}
 
 			if newX < 0 {
-				newX += width
-			} else if newX >= width {
-				newX -= width
+				newX += mapImage.cellWidth
+			} else if newX >= mapImage.cellWidth {
+				newX -= mapImage.cellWidth
 			}
 
 			newData[y][x] = mapImage.Data[newY][newX]
@@ -254,4 +261,26 @@ func (mapImage *MapImage) Shift(shiftX, shiftY int) {
 
 	mapImage.Data = newData
 
+	mapImage.Changed = true
+
+}
+
+func (mapImage *MapImage) Clear() {
+
+	for y := 0; y < len(mapImage.Data); y++ {
+		for x := 0; x < len(mapImage.Data[y]); x++ {
+			mapImage.Data[y][x] = 0
+		}
+	}
+
+	mapImage.Changed = true
+
+}
+
+func (mapImage *MapImage) Width() float32 {
+	return float32(int32(mapImage.cellWidth) * mapImage.Task.Board.Project.GridSize)
+}
+
+func (mapImage *MapImage) Height() float32 {
+	return float32(int32(mapImage.cellHeight) * mapImage.Task.Board.Project.GridSize)
 }

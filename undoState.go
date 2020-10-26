@@ -155,6 +155,11 @@ func (ub *UndoBuffer) apply(direction int) bool {
 
 		ub.Project.LogOn = false
 
+		selectedTasks := []*Task{}
+		for _, task := range ub.Project.CurrentBoard().SelectedTasks(false) {
+			selectedTasks = append(selectedTasks, task)
+		}
+
 		// Deselect all Tasks before application, as otherwise creating new Tasks push selected Tasks down.
 		ub.Project.SendMessage(MessageSelect, nil)
 
@@ -169,6 +174,10 @@ func (ub *UndoBuffer) apply(direction int) bool {
 		ub.Project.LogOn = true
 
 		ub.On = true
+
+		for _, task := range selectedTasks {
+			task.Selected = true
+		}
 
 		return true
 
