@@ -1,13 +1,47 @@
 -------
 
+v0.6.0
+
+-------
+
+Adding keybindings. Keys can now be rebound from the settings screen.
+Adding Whiteboard Task Type. Whiteboards serve to allow for drawing images in your plan. Note that the drawings can balloon the size of the plan dramatically, so it's best used sparingly or for simple drawings / idea sketches.
+Adding the project file name to the window title.
+MapImages can now be cleared through GUI.
+MapImage now only shows its editing button when selected.
+Rewriting Image / Map / Whiteboard resizing code.
+Selected Tasks raise them up to visually be "on top".
+Updating help manual.
+
+FIX: Held keybinding triggers more reliably.
+FIX: MapImage no longer stays in edit mode when resizing.
+FIX: Errant / non-existant entries in recent plan list are removed when opening context menu.
+FIX: The Project Setting Auto Reload Resources is now unchecked by default.
+FIX: Default zoom level is now correctly set to 100%.
+FIX: Can't click on the edit button for Maps or Whiteboards and quickly start drawing.
+FIX: Undoing is now more consistent internally.
+FIX: Tasks now stay selected when undoing or redoing.
+FIX: Panels can no longer close if a GUI element is "open" or "activated".
+FIX: Panel spacing fixes.
+FIX: You no longer have to hold Shift and Alt to deselect Tasks, but rather just Alt.
+FIX: Switching to Boards using a key binding now announces this via the Log.
+FIX: Line Tasks no longer point to their base, but rather a different neighboring Task.
+FIX: Program timing fixes.
+FIX: Images are no longer always at least slightly transparent.
+FIX: Some GIFs were previously displaying incorrectly.
+FIX: Can't display resources that are linked to by URLs.
+FIX: Can't use partial URLs for resources. (This allows for usage of "abc.com/image.png" instead of "https://abc.com/image.png", as an example.)
+
+-------
+
 v0.5.4-1
 
 -------
 
-MasterPlan can now save window position on exit.
-Screenshot save directory can now be customized on a per-project basis.
+MasterPlan now saves window position on exit (by default).
+Screenshot save directory can now be customized on a per-project basis (thanks to Oscar over on GitHub!​).
 MasterPlan now alerts you to where a screenshot is saved.
-Visually cleaned up splashscreen.
+Cleaned up splashscreen.
 FIX: Demo was disallowing saving improperly.
 
 -------

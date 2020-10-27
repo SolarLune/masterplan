@@ -22,7 +22,7 @@ var demoMode = "" // If set to something other than "", it's a demo
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.5.4-1")
+var softwareVersion, _ = semver.Make("0.6.0")
 var takeScreenshot = false
 
 var fontSize = float32(15)

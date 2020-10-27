@@ -1,5 +1,5 @@
 {
-  "Version": "0.5.4-1",
+  "Version": "0.6.0",
   "LockProject": true,
   "BoardIndex": 0,
   "BoardCount": 1,
@@ -890,13 +890,13 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 2368,
-      "Position.Y": 592,
+      "Position.X": 2352,
+      "Position.Y": 688,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
       "Description": "Let's scroll to the right again to learn more about\nediting Tasks.",
-      "Selected": false,
+      "Selected": true,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "May 26 2020 17:12:19"
     }, 
@@ -2201,7 +2201,7 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "When editing a Whiteboard Task, you can change the\ndrawing pencil size by clicking on the circled dot on\nthe header.\n\nThere are three sizes: small, medium, and large.",
+      "Description": "When editing a Whiteboard Task, you can change the\ndrawing pencil size by clicking on the circled dot on\nthe header next to the editing toggle button.\n\nThere are three sizes: small, medium, and large.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Oct 25 2020 21:54:39"
@@ -2229,6 +2229,18 @@
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Oct 25 2020 21:57:06"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 2352,
+      "Position.Y": 592,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "URLs that are visible in Note, Checkbox, or Progression\nTasks can be visited by holding Ctrl (by default) and\nclicking on the button. These URL buttons can also be\nenabled by toggling the option in the Project Settings \nto turn on URL buttons at all times.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Oct 27 2020 00:16:46"
     }
   ]
 }
