@@ -672,7 +672,7 @@ func (task *Task) Update() {
 		task.MaxSize = rl.Vector2{512, 512 + 16}
 	} else {
 		task.MinSize = rl.Vector2{16, 16}
-		task.MaxSize = rl.Vector2{-1, -1}
+		task.MaxSize = rl.Vector2{0, 0}
 	}
 
 	if task.SoundComplete {
@@ -864,19 +864,19 @@ func (task *Task) Update() {
 
 		}
 
-		if task.DisplaySize.X < task.MinSize.X {
+		if task.DisplaySize.X < task.MinSize.X && task.MinSize.X > 0 {
 			task.DisplaySize.X = task.MinSize.X
 		}
 
-		if task.DisplaySize.Y < task.MinSize.Y {
+		if task.DisplaySize.Y < task.MinSize.Y && task.MinSize.Y > 0 {
 			task.DisplaySize.Y = task.MinSize.Y
 		}
 
-		if task.DisplaySize.X > task.MaxSize.X {
+		if task.DisplaySize.X > task.MaxSize.X && task.MaxSize.X > 0 {
 			task.DisplaySize.X = task.MaxSize.X
 		}
 
-		if task.DisplaySize.Y > task.MaxSize.Y {
+		if task.DisplaySize.Y > task.MaxSize.Y && task.MaxSize.Y > 0 {
 			task.DisplaySize.Y = task.MaxSize.Y
 		}
 
