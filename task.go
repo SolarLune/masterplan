@@ -292,6 +292,7 @@ func (task *Task) SetPanel() {
 
 	row = column.Row()
 	row.Item(NewButton(0, 0, 128, 32, "Clear", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "clear"
+	row.Item(NewButton(0, 0, 128, 32, "Invert", false), TASK_TYPE_WHITEBOARD).Name = "invert"
 
 	for _, row := range column.Rows {
 		row.VerticalSpacing = 16
@@ -722,8 +723,8 @@ func (task *Task) Update() {
 	}
 
 	if task.Dragging && MouseReleased(rl.MouseLeftButton) {
-		task.Board.Project.SendMessage(MessageDropped, nil)
-		task.Board.Project.ReorderTasks()
+		task.Board.SendMessage(MessageDropped, nil)
+		task.Board.ReorderTasks()
 	}
 
 	if !task.Dragging || task.Resizing {
@@ -833,7 +834,7 @@ func (task *Task) Update() {
 		if rl.CheckCollisionPointRec(GetWorldMousePosition(), task.ResizeRect) && MousePressed(rl.MouseLeftButton) {
 			task.Resizing = true
 			task.Board.Project.ResizingImage = true
-			task.Board.Project.SendMessage(MessageDropped, nil)
+			task.Board.SendMessage(MessageDropped, nil)
 		} else if !MouseDown(rl.MouseLeftButton) || task.Open || task.Board.Project.ContextMenuOpen {
 			task.Resizing = false
 			task.Board.Project.ResizingImage = false
@@ -1146,15 +1147,15 @@ func (task *Task) Draw() {
 		if task.Rect.Width != taskDisplaySize.X || task.Rect.Height != taskDisplaySize.Y {
 			task.Rect.Width = taskDisplaySize.X
 			task.Rect.Height = taskDisplaySize.Y
-			task.Board.RemoveTaskFromGrid(task, task.GridPositions)
-			task.GridPositions = task.Board.AddTaskToGrid(task)
+			task.Board.RemoveTaskFromGrid(task)
+			task.Board.AddTaskToGrid(task)
 		}
 	} else if task.Rect.Width != taskDisplaySize.X || task.Rect.Height != taskDisplaySize.Y {
 		task.Rect.Width = taskDisplaySize.X
 		task.Rect.Height = taskDisplaySize.Y
 		// We need to update the Task's position list because it changes here
-		task.Board.RemoveTaskFromGrid(task, task.GridPositions)
-		task.GridPositions = task.Board.AddTaskToGrid(task)
+		task.Board.RemoveTaskFromGrid(task)
+		task.Board.AddTaskToGrid(task)
 	}
 
 	color := getThemeColor(GUI_INSIDE)
@@ -1654,7 +1655,7 @@ func (task *Task) UpdateNeighbors() {
 
 	tasks := task.Board.GetTasksInRect(task.Position.X+gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
 	sortfunc := func(i, j int) bool {
-		return tasks[i].Numberable()
+		return tasks[i].Numberable() || tasks[i].Is(TASK_TYPE_NOTE) // Prioritize numberable Tasks or Notes to be counted as neighbors (though other Tasks can be neighbors still)
 	}
 
 	sort.Slice(tasks, sortfunc)
@@ -1902,6 +1903,10 @@ func (task *Task) PostDraw() {
 				task.Whiteboard.Clear()
 			}
 
+			if invert := task.EditPanel.FindItems("invert")[0].Element.(*Button); invert.Clicked {
+				task.Whiteboard.Invert()
+			}
+
 		}
 
 		if task.EditPanel.Exited {
@@ -1937,10 +1942,6 @@ func (task *Task) Completable() bool {
 
 func (task *Task) Resizeable() bool {
 	return task.Is(TASK_TYPE_IMAGE, TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD)
-}
-
-func (task *Task) CanHaveNeighbors() bool {
-	return !task.Is(TASK_TYPE_IMAGE) && !task.Is(TASK_TYPE_NOTE) && !task.Is(TASK_TYPE_LINE)
 }
 
 func (task *Task) SetCompletion(complete bool) {
@@ -2169,8 +2170,10 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 					task.Board.DeleteTask(ending)
 				}
 			}
-			task.Board.Project.SendMessage(MessageNumbering, nil)
 
+			// We call ReorderTasks here because changing the Task can change its Rect,
+			// thereby changing its neighbors.
+			task.Board.ReorderTasks()
 			createAtLeastOneLineEnding()
 			task.Board.UndoBuffer.Capture(task)
 
@@ -2190,10 +2193,10 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			// This gets called when we reorder the board / project, which can cause problems if the Task is already removed
 			// because it will then be immediately readded to the Board grid, thereby making it a "ghost" Task
 			task.Position = task.Board.Project.LockPositionToGrid(task.Position)
-			task.Board.RemoveTaskFromGrid(task, task.GridPositions)
-			task.GridPositions = task.Board.AddTaskToGrid(task)
+			task.Board.RemoveTaskFromGrid(task)
+			task.Board.AddTaskToGrid(task)
 
-			if !task.Board.Project.JustLoaded && task.Selected {
+			if !task.Board.Project.JustLoaded {
 				task.Board.UndoBuffer.Capture(task)
 			}
 
@@ -2213,7 +2216,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		// We remove the Task from the grid but not change the GridPositions list because undos need to
 		// re-place the Task at the original position.
-		task.Board.RemoveTaskFromGrid(task, task.GridPositions)
+		task.Board.RemoveTaskFromGrid(task)
 
 		if task.LineBase == nil {
 			if len(task.ValidLineEndings()) > 0 {
@@ -2399,6 +2402,8 @@ func (task *Task) SetPrefix() {
 	// Establish the rest of the stack; has to be done here because it has be done after
 	// all Tasks have their positions on the Board and neighbors established.
 
+	loopIndex := 0
+
 	if task.Numberable() {
 
 		task.RestOfStack = []*Task{}
@@ -2406,20 +2411,31 @@ func (task *Task) SetPrefix() {
 		below := task.TaskBelow
 		countingSubTasks := true
 
-		for countingSubTasks && below != nil && below.Numberable() && below != task {
+		for countingSubTasks && below != nil && below != task {
 
-			task.RestOfStack = append(task.RestOfStack, below)
+			// We want to break out in case of situations where Tasks create an infinite loop (a.Below = b, b.Below = c, c.Below = a kind of thing)
+			if loopIndex > 1000 {
+				break // Emergency in case we get stuck in a loop
+			}
 
-			taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
-			belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
+			if below.Numberable() {
 
-			if countingSubTasks && belowX == taskX+1 {
-				task.SubTasks = append(task.SubTasks, below)
-			} else if belowX <= taskX {
-				countingSubTasks = false
+				task.RestOfStack = append(task.RestOfStack, below)
+
+				taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
+				belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
+
+				if countingSubTasks && belowX == taskX+1 {
+					task.SubTasks = append(task.SubTasks, below)
+				} else if belowX <= taskX {
+					countingSubTasks = false
+				}
+
 			}
 
 			below = below.TaskBelow
+
+			loopIndex++
 
 		}
 
@@ -2429,7 +2445,34 @@ func (task *Task) SetPrefix() {
 
 	below := task.TaskBelow
 
-	if above != nil && above.Numberable() {
+	loopIndex = 0
+
+	for above != nil && !above.Numberable() {
+
+		above = above.TaskAbove
+
+		if loopIndex > 1000 {
+			break // This SHOULD never happen, but you never know
+		}
+
+		loopIndex++
+
+	}
+
+	loopIndex = 0
+
+	for below != nil && !below.Numberable() {
+
+		below = below.TaskBelow
+
+		if loopIndex > 100 {
+			break // This SHOULD never happen, but you never know
+		}
+
+		loopIndex++
+	}
+
+	if above != nil {
 
 		task.NumberingPrefix = append([]int{}, above.NumberingPrefix...)
 
@@ -2446,7 +2489,7 @@ func (task *Task) SetPrefix() {
 
 		task.NumberingPrefix[len(task.NumberingPrefix)-1]++
 
-	} else if below != nil && below.Numberable() {
+	} else if below != nil {
 		task.NumberingPrefix = []int{1}
 	} else {
 		task.NumberingPrefix = []int{-1}

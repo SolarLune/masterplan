@@ -224,6 +224,30 @@ func (whiteboard *Whiteboard) Clear() {
 
 }
 
+// Invert replaces the light color with the dark color. Note that this is SUPER HACKY AS THIS IS JUST A "REVERSED" DESERIALIZATION FOR NOW
+func (whiteboard *Whiteboard) Invert() {
+
+	data := whiteboard.Serialize()
+
+	colors := []rl.Color{}
+
+	for i := len(data) - 1; i >= 0; i-- {
+		ogData, _ := base64.StdEncoding.DecodeString(data[i])
+		for _, value := range ogData {
+			if value == 1 {
+				colors = append(colors, getThemeColor(GUI_INSIDE))
+			} else if value == 0 {
+				colors = append(colors, getThemeColor(GUI_FONT_COLOR))
+			}
+
+		}
+
+	}
+
+	rl.UpdateTexture(whiteboard.Texture.Texture, colors)
+
+}
+
 func (whiteboard *Whiteboard) Serialize() []string {
 
 	data := []string{}

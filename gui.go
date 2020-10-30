@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -1214,8 +1215,9 @@ type Textbox struct {
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
 
-	KeyholdTimer int
-	CaretPos     int
+	KeyholdTimer   time.Time
+	KeyrepeatTimer time.Time
+	CaretPos       int
 
 	lineHeight float32
 }
@@ -1546,14 +1548,16 @@ func (textbox *Textbox) Update() {
 		for k := range keyState {
 			if rl.IsKeyPressed(k) {
 				keyState[k] = 1
-				textbox.KeyholdTimer = 0
+				textbox.KeyholdTimer = time.Now()
 			} else if rl.IsKeyDown(k) {
-				textbox.KeyholdTimer++
-				if textbox.KeyholdTimer > 30 {
-					keyState[k] = 1
+				if time.Since(textbox.KeyholdTimer).Seconds() > 0.5 {
+					if time.Since(textbox.KeyrepeatTimer).Seconds() > 0.025 {
+						textbox.KeyrepeatTimer = time.Now()
+						keyState[k] = 1
+					}
 				}
 			} else if rl.IsKeyReleased(k) {
-				textbox.KeyholdTimer = 0
+				textbox.KeyholdTimer = time.Time{}
 			}
 		}
 

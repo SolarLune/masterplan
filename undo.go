@@ -13,13 +13,13 @@ var newStepIndex = 0
 type UndoBuffer struct {
 	Steps       []*UndoStep
 	Index       int
-	Project     *Project
+	Board       *Board
 	On          bool
 	NewCaptures *UndoStep
 }
 
-func NewUndoBuffer(project *Project) *UndoBuffer {
-	return &UndoBuffer{Steps: []*UndoStep{}, Project: project, On: true, NewCaptures: NewUndoStep()}
+func NewUndoBuffer(board *Board) *UndoBuffer {
+	return &UndoBuffer{Steps: []*UndoStep{}, Board: board, On: true, NewCaptures: NewUndoStep()}
 }
 
 // Capture creates and registers a new UndoState for the Task as it currently can be serialized in the current
@@ -93,7 +93,7 @@ func (ub *UndoBuffer) Update() {
 			step.Add(cap)
 
 			if newStepIndex > 1 {
-				ub.Project.Modified = true
+				ub.Board.Project.Modified = true
 			}
 
 		}
@@ -106,7 +106,7 @@ func (ub *UndoBuffer) Update() {
 
 	ub.NewCaptures = NewUndoStep()
 
-	max := ub.Project.MaxUndoSteps.Number()
+	max := ub.Board.Project.MaxUndoSteps.Number()
 
 	if max > 0 {
 		for len(ub.Steps) > max {
@@ -153,25 +153,25 @@ func (ub *UndoBuffer) apply(direction int) bool {
 
 		ub.Index += direction
 
-		ub.Project.LogOn = false
+		ub.Board.Project.LogOn = false
 
 		selectedTasks := []*Task{}
-		for _, task := range ub.Project.CurrentBoard().SelectedTasks(false) {
+		for _, task := range ub.Board.Project.CurrentBoard().SelectedTasks(false) {
 			selectedTasks = append(selectedTasks, task)
 		}
 
 		// Deselect all Tasks before application, as otherwise creating new Tasks push selected Tasks down.
-		ub.Project.SendMessage(MessageSelect, nil)
+		ub.Board.Project.SendMessage(MessageSelect, nil)
 
 		for _, undoState := range ub.Steps[ub.Index].States {
 			undoState.Apply()
 		}
 
-		ub.Project.ReorderTasks()
+		ub.Board.ReorderTasks()
 
-		ub.Project.Modified = true
+		ub.Board.Project.Modified = true
 
-		ub.Project.LogOn = true
+		ub.Board.Project.LogOn = true
 
 		ub.On = true
 

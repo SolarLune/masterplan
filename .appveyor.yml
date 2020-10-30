@@ -1,4 +1,4 @@
-version: 0.5.4.{build}
+version: 0.6.0.{build}
 
 image:
   - macos-mojave

@@ -1245,7 +1245,10 @@ func (project *Project) Update() {
 			// This makes it so that neighbors can be correct.
 		}
 
-		project.ReorderTasks()
+		for _, board := range project.Boards {
+			board.ReorderTasks()
+		}
+
 		project.Modified = false
 		project.JustLoaded = false
 
@@ -1334,10 +1337,8 @@ func (project *Project) AutoBackup() {
 
 func (project *Project) SendMessage(message string, data map[string]interface{}) {
 
-	taskList := project.GetAllTasks()
-
-	for _, task := range taskList {
-		task.ReceiveMessage(message, data)
+	for _, board := range project.Boards {
+		board.SendMessage(message, data)
 	}
 
 }
@@ -1345,6 +1346,8 @@ func (project *Project) SendMessage(message string, data map[string]interface{})
 func (project *Project) Shortcuts() {
 
 	keybindings := programSettings.Keybindings
+
+	keybindings.HandleResettingShortcuts()
 
 	keybindings.ReenableAllShortcuts()
 
@@ -1522,68 +1525,61 @@ func (project *Project) Shortcuts() {
 
 						// Shift Tasks / Slide Tasks
 
-						move := []float32{0, 0}
-
-						if up {
-							move[1] = -gs
-						} else if down {
-							move[1] = gs
-						}
+						dx := float32(0)
+						dy := float32(0)
 
 						if right {
-							move[0] = gs
+							dx = 1
 						} else if left {
-							move[0] = -gs
+							dx = -1
+						} else if up {
+							dy = -1
+						} else if down {
+							dy = 1
 						}
 
-						neighborList := []*Task{}
+						size := func(task *Task) float32 {
+							if dx != 0 {
+								return task.Rect.Width
+							}
+							return task.Rect.Height
+						}
+
+						board := project.CurrentBoard()
+
+						// Selected Tasks that are to be moved should be "intangible", since they're moving to somewhere else, and might
+						// be swapping positions with a neighbor.
+						for _, task := range selectedTasks {
+							board.RemoveTaskFromGrid(task)
+						}
 
 						for _, task := range selectedTasks {
 
-							// Arrows that point to Tasks
-							// arrowNeighbors := []*Task{
-							// 	task.TaskAbove,
-							// 	task.TaskRight,
-							// 	task.TaskLeft,
-							// 	task.TaskBelow,
-							// }
+							neighbor := task.NeighborInDirection(dx, dy)
 
-							// for _, arrow := range arrowNeighbors {
-							// 	if arrow != nil && arrow.ArrowPointingToTask == task {
-							// 		arrow.Position.X += move[0]
-							// 		arrow.Position.Y += move[1]
-							// 	}
-							// }
-
-							// Not quite working because arrows won't move if they're attached to a neighbor that you're sliding around
-
-							if neighbor := task.NeighborInDirection(move[0], move[1]); task.Numberable() &&
-								neighbor != nil && neighbor.Numberable() {
-
-								if !neighbor.Selected {
-									neighborList = append(neighborList, neighbor)
+							// This could loop indefinitely, so we do this instead of a standard while / for loop
+							for i := 0; i < 1000; i++ {
+								if neighbor == nil || !neighbor.Selected {
+									break
 								}
+								neighbor = neighbor.NeighborInDirection(dx, dy)
 
 							}
 
-							task.Position.X += move[0]
-							task.Position.Y += move[1]
+							if neighbor != nil {
+								neighbor.Move(-dx*size(task), -dy*size(task))
+								task.Position.X += dx * size(neighbor)
+								task.Position.Y += dy * size(neighbor)
+							} else {
+								task.Position.X += dx * gs
+								task.Position.Y += dy * gs
+							}
 
 						}
 
-						project.ReorderTasks()
+						board.FocusViewOnSelectedTasks()
 
-						for _, neighbor := range neighborList {
-							project.CurrentBoard().UndoBuffer.Capture(neighbor)
-							neighbor.Move(-move[0], -move[1])
-						}
-
-						for _, neighbor := range neighborList {
-							project.CurrentBoard().UndoBuffer.Capture(neighbor)
-						}
-
-						project.CurrentBoard().FocusViewOnSelectedTasks()
-						project.ReorderTasks()
+						board.ReorderTasks()
 
 					} else {
 
@@ -1746,23 +1742,6 @@ func (project *Project) Shortcuts() {
 
 }
 
-func (project *Project) ReorderTasks() {
-
-	for _, board := range project.Boards {
-		board.UndoBuffer.On = false
-		board.ReorderTasks()
-	}
-
-	project.SendMessage(MessageDropped, nil)
-	project.SendMessage(MessageNeighbors, nil)
-	project.SendMessage(MessageNumbering, nil)
-
-	for _, board := range project.Boards {
-		board.UndoBuffer.On = true
-	}
-
-}
-
 func (project *Project) ChangeTheme(themeName string) {
 	_, themeExists := guiColors[themeName]
 	if themeExists {
@@ -1772,6 +1751,7 @@ func (project *Project) ChangeTheme(themeName string) {
 	}
 	currentTheme = project.ColorThemeSpinner.ChoiceAsString()
 	project.GenerateGrid()
+	project.SendMessage(MessageThemeChange, nil)
 }
 
 func (project *Project) GUI() {
@@ -2178,7 +2158,6 @@ func (project *Project) GUI() {
 
 			if project.ColorThemeSpinner.Changed {
 				project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
-				project.SendMessage(MessageThemeChange, nil)
 			}
 
 			if project.MaxUndoSteps.Number() == 0 {

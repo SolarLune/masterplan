@@ -205,6 +205,8 @@ type Shortcut struct {
 	Key         int32
 	Modifiers   []int32
 	triggerMode int
+	Hold        time.Time
+	Repeat      time.Time
 }
 
 func NewShortcut(name string, keycode int32, modifiers ...int32) *Shortcut {
@@ -261,9 +263,10 @@ func (shortcut *Shortcut) UnmarshalJSON(data []byte) error {
 }
 
 type Keybindings struct {
-	creationOrder    []string
-	Shortcuts        map[string]*Shortcut
-	ShortcutsByLevel map[int][]*Shortcut
+	creationOrder            []string
+	Shortcuts                map[string]*Shortcut
+	ShortcutsByLevel         map[int][]*Shortcut
+	ResetDurationOnShortcuts []*Shortcut
 }
 
 func NewKeybindings() *Keybindings {
@@ -369,7 +372,21 @@ func (kb *Keybindings) ReenableAllShortcuts() {
 	}
 }
 
-var repeatShortcutKeyTime time.Time
+func (kb *Keybindings) ResetTimingOnShortcut(sc *Shortcut) {
+	for _, existing := range kb.ResetDurationOnShortcuts {
+		if existing == sc {
+			return
+		}
+	}
+	kb.ResetDurationOnShortcuts = append(kb.ResetDurationOnShortcuts, sc)
+}
+
+func (kb *Keybindings) HandleResettingShortcuts() {
+	for _, sc := range kb.ResetDurationOnShortcuts {
+		sc.Repeat = time.Now()
+	}
+	kb.ResetDurationOnShortcuts = []*Shortcut{}
+}
 
 func (kb *Keybindings) On(bindingName string) bool {
 
@@ -389,13 +406,16 @@ func (kb *Keybindings) On(bindingName string) bool {
 
 	} else if sc.triggerMode == TriggerModeRepeating {
 
+		out = false
+
 		if rl.IsKeyPressed(sc.Key) {
-			repeatShortcutKeyTime = time.Now()
+			sc.Hold = time.Now()
 			out = true
-		} else if rl.IsKeyDown(sc.Key) && time.Since(repeatShortcutKeyTime).Seconds() >= 0.25 {
-			out = true
-		} else {
-			out = false
+		} else if rl.IsKeyDown(sc.Key) && time.Since(sc.Hold).Seconds() >= 0.2 {
+			if time.Since(sc.Repeat).Seconds() >= 0.025 {
+				kb.ResetTimingOnShortcut(sc)
+				out = true
+			}
 		}
 
 	} else {

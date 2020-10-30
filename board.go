@@ -31,8 +31,9 @@ func NewBoard(project *Project) *Board {
 		Project:       project,
 		Name:          fmt.Sprintf("Board %d", len(project.Boards)+1),
 		TaskLocations: map[Position][]*Task{},
-		UndoBuffer:    NewUndoBuffer(project),
 	}
+
+	board.UndoBuffer = NewUndoBuffer(board)
 
 	return board
 }
@@ -79,7 +80,7 @@ func (board *Board) CreateNewTask() *Task {
 
 	}
 
-	board.Project.ReorderTasks()
+	board.ReorderTasks()
 
 	newTask.TaskType.SetChoice(board.Project.PreviousTaskType)
 
@@ -170,7 +171,7 @@ func (board *Board) DeleteSelectedTasks() {
 
 	board.Project.Log("Deleted %d Task(s).", count)
 
-	board.Project.ReorderTasks()
+	board.ReorderTasks()
 
 }
 
@@ -373,7 +374,7 @@ func (board *Board) PasteTasks() {
 			clone.Selected = true
 		}
 
-		board.Project.ReorderTasks()
+		board.ReorderTasks()
 
 		if board.Project.Cutting {
 			for _, task := range board.Project.CopyBuffer {
@@ -426,6 +427,7 @@ func (board *Board) PasteContent() {
 }
 
 func (board *Board) ReorderTasks() {
+
 	sort.Slice(board.Tasks, func(i, j int) bool {
 		ba := board.Tasks[i]
 		bb := board.Tasks[j]
@@ -434,6 +436,10 @@ func (board *Board) ReorderTasks() {
 		}
 		return ba.Position.Y < bb.Position.Y
 	})
+
+	board.SendMessage(MessageDropped, nil)
+	board.SendMessage(MessageNeighbors, nil)
+	board.SendMessage(MessageNumbering, nil)
 
 }
 
@@ -489,9 +495,9 @@ func (board *Board) GetTasksInRect(x, y, w, h float32) []*Task {
 	return tasks
 }
 
-func (board *Board) RemoveTaskFromGrid(task *Task, positions []Position) {
+func (board *Board) RemoveTaskFromGrid(task *Task) {
 
-	for _, position := range positions {
+	for _, position := range task.GridPositions {
 
 		for i, t := range board.TaskLocations[position] {
 
@@ -507,7 +513,7 @@ func (board *Board) RemoveTaskFromGrid(task *Task, positions []Position) {
 
 }
 
-func (board *Board) AddTaskToGrid(task *Task) []Position {
+func (board *Board) AddTaskToGrid(task *Task) {
 
 	positions := []Position{}
 
@@ -535,7 +541,7 @@ func (board *Board) AddTaskToGrid(task *Task) []Position {
 
 	}
 
-	return positions
+	task.GridPositions = positions
 
 }
 
@@ -585,7 +591,15 @@ func (board *Board) HandleDeletedTasks() {
 
 	// We only want to reorder tasks if tasks were actually deleted or restored, as it is costly.
 	if changed {
-		board.Project.ReorderTasks()
+		board.ReorderTasks()
+	}
+
+}
+
+func (board *Board) SendMessage(message string, data map[string]interface{}) {
+
+	for _, task := range board.Tasks {
+		task.ReceiveMessage(message, data)
 	}
 
 }
