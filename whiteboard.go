@@ -34,6 +34,9 @@ func NewWhiteboard(task *Task) *Whiteboard {
 
 	wb.Resize(128, 64) // Set the size of the initial texture
 
+	wb.Colors[0] = getThemeColor(GUI_INSIDE)
+	wb.Colors[1] = getThemeColor(GUI_FONT_COLOR)
+
 	wb.Update()
 
 	return wb
@@ -42,9 +45,6 @@ func NewWhiteboard(task *Task) *Whiteboard {
 func (whiteboard *Whiteboard) Update() {
 
 	clickPos := rl.Vector2{-1, -1}
-
-	whiteboard.Colors[0] = getThemeColor(GUI_INSIDE)
-	whiteboard.Colors[1] = getThemeColor(GUI_FONT_COLOR)
 
 	if whiteboard.Task.Board.Project.ProjectSettingsOpen || whiteboard.Task.Resizing {
 		whiteboard.Editing = false
@@ -184,7 +184,7 @@ func (whiteboard *Whiteboard) RecreateTexture() {
 
 	rl.BeginTextureMode(newTex)
 
-	rl.DrawRectangle(0, 0, whiteboard.Width, whiteboard.Height, getThemeColor(GUI_INSIDE))
+	rl.DrawRectangle(0, 0, whiteboard.Width, whiteboard.Height, whiteboard.Colors[0])
 
 	if whiteboard.Texture.ID > 0 {
 		src := rl.Rectangle{0, 0, float32(whiteboard.Texture.Texture.Width), -float32(whiteboard.Texture.Texture.Height)}
@@ -235,9 +235,9 @@ func (whiteboard *Whiteboard) Invert() {
 		ogData, _ := base64.StdEncoding.DecodeString(data[i])
 		for _, value := range ogData {
 			if value == 1 {
-				colors = append(colors, getThemeColor(GUI_INSIDE))
+				colors = append(colors, whiteboard.Colors[0])
 			} else if value == 0 {
-				colors = append(colors, getThemeColor(GUI_FONT_COLOR))
+				colors = append(colors, whiteboard.Colors[1])
 			}
 
 		}
@@ -278,15 +278,16 @@ func (whiteboard *Whiteboard) Deserialize(data []string) {
 
 	colors := []rl.Color{}
 
-	// Don't use whiteboard.Colors here because we might be updating because of a theme change
+	whiteboard.Colors[0] = getThemeColor(GUI_INSIDE)
+	whiteboard.Colors[1] = getThemeColor(GUI_FONT_COLOR)
 
 	for i := len(data) - 1; i >= 0; i-- {
 		ogData, _ := base64.StdEncoding.DecodeString(data[i])
 		for _, value := range ogData {
 			if value == 0 {
-				colors = append(colors, getThemeColor(GUI_INSIDE))
+				colors = append(colors, whiteboard.Colors[0])
 			} else if value == 1 {
-				colors = append(colors, getThemeColor(GUI_FONT_COLOR))
+				colors = append(colors, whiteboard.Colors[1])
 			}
 
 		}
