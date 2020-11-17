@@ -69,7 +69,7 @@ func main() {
 			if panicOut != nil {
 
 				log.Print(
-					"\n\n# ERROR #\n",
+					"# ERROR START #\n",
 				)
 
 				stackContinue := true
@@ -80,16 +80,16 @@ func main() {
 					_, fn, line, ok := runtime.Caller(i)
 					stackContinue = ok
 					if ok {
-						log.Print("\n", fn, ":", line)
+						fmt.Print("\n", fn, ":", line)
 						if i == 0 {
-							log.Print(" | ", "Error: ", panicOut)
+							fmt.Print(" | ", "Error: ", panicOut)
 						}
 						i++
 					}
 				}
 
-				log.Print(
-					"\n\n# ERROR #\n",
+				fmt.Print(
+					"\n\n# ERROR END #\n",
 				)
 			}
 		}
@@ -148,6 +148,8 @@ func main() {
 	// profiling := false
 
 	elapsed := time.Duration(0)
+
+	log.Println("MasterPlan initialized successfully.")
 
 	for !rl.WindowShouldClose() && !quit {
 
@@ -380,6 +382,8 @@ func main() {
 		programSettings.WindowPosition = wr
 		programSettings.Save()
 	}
+
+	log.Println("MasterPlan exited successfully.")
 
 	currentProject.Destroy()
 
