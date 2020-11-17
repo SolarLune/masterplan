@@ -1949,18 +1949,7 @@ func (project *Project) GUI() {
 						}
 
 					case "Settings":
-						project.ReloadThemes() // Reload the themes after opening the settings window
-						project.ProjectSettingsOpen = true
-						project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
-						project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
-						project.AutoReloadThemes.Checked = programSettings.AutoReloadThemes
-						project.DisableMessageLog.Checked = programSettings.DisableMessageLog
-						project.DisableAboutDialogOnStart.Checked = programSettings.DisableAboutDialogOnStart
-						project.SaveWindowPosition.Checked = programSettings.SaveWindowPosition
-						project.AutoReloadResources.Checked = programSettings.AutoReloadResources
-						project.TargetFPS.SetNumber(programSettings.TargetFPS)
-						project.BorderlessWindow.Checked = programSettings.BorderlessWindow
-						project.TransparentBackground.Checked = programSettings.TransparentBackground
+						project.OpenSettings()
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
@@ -2725,4 +2714,19 @@ func (project *Project) ExecuteDestructiveAction(action string, argument string)
 		quit = true
 	}
 
+}
+
+func (project *Project) OpenSettings() {
+	project.ReloadThemes() // Reload the themes when opening the settings window
+	project.ProjectSettingsOpen = true
+	project.AutoLoadLastProject.Checked = programSettings.AutoloadLastPlan
+	project.DisableSplashscreen.Checked = programSettings.DisableSplashscreen
+	project.AutoReloadThemes.Checked = programSettings.AutoReloadThemes
+	project.DisableMessageLog.Checked = programSettings.DisableMessageLog
+	project.DisableAboutDialogOnStart.Checked = programSettings.DisableAboutDialogOnStart
+	project.SaveWindowPosition.Checked = programSettings.SaveWindowPosition
+	project.AutoReloadResources.Checked = programSettings.AutoReloadResources
+	project.TargetFPS.SetNumber(programSettings.TargetFPS)
+	project.BorderlessWindow.Checked = programSettings.BorderlessWindow
+	project.TransparentBackground.Checked = programSettings.TransparentBackground
 }

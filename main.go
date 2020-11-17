@@ -213,7 +213,7 @@ func main() {
 			if !showedAboutDialog {
 				showedAboutDialog = true
 				if !programSettings.DisableAboutDialogOnStart {
-					currentProject.ProjectSettingsOpen = true
+					currentProject.OpenSettings()
 					currentProject.SettingsSection.CurrentChoice = len(currentProject.SettingsSection.Options) - 1 // Set the settings section to "ABOUT" (the last option)
 				}
 			}
