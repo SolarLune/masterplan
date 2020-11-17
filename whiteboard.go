@@ -29,13 +29,11 @@ func NewWhiteboard(task *Task) *Whiteboard {
 	wb := &Whiteboard{
 		Task:         task,
 		PrevClickPos: rl.Vector2{-1, -1},
-		Colors:       []rl.Color{rl.Color{}, rl.Color{}},
 	}
 
-	wb.Resize(128, 64) // Set the size of the initial texture
+	wb.SetColors()
 
-	wb.Colors[0] = getThemeColor(GUI_INSIDE)
-	wb.Colors[1] = getThemeColor(GUI_FONT_COLOR)
+	wb.Resize(128, 64) // Set the size of the initial texture
 
 	wb.Update()
 
@@ -224,7 +222,7 @@ func (whiteboard *Whiteboard) Clear() {
 
 }
 
-// Invert replaces the light color with the dark color. Note that this is SUPER HACKY AS THIS IS JUST A "REVERSED" DESERIALIZATION FOR NOW
+// Invert replaces the light color with the dark color. Note that this is SUPER HACKY AS THIS IS JUST A "REVERSED" DESERIALIZE() FOR NOW
 func (whiteboard *Whiteboard) Invert() {
 
 	data := whiteboard.Serialize()
@@ -278,8 +276,7 @@ func (whiteboard *Whiteboard) Deserialize(data []string) {
 
 	colors := []rl.Color{}
 
-	whiteboard.Colors[0] = getThemeColor(GUI_INSIDE)
-	whiteboard.Colors[1] = getThemeColor(GUI_FONT_COLOR)
+	whiteboard.SetColors()
 
 	for i := len(data) - 1; i >= 0; i-- {
 		ogData, _ := base64.StdEncoding.DecodeString(data[i])
@@ -296,6 +293,13 @@ func (whiteboard *Whiteboard) Deserialize(data []string) {
 
 	rl.UpdateTexture(whiteboard.Texture.Texture, colors)
 
+}
+
+func (whiteboard *Whiteboard) SetColors() {
+	whiteboard.Colors = []rl.Color{
+		getThemeColor(GUI_INSIDE),
+		getThemeColor(GUI_FONT_COLOR),
+	}
 }
 
 func (whiteboard *Whiteboard) Shift(x, y float32) {
