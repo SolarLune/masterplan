@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SETTINGS_FILENAME = "masterplan-settings.json"
+	SETTINGS_FILENAME = "settings.json"
 	SETTINGS_DIRNAME = "MasterPlan"
 	SETTINGS_PATH = "/" + SETTINGS_DIRNAME + "/" + SETTINGS_FILENAME
 	SETTINGS_LEGACY_PATH = SETTINGS_FILENAME
