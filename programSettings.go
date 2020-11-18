@@ -2,11 +2,19 @@ package main
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"io/ioutil"
 	"os"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/tidwall/gjson"
+	"github.com/adrg/xdg"
+)
+
+const (
+	SETTINGS_FILENAME = "masterplan-settings.json"
+	SETTINGS_DIRNAME = "MasterPlan"
+	SETTINGS_PATH = "/" + SETTINGS_DIRNAME + "/" + SETTINGS_FILENAME
 )
 
 type ProgramSettings struct {
@@ -47,7 +55,9 @@ func (ps *ProgramSettings) CleanUpRecentPlanList() {
 }
 
 func (ps *ProgramSettings) Save() {
-	f, err := os.Create(GetPath("masterplan-settings.json")) // Use GetPath to ensure it's coming from the home directory, not somewhere else
+	path := filepath.FromSlash(xdg.ConfigHome + SETTINGS_PATH)
+	os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	f, err := os.Create(path)
 	if err == nil {
 		defer f.Close()
 		bytes, _ := json.Marshal(ps)
@@ -57,7 +67,8 @@ func (ps *ProgramSettings) Save() {
 }
 
 func (ps *ProgramSettings) Load() {
-	settingsJSON, err := ioutil.ReadFile(GetPath("masterplan-settings.json"))
+	path := filepath.FromSlash(xdg.ConfigHome + SETTINGS_PATH)
+	settingsJSON, err := ioutil.ReadFile(path)
 	if err == nil {
 		json.Unmarshal(settingsJSON, ps)
 	}
