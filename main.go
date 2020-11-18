@@ -13,6 +13,7 @@ import (
 
 	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/adrg/xdg"
 )
 
 // Build-time variable
@@ -41,7 +42,12 @@ func init() {
 
 		// Redirect STDERR and STDOUT to log.txt in release mode
 
-		f, err := os.Create(GetPath("log.txt"))
+		logPath := filepath.FromSlash(xdg.DataHome + "/MasterPlan/log.txt")
+		err := os.MkdirAll(filepath.Dir(logPath), os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+		f, err := os.Create(logPath)
 		if err != nil {
 			panic(err)
 		}
