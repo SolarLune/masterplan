@@ -15,6 +15,7 @@ const (
 	SETTINGS_FILENAME = "masterplan-settings.json"
 	SETTINGS_DIRNAME = "MasterPlan"
 	SETTINGS_PATH = "/" + SETTINGS_DIRNAME + "/" + SETTINGS_FILENAME
+	SETTINGS_LEGACY_PATH = SETTINGS_FILENAME
 )
 
 type ProgramSettings struct {
@@ -69,6 +70,10 @@ func (ps *ProgramSettings) Save() {
 func (ps *ProgramSettings) Load() {
 	path := filepath.FromSlash(xdg.ConfigHome + SETTINGS_PATH)
 	settingsJSON, err := ioutil.ReadFile(path)
+	if err != nil {
+		// Trying to read legacy path.
+		settingsJSON, err = ioutil.ReadFile(GetPath(SETTINGS_LEGACY_PATH))
+	}
 	if err == nil {
 		json.Unmarshal(settingsJSON, ps)
 	}
