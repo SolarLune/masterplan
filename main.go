@@ -114,7 +114,10 @@ func main() {
 	}
 
 	rl.SetConfigFlags(windowFlags)
-	rl.InitWindow(960, 540, "MasterPlan v"+softwareVersion.String()+demoMode)
+
+	// We initialize the window using just "MasterPlan" as the title because WM_CLASS is set from this on Linux
+	rl.InitWindow(960, 540, "MasterPlan")
+
 	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
 
 	if programSettings.SaveWindowPosition && programSettings.WindowPosition.Width > 0 && programSettings.WindowPosition.Height > 0 {
