@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"path/filepath"
 	"io/ioutil"
 	"os"
 
@@ -14,7 +13,7 @@ import (
 const (
 	SETTINGS_FILENAME    = "settings.json"
 	SETTINGS_DIRNAME     = "MasterPlan"
-	SETTINGS_PATH        = "/" + SETTINGS_DIRNAME + "/" + SETTINGS_FILENAME
+	SETTINGS_PATH        = SETTINGS_DIRNAME + "/" + SETTINGS_FILENAME
 	SETTINGS_LEGACY_PATH = "masterplan-settings.json"
 )
 
@@ -56,8 +55,7 @@ func (ps *ProgramSettings) CleanUpRecentPlanList() {
 }
 
 func (ps *ProgramSettings) Save() {
-	path := filepath.FromSlash(xdg.ConfigHome + SETTINGS_PATH)
-	os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	path, _ := xdg.ConfigFile(SETTINGS_PATH)
 	f, err := os.Create(path)
 	if err == nil {
 		defer f.Close()
@@ -68,7 +66,7 @@ func (ps *ProgramSettings) Save() {
 }
 
 func (ps *ProgramSettings) Load() {
-	path := filepath.FromSlash(xdg.ConfigHome + SETTINGS_PATH)
+	path, _ := xdg.ConfigFile(SETTINGS_PATH)
 	settingsJSON, err := ioutil.ReadFile(path)
 	if err != nil {
 		// Trying to read legacy path.
