@@ -7,6 +7,12 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/tidwall/gjson"
+	"github.com/adrg/xdg"
+)
+
+const (
+	SETTINGS_PATH        = "MasterPlan/settings.json"
+	SETTINGS_LEGACY_PATH = "masterplan-settings.json"
 )
 
 type ProgramSettings struct {
@@ -47,7 +53,8 @@ func (ps *ProgramSettings) CleanUpRecentPlanList() {
 }
 
 func (ps *ProgramSettings) Save() {
-	f, err := os.Create(GetPath("masterplan-settings.json")) // Use GetPath to ensure it's coming from the home directory, not somewhere else
+	path, _ := xdg.ConfigFile(SETTINGS_PATH)
+	f, err := os.Create(path)
 	if err == nil {
 		defer f.Close()
 		bytes, _ := json.Marshal(ps)
@@ -57,7 +64,12 @@ func (ps *ProgramSettings) Save() {
 }
 
 func (ps *ProgramSettings) Load() {
-	settingsJSON, err := ioutil.ReadFile(GetPath("masterplan-settings.json"))
+	path, _ := xdg.ConfigFile(SETTINGS_PATH)
+	settingsJSON, err := ioutil.ReadFile(path)
+	if err != nil {
+		// Trying to read legacy path.
+		settingsJSON, err = ioutil.ReadFile(GetPath(SETTINGS_LEGACY_PATH))
+	}
 	if err == nil {
 		json.Unmarshal(settingsJSON, ps)
 	}
