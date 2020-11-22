@@ -1655,7 +1655,7 @@ func (task *Task) UpdateNeighbors() {
 
 	tasks := task.Board.GetTasksInRect(task.Position.X+gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
 	sortfunc := func(i, j int) bool {
-		return tasks[i].Numberable() || tasks[i].Is(TASK_TYPE_NOTE) // Prioritize numberable Tasks or Notes to be counted as neighbors (though other Tasks can be neighbors still)
+		return tasks[i].Numberable() || (tasks[i].Is(TASK_TYPE_NOTE) && !tasks[j].Numberable()) // Prioritize numberable Tasks or Notes to be counted as neighbors (though other Tasks can be neighbors still)
 	}
 
 	sort.Slice(tasks, sortfunc)
