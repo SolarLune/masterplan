@@ -42,8 +42,7 @@ func init() {
 
 		// Redirect STDERR and STDOUT to log.txt in release mode
 
-		logPath := filepath.FromSlash(xdg.DataHome + "/MasterPlan/log.txt")
-		err := os.MkdirAll(filepath.Dir(logPath), os.ModePerm)
+		logPath, err := xdg.DataFile("MasterPlan/log.txt")
 		if err != nil {
 			panic(err)
 		}
