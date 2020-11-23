@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/adrg/xdg"
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/tidwall/gjson"
-	"github.com/adrg/xdg"
 )
 
 const (
@@ -44,12 +44,15 @@ func NewProgramSettings() ProgramSettings {
 }
 
 func (ps *ProgramSettings) CleanUpRecentPlanList() {
+
+	newList := []string{}
 	for i, s := range ps.RecentPlanList {
 		_, err := os.Stat(s)
-		if err != nil {
-			ps.RecentPlanList = append(ps.RecentPlanList[:i], ps.RecentPlanList[i+1:]...) // Cut out the deleted plans
+		if err == nil {
+			newList = append(newList, ps.RecentPlanList[i]) // We could alter the slice to cut out the strings that are invalid, but this is visually cleaner and easier to understand
 		}
 	}
+	ps.RecentPlanList = newList
 }
 
 func (ps *ProgramSettings) Save() {
