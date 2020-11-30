@@ -1637,7 +1637,7 @@ func (textbox *Textbox) Update() {
 				textbox.ClearSelection()
 			}
 		} else if programSettings.Keybindings.On(KBPaste) {
-			clipboardText, _ := clipboard.ReadAll()
+			clipboardText, err := clipboard.ReadAll()
 			if clipboardText != "" {
 
 				textbox.Changed = true
@@ -1647,6 +1647,10 @@ func (textbox *Textbox) Update() {
 
 				textbox.InsertTextAtCaret(clipboardText)
 
+			}
+
+			if err != nil {
+				currentProject.Log(err.Error())
 			}
 
 		}
@@ -1675,11 +1679,20 @@ func (textbox *Textbox) Update() {
 
 			if programSettings.Keybindings.On(KBCopyTasks) {
 
-				clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
+				err := clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
+
+				if err != nil {
+					currentProject.Log(err.Error())
+				}
 
 			} else if programSettings.Keybindings.On(KBCutTasks) {
 
-				clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
+				err := clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
+
+				if err != nil {
+					currentProject.Log(err.Error())
+				}
+
 				textbox.DeleteSelectedText()
 
 			}

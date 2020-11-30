@@ -2,7 +2,6 @@ package main
 
 import (
 	"image/gif"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -96,7 +95,6 @@ func (res *Resource) Audio() (beep.StreamSeekCloser, beep.Format, error) {
 
 		file, err := os.Open(res.LocalFilepath)
 		if err != nil {
-			log.Println("Could not open audio file: ", err.Error())
 			currentProject.Log("Could not open audio file: %s", err.Error())
 		} else {
 
@@ -113,7 +111,6 @@ func (res *Resource) Audio() (beep.StreamSeekCloser, beep.Format, error) {
 			}
 
 			if err != nil {
-				log.Println("Error decoding audio file: ", err.Error())
 				currentProject.Log("Error decoding audio file: %s", err.Error())
 			}
 

@@ -662,7 +662,7 @@ func (project *Project) Save(backup bool) {
 
 			f, err := os.Create(project.FilePath)
 			if err != nil {
-				log.Println(err)
+				project.Log("Error in creating save file: ", err.Error())
 			} else {
 				defer f.Close()
 
@@ -673,7 +673,7 @@ func (project *Project) Save(backup bool) {
 
 				err = f.Sync() // Want to make sure the file is written
 				if err != nil {
-					log.Println("ERROR: Can't write file to system: ", err)
+					project.Log("ERROR: Can't write file to system: ", err.Error())
 					success = false
 				}
 
@@ -891,7 +891,6 @@ func LoadProject(filepath string) *Project {
 
 	// It's possible for the file to be mangled and unable to be loaded; I should actually handle this
 	// with a backup system or something.
-	log.Println(fmt.Sprintf("Error: Could not load plan: [ %s ].", filepath))
 
 	// We log on the current project because this project didn't load correctly
 
@@ -903,12 +902,17 @@ func LoadProject(filepath string) *Project {
 }
 
 func (project *Project) Log(text string, variables ...interface{}) {
+
+	if len(variables) > 0 {
+		text = fmt.Sprintf(text, variables...)
+	}
+
 	if project.LogOn {
-		if len(variables) > 0 {
-			text = fmt.Sprintf(text, variables...)
-		}
 		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text, gween.New(255, 0, 7, ease.InExpo)})
 	}
+
+	log.Println(text)
+
 }
 
 func (project *Project) HandleCamera() {
@@ -2597,14 +2601,13 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 			if err != nil {
 
-				log.Println("Could not open HTTP address: ", err)
 				project.Log("Could not open HTTP address: ", err.Error())
 
 			} else {
 
 				tempFile, err := ioutil.TempFile("", "masterplan_resource")
 				if err != nil {
-					log.Println(err)
+					project.Log("Could not open temporary file: ", err.Error())
 				} else {
 					io.Copy(tempFile, response.Body)
 					newlyLoaded = true
@@ -2623,7 +2626,7 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 		fileType, err := mimetype.DetectFile(localFilepath)
 
 		if err != nil {
-			log.Println("Error identifying file: %s", err.Error())
+			project.Log("Error identifying file type: ", err.Error())
 		} else {
 
 			newlyLoaded = true
@@ -2641,7 +2644,7 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 				if strings.Contains(fileType.String(), "gif") {
 					file, err := os.Open(localFilepath)
 					if err != nil {
-						log.Println("Could not open GIF: ", err.Error())
+						project.Log("Could not open GIF: ", err.Error())
 					} else {
 
 						defer file.Close()
@@ -2649,7 +2652,7 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 						gifFile, err := gif.DecodeAll(file)
 
 						if err != nil {
-							log.Println("Could not decode GIF: ", err.Error())
+							project.Log("Could not decode GIF: ", err.Error())
 						} else {
 							res := project.RegisterResource(resourcePath, localFilepath, gifFile)
 							res.Temporary = downloadedFile
