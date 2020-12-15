@@ -2181,7 +2181,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else if message == MessageDragging {
 		if task.Selected && ((task.MapImage == nil || !task.MapImage.Editing) && (task.Whiteboard == nil || !task.Whiteboard.Editing)) {
 			if !task.Dragging {
-				task.Board.UndoBuffer.Capture(task)
+				task.Board.UndoBuffer.Capture(task)	// Just started dragging
 			}
 			task.Dragging = true
 			task.MouseDragStart = GetWorldMousePosition()

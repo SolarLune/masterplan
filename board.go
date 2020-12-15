@@ -437,9 +437,14 @@ func (board *Board) ReorderTasks() {
 		return ba.Position.Y < bb.Position.Y
 	})
 
+	// Reordering Tasks should not alter the Undo Buffer, as altering the Undo Buffer generally happens explicitly
+
+	prevOn := board.UndoBuffer.On
+	board.UndoBuffer.On = false
 	board.SendMessage(MessageDropped, nil)
 	board.SendMessage(MessageNeighbors, nil)
 	board.SendMessage(MessageNumbering, nil)
+	board.UndoBuffer.On = prevOn
 
 }
 
