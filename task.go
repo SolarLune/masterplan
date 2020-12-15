@@ -838,8 +838,11 @@ func (task *Task) Update() {
 			task.Board.Project.ResizingImage = true
 			task.Board.SendMessage(MessageDropped, nil)
 		} else if !MouseDown(rl.MouseLeftButton) || task.Open || task.Board.Project.ContextMenuOpen {
-			task.Resizing = false
-			task.Board.Project.ResizingImage = false
+			if task.Resizing {
+				task.Resizing = false
+				task.Board.Project.ResizingImage = false
+				task.Board.SendMessage(MessageDropped, nil)
+			}
 		}
 
 		if task.Resizing {
