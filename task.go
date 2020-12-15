@@ -831,7 +831,9 @@ func (task *Task) Update() {
 		task.ResizeRect.Width = float32(int32(task.ResizeRect.Width))
 		task.ResizeRect.Height = float32(int32(task.ResizeRect.Height))
 
-		if rl.CheckCollisionPointRec(GetWorldMousePosition(), task.ResizeRect) && MousePressed(rl.MouseLeftButton) {
+		selectedTaskCount := len(task.Board.SelectedTasks(false))
+
+		if rl.CheckCollisionPointRec(GetWorldMousePosition(), task.ResizeRect) && MousePressed(rl.MouseLeftButton) && selectedTaskCount == 1 {
 			task.Resizing = true
 			task.Board.Project.ResizingImage = true
 			task.Board.SendMessage(MessageDropped, nil)
@@ -889,7 +891,7 @@ func (task *Task) Update() {
 			task.ImageSizeResetRect.X = task.Rect.X
 			task.ImageSizeResetRect.Y = task.Rect.Y
 
-			if rl.CheckCollisionPointRec(GetWorldMousePosition(), task.ImageSizeResetRect) && MousePressed(rl.MouseLeftButton) {
+			if selectedTaskCount == 1 && rl.CheckCollisionPointRec(GetWorldMousePosition(), task.ImageSizeResetRect) && MousePressed(rl.MouseLeftButton) {
 				task.DisplaySize.X = float32(task.Image.Width)
 				task.DisplaySize.Y = float32(task.Image.Height)
 			}
@@ -1364,12 +1366,18 @@ func (task *Task) Draw() {
 	if task.Resizeable() && task.Selected && (!task.Is(TASK_TYPE_IMAGE) || task.Image.ID > 0) {
 		// Only valid images or other resizeable Task Types can be resized
 
-		rl.DrawRectangleRec(task.ResizeRect, getThemeColor(GUI_INSIDE))
-		rl.DrawRectangleLinesEx(task.ResizeRect, 1, getThemeColor(GUI_FONT_COLOR))
+		selectedTaskCount := len(task.Board.SelectedTasks(false))
 
-		if task.Is(TASK_TYPE_IMAGE) {
-			rl.DrawRectangleRec(task.ImageSizeResetRect, getThemeColor(GUI_INSIDE))
-			rl.DrawRectangleLinesEx(task.ImageSizeResetRect, 1, getThemeColor(GUI_FONT_COLOR))
+		if selectedTaskCount == 1 {
+
+			rl.DrawRectangleRec(task.ResizeRect, getThemeColor(GUI_INSIDE))
+			rl.DrawRectangleLinesEx(task.ResizeRect, 1, getThemeColor(GUI_FONT_COLOR))
+
+			if task.Is(TASK_TYPE_IMAGE) {
+				rl.DrawRectangleRec(task.ImageSizeResetRect, getThemeColor(GUI_INSIDE))
+				rl.DrawRectangleLinesEx(task.ImageSizeResetRect, 1, getThemeColor(GUI_FONT_COLOR))
+			}
+
 		}
 
 	}
@@ -1633,10 +1641,6 @@ func (task *Task) Depth() int {
 		depth = -100
 	} else if task.Is(TASK_TYPE_LINE) {
 		depth = 100
-	}
-
-	if task.Selected {
-		depth += 150
 	}
 
 	return depth
@@ -2181,7 +2185,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else if message == MessageDragging {
 		if task.Selected && ((task.MapImage == nil || !task.MapImage.Editing) && (task.Whiteboard == nil || !task.Whiteboard.Editing)) {
 			if !task.Dragging {
-				task.Board.UndoBuffer.Capture(task)	// Just started dragging
+				task.Board.UndoBuffer.Capture(task) // Just started dragging
 			}
 			task.Dragging = true
 			task.MouseDragStart = GetWorldMousePosition()
