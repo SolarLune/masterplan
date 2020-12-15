@@ -18,6 +18,7 @@ const (
 type ProgramSettings struct {
 	RecentPlanList            []string
 	TargetFPS                 int
+	UnfocusedFPS              int
 	ScreenshotsPath           string
 	AutoloadLastPlan          bool
 	AutoReloadThemes          bool
@@ -36,6 +37,7 @@ func NewProgramSettings() ProgramSettings {
 	ps := ProgramSettings{
 		RecentPlanList:     []string{},
 		TargetFPS:          60,
+		UnfocusedFPS:       10,
 		WindowPosition:     rl.NewRectangle(-1, -1, 0, 0),
 		SaveWindowPosition: true,
 		Keybindings:        NewKeybindings(),

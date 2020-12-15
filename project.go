@@ -117,6 +117,7 @@ type Project struct {
 	SaveWindowPosition          *Checkbox
 	AutoReloadResources         *Checkbox
 	TargetFPS                   *NumberSpinner
+	UnfocusedFPS                *NumberSpinner
 	TransparentBackground       *Checkbox
 	BorderlessWindow            *Checkbox
 	ScreenshotsPath             *Textbox
@@ -232,6 +233,7 @@ func NewProject() *Project {
 		DisableMessageLog:           NewCheckbox(0, 0, 32, 32),
 		AutoReloadResources:         NewCheckbox(0, 0, 32, 32),
 		TargetFPS:                   NewNumberSpinner(0, 0, 128, 40),
+		UnfocusedFPS:                NewNumberSpinner(0, 0, 128, 40),
 		ScreenshotsPath:             NewTextbox(0, 0, 400, 32),
 		ScreenshotsPathBrowseButton: NewButton(0, 0, 128, 24, "Browse", false),
 
@@ -414,6 +416,9 @@ func NewProject() *Project {
 	row.Item(NewLabel("Target FPS:"), SETTINGS_GLOBAL)
 	row.Item(project.TargetFPS, SETTINGS_GLOBAL)
 
+	row.Item(NewLabel("Target FPS When Unfocused:"), SETTINGS_GLOBAL)
+	row.Item(project.UnfocusedFPS, SETTINGS_GLOBAL)
+
 	row = column.Row()
 	row.Item(NewLabel("Save Window Position On Exit:"), SETTINGS_GLOBAL)
 	row.Item(project.SaveWindowPosition, SETTINGS_GLOBAL)
@@ -533,8 +538,12 @@ func NewProject() *Project {
 	project.IncompleteTasksGlow.Checked = true
 	project.CompleteTasksGlow.Checked = true
 	project.SelectedTasksGlow.Checked = true
+
 	project.TargetFPS.SetNumber(60)
 	project.TargetFPS.Minimum = 10
+
+	project.UnfocusedFPS.SetNumber(10)
+	project.UnfocusedFPS.Minimum = 1
 
 	project.AutomaticBackupInterval.SetNumber(15) // Seems sensible to make new projects have this as a default.
 	project.AutomaticBackupInterval.Minimum = 0
@@ -2154,6 +2163,7 @@ func (project *Project) GUI() {
 				programSettings.SaveWindowPosition = project.SaveWindowPosition.Checked
 				programSettings.AutoReloadResources = project.AutoReloadResources.Checked
 				programSettings.TargetFPS = project.TargetFPS.Number()
+				programSettings.UnfocusedFPS = project.UnfocusedFPS.Number()
 				programSettings.BorderlessWindow = project.BorderlessWindow.Checked
 				programSettings.TransparentBackground = project.TransparentBackground.Checked
 
@@ -2753,6 +2763,7 @@ func (project *Project) OpenSettings() {
 	project.SaveWindowPosition.Checked = programSettings.SaveWindowPosition
 	project.AutoReloadResources.Checked = programSettings.AutoReloadResources
 	project.TargetFPS.SetNumber(programSettings.TargetFPS)
+	project.UnfocusedFPS.SetNumber(programSettings.UnfocusedFPS)
 	project.BorderlessWindow.Checked = programSettings.BorderlessWindow
 	project.TransparentBackground.Checked = programSettings.TransparentBackground
 }

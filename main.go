@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"github.com/adrg/xdg"
 )
 
 // Build-time variable
@@ -359,8 +359,14 @@ func main() {
 			windowTitle = title
 		}
 
+		targetFPS := programSettings.TargetFPS
+
+		if !rl.IsWindowFocused() || rl.IsWindowHidden() || rl.IsWindowMinimized() {
+			targetFPS = programSettings.UnfocusedFPS
+		}
+
 		elapsed += time.Since(currentTime)
-		attemptedSleep := (time.Second / time.Duration(programSettings.TargetFPS)) - elapsed
+		attemptedSleep := (time.Second / time.Duration(targetFPS)) - elapsed
 
 		beforeSleep := time.Now()
 		time.Sleep(attemptedSleep)
@@ -375,10 +381,10 @@ func main() {
 
 		if time.Since(fpsDisplayTimer).Seconds() >= 1 {
 			fpsDisplayTimer = time.Now()
-			fpsDisplayValue = fpsDisplayAccumulator * float32(programSettings.TargetFPS)
+			fpsDisplayValue = fpsDisplayAccumulator * float32(targetFPS)
 			fpsDisplayAccumulator = 0
 		}
-		fpsDisplayAccumulator += 1.0 / float32(programSettings.TargetFPS)
+		fpsDisplayAccumulator += 1.0 / float32(targetFPS)
 
 		elapsed = sleepDifference // Sleeping doesn't sleep for exact amounts; carry this into next frame for sleep attempt
 	}
