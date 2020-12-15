@@ -298,7 +298,7 @@ type PanelRow struct {
 }
 
 func NewPanelRow(column *PanelColumn) *PanelRow {
-	return &PanelRow{Column: column, Items: []*PanelItem{}, VerticalSpacing: -1}
+	return &PanelRow{Column: column, Items: []*PanelItem{}}
 }
 
 func (row *PanelRow) Item(element GUIElement, modes ...int) *PanelItem {
@@ -328,17 +328,20 @@ func (row *PanelRow) ActiveItems() []*PanelItem {
 type PanelColumn struct {
 	Rows []*PanelRow
 	Mode int
+	DefaultVerticalSpacing int
 }
 
 func NewPanelColumn() *PanelColumn {
 	return &PanelColumn{
 		Rows: []*PanelRow{},
 		Mode: 0,
+		DefaultVerticalSpacing: -1,
 	}
 }
 
 func (column *PanelColumn) Row() *PanelRow {
 	row := NewPanelRow(column)
+	row.VerticalSpacing = column.DefaultVerticalSpacing
 	column.Rows = append(column.Rows, row)
 	return row
 }
@@ -611,7 +614,7 @@ func (panel *Panel) Update() {
 
 		}
 
-		if panel.OriginalHeight < panel.Rect.Height && panel.EnableScrolling {
+		if panel.OriginalHeight < panel.Rect.Height - topBar.Height && panel.EnableScrolling {
 			panel.Scrollbar.Update()
 		} else {
 			panel.Scrollbar.ScrollAmount = 0 // Reset the scrollbar to the top

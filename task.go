@@ -1270,14 +1270,16 @@ func (task *Task) Draw() {
 		rl.DrawRectangleRec(bgRect, color)
 	}
 
-	if task.Due() == TASK_DUE_TODAY {
-		src := rl.Rectangle{208 + rl.GetTime()*30, 0, task.Rect.Width, task.Rect.Height}
-		dst := task.Rect
-		rl.DrawTexturePro(task.Board.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
-	} else if task.Due() == TASK_DUE_LATE {
-		src := rl.Rectangle{208 + rl.GetTime()*120, 16, task.Rect.Width, task.Rect.Height}
-		dst := task.Rect
-		rl.DrawTexturePro(task.Board.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+	if task.Board.Project.DeadlineAnimation.CurrentChoice < 4 {
+		if task.Due() == TASK_DUE_TODAY {
+			src := rl.Rectangle{208 + rl.GetTime()*30, 0, task.Rect.Width, task.Rect.Height}
+			dst := task.Rect
+			rl.DrawTexturePro(task.Board.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+		} else if task.Due() == TASK_DUE_LATE {
+			src := rl.Rectangle{208 + rl.GetTime()*120, 16, task.Rect.Width, task.Rect.Height}
+			dst := task.Rect
+			rl.DrawTexturePro(task.Board.Project.Patterns, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+		}
 	}
 
 	if task.PercentageComplete != 0 {
@@ -1303,7 +1305,9 @@ func (task *Task) Draw() {
 			dst.Height = taskDisplaySize.Y
 			rl.SetTextureFilter(task.Image, rl.FilterAnisotropic4x)
 			color := rl.White
-			color.A = alpha
+			if task.Board.Project.GraphicalTasksTransparent.Checked {
+				color.A = alpha
+			}
 			rl.DrawTexturePro(task.Image, src, dst, rl.Vector2{}, 0, color)
 
 		}
@@ -1317,8 +1321,9 @@ func (task *Task) Draw() {
 		bgColor := rl.Black
 		bgColor.A = 64
 		color := rl.White
-		color.A = alpha
-
+		if task.Board.Project.GraphicalTasksTransparent.Checked {
+			color.A = alpha
+		}
 		gs := float32(task.Board.Project.GridSize)
 		src := rl.Rectangle{0, 0, float32(task.MapImage.Texture.Texture.Width), -float32(task.MapImage.Texture.Texture.Height)}
 		dst := rl.Rectangle{task.Rect.X, task.Rect.Y + gs, float32(task.MapImage.Texture.Texture.Width), float32(task.MapImage.Texture.Texture.Height)}
@@ -1359,7 +1364,11 @@ func (task *Task) Draw() {
 		src := rl.Rectangle{0, 0, float32(task.Whiteboard.Texture.Texture.Width), -float32(task.Whiteboard.Texture.Texture.Height)}
 		dst := rl.Rectangle{task.Rect.X, task.Rect.Y + gs, float32(task.Whiteboard.Texture.Texture.Width * 2), float32(task.Whiteboard.Texture.Texture.Height * 2)}
 
-		rl.DrawTexturePro(task.Whiteboard.Texture.Texture, src, dst, rl.Vector2{}, 0, rl.White)
+		color := rl.White
+		if task.Board.Project.GraphicalTasksTransparent.Checked {
+			color.A = alpha
+		}
+		rl.DrawTexturePro(task.Whiteboard.Texture.Texture, src, dst, rl.Vector2{}, 0, color)
 
 	}
 
@@ -1516,18 +1525,27 @@ func (task *Task) Draw() {
 		}
 
 		if task.Completable() && !task.Complete() && task.DeadlineCheckbox.Checked {
-			clockPos := rl.Vector2{0, 0}
-			iconSrc = rl.Rectangle{144, 0, 16, 16}
 
-			if task.Due() == TASK_DUE_LATE {
-				iconSrc.X += 32
-			} else if task.Due() == TASK_DUE_TODAY {
-				iconSrc.X += 16
-			} // else it's due in the future, so just a clock icon is fine
+			deadlineAnimate := task.Board.Project.DeadlineAnimation.CurrentChoice
 
-			clockPos.X += float32(math.Sin(float64(float32(task.ID)*0.1)+float64(rl.GetTime())*3.1415)) * 4
+			if deadlineAnimate < 3 {
+				clockPos := rl.Vector2{0, 0}
+				iconSrc = rl.Rectangle{144, 0, 16, 16}
 
-			rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X - 16 + clockPos.X, task.Rect.Y + clockPos.Y, 16, 16}, rl.Vector2{0, 0}, 0, rl.White)
+				if task.Due() == TASK_DUE_LATE {
+					iconSrc.X += 32
+				} else if task.Due() == TASK_DUE_TODAY {
+					iconSrc.X += 16
+				} // else it's due in the future, so just a clock icon is fine
+
+				if deadlineAnimate == 0 || (deadlineAnimate == 1 && task.Due() == TASK_DUE_LATE) {
+					clockPos.X += float32(math.Sin(float64(float32(task.ID)*0.1)+float64(rl.GetTime())*3.1415)) * 4
+				}
+
+				rl.DrawTexturePro(task.Board.Project.GUI_Icons, iconSrc, rl.Rectangle{task.Rect.X - 16 + clockPos.X, task.Rect.Y + clockPos.Y, 16, 16}, rl.Vector2{0, 0}, 0, rl.White)
+
+			}
+
 		}
 
 	}
@@ -1789,7 +1807,7 @@ func (task *Task) DrawShadow() {
 			depthRect.X = task.Rect.X + task.Rect.Width
 			depthRect.Y = task.Rect.Y + 4
 			depthRect.Width = 4
-			depthRect.Height = task.Rect.Height
+			depthRect.Height = task.Rect.Height - 4
 			rl.DrawRectangleRec(depthRect, shadowColor)
 
 		}

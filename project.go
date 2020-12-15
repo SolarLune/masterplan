@@ -124,6 +124,8 @@ type Project struct {
 	RebindingButtons            []*Button
 	RebindingAction             *Button
 	RebindingHeldKeys           []int32
+	GraphicalTasksTransparent   *Checkbox
+	DeadlineAnimation           *ButtonGroup
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -196,31 +198,33 @@ func NewProject() *Project {
 		PopupPanel:    NewPanel(0, 0, 480, 270),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
 
-		ColorThemeSpinner:        NewSpinner(0, 0, 256, 32),
-		TaskShadowSpinner:        NewSpinner(0, 0, 192, 32, "Off", "Flat", "Smooth", "3D"),
-		OutlineTasks:             NewCheckbox(0, 0, 32, 32),
-		GridVisible:              NewCheckbox(0, 0, 32, 32),
-		ShowIcons:                NewCheckbox(0, 0, 32, 32),
-		NumberingSequence:        NewSpinner(0, 0, 192, 32, "1.1.", "1-1)", "I.I.", "Bullets", "Squares", "Stars", "Off"),
-		NumberTopLevel:           NewCheckbox(0, 0, 32, 32),
-		PulsingTaskSelection:     NewCheckbox(0, 0, 32, 32),
-		AutoSave:                 NewCheckbox(0, 0, 32, 32),
-		SaveSoundsPlaying:        NewCheckbox(0, 0, 32, 32),
-		SampleRate:               NewSpinner(0, 0, 192, 32, "22050", "44100", "48000", "88200", "96000"),
-		BracketSubtasks:          NewCheckbox(0, 0, 32, 32),
-		LockProject:              NewCheckbox(0, 0, 32, 32),
-		AutomaticBackupInterval:  NewNumberSpinner(0, 0, 128, 40),
-		AutomaticBackupKeepCount: NewNumberSpinner(0, 0, 128, 40),
-		MaxUndoSteps:             NewNumberSpinner(0, 0, 192, 40),
-		TaskTransparency:         NewNumberSpinner(0, 0, 128, 40),
-		AlwaysShowURLButtons:     NewCheckbox(0, 0, 32, 32),
-		SettingsSection:          NewButtonGroup(0, 0, 700, 32, "General", "Tasks", "Audio", "Global", "Shortcuts", "About"),
-		RebindingButtons:         []*Button{},
-		RebindingHeldKeys:        []int32{},
-		SoundVolume:              NewNumberSpinner(0, 0, 128, 40),
-		IncompleteTasksGlow:      NewCheckbox(0, 0, 32, 32),
-		CompleteTasksGlow:        NewCheckbox(0, 0, 32, 32),
-		SelectedTasksGlow:        NewCheckbox(0, 0, 32, 32),
+		ColorThemeSpinner:         NewSpinner(0, 0, 256, 32),
+		TaskShadowSpinner:         NewSpinner(0, 0, 192, 32, "Off", "Flat", "Smooth", "3D"),
+		OutlineTasks:              NewCheckbox(0, 0, 32, 32),
+		GridVisible:               NewCheckbox(0, 0, 32, 32),
+		ShowIcons:                 NewCheckbox(0, 0, 32, 32),
+		NumberingSequence:         NewSpinner(0, 0, 192, 32, "1.1.", "1-1)", "I.I.", "Bullets", "Squares", "Stars", "Off"),
+		NumberTopLevel:            NewCheckbox(0, 0, 32, 32),
+		PulsingTaskSelection:      NewCheckbox(0, 0, 32, 32),
+		AutoSave:                  NewCheckbox(0, 0, 32, 32),
+		SaveSoundsPlaying:         NewCheckbox(0, 0, 32, 32),
+		SampleRate:                NewSpinner(0, 0, 192, 32, "22050", "44100", "48000", "88200", "96000"),
+		BracketSubtasks:           NewCheckbox(0, 0, 32, 32),
+		LockProject:               NewCheckbox(0, 0, 32, 32),
+		AutomaticBackupInterval:   NewNumberSpinner(0, 0, 128, 40),
+		AutomaticBackupKeepCount:  NewNumberSpinner(0, 0, 128, 40),
+		MaxUndoSteps:              NewNumberSpinner(0, 0, 192, 40),
+		TaskTransparency:          NewNumberSpinner(0, 0, 128, 40),
+		AlwaysShowURLButtons:      NewCheckbox(0, 0, 32, 32),
+		SettingsSection:           NewButtonGroup(0, 0, 700, 32, "General", "Tasks", "Audio", "Global", "Shortcuts", "About"),
+		RebindingButtons:          []*Button{},
+		RebindingHeldKeys:         []int32{},
+		SoundVolume:               NewNumberSpinner(0, 0, 128, 40),
+		IncompleteTasksGlow:       NewCheckbox(0, 0, 32, 32),
+		CompleteTasksGlow:         NewCheckbox(0, 0, 32, 32),
+		SelectedTasksGlow:         NewCheckbox(0, 0, 32, 32),
+		GraphicalTasksTransparent: NewCheckbox(0, 0, 32, 32),
+		DeadlineAnimation:         NewButtonGroup(0, 0, 850, 32, "Always Animate", "Only Late Tasks", "Never Animate", "No Icon", "No Pattern"),
 		// Program settings GUI elements
 		AutoLoadLastProject:         NewCheckbox(0, 0, 32, 32),
 		AutoReloadThemes:            NewCheckbox(0, 0, 32, 32),
@@ -264,6 +268,8 @@ func NewProject() *Project {
 
 	// General settings
 
+	column.DefaultVerticalSpacing = -1
+
 	row = column.Row()
 	row.Item(NewLabel("Color Theme:"), SETTINGS_GENERAL)
 	row.Item(project.ColorThemeSpinner, SETTINGS_GENERAL)
@@ -293,12 +299,14 @@ func NewProject() *Project {
 	row.Item(project.MaxUndoSteps, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Screenshots Path (If empty, plan directory is used):"), SETTINGS_GENERAL)
+	row.Item(NewLabel("Screenshots Path (If empty, project directory is used):"), SETTINGS_GENERAL)
 	row = column.Row()
 	row.Item(project.ScreenshotsPath, SETTINGS_GENERAL)
 	row.Item(project.ScreenshotsPathBrowseButton, SETTINGS_GENERAL)
 
 	// TASKS
+
+	column.DefaultVerticalSpacing = 24
 
 	row = column.Row()
 	row.Item(NewLabel("Task Transparency:"), SETTINGS_TASKS)
@@ -308,41 +316,52 @@ func NewProject() *Project {
 	row.Item(project.TaskShadowSpinner, SETTINGS_TASKS)
 
 	row = column.Row()
+	row.Item(NewLabel("Graphical Tasks\nAre Transparent:"), SETTINGS_TASKS)
+	row.Item(project.GraphicalTasksTransparent, SETTINGS_TASKS)
+
 	row.Item(NewLabel("Outline Tasks:"), SETTINGS_TASKS)
 	row.Item(project.OutlineTasks, SETTINGS_TASKS)
 
+	row = column.Row()
 	row.Item(NewLabel("Pulse Selected Tasks:"), SETTINGS_TASKS)
 	row.Item(project.PulsingTaskSelection, SETTINGS_TASKS)
 
-	row = column.Row()
 	row.Item(NewLabel("Show Icons:"), SETTINGS_TASKS)
 	row.Item(project.ShowIcons, SETTINGS_TASKS)
 
+	row = column.Row()
 	row.Item(NewLabel("Numbering Style:"), SETTINGS_TASKS)
 	row.Item(project.NumberingSequence, SETTINGS_TASKS)
 
-	row = column.Row()
 	row.Item(NewLabel("Bracket Sub-Tasks\nUnder Parent:"), SETTINGS_TASKS)
 	row.Item(project.BracketSubtasks, SETTINGS_TASKS)
 
+	row = column.Row()
 	row.Item(NewLabel("Number Top-level Tasks:"), SETTINGS_TASKS)
 	row.Item(project.NumberTopLevel, SETTINGS_TASKS)
 
-	row = column.Row()
 	row.Item(NewLabel("Incomplete Tasks Glow:"), SETTINGS_TASKS)
 	row.Item(project.IncompleteTasksGlow, SETTINGS_TASKS)
 
+	row = column.Row()
 	row.Item(NewLabel("Completed Tasks Glow:"), SETTINGS_TASKS)
 	row.Item(project.CompleteTasksGlow, SETTINGS_TASKS)
 
-	row = column.Row()
 	row.Item(NewLabel("Selected Tasks Glow:"), SETTINGS_TASKS)
 	row.Item(project.SelectedTasksGlow, SETTINGS_TASKS)
 
+	row = column.Row()
 	row.Item(NewLabel("Always Show URL Buttons:"), SETTINGS_TASKS)
 	row.Item(project.AlwaysShowURLButtons, SETTINGS_TASKS)
 
+	row = column.Row()
+	row.Item(NewLabel("Deadline Animation:"), SETTINGS_TASKS)
+	row = column.Row()
+	row.Item(project.DeadlineAnimation, SETTINGS_TASKS)
+
 	// Audio
+
+	column.DefaultVerticalSpacing = -1
 
 	row = column.Row()
 	row.Item(NewLabel("Volume:"), SETTINGS_AUDIO)
@@ -646,6 +665,8 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `CompleteTasksGlow`, project.CompleteTasksGlow.Checked)
 			data, _ = sjson.Set(data, `SelectedTasksGlow`, project.SelectedTasksGlow.Checked)
 			data, _ = sjson.Set(data, `ScreenshotsPath`, project.ScreenshotsPath.Text())
+			data, _ = sjson.Set(data, `GraphicalTasksTransparent`, project.GraphicalTasksTransparent.Checked)
+			data, _ = sjson.Set(data, `DeadlineAnimation`, project.DeadlineAnimation.CurrentChoice)
 
 			boardNames := []string{}
 			for _, board := range project.Boards {
@@ -772,6 +793,8 @@ func LoadProject(filepath string) *Project {
 			project.AutomaticBackupKeepCount.SetNumber(getInt(`BackupKeepCount`))
 			project.MaxUndoSteps.SetNumber(getInt(`UndoMaxSteps`))
 			project.AlwaysShowURLButtons.Checked = getBool(`AlwaysShowURLButtons`)
+			project.GraphicalTasksTransparent.Checked = getBool(`GraphicalTasksTransparent`)
+			project.DeadlineAnimation.CurrentChoice = getInt(`DeadlineAnimation`)
 
 			if data.Get(`SoundVolume`).Exists() {
 				project.SoundVolume.SetNumber(getInt(`SoundVolume`))
