@@ -127,6 +127,7 @@ type Project struct {
 	RebindingHeldKeys           []int32
 	GraphicalTasksTransparent   *Checkbox
 	DeadlineAnimation           *ButtonGroup
+	ScrollwheelSensitivity      *NumberSpinner
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -199,43 +200,44 @@ func NewProject() *Project {
 		PopupPanel:    NewPanel(0, 0, 480, 270),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
 
-		ColorThemeSpinner:         NewSpinner(0, 0, 256, 32),
-		TaskShadowSpinner:         NewSpinner(0, 0, 192, 32, "Off", "Flat", "Smooth", "3D"),
-		OutlineTasks:              NewCheckbox(0, 0, 32, 32),
-		GridVisible:               NewCheckbox(0, 0, 32, 32),
-		ShowIcons:                 NewCheckbox(0, 0, 32, 32),
-		NumberingSequence:         NewSpinner(0, 0, 192, 32, "1.1.", "1-1)", "I.I.", "Bullets", "Squares", "Stars", "Off"),
-		NumberTopLevel:            NewCheckbox(0, 0, 32, 32),
-		PulsingTaskSelection:      NewCheckbox(0, 0, 32, 32),
-		AutoSave:                  NewCheckbox(0, 0, 32, 32),
-		SaveSoundsPlaying:         NewCheckbox(0, 0, 32, 32),
-		SampleRate:                NewSpinner(0, 0, 192, 32, "22050", "44100", "48000", "88200", "96000"),
-		BracketSubtasks:           NewCheckbox(0, 0, 32, 32),
-		LockProject:               NewCheckbox(0, 0, 32, 32),
-		AutomaticBackupInterval:   NewNumberSpinner(0, 0, 128, 40),
-		AutomaticBackupKeepCount:  NewNumberSpinner(0, 0, 128, 40),
-		MaxUndoSteps:              NewNumberSpinner(0, 0, 192, 40),
-		TaskTransparency:          NewNumberSpinner(0, 0, 128, 40),
-		AlwaysShowURLButtons:      NewCheckbox(0, 0, 32, 32),
-		SettingsSection:           NewButtonGroup(0, 0, 700, 32, "General", "Tasks", "Audio", "Global", "Shortcuts", "About"),
-		RebindingButtons:          []*Button{},
-		RebindingHeldKeys:         []int32{},
-		SoundVolume:               NewNumberSpinner(0, 0, 128, 40),
-		IncompleteTasksGlow:       NewCheckbox(0, 0, 32, 32),
-		CompleteTasksGlow:         NewCheckbox(0, 0, 32, 32),
-		SelectedTasksGlow:         NewCheckbox(0, 0, 32, 32),
-		GraphicalTasksTransparent: NewCheckbox(0, 0, 32, 32),
-		DeadlineAnimation:         NewButtonGroup(0, 0, 850, 32, "Always Animate", "Only Late Tasks", "Never Animate", "No Icon", "No Pattern"),
-		// Program settings GUI elements
-		AutoLoadLastProject:         NewCheckbox(0, 0, 32, 32),
-		AutoReloadThemes:            NewCheckbox(0, 0, 32, 32),
-		DisableSplashscreen:         NewCheckbox(0, 0, 32, 32),
-		DisableMessageLog:           NewCheckbox(0, 0, 32, 32),
-		AutoReloadResources:         NewCheckbox(0, 0, 32, 32),
-		TargetFPS:                   NewNumberSpinner(0, 0, 128, 40),
-		UnfocusedFPS:                NewNumberSpinner(0, 0, 128, 40),
+		ColorThemeSpinner:           NewSpinner(0, 0, 256, 32),
+		TaskShadowSpinner:           NewSpinner(0, 0, 192, 32, "Off", "Flat", "Smooth", "3D"),
+		OutlineTasks:                NewCheckbox(0, 0, 32, 32),
+		GridVisible:                 NewCheckbox(0, 0, 32, 32),
+		ShowIcons:                   NewCheckbox(0, 0, 32, 32),
+		NumberingSequence:           NewSpinner(0, 0, 192, 32, "1.1.", "1-1)", "I.I.", "Bullets", "Squares", "Stars", "Off"),
+		NumberTopLevel:              NewCheckbox(0, 0, 32, 32),
+		PulsingTaskSelection:        NewCheckbox(0, 0, 32, 32),
+		AutoSave:                    NewCheckbox(0, 0, 32, 32),
+		SaveSoundsPlaying:           NewCheckbox(0, 0, 32, 32),
+		SampleRate:                  NewSpinner(0, 0, 192, 32, "22050", "44100", "48000", "88200", "96000"),
+		BracketSubtasks:             NewCheckbox(0, 0, 32, 32),
+		LockProject:                 NewCheckbox(0, 0, 32, 32),
+		AutomaticBackupInterval:     NewNumberSpinner(0, 0, 128, 40),
+		AutomaticBackupKeepCount:    NewNumberSpinner(0, 0, 128, 40),
+		MaxUndoSteps:                NewNumberSpinner(0, 0, 192, 40),
+		TaskTransparency:            NewNumberSpinner(0, 0, 128, 40),
+		AlwaysShowURLButtons:        NewCheckbox(0, 0, 32, 32),
+		SettingsSection:             NewButtonGroup(0, 0, 700, 32, 1, "General", "Tasks", "Audio", "Global", "Shortcuts", "About"),
+		RebindingButtons:            []*Button{},
+		RebindingHeldKeys:           []int32{},
+		SoundVolume:                 NewNumberSpinner(0, 0, 128, 40),
+		IncompleteTasksGlow:         NewCheckbox(0, 0, 32, 32),
+		CompleteTasksGlow:           NewCheckbox(0, 0, 32, 32),
+		SelectedTasksGlow:           NewCheckbox(0, 0, 32, 32),
+		GraphicalTasksTransparent:   NewCheckbox(0, 0, 32, 32),
+		DeadlineAnimation:           NewButtonGroup(0, 0, 850, 32, 1, "Always Animate", "Only Late Tasks", "Never Animate", "No Icon", "No Pattern"),
 		ScreenshotsPath:             NewTextbox(0, 0, 400, 32),
 		ScreenshotsPathBrowseButton: NewButton(0, 0, 128, 24, "Browse", false),
+		// Program settings GUI elements
+		AutoLoadLastProject:    NewCheckbox(0, 0, 32, 32),
+		AutoReloadThemes:       NewCheckbox(0, 0, 32, 32),
+		DisableSplashscreen:    NewCheckbox(0, 0, 32, 32),
+		DisableMessageLog:      NewCheckbox(0, 0, 32, 32),
+		AutoReloadResources:    NewCheckbox(0, 0, 32, 32),
+		TargetFPS:              NewNumberSpinner(0, 0, 128, 40),
+		UnfocusedFPS:           NewNumberSpinner(0, 0, 128, 40),
+		ScrollwheelSensitivity: NewNumberSpinner(0, 0, 128, 40),
 
 		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
@@ -413,6 +415,10 @@ func NewProject() *Project {
 	row.Item(project.DisableMessageLog, SETTINGS_GLOBAL)
 
 	row = column.Row()
+	row.Item(NewLabel("Scroll-wheel sensitivity:"), SETTINGS_GLOBAL)
+	row.Item(project.ScrollwheelSensitivity, SETTINGS_GLOBAL)
+
+	row = column.Row()
 	row.Item(NewLabel("Target FPS:"), SETTINGS_GLOBAL)
 	row.Item(project.TargetFPS, SETTINGS_GLOBAL)
 
@@ -544,6 +550,10 @@ func NewProject() *Project {
 
 	project.UnfocusedFPS.SetNumber(10)
 	project.UnfocusedFPS.Minimum = 1
+
+	project.ScrollwheelSensitivity.SetNumber(1)
+	project.ScrollwheelSensitivity.Minimum = 1
+	project.ScrollwheelSensitivity.Maximum = 5
 
 	project.AutomaticBackupInterval.SetNumber(15) // Seems sensible to make new projects have this as a default.
 	project.AutomaticBackupInterval.Minimum = 0
@@ -2135,6 +2145,8 @@ func (project *Project) GUI() {
 				}
 			}
 
+			programSettings.ScrollwheelSensitivity = project.ScrollwheelSensitivity.Number()
+
 			if project.SettingsPanel.Exited {
 
 				project.ProjectSettingsOpen = false
@@ -2764,6 +2776,7 @@ func (project *Project) OpenSettings() {
 	project.AutoReloadResources.Checked = programSettings.AutoReloadResources
 	project.TargetFPS.SetNumber(programSettings.TargetFPS)
 	project.UnfocusedFPS.SetNumber(programSettings.UnfocusedFPS)
+	project.ScrollwheelSensitivity.SetNumber(programSettings.ScrollwheelSensitivity)
 	project.BorderlessWindow.Checked = programSettings.BorderlessWindow
 	project.TransparentBackground.Checked = programSettings.TransparentBackground
 }

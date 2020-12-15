@@ -31,16 +31,18 @@ type ProgramSettings struct {
 	WindowPosition            rl.Rectangle
 	SaveWindowPosition        bool
 	Keybindings               *Keybindings
+	ScrollwheelSensitivity    int
 }
 
 func NewProgramSettings() ProgramSettings {
 	ps := ProgramSettings{
-		RecentPlanList:     []string{},
-		TargetFPS:          60,
-		UnfocusedFPS:       10,
-		WindowPosition:     rl.NewRectangle(-1, -1, 0, 0),
-		SaveWindowPosition: true,
-		Keybindings:        NewKeybindings(),
+		RecentPlanList:         []string{},
+		TargetFPS:              60,
+		UnfocusedFPS:           10,
+		WindowPosition:         rl.NewRectangle(-1, -1, 0, 0),
+		SaveWindowPosition:     true,
+		Keybindings:            NewKeybindings(),
+		ScrollwheelSensitivity: 1,
 	}
 	return ps
 }

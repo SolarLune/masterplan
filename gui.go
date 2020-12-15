@@ -226,26 +226,42 @@ func NewButton(x, y, w, h float32, text string, disabled bool) *Button {
 type ButtonGroup struct {
 	Rect          rl.Rectangle
 	Options       []string
+	RowCount      int
 	CurrentChoice int
 }
 
-func NewButtonGroup(x, y, w, h float32, options ...string) *ButtonGroup {
+// NewButtonGroup creates a button group. The X and Y is the position of the group, while the width is how wide the group is. Height is how tall the group is,
+// but also specifies the height of the buttons. RowCount indicates the number of rows to spread the buttons across. Finally, one button will be created for each
+// option in the options variable string.
+func NewButtonGroup(x, y, w, h float32, rowCount int, options ...string) *ButtonGroup {
 	return &ButtonGroup{
-		Rect:    rl.Rectangle{x, y, w, h},
-		Options: options,
+		Rect:     rl.Rectangle{x, y, w, h * float32(rowCount)},
+		Options:  options,
+		RowCount: rowCount,
 	}
 }
 
 func (bg *ButtonGroup) Update() {
 
 	r := bg.Rect
-	r.Width /= float32(len(bg.Options))
+	r.Width /= float32(len(bg.Options) / bg.RowCount)
+	r.Height /= float32(bg.RowCount)
+
+	startingX := r.X
 
 	for i, option := range bg.Options {
+
 		if ImmediateButton(r, option, i == bg.CurrentChoice) {
 			bg.CurrentChoice = i
 		}
+
 		r.X += r.Width
+
+		if r.X >= bg.Rect.X+bg.Rect.Width {
+			r.X = startingX
+			r.Y += r.Height
+		}
+
 	}
 
 }
@@ -258,6 +274,19 @@ func (bg *ButtonGroup) Rectangle() rl.Rectangle {
 
 func (bg *ButtonGroup) SetRectangle(rect rl.Rectangle) {
 	bg.Rect = rect
+}
+
+func (bg *ButtonGroup) ChoiceAsString() string {
+	return bg.Options[bg.CurrentChoice]
+}
+
+func (bg *ButtonGroup) SetChoice(choice string) {
+	for i, option := range bg.Options {
+		if option == choice {
+			bg.CurrentChoice = i
+			return
+		}
+	}
 }
 
 type PanelItem struct {
@@ -326,15 +355,15 @@ func (row *PanelRow) ActiveItems() []*PanelItem {
 }
 
 type PanelColumn struct {
-	Rows []*PanelRow
-	Mode int
+	Rows                   []*PanelRow
+	Mode                   int
 	DefaultVerticalSpacing int
 }
 
 func NewPanelColumn() *PanelColumn {
 	return &PanelColumn{
-		Rows: []*PanelRow{},
-		Mode: 0,
+		Rows:                   []*PanelRow{},
+		Mode:                   0,
 		DefaultVerticalSpacing: -1,
 	}
 }
@@ -454,7 +483,30 @@ func (panel *Panel) Update() {
 
 	rl.DrawRectangleRec(dst, getThemeColor(GUI_INSIDE))
 
-	scroll := panel.Scrollbar.ScrollAmount * (float32(panel.RenderTexture.Texture.Height) - panel.OriginalHeight)
+	panelVisible := panel.OriginalHeight < panel.Rect.Height-topBar.Height && panel.EnableScrolling
+
+	scroll := float32(0)
+
+	if panelVisible {
+
+		totalScroll := float32(panel.RenderTexture.Texture.Height) - panel.OriginalHeight
+		chunk := float32(0)
+		if totalScroll > 0 {
+			chunk = 32.0 / totalScroll
+		}
+
+		mouseWheel := -float32(rl.GetMouseWheelMove())
+
+		if rl.IsKeyPressed(rl.KeyPageDown) {
+			mouseWheel = 4
+		} else if rl.IsKeyPressed(rl.KeyPageUp) {
+			mouseWheel = -4
+		}
+
+		panel.Scrollbar.Scroll(mouseWheel * chunk * float32(programSettings.ScrollwheelSensitivity))
+		scroll = panel.Scrollbar.ScrollAmount * totalScroll
+
+	}
 
 	quitButton := false
 
@@ -614,7 +666,7 @@ func (panel *Panel) Update() {
 
 		}
 
-		if panel.OriginalHeight < panel.Rect.Height - topBar.Height && panel.EnableScrolling {
+		if panelVisible {
 			panel.Scrollbar.Update()
 		} else {
 			panel.Scrollbar.ScrollAmount = 0 // Reset the scrollbar to the top
@@ -737,6 +789,7 @@ type Scrollbar struct {
 	Rect         rl.Rectangle
 	Horizontal   bool
 	ScrollAmount float32
+	TargetScroll float32
 }
 
 func NewScrollbar(x, y, w, h float32) *Scrollbar {
@@ -765,14 +818,14 @@ func (scrollBar *Scrollbar) Update() {
 	}
 
 	if MouseDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), scrollBar.Rect) {
-		scrollBar.ScrollAmount = ease.Linear(
+		scrollBar.TargetScroll = ease.Linear(
 			GetMousePosition().Y-scrollBar.Rect.Y-(scrollBox.Height/2),
 			0,
 			1,
 			scrollBar.Rect.Height-(scrollBox.Height))
 	}
 
-	scrollBar.ScrollAmount -= float32(rl.GetMouseWheelMove()) * .1
+	scrollBar.ScrollAmount += (scrollBar.TargetScroll - scrollBar.ScrollAmount) * 0.15
 
 	if scrollBar.ScrollAmount < 0 {
 		scrollBar.ScrollAmount = 0
@@ -782,6 +835,19 @@ func (scrollBar *Scrollbar) Update() {
 	}
 
 	ImmediateButton(scrollBox, "", false)
+
+}
+
+func (scrollBar *Scrollbar) Scroll(scroll float32) {
+
+	scrollBar.TargetScroll += scroll
+
+	if scrollBar.TargetScroll < 0 {
+		scrollBar.TargetScroll = 0
+	}
+	if scrollBar.TargetScroll > 1 {
+		scrollBar.TargetScroll = 1
+	}
 
 }
 
