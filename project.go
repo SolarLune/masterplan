@@ -138,6 +138,7 @@ type Project struct {
 	GraphicalTasksTransparent   *Checkbox
 	DeadlineAnimation           *ButtonGroup
 	ScrollwheelSensitivity      *NumberSpinner
+	SmoothPanning               *Checkbox
 	CustomFontPath              *Textbox
 	CustomFontPathBrowseButton  *Button
 	FontSize                    *NumberSpinner
@@ -256,6 +257,7 @@ func NewProject() *Project {
 		TargetFPS:              NewNumberSpinner(0, 0, 128, 40),
 		UnfocusedFPS:           NewNumberSpinner(0, 0, 128, 40),
 		ScrollwheelSensitivity: NewNumberSpinner(0, 0, 128, 40),
+		SmoothPanning:          NewCheckbox(0, 0, 32, 32),
 
 		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
@@ -435,6 +437,10 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Scroll-wheel sensitivity:"), SETTINGS_GLOBAL)
 	row.Item(project.ScrollwheelSensitivity, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Smooth camera panning:"), SETTINGS_GLOBAL)
+	row.Item(project.SmoothPanning, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Target FPS:"), SETTINGS_GLOBAL)
@@ -1028,8 +1034,14 @@ func (project *Project) HandleCamera() {
 		project.CameraPan.Y += diff.Y
 	}
 
-	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * project.GetFrameTime() * 12
-	project.CameraOffset.Y += float32(project.CameraPan.Y-project.CameraOffset.Y) * project.GetFrameTime() * 12
+	smoothing := float32(1)
+
+	if programSettings.SmoothPanning {
+		smoothing = project.GetFrameTime() * 12
+	}
+
+	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * smoothing
+	project.CameraOffset.Y += float32(project.CameraPan.Y-project.CameraOffset.Y) * smoothing
 
 	camera.Target.X = float32(-project.CameraOffset.X)
 	camera.Target.Y = float32(-project.CameraOffset.Y)
@@ -2183,6 +2195,7 @@ func (project *Project) GUI() {
 			}
 
 			programSettings.ScrollwheelSensitivity = project.ScrollwheelSensitivity.Number()
+			programSettings.SmoothPanning = project.SmoothPanning.Checked
 			programSettings.FontSize = project.FontSize.Number()
 			programSettings.GUIFontSizeMultiplier = project.GUIFontSizeMultiplier.ChoiceAsString()
 			programSettings.CustomFontPath = project.CustomFontPath.Text()
@@ -2823,6 +2836,7 @@ func (project *Project) OpenSettings() {
 	project.TargetFPS.SetNumber(programSettings.TargetFPS)
 	project.UnfocusedFPS.SetNumber(programSettings.UnfocusedFPS)
 	project.ScrollwheelSensitivity.SetNumber(programSettings.ScrollwheelSensitivity)
+	project.SmoothPanning.Checked = programSettings.SmoothPanning
 	project.BorderlessWindow.Checked = programSettings.BorderlessWindow
 	project.TransparentBackground.Checked = programSettings.TransparentBackground
 	project.CustomFontPath.SetText(programSettings.CustomFontPath)

@@ -31,6 +31,7 @@ type ProgramSettings struct {
 	WindowPosition            rl.Rectangle
 	SaveWindowPosition        bool
 	ScrollwheelSensitivity    int
+	SmoothPanning             bool
 	CustomFontPath            string
 	FontSize                  int
 	GUIFontSizeMultiplier     string
@@ -44,6 +45,7 @@ func NewProgramSettings() ProgramSettings {
 		UnfocusedFPS:           10,
 		WindowPosition:         rl.NewRectangle(-1, -1, 0, 0),
 		SaveWindowPosition:     true,
+		SmoothPanning:          true,
 		Keybindings:            NewKeybindings(),
 		FontSize:               15,
 		GUIFontSizeMultiplier:  GUI_FONT_SIZE_200,
