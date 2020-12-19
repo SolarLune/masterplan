@@ -1110,7 +1110,7 @@ func (task *Task) Draw() {
 
 	if !task.Is(TASK_TYPE_IMAGE, TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD) {
 
-		taskDisplaySize = rl.MeasureTextEx(font, name, fontSize, spacing)
+		taskDisplaySize = rl.MeasureTextEx(font, name, float32(programSettings.FontSize), spacing)
 
 		if taskDisplaySize.X > 0 {
 			taskDisplaySize.X += 4
@@ -2295,13 +2295,13 @@ func (task *Task) ScanTextForURLs(text string) {
 			if validRune {
 				currentURLButton.Text += string(letter)
 			}
-			wordStart.X += rl.MeasureTextEx(font, string(letter), fontSize, spacing).X + 1
+			wordStart.X += rl.MeasureTextEx(font, string(letter), float32(programSettings.FontSize), spacing).X + 1
 		}
 
 		if letter == ' ' || letter == '\n' || i == len(text)-1 {
 
 			if len(currentURLButton.Text) > 0 {
-				currentURLButton.Size.X = rl.MeasureTextEx(font, currentURLButton.Text, fontSize, spacing).X
+				currentURLButton.Size.X = rl.MeasureTextEx(font, currentURLButton.Text, float32(programSettings.FontSize), spacing).X
 				currentURLButton.Size.Y, _ = TextHeight("A", false)
 
 				urlText := strings.Trim(strings.Trim(strings.TrimSpace(currentURLButton.Text), "."), ":")
@@ -2322,7 +2322,7 @@ func (task *Task) ScanTextForURLs(text string) {
 				wordStart.Y += height
 				wordStart.X = 0
 			} else if letter == ' ' {
-				wordStart.X += rl.MeasureTextEx(font, " ", fontSize, spacing).X + 1
+				wordStart.X += rl.MeasureTextEx(font, " ", float32(programSettings.FontSize), spacing).X + 1
 			}
 
 			currentURLButton = URLButton{}

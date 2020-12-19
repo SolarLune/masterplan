@@ -4,6 +4,8 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -208,4 +210,26 @@ func ColorAdd(color rl.Color, value int32) rl.Color {
 	}
 
 	return color
+}
+
+func GUIFontSize() float32 {
+	guiFontSizeString := strings.Split(programSettings.GUIFontSizeMultiplier, "%")[0]
+	i, _ := strconv.Atoi(guiFontSizeString)
+	return float32(programSettings.FontSize) * (float32(i) / 100)
+}
+
+func ReloadFonts() {
+
+	fontPath := GetPath("assets", "excel.ttf")
+
+	if programSettings.CustomFontPath != "" && FileExists(programSettings.CustomFontPath) {
+		fontPath = programSettings.CustomFontPath
+	}
+
+	if font.BaseSize > 0 {
+		rl.UnloadFont(font)
+	}
+
+	font = rl.LoadFontEx(fontPath, int32(30), nil, 256)
+
 }

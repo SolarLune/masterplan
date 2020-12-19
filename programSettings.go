@@ -30,8 +30,11 @@ type ProgramSettings struct {
 	BorderlessWindow          bool
 	WindowPosition            rl.Rectangle
 	SaveWindowPosition        bool
-	Keybindings               *Keybindings
 	ScrollwheelSensitivity    int
+	CustomFontPath            string
+	FontSize                  int
+	GUIFontSizeMultiplier     string
+	Keybindings               *Keybindings
 }
 
 func NewProgramSettings() ProgramSettings {
@@ -42,6 +45,8 @@ func NewProgramSettings() ProgramSettings {
 		WindowPosition:         rl.NewRectangle(-1, -1, 0, 0),
 		SaveWindowPosition:     true,
 		Keybindings:            NewKeybindings(),
+		FontSize:               15,
+		GUIFontSizeMultiplier:  GUI_FONT_SIZE_200,
 		ScrollwheelSensitivity: 1,
 	}
 	return ps

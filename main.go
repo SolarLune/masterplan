@@ -26,12 +26,9 @@ var drawFPS = false
 var softwareVersion, _ = semver.Make("0.6.0")
 var takeScreenshot = false
 
-var fontSize = float32(15)
-var guiFontSize = float32(30)
 var spacing = float32(1)
 var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
 var font rl.Font
-var guiFont rl.Font
 var windowTitle = "MasterPlan v" + softwareVersion.String()
 var deltaTime = float32(0)
 var quit = false
@@ -130,8 +127,7 @@ func main() {
 		rl.SetWindowSize(int(programSettings.WindowPosition.Width), int(programSettings.WindowPosition.Height))
 	}
 
-	font = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(fontSize), nil, 256)
-	guiFont = rl.LoadFontEx(GetPath("assets", "excel.ttf"), int32(guiFontSize), nil, 256)
+	ReloadFonts()
 
 	currentProject = NewProject()
 
@@ -273,7 +269,7 @@ func main() {
 					color.A = uint8(alpha)
 					bgColor.A = color.A
 
-					textSize := rl.MeasureTextEx(guiFont, text, guiFontSize, 1)
+					textSize := rl.MeasureTextEx(font, text, float32(GUIFontSize()), 1)
 					lineHeight, _ := TextHeight(text, true)
 					textPos := rl.Vector2{8, y}
 					rectPos := textPos
@@ -319,7 +315,7 @@ func main() {
 			currentProject.GUI()
 
 			if drawFPS {
-				rl.DrawTextEx(guiFont, fmt.Sprintf("%.2f", fpsDisplayValue), rl.Vector2{0, 0}, 60, spacing, rl.Red)
+				rl.DrawTextEx(font, fmt.Sprintf("%.2f", fpsDisplayValue), rl.Vector2{0, 0}, 60, spacing, rl.Red)
 			}
 
 		}

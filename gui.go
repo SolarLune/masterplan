@@ -149,9 +149,9 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 	rl.DrawRectangleRec(rect, insideColor)
 	rl.DrawRectangleLinesEx(rect, 1, outlineColor)
 
-	textWidth := rl.MeasureTextEx(guiFont, text, guiFontSize, spacing)
+	textWidth := rl.MeasureTextEx(font, text, GUIFontSize(), spacing)
 	if worldGUI {
-		textWidth = rl.MeasureTextEx(font, text, fontSize, spacing)
+		textWidth = rl.MeasureTextEx(font, text, float32(programSettings.FontSize), spacing)
 	}
 	pos := rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2 + (iconSrcRec.Width / 2), rect.Y + (rect.Height / 2) - textWidth.Y/2}
 	pos.X = float32(math.Round(float64(pos.X)))
@@ -228,6 +228,7 @@ type ButtonGroup struct {
 	Options       []string
 	RowCount      int
 	CurrentChoice int
+	Changed       bool
 }
 
 // NewButtonGroup creates a button group. The X and Y is the position of the group, while the width is how wide the group is. Height is how tall the group is,
@@ -243,6 +244,8 @@ func NewButtonGroup(x, y, w, h float32, rowCount int, options ...string) *Button
 
 func (bg *ButtonGroup) Update() {
 
+	bg.Changed = false
+
 	r := bg.Rect
 	r.Width /= float32(len(bg.Options) / bg.RowCount)
 	r.Height /= float32(bg.RowCount)
@@ -252,6 +255,9 @@ func (bg *ButtonGroup) Update() {
 	for i, option := range bg.Options {
 
 		if ImmediateButton(r, option, i == bg.CurrentChoice) {
+			if bg.CurrentChoice != i {
+				bg.Changed = true
+			}
 			bg.CurrentChoice = i
 		}
 
@@ -492,7 +498,7 @@ func (panel *Panel) Update() {
 		totalScroll := float32(panel.RenderTexture.Texture.Height) - panel.OriginalHeight
 		chunk := float32(0)
 		if totalScroll > 0 {
-			chunk = 32.0 / totalScroll
+			chunk = 128.0 / totalScroll
 		}
 
 		mouseWheel := -float32(rl.GetMouseWheelMove())
@@ -913,7 +919,7 @@ func (dropdown *DropdownMenu) Update() {
 	rl.DrawRectangleRec(dropdown.Rect, insideColor)
 	rl.DrawRectangleLinesEx(dropdown.Rect, 1, outlineColor)
 
-	textWidth := rl.MeasureTextEx(guiFont, dropdown.Name, guiFontSize, spacing)
+	textWidth := rl.MeasureTextEx(font, dropdown.Name, GUIFontSize(), spacing)
 	ddPos := rl.Vector2{dropdown.Rect.X + (dropdown.Rect.Width / 2) - textWidth.X/2, dropdown.Rect.Y + (dropdown.Rect.Height / 2) - textWidth.Y/2}
 	ddPos.X = float32(math.Round(float64(ddPos.X)))
 	ddPos.Y = float32(math.Round(float64(ddPos.Y)))
@@ -932,7 +938,7 @@ func (dropdown *DropdownMenu) Update() {
 			txt := fmt.Sprintf("%d: %s", i+1, option)
 
 			rect := dropdown.Rect
-			textWidth = rl.MeasureTextEx(guiFont, txt, guiFontSize, spacing)
+			textWidth = rl.MeasureTextEx(font, txt, GUIFontSize(), spacing)
 			rect.X += rect.Width
 			rect.Width = textWidth.X + 16
 			rect.Y += y
@@ -1248,8 +1254,19 @@ func (numberSpinner *NumberSpinner) SetRectangle(rect rl.Rectangle) {
 }
 
 func (numberSpinner *NumberSpinner) Number() int {
+
 	num, _ := strconv.Atoi(numberSpinner.Textbox.Text())
+
+	if num < numberSpinner.Minimum {
+		return numberSpinner.Minimum
+	}
+
+	if num > numberSpinner.Maximum {
+		return numberSpinner.Maximum
+	}
+
 	return num
+
 }
 
 func (numberSpinner *NumberSpinner) SetNumber(number int) {
@@ -1275,6 +1292,7 @@ type Textbox struct {
 	AllowAlphaCharacters bool
 	MaxCharactersPerLine int
 	Changed              bool
+	ClickedAway          bool // If the value in the textbox was edited and then clicked away afterwards
 	HorizontalAlignment  int
 	VerticalAlignment    int
 	SelectedRange        [2]int
@@ -1296,7 +1314,7 @@ func NewTextbox(x, y, w, h float32) *Textbox {
 		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64, AllowAlphaCharacters: true,
 		SelectedRange: [2]int{-1, -1}}
 
-	textbox.lineHeight, _ = TextHeight(textbox.Text(), true)
+	textbox.lineHeight, _ = TextHeight(" ", true)
 
 	return textbox
 }
@@ -1336,7 +1354,7 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 	closestCharIndex := -1
 	closestCharDiff := float32(-1)
 	for i, char := range line {
-		x += rl.MeasureTextEx(guiFont, string(char), guiFontSize, spacing).X + spacing
+		x += rl.MeasureTextEx(font, string(char), GUIFontSize(), spacing).X + spacing
 		diff := math.Abs(float64(x - point.X))
 		if closestCharDiff < 0 || diff < float64(closestCharDiff) {
 			closestCharIndex = i
@@ -1462,7 +1480,7 @@ func (textbox *Textbox) CharacterToPoint(position int) rl.Vector2 {
 			y += textbox.lineHeight
 			x = startX
 		}
-		x += rl.MeasureTextEx(guiFont, string(char), guiFontSize, spacing).X + spacing
+		x += rl.MeasureTextEx(font, string(char), GUIFontSize(), spacing).X + spacing
 	}
 
 	return rl.Vector2{x, y}
@@ -1477,7 +1495,7 @@ func (textbox *Textbox) CharacterToRect(position int) rl.Rectangle {
 
 		pos := textbox.CharacterToPoint(position)
 
-		letterSize := rl.MeasureTextEx(guiFont, string(textbox.text[position]), guiFontSize, spacing)
+		letterSize := rl.MeasureTextEx(font, string(textbox.text[position]), GUIFontSize(), spacing)
 
 		rect.X = pos.X
 		rect.Y = pos.Y
@@ -1510,9 +1528,13 @@ func (textbox *Textbox) FindLastCharBeforeCaret(char rune) int {
 
 func (textbox *Textbox) Update() {
 
+	// Because the text can change
+	textbox.lineHeight, _ = TextHeight(" ", true)
+
 	hMargin := float32(2)
 	vMargin := float32(2)
 	textbox.Changed = false
+	textbox.ClickedAway = false
 
 	pos := rl.Vector2{}
 	if worldGUI {
@@ -1526,6 +1548,7 @@ func (textbox *Textbox) Update() {
 			textbox.Focused = true
 		} else {
 			textbox.Focused = false
+			textbox.ClickedAway = true
 		}
 	}
 
@@ -1584,7 +1607,7 @@ func (textbox *Textbox) Update() {
 		}
 
 		mousePos := pos
-		mousePos.X += hMargin + (rl.MeasureTextEx(guiFont, "A", guiFontSize, spacing).X / 2)
+		mousePos.X += hMargin + (rl.MeasureTextEx(font, "A", GUIFontSize(), spacing).X / 2)
 		mousePos.Y += hMargin - (textbox.lineHeight / 2)
 
 		if MousePressed(rl.MouseLeftButton) {
@@ -1801,7 +1824,7 @@ func (textbox *Textbox) Update() {
 
 	txt := textbox.Text()
 
-	measure := rl.MeasureTextEx(guiFont, txt, guiFontSize, spacing)
+	measure := rl.MeasureTextEx(font, txt, GUIFontSize(), spacing)
 
 	boxHeight, _ := TextHeight(txt, true)
 
@@ -1963,9 +1986,9 @@ func TextHeight(text string, usingGuiFont bool) (float32, int) {
 	nCount := strings.Count(text, "\n") + 1
 	totalHeight := float32(0)
 	if usingGuiFont {
-		totalHeight = float32(nCount) * lineSpacing * guiFontSize
+		totalHeight = float32(nCount) * lineSpacing * GUIFontSize()
 	} else {
-		totalHeight = float32(nCount) * lineSpacing * fontSize
+		totalHeight = float32(nCount) * lineSpacing * float32(programSettings.FontSize)
 	}
 	return totalHeight, nCount
 
@@ -1974,7 +1997,7 @@ func TextHeight(text string, usingGuiFont bool) (float32, int) {
 func GUITextWidth(text string) float32 {
 	w := float32(0)
 	for _, c := range text {
-		w += rl.MeasureTextEx(guiFont, string(c), guiFontSize, spacing).X + spacing
+		w += rl.MeasureTextEx(font, string(c), GUIFontSize(), spacing).X + spacing
 	}
 	return w
 }
@@ -1986,12 +2009,12 @@ func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bo
 	}
 	pos.Y -= 2 // Text is a bit low
 
-	size := fontSize
+	size := float32(programSettings.FontSize)
 	f := font
 
 	if guiMode {
-		size = guiFontSize
-		f = guiFont
+		size = float32(GUIFontSize())
+		f = font
 	}
 
 	height, lineCount := TextHeight(text, guiMode)

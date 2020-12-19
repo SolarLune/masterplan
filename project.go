@@ -51,6 +51,16 @@ const (
 )
 
 const (
+	GUI_FONT_SIZE_100 = "100%"
+	GUI_FONT_SIZE_150 = "150%"
+	GUI_FONT_SIZE_200 = "200%"
+	GUI_FONT_SIZE_250 = "250%"
+	GUI_FONT_SIZE_300 = "300%"
+	GUI_FONT_SIZE_350 = "350%"
+	GUI_FONT_SIZE_400 = "400%"
+)
+
+const (
 
 	// Task messages
 
@@ -128,6 +138,10 @@ type Project struct {
 	GraphicalTasksTransparent   *Checkbox
 	DeadlineAnimation           *ButtonGroup
 	ScrollwheelSensitivity      *NumberSpinner
+	CustomFontPath              *Textbox
+	CustomFontPathBrowseButton  *Button
+	FontSize                    *NumberSpinner
+	GUIFontSizeMultiplier       *ButtonGroup
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -229,6 +243,10 @@ func NewProject() *Project {
 		DeadlineAnimation:           NewButtonGroup(0, 0, 850, 32, 1, "Always Animate", "Only Late Tasks", "Never Animate", "No Icon", "No Pattern"),
 		ScreenshotsPath:             NewTextbox(0, 0, 400, 32),
 		ScreenshotsPathBrowseButton: NewButton(0, 0, 128, 24, "Browse", false),
+		CustomFontPath:              NewTextbox(0, 0, 400, 32),
+		CustomFontPathBrowseButton:  NewButton(0, 0, 128, 24, "Browse", false),
+		FontSize:                    NewNumberSpinner(0, 0, 128, 40),
+		GUIFontSizeMultiplier:       NewButtonGroup(0, 0, 850, 32, 1, GUI_FONT_SIZE_100, GUI_FONT_SIZE_150, GUI_FONT_SIZE_200, GUI_FONT_SIZE_250, GUI_FONT_SIZE_300, GUI_FONT_SIZE_350, GUI_FONT_SIZE_400),
 		// Program settings GUI elements
 		AutoLoadLastProject:    NewCheckbox(0, 0, 32, 32),
 		AutoReloadThemes:       NewCheckbox(0, 0, 32, 32),
@@ -272,7 +290,7 @@ func NewProject() *Project {
 
 	// General settings
 
-	column.DefaultVerticalSpacing = -1
+	column.DefaultVerticalSpacing = 24
 
 	row = column.Row()
 	row.Item(NewLabel("Color Theme:"), SETTINGS_GENERAL)
@@ -309,8 +327,6 @@ func NewProject() *Project {
 	row.Item(project.ScreenshotsPathBrowseButton, SETTINGS_GENERAL)
 
 	// TASKS
-
-	column.DefaultVerticalSpacing = 24
 
 	row = column.Row()
 	row.Item(NewLabel("Task Transparency:"), SETTINGS_TASKS)
@@ -381,6 +397,8 @@ func NewProject() *Project {
 
 	// Keyboard
 
+	column.DefaultVerticalSpacing = 24
+
 	row = column.Row()
 	row.Item(NewLabel("Click a button for a shortcut and enter a key sequence to reassign it."), SETTINGS_KEYBOARD)
 	row.VerticalSpacing = 16
@@ -422,7 +440,7 @@ func NewProject() *Project {
 	row.Item(NewLabel("Target FPS:"), SETTINGS_GLOBAL)
 	row.Item(project.TargetFPS, SETTINGS_GLOBAL)
 
-	row.Item(NewLabel("Target FPS When Unfocused:"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Unfocused FPS:"), SETTINGS_GLOBAL)
 	row.Item(project.UnfocusedFPS, SETTINGS_GLOBAL)
 
 	row = column.Row()
@@ -432,6 +450,9 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Automatically reload changed\nlocal resources (experimental!):"), SETTINGS_GLOBAL)
 	row.Item(project.AutoReloadResources, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel(""), SETTINGS_GLOBAL)
 
 	row = column.Row()
 	label := NewLabel("Window alterations (requires restart)")
@@ -445,6 +466,23 @@ func NewProject() *Project {
 	row.Item(NewLabel("Transparent Window:"), SETTINGS_GLOBAL)
 	row.Item(project.TransparentBackground, SETTINGS_GLOBAL)
 
+	row = column.Row()
+	row.Item(NewLabel(""), SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Path to custom font\n(If blank, the default font is used):"), SETTINGS_GLOBAL)
+	row = column.Row()
+	row.Item(project.CustomFontPath, SETTINGS_GLOBAL)
+	row.Item(project.CustomFontPathBrowseButton, SETTINGS_GLOBAL)
+	row = column.Row()
+	row.Item(NewLabel("Text size: "), SETTINGS_GLOBAL)
+	row.Item(project.FontSize, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("GUI text size multiplier percentage: "), SETTINGS_GLOBAL)
+	row = column.Row()
+	row.Item(project.GUIFontSizeMultiplier, SETTINGS_GLOBAL)
+
 	// About
 
 	if demoMode == "" {
@@ -453,21 +491,15 @@ func NewProject() *Project {
 		row.Item(NewLabel(`"Hello! Thank you for purchasing and using MasterPlan! I truly do appreciate`), SETTINGS_ABOUT)
 
 		row = column.Row()
-		row.Item(NewLabel(`your support, and hope MasterPlan becomes a true aid in your creative process."`), SETTINGS_ABOUT)
+		row.Item(NewLabel(`your support, and hope MasterPlan becomes a true aid in your creative process.`), SETTINGS_ABOUT)
 
 		row = column.Row()
-		row.Item(NewLabel(""), SETTINGS_ABOUT)
-
-		row = column.Row()
-		row.Item(NewLabel(`"While it is still in development, please feel free to talk about MasterPlan with others,`), SETTINGS_ABOUT)
+		row.Item(NewLabel(`While it is still in development, please feel free to talk about MasterPlan with others,`), SETTINGS_ABOUT)
 
 		row = column.Row()
 		row.Item(NewLabel(`and share your feedback with me as you use it. Thank you, again!" ~ SolarLune`), SETTINGS_ABOUT)
 
 	} else {
-
-		row = column.Row()
-		row.Item(NewLabel(""), SETTINGS_ABOUT)
 
 		row = column.Row()
 		row.Item(NewLabel(`"Hello! Thank you for trying out MasterPlan! I truly do appreciate it.`), SETTINGS_ABOUT)
@@ -480,9 +512,6 @@ func NewProject() *Project {
 
 		row = column.Row()
 		row.Item(NewLabel(`purchasing it. You can click the below button to head to the store page."`), SETTINGS_ABOUT)
-
-		row = column.Row()
-		row.Item(NewLabel(""), SETTINGS_ABOUT)
 
 		row = column.Row()
 		row.Item(NewLabel(`"Thank you!" ~ SolarLune`), SETTINGS_ABOUT)
@@ -545,6 +574,8 @@ func NewProject() *Project {
 	project.CompleteTasksGlow.Checked = true
 	project.SelectedTasksGlow.Checked = true
 
+	project.FontSize.Minimum = 5
+
 	project.TargetFPS.SetNumber(60)
 	project.TargetFPS.Minimum = 10
 
@@ -553,7 +584,7 @@ func NewProject() *Project {
 
 	project.ScrollwheelSensitivity.SetNumber(1)
 	project.ScrollwheelSensitivity.Minimum = 1
-	project.ScrollwheelSensitivity.Maximum = 5
+	project.ScrollwheelSensitivity.Maximum = 10
 
 	project.AutomaticBackupInterval.SetNumber(15) // Seems sensible to make new projects have this as a default.
 	project.AutomaticBackupInterval.Minimum = 0
@@ -2145,7 +2176,22 @@ func (project *Project) GUI() {
 				}
 			}
 
+			if project.CustomFontPathBrowseButton.Clicked {
+				if customFontPath, err := zenity.SelectFile(zenity.FileFilters{zenity.FileFilter{Name: "Font (*.ttf, *.otf)", Patterns: []string{"*.ttf", "*.otf"}}}); err == nil {
+					project.CustomFontPath.SetText(customFontPath)
+				}
+			}
+
 			programSettings.ScrollwheelSensitivity = project.ScrollwheelSensitivity.Number()
+			programSettings.FontSize = project.FontSize.Number()
+			programSettings.GUIFontSizeMultiplier = project.GUIFontSizeMultiplier.ChoiceAsString()
+			programSettings.CustomFontPath = project.CustomFontPath.Text()
+
+			if project.FontSize.Changed ||
+				project.CustomFontPath.Changed ||
+				project.GUIFontSizeMultiplier.Changed {
+				ReloadFonts()
+			}
 
 			if project.SettingsPanel.Exited {
 
@@ -2240,7 +2286,7 @@ func (project *Project) GUI() {
 			DrawGUIText(rl.Vector2{6, project.StatusBar.Y - 2}, "%d / %d Tasks completed (%d%%)", completionCount, taskCount, percentage)
 
 			todayText := time.Now().Format("Monday, January 2, 2006, 15:04:05")
-			textLength := rl.MeasureTextEx(guiFont, todayText, guiFontSize, spacing)
+			textLength := rl.MeasureTextEx(font, todayText, float32(GUIFontSize()), spacing)
 			pos := rl.Vector2{float32(rl.GetScreenWidth())/2 - textLength.X/2, project.StatusBar.Y - 2}
 			pos.X = float32(int(pos.X))
 			pos.Y = float32(int(pos.Y))
@@ -2275,7 +2321,7 @@ func (project *Project) GUI() {
 				if len(project.SearchedTasks) > 0 {
 					searchCount = fmt.Sprintf("%d / %d", project.FocusedSearchTask+1, len(project.SearchedTasks))
 				}
-				textMeasure := rl.MeasureTextEx(guiFont, searchCount, guiFontSize, spacing)
+				textMeasure := rl.MeasureTextEx(font, searchCount, float32(GUIFontSize()), spacing)
 				textMeasure.X = float32(int(textMeasure.X / 2))
 				textMeasure.Y = float32(int(textMeasure.Y / 2))
 
@@ -2779,4 +2825,7 @@ func (project *Project) OpenSettings() {
 	project.ScrollwheelSensitivity.SetNumber(programSettings.ScrollwheelSensitivity)
 	project.BorderlessWindow.Checked = programSettings.BorderlessWindow
 	project.TransparentBackground.Checked = programSettings.TransparentBackground
+	project.CustomFontPath.SetText(programSettings.CustomFontPath)
+	project.FontSize.SetNumber(programSettings.FontSize)
+	project.GUIFontSizeMultiplier.SetChoice(programSettings.GUIFontSizeMultiplier)
 }
