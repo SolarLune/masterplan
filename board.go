@@ -394,11 +394,11 @@ func (board *Board) PasteContent() {
 
 	if clipboardData != "" {
 
-		res, _ := board.Project.LoadResource(clipboardData) // Attempt to load the resource
-
 		board.Project.LogOn = false
-		task := board.CreateNewTask()
+		res, _ := board.Project.LoadResource(clipboardData) // Attempt to load the resource
 		board.Project.LogOn = true
+
+		task := board.CreateNewTask()
 
 		task.TaskType.CurrentChoice = TASK_TYPE_NOTE
 

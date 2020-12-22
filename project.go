@@ -133,6 +133,7 @@ type Project struct {
 	ScreenshotsPath             *Textbox
 	ScreenshotsPathBrowseButton *Button
 	RebindingButtons            []*Button
+	DefaultRebindingButtons     []*Button
 	RebindingAction             *Button
 	RebindingHeldKeys           []int32
 	GraphicalTasksTransparent   *Checkbox
@@ -202,7 +203,7 @@ func NewProject() *Project {
 	project := &Project{
 		FilePath:           "",
 		GridSize:           16,
-		ZoomLevel:          -99,
+		ZoomLevel:          3,
 		CameraPan:          rl.Vector2{0, 0},
 		Searchbar:          searchBar,
 		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
@@ -236,6 +237,7 @@ func NewProject() *Project {
 		AlwaysShowURLButtons:        NewCheckbox(0, 0, 32, 32),
 		SettingsSection:             NewButtonGroup(0, 0, 700, 32, 1, "General", "Tasks", "Audio", "Global", "Shortcuts", "About"),
 		RebindingButtons:            []*Button{},
+		DefaultRebindingButtons:     []*Button{},
 		RebindingHeldKeys:           []int32{},
 		SoundVolume:                 NewNumberSpinner(0, 0, 128, 40),
 		IncompleteTasksGlow:         NewCheckbox(0, 0, 32, 32),
@@ -410,15 +412,22 @@ func NewProject() *Project {
 	row.Item(NewLabel("Click a button for a shortcut and enter a key sequence to reassign it."), SETTINGS_KEYBOARD)
 	row.VerticalSpacing = 16
 	row = column.Row()
-	row.Item(NewLabel("ESC cancels the assignment."), SETTINGS_KEYBOARD)
+	row.Item(NewLabel("Left click away to cancel the assignment."), SETTINGS_KEYBOARD)
 	row.VerticalSpacing = 16
 
 	for _, shortcutName := range programSettings.Keybindings.creationOrder {
+
 		row = column.Row()
-		row.Item(NewLabel(shortcutName), SETTINGS_KEYBOARD)
+		row.Item(NewLabel(shortcutName), SETTINGS_KEYBOARD).Weight = 0.425
+
 		button := NewButton(0, 0, 300, 32, programSettings.Keybindings.Shortcuts[shortcutName].String(), false)
 		project.RebindingButtons = append(project.RebindingButtons, button)
-		row.Item(button, SETTINGS_KEYBOARD)
+		row.Item(button, SETTINGS_KEYBOARD).Weight = 0.425
+
+		defaultButton := NewButton(0, 0, 96, 32, "Default", false)
+		project.DefaultRebindingButtons = append(project.DefaultRebindingButtons, defaultButton)
+		row.Item(defaultButton, SETTINGS_KEYBOARD).Weight = 0.15
+
 	}
 
 	// Global
@@ -1014,11 +1023,7 @@ func (project *Project) HandleCamera() {
 		}
 	}
 
-	zoomLevels := []float32{0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 10}
-
-	if project.ZoomLevel == -99 {
-		project.ZoomLevel = 2
-	}
+	zoomLevels := []float32{0.1, 0.25, 0.5, 1, 2, 3, 4, 6, 8, 10}
 
 	if project.ZoomLevel >= len(zoomLevels) {
 		project.ZoomLevel = len(zoomLevels) - 1
@@ -1534,10 +1539,14 @@ func (project *Project) Shortcuts() {
 						project.BoardIndex = 9
 						project.Log("Switched to Board: %s.", project.CurrentBoard().Name)
 					}
-				} else if keybindings.On(KBZoomLevel50) {
+				} else if keybindings.On(KBZoomLevel10) {
 					project.ZoomLevel = 0
-				} else if keybindings.On(KBZoomLevel100) {
+				} else if keybindings.On(KBZoomLevel25) {
+					project.ZoomLevel = 1
+				} else if keybindings.On(KBZoomLevel50) {
 					project.ZoomLevel = 2
+				} else if keybindings.On(KBZoomLevel100) {
+					project.ZoomLevel = 3
 				} else if keybindings.On(KBZoomLevel200) {
 					project.ZoomLevel = 4
 				} else if keybindings.On(KBZoomLevel400) {
@@ -2138,31 +2147,35 @@ func (project *Project) GUI() {
 			if project.SettingsSection.CurrentChoice == SETTINGS_KEYBOARD {
 
 				for i, shortcutName := range programSettings.Keybindings.creationOrder {
-					button := project.RebindingButtons[i]
+					shortcutButton := project.RebindingButtons[i]
+					defaultButton := project.DefaultRebindingButtons[i]
+					shortcut := programSettings.Keybindings.Shortcuts[shortcutName]
 
-					if button.Clicked {
-						project.RebindingAction = button
+					if shortcutButton.Clicked {
+						project.RebindingAction = shortcutButton
 					}
 
-					if project.RebindingAction == button {
+					if project.RebindingAction == shortcutButton {
 
 						project.RebindingAction.Disabled = true
 						prioritizedGUIElement = project.RebindingAction
 
 						assignKeys := false
 
+						if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+							project.RebindingAction.Disabled = false
+							project.RebindingAction = nil
+							prioritizedGUIElement = nil
+						}
+
 						for keyCode := range keyNames {
+
 							if rl.IsKeyPressed(keyCode) {
-								if keyCode == rl.KeyEscape {
-									project.RebindingAction.Disabled = false
-									project.RebindingAction = nil
-									prioritizedGUIElement = nil
-								} else {
-									project.RebindingHeldKeys = append(project.RebindingHeldKeys, keyCode)
-								}
-							} else if rl.IsKeyReleased(keyCode) && keyCode != rl.KeyEscape && len(project.RebindingHeldKeys) > 0 {
+								project.RebindingHeldKeys = append(project.RebindingHeldKeys, keyCode)
+							} else if rl.IsKeyReleased(keyCode) && len(project.RebindingHeldKeys) > 0 {
 								assignKeys = true
 							}
+
 						}
 
 						if assignKeys {
@@ -2184,7 +2197,13 @@ func (project *Project) GUI() {
 
 					}
 
-					button.Text = programSettings.Keybindings.Shortcuts[shortcutName].String()
+					defaultButton.Disabled = shortcut.IsDefault()
+
+					if defaultButton.Clicked {
+						shortcut.ResetToDefault()
+					}
+
+					shortcutButton.Text = programSettings.Keybindings.Shortcuts[shortcutName].String()
 
 				}
 

@@ -120,6 +120,8 @@ var keyNames = map[int32]string{
 
 const (
 	// Keyboard Constants
+	KBZoomLevel10             = "Zoom Level 10%"
+	KBZoomLevel25             = "Zoom Level 25%"
 	KBZoomLevel50             = "Zoom Level 50%"
 	KBZoomLevel100            = "Zoom Level 100%"
 	KBZoomLevel200            = "Zoom Level 200%"
@@ -200,22 +202,34 @@ func KeyCodeFromKeyName(keyName string) int32 {
 }
 
 type Shortcut struct {
-	Name        string
-	Enabled     bool
-	Key         int32
-	Modifiers   []int32
-	triggerMode int
-	Hold        time.Time
-	Repeat      time.Time
+	Name             string
+	Enabled          bool
+	Key              int32
+	Modifiers        []int32
+	triggerMode      int
+	Hold             time.Time
+	Repeat           time.Time
+	DefaultKey       int32
+	DefaultModifiers []int32
 }
 
 func NewShortcut(name string, keycode int32, modifiers ...int32) *Shortcut {
-	return &Shortcut{
-		Name:      name,
-		Enabled:   true,
-		Key:       keycode,
-		Modifiers: modifiers,
+
+	shortcut := &Shortcut{
+		Name:       name,
+		Enabled:    true,
+		Key:        keycode,
+		Modifiers:  modifiers,
+		DefaultKey: keycode,
 	}
+
+	shortcut.DefaultModifiers = []int32{}
+	for _, mod := range modifiers {
+		shortcut.DefaultModifiers = append(shortcut.DefaultModifiers, mod)
+	}
+
+	return shortcut
+
 }
 
 func (shortcut *Shortcut) String() string {
@@ -262,6 +276,35 @@ func (shortcut *Shortcut) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (shortcut *Shortcut) IsDefault() bool {
+
+	for _, mod := range shortcut.Modifiers {
+		contains := false
+		for _, mod2 := range shortcut.DefaultModifiers {
+			if mod == mod2 {
+				contains = true
+				break
+			}
+		}
+		if !contains {
+			return false
+		}
+	}
+
+	return shortcut.Key == shortcut.DefaultKey
+}
+
+func (shortcut *Shortcut) ResetToDefault() {
+
+	mods := []int32{}
+	for _, mod := range shortcut.DefaultModifiers {
+		mods = append(mods, mod)
+	}
+	shortcut.Key = shortcut.DefaultKey
+	shortcut.Modifiers = mods
+
+}
+
 type Keybindings struct {
 	creationOrder            []string
 	Shortcuts                map[string]*Shortcut
@@ -285,11 +328,13 @@ func (kb *Keybindings) Define(bindingName string, keyCode int32, modifiers ...in
 // Default keybinding definitions
 func (kb *Keybindings) Default() {
 
-	kb.Define(KBZoomLevel50, rl.KeyOne)
-	kb.Define(KBZoomLevel100, rl.KeyTwo)
-	kb.Define(KBZoomLevel200, rl.KeyThree)
-	kb.Define(KBZoomLevel400, rl.KeyFour)
-	kb.Define(KBZoomLevel1000, rl.KeyFive)
+	kb.Define(KBZoomLevel10, rl.KeyZero)
+	kb.Define(KBZoomLevel25, rl.KeyOne)
+	kb.Define(KBZoomLevel50, rl.KeyTwo)
+	kb.Define(KBZoomLevel100, rl.KeyThree)
+	kb.Define(KBZoomLevel200, rl.KeyFour)
+	kb.Define(KBZoomLevel400, rl.KeyFive)
+	kb.Define(KBZoomLevel1000, rl.KeySix)
 
 	kb.Define(KBZoomIn, rl.KeyEqual).triggerMode = TriggerModeRepeating
 	kb.Define(KBZoomOut, rl.KeyMinus).triggerMode = TriggerModeRepeating

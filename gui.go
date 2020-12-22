@@ -305,6 +305,7 @@ type PanelItem struct {
 	HorizontalAlignment int
 	Modes               []int
 	Name                string
+	Weight              float32
 }
 
 func NewPanelItem(element GUIElement, modes ...int) *PanelItem {
@@ -570,9 +571,15 @@ func (panel *Panel) Update() {
 
 				for _, item := range activeItems {
 
+					width := w
+
+					if item.Weight > 0 {
+						width = columnWidth * item.Weight
+					}
+
 					rect := item.Element.Rectangle()
 
-					rect.X = x + (w / 2)
+					rect.X = x + (width / 2)
 
 					if item.HorizontalAlignment == ALIGN_CENTER {
 						rect.X -= rect.Width / 2
@@ -594,7 +601,7 @@ func (panel *Panel) Update() {
 
 					item.Element.SetRectangle(rect)
 
-					x += w
+					x += width
 
 					lastHeight = rect.Height
 
@@ -1996,7 +2003,7 @@ func (textbox *Textbox) Draw() {
 func (textbox *Textbox) RedrawText() {
 
 	// if textbox.Buffer.Texture.Height > 0 {
-		// For now, this doesn't work as rl.UnloadRenderTexture() isn't unloading the texture properly
+	// For now, this doesn't work as rl.UnloadRenderTexture() isn't unloading the texture properly
 	// 	rl.UnloadRenderTexture(textbox.Buffer)
 	// }
 
