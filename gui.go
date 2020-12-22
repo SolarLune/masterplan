@@ -197,7 +197,9 @@ type Button struct {
 	Clicked      bool
 }
 
-func (button *Button) Update() {
+func (button *Button) Update() {}
+
+func (button *Button) Draw() {
 	button.Clicked = ImmediateIconButton(button.Rect, button.IconSrcRec, button.IconRotation, button.Text, button.Disabled)
 }
 
@@ -242,7 +244,9 @@ func NewButtonGroup(x, y, w, h float32, rowCount int, options ...string) *Button
 	}
 }
 
-func (bg *ButtonGroup) Update() {
+func (bg *ButtonGroup) Update() {}
+
+func (bg *ButtonGroup) Draw() {
 
 	bg.Changed = false
 
@@ -518,9 +522,6 @@ func (panel *Panel) Update() {
 
 	if len(panel.Columns) > 0 {
 
-		rl.BeginTextureMode(panel.RenderTexture)
-		rl.ClearBackground(getThemeColor(GUI_INSIDE))
-
 		horizontalMargin := float32(64)
 
 		y := float32(0)
@@ -630,17 +631,24 @@ func (panel *Panel) Update() {
 		}
 
 		for _, item := range sorted {
-			// Draw the elements
+			// Update the elements
 			if !panel.JustOpened {
-				// Keeps from executing, say, a Textbox's Update() on the same frame that Enter is pressed, adding a new line to the description
 				item.Element.Update()
 			}
 		}
 
-		globalMouseOffset.X = 0
-		globalMouseOffset.Y = 0
+		rl.BeginTextureMode(panel.RenderTexture)
+		rl.ClearBackground(getThemeColor(GUI_INSIDE))
+
+		for _, item := range sorted {
+			// Draw the elements
+			item.Element.Draw()
+		}
 
 		rl.EndTextureMode()
+
+		globalMouseOffset.X = 0
+		globalMouseOffset.Y = 0
 
 		src := rl.Rectangle{panel.ViewPosition.X, panel.ViewPosition.Y, panel.OriginalWidth, panel.OriginalHeight}
 		src.Height *= -1
@@ -674,6 +682,7 @@ func (panel *Panel) Update() {
 
 		if panelVisible {
 			panel.Scrollbar.Update()
+			panel.Scrollbar.Draw()
 		} else {
 			panel.Scrollbar.ScrollAmount = 0 // Reset the scrollbar to the top
 		}
@@ -754,7 +763,9 @@ func NewLabel(text string) *Label {
 	return &Label{Text: text}
 }
 
-func (label *Label) Update() {
+func (label *Label) Update() {}
+
+func (label *Label) Draw() {
 	DrawGUIText(label.Position, label.Text)
 	rect := label.Rectangle()
 	if label.Underline {
@@ -802,7 +813,9 @@ func NewScrollbar(x, y, w, h float32) *Scrollbar {
 	return &Scrollbar{Rect: rl.Rectangle{x, y, w, h}}
 }
 
-func (scrollBar *Scrollbar) Update() {
+func (scrollBar *Scrollbar) Update() {}
+
+func (scrollBar *Scrollbar) Draw() {
 
 	rl.DrawRectangleRec(scrollBar.Rect, getThemeColor(GUI_OUTLINE))
 
@@ -859,6 +872,7 @@ func (scrollBar *Scrollbar) Scroll(scroll float32) {
 
 type GUIElement interface {
 	Update()
+	Draw()
 	Depth() int32
 	Rectangle() rl.Rectangle
 	SetRectangle(rl.Rectangle)
@@ -976,7 +990,9 @@ func NewCheckbox(x, y, w, h float32) *Checkbox {
 	return checkbox
 }
 
-func (checkbox *Checkbox) Update() {
+func (checkbox *Checkbox) Update() {}
+
+func (checkbox *Checkbox) Draw() {
 
 	checkbox.Changed = false
 
@@ -1037,7 +1053,9 @@ func NewSpinner(x, y, w, h float32, options ...string) *Spinner {
 	return spinner
 }
 
-func (spinner *Spinner) Update() {
+func (spinner *Spinner) Update() {}
+
+func (spinner *Spinner) Draw() {
 
 	spinner.Changed = false
 
@@ -1189,10 +1207,14 @@ func NewNumberSpinner(x, y, w, h float32) *NumberSpinner {
 }
 
 func (numberSpinner *NumberSpinner) Update() {
+	numberSpinner.Textbox.Update()
+}
+
+func (numberSpinner *NumberSpinner) Draw() {
 
 	numberSpinner.Textbox.Rect.X = numberSpinner.Rect.X + numberSpinner.Rect.Height
 	numberSpinner.Textbox.Rect.Y = numberSpinner.Rect.Y
-	numberSpinner.Textbox.Update()
+	numberSpinner.Textbox.Draw()
 
 	minusButton := ImmediateButton(rl.Rectangle{numberSpinner.Rect.X, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "-", false)
 	plusButton := ImmediateButton(rl.Rectangle{numberSpinner.Textbox.Rect.X + numberSpinner.Textbox.Rect.Width, numberSpinner.Rect.Y, numberSpinner.Rect.Height, numberSpinner.Rect.Height}, "+", false)
@@ -1282,6 +1304,8 @@ func (numberSpinner *NumberSpinner) Clone() *NumberSpinner {
 	return newSpinner
 }
 
+var allTextboxes = []*Textbox{}
+
 type Textbox struct {
 	// Used to be a string, but now is a []rune so it can deal with UTF8 characters like À properly, HOPEFULLY
 	text                 []rune
@@ -1298,6 +1322,12 @@ type Textbox struct {
 	SelectedRange        [2]int
 	SelectionStart       int
 	LeadingSelectionEdge int
+	ExpandHorizontally   bool
+	ExpandVertically     bool
+	Visibility           rl.Vector2
+	Buffer               rl.RenderTexture2D
+	CaretBlinkTime       time.Time
+	triggerTextRedraw    bool
 
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
@@ -1312,9 +1342,11 @@ type Textbox struct {
 func NewTextbox(x, y, w, h float32) *Textbox {
 	textbox := &Textbox{Rect: rl.Rectangle{x, y, w, h}, Visible: true,
 		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64, AllowAlphaCharacters: true,
-		SelectedRange: [2]int{-1, -1}}
+		SelectedRange: [2]int{-1, -1}, ExpandVertically: true, triggerTextRedraw: true}
 
 	textbox.lineHeight, _ = TextHeight(" ", true)
+
+	allTextboxes = append(allTextboxes, textbox)
 
 	return textbox
 }
@@ -1339,7 +1371,7 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
 	line := textbox.Lines()[closestLineIndex]
 
-	x := textbox.Rect.X
+	x := textbox.Rect.X - textbox.Visibility.X
 	if textbox.HorizontalAlignment == ALIGN_RIGHT {
 		x = textbox.Rect.X + textbox.Rect.Width - GUITextWidth(string(line))
 		point.X += 8
@@ -1532,7 +1564,6 @@ func (textbox *Textbox) Update() {
 	textbox.lineHeight, _ = TextHeight(" ", true)
 
 	hMargin := float32(2)
-	vMargin := float32(2)
 	textbox.Changed = false
 	textbox.ClickedAway = false
 
@@ -1581,11 +1612,14 @@ func (textbox *Textbox) Update() {
 		}
 
 		letter := int(rl.GetKeyPressed())
+
 		if letter != -1 {
+
 			numbers := []int{
 				rl.KeyZero,
 				rl.KeyNine,
 			}
+
 			npNumbers := []int{
 				rl.KeyKp0,
 				rl.KeyKp9,
@@ -1604,6 +1638,7 @@ func (textbox *Textbox) Update() {
 				}
 
 			}
+
 		}
 
 		mousePos := pos
@@ -1822,28 +1857,55 @@ func (textbox *Textbox) Update() {
 
 	}
 
+	if textbox.SelectedRange[0] > len(textbox.text) {
+		textbox.SelectedRange[0] = len(textbox.text)
+	}
+	if textbox.SelectedRange[1] > len(textbox.text) {
+		textbox.SelectedRange[1] = len(textbox.text)
+	}
+
 	txt := textbox.Text()
 
-	measure := rl.MeasureTextEx(font, txt, GUIFontSize(), spacing)
+	if textbox.ExpandHorizontally {
 
-	boxHeight, _ := TextHeight(txt, true)
+		measure := rl.MeasureTextEx(font, txt, GUIFontSize(), spacing)
 
-	textbox.Rect.Width = measure.X + 16
-	textbox.Rect.Height = boxHeight + 4
+		textbox.Rect.Width = measure.X + 16
 
-	if textbox.Rect.Width < textbox.MinSize.X {
-		textbox.Rect.Width = textbox.MinSize.X
-	}
-	if textbox.Rect.Height < textbox.MinSize.Y {
-		textbox.Rect.Height = textbox.MinSize.Y
+		if textbox.Rect.Width < textbox.MinSize.X {
+			textbox.Rect.Width = textbox.MinSize.X
+		}
+
+		if textbox.Rect.Width >= textbox.MaxSize.X {
+			textbox.Rect.Width = textbox.MaxSize.X
+		}
+
 	}
 
-	if textbox.Rect.Width >= textbox.MaxSize.X {
-		textbox.Rect.Width = textbox.MaxSize.X
+	if textbox.ExpandVertically {
+
+		boxHeight, _ := TextHeight(txt, true)
+
+		textbox.Rect.Height = boxHeight + 4
+
+		if textbox.Rect.Height < textbox.MinSize.Y {
+			textbox.Rect.Height = textbox.MinSize.Y
+		}
+
+		if textbox.Rect.Height >= textbox.MaxSize.Y {
+			textbox.Rect.Height = textbox.MaxSize.Y
+		}
+
 	}
-	if textbox.Rect.Height >= textbox.MaxSize.Y {
-		textbox.Rect.Height = textbox.MaxSize.Y
+
+	if textbox.Changed || textbox.triggerTextRedraw {
+		textbox.RedrawText()
+		textbox.triggerTextRedraw = false
 	}
+
+}
+
+func (textbox *Textbox) Draw() {
 
 	if textbox.Focused {
 		rl.DrawRectangleRec(textbox.Rect, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
@@ -1853,49 +1915,41 @@ func (textbox *Textbox) Update() {
 		rl.DrawRectangleLinesEx(textbox.Rect, 1, getThemeColor(GUI_OUTLINE))
 	}
 
-	txt = ""
+	caretPos := textbox.CharacterToPoint(textbox.CaretPos)
+	caretPos.X -= textbox.Rect.X
 
-	caretChar := ' '
-	if math.Ceil(float64(rl.GetTime()*4))-float64(rl.GetTime()*4) < 0.5 {
-		caretChar = '|'
+	if caretPos.X+16 > textbox.Visibility.X+textbox.Rect.Width {
+		textbox.Visibility.X = caretPos.X - textbox.Rect.Width + 16
 	}
 
-	for i := 0; i < len(textbox.text)+1; i++ {
-		if i == textbox.CaretPos && textbox.Focused {
-			txt += string(caretChar)
-		}
-		if i < len(textbox.text) {
-			txt += string(textbox.text[i])
-		}
+	if caretPos.X-16 < textbox.Visibility.X {
+		textbox.Visibility.X = caretPos.X - 16
 	}
 
-	tbpos := rl.Vector2{textbox.Rect.X + hMargin, textbox.Rect.Y + vMargin}
-
-	if textbox.HorizontalAlignment == ALIGN_CENTER {
-		tbpos.X += float32(int(textbox.Rect.Width/2-measure.X/2)) - hMargin
-	} else if textbox.HorizontalAlignment == ALIGN_RIGHT {
-		tbpos.X += float32(int(textbox.Rect.Width - measure.X - hMargin))
+	if textbox.Visibility.X < 0 {
+		textbox.Visibility.X = 0
 	}
 
-	if textbox.VerticalAlignment == ALIGN_CENTER {
-		tbpos.Y += float32(int(textbox.Rect.Height/2-measure.Y/2)) - vMargin
-	} else if textbox.VerticalAlignment == ALIGN_BOTTOM {
-		tbpos.Y += float32(int(textbox.Rect.Height - measure.Y - vMargin))
+	if textbox.Visibility.X > float32(textbox.Buffer.Texture.Width)-textbox.Rect.Width {
+		textbox.Visibility.X = float32(textbox.Buffer.Texture.Width) - textbox.Rect.Width
 	}
 
-	if textbox.SelectedRange[0] > len(textbox.text) {
-		textbox.SelectedRange[0] = len(textbox.text)
-	}
-	if textbox.SelectedRange[1] > len(textbox.text) {
-		textbox.SelectedRange[1] = len(textbox.text)
+	if float32(textbox.Buffer.Texture.Width) <= textbox.Rect.Width+16 {
+		textbox.Visibility.X = 0
 	}
 
 	if textbox.RangeSelected() {
+
 		for i := textbox.SelectedRange[0]; i < textbox.SelectedRange[1]; i++ {
+
 			rec := textbox.CharacterToRect(i)
-			if textbox.text[i] == '\n' {
+
+			rec.X -= textbox.Visibility.X
+
+			if rec.X < textbox.Rect.X || rec.X+rec.Width >= textbox.Rect.X+textbox.Rect.Width || textbox.text[i] == '\n' {
 				continue
 			}
+
 			if i >= textbox.CaretPos {
 				rec.X += rec.Width / 2
 			}
@@ -1903,15 +1957,87 @@ func (textbox *Textbox) Update() {
 				rec.Width = GUITextWidth("A")
 			}
 
+			if rec.X+rec.Width >= textbox.Rect.X+textbox.Rect.Width-2 {
+				rec.Width = textbox.Rect.X + textbox.Rect.Width - 2 - rec.X
+			}
+
 			if textbox.HorizontalAlignment == ALIGN_CENTER {
 				rec.X += 8
 			}
 
 			rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE_DISABLED))
+
 		}
+
 	}
 
-	DrawGUIText(tbpos, txt)
+	if textbox.Focused {
+
+		blink := time.Since(textbox.CaretBlinkTime).Seconds()
+
+		blinkTime := float64(1)
+
+		if blink > blinkTime/2 {
+			rl.DrawRectangleRec(rl.Rectangle{caretPos.X + textbox.Rect.X - textbox.Visibility.X + 4, caretPos.Y + 4, 2, textbox.lineHeight - 8}, getThemeColor(GUI_FONT_COLOR))
+			if blink > blinkTime {
+				textbox.CaretBlinkTime = time.Now()
+			}
+		}
+
+	}
+
+	src := rl.Rectangle{textbox.Visibility.X, 0, textbox.Rect.Width - 4, textbox.Rect.Height - 4}
+	dst := rl.Rectangle{textbox.Rect.X + 2, textbox.Rect.Y + 2, textbox.Rect.Width - 4, textbox.Rect.Height - 4}
+	src.Height *= -1
+	rl.DrawTexturePro(textbox.Buffer.Texture, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_FONT_COLOR))
+
+}
+
+func (textbox *Textbox) RedrawText() {
+
+	// if textbox.Buffer.Texture.Height > 0 {
+		// For now, this doesn't work as rl.UnloadRenderTexture() isn't unloading the texture properly
+	// 	rl.UnloadRenderTexture(textbox.Buffer)
+	// }
+
+	textSize, _ := TextSize(textbox.Text(), true)
+
+	hMargin := float32(2)
+	vMargin := float32(2)
+
+	tbpos := rl.Vector2{hMargin, vMargin}
+
+	if textbox.HorizontalAlignment == ALIGN_CENTER {
+		tbpos.X += float32(int(textbox.Rect.Width/2-textSize.X/2)) - hMargin
+	} else if textbox.HorizontalAlignment == ALIGN_RIGHT {
+		tbpos.X += float32(int(textbox.Rect.Width - textSize.X - hMargin))
+	}
+
+	if textbox.VerticalAlignment == ALIGN_CENTER {
+		tbpos.Y += float32(int(textbox.Rect.Height/2-textSize.Y/2)) - vMargin
+	} else if textbox.VerticalAlignment == ALIGN_BOTTOM {
+		tbpos.Y += float32(int(textbox.Rect.Height - textSize.Y - vMargin))
+	}
+
+	if textSize.X < textbox.Rect.Width {
+		textSize.X = textbox.Rect.Width
+	}
+
+	if textSize.Y < textbox.Rect.Height {
+		textSize.Y = textbox.Rect.Height
+	}
+
+	textSize.X += 16 // Give us a bit of room horizontally
+
+	textbox.Buffer = rl.LoadRenderTexture(int32(textSize.X), int32(textSize.Y))
+
+	rl.BeginTextureMode(textbox.Buffer)
+
+	rl.ClearBackground(rl.Color{0, 0, 0, 0})
+
+	DrawGUITextColored(tbpos, rl.White, textbox.Text())
+
+	rl.EndTextureMode()
 
 }
 
@@ -1930,6 +2056,7 @@ func (textbox *Textbox) SetRectangle(rect rl.Rectangle) {
 func (textbox *Textbox) SetText(text string) {
 	if textbox.Text() != text {
 		textbox.Changed = true
+		textbox.triggerTextRedraw = true
 	}
 	textbox.text = []rune(text)
 }
@@ -1971,6 +2098,7 @@ func (textbox *Textbox) DeleteSelectedText() {
 	}
 	textbox.ClearSelection()
 	textbox.Changed = true
+	textbox.triggerTextRedraw = true
 
 }
 
@@ -2000,6 +2128,28 @@ func GUITextWidth(text string) float32 {
 		w += rl.MeasureTextEx(font, string(c), GUIFontSize(), spacing).X + spacing
 	}
 	return w
+}
+
+func TextSize(text string, guiText bool) (rl.Vector2, int) {
+
+	nCount := strings.Count(text, "\n") + 1
+
+	fs := float32(programSettings.FontSize)
+
+	if guiText {
+		fs = GUIFontSize()
+	}
+
+	size := rl.MeasureTextEx(font, text, fs, spacing)
+
+	if guiText {
+		size.Y = float32(nCount) * lineSpacing * GUIFontSize()
+	} else {
+		size.Y = float32(nCount) * lineSpacing * float32(programSettings.FontSize)
+	}
+
+	return size, nCount
+
 }
 
 func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bool, variables ...interface{}) {

@@ -156,7 +156,7 @@ func NewTask(board *Board) *Task {
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Board:                        board,
 		TaskType:                     NewButtonGroup(0, 32, 500, 32, 2, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line", "Map", "Whiteboard"),
-		Description:                  NewTextbox(postX, 64, 512, 16),
+		Description:                  NewTextbox(postX, 64, 512, 32),
 		TimerName:                    NewTextbox(postX, 64, 256, 16),
 		CompletionCheckbox:           NewCheckbox(postX, 96, 32, 32),
 		CompletionProgressionCurrent: NewNumberSpinner(postX, 96, 128, 40),
@@ -197,6 +197,8 @@ func NewTask(board *Board) *Task {
 	task.MaxSize = rl.Vector2{0, 0}
 	task.Description.AllowNewlines = true
 	task.FilePathTextbox.AllowNewlines = false
+
+	task.FilePathTextbox.VerticalAlignment = ALIGN_CENTER
 
 	task.DeadlineDaySpinner.Minimum = 1
 	task.DeadlineDaySpinner.Maximum = 31

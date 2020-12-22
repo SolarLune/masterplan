@@ -143,6 +143,7 @@ type Project struct {
 	CustomFontPathBrowseButton  *Button
 	FontSize                    *NumberSpinner
 	GUIFontSizeMultiplier       *ButtonGroup
+	DefaultFontButton           *Button
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -258,6 +259,7 @@ func NewProject() *Project {
 		UnfocusedFPS:           NewNumberSpinner(0, 0, 128, 40),
 		ScrollwheelSensitivity: NewNumberSpinner(0, 0, 128, 40),
 		SmoothPanning:          NewCheckbox(0, 0, 32, 32),
+		DefaultFontButton:      NewButton(0, 0, 256, 24, "Reset Text to Defaults", false),
 
 		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
@@ -284,6 +286,9 @@ func NewProject() *Project {
 	row.Item(NewButton(0, 0, 128, 32, "Cancel", false)).Name = "cancel button"
 	project.PopupPanel.EnableScrolling = false
 	project.PopupPanel.Center(0.5, 0.5)
+
+	project.CustomFontPath.VerticalAlignment = ALIGN_CENTER
+	project.ScreenshotsPath.VerticalAlignment = ALIGN_CENTER
 
 	column = project.SettingsPanel.AddColumn()
 	row = column.Row()
@@ -488,6 +493,9 @@ func NewProject() *Project {
 	row.Item(NewLabel("GUI text size multiplier percentage: "), SETTINGS_GLOBAL)
 	row = column.Row()
 	row.Item(project.GUIFontSizeMultiplier, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(project.DefaultFontButton, SETTINGS_GLOBAL)
 
 	// About
 
@@ -2183,21 +2191,34 @@ func (project *Project) GUI() {
 			}
 
 			if project.ScreenshotsPathBrowseButton.Clicked {
-				if screenshotDirectory, err := zenity.SelectFile(zenity.Directory()); err == nil {
+				if screenshotDirectory, err := zenity.SelectFile(zenity.Directory()); err == nil && screenshotDirectory != "" {
 					project.ScreenshotsPath.SetText(screenshotDirectory)
 				}
 			}
 
 			if project.CustomFontPathBrowseButton.Clicked {
-				if customFontPath, err := zenity.SelectFile(zenity.FileFilters{zenity.FileFilter{Name: "Font (*.ttf, *.otf)", Patterns: []string{"*.ttf", "*.otf"}}}); err == nil {
+				if customFontPath, err := zenity.SelectFile(zenity.FileFilters{zenity.FileFilter{Name: "Font (*.ttf, *.otf)", Patterns: []string{"*.ttf", "*.otf"}}}); err == nil && customFontPath != "" {
 					project.CustomFontPath.SetText(customFontPath)
 				}
+			}
+
+			if project.DefaultFontButton.Clicked {
+				project.CustomFontPath.SetText("")
+				project.FontSize.SetNumber(15)
+				project.GUIFontSizeMultiplier.SetChoice(GUI_FONT_SIZE_200)
 			}
 
 			programSettings.ScrollwheelSensitivity = project.ScrollwheelSensitivity.Number()
 			programSettings.SmoothPanning = project.SmoothPanning.Checked
 			programSettings.FontSize = project.FontSize.Number()
 			programSettings.GUIFontSizeMultiplier = project.GUIFontSizeMultiplier.ChoiceAsString()
+
+			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed {
+				for _, textbox := range allTextboxes {
+					textbox.triggerTextRedraw = true
+				}
+			}
+
 			programSettings.CustomFontPath = project.CustomFontPath.Text()
 
 			if project.FontSize.Changed ||
@@ -2318,6 +2339,7 @@ func (project *Project) GUI() {
 			searchbarWasFocused := project.Searchbar.Focused
 
 			project.Searchbar.Update()
+			project.Searchbar.Draw()
 
 			if project.Searchbar.Focused && !searchbarWasFocused {
 				clickedOnSearchbar = true
