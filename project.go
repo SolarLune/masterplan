@@ -128,6 +128,7 @@ type Project struct {
 	AutoReloadResources         *Checkbox
 	TargetFPS                   *NumberSpinner
 	UnfocusedFPS                *NumberSpinner
+	PanToFocusOnZoom            *Checkbox
 	TransparentBackground       *Checkbox
 	BorderlessWindow            *Checkbox
 	ScreenshotsPath             *Textbox
@@ -153,6 +154,7 @@ type Project struct {
 	BoardIndex          int
 	BoardPanel          rl.Rectangle
 	ZoomLevel           int
+	CurrentZoomLevel    int
 	CameraPan           rl.Vector2
 	CameraOffset        rl.Vector2
 	FullyInitialized    bool
@@ -204,6 +206,7 @@ func NewProject() *Project {
 		FilePath:           "",
 		GridSize:           16,
 		ZoomLevel:          3,
+		CurrentZoomLevel:   3,
 		CameraPan:          rl.Vector2{0, 0},
 		Searchbar:          searchBar,
 		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
@@ -259,9 +262,10 @@ func NewProject() *Project {
 		AutoReloadResources:    NewCheckbox(0, 0, 32, 32),
 		TargetFPS:              NewNumberSpinner(0, 0, 128, 40),
 		UnfocusedFPS:           NewNumberSpinner(0, 0, 128, 40),
+		PanToFocusOnZoom:       NewCheckbox(0, 0, 32, 32),
 		ScrollwheelSensitivity: NewNumberSpinner(0, 0, 128, 40),
 		SmoothPanning:          NewCheckbox(0, 0, 32, 32),
-		DefaultFontButton:      NewButton(0, 0, 256, 24, "Reset Text to Defaults", false),
+		DefaultFontButton:      NewButton(0, 0, 256, 32, "Reset Font to Default", false),
 
 		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
 		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
@@ -436,7 +440,6 @@ func NewProject() *Project {
 	row.Item(NewLabel("Auto-reload Themes:"), SETTINGS_GLOBAL)
 	row.Item(project.AutoReloadThemes, SETTINGS_GLOBAL)
 
-	row = column.Row()
 	row.Item(NewLabel("Auto-load Last Project:"), SETTINGS_GLOBAL)
 	row.Item(project.AutoLoadLastProject, SETTINGS_GLOBAL)
 
@@ -444,7 +447,6 @@ func NewProject() *Project {
 	row.Item(NewLabel("Disable Splashscreen:"), SETTINGS_GLOBAL)
 	row.Item(project.DisableSplashscreen, SETTINGS_GLOBAL)
 
-	row = column.Row()
 	row.Item(NewLabel("Disable Message Log:"), SETTINGS_GLOBAL)
 	row.Item(project.DisableMessageLog, SETTINGS_GLOBAL)
 
@@ -452,16 +454,19 @@ func NewProject() *Project {
 	row.Item(NewLabel("Scroll-wheel sensitivity:"), SETTINGS_GLOBAL)
 	row.Item(project.ScrollwheelSensitivity, SETTINGS_GLOBAL)
 
-	row = column.Row()
 	row.Item(NewLabel("Smooth camera panning:"), SETTINGS_GLOBAL)
 	row.Item(project.SmoothPanning, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Target FPS:"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Target FPS When\nWindow is Focused:"), SETTINGS_GLOBAL)
 	row.Item(project.TargetFPS, SETTINGS_GLOBAL)
 
-	row.Item(NewLabel("Unfocused FPS:"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Target FPS When\nWindow is Unfocused:"), SETTINGS_GLOBAL)
 	row.Item(project.UnfocusedFPS, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Pan to Cursor When\nZooming In:"), SETTINGS_GLOBAL)
+	row.Item(project.PanToFocusOnZoom, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Save Window Position On Exit:"), SETTINGS_GLOBAL)
@@ -470,9 +475,6 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Automatically reload changed\nlocal resources (experimental!):"), SETTINGS_GLOBAL)
 	row.Item(project.AutoReloadResources, SETTINGS_GLOBAL)
-
-	row = column.Row()
-	row.Item(NewLabel(""), SETTINGS_GLOBAL)
 
 	row = column.Row()
 	label := NewLabel("Window alterations (requires restart)")
@@ -600,10 +602,12 @@ func NewProject() *Project {
 	project.FontSize.Minimum = 5
 
 	project.TargetFPS.SetNumber(60)
-	project.TargetFPS.Minimum = 10
+	project.TargetFPS.Minimum = 1
 
-	project.UnfocusedFPS.SetNumber(10)
+	project.UnfocusedFPS.SetNumber(60)
 	project.UnfocusedFPS.Minimum = 1
+
+	project.PanToFocusOnZoom.Checked = true
 
 	project.ScrollwheelSensitivity.SetNumber(1)
 	project.ScrollwheelSensitivity.Minimum = 1
@@ -848,6 +852,7 @@ func LoadProject(filepath string) *Project {
 			project.CameraPan.X = getFloat(`Pan\.X`)
 			project.CameraPan.Y = getFloat(`Pan\.Y`)
 			project.ZoomLevel = getInt(`ZoomLevel`)
+			project.CurrentZoomLevel = project.ZoomLevel
 			project.SampleRate.SetChoice(getString(`SampleRate`))
 			project.SampleBuffer = getInt(`SampleBuffer`)
 			project.TaskShadowSpinner.CurrentChoice = getInt(`TaskShadow`)
@@ -1035,6 +1040,12 @@ func (project *Project) HandleCamera() {
 
 	targetZoom := zoomLevels[project.ZoomLevel]
 
+	if programSettings.PanToFocusOnZoom && project.ZoomLevel != project.CurrentZoomLevel && !math.Signbit(float64(project.ZoomLevel-project.CurrentZoomLevel)) {
+		mousePos := GetWorldMousePosition()
+		project.CameraPan.X += (-mousePos.X - project.CameraPan.X) * 0.5
+		project.CameraPan.Y += (-mousePos.Y - project.CameraPan.Y) * 0.5
+	}
+
 	camera.Zoom += (targetZoom - camera.Zoom) * (project.GetFrameTime() * 12)
 
 	if math.Abs(float64(targetZoom-camera.Zoom)) < 0.001 {
@@ -1061,6 +1072,8 @@ func (project *Project) HandleCamera() {
 
 	camera.Offset.X = float32(rl.GetScreenWidth() / 2)
 	camera.Offset.Y = float32(rl.GetScreenHeight() / 2)
+
+	project.CurrentZoomLevel = project.ZoomLevel
 
 }
 
@@ -2275,6 +2288,7 @@ func (project *Project) GUI() {
 				programSettings.AutoReloadResources = project.AutoReloadResources.Checked
 				programSettings.TargetFPS = project.TargetFPS.Number()
 				programSettings.UnfocusedFPS = project.UnfocusedFPS.Number()
+				programSettings.PanToFocusOnZoom = project.PanToFocusOnZoom.Checked
 				programSettings.BorderlessWindow = project.BorderlessWindow.Checked
 				programSettings.TransparentBackground = project.TransparentBackground.Checked
 
@@ -2876,6 +2890,7 @@ func (project *Project) OpenSettings() {
 	project.AutoReloadResources.Checked = programSettings.AutoReloadResources
 	project.TargetFPS.SetNumber(programSettings.TargetFPS)
 	project.UnfocusedFPS.SetNumber(programSettings.UnfocusedFPS)
+	project.PanToFocusOnZoom.Checked = programSettings.PanToFocusOnZoom
 	project.ScrollwheelSensitivity.SetNumber(programSettings.ScrollwheelSensitivity)
 	project.SmoothPanning.Checked = programSettings.SmoothPanning
 	project.BorderlessWindow.Checked = programSettings.BorderlessWindow
