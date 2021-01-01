@@ -1,5 +1,72 @@
 -------
 
+v0.6.1
+
+------
+
+Progression Tasks now have buttons to increment and decrement the values (when selected).
+Broken sound icon updated for enhanced readability.
+Tasks no longer glow so heavily, as that was making certain themes visually difficult to parse.
+The theme Cloudy's colors have been tweaked. It is now lower contrast and more blue-tinted, overall.
+Adding Waves, yet another dark theme.
+Slightly tweaking checkbox and parent checkbox GUI icons to be more readable at a glance.
+Adding loading plans from arguments back in. This was previously merged in a PR by @DanielKilgallon on 8/27 (#27), but apparently it got unmerged at some point. I'm re-adding it manually here.
+Textboxes have been generally and drastically refactored to handle text more reliably and be more optimized in rendering and typing / usage. (Note that there is currently a GPU VRAM-related memory leak with textboxes as they expand, so be mindful of this.)
+Blinking caret is now visible for 75% of the time, and blinks twice as often (every half-second), rather than 50% of the time, blinking every second.
+Skipping words and lines with holding Control + arrow keys is now more exact, skipping to the boundaries of words rather than including spaces and necessitating more key presses to skip past those spaces. New lines are still "individualized" (so pressing Control+up skips to the end of the last word on the previous line still, for example).
+Optimizing Textbox rendering code.
+Moving between lines in Textbox has been tweaked to be simpler and easier to maintain on my side.
+Consolidating options into rows for Project settings / tweaking wording.
+Adding option to pan to mouse pointer when zooming in.
+Adding button to default keyboard shortcuts.
+Left click now cancels keyboard shortcut assignment, freeing up Escape as a key to use for assigning shortcuts.
+Adding two more outer zoom levels.
+Textboxes now can contain more text than just what fits within the box by using render textures.
+By default, Textboxes now are centered vertically and expand vertically, but not horizontally.
+GUIElement now has both Update() and Draw() because rendering textbox text to a texture can't be done in the draw loop where the Panel that contains it is transforming the elements to draw onto its texture.
+Adding button to reset font settings back to default.
+Adding option to turn off camera pan smoothing.
+Adding options to change MasterPlan's font and font size.
+Removing GUI font, as it's the same as the normal font, just displaying larger.
+Fonts are now internally loaded at size 30, and then scaled up or down as desired.
+Scroll wheel sensitivity raised, maximum is 10.
+Scrolling panels with mouse wheel is smooth now.
+Changing Task Type from a drop-down menu to a ButtonGroup for easier selection.
+Changing how scroll wheel works for scrollbars in Panels - previously, it would scroll by a percentage. Now it scrolls by a set "chunk" size (so smaller lists are scrolled just as easily as larger ones).
+Adding scroll wheel sensitivity to program settings.
+Adding a setting for UnfocusedFPS. This allows you to set the target FPS when the window is minimized, hidden, or unfocused. It defaults to 60 FPS and the lowest value is 1.
+Adding graphical options in settings.
+    - Adding option for Graphical Tasks (like images, whiteboards, or maps) can now be transparent when changing global Task transparency.
+    - Adding option for deadline animation, so that it can be as understated or distracting as desired.
+Clicking on Tasks no longer visually raises them.
+Logging improvements. Errors should now be logged onscreen. (This could be due to things like not having a valid clipboard tool installed on Linux, for example.)
+MasterPlan now stores its settings and log file in the XDG-standard local user configuration directory. For Linux, this should be ~/.config/MasterPlan, for Mac OS, ~/Library/Preferences/MasterPlan, and for Windows, C:\Users\<Your Username>\AppData\Local\MasterPlan.
+Logging improvements. MasterPlan now prints when it is initialized and exited properly - just this can help to ensure that the log is set up properly and writing. Logging is also cleaned up / less cluttered in case of a crash.
+Whiteboards can now be inverted.
+Sliding Tasks should now be a bit more optimized and less CPU-intensive.
+Notes and other Task types can now extend a list of numberable Tasks.
+Overall optimizations for textboxes and placing Tasks.
+FIX: Progression Tasks no longer list subtasks; now only Checkbox Tasks properly "list" sub-tasks.
+FIX: Textboxes now allow dragging above the textbox to select text at the beginning.
+FIX: Panels can be dragged offscreen when holding the mouse button down.
+FIX: Board.PasteContent() no longer prints an error if the item could not be loaded, as that is an acceptable outcome.
+FIX: Textboxes not updating after resetting them.
+FIX: Canceling screenshot directory or custom font path setting should not set it to "" (a blank string).
+FIX: Resizing a Task individually previously didn't trigger the undo system; now this is fixed.
+FIX: Undo no longer "un-destroys" Tasks when undoing all the way to the beginning of the .
+FIX: MasterPlan no longer crashes when attempting to remove deleted previously opened plans.
+FIX: Numberable Tasks now take priority in lists. Previously, either numberable Tasks or other Tasks (like Notes) would take priority, meaning Notes would make Task lists number inconsistently.
+FIX: WM_CLASS on Linux no longer has the version number. This is achieved by simplifying the window title on creation. It is simply the program name at the beginning.
+FIX: ProgramSetttings are no longer reset on program start. This was because the Project.ProjectSettingsOpen variable is set to true in case of showing the About Dialog, but then the global settings (like, say, the TargetFPS) isn't set to point to the global ProgramSettings values (this only was done correctly if manually opening the Settings dialog from the right-click menu).
+FIX: Crash when changing themes on tutorial. This was due to the color switching process for Whiteboards.
+FIX: Sliding Tasks now works properly for "larger" Tasks that take up more space than a single row (images, Notes). Sliding Tasks in a direction occupied by an existing Task will attempt to have the Tasks swap positions (if the spaces are free).
+FIX: Adding a duration for repeating keybindings. This also fixes keybindings repeating faster at higher FPS values.
+FIX: Editing shortcuts (backspace, delete, etc) no longer repeat faster depending on FPS when editing text.
+FIX: Whiteboards weren't the correct colors on load because the MessageThemeChange message wasn't sent when setting the theme through the ChangeTheme() function.
+FIX: Can't use the left Super / Apple key on Mac.
+
+-------
+
 v0.6.0
 
 -------
