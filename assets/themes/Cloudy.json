@@ -21,7 +21,7 @@
     "GUI_FONT_COLOR": [200, 210, 240, 255],
     
     "//Note Tasks":[],
-    "GUI_NOTE_COLOR": [6    0, 30, 40, 255],
+    "GUI_NOTE_COLOR": [60, 30, 40, 255],
     
     "//Task Shadows":[],
     "GUI_SHADOW_COLOR": [30, 30, 40, 255]
