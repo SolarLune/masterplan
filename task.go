@@ -1037,7 +1037,7 @@ func (task *Task) Draw() {
 		name = task.TimerName.Text() + " : " + timeString + " / " + maxTimeString
 	}
 
-	if len(task.SubTasks) > 0 && task.Completable() {
+	if len(task.SubTasks) > 0 && task.Is(TASK_TYPE_BOOLEAN) {
 		currentFinished := 0
 		for _, child := range task.SubTasks {
 			if child.Complete() {
@@ -1123,10 +1123,10 @@ func (task *Task) Draw() {
 			if extendedText {
 				taskDisplaySize.X += 16
 			}
+		}
 
-			if task.Is(TASK_TYPE_TIMER, TASK_TYPE_SOUND) {
-				taskDisplaySize.X += 32
-			}
+		if task.Is(TASK_TYPE_TIMER, TASK_TYPE_SOUND) || (task.Selected && task.Is(TASK_TYPE_PROGRESSION)) {
+			taskDisplaySize.X += 32
 		}
 
 		taskDisplaySize.Y, _ = TextHeight(name, false) // Custom spacing to better deal with custom fonts
@@ -1193,7 +1193,7 @@ func (task *Task) Draw() {
 
 			glowVariance := float64(20)
 			if task.Selected {
-				glowVariance = 80
+				glowVariance = 40
 			}
 
 			glow := int32(math.Sin(float64((rl.GetTime()*math.Pi*2-(float32(task.ID)*0.1))))*(glowVariance/2) + (glowVariance / 2))
@@ -1210,7 +1210,7 @@ func (task *Task) Draw() {
 
 	perc := float32(0)
 
-	if len(task.SubTasks) > 0 && task.Completable() {
+	if len(task.SubTasks) > 0 && task.Is(TASK_TYPE_BOOLEAN) {
 		totalComplete := 0
 		for _, child := range task.SubTasks {
 			if child.Complete() {
@@ -1413,6 +1413,9 @@ func (task *Task) Draw() {
 		if task.Is(TASK_TYPE_TIMER, TASK_TYPE_SOUND) {
 			textPos.X += 32
 		}
+		if task.Selected && task.Is(TASK_TYPE_PROGRESSION) {
+			textPos.X += 32
+		}
 
 		DrawText(textPos, name)
 
@@ -1476,7 +1479,7 @@ func (task *Task) Draw() {
 		iconSrc.X = iconSrcIconPositions[task.TaskType.CurrentChoice][0]
 		iconSrc.Y = iconSrcIconPositions[task.TaskType.CurrentChoice][1]
 
-		if len(task.SubTasks) > 0 && task.Completable() {
+		if len(task.SubTasks) > 0 && task.Is(TASK_TYPE_BOOLEAN) {
 			iconSrc.X = 128 // Hardcoding this because I'm an idiot
 			iconSrc.Y = 16
 		}
@@ -1625,6 +1628,23 @@ func (task *Task) Draw() {
 			_, filename := filepath.Split(task.FilePathTextbox.Text())
 			task.Board.Project.Log("Sound Task [%s] restarted.", filename)
 		}
+	} else if task.Is(TASK_TYPE_PROGRESSION) && task.Selected {
+
+		if task.SmallButton(112, 48, 16, 16, task.Rect.X+controlPos, task.Rect.Y) {
+
+			task.Board.UndoBuffer.Capture(task)
+			task.CompletionProgressionCurrent.SetNumber(task.CompletionProgressionCurrent.Number() - 1)
+			task.Board.UndoBuffer.Capture(task)
+			ConsumeMouseInput(rl.MouseLeftButton)
+		}
+
+		if task.SmallButton(96, 48, 16, 16, task.Rect.X+controlPos+16, task.Rect.Y) {
+			task.Board.UndoBuffer.Capture(task)
+			task.CompletionProgressionCurrent.SetNumber(task.CompletionProgressionCurrent.Number() + 1)
+			task.Board.UndoBuffer.Capture(task)
+			ConsumeMouseInput(rl.MouseLeftButton)
+		}
+
 	}
 
 	if task.Selected && task.Board.Project.PulsingTaskSelection.Checked { // Drawing selection indicator
@@ -2456,7 +2476,7 @@ func (task *Task) SetPrefix() {
 				taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
 				belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
 
-				if countingSubTasks && belowX == taskX+1 {
+				if countingSubTasks && belowX == taskX+1 && task.Is(TASK_TYPE_BOOLEAN) {
 					task.SubTasks = append(task.SubTasks, below)
 				} else if belowX <= taskX {
 					countingSubTasks = false
@@ -2536,16 +2556,23 @@ func (task *Task) SmallButton(srcX, srcY, srcW, srcH, dstX, dstY float32) bool {
 
 	dstRect := rl.Rectangle{dstX, dstY, srcW, srcH}
 
+	color := getThemeColor(GUI_FONT_COLOR)
+
+	mouseOver := rl.CheckCollisionPointRec(GetWorldMousePosition(), dstRect)
+
+	if task.Selected && mouseOver && !MousePressed(rl.MouseLeftButton) {
+		color = getThemeColor(GUI_INSIDE_DISABLED)
+	}
+
 	rl.DrawTexturePro(
 		task.Board.Project.GUI_Icons,
 		rl.Rectangle{srcX, srcY, srcW, srcH},
 		dstRect,
 		rl.Vector2{},
 		0,
-		getThemeColor(GUI_FONT_COLOR))
-	// getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+		color)
 
-	return task.Selected && rl.CheckCollisionPointRec(GetWorldMousePosition(), dstRect) && MousePressed(rl.MouseLeftButton)
+	return task.Selected && mouseOver && MousePressed(rl.MouseLeftButton)
 
 }
 

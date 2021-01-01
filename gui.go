@@ -1365,30 +1365,28 @@ func NewTextbox(x, y, w, h float32) *Textbox {
 
 func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
-	closestIndex := -1
-	closestRect := rl.Rectangle{}
-
-	rects := map[int]rl.Rectangle{}
-
-	for i, rect := range textbox.CharToRect {
-		rects[i] = rect
-	}
-
-	if len(rects) > 0 {
+	if len(textbox.CharToRect) > 0 {
 
 		// Restrict the point to the vertical limits of the text
 
-		if point.Y < rects[0].Y {
-			point.Y = rects[0].Y
+		if point.Y < textbox.CharToRect[0].Y-textbox.lineHeight {
+			return 0
 		}
 
-		if point.Y > rects[len(rects)-1].Y {
-			point.Y = rects[len(rects)-1].Y
+		if point.Y < textbox.CharToRect[0].Y {
+			point.Y = textbox.CharToRect[0].Y
+		}
+
+		if point.Y > textbox.CharToRect[len(textbox.CharToRect)-1].Y+textbox.lineHeight {
+			point.Y = textbox.CharToRect[len(textbox.CharToRect)-1].Y + textbox.lineHeight
 		}
 
 	}
 
-	for index, charRect := range rects {
+	closestIndex := 0
+	closestRect := textbox.CharToRect[0]
+
+	for index, charRect := range textbox.CharToRect {
 
 		posOne := rl.NewVector2(charRect.X, charRect.Y)
 		posTwo := rl.NewVector2(closestRect.X, closestRect.Y)
@@ -1412,7 +1410,7 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
 	}
 
-	if closestIndex == len(rects)-1 && point.X > closestRect.X+closestRect.Width {
+	if closestIndex == len(textbox.CharToRect)-1 && point.X > closestRect.X+closestRect.Width {
 		return closestIndex + 1
 	}
 
