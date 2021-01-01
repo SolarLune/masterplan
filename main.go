@@ -23,7 +23,7 @@ var demoMode = "" // If set to something other than "", it's a demo
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.6.0")
+var softwareVersion, _ = semver.Make("0.6.1")
 var takeScreenshot = false
 
 var spacing = float32(1)
@@ -39,7 +39,7 @@ func init() {
 
 		// Redirect STDERR and STDOUT to log.txt in release mode
 
-		logPath, err := xdg.DataFile("MasterPlan/log.txt")
+		logPath, err := xdg.ConfigFile("MasterPlan/log.txt")
 		if err != nil {
 			panic(err)
 		}
