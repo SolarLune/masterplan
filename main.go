@@ -23,13 +23,13 @@ var demoMode = "" // If set to something other than "", it's a demo
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.6.1")
+var softwareVersion, _ = semver.Make("0.6.1-1")
 var takeScreenshot = false
 
 var spacing = float32(1)
 var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
 var font rl.Font
-var windowTitle = "MasterPlan v" + softwareVersion.String()
+var windowTitle = "MasterPlan"
 var deltaTime = float32(0)
 var quit = false
 
