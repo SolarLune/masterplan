@@ -205,9 +205,9 @@ func main() {
 			attemptAutoload--
 
 			if attemptAutoload == 0 {
-				
+
 				//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
-				
+
 				var loaded *Project
 
 				if len(os.Args) > 1 {
@@ -216,7 +216,9 @@ func main() {
 					loaded = LoadProject(programSettings.RecentPlanList[0])
 				}
 
-				currentProject = loaded
+				if loaded != nil {
+					currentProject = loaded
+				}
 
 			}
 
