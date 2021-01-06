@@ -121,8 +121,10 @@ type Project struct {
 	SelectedTasksGlow           *Checkbox
 	AboutDiscordButton          *Button
 	AboutTwitterButton          *Button
-	AboutForumsButton           *Button
-	StorePageButton             *Button
+	AboutItchForumsButton       *Button
+	AboutSteamForumsButton      *Button
+	ItchStorePageButton         *Button
+	SteamStorePageButton        *Button
 	DisableAboutDialogOnStart   *Checkbox
 	SaveWindowPosition          *Checkbox
 	AutoReloadResources         *Checkbox
@@ -267,10 +269,12 @@ func NewProject() *Project {
 		SmoothPanning:          NewCheckbox(0, 0, 32, 32),
 		DefaultFontButton:      NewButton(0, 0, 256, 32, "Reset Font to Default", false),
 
-		AboutDiscordButton:        NewButton(0, 0, 128, 24, "Discord", false),
-		AboutForumsButton:         NewButton(0, 0, 128, 24, "Forums", false),
-		AboutTwitterButton:        NewButton(0, 0, 128, 24, "Twitter", false),
-		StorePageButton:           NewButton(0, 0, 128, 24, "Purchase", false),
+		AboutDiscordButton:        NewButton(0, 0, 200, 36, "Discord", false),
+		AboutItchForumsButton:     NewButton(0, 0, 200, 36, "Itch Forums", false),
+		AboutSteamForumsButton:    NewButton(0, 0, 200, 36, "Steam Forums", false),
+		AboutTwitterButton:        NewButton(0, 0, 200, 36, "Twitter", false),
+		ItchStorePageButton:       NewButton(0, 0, 200, 36, "Buy on Itch", false),
+		SteamStorePageButton:      NewButton(0, 0, 200, 36, "Buy on Steam", false),
 		DisableAboutDialogOnStart: NewCheckbox(0, 0, 32, 32),
 		TransparentBackground:     NewCheckbox(0, 0, 32, 32),
 		BorderlessWindow:          NewCheckbox(0, 0, 32, 32),
@@ -530,20 +534,23 @@ func NewProject() *Project {
 		row.Item(NewLabel(`"Hello! Thank you for trying out MasterPlan! I truly do appreciate it.`), SETTINGS_ABOUT)
 
 		row = column.Row()
-		row.Item(NewLabel(`In this free demo, you can fully try out MasterPlan; only saving is disabled.`), SETTINGS_ABOUT)
+		row.Item(NewLabel(`In this free demo, you can fully try it out; only saving is disabled.`), SETTINGS_ABOUT)
 
 		row = column.Row()
-		row.Item(NewLabel(`Hopefully you will find it useful and you'll consider supporting development by`), SETTINGS_ABOUT)
+		row.Item(NewLabel(`Hopefully you will find it useful and consider supporting development by`), SETTINGS_ABOUT)
 
 		row = column.Row()
-		row.Item(NewLabel(`purchasing it. You can click the below button to head to the store page."`), SETTINGS_ABOUT)
+		row.Item(NewLabel(`purchasing it. You can click a button below to head to one of the store pages."`), SETTINGS_ABOUT)
 
 		row = column.Row()
 		row.Item(NewLabel(`"Thank you!" ~ SolarLune`), SETTINGS_ABOUT)
 
 		row = column.Row()
-		project.StorePageButton.IconSrcRec = rl.Rectangle{16, 48, 16, 16}
-		row.Item(project.StorePageButton, SETTINGS_ABOUT)
+		project.ItchStorePageButton.IconSrcRect = rl.Rectangle{16, 48, 16, 16}
+		row.Item(project.ItchStorePageButton, SETTINGS_ABOUT)
+
+		project.SteamStorePageButton.IconSrcRect = rl.Rectangle{48, 48, 16, 16}
+		row.Item(project.SteamStorePageButton, SETTINGS_ABOUT)
 
 	}
 
@@ -555,13 +562,16 @@ func NewProject() *Project {
 
 	row = column.Row()
 
-	project.AboutForumsButton.IconSrcRec = rl.Rectangle{16, 48, 16, 16}
-	row.Item(project.AboutForumsButton, SETTINGS_ABOUT)
+	project.AboutItchForumsButton.IconSrcRect = rl.Rectangle{16, 48, 16, 16}
+	row.Item(project.AboutItchForumsButton, SETTINGS_ABOUT)
 
-	project.AboutDiscordButton.IconSrcRec = rl.Rectangle{0, 48, 16, 16}
+	project.AboutSteamForumsButton.IconSrcRect = rl.Rectangle{48, 48, 16, 16}
+	row.Item(project.AboutSteamForumsButton, SETTINGS_ABOUT)
+
+	project.AboutDiscordButton.IconSrcRect = rl.Rectangle{0, 48, 16, 16}
 	row.Item(project.AboutDiscordButton, SETTINGS_ABOUT)
 
-	project.AboutTwitterButton.IconSrcRec = rl.Rectangle{32, 48, 16, 16}
+	project.AboutTwitterButton.IconSrcRect = rl.Rectangle{32, 48, 16, 16}
 	row.Item(project.AboutTwitterButton, SETTINGS_ABOUT)
 
 	row = column.Row()
@@ -2141,12 +2151,20 @@ func (project *Project) GUI() {
 
 			}
 
-			if project.StorePageButton.Clicked {
+			if project.ItchStorePageButton.Clicked {
 				browser.OpenURL("https://solarlune.itch.io/masterplan")
 			}
 
-			if project.AboutForumsButton.Clicked {
+			if project.SteamStorePageButton.Clicked {
+				browser.OpenURL("https://store.steampowered.com/app/1269310/MasterPlan/")
+			}
+
+			if project.AboutItchForumsButton.Clicked {
 				browser.OpenURL("https://solarlune.itch.io/masterplan/community")
+			}
+
+			if project.AboutSteamForumsButton.Clicked {
+				browser.OpenURL("https://steamcommunity.com/app/1269310/discussions/")
 			}
 
 			if project.AboutDiscordButton.Clicked {
