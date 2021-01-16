@@ -1,8 +1,26 @@
 -------
 
+v0.6.1-2
+
+-------
+
+Removing itch / Steam forums options.
+Removing Steam purchase option from demo (as the demo's only on itch for now, so it doesn't make much sense to add a Steam purchase option).
+FIX: Textboxes wered shared between copied Tasks.
+
+-------
+
+v0.6.1-1
+
+-------
+
+FIX: MasterPlan crashing on start when creating a brand new project.
+
+-------
+
 v0.6.1
 
-------
+-------
 
 Progression Tasks now have buttons to increment and decrement the values (when selected).
 Broken sound icon updated for enhanced readability.
