@@ -1901,7 +1901,7 @@ func (textbox *Textbox) Update() {
 	}
 
 	if textbox.Changed || textbox.triggerTextRedraw {
-		textbox.RedrawText()
+		textbox.RedrawText(false)
 		textbox.triggerTextRedraw = false
 	}
 
@@ -2013,7 +2013,7 @@ func (textbox *Textbox) Draw() {
 
 }
 
-func (textbox *Textbox) RedrawText() {
+func (textbox *Textbox) RedrawText(forceBufferRecreation bool) {
 
 	// if textbox.Buffer.Texture.Height > 0 {
 	// For now, this doesn't work as rl.UnloadRenderTexture() isn't unloading the texture properly
@@ -2076,7 +2076,7 @@ func (textbox *Textbox) RedrawText() {
 
 	textbox.BufferSize.X += 16 // Give us a bit of room horizontally
 
-	if textbox.BufferSize.X == 0 || float32(textbox.Buffer.Texture.Width) < textbox.BufferSize.X || float32(textbox.Buffer.Texture.Height) < textbox.BufferSize.Y {
+	if forceBufferRecreation || (textbox.BufferSize.X == 0 || float32(textbox.Buffer.Texture.Width) < textbox.BufferSize.X || float32(textbox.Buffer.Texture.Height) < textbox.BufferSize.Y) {
 		textbox.Buffer = rl.LoadRenderTexture(textbox.ClosestPowerOfTwo(textbox.BufferSize.X), textbox.ClosestPowerOfTwo(textbox.BufferSize.Y))
 	}
 

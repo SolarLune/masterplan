@@ -311,6 +311,8 @@ func (task *Task) Clone() *Task {
 
 	desc := *copyData.Description
 	copyData.Description = &desc
+	copyData.Description.RedrawText(true) // Force creation of a new buffer because we can't point to the same one
+	copyData.SetPanel()
 
 	tt := *copyData.TaskType
 	copyData.TaskType = &tt
