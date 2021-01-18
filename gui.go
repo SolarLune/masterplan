@@ -1829,9 +1829,15 @@ func (textbox *Textbox) Update() {
 		}
 
 		if keyState[rl.KeyHome] > 0 {
-			textbox.CaretPos = 0
+			textbox.CaretPos -= textbox.PositionInLine(textbox.CaretPos)
 		} else if keyState[rl.KeyEnd] > 0 {
-			textbox.CaretPos = len(textbox.text)
+			// textbox.CaretPos = len(textbox.Lines[textbox.LineNumberByPosition(textbox.CaretPos)])
+			firstNewline := textbox.FindFirstCharAfterCaret('\n', false)
+			if firstNewline >= 0 {
+				textbox.CaretPos = firstNewline
+			} else {
+				textbox.CaretPos = len(textbox.text) + 1
+			}
 		}
 
 		if keyState[rl.KeyBackspace] > 0 {
