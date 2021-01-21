@@ -6,6 +6,6 @@
     "GUI_INSIDE_HIGHLIGHTED":  [60, 60, 60, 255],
     "GUI_INSIDE_DISABLED":     [0, 0, 0, 255],
     "GUI_FONT_COLOR":          [255, 255, 255, 255],
-    "GUI_NOTE_COLOR":          [120, 120, 120, 255],
+    "GUI_NOTE_COLOR":          [80, 80, 80, 255],
     "GUI_SHADOW_COLOR":        [255, 255, 255, 255]
 }

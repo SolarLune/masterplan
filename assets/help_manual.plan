@@ -1,5 +1,5 @@
 {
-  "Version": "0.6.0",
+  "Version": "0.6.1-2",
   "LockProject": true,
   "BoardIndex": 0,
   "BoardCount": 1,
@@ -30,6 +30,8 @@
   "CompleteTasksGlow": true,
   "SelectedTasksGlow": true,
   "ScreenshotsPath": "",
+  "GraphicalTasksTransparent": false,
+  "DeadlineAnimation": 0,
   "BoardNames": ["Welcome"],
   "Tasks": [
     {
@@ -59,8 +61,8 @@
     {
       "BoardIndex": 0,
       "Position.X": 3056,
-      "Position.Y": 352,
-      "Checkbox.Checked": false,
+      "Position.Y": 320,
+      "Checkbox.Checked": true,
       "Progression.Current": 3,
       "Progression.Max": 8,
       "Description": "Rooms sketched for house.\nTheoretically, of course.",
@@ -71,11 +73,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 3088,
-      "Position.Y": 160,
+      "Position.Y": 128,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "But I am completed! ; )",
+      "Description": "But I am completed! ;)",
       "Selected": false,
       "TaskType.CurrentChoice": 0,
       "CreationTime": "May 26 2020 17:25:54",
@@ -84,7 +86,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2992,
-      "Position.Y": 192,
+      "Position.Y": 160,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -96,7 +98,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2992,
-      "Position.Y": 240,
+      "Position.Y": 208,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -108,7 +110,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 3056,
-      "Position.Y": 128,
+      "Position.Y": 96,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -120,7 +122,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 3024,
-      "Position.Y": 48,
+      "Position.Y": 16,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -276,7 +278,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5504,
-      "Position.Y": 1760,
+      "Position.Y": 1936,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -300,11 +302,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1056,
+      "Position.Y": 1184,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "There are both linear and bezier (smoothed) line types.\nYou can toggle between them by opening the Line task\nand selecting the option. Double-clicking on either the\nLine's base or arrowhead will display the option.",
+      "Description": "There are both linear and bezier (smoothed) line types.\nYou can toggle between them by opening the Line task\nand selecting the appropriate option.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 2 2020 16:44:33"
@@ -312,7 +314,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5616,
-      "Position.Y": 1152,
+      "Position.Y": 1280,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -321,12 +323,12 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:44:44",
       "BezierLines": true,
-      "LineEndings": [5680, 1200, 5680, 1136]
+      "LineEndings": [5680, 1328, 5680, 1264]
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 5712,
-      "Position.Y": 1024,
+      "Position.Y": 1152,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -338,7 +340,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5664,
-      "Position.Y": 896,
+      "Position.Y": 1024,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -350,7 +352,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5616,
-      "Position.Y": 928,
+      "Position.Y": 1056,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -362,7 +364,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5552,
-      "Position.Y": 976,
+      "Position.Y": 1104,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -374,7 +376,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5536,
-      "Position.Y": 1184,
+      "Position.Y": 1312,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -383,12 +385,12 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:44:44",
       "BezierLines": false,
-      "LineEndings": [5600, 1152]
+      "LineEndings": [5600, 1280]
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 5504,
-      "Position.Y": 1008,
+      "Position.Y": 1136,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -400,7 +402,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5424,
-      "Position.Y": 880,
+      "Position.Y": 1008,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -483,7 +485,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 2480,
+      "Position.X": 2464,
       "Position.Y": -64,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -555,8 +557,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 4768,
-      "Position.Y": 32,
+      "Position.X": 4736,
+      "Position.Y": 48,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -564,12 +566,12 @@
       "Selected": false,
       "TaskType.CurrentChoice": 0,
       "CreationTime": "May 26 2020 17:32:35",
-      "CompletionTime": "Jun 2 2020 16:31:06"
+      "CompletionTime": "Jan 21 2021 12:34:19"
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 4704,
-      "Position.Y": 624,
+      "Position.Y": 832,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -593,8 +595,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 4768,
-      "Position.Y": 80,
+      "Position.X": 4736,
+      "Position.Y": 96,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -617,8 +619,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 4768,
-      "Position.Y": 64,
+      "Position.X": 4736,
+      "Position.Y": 80,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -629,8 +631,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 4768,
-      "Position.Y": 48,
+      "Position.X": 4736,
+      "Position.Y": 64,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -638,12 +640,12 @@
       "Selected": false,
       "TaskType.CurrentChoice": 0,
       "CreationTime": "May 26 2020 17:32:44",
-      "CompletionTime": "Jun 2 2020 16:31:05"
+      "CompletionTime": "Jan 21 2021 12:34:15"
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 4736,
-      "Position.Y": 352,
+      "Position.Y": 528,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -655,7 +657,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4704,
-      "Position.Y": 640,
+      "Position.Y": 848,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -667,11 +669,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 816,
+      "Position.Y": 912,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Line Tasks will point toward another Task if \nthey're touching it.",
+      "Description": "Line Tasks will point toward another Task if \nthey're touching it, and the arrow head will turn\ninto an \"X\" if it's directly over another Task,\nlike so:",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 2 2020 16:56:13"
@@ -679,7 +681,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4704,
-      "Position.Y": 608,
+      "Position.Y": 816,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -692,7 +694,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4688,
-      "Position.Y": 448,
+      "Position.Y": 640,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -704,7 +706,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4752,
-      "Position.Y": 368,
+      "Position.Y": 544,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -717,7 +719,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4704,
-      "Position.Y": 656,
+      "Position.Y": 864,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -728,8 +730,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 5760,
-      "Position.Y": 832,
+      "Position.X": 5792,
+      "Position.Y": 960,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -738,12 +740,12 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:56:05",
       "BezierLines": false,
-      "LineEndings": [5712, 832]
+      "LineEndings": [5520, 960]
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 784,
+      "Position.Y": 864,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -752,12 +754,12 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:56:05",
       "BezierLines": false,
-      "LineEndings": [5728, 784]
+      "LineEndings": [5728, 864]
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 4688,
-      "Position.Y": 576,
+      "Position.Y": 784,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -769,7 +771,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4752,
-      "Position.Y": 384,
+      "Position.Y": 560,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -782,7 +784,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4752,
-      "Position.Y": 400,
+      "Position.Y": 576,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -806,7 +808,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4752,
-      "Position.Y": 416,
+      "Position.Y": 592,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -818,7 +820,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4704,
-      "Position.Y": 592,
+      "Position.Y": 800,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -843,11 +845,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 4672,
-      "Position.Y": 304,
+      "Position.Y": 416,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "In the below example, note that the quilt Task is considered\ncomplete only when all four of its sub-Tasks are complete.",
+      "Description": "In the below example, note that the quilt Task is considered\ncomplete only when all four of its sub-Tasks are complete.\nThe parent Task, \"Finish the quilt.\", is just an ordinary\nCheck Box Task, but becomes a multi-stage Task when other\ncompletable Tasks are placed under it and are indented.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 2 2020 16:36:11"
@@ -855,7 +857,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4720,
-      "Position.Y": 672,
+      "Position.Y": 880,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -867,7 +869,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4688,
-      "Position.Y": 496,
+      "Position.Y": 688,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -896,7 +898,7 @@
       "Progression.Current": 0,
       "Progression.Max": 0,
       "Description": "Let's scroll to the right again to learn more about\nediting Tasks.",
-      "Selected": true,
+      "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "May 26 2020 17:12:19"
     }, 
@@ -943,7 +945,7 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "You can zoom in and out by using the mouse wheel,\nor by pressing the 1 - 5 number keys.",
+      "Description": "You can zoom in and out by using the mouse wheel,\nor by pressing the 1 - 6 number keys.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "May 26 2020 16:52:42"
@@ -1023,7 +1025,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 3008,
-      "Position.Y": 304,
+      "Position.Y": 272,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1035,11 +1037,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 3024,
-      "Position.Y": 384,
+      "Position.Y": 352,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "For a Progression Task to be completed, the current\nnumber has to match the maximum number.",
+      "Description": "For a Progression Task to be complete, the current\nnumber (3 in the example above) has to match the \nmaximum number (8 in the example above).",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "May 26 2020 17:30:18"
@@ -1047,7 +1049,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 2992,
-      "Position.Y": 80,
+      "Position.Y": 48,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1071,7 +1073,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 3072,
-      "Position.Y": 496,
+      "Position.Y": 560,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1118,15 +1120,15 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 3120,
-      "Position.Y": 16,
+      "Position.X": 2976,
+      "Position.Y": 496,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "COMPLETION",
+      "Description": "You can also edit the Tasks to increase the current level of completion,\nor select the Task and press the + and - buttons at the left on the Task \nitself.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
-      "CreationTime": "May 26 2020 17:24:46"
+      "CreationTime": "Jan 21 2021 12:15:58"
     }, 
     {
       "BoardIndex": 0,
@@ -1155,7 +1157,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5488,
-      "Position.Y": 1024,
+      "Position.Y": 1152,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1164,12 +1166,12 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Jun 2 2020 16:42:36",
       "BezierLines": false,
-      "LineEndings": [5696, 1024, 5488, 896]
+      "LineEndings": [5696, 1152, 5488, 1024]
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 4672,
-      "Position.Y": 752,
+      "Position.Y": 976,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1181,11 +1183,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 5440,
-      "Position.Y": 688,
+      "Position.Y": 768,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Line Tasks are lines that can be placed wherever you want\non your board. You can add more arrowheads by copying \nand pasting the arrow end of the Line specifically. You can\ndelete arrowheads similarly simply. If all arrows are\ndeleted, the base also deleted.",
+      "Description": "Line Tasks are lines that can be placed wherever you want\non your board. You can add more arrowheads by copying \nand pasting the arrow end of the Line. You can\ndelete arrowheads similarly simply. If all arrows are\ndeleted, the base also deleted.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 2 2020 16:42:42"
@@ -1193,11 +1195,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 4672,
-      "Position.Y": 176,
+      "Position.Y": 256,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "If you use the arrow keys alone, you can navigate around\nthat way as well.",
+      "Description": "If you use the arrow keys alone, you can select\nTasks that way as well. The Tab and Shift+Tab\nkeys can be used to cycle through Tasks that are\nnearby each other.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 2 2020 16:46:58"
@@ -1205,7 +1207,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 4656,
-      "Position.Y": 704,
+      "Position.Y": 928,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1265,8 +1267,8 @@
     {
       "BoardIndex": 0,
       "Position.X": 5472,
-      "Position.Y": 368,
-      "ImageDisplaySize.X": 256,
+      "Position.Y": 416,
+      "ImageDisplaySize.X": 272,
       "ImageDisplaySize.Y": 128,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1284,7 +1286,7 @@
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Image Tasks display images on your board. You can browse for an image\non your computer, or give it a URL to an image on the Internet for\nMasterPlan to download and put in a temporary folder for use in your\nproject. Note that this process can take time depending on the\ndownloaded file's size, and that MasterPlan will download the\nresource only for the current project session. (The file will be\ndeleted when MasterPlan exits.)",
+      "Description": "Image Tasks display images, naturally. You can browse for an image\non your computer, or give it a URL to an image on the Internet for\nMasterPlan to download and put in a temporary folder for use in your\nproject. \n\nNote that this process can take time depending on the\ndownloaded file's size, and that MasterPlan will download the\nresource only for the current project session. (The file will be\ndeleted when MasterPlan exits.)",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "May 26 2020 17:48:44"
@@ -1292,11 +1294,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 4672,
-      "Position.Y": 224,
+      "Position.Y": 336,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "What's more, Tasks that indent and outdent will change\ntheir numbering accordingly to account for being \n\"Sub-Tasks\" for a parent Task. They indicate discrete\n\"stages\" to be completed for the parent Task.",
+      "Description": "Tasks that indent and outdent will change\ntheir numbering accordingly to account for being \n\"Sub-Tasks\" for a parent Task. They indicate discrete\n\"stages\" to be completed for the parent.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "May 26 2020 23:54:01"
@@ -1328,11 +1330,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 4672,
-      "Position.Y": 112,
+      "Position.Y": 176,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Try moving Tasks around above to see the numbering\nchange dynamically. You can do this by clicking and dragging\non a Task, or by holding Ctrl, and using the arrow keys.",
+      "Description": "Try moving Tasks around above to see the numbering\nchange dynamically. You can do this by clicking and dragging\non a Task, or by selecting a Task and then pressing Control and\nan arrow key to slide a Task in that direction.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 2 2020 16:30:34"
@@ -1351,12 +1353,12 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 9024,
+      "Position.X": 9008,
       "Position.Y": -64,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Well, that's basically it for now; I'm tired.\nThere's more to MasterPlan in the future,\nbut for now, I'll leave this help doc here.\n\nThank you very much for using MasterPlan,\nand I hope you enjoy it. If you would like to\ndiscuss MasterPlan, request features,\nor report bugs, please feel free to do so\non the forum, which can be reached by right-\nclicking and selecting the option to do so.\n\nThanks, again!!!\n\n~SolarLune",
+      "Description": "Well, that's basically it for now; I'm tired.\nThere's more to MasterPlan in the future,\nbut for now, I'll leave this help doc here.\n\nThank you very much for using MasterPlan,\nand I hope you enjoy it. If you would like to\ndiscuss MasterPlan, request features,\nor report bugs, please feel free to do so\non the forum or Discord. \n\n(You can reach the Discord from the About\nsection of the Settings menu.)\n\nThanks, again!!!\n\n~SolarLune",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Jun 2 2020 17:11:23"
@@ -1364,7 +1366,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5424,
-      "Position.Y": 512,
+      "Position.Y": 592,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1376,7 +1378,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5392,
-      "Position.Y": 608,
+      "Position.Y": 688,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1385,13 +1387,13 @@
       "TaskType.CurrentChoice": 5,
       "TimerSecondSpinner.Number": 10,
       "TimerMinuteSpinner.Number": 0,
-      "TimerName.Text": "Timers are... Well, timers. They count down to a specific time.",
+      "TimerName.Text": "Timers are... well, timers. They count down to a specific time.",
       "CreationTime": "Jun 2 2020 16:41:04"
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 560,
+      "Position.Y": 640,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1403,7 +1405,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5440,
-      "Position.Y": 640,
+      "Position.Y": 720,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1414,7 +1416,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 3120,
+      "Position.X": 3136,
       "Position.Y": -96,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1901,11 +1903,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 5424,
-      "Position.Y": 240,
+      "Position.Y": 272,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "To scale an image, select it, and then click and drag on the\nbox at the bottom-right. It will automatically lock to the grid as\nyou do so. Hold SHIFT while doing so to have it not lock to the grid, \nand hold ALT to scale images independent of their original aspect\nratio. The box at the top-left of the image will reset it to its original\nsize.",
+      "Description": "To scale an image, select it, and then click and drag on the small\nbox at its bottom-right. It will automatically lock to the grid as\nyou do so. Hold SHIFT while doing so to have it not lock to the grid, \nand hold ALT to scale images independent of their original aspect\nratio. The box at the top-left of the image will reset it to its original\nsize.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Aug 10 2020 23:55:06"
@@ -1913,7 +1915,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5520,
-      "Position.Y": 1248,
+      "Position.Y": 1376,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1925,7 +1927,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5440,
-      "Position.Y": 1280,
+      "Position.Y": 1408,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1937,7 +1939,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5440,
-      "Position.Y": 1504,
+      "Position.Y": 1632,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1949,11 +1951,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1616,
+      "Position.Y": 1744,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "When editing, left-click places blocks, and right-click\nerases them. Similarly to Image Tasks, Map Tasks can\nbe resized by clicking and dragging on the bottom-\nright corner. Note that there is a maximum size for\nMaps, which is 512x512 pixels, or 32x32 cells.",
+      "Description": "When editing, left-click places blocks, and right-click\nerases them. Similarly to Image Tasks, Map Tasks can\nbe resized by clicking and dragging on the bottom-\nright corner. Note that there is a maximum size for\nMaps, which is 32x32.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Aug 26 2020 23:36:27"
@@ -1961,11 +1963,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1712,
+      "Position.Y": 1840,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "You can also place custom images or other Tasks on \ntop of Maps to help visualize your map.",
+      "Description": "You can also place custom images or other Tasks on \ntop of Maps to help visualize your map. The grid is\n16x16, so 16x16 icons would be perfectly sized for\nuse on Maps.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Aug 26 2020 23:36:44"
@@ -1973,8 +1975,8 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1376,
-      "ImageDisplaySize.X": 304,
+      "Position.Y": 1504,
+      "ImageDisplaySize.X": 320,
       "ImageDisplaySize.Y": 112,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1984,18 +1986,18 @@
       "TaskType.CurrentChoice": 7,
       "CreationTime": "Aug 26 2020 23:37:40",
       "MapData": [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
-        [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0], 
-        [0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0], 
-        [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0], 
-        [0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0], 
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+        [0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0], 
+        [0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0], 
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0], 
+        [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0], 
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
       ]
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 5488,
-      "Position.Y": 1440,
+      "Position.X": 5472,
+      "Position.Y": 1600,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2007,7 +2009,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5776,
-      "Position.Y": 1440,
+      "Position.Y": 1568,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2018,8 +2020,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 5760,
-      "Position.Y": 1440,
+      "Position.X": 5776,
+      "Position.Y": 1584,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2028,19 +2030,22 @@
       "TaskType.CurrentChoice": 6,
       "CreationTime": "Aug 26 2020 23:38:50",
       "BezierLines": false,
-      "LineEndings": [5696, 1440]
+      "LineEndings": [5696, 1568]
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 5648,
-      "Position.Y": 1408,
+      "Position.X": 5600,
+      "Position.Y": 1584,
+      "ImageDisplaySize.X": 16,
+      "ImageDisplaySize.Y": 16,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Gate",
+      "Description": "",
+      "FilePath": ["manual_images", "BrickIcon.png"],
       "Selected": false,
-      "TaskType.CurrentChoice": 2,
-      "CreationTime": "Aug 26 2020 23:38:59"
+      "TaskType.CurrentChoice": 3,
+      "CreationTime": "Jan 21 2021 12:47:59"
     }, 
     {
       "BoardIndex": 0,
@@ -2117,11 +2122,11 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 2096,
+      "Position.Y": 2272,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "You can drag and drop files from your computer onto\nMasterPlan, and it will attempt to turn them into\nrelevant Tasks (i.e. image files become Image Tasks,\nsound files become Sound Tasks, text files become\nNotes, etc). You can also do this by using the Paste\nContent context menu option (defaulted to Control+\nShift+V), which will attempt to use the information in\nthe computer clipboard to paste a relevant Task\ninto MasterPlan.",
+      "Description": "You can drag and drop files from your computer onto\nMasterPlan, and it will attempt to turn them into\nrelevant Tasks (i.e. image files become Image Tasks,\nsound files become Sound Tasks, text files become\nNotes, etc). You can also do this by using the Paste\nContent context menu option (defaulted to Control+\nShift+V), which will attempt to use the information in\nthe computer clipboard to paste a relevant Task\ninto MasterPlan. This also works with URLs copied\nfrom a browser, for example.",
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Oct 17 2020 19:24:40"
@@ -2129,7 +2134,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5472,
-      "Position.Y": 1792,
+      "Position.Y": 1968,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2141,7 +2146,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5456,
-      "Position.Y": 1888,
+      "Position.Y": 2064,
       "ImageDisplaySize.X": 304,
       "ImageDisplaySize.Y": 96,
       "Checkbox.Checked": false,
@@ -2197,7 +2202,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 5472,
-      "Position.Y": 2000,
+      "Position.Y": 2176,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2208,8 +2213,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 5504,
-      "Position.Y": 2256,
+      "Position.X": 5488,
+      "Position.Y": 2448,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -2241,6 +2246,141 @@
       "Selected": false,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Oct 27 2020 00:16:46"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 4752,
+      "Position.Y": 112,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Jeremy's kind of a weird name for a dog...",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Jan 21 2021 12:34:27"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 4736,
+      "Position.Y": 128,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Think up a different name for Jeremy.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Jan 21 2021 12:34:39"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 4416,
+      "Position.Y": 96,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "As you can see, only Tasks that can be \ncompleted are numberable, but any Task\ncan extend a numbered list simply by\ntouching it.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Jan 21 2021 12:34:48"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5600,
+      "Position.Y": 1568,
+      "ImageDisplaySize.X": 16,
+      "ImageDisplaySize.Y": 16,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "",
+      "FilePath": ["manual_images", "BrickIcon.png"],
+      "Selected": false,
+      "TaskType.CurrentChoice": 3,
+      "CreationTime": "Jan 21 2021 12:47:59"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5488,
+      "Position.Y": 1568,
+      "ImageDisplaySize.X": 16,
+      "ImageDisplaySize.Y": 16,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "",
+      "FilePath": ["manual_images", "DeliverymanIcon.png"],
+      "Selected": false,
+      "TaskType.CurrentChoice": 3,
+      "CreationTime": "Jan 21 2021 12:47:59"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5552,
+      "Position.Y": 1520,
+      "ImageDisplaySize.X": 16,
+      "ImageDisplaySize.Y": 16,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "",
+      "FilePath": ["manual_images", "KeyIcon.png"],
+      "Selected": false,
+      "TaskType.CurrentChoice": 3,
+      "CreationTime": "Jan 21 2021 12:47:59"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5664,
+      "Position.Y": 1536,
+      "ImageDisplaySize.X": 16,
+      "ImageDisplaySize.Y": 16,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "",
+      "FilePath": ["manual_images", "LockIcon.png"],
+      "Selected": false,
+      "TaskType.CurrentChoice": 3,
+      "CreationTime": "Jan 21 2021 12:47:59"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5728,
+      "Position.Y": 1568,
+      "ImageDisplaySize.X": 16,
+      "ImageDisplaySize.Y": 16,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "",
+      "FilePath": ["manual_images", "LockIcon.png"],
+      "Selected": false,
+      "TaskType.CurrentChoice": 3,
+      "CreationTime": "Jan 21 2021 12:47:59"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 5680,
+      "Position.Y": 1504,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Introduction",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Aug 26 2020 23:38:37"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 6128,
+      "Position.Y": 608,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Open Tutorial - This will open this tutorial project\nfrom anywhere, allowing you to refer back to this information\nwhen necessary. Note that it is effectively loading this project\nin, so you should save your previous project before opening this\nTutorial in the future.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Jan 21 2021 12:50:47"
     }
   ]
 }
