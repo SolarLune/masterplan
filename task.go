@@ -1707,7 +1707,7 @@ func (task *Task) UpdateNeighbors() {
 	task.TaskBelow = nil
 	task.TaskUnder = nil
 
-	tasks := task.Board.GetTasksInRect(task.Position.X+gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
+	tasks := task.Board.TasksInRect(task.Position.X+gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
 	sortfunc := func(i, j int) bool {
 		return tasks[i].Numberable() || (tasks[i].Is(TASK_TYPE_NOTE) && !tasks[j].Numberable()) // Prioritize numberable Tasks or Notes to be counted as neighbors (though other Tasks can be neighbors still)
 	}
@@ -1720,7 +1720,7 @@ func (task *Task) UpdateNeighbors() {
 		}
 	}
 
-	tasks = task.Board.GetTasksInRect(task.Position.X-gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
+	tasks = task.Board.TasksInRect(task.Position.X-gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
 	sort.Slice(tasks, sortfunc)
 
 	for _, t := range tasks {
@@ -1730,7 +1730,7 @@ func (task *Task) UpdateNeighbors() {
 		}
 	}
 
-	tasks = task.Board.GetTasksInRect(task.Position.X, task.Position.Y-gs, task.Rect.Width, task.Rect.Height)
+	tasks = task.Board.TasksInRect(task.Position.X, task.Position.Y-gs, task.Rect.Width, task.Rect.Height)
 	sort.Slice(tasks, sortfunc)
 
 	for _, t := range tasks {
@@ -1740,7 +1740,7 @@ func (task *Task) UpdateNeighbors() {
 		}
 	}
 
-	tasks = task.Board.GetTasksInRect(task.Position.X, task.Position.Y+gs, task.Rect.Width, task.Rect.Height)
+	tasks = task.Board.TasksInRect(task.Position.X, task.Position.Y+gs, task.Rect.Width, task.Rect.Height)
 	sort.Slice(tasks, sortfunc)
 	for _, t := range tasks {
 		if t != task {
@@ -1749,11 +1749,28 @@ func (task *Task) UpdateNeighbors() {
 		}
 	}
 
-	tasks = task.Board.GetTasksInRect(task.Position.X, task.Position.Y, task.Rect.Width, task.Rect.Height)
+	tasks = task.Board.TasksInRect(task.Position.X, task.Position.Y, task.Rect.Width, task.Rect.Height)
 	sort.Slice(tasks, sortfunc)
 	for _, t := range tasks {
 		if t != task {
 			task.TaskUnder = t
+
+			if task.TaskUnder == task.TaskAbove {
+				task.TaskAbove = nil
+			}
+
+			if task.TaskUnder == task.TaskRight {
+				task.TaskRight = nil
+			}
+
+			if task.TaskUnder == task.TaskLeft {
+				task.TaskLeft = nil
+			}
+
+			if task.TaskUnder == task.TaskBelow {
+				task.TaskBelow = nil
+			}
+
 			break
 		}
 	}
@@ -2592,7 +2609,7 @@ func (task *Task) Move(dx, dy float32) {
 
 	for !free {
 
-		tasksInRect := task.Board.GetTasksInRect(task.Position.X+dx, task.Position.Y+dy, task.Rect.Width, task.Rect.Height)
+		tasksInRect := task.Board.TasksInRect(task.Position.X+dx, task.Position.Y+dy, task.Rect.Width, task.Rect.Height)
 
 		if len(tasksInRect) == 0 || (len(tasksInRect) == 1 && tasksInRect[0] == task) {
 			task.Position.X += dx
@@ -2652,4 +2669,42 @@ func (task *Task) Is(taskTypes ...int) bool {
 		}
 	}
 	return false
+}
+
+func (task *Task) NearestPointInRect(point rl.Vector2) rl.Vector2 {
+
+	if point.Y > task.Position.Y+task.Rect.Height {
+		point.Y = task.Position.Y + task.Rect.Height
+	} else if point.Y < task.Position.Y {
+		point.Y = task.Position.Y
+	}
+
+	if point.X > task.Position.X+task.Rect.Width {
+		point.X = task.Position.X + task.Rect.Width
+	} else if point.X < task.Position.X {
+		point.X = task.Position.X
+	}
+
+	return point
+
+}
+
+func (task *Task) Center() rl.Vector2 {
+	pos := task.Position
+	pos.X += task.Rect.Width / 2
+	pos.Y += task.Rect.Height / 2
+	return pos
+}
+
+// DistanceTo returns the distance to the other Task, measuring from the closest point on each Task.
+func (task *Task) DistanceTo(other *Task) float32 {
+
+	c1 := task.Center()
+	c2 := other.Center()
+
+	xd := math.Abs(float64(c1.X-c2.X)) - float64((task.Rect.Width+other.Rect.Width)/2)
+	yd := math.Abs(float64(c1.Y-c2.Y)) - float64((task.Rect.Height+other.Rect.Height)/2)
+
+	return float32(math.Max(math.Max(xd, yd), 0))
+
 }

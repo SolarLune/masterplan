@@ -465,12 +465,12 @@ func (board *Board) Destroy() {
 	}
 }
 
-func (board *Board) GetTasksInPosition(x, y float32) []*Task {
+func (board *Board) TasksInPosition(x, y float32) []*Task {
 	cx, cy := board.Project.WorldToGrid(x, y)
 	return board.TaskLocations[Position{cx, cy}]
 }
 
-func (board *Board) GetTasksInRect(x, y, w, h float32) []*Task {
+func (board *Board) TasksInRect(x, y, w, h float32) []*Task {
 
 	tasks := []*Task{}
 
@@ -487,7 +487,7 @@ func (board *Board) GetTasksInRect(x, y, w, h float32) []*Task {
 
 		for cx := x; cx < x+w; cx += float32(board.Project.GridSize) {
 
-			for _, t := range board.GetTasksInPosition(cx, cy) {
+			for _, t := range board.TasksInPosition(cx, cy) {
 				if !added(t) {
 					tasks = append(tasks, t)
 				}

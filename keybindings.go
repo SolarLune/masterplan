@@ -163,6 +163,8 @@ const (
 	KBSelectTaskRight         = "Select / Slide Task Right"
 	KBSelectTaskBelow         = "Select / Slide Task Below"
 	KBSelectTaskLeft          = "Select / Slide Task Left"
+	KBSelectNextTask          = "Select Next Nearby Task"
+	KBSelectPrevTask          = "Select Previous Nearby Task"
 	KBSelectTopTaskInStack    = "Select Top Task in Stack"
 	KBSelectBottomTaskInStack = "Select Bottom Task in Stack"
 	KBSlideTask               = "Slide Task Modifier"
@@ -377,6 +379,8 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBSelectTaskLeft, rl.KeyLeft).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTaskBelow, rl.KeyDown).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTaskRight, rl.KeyRight).triggerMode = TriggerModeRepeating
+	kb.Define(KBSelectNextTask, rl.KeyTab).triggerMode = TriggerModeRepeating
+	kb.Define(KBSelectPrevTask, rl.KeyTab, rl.KeyLeftShift).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTopTaskInStack, rl.KeyPageUp)
 	kb.Define(KBSelectBottomTaskInStack, rl.KeyPageDown)
 

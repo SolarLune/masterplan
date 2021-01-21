@@ -1728,21 +1728,41 @@ func (project *Project) Shortcuts() {
 
 							} else {
 
-								for _, t := range selected.Board.Tasks {
-									if right && t.Position.X > selected.Position.X {
-										others = append(others, t)
-									} else if down && t.Position.Y > selected.Position.Y {
-										others = append(others, t)
-									} else if left && t.Position.X < selected.Position.X {
-										others = append(others, t)
-									} else if up && t.Position.Y < selected.Position.Y {
-										others = append(others, t)
+								x, y := selected.Position.X, selected.Position.Y
+								w, h := selected.Rect.Width, selected.Rect.Height
+
+								if right {
+									x += selected.Rect.Width
+								} else if down {
+									y += selected.Rect.Height
+								}
+
+								if right || left {
+									w = 1024
+								} else if up || down {
+									h = 1024
+								}
+
+								if left {
+									x -= w
+								} else if up {
+									y -= h
+								}
+
+								nearest := selected.Board.TasksInRect(x, y, w, h)
+
+								for _, t := range nearest {
+
+									if t == selected {
+										continue
 									}
+
+									others = append(others, t)
+
 								}
 
 								sort.Slice(others, func(i, j int) bool {
-									return rl.Vector2Distance(others[i].Position, selected.Position) <
-										rl.Vector2Distance(others[j].Position, selected.Position)
+									return selected.DistanceTo(others[i]) < selected.DistanceTo(others[j])
 								})
 
 							}
@@ -1763,6 +1783,77 @@ func (project *Project) Shortcuts() {
 							}
 
 							project.CurrentBoard().FocusViewOnSelectedTasks()
+
+						}
+
+					}
+
+				} else if keybindings.On(KBSelectNextTask) || keybindings.On(KBSelectPrevTask) {
+
+					if len(selectedTasks) > 0 {
+
+						selected := selectedTasks[0]
+
+						next := keybindings.On(KBSelectNextTask)
+						prev := keybindings.On(KBSelectPrevTask)
+
+						index := -1
+						checkDistance := float32(256)
+
+						visibleTasks := func() []*Task {
+
+							tasks := []*Task{}
+
+							for _, t := range project.CurrentBoard().Tasks {
+								if t.Visible && t.DistanceTo(selected) < checkDistance {
+									tasks = append(tasks, t)
+								}
+
+							}
+
+							return tasks
+
+						}
+
+						if selected.Is(TASK_TYPE_LINE) {
+
+							if selected.LineBase == nil {
+								checkDistance = rl.Vector2Distance(selected.Position, selected.LineEndings[0].Position)
+							} else {
+								checkDistance = rl.Vector2Distance(selected.Position, selected.LineBase.Position)
+							}
+							checkDistance += 64
+
+						}
+
+						if next || prev {
+
+							tasks := visibleTasks()
+
+							sort.Slice(tasks, func(i, j int) bool {
+
+								return tasks[i].Position.Y < tasks[j].Position.Y || (tasks[i].Position.Y == tasks[j].Position.Y && tasks[i].Position.X < tasks[j].Position.X)
+							})
+
+							for i, t := range tasks {
+								if t == selected {
+									index = i
+								}
+							}
+
+							if index >= 0 {
+
+								if next && index < len(tasks)-1 {
+									index++
+								} else if prev && index >= 1 {
+									index--
+								}
+
+								project.SendMessage(MessageSelect, map[string]interface{}{"task": tasks[index]})
+
+								project.CurrentBoard().FocusViewOnSelectedTasks()
+
+							}
 
 						}
 
@@ -1822,19 +1913,14 @@ func (project *Project) Shortcuts() {
 
 			}
 
-			if project.Searchbar.Focused && rl.IsKeyPressed(rl.KeyEnter) {
-				if keybindings.On(KBAddToSelection) {
-					project.FocusedSearchTask--
-				} else {
-					project.FocusedSearchTask++
-				}
-				project.SearchForTasks()
-			}
-
 			if project.Searchbar.Focused {
 
 				if rl.IsKeyPressed(rl.KeyEnter) {
-					project.FocusedSearchTask++
+					if keybindings.On(KBAddToSelection) {
+						project.FocusedSearchTask--
+					} else {
+						project.FocusedSearchTask++
+					}
 				}
 
 				if keybindings.On(KBFindPreviousTask) {
