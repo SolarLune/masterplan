@@ -602,8 +602,11 @@ func (panel *Panel) Update() {
 						rect.Y = y - (rect.Height / 2)
 					}
 
-					if spinner, isSpinner := item.Element.(*Spinner); isSpinner && spinner.Expanded {
-						lowestY += spinner.ExpandedHeight()
+					if spinner, isSpinner := item.Element.(*Spinner); isSpinner && spinner.Expanded && !spinner.ExpandUpwards {
+						ly := spinner.Rect.Y + spinner.ExpandedHeight()
+						if ly > lowestY {
+							lowestY = ly
+						}
 					}
 
 					item.Element.SetRectangle(rect)
