@@ -99,7 +99,7 @@ func main() {
 
 	rl.SetTraceLog(rl.LogError)
 
-	programSettings.Load()
+	settingsLoaded := programSettings.Load()
 
 	windowFlags := byte(rl.FlagWindowResizable)
 
@@ -206,18 +206,29 @@ func main() {
 
 			if attemptAutoload == 0 {
 
-				//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
+				// If the settings aren't successfully loaded, it's safe to assume it's because they don't exist, because the program is first loading.
+				if !settingsLoaded {
 
-				var loaded *Project
+					if loaded := LoadProject(GetPath("assets", "help_manual.plan")); loaded != nil {
+						currentProject = loaded
+					}
 
-				if len(os.Args) > 1 {
-					loaded = LoadProject(os.Args[1])
-				} else if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
-					loaded = LoadProject(programSettings.RecentPlanList[0])
-				}
+				} else {
 
-				if loaded != nil {
-					currentProject = loaded
+					//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
+
+					var loaded *Project
+
+					if len(os.Args) > 1 {
+						loaded = LoadProject(os.Args[1])
+					} else if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
+						loaded = LoadProject(programSettings.RecentPlanList[0])
+					}
+
+					if loaded != nil {
+						currentProject = loaded
+					}
+
 				}
 
 			}

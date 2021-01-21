@@ -43,7 +43,7 @@ func NewProgramSettings() ProgramSettings {
 	ps := ProgramSettings{
 		RecentPlanList:         []string{},
 		TargetFPS:              60,
-		UnfocusedFPS:           10,
+		UnfocusedFPS:           60,
 		WindowPosition:         rl.NewRectangle(-1, -1, 0, 0),
 		SaveWindowPosition:     true,
 		SmoothPanning:          true,
@@ -79,7 +79,9 @@ func (ps *ProgramSettings) Save() {
 	}
 }
 
-func (ps *ProgramSettings) Load() {
+// Load attempts to load the ProgramSettings from the pre-configured settings directory. If the file doesn't exist, then it will attemp to load the settings from the
+// original legacy path (the program's working directory). Load returns true when the settings were loaded without error, and false otherwise.
+func (ps *ProgramSettings) Load() bool {
 	path, _ := xdg.ConfigFile(SETTINGS_PATH)
 	settingsJSON, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -89,6 +91,8 @@ func (ps *ProgramSettings) Load() {
 	if err == nil {
 		json.Unmarshal(settingsJSON, ps)
 	}
+
+	return err == nil
 
 }
 
