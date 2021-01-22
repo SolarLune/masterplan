@@ -1320,7 +1320,7 @@ func (numberSpinner *NumberSpinner) Clone() *NumberSpinner {
 	newSpinner.Textbox.MaxCharactersPerLine = numberSpinner.Textbox.MaxCharactersPerLine
 	newSpinner.Textbox.HorizontalAlignment = numberSpinner.Textbox.HorizontalAlignment
 	newSpinner.Textbox.VerticalAlignment = numberSpinner.Textbox.VerticalAlignment
-	newSpinner.Textbox.SetText(numberSpinner.Textbox.Text())
+	newSpinner.Textbox = numberSpinner.Textbox.Clone()
 	return newSpinner
 }
 
@@ -1372,6 +1372,13 @@ func NewTextbox(x, y, w, h float32) *Textbox {
 	allTextboxes = append(allTextboxes, textbox)
 
 	return textbox
+}
+
+func (textbox *Textbox) Clone() *Textbox {
+	newTextbox := *textbox
+	newTextbox.SetText(textbox.Text())
+	newTextbox.RedrawText(true)
+	return &newTextbox
 }
 
 func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
