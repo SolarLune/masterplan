@@ -1,12 +1,30 @@
 -------
 
+v0.6.1-3
+
+-------
+
+Updating manual.
+Note icon is slightly more readable. Clock icon is less flat.
+Pattern changes to be more readable.
+Adding small icons for example usage in tutorial.
+Fixing note and outline color being the same for Event Horizon theme.
+MasterPlan now opens the tutorial on first launch (whenever the program settings doesn't exist, which should be sensible).
+Set unfocused FPS to 60 by default (again).
+FIX: Spinner expanding up kicks panel down. This should also fix the Spinner expanding the panel by too much, and regardless of if it's necessary (because the panel is already expanded enough).
+Task selection improvements - selecting Tasks that are in a strict direction from another Task now works much more reliably, at the cost of being less "fuzzy" (so you can't select a Task that is slightly below and to the right of another Task using the right arrow key anymore, for example). 
+To remedy this, I am also adding shortcuts to select nearby Tasks. These shortcuts should fairly reliably allow for selecting Tasks nearby the currently selected one, moving in a roughly cyclical manner (from top to bottom, and from left to right).
+FIX: Home and End behavior changed for Textboxes. Home and End now jump to start and end of current line, rather than start or end of the entire Textbox, as per standard text editor behavior.
+
+-------
+
 v0.6.1-2
 
 -------
 
 Removing itch / Steam forums options.
 Removing Steam purchase option from demo (as the demo's only on itch for now, so it doesn't make much sense to add a Steam purchase option).
-FIX: Textboxes wered shared between copied Tasks.
+FIX: Textboxes were previously shared between copied Tasks.
 
 -------
 
