@@ -309,11 +309,7 @@ func (task *Task) SetPanel() {
 func (task *Task) Clone() *Task {
 	copyData := *task // By de-referencing and then making another reference, we should be essentially copying the struct
 
-	desc := *copyData.Description
-	copyData.Description = &desc
-	copyData.Description.SetText(task.Description.Text())
-	copyData.Description.RedrawText(true) // Force creation of a new buffer because we can't point to the same one
-	copyData.SetPanel()
+	copyData.Description = task.Description.Clone()
 
 	tt := *copyData.TaskType
 	copyData.TaskType = &tt
@@ -325,14 +321,12 @@ func (task *Task) Clone() *Task {
 	copyData.CompletionProgressionCurrent = task.CompletionProgressionCurrent.Clone()
 	copyData.CompletionProgressionMax = task.CompletionProgressionMax.Clone()
 
-	cPath := *copyData.FilePathTextbox
-	copyData.FilePathTextbox = &cPath
+	copyData.FilePathTextbox = task.FilePathTextbox.Clone()
 
 	copyData.TimerMinuteSpinner = task.TimerMinuteSpinner.Clone()
 	copyData.TimerSecondSpinner = task.TimerSecondSpinner.Clone()
 
-	timerName := *copyData.TimerName
-	copyData.TimerName = &timerName
+	copyData.TimerName = copyData.TimerName.Clone()
 
 	dlc := *copyData.DeadlineCheckbox
 	copyData.DeadlineCheckbox = &dlc
