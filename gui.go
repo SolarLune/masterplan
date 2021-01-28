@@ -1381,6 +1381,10 @@ func (textbox *Textbox) Clone() *Textbox {
 	return &newTextbox
 }
 
+func (textbox *Textbox) IsEmpty() bool {
+	return len(textbox.text) == 0
+}
+
 func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
 	if len(textbox.CharToRect) > 0 {
@@ -2277,8 +2281,8 @@ func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bo
 
 	height, lineCount := TextHeight(text, guiMode)
 
-	pos.X = float32(int32(pos.X))
-	pos.Y = float32(int32(pos.Y))
+	// pos.X = float32(int32(pos.X))
+	// pos.Y = float32(int32(pos.Y))
 
 	for _, line := range strings.Split(text, "\n") {
 		rl.DrawTextEx(f, line, pos, size, spacing, fontColor)

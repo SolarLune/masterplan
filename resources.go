@@ -1,11 +1,14 @@
 package main
 
 import (
+	"errors"
 	"image/gif"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/cavaliercoder/grab"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/flac"
 	"github.com/faiface/beep/mp3"
@@ -13,6 +16,12 @@ import (
 	"github.com/faiface/beep/wav"
 	"github.com/gabriel-vasile/mimetype"
 	rl "github.com/gen2brain/raylib-go/raylib"
+)
+
+const (
+	RESOURCE_STATE_DOWNLOADING = iota
+	RESOURCE_STATE_LOADING
+	RESOURCE_STATE_READY
 )
 
 type Resource struct {
@@ -26,17 +35,14 @@ type Resource struct {
 	// Pointer to the data the resource stands for (e.g. a rl.Texture2D for an image)
 	Data interface{}
 
-	// Whether or not the resource is located in the temporary directory
-	// (e.g. was downloaded by MasterPlan, and so should be deleted after usage).
-	Temporary bool
+	// If the resource was downloaded via a URL, this points to the *grab.Response used to load the data.
+	DownloadResponse *grab.Response
 
 	// MIME data for the Resource.
 	MimeData *mimetype.MIME
 }
 
-func (project *Project) RegisterResource(resourcePath, localFilepath string, data interface{}) *Resource {
-
-	mime, _ := mimetype.DetectFile(localFilepath)
+func (project *Project) RegisterResource(resourcePath, localFilepath string, response *grab.Response) *Resource {
 
 	modTime := time.Time{}
 
@@ -47,15 +53,87 @@ func (project *Project) RegisterResource(resourcePath, localFilepath string, dat
 	}
 
 	res := &Resource{
-		ResourcePath:  resourcePath,
-		LocalFilepath: localFilepath,
-		Data:          data,
-		MimeData:      mime,
-		ModTime:       modTime,
+		ResourcePath:     resourcePath,
+		LocalFilepath:    localFilepath,
+		ModTime:          modTime,
+		DownloadResponse: response,
 	}
 
 	project.Resources[resourcePath] = res
+
+	if response != nil {
+		project.DownloadingResources[resourcePath] = res
+	}
+
 	return res
+}
+
+func (res *Resource) Filename() string {
+	_, fname := filepath.Split(res.LocalFilepath)
+	return fname
+}
+
+func (res *Resource) ParseData() error {
+
+	var err error = nil
+
+	// ParseData() is automatically called when the resource is (or, at least, should be) fully downloaded, so the Mime data should be complete and usable
+	mime, _ := mimetype.DetectFile(res.LocalFilepath)
+
+	res.MimeData = mime
+
+	if strings.Contains(res.MimeData.String(), "image") {
+
+		if strings.Contains(res.MimeData.String(), "gif") {
+
+			file, newError := os.Open(res.LocalFilepath)
+			if newError != nil {
+				err = newError
+			}
+
+			defer file.Close()
+
+			gifFile, newError := gif.DecodeAll(file)
+
+			if newError != nil {
+				err = newError
+			}
+
+			gif := NewGifAnimation(gifFile)
+			res.Data = gif
+
+		} else { // Ordinary image
+			res.Data = rl.LoadTexture(res.LocalFilepath)
+		}
+
+	} else if strings.Contains(res.MimeData.String(), "audio") {
+		res.Data = res.MimeData.String() // We don't actually have any data to store for audio, as Sound Tasks simply create their own streams
+	} else {
+		err = errors.New("unknown resource type")
+	}
+
+	return err
+
+}
+
+func (res *Resource) State() int {
+
+	if res.DownloadResponse != nil && res.DownloadResponse.Progress() < 1 {
+		return RESOURCE_STATE_DOWNLOADING
+	}
+
+	if res.IsGif() {
+		if res.Gif().LoadingProgress() < 1 {
+			return RESOURCE_STATE_LOADING
+		}
+
+	}
+
+	if res.Data != nil {
+		return RESOURCE_STATE_READY
+	}
+	return RESOURCE_STATE_LOADING
+
 }
 
 func (res *Resource) IsTexture() bool {
@@ -67,17 +145,26 @@ func (res *Resource) Texture() rl.Texture2D {
 	return res.Data.(rl.Texture2D)
 }
 
-func (res *Resource) IsGIF() bool {
-	_, isGIF := res.Data.(*gif.GIF)
+func (res *Resource) IsGif() bool {
+	_, isGIF := res.Data.(*GifAnimation)
 	return isGIF
 }
 
-func (res *Resource) GIF() *gif.GIF {
-	return res.Data.(*gif.GIF)
+func (res *Resource) Gif() *GifAnimation {
+	return res.Data.(*GifAnimation)
 }
 
 func (res *Resource) IsAudio() bool {
 	return strings.Contains(res.MimeData.String(), "audio")
+}
+
+func (res *Resource) Progress() int {
+	if res.DownloadResponse != nil && !res.DownloadResponse.IsComplete() {
+		return int(res.DownloadResponse.Progress() * 100)
+	} else if res.IsGif() {
+		return int(res.Gif().LoadingProgress() * 100)
+	}
+	return 0
 }
 
 // Audio is special in that there is no resource to be shared between Tasks like with Images, as each Task
@@ -126,12 +213,15 @@ func (res *Resource) Destroy() {
 
 	if res.IsTexture() {
 		rl.UnloadTexture(res.Texture())
+	} else if res.IsGif() {
+		res.Gif().Destroy()
 	}
 	// GIFs don't need to be disposed of directly here; the file handle was already Closed.
 	// Audio streams are closed by the Task, as each Sound Task has its own stream.
 
-	if res.Temporary {
-		os.Remove(res.LocalFilepath)
-	}
+	// We no longer delete temporary files here, as the project deletes the entire temporary directory in Project.Destroy().
+	// if res.DownloadResponse != nil {
+	// 	os.Remove(res.LocalFilepath)
+	// }
 
 }

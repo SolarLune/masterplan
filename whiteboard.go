@@ -16,6 +16,7 @@ type Whiteboard struct {
 	PrevClickPos rl.Vector2
 	CursorSize   int
 	Colors       []rl.Color
+	Resizing     bool
 }
 
 var CursorSizes = []float32{
@@ -44,13 +45,13 @@ func (whiteboard *Whiteboard) Update() {
 
 	clickPos := rl.Vector2{-1, -1}
 
-	if whiteboard.Task.Board.Project.ProjectSettingsOpen || whiteboard.Task.Resizing {
+	if whiteboard.Task.Board.Project.ProjectSettingsOpen || whiteboard.Resizing {
 		whiteboard.Editing = false
 	}
 
 	makeUndo := false
 
-	if whiteboard.Editing && !whiteboard.Task.Resizing && whiteboard.Task.Selected {
+	if whiteboard.Editing && !whiteboard.Resizing && whiteboard.Task.Selected {
 
 		rect := rl.Rectangle{whiteboard.Task.Rect.X, whiteboard.Task.Rect.Y, 16, 16}
 

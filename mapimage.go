@@ -14,6 +14,7 @@ type MapImage struct {
 	Editing    bool
 	cellWidth  int
 	cellHeight int
+	Resizing   bool
 }
 
 func NewMapImage(task *Task) *MapImage {
@@ -119,11 +120,11 @@ func (mapImage *MapImage) Update() {
 
 	}
 
-	if mapImage.Task.Board.Project.ProjectSettingsOpen || mapImage.Task.Resizing {
+	if mapImage.Task.Board.Project.ProjectSettingsOpen || mapImage.Resizing {
 		mapImage.Editing = false
 	}
 
-	if mapImage.Editing && !mapImage.Task.Resizing && mapImage.Task.Selected {
+	if mapImage.Editing && !mapImage.Resizing && mapImage.Task.Selected {
 
 		rect := rl.Rectangle{mapImage.Task.Rect.X, mapImage.Task.Rect.Y, 16, 16}
 

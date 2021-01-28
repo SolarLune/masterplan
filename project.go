@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	"image/gif"
-	"io"
 	"io/ioutil"
 	"log"
 	"math"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -27,7 +24,7 @@ import (
 
 	"github.com/ncruces/zenity"
 
-	"github.com/gabriel-vasile/mimetype"
+	"github.com/cavaliercoder/grab"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -174,17 +171,18 @@ type Project struct {
 	LogOn               bool
 	LoadRecentDropdown  *DropdownMenu
 
-	SearchedTasks     []*Task
-	FocusedSearchTask int
-	Searchbar         *Textbox
-	StatusBar         rl.Rectangle
-	GUI_Icons         rl.Texture2D
-	Patterns          rl.Texture2D
-	ShortcutKeyTimer  int
-	PreviousTaskType  string
-	Resources         map[string]*Resource
-	Modified          bool
-	Locked            bool
+	SearchedTasks        []*Task
+	FocusedSearchTask    int
+	Searchbar            *Textbox
+	StatusBar            rl.Rectangle
+	GUI_Icons            rl.Texture2D
+	Patterns             rl.Texture2D
+	ShortcutKeyTimer     int
+	PreviousTaskType     string
+	Resources            map[string]*Resource
+	DownloadingResources map[string]*Resource
+	Modified             bool
+	Locked               bool
 
 	PopupPanel    *Panel
 	PopupAction   string
@@ -194,6 +192,8 @@ type Project struct {
 	UndoFade      *gween.Sequence
 	Undoing       int
 	TaskEditRect  rl.Rectangle
+	TempDir       string
+	GrabClient    *grab.Client
 }
 
 func NewProject() *Project {
@@ -202,19 +202,20 @@ func NewProject() *Project {
 	searchBar.AllowNewlines = false
 
 	project := &Project{
-		FilePath:           "",
-		GridSize:           16,
-		ZoomLevel:          3,
-		CurrentZoomLevel:   3,
-		CameraPan:          rl.Vector2{0, 0},
-		Searchbar:          searchBar,
-		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
-		GUI_Icons:          rl.LoadTexture(GetPath("assets", "gui_icons.png")),
-		SampleBuffer:       512,
-		Patterns:           rl.LoadTexture(GetPath("assets", "patterns.png")),
-		Resources:          map[string]*Resource{},
-		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
-		UndoFade:           gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
+		FilePath:             "",
+		GridSize:             16,
+		ZoomLevel:            3,
+		CurrentZoomLevel:     3,
+		CameraPan:            rl.Vector2{0, 0},
+		Searchbar:            searchBar,
+		StatusBar:            rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
+		GUI_Icons:            rl.LoadTexture(GetPath("assets", "gui_icons.png")),
+		SampleBuffer:         512,
+		Patterns:             rl.LoadTexture(GetPath("assets", "patterns.png")),
+		Resources:            map[string]*Resource{},
+		DownloadingResources: map[string]*Resource{},
+		LoadRecentDropdown:   NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
+		UndoFade:             gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
 
 		PopupPanel:    NewPanel(0, 0, 480, 270),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
@@ -273,7 +274,10 @@ func NewProject() *Project {
 		TransparentBackground:     NewCheckbox(0, 0, 32, 32),
 		BorderlessWindow:          NewCheckbox(0, 0, 32, 32),
 		SaveWindowPosition:        NewCheckbox(0, 0, 32, 32),
+		GrabClient:                grab.NewClient(),
 	}
+
+	project.TempDir, _ = ioutil.TempDir("", "masterplan")
 
 	project.SettingsPanel.Center(0.5, 0.5)
 
@@ -613,6 +617,8 @@ func NewProject() *Project {
 	project.AutomaticBackupInterval.Maximum = 60
 	project.AutomaticBackupKeepCount.SetNumber(3)
 	project.AutomaticBackupKeepCount.Minimum = 1
+
+	project.LoadResource(GetPath("assets", "loading_image.png"))
 
 	project.MaxUndoSteps.Minimum = 0
 
@@ -1116,16 +1122,23 @@ func (project *Project) Update() {
 
 	selectionRect := rl.Rectangle{}
 
+	for resName, resource := range project.DownloadingResources {
+		if resource.DownloadResponse.IsComplete() {
+			delete(project.DownloadingResources, resName)
+			project.Resources[resName].ParseData()
+		}
+	}
+
 	for _, task := range project.GetAllTasks() {
 		task.Update()
 
-		if project.AutoReloadResources.Checked && task.FilePathTextbox.Text() != "" {
-			if task.SuccessfullyLoadedResourceOnce {
-				if res, newlyLoaded := project.LoadResource(task.FilePathTextbox.Text()); res != nil && newlyLoaded {
-					task.LoadResource()
-				}
-			}
-		}
+		// if project.AutoReloadResources.Checked && task.FilePathTextbox.Text() != "" {
+		// 	if task.SuccessfullyLoadedResourceOnce {
+		// 		if res, newlyLoaded := project.LoadResource(task.FilePathTextbox.Text()); res != nil && newlyLoaded {
+		// 			task.LoadResource()
+		// 		}
+		// 	}
+		// }
 
 	}
 
@@ -1158,10 +1171,6 @@ func (project *Project) Update() {
 
 	for _, task := range sorted {
 		task.Draw()
-	}
-
-	for _, task := range sorted {
-		task.DrawLine()
 	}
 
 	project.HandleCamera()
@@ -1337,7 +1346,7 @@ func (project *Project) Update() {
 			}
 		}
 
-		project.CurrentBoard().UndoBuffer.Update()
+		// project.CurrentBoard().UndoBuffer.Update()
 
 	}
 
@@ -1380,6 +1389,8 @@ func (project *Project) Update() {
 		project.Save(false)
 		project.LogOn = true
 	}
+
+	project.CurrentBoard().UndoBuffer.Update()
 
 }
 
@@ -1599,9 +1610,9 @@ func (project *Project) Shortcuts() {
 					}
 				} else if keybindings.On(KBStopAllSounds) {
 
-					for _, task := range project.GetAllTasks() {
-						task.StopSound()
-					}
+					// for _, task := range project.GetAllTasks() {
+					// 	task.StopSound()
+					// }
 					project.Log("Stopped all playing Sounds.")
 
 				} else if keybindings.On(KBToggleTasks) {
@@ -1609,10 +1620,10 @@ func (project *Project) Shortcuts() {
 					toggleCount := 0
 
 					for _, task := range project.CurrentBoard().SelectedTasks(false) {
-						if task.Completable() {
+						if task.IsCompletable() {
 							toggleCount++
 						}
-						task.SetCompletion(!task.Complete())
+						task.SetCompletion(!task.IsComplete())
 					}
 
 					if toggleCount > 0 {
@@ -1817,11 +1828,11 @@ func (project *Project) Shortcuts() {
 
 						if selected.Is(TASK_TYPE_LINE) {
 
-							if selected.LineBase == nil {
-								checkDistance = rl.Vector2Distance(selected.Position, selected.LineEndings[0].Position)
-							} else {
-								checkDistance = rl.Vector2Distance(selected.Position, selected.LineBase.Position)
-							}
+							// if selected.LineBase == nil {
+							// 	checkDistance = rl.Vector2Distance(selected.Position, selected.LineEndings[0].Position)
+							// } else {
+							// 	checkDistance = rl.Vector2Distance(selected.Position, selected.LineBase.Position)
+							// }
 							checkDistance += 64
 
 						}
@@ -2216,9 +2227,9 @@ func (project *Project) GUI() {
 
 			if project.SoundVolume.Changed {
 
-				for _, t := range project.CurrentBoard().Tasks {
-					t.UpdateSoundVolume()
-				}
+				// for _, t := range project.CurrentBoard().Tasks {
+				// 	t.UpdateSoundVolume()
+				// }
 
 			}
 
@@ -2348,11 +2359,11 @@ func (project *Project) GUI() {
 					project.Log("Currently playing sounds have been stopped and resampled as necessary.")
 
 					project.LogOn = false
-					for _, t := range project.CurrentBoard().Tasks {
-						if t.Is(TASK_TYPE_SOUND) {
-							t.LoadResource() // Force reloading to resample as necessary
-						}
-					}
+					// for _, t := range project.CurrentBoard().Tasks {
+					// 	if t.Is(TASK_TYPE_SOUND) {
+					// 		t.LoadResource() // Force reloading to resample as necessary
+					// 	}
+					// }
 					project.LogOn = true
 				}
 
@@ -2413,10 +2424,10 @@ func (project *Project) GUI() {
 
 			for _, t := range project.CurrentBoard().Tasks {
 
-				if t.Completable() {
+				if t.IsCompletable() {
 					taskCount++
 				}
-				if t.Complete() {
+				if t.IsComplete() {
 					completionCount++
 				}
 
@@ -2643,17 +2654,17 @@ func (project *Project) SearchForTasks() {
 		project.FocusedSearchTask = 0
 	}
 
-	for _, task := range project.GetAllTasks() {
+	// for _, task := range project.GetAllTasks() {
 
-		searchText := strings.ToLower(project.Searchbar.Text())
+	// 	searchText := strings.ToLower(project.Searchbar.Text())
 
-		if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text()), searchText) ||
-			(task.UsesMedia() && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText)) ||
-			(task.Is(TASK_TYPE_TIMER) && strings.Contains(strings.ToLower(task.TimerName.Text()), searchText))) {
-			project.SearchedTasks = append(project.SearchedTasks, task)
-		}
+	// 	if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text()), searchText) ||
+	// 		(task.UsesMedia() && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText)) ||
+	// 		(task.Is(TASK_TYPE_TIMER) && strings.Contains(strings.ToLower(task.TimerName.Text()), searchText))) {
+	// 		project.SearchedTasks = append(project.SearchedTasks, task)
+	// 	}
 
-	}
+	// }
 
 	if len(project.SearchedTasks) == 0 {
 		project.FocusedSearchTask = 0
@@ -2764,9 +2775,9 @@ func (project *Project) ReloadThemes() {
 
 func (project *Project) GetFrameTime() float32 {
 	ft := deltaTime
-	if ft > (1/float32(programSettings.TargetFPS))*4 {
+	if ft > (1/float32(targetFPS))*4 {
 		// This artificial limiting is done to ensure the delta time never gets so high that it makes major problems.
-		ft = (1 / float32(programSettings.TargetFPS)) * 4
+		ft = (1 / float32(targetFPS)) * 4
 	}
 	return ft
 }
@@ -2780,6 +2791,8 @@ func (project *Project) Destroy() {
 	for _, res := range project.Resources {
 		res.Destroy()
 	}
+
+	os.RemoveAll(project.TempDir)
 
 }
 
@@ -2798,7 +2811,6 @@ func (project *Project) RetrieveResource(resourcePath string) *Resource {
 // loaded previously and retrieved (false).
 func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
-	downloadedFile := false
 	newlyLoaded := false
 
 	var loadedResource *Resource
@@ -2810,8 +2822,7 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 		loadedResource = existingResource
 
 		// We check to see if the mod time isn't the same; if so, we destroy the old one and load it again
-
-		if file, err := os.Open(loadedResource.LocalFilepath); !loadedResource.Temporary && err == nil {
+		if file, err := os.Open(loadedResource.LocalFilepath); loadedResource.DownloadResponse == nil && err == nil {
 
 			if stats, err := file.Stat(); err == nil {
 				// We have to check if the size is greater than 0 because it's possible we're seeing the file before it's been written fully to disk;
@@ -2828,88 +2839,40 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 	} else if resourcePath != "" {
 
-		localFilepath := resourcePath
-
-		// Attempt downloading it if it's an HTTP file
+		// Attempt downloading it if it's an online resource (e.g. "https://solarlune.com/media/bartender.png")
 		if url, err := urlx.Parse(resourcePath); err == nil && url.Host != "" && url.Scheme != "" {
 
-			response, err := http.Get(url.String())
+			filename := filepath.Join(project.TempDir, filepath.FromSlash(url.Hostname()+"/"+url.Path))
+
+			req, err := grab.NewRequest(filename, url.String())
 
 			if err != nil {
-
-				project.Log("Could not open HTTP address: ", err.Error())
-
+				project.Log("Could not initiate download for [%s]\nError : [%s]", url.String(), err.Error())
 			} else {
 
-				tempFile, err := ioutil.TempFile("", "masterplan_resource")
-				if err != nil {
-					project.Log("Could not open temporary file: ", err.Error())
+				resp := project.GrabClient.Do(req)
+
+				var possibleError error
+
+				// response.Err() blocks until complete, so we want to see if the response is instantly complete, and if so, see if there's any error.
+				if resp.IsComplete() {
+					possibleError = resp.Err()
+				}
+
+				if possibleError != nil {
+					project.Log("Could not initiate download for [%s]\nError : [%s]\nAre you sure the path or URL is correct?", url.String(), possibleError.Error())
 				} else {
-					io.Copy(tempFile, response.Body)
+					loadedResource = project.RegisterResource(resourcePath, filename, resp)
 					newlyLoaded = true
-					localFilepath = tempFile.Name()
-					downloadedFile = true
 				}
-
-				response.Body.Close()
-
-				tempFile.Close()
 
 			}
 
-		}
-
-		fileType, err := mimetype.DetectFile(localFilepath)
-
-		if err != nil {
-			project.Log("Error identifying file type: ", err.Error())
 		} else {
-
+			// Local file, so we're g2g
+			loadedResource = project.RegisterResource(resourcePath, resourcePath, nil)
+			loadedResource.ParseData()
 			newlyLoaded = true
-
-			// We have to rename the resource according to what it is because raylib expects the extensions of files to be correct.
-			// png image files need to have .png as an extension, for example.
-			if downloadedFile && !fileType.Is(strings.ToLower(filepath.Ext(localFilepath))) {
-				newName := localFilepath + fileType.Extension()
-				os.Rename(localFilepath, newName)
-				localFilepath = newName
-			}
-
-			if strings.Contains(fileType.String(), "image") {
-
-				if strings.Contains(fileType.String(), "gif") {
-					file, err := os.Open(localFilepath)
-					if err != nil {
-						project.Log("Could not open GIF: ", err.Error())
-					} else {
-
-						defer file.Close()
-
-						gifFile, err := gif.DecodeAll(file)
-
-						if err != nil {
-							project.Log("Could not decode GIF: ", err.Error())
-						} else {
-							res := project.RegisterResource(resourcePath, localFilepath, gifFile)
-							res.Temporary = downloadedFile
-							loadedResource = res
-						}
-
-					}
-				} else { // Ordinary image
-					tex := rl.LoadTexture(localFilepath)
-					res := project.RegisterResource(resourcePath, localFilepath, tex)
-					res.Temporary = downloadedFile
-					loadedResource = res
-				}
-
-			} else if strings.Contains(fileType.String(), "audio") {
-				res := project.RegisterResource(resourcePath, localFilepath, nil)
-				res.Temporary = downloadedFile
-				loadedResource = res
-			} else {
-				project.Log("Unable to load resource [%s].", resourcePath)
-			}
 
 		}
 

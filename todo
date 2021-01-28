@@ -1,0 +1,50 @@
+Whoops, I deleted the todo list as well. :(
+
+That really sucks, actually.
+
+Clicking a Spinner to expand the options into a menu will make the panel scroll even if the menu expands upwards.
+Adding a new task no longer moves the entire stack below it??? Check deleting, too.
+Downloading images / sounds should be multithreaded
+Downloading images / sounds should be able to be saved to a local directory per-project (?)
+Undo + Redo for textboxes
+Make top-left box for Images also work for resizing, and make an option in the Task to reset size (it's not done often enough to make it viable, I think)
+
+Modifiers should be left / right agnostic
+
+Open the tutorial on first-run
+
+Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
+
+JPEGs don't open, only JPGs?
+
+Changelog:
+
+OK, so the plan of action is:
+
+- Refactor Task to just be a thing that displays its contents, and separate its contents out into individual "sub-modules" (so a Task contains a Note, contains a Checkbox, contains an Image (which can contain a GIF), contains a Sound, etc).
+- The contents define the size of the Task and which elements are drawn (if any). 
+
+Vertical alignment isn't really centered
+
+Repeatable deadlines - when completing Tasks with deadlines, it advances the deadline by a certain amount of time?
+ - Maybe it's better to have a different kind of deadline that is repeatable, and specifies simply a time frame (x days, x weeks, x months)
+ - Maybe it's better to repurpose a Timer for this purpose, since when it goes off, it will alert you and start counting down again?
+
+Display full Task text on hover
+
+Use URL Parsing to allow parsing text to point to other Tasks, Boards, or Projects so you can jump there with a click
+
+Review libraries to see if the licenses are compatible with my own chosen license
+
+Hide status bar elements except for the search bar if there isn't enough room horizontally
+
+Consolidate logging messages so messages that are the same get "compounded". For example:
+
+00:00:00: "Selected 1 Tasks."
+00:00:00: "Selected 1 Tasks."
+
+becomes
+
+00:00:00: "Selected 2 Tasks."
+
+Create a window to close when X button is pressed; check "ShouldWindowClose" more often than simply once

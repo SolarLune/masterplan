@@ -9,49 +9,32 @@ import (
 )
 
 type GifAnimation struct {
-	Data         *gif.GIF
-	Frames       []*rl.Image
-	Delays       []float32 // 100ths of a second?
-	CurrentFrame int
-	Timer        float32
-	frameImg     *image.RGBA
-	DrawTexture  *rl.Texture2D
+	Data     *gif.GIF
+	Frames   []*rl.Image
+	Delays   []float32 // 100ths of a second?
+	frameImg *image.RGBA
+	Width    float32
+	Height   float32
+	OnLoad   func()
 }
 
 func NewGifAnimation(data *gif.GIF) *GifAnimation {
-	tex := rl.LoadTextureFromImage(rl.NewImageFromImage(data.Image[0]))
-	anim := &GifAnimation{Data: data, frameImg: image.NewRGBA(data.Image[0].Rect), DrawTexture: &tex}
+	anim := &GifAnimation{Data: data, frameImg: image.NewRGBA(data.Image[0].Rect), Width: float32(data.Image[0].Rect.Dx()), Height: float32(data.Image[0].Rect.Dy())}
+	go anim.Load() // Load the frames in the background
 	return anim
 }
 
-func (gifAnim *GifAnimation) IsEmpty() bool {
-	// return true
-	return gifAnim.Data == nil || len(gifAnim.Data.Image) == 0
-}
+// Load loads the frames of the GIF animation.
+func (gifAnim *GifAnimation) Load() {
 
-func (gifAnim *GifAnimation) Update(dt float32) {
-
-	gifAnim.Timer += dt
-	if gifAnim.Timer >= gifAnim.Delays[gifAnim.CurrentFrame] {
-		gifAnim.Timer -= gifAnim.Delays[gifAnim.CurrentFrame]
-		gifAnim.CurrentFrame++
-	}
-	if gifAnim.CurrentFrame >= len(gifAnim.Data.Image) {
-		gifAnim.CurrentFrame = 0
-	}
-}
-
-func (gifAnim *GifAnimation) GetTexture() rl.Texture2D {
-
-	if gifAnim.CurrentFrame == len(gifAnim.Frames) && len(gifAnim.Frames) < len(gifAnim.Data.Image) {
+	for index, img := range gifAnim.Data.Image {
 
 		// After decoding, we have to manually create a new image and plot each frame of the GIF because transparent GIFs
 		// can only have frames that account for changed pixels (i.e. if you have a 320x240 GIF, but on frame
 		// 17 only one pixel changes, the image generated for frame 17 will be 1x1 for Bounds.Size()).
 
-		img := gifAnim.Data.Image[gifAnim.CurrentFrame]
-
-		disposalMode := gifAnim.Data.Disposal[gifAnim.CurrentFrame]
+		disposalMode := gifAnim.Data.Disposal[0] // Maybe just the first frame's disposal is what we need?
+		// disposalMode := gifAnim.Data.Disposal[index]
 
 		for y := 0; y < gifAnim.frameImg.Bounds().Size().Y; y++ {
 			for x := 0; x < gifAnim.frameImg.Bounds().Size().X; x++ {
@@ -73,16 +56,13 @@ func (gifAnim *GifAnimation) GetTexture() rl.Texture2D {
 		}
 
 		gifAnim.Frames = append(gifAnim.Frames, rl.NewImageFromImage(gifAnim.frameImg))
-		gifAnim.Delays = append(gifAnim.Delays, float32(gifAnim.Data.Delay[gifAnim.CurrentFrame])/100)
+		gifAnim.Delays = append(gifAnim.Delays, float32(gifAnim.Data.Delay[index])/100)
 
 	}
 
-	if gifAnim.DrawTexture != nil {
-		rl.UnloadTexture(*gifAnim.DrawTexture)
+	if gifAnim.OnLoad != nil {
+		gifAnim.OnLoad() // Signal to the Resource handler that the gif animation is finished loading
 	}
-	tex := rl.LoadTextureFromImage(gifAnim.Frames[gifAnim.CurrentFrame])
-	gifAnim.DrawTexture = &tex
-	return *gifAnim.DrawTexture
 
 }
 
@@ -90,5 +70,64 @@ func (gifAnimation *GifAnimation) Destroy() {
 	for _, frame := range gifAnimation.Frames {
 		rl.UnloadImage(frame)
 	}
-	rl.UnloadTexture(*gifAnimation.DrawTexture)
+}
+
+func (gifAnimation *GifAnimation) IsReady() bool {
+	return gifAnimation.LoadingProgress() >= 100
+}
+
+// LoadingProgress returns the progress at loading the GIF into memory as a percent, from 0 to 1.
+func (gifAnimation *GifAnimation) LoadingProgress() float32 {
+	if len(gifAnimation.Frames) > 0 && len(gifAnimation.Data.Image) > 0 {
+		return float32(len(gifAnimation.Frames)) / float32(len(gifAnimation.Data.Image))
+	}
+	return 0
+}
+
+type GifPlayer struct {
+	Animation    *GifAnimation
+	CurrentFrame int
+	Timer        float32
+	DrawTexture  *rl.Texture2D
+}
+
+func NewGifPlayer(gifAnim *GifAnimation) *GifPlayer {
+
+	tex := rl.LoadTextureFromImage(rl.NewImageFromImage(gifAnim.Data.Image[0]))
+	return &GifPlayer{
+		Animation:   gifAnim,
+		DrawTexture: &tex,
+	}
+
+}
+
+func (gifPlayer *GifPlayer) Update(dt float32) {
+
+	gifPlayer.Timer += dt
+
+	for gifPlayer.Timer >= gifPlayer.Animation.Delays[gifPlayer.CurrentFrame] {
+		gifPlayer.Timer -= gifPlayer.Animation.Delays[gifPlayer.CurrentFrame]
+		gifPlayer.CurrentFrame++
+		if gifPlayer.CurrentFrame >= len(gifPlayer.Animation.Frames) {
+			gifPlayer.CurrentFrame = 0
+		}
+	}
+
+}
+
+func (gifPlayer *GifPlayer) Destroy() {
+	if gifPlayer.DrawTexture != nil {
+		rl.UnloadTexture(*gifPlayer.DrawTexture)
+	}
+}
+
+func (gifPlayer *GifPlayer) GetTexture() rl.Texture2D {
+
+	if gifPlayer.DrawTexture != nil {
+		rl.UnloadTexture(*gifPlayer.DrawTexture)
+	}
+	tex := rl.LoadTextureFromImage(gifPlayer.Animation.Frames[gifPlayer.CurrentFrame])
+	gifPlayer.DrawTexture = &tex
+	return *gifPlayer.DrawTexture
+
 }

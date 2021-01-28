@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"math"
 	"sort"
-	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/gabriel-vasile/mimetype"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -22,7 +20,7 @@ type Board struct {
 	Project       *Project
 	Name          string
 	TaskLocations map[Position][]*Task
-	UndoBuffer    *UndoBuffer
+	UndoBuffer    *UndoHistory
 }
 
 func NewBoard(project *Project) *Board {
@@ -33,7 +31,7 @@ func NewBoard(project *Project) *Board {
 		TaskLocations: map[Position][]*Task{},
 	}
 
-	board.UndoBuffer = NewUndoBuffer(board)
+	board.UndoBuffer = NewUndoHistory(board)
 
 	return board
 }
@@ -48,51 +46,51 @@ func (board *Board) CreateNewTask() *Task {
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	board.Tasks = append(board.Tasks, newTask)
 
-	selected := board.SelectedTasks(true)
+	// selected := board.SelectedTasks(true)
 
-	if len(selected) > 0 && !board.Project.JustLoaded {
-		// If the project is loading, then we want to put everything back where it was
-		task := selected[0]
-		gs := float32(board.Project.GridSize)
-		x := task.Position.X
+	// if len(selected) > 0 && !board.Project.JustLoaded {
+	// 	// If the project is loading, then we want to put everything back where it was
+	// 	task := selected[0]
+	// 	gs := float32(board.Project.GridSize)
+	// 	x := task.Position.X
 
-		if task.Numberable() {
+	// 	if task.Numberable() {
 
-			if task.TaskBelow != nil && task.TaskBelow.Numberable() && task.Numberable() {
+	// 		if task.TaskBelow != nil && task.TaskBelow.Numberable() && task.Numberable() {
 
-				for i, t := range task.RestOfStack {
+	// 			for i, t := range task.RestOfStack {
 
-					if i == 0 {
-						x = t.Position.X
-					}
+	// 				if i == 0 {
+	// 					x = t.Position.X
+	// 				}
 
-					t.Position.Y += gs
-				}
+	// 				t.Position.Y += gs
+	// 			}
 
-			}
+	// 		}
 
-			newTask.Position = task.Position
+	// 		newTask.Position = task.Position
 
-			newTask.Position.X = x
-			newTask.Position.Y = task.Position.Y + gs
+	// 		newTask.Position.X = x
+	// 		newTask.Position.Y = task.Position.Y + gs
 
-		}
+	// 	}
 
-	}
+	// }
 
 	board.ReorderTasks()
 
 	newTask.TaskType.SetChoice(board.Project.PreviousTaskType)
 
-	if newTask.TaskType.ChoiceAsString() == "Image" || newTask.TaskType.ChoiceAsString() == "Sound" {
-		newTask.FilePathTextbox.Focused = true
-	} else {
-		newTask.Description.Focused = true
-	}
+	// if newTask.TaskType.ChoiceAsString() == "Image" || newTask.TaskType.ChoiceAsString() == "Sound" {
+	// 	newTask.FilePathTextbox.Focused = true
+	// } else {
+	// 	newTask.Description.Focused = true
+	// }
 
-	if newTask.Is(TASK_TYPE_MAP) {
-		newTask.MapImage = NewMapImage(newTask)
-	}
+	// if newTask.Is(TASK_TYPE_MAP) {
+	// 	newTask.MapImage = NewMapImage(newTask)
+	// }
 
 	board.Project.Log("Created 1 new Task.")
 
@@ -114,10 +112,8 @@ func (board *Board) DeleteTask(task *Task) {
 
 	if task.Valid {
 
-		board.UndoBuffer.Capture(task)
 		task.Valid = false
 		board.UndoBuffer.Capture(task)
-
 		board.ToBeDeleted = append(board.ToBeDeleted, task)
 		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
 	}
@@ -128,10 +124,8 @@ func (board *Board) RestoreTask(task *Task) {
 
 	if !task.Valid {
 
-		board.UndoBuffer.Capture(task)
 		task.Valid = true
 		board.UndoBuffer.Capture(task)
-
 		board.ToBeRestored = append(board.ToBeRestored, task)
 		task.ReceiveMessage(MessageDropped, map[string]interface{}{"task": task})
 
@@ -206,55 +200,55 @@ func (board *Board) FocusViewOnSelectedTasks() {
 
 func (board *Board) HandleDroppedFiles() {
 
-	if rl.IsFileDropped() {
+	// if rl.IsFileDropped() {
 
-		fileCount := int32(0)
-		for _, filePath := range rl.GetDroppedFiles(&fileCount) {
+	// 	fileCount := int32(0)
+	// 	for _, filePath := range rl.GetDroppedFiles(&fileCount) {
 
-			taskType, _ := mimetype.DetectFile(filePath)
+	// 		taskType, _ := mimetype.DetectFile(filePath)
 
-			if taskType != nil {
+	// 		if taskType != nil {
 
-				task := NewTask(board)
-				task.Position.X = camera.Target.X
-				task.Position.Y = camera.Target.Y
-				success := true
+	// 			task := NewTask(board)
+	// 			task.Position.X = camera.Target.X
+	// 			task.Position.Y = camera.Target.Y
+	// 			success := true
 
-				if strings.Contains(taskType.String(), "image") {
-					board.Project.Log("Added Image for [%s] successfully.", filePath)
-					task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-					task.FilePathTextbox.SetText(filePath)
-					task.LoadResource()
-				} else if strings.Contains(taskType.String(), "audio") {
-					board.Project.Log("Added Sound for [%s] successfully.", filePath)
-					task.TaskType.CurrentChoice = TASK_TYPE_SOUND
-					task.FilePathTextbox.SetText(filePath)
-					task.LoadResource()
-				} else if strings.HasPrefix(taskType.String(), "text/") {
-					board.Project.Log("Added Note for [%s] successfully.", filePath)
+	// 			if strings.Contains(taskType.String(), "image") {
+	// 				board.Project.Log("Added Image for [%s] successfully.", filePath)
+	// 				task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
+	// 				task.FilePathTextbox.SetText(filePath)
+	// 				task.LoadResource()
+	// 			} else if strings.Contains(taskType.String(), "audio") {
+	// 				board.Project.Log("Added Sound for [%s] successfully.", filePath)
+	// 				task.TaskType.CurrentChoice = TASK_TYPE_SOUND
+	// 				task.FilePathTextbox.SetText(filePath)
+	// 				task.LoadResource()
+	// 			} else if strings.HasPrefix(taskType.String(), "text/") {
+	// 				board.Project.Log("Added Note for [%s] successfully.", filePath)
 
-					// Attempt to read it in
-					data, err := ioutil.ReadFile(filePath)
-					if err == nil {
-						task.Description.SetText(string(data))
-						task.TaskType.CurrentChoice = TASK_TYPE_NOTE
-					}
+	// 				// Attempt to read it in
+	// 				data, err := ioutil.ReadFile(filePath)
+	// 				if err == nil {
+	// 					task.Description.SetText(string(data))
+	// 					task.TaskType.CurrentChoice = TASK_TYPE_NOTE
+	// 				}
 
-				} else {
-					board.Project.Log("Could not create a Task for incompatible file at [%s].", filePath)
-					success = false
-				}
+	// 			} else {
+	// 				board.Project.Log("Could not create a Task for incompatible file at [%s].", filePath)
+	// 				success = false
+	// 			}
 
-				board.Tasks = append(board.Tasks, task)
-				if !success {
-					board.DeleteTask(task)
-				}
-				continue
-			}
-		}
-		rl.ClearDroppedFiles()
+	// 			board.Tasks = append(board.Tasks, task)
+	// 			if !success {
+	// 				board.DeleteTask(task)
+	// 			}
+	// 			continue
+	// 		}
+	// 	}
+	// 	rl.ClearDroppedFiles()
 
-	}
+	// }
 
 }
 
@@ -300,19 +294,19 @@ func (board *Board) PasteTasks() {
 			clone := srcTask.Clone()
 			srcTask.Board = ogBoard
 			board.Tasks = append(board.Tasks, clone)
-			clone.LoadResource()
+			// clone.LoadResource()
 			clones = append(clones, clone)
 			return clone
 		}
 
-		copied := func(task *Task) bool {
-			for _, copy := range board.Project.CopyBuffer {
-				if copy == task {
-					return true
-				}
-			}
-			return false
-		}
+		// copied := func(task *Task) bool {
+		// 	for _, copy := range board.Project.CopyBuffer {
+		// 		if copy == task {
+		// 			return true
+		// 		}
+		// 	}
+		// 	return false
+		// }
 
 		center := rl.Vector2{}
 
@@ -328,25 +322,25 @@ func (board *Board) PasteTasks() {
 
 		for _, srcTask := range board.Project.CopyBuffer {
 
-			if srcTask.Is(TASK_TYPE_LINE) && srcTask.LineBase != nil && srcTask.Board != board {
-				if !copied(srcTask.LineBase) {
-					board.Project.Log("WARNING: Cannot paste Line arrows on a different board than the Line base.")
-				}
-			} else if srcTask.LineBase == nil || !copied(srcTask.LineBase) {
+			// if srcTask.Is(TASK_TYPE_LINE) && srcTask.LineBase != nil && srcTask.Board != board {
+			// 	if !copied(srcTask.LineBase) {
+			// 		board.Project.Log("WARNING: Cannot paste Line arrows on a different board than the Line base.")
+			// 	}
+			// } else if srcTask.LineBase == nil || !copied(srcTask.LineBase) {
 
-				clone := cloneTask(srcTask)
-				diff := rl.Vector2Subtract(GetWorldMousePosition(), center)
-				clone.Position = rl.Vector2Add(clone.Position, diff)
-				clone.Position = board.Project.LockPositionToGrid(clone.Position)
+			clone := cloneTask(srcTask)
+			diff := rl.Vector2Subtract(GetWorldMousePosition(), center)
+			clone.Position = rl.Vector2Add(clone.Position, diff)
+			clone.Position = board.Project.LockPositionToGrid(clone.Position)
 
-				if clone.Is(TASK_TYPE_LINE) {
-					for _, ending := range clone.LineEndings {
-						ending.Position = rl.Vector2Add(ending.Position, diff)
-						ending.Position = board.Project.LockPositionToGrid(ending.Position)
-					}
-				}
+			// 	if clone.Is(TASK_TYPE_LINE) {
+			// 		for _, ending := range clone.LineEndings {
+			// 			ending.Position = rl.Vector2Add(ending.Position, diff)
+			// 			ending.Position = board.Project.LockPositionToGrid(ending.Position)
+			// 		}
+			// 	}
 
-			}
+			// }
 
 		}
 
@@ -356,11 +350,11 @@ func (board *Board) PasteTasks() {
 			board.Project.Log("Pasted %d Task(s).", len(clones))
 		}
 
-		for _, clone := range clones {
-			if clone.Is(TASK_TYPE_LINE) && len(clone.LineEndings) > 0 {
-				clones = append(clones, clone.LineEndings...)
-			}
-		}
+		// for _, clone := range clones {
+		// 	if clone.Is(TASK_TYPE_LINE) && len(clone.LineEndings) > 0 {
+		// 		clones = append(clones, clone.LineEndings...)
+		// 	}
+		// }
 
 		board.UndoBuffer.On = true
 
@@ -390,39 +384,44 @@ func (board *Board) PasteTasks() {
 
 func (board *Board) PasteContent() {
 
-	clipboardData, _ := clipboard.ReadAll() // Tanks FPS if done every frame because of course it does
+	clipboard.ReadAll()
 
-	if clipboardData != "" {
+	// clipboardData, _ := clipboard.ReadAll() // Tanks FPS if done every frame because of course it does
+	// if clipboardData != "" {
 
-		board.Project.LogOn = false
-		res, _ := board.Project.LoadResource(clipboardData) // Attempt to load the resource
-		board.Project.LogOn = true
+	// 	if strings.Contains(clipboardData, "file://") {
+	// 		fn := strings.Split(clipboardData, "file://")
+	// 		clipboardData = strings.TrimSpace(fn[1])
+	// 	}
 
-		task := board.CreateNewTask()
+	// 	board.Project.LogOn = false
+	// 	res, _ := board.Project.LoadResource(clipboardData) // Attempt to load the resource
+	// 	board.Project.LogOn = true
 
-		task.TaskType.CurrentChoice = TASK_TYPE_NOTE
+	// 	task := board.CreateNewTask()
 
-		if res != nil {
+	// 	if res != nil {
 
-			task.FilePathTextbox.SetText(clipboardData)
+	// 		task.FilePathTextbox.SetText(clipboardData)
 
-			if res.IsTexture() || res.IsGIF() {
-				task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-			} else if res.IsAudio() {
-				task.TaskType.CurrentChoice = TASK_TYPE_SOUND
-			}
+	// 		if res.IsTexture() || res.IsGIF() {
+	// 			task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
+	// 		} else if res.IsAudio() {
+	// 			task.TaskType.CurrentChoice = TASK_TYPE_SOUND
+	// 		}
 
-			task.LoadResource()
+	// 		task.LoadResource()
 
-		} else {
-			task.Description.SetText(clipboardData)
-		}
+	// 	} else {
+	// 		task.TaskType.CurrentChoice = TASK_TYPE_NOTE
+	// 		task.Description.SetText(clipboardData)
+	// 	}
 
-		board.Project.Log("Pasted 1 new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
+	// 	board.Project.Log("Pasted 1 new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
 
-	} else {
-		board.Project.Log("Unable to create Task from clipboard content.")
-	}
+	// } else {
+	// 	board.Project.Log("Unable to create Task from clipboard content.")
+	// }
 
 }
 
@@ -431,10 +430,10 @@ func (board *Board) ReorderTasks() {
 	sort.Slice(board.Tasks, func(i, j int) bool {
 		ba := board.Tasks[i]
 		bb := board.Tasks[j]
-		if ba.Position.Y == bb.Position.Y {
-			return ba.Position.X < bb.Position.X
+		if ba.Position.Y != bb.Position.Y {
+			return ba.Position.Y < bb.Position.Y
 		}
-		return ba.Position.Y < bb.Position.Y
+		return ba.Position.X < bb.Position.X
 	})
 
 	// Reordering Tasks should not alter the Undo Buffer, as altering the Undo Buffer generally happens explicitly
@@ -502,7 +501,7 @@ func (board *Board) TasksInRect(x, y, w, h float32) []*Task {
 
 func (board *Board) RemoveTaskFromGrid(task *Task) {
 
-	for _, position := range task.GridPositions {
+	for _, position := range task.gridPositions {
 
 		for i, t := range board.TaskLocations[position] {
 
@@ -523,8 +522,8 @@ func (board *Board) AddTaskToGrid(task *Task) {
 	positions := []Position{}
 
 	gs := float32(board.Project.GridSize)
-	startX, startY := int(task.Position.X/gs), int(task.Position.Y/gs)
-	endX, endY := int((task.Position.X+task.Rect.Width)/gs), int((task.Position.Y+task.Rect.Height)/gs)
+	startX, startY := int(math.Round(float64(task.Position.X/gs))), int(math.Round(float64(task.Position.Y/gs)))
+	endX, endY := int(math.Round(float64((task.Position.X+task.Rect.Width)/gs))), int(math.Round(float64((task.Position.Y+task.Rect.Height)/gs)))
 
 	for y := startY; y < endY; y++ {
 
@@ -546,7 +545,7 @@ func (board *Board) AddTaskToGrid(task *Task) {
 
 	}
 
-	task.GridPositions = positions
+	task.gridPositions = positions
 
 }
 

@@ -233,3 +233,12 @@ func ReloadFonts() {
 	font = rl.LoadFontEx(fontPath, int32(30), nil, 256)
 
 }
+
+func DrawRectLines(r rl.Rectangle, color rl.Color) {
+
+	rl.DrawLineEx(rl.Vector2{r.X + 1, r.Y + 1}, rl.Vector2{r.X + r.Width - 1, r.Y + 1}, 1, color)
+	rl.DrawLineEx(rl.Vector2{r.X + r.Width - 1, r.Y}, rl.Vector2{r.X + r.Width - 1, r.Y + r.Height}, 1, color)
+	rl.DrawLineEx(rl.Vector2{r.X + r.Width - 1, r.Y + r.Height}, rl.Vector2{r.X + 1, r.Y + r.Height}, 1, color)
+	rl.DrawLineEx(rl.Vector2{r.X + 1, r.Y + r.Height}, rl.Vector2{r.X + 1, r.Y}, 1, color)
+
+}

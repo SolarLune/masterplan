@@ -32,6 +32,7 @@ var font rl.Font
 var windowTitle = "MasterPlan"
 var deltaTime = float32(0)
 var quit = false
+var targetFPS = 60
 
 func init() {
 
@@ -376,7 +377,7 @@ func main() {
 			windowTitle = title
 		}
 
-		targetFPS := programSettings.TargetFPS
+		targetFPS = programSettings.TargetFPS
 
 		if !rl.IsWindowFocused() || rl.IsWindowHidden() || rl.IsWindowMinimized() {
 			targetFPS = programSettings.UnfocusedFPS

@@ -1,183 +1,94 @@
 package main
 
 import (
-	"fmt"
-	"sort"
-
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
 
-var newStepIndex = 0
+// HISTORY    v
+// TASK #0  -------O-XO
+// TASK #1  --O--OO----
+// TASK #2  XO-O----O--
+// TASK #3  ---XO-O---O
+//
+// Basic idea for new UndoBuffer; each Buffer contains lanes, one for each Task created. When you first create a Task,
+// it creates a non-existent step, and an existent step for it. Any change creates a step. Undoing or redoing pushes
+// the "frame" forward or back a step, and it sets all Tasks to the last key, looking back from the frame, in their
+// respective lanes.
+// Anything that can be serialized and deserialized can be undo-able, not just Tasks.
 
-type UndoBuffer struct {
-	Steps       []*UndoStep
-	Index       int
-	Board       *Board
-	On          bool
-	NewCaptures *UndoStep
+//       0, 1, 2
+//
+// Task: A, B,
+
+type Undoable interface {
+	Serialize() string
+	Deserialize(string)
 }
 
-func NewUndoBuffer(board *Board) *UndoBuffer {
-	return &UndoBuffer{Steps: []*UndoStep{}, Board: board, On: true, NewCaptures: NewUndoStep()}
+type UndoHistory struct {
+	Frames    []UndoFrame
+	NewStates *UndoGroup
+	On        bool
+	Index     int
 }
 
-// Capture creates and registers a new UndoState for the Task as it currently can be serialized in the current
-// undo step in the undo buffer.
-func (ub *UndoBuffer) Capture(task *Task) {
+func NewUndoHistory(board *Board) *UndoHistory {
 
-	if !ub.On {
+	// I'm just taking a Board argument for backwards compat for now
+
+	history := &UndoHistory{
+		On:     true,
+		Frames: []UndoFrame{},
+	}
+
+	history.NewStates = NewUndoGroup(history)
+
+	return history
+
+}
+
+func (history *UndoHistory) Capture(undoObject Undoable) {
+
+	if !history.On {
 		return
 	}
 
-	newState := NewUndoState(task)
+	newState := NewUndoState(undoObject)
 
-	if ub.NewCaptures.UniqueUndoState(newState) {
-		ub.NewCaptures.Add(newState)
-	}
-
+	history.NewStates.AddState(newState)
 }
 
-func (ub *UndoBuffer) Update() {
+func (history *UndoHistory) Undo() bool {
 
-	// Add the NewCaptures list's states to the Steps history
-	if len(ub.NewCaptures.States) > 0 {
+	if history.Index > 0 {
 
-		if len(ub.Steps) > 0 && ub.Index >= len(ub.Steps) {
-			ub.Index = len(ub.Steps) - 1
-		} else if ub.Index < 0 {
-			ub.Index = 0
-		}
+		history.On = false
 
-		if len(ub.Steps) > ub.Index+1 {
-			ub.Steps = ub.Steps[:ub.Index+1]
-		}
+		history.Index--
 
-		added := false
+		history.Frames[history.Index].Apply()
 
-		for _, cap := range ub.NewCaptures.States {
+		history.On = true
 
-			stepIndex := -1
-			unique := true
-
-			for i := ub.Index; i < len(ub.Steps); i++ {
-
-				step := ub.Steps[i]
-				if !step.UniqueUndoState(cap) {
-					unique = false
-					break
-				}
-
-				if !step.ContainsUndoStateFromTask(cap.SourceTask) {
-					stepIndex = i
-					break
-				}
-
-			}
-
-			if !unique {
-				continue
-			}
-
-			var step *UndoStep
-
-			if stepIndex >= 0 {
-				step = ub.Steps[stepIndex]
-			} else {
-				step = NewUndoStep()
-				ub.Steps = append(ub.Steps, step)
-				added = true
-				newStepIndex++
-			}
-
-			step.Add(cap)
-
-			if newStepIndex > 1 {
-				ub.Board.Project.Modified = true
-			}
-
-		}
-
-		if len(ub.Steps) > 1 && added {
-			ub.Index++
-		}
+		return true
 
 	}
 
-	ub.NewCaptures = NewUndoStep()
-
-	max := ub.Board.Project.MaxUndoSteps.Number()
-
-	if max > 0 {
-		for len(ub.Steps) > max {
-
-			// This big block is actually super simple in terms of what it does; it just loops through the buffer to
-			// see if every Task in the step that is being forgotten in case of exceeding the maximum undo step number
-			// is used again elsewhere. If not, then the Task is to be destroyed (its resources freed).
-			old := ub.Steps[0]
-			for _, t := range old.States {
-				if !t.SourceTask.Valid {
-					stillInUndoStack := false
-					for _, state := range ub.Steps[1:] {
-						for _, o := range state.States {
-							if o.SourceTask == t.SourceTask {
-								stillInUndoStack = true
-								break
-							}
-						}
-						if stillInUndoStack {
-							break
-						}
-					}
-					if !stillInUndoStack {
-						t.SourceTask.Destroy()
-					}
-				}
-			}
-
-			ub.Steps = ub.Steps[1:]
-		}
-		if ub.Index >= len(ub.Steps) {
-			ub.Index = len(ub.Steps) - 1
-		}
-	}
-
+	return false
 }
 
-// apply applies the undo or redo in the direction given.
-func (ub *UndoBuffer) apply(direction int) bool {
+func (history *UndoHistory) Redo() bool {
 
-	if len(ub.Steps) > 0 && ub.Index+direction >= 0 && ub.Index+direction < len(ub.Steps) {
+	if history.Index < len(history.Frames)-1 {
 
-		ub.On = false
+		history.On = false
 
-		ub.Index += direction
+		history.Index++
 
-		ub.Board.Project.LogOn = false
+		history.Frames[history.Index].Apply()
 
-		selectedTasks := []*Task{}
-		for _, task := range ub.Board.Project.CurrentBoard().SelectedTasks(false) {
-			selectedTasks = append(selectedTasks, task)
-		}
-
-		// Deselect all Tasks before application, as otherwise creating new Tasks push selected Tasks down.
-		ub.Board.Project.SendMessage(MessageSelect, nil)
-
-		for _, undoState := range ub.Steps[ub.Index].States {
-			undoState.Apply()
-		}
-
-		ub.Board.ReorderTasks()
-
-		ub.Board.Project.Modified = true
-
-		ub.Board.Project.LogOn = true
-
-		ub.On = true
-
-		for _, task := range selectedTasks {
-			task.Selected = true
-		}
+		history.On = true
 
 		return true
 
@@ -187,128 +98,167 @@ func (ub *UndoBuffer) apply(direction int) bool {
 
 }
 
-// Undo undoes the previous state recorded in the UndoBuffer's Steps stack.
-func (ub *UndoBuffer) Undo() bool {
-	return ub.apply(-1)
-}
+func (history *UndoHistory) Update() {
 
-// Redo redoes the next state recorded in the UndoBuffer's Steps stack.
-func (ub *UndoBuffer) Redo() bool {
-	return ub.apply(1)
-}
+	if len(history.NewStates.States) > 0 {
 
-func (ub *UndoBuffer) String() string {
+		// GOOD GOD THIS MIGHT BE IT
 
-	str := ""
+		// UndoGroup.ToFrames() converts a group of unique UndoStates into frames, and packs them into individual UndoFrames.
+		// It internally starts with the current UndoHistory's Frame, so that 1) any actions after this are "overwritten", and
+		// 2) UndoStates that can peacefully exist on the current Frame may do so. For example, if you moved a Task from point A to point B,
+		// then created a new Task, that process consists of two UndoStates (one of non-existence, and then one of existence) and starts
+		// on the same frame as the Task being moved to Point B.
 
-	if len(ub.Steps) == 0 {
-		str += fmt.Sprintf("| %d | []", ub.Index)
-	}
+		frames := history.NewStates.ToFrames()
 
-	for i, step := range ub.Steps {
-
-		if i == ub.Index {
-			str += fmt.Sprintf("| %d | ", ub.Index)
+		if len(history.Frames) > 0 {
+			history.Frames = append(history.Frames[:history.Index], frames...)
+		} else {
+			history.Frames = append(history.Frames, frames...)
 		}
 
-		str += "["
+		history.Index = len(history.Frames) - 1
 
-		ids := []string{}
-		for _, task := range step.States {
-			ids = append(ids, fmt.Sprintf("%p", task.SourceTask))
-		}
-
-		sort.Strings(ids)
-
-		for _, id := range ids {
-			str += fmt.Sprintf("%s, ", id)
-		}
-
-		str += "]"
+		history.NewStates = NewUndoGroup(history)
 
 	}
 
-	return str
-
 }
 
-type UndoStep struct {
-	States []*UndoState
+type UndoFrame map[Undoable]*UndoState
+
+func NewUndoFrame() UndoFrame {
+	frame := UndoFrame{}
+	return frame
 }
 
-func NewUndoStep() *UndoStep {
-	return &UndoStep{States: []*UndoState{}}
-}
-
-func (us *UndoStep) UniqueUndoState(undoState *UndoState) bool {
-	for _, state := range us.States {
-		if state.Status == undoState.Status {
-			return false
-		}
+func (frame *UndoFrame) Apply() {
+	for _, state := range *frame {
+		state.Apply()
 	}
-	return true
-}
-
-func (us *UndoStep) ContainsUndoStateFromTask(task *Task) bool {
-	for _, state := range us.States {
-		if state.SourceTask == task {
-			return true
-		}
-	}
-	return false
-}
-
-func (us *UndoStep) Add(undoState *UndoState) {
-	us.States = append(us.States, undoState)
 }
 
 type UndoState struct {
-	SourceTask *Task
-	Status     string
+	Undoable   Undoable
+	Serialized string
+	DataMap    map[string]interface{}
 }
 
-func NewUndoState(task *Task) *UndoState {
-	state := &UndoState{SourceTask: task}
-
-	state.Status = state.SourceTask.Serialize()
-
-	if task.Valid {
-		state.Status, _ = sjson.Set(state.Status, "valid", true)
-	} else {
-		state.Status, _ = sjson.Set(state.Status, "valid", false)
-	}
-
-	state.Status, _ = sjson.Set(state.Status, "id", task.ID) // We care about the ID because, for example, two different Tasks of the same kind could be in the same location
-
-	state.Status, _ = sjson.Delete(state.Status, "Selected") // We don't care about selection being a mark of distinction
-
-	state.Status, _ = sjson.Delete(state.Status, "LineEndings") // We don't want line endings to be serialized
-
-	// Sounds should be forced to not pause when undoing / redoing.
-	if task.SoundControl != nil {
-		state.Status, _ = sjson.Set(state.Status, `SoundPaused`, task.SoundControl.Paused)
-	}
-
-	return state
+func (us *UndoState) String() string {
+	return us.Serialized
 }
 
-// Apply loads the status in the UndoState to apply it to the SourceTask.
-func (undo *UndoState) Apply() {
+func NewUndoState(undoObject Undoable) *UndoState {
 
-	undo.SourceTask.Board.Project.LogOn = false
-	undo.SourceTask.Deserialize(undo.Status)
-	undo.SourceTask.Board.Project.LogOn = true
+	state := undoObject.Serialize()
+	state, _ = sjson.Delete(state, "Selected")
 
-	if gjson.Get(undo.Status, "valid").Exists() {
+	// Parse to a data struct that we can compare easily
+	dataMap := gjson.Parse(state).Value().(map[string]interface{})
 
-		valid := gjson.Get(undo.Status, "valid").Bool()
+	return &UndoState{
+		Undoable:   undoObject,
+		Serialized: state,
+		DataMap:    dataMap,
+	}
 
-		if valid && !undo.SourceTask.Valid {
-			undo.SourceTask.Board.RestoreTask(undo.SourceTask)
-		} else if !valid && undo.SourceTask.Valid {
-			undo.SourceTask.Board.DeleteTask(undo.SourceTask)
+}
+
+func (state *UndoState) Apply() {
+
+	state.Undoable.Deserialize(state.Serialized)
+
+}
+
+func (state *UndoState) Unique(otherState *UndoState) bool {
+
+	same := true
+
+	for k, v := range state.DataMap {
+
+		if otherState.DataMap[k] != v {
+			// fmt.Println("prev: ", prevState.Serialized)
+			// fmt.Println("new: ", state.Serialized)
+			// fmt.Println("difference: ", k, v)
+			same = false
+			break
 		}
 
 	}
+
+	return !same
+
+}
+
+type UndoGroup struct {
+	History *UndoHistory
+	States  []*UndoState
+}
+
+func NewUndoGroup(history *UndoHistory) *UndoGroup {
+	return &UndoGroup{History: history, States: []*UndoState{}}
+}
+
+func (group *UndoGroup) AddState(state *UndoState) {
+
+	for _, existing := range group.States {
+		if !state.Unique(existing) {
+			return
+		}
+	}
+
+	if len(group.History.Frames) > 0 {
+
+		frame := group.History.Frames[group.History.Index]
+
+		for _, existing := range frame {
+			if !state.Unique(existing) {
+				return
+			}
+		}
+
+	}
+
+	group.States = append(group.States, state)
+
+}
+
+func (group *UndoGroup) ToFrames() []UndoFrame {
+
+	frames := []UndoFrame{}
+
+	if len(group.States) == 0 {
+		return frames
+	}
+
+	if len(group.History.Frames) > 0 {
+		frames = append(frames, group.History.Frames[group.History.Index])
+	}
+
+	for _, entry := range group.States {
+
+		var foundFrame UndoFrame
+
+		for _, frame := range frames {
+			// Something is already in one slot of one of the frames, so keep looking
+			if _, exists := frame[entry.Undoable]; exists {
+				continue
+			} else {
+				foundFrame = frame
+				break
+			}
+		}
+
+		if foundFrame == nil {
+			foundFrame = NewUndoFrame()
+			frames = append(frames, foundFrame)
+		}
+
+		foundFrame[entry.Undoable] = entry
+
+	}
+
+	return frames
 
 }
