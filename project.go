@@ -908,7 +908,7 @@ func LoadProject(filepath string) *Project {
 			}
 
 			for i := range project.Boards {
-				project.Boards[i].UndoBuffer.On = false // No undoing for the loading process
+				project.Boards[i].UndoHistory.On = false // No undoing for the loading process
 				if i < len(boardNames) {
 					project.Boards[i].Name = boardNames[i]
 				}
@@ -1047,7 +1047,7 @@ func (project *Project) HandleCamera() {
 		project.CameraPan.Y += (-mousePos.Y - project.CameraPan.Y) * 0.5
 	}
 
-	camera.Zoom += (targetZoom - camera.Zoom) * (project.GetFrameTime() * 12)
+	camera.Zoom += (targetZoom - camera.Zoom) * (project.AdjustedFrameTime() * 12)
 
 	if math.Abs(float64(targetZoom-camera.Zoom)) < 0.001 {
 		camera.Zoom = targetZoom
@@ -1062,7 +1062,7 @@ func (project *Project) HandleCamera() {
 	smoothing := float32(1)
 
 	if programSettings.SmoothPanning {
-		smoothing = project.GetFrameTime() * 12
+		smoothing = project.AdjustedFrameTime() * 12
 	}
 
 	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * smoothing
@@ -1372,9 +1372,9 @@ func (project *Project) Update() {
 		project.JustLoaded = false
 
 		for _, b := range project.Boards {
-			b.UndoBuffer.On = true
+			b.UndoHistory.On = true
 			for _, task := range b.Tasks {
-				b.UndoBuffer.Capture(task)
+				b.UndoHistory.Capture(NewUndoState(task))
 			}
 		}
 
@@ -1390,7 +1390,7 @@ func (project *Project) Update() {
 		project.LogOn = true
 	}
 
-	project.CurrentBoard().UndoBuffer.Update()
+	project.CurrentBoard().UndoHistory.Update()
 
 }
 
@@ -1599,12 +1599,12 @@ func (project *Project) Shortcuts() {
 					task := project.CurrentBoard().CreateNewTask()
 					task.ReceiveMessage(MessageDoubleClick, nil)
 				} else if keybindings.On(KBRedo) {
-					if project.CurrentBoard().UndoBuffer.Redo() {
+					if project.CurrentBoard().UndoHistory.Redo() {
 						project.UndoFade.Reset()
 						project.Undoing = 1
 					}
 				} else if keybindings.On(KBUndo) {
-					if project.CurrentBoard().UndoBuffer.Undo() {
+					if project.CurrentBoard().UndoHistory.Undo() {
 						project.UndoFade.Reset()
 						project.Undoing = -1
 					}
@@ -1620,10 +1620,7 @@ func (project *Project) Shortcuts() {
 					toggleCount := 0
 
 					for _, task := range project.CurrentBoard().SelectedTasks(false) {
-						if task.IsCompletable() {
-							toggleCount++
-						}
-						task.SetCompletion(!task.IsComplete())
+						task.TriggerContents(TASK_TRIGGER_TOGGLE)
 					}
 
 					if toggleCount > 0 {
@@ -2773,7 +2770,7 @@ func (project *Project) ReloadThemes() {
 
 }
 
-func (project *Project) GetFrameTime() float32 {
+func (project *Project) AdjustedFrameTime() float32 {
 	ft := deltaTime
 	if ft > (1/float32(targetFPS))*4 {
 		// This artificial limiting is done to ensure the delta time never gets so high that it makes major problems.

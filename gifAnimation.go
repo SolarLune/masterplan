@@ -15,7 +15,6 @@ type GifAnimation struct {
 	frameImg *image.RGBA
 	Width    float32
 	Height   float32
-	OnLoad   func()
 }
 
 func NewGifAnimation(data *gif.GIF) *GifAnimation {
@@ -58,10 +57,6 @@ func (gifAnim *GifAnimation) Load() {
 		gifAnim.Frames = append(gifAnim.Frames, rl.NewImageFromImage(gifAnim.frameImg))
 		gifAnim.Delays = append(gifAnim.Delays, float32(gifAnim.Data.Delay[index])/100)
 
-	}
-
-	if gifAnim.OnLoad != nil {
-		gifAnim.OnLoad() // Signal to the Resource handler that the gif animation is finished loading
 	}
 
 }

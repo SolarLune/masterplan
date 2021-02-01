@@ -37,6 +37,20 @@ const (
 	TASK_DUE_LATE
 )
 
+const (
+	TIMER_TYPE_COUNTDOWN = iota
+	TIMER_TYPE_DAILY
+	TIMER_TYPE_DATE
+	TIMER_TYPE_STOPWATCH
+)
+
+const (
+	TASK_TRIGGER_TOGGLE = iota
+	TASK_TRIGGER_SET
+	TASK_TRIGGER_CLEAR
+	TASK_TRIGGER_NONE
+)
+
 type Task struct {
 	Rect     rl.Rectangle
 	Board    *Board
@@ -54,13 +68,18 @@ type Task struct {
 	DeadlineMonthSpinner *Spinner
 	DeadlineYearSpinner  *NumberSpinner
 
-	TimerSecondSpinner *NumberSpinner
-	TimerMinuteSpinner *NumberSpinner
-	TimerName          *Textbox
-	// TimerValue         float32
-	// TimerRunning       bool
-	CompletionTimeLabel *Label
-	CreationLabel       *Label
+	TimerMode               *ButtonGroup
+	TimerCountdownMinuteSpinner *NumberSpinner
+	TimerCountdownSecondSpinner *NumberSpinner
+	TimerDailyDaySpinner    *ButtonGroup
+	TimerDailyHourSpinner   *NumberSpinner
+	TimerDailyMinuteSpinner *NumberSpinner
+	TimerName               *Textbox
+	TimerRepeating          *Checkbox
+	TimerRunning            bool
+	TimerTriggerMode        *ButtonGroup
+	CompletionTimeLabel     *Label
+	CreationLabel           *Label
 
 	// SoundControl *beep.Ctrl
 	SoundVolume *effects.Volume
@@ -71,6 +90,7 @@ type Task struct {
 
 	FilePathTextbox *Textbox
 	DisplaySize     rl.Vector2
+	DisplaySizeSet  bool
 	Dragging        bool
 	MouseDragStart  rl.Vector2
 	TaskDragStart   rl.Vector2
@@ -101,7 +121,6 @@ type Task struct {
 	LoadMediaButton *Button
 	// ClearMediaButton               *Button
 	Contents Contents
-	Original bool // If the Task is an original Task or a product of a Copy+Paste clone / loading from a project load
 }
 
 func NewTask(board *Board) *Task {
@@ -121,6 +140,26 @@ func NewTask(board *Board) *Task {
 		"December",
 	}
 
+	days := []string{
+		"Sun",
+		"Mon",
+		"Tue",
+		"Wed",
+		"Thu",
+		"Fri",
+		"Sat",
+	}
+
+	// days := []string{
+	// 	"Sunday",
+	// 	"Monday",
+	// 	"Tuesday",
+	// 	"Wednesday",
+	// 	"Thursday",
+	// 	"Friday",
+	// 	"Saturday",
+	// }
+
 	// postX := float32(180)
 
 	task := &Task{
@@ -128,7 +167,7 @@ func NewTask(board *Board) *Task {
 		Board:                        board,
 		TaskType:                     NewButtonGroup(0, 32, 500, 32, 2, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line", "Map", "Whiteboard"),
 		Description:                  NewTextbox(0, 64, 512, 32),
-		TimerName:                    NewTextbox(0, 64, 256, 16),
+		TimerName:                    NewTextbox(0, 64, 512, 16),
 		CompletionCheckbox:           NewCheckbox(0, 96, 32, 32),
 		CompletionProgressionCurrent: NewNumberSpinner(0, 96, 128, 40),
 		CompletionProgressionMax:     NewNumberSpinner(0+80, 96, 128, 40),
@@ -139,33 +178,34 @@ func NewTask(board *Board) *Task {
 		DeadlineMonthSpinner:         NewSpinner(0, 128, 200, 40, months...),
 		DeadlineDaySpinner:           NewNumberSpinner(0, 80, 160, 40),
 		DeadlineYearSpinner:          NewNumberSpinner(0, 128, 160, 40),
-		TimerMinuteSpinner:           NewNumberSpinner(0, 0, 160, 40),
-		TimerSecondSpinner:           NewNumberSpinner(0, 0, 160, 40),
+		TimerMode:                    NewButtonGroup(0, 0, 600, 32, 1, "Countdown", "Daily", "Date", "Stopwatch"),
+		TimerCountdownMinuteSpinner:      NewNumberSpinner(0, 0, 160, 40),
+		TimerCountdownSecondSpinner:      NewNumberSpinner(0, 0, 160, 40),
+		TimerDailyDaySpinner:         NewButtonGroup(0, 0, 650, 40, 1, days...),
+		TimerDailyHourSpinner:        NewNumberSpinner(0, 0, 160, 40),
+		TimerDailyMinuteSpinner:      NewNumberSpinner(0, 0, 160, 40),
+		TimerRepeating:               NewCheckbox(0, 0, 32, 32),
+		TimerTriggerMode:             NewButtonGroup(0, 0, 400, 32, 1, "Toggle", "Set", "Clear", "None"),
 		gridPositions:                []Position{},
 		Valid:                        true,
 		LoadMediaButton:              NewButton(0, 0, 128, 32, "Load", false),
 		CreationLabel:                NewLabel("Creation time"),
 		CompletionTimeLabel:          NewLabel("Completion time"),
-		Original:                     true, // Original indicates if the Task was original (created in-program) or not (loaded or cloned)
 		LineBezier:                   NewCheckbox(0, 64, 32, 32),
 		// LineEndings:                  []*Task{},
 	}
 
-	// FilePathTextbox:              NewTextbox(postX, 64, 512, 16),
-	// DeadlineCheckbox:             NewCheckbox(postX, 112, 32, 32),
-	// DeadlineMonthSpinner:         NewSpinner(postX+40, 128, 200, 40, months...),
-	// DeadlineDaySpinner:           NewNumberSpinner(postX+100, 80, 160, 40),
-	// DeadlineYearSpinner:          NewNumberSpinner(postX+240, 128, 160, 40),
-	// TimerMinuteSpinner:           NewNumberSpinner(postX, 0, 160, 40),
-	// TimerSecondSpinner:           NewNumberSpinner(postX, 0, 160, 40),
 	// LineEndings:                  []*Task{},
 	// LineBezier:                   NewCheckbox(postX, 64, 32, 32),
-	// GridPositions:                []Position{},
-	// Valid:                        true,
-	// LoadMediaButton:              NewButton(0, 0, 128, 32, "Load", false),
-	// CreationLabel:                NewLabel("Creation time"),
 
 	task.SetPanel()
+
+	task.TimerDailyHourSpinner.Maximum = 23
+	task.TimerDailyHourSpinner.Minimum = 0
+	task.TimerDailyHourSpinner.Loop = true
+	task.TimerDailyMinuteSpinner.Maximum = 59
+	task.TimerDailyMinuteSpinner.Minimum = 0
+	task.TimerDailyMinuteSpinner.Loop = true
 
 	task.CreationTime = time.Now()
 
@@ -194,9 +234,9 @@ func NewTask(board *Board) *Task {
 	task.DeadlineDaySpinner.Maximum = 31
 	task.DeadlineDaySpinner.Loop = true
 
-	task.TimerSecondSpinner.Minimum = 0
-	task.TimerSecondSpinner.Maximum = 59
-	task.TimerMinuteSpinner.Minimum = 0
+	task.TimerCountdownSecondSpinner.Minimum = 0
+	task.TimerCountdownSecondSpinner.Maximum = 59
+	task.TimerCountdownMinuteSpinner.Minimum = 0
 
 	task.SoundVolume = &effects.Volume{
 		Base: 2,
@@ -226,7 +266,7 @@ func (task *Task) SetPanel() {
 	row.Item(NewLabel("Created On:"))
 	row.Item(task.CreationLabel)
 
-	column.Row().Item(NewLabel("Description:"),
+	column.Row().Item(NewLabel("Task Description:"),
 		TASK_TYPE_BOOLEAN,
 		TASK_TYPE_PROGRESSION,
 		TASK_TYPE_NOTE)
@@ -236,7 +276,7 @@ func (task *Task) SetPanel() {
 		TASK_TYPE_NOTE)
 
 	row = column.Row()
-	row.Item(NewLabel("Name:"), TASK_TYPE_TIMER)
+	row.Item(NewLabel("Timer Name:"), TASK_TYPE_TIMER)
 
 	row = column.Row()
 	row.Item(task.TimerName, TASK_TYPE_TIMER)
@@ -270,10 +310,37 @@ func (task *Task) SetPanel() {
 	row.Item(task.DeadlineYearSpinner, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "deadline_sub"
 
 	row = column.Row()
-	row.Item(NewLabel("Minutes:"), TASK_TYPE_TIMER)
-	row.Item(task.TimerMinuteSpinner, TASK_TYPE_TIMER)
-	row.Item(NewLabel("Seconds:"), TASK_TYPE_TIMER)
-	row.Item(task.TimerSecondSpinner, TASK_TYPE_TIMER)
+	row.Item(NewLabel("Timer Mode:"), TASK_TYPE_TIMER)
+	row = column.Row()
+	row.Item(task.TimerMode, TASK_TYPE_TIMER)
+
+	row = column.Row()
+	row.Item(NewLabel("Minutes:"), TASK_TYPE_TIMER).Name = "timer_countdown"
+	row.Item(task.TimerCountdownMinuteSpinner, TASK_TYPE_TIMER).Name = "timer_countdown"
+	row.Item(NewLabel("Seconds:"), TASK_TYPE_TIMER).Name = "timer_countdown"
+	row.Item(task.TimerCountdownSecondSpinner, TASK_TYPE_TIMER).Name = "timer_countdown"
+
+	row.Item(NewLabel("Day of week:"), TASK_TYPE_TIMER).Name = "timer_daily"
+	row = column.Row()
+	row.Item(task.TimerDailyDaySpinner, TASK_TYPE_TIMER).Name = "timer_daily"
+	row = column.Row()
+	row.Item(NewLabel("At Hours:"), TASK_TYPE_TIMER).Name = "timer_daily"
+	row.Item(task.TimerDailyHourSpinner, TASK_TYPE_TIMER).Name = "timer_daily"
+	row.Item(NewLabel("Minutes:"), TASK_TYPE_TIMER).Name = "timer_daily"
+	row.Item(task.TimerDailyMinuteSpinner, TASK_TYPE_TIMER).Name = "timer_daily"
+
+	row.Item(NewLabel("Date"), TASK_TYPE_TIMER).Name = "timer_date"
+
+	row = column.Row()
+	row.Item(NewLabel("Repeating:"), TASK_TYPE_TIMER).Name = "timer_repeating"
+	row.Item(task.TimerRepeating, TASK_TYPE_TIMER).Name = "timer_repeating"
+
+	row = column.Row()
+	row.Item(NewLabel("Timer Trigger Mode:"), TASK_TYPE_TIMER).Name = "timer_trigger"
+	row = column.Row()
+	row.Item(task.TimerTriggerMode, TASK_TYPE_TIMER).Name = "timer_trigger"
+
+	// row.Item(NewLabel("Stopwatch"), TASK_TYPE_TIMER).Name = "timer_stopwatch"
 
 	// row = column.Row()
 	// row.Item(NewLabel("Bezier Lines:"), TASK_TYPE_LINE)
@@ -296,9 +363,9 @@ func (task *Task) SetPanel() {
 func (task *Task) Clone() *Task {
 	copyData := *task // By de-referencing and then making another reference, we should be essentially copying the struct
 
-	copyData.Original = false
-
 	copyData.Description = task.Description.Clone()
+
+	copyData.TimerRunning = false // Copies shouldn't be running
 
 	tt := *copyData.TaskType
 	copyData.TaskType = &tt
@@ -314,8 +381,12 @@ func (task *Task) Clone() *Task {
 
 	copyData.Contents = nil // We'll leave it to the copy to create its own contents
 
-	copyData.TimerMinuteSpinner = task.TimerMinuteSpinner.Clone()
-	copyData.TimerSecondSpinner = task.TimerSecondSpinner.Clone()
+	if copyData.Is(TASK_TYPE_IMAGE, TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD) {
+		copyData.DisplaySizeSet = true
+	}
+
+	copyData.TimerCountdownMinuteSpinner = task.TimerCountdownMinuteSpinner.Clone()
+	copyData.TimerCountdownSecondSpinner = task.TimerCountdownSecondSpinner.Clone()
 
 	copyData.TimerName = copyData.TimerName.Clone()
 
@@ -454,8 +525,11 @@ func (task *Task) Serialize() string {
 	}
 
 	if task.Is(TASK_TYPE_TIMER) {
-		jsonData, _ = sjson.Set(jsonData, `TimerSecondSpinner\.Number`, task.TimerSecondSpinner.Number())
-		jsonData, _ = sjson.Set(jsonData, `TimerMinuteSpinner\.Number`, task.TimerMinuteSpinner.Number())
+		jsonData, _ = sjson.Set(jsonData, `TimerMode`, task.TimerMode.CurrentChoice)
+		jsonData, _ = sjson.Set(jsonData, `TimerRunning`, task.TimerRunning)
+
+		jsonData, _ = sjson.Set(jsonData, `TimerSecondSpinner\.Number`, task.TimerCountdownSecondSpinner.Number())
+		jsonData, _ = sjson.Set(jsonData, `TimerMinuteSpinner\.Number`, task.TimerCountdownMinuteSpinner.Number())
 		jsonData, _ = sjson.Set(jsonData, `TimerName\.Text`, task.TimerName.Text())
 	}
 
@@ -465,7 +539,7 @@ func (task *Task) Serialize() string {
 		jsonData, _ = sjson.Set(jsonData, `CompletionTime`, task.CompletionTime.Format(`Jan 2 2006 15:04:05`))
 	}
 
-	jsonData, _ = sjson.Set(jsonData, `Valid`, task.Valid)
+	// jsonData, _ = sjson.Set(jsonData, `Valid`, task.Valid)
 
 	// if task.Is(TASK_TYPE_LINE) {
 
@@ -551,6 +625,7 @@ func (task *Task) Deserialize(jsonData string) {
 	if gjson.Get(jsonData, `ImageDisplaySize\.X`).Exists() {
 		task.DisplaySize.X = getFloat(`ImageDisplaySize\.X`)
 		task.DisplaySize.Y = getFloat(`ImageDisplaySize\.Y`)
+		task.DisplaySizeSet = true
 	}
 
 	task.CompletionCheckbox.Checked = getBool(`Checkbox\.Checked`)
@@ -580,7 +655,13 @@ func (task *Task) Deserialize(jsonData string) {
 	}
 
 	task.Selected = getBool(`Selected`)
-	task.TaskType.CurrentChoice = getInt(`TaskType\.CurrentChoice`)
+
+	newType := getInt(`TaskType\.CurrentChoice`)
+
+	if newType != task.TaskType.CurrentChoice {
+		task.Contents = nil // Maybe a good idea?
+		task.TaskType.CurrentChoice = newType
+	}
 
 	if hasData(`DeadlineDaySpinner\.Number`) {
 		task.DeadlineCheckbox.Checked = true
@@ -590,8 +671,8 @@ func (task *Task) Deserialize(jsonData string) {
 	}
 
 	if hasData(`TimerSecondSpinner\.Number`) {
-		task.TimerSecondSpinner.SetNumber(getInt(`TimerSecondSpinner\.Number`))
-		task.TimerMinuteSpinner.SetNumber(getInt(`TimerMinuteSpinner\.Number`))
+		task.TimerCountdownSecondSpinner.SetNumber(getInt(`TimerSecondSpinner\.Number`))
+		task.TimerCountdownMinuteSpinner.SetNumber(getInt(`TimerMinuteSpinner\.Number`))
 		task.TimerName.SetText(getString(`TimerName\.Text`))
 	}
 
@@ -613,17 +694,13 @@ func (task *Task) Deserialize(jsonData string) {
 		task.LineBezier.Checked = getBool(`BezierLines`)
 	}
 
-	shouldBeValid := getBool("Valid")
+	// shouldBeValid := getBool("Valid")
 
-	if shouldBeValid && !task.Valid && task.Board != nil {
-		task.Board.RestoreTask(task)
-	} else if !shouldBeValid && task.Valid && task.Board != nil {
-		task.Board.DeleteTask(task)
-	}
-
-	// task.Original = false
-
-	// task.Contents = nil // Maybe a good idea?
+	// if shouldBeValid && !task.Valid && task.Board != nil {
+	// 	task.Board.RestoreTask(task)
+	// } else if !shouldBeValid && task.Valid && task.Board != nil {
+	// 	task.Board.DeleteTask(task)
+	// }
 
 	// if hasData(`LineEndings`) {
 	// 	endPositions := gjson.Get(jsonData, `LineEndings`).Array()
@@ -735,7 +812,7 @@ func (task *Task) Update() {
 		case TASK_TYPE_WHITEBOARD:
 			fallthrough
 		case TASK_TYPE_TIMER:
-			fallthrough
+			task.Contents = NewTimerContents(task)
 		case TASK_TYPE_LINE:
 			fallthrough
 		case TASK_TYPE_NOTE:
@@ -747,9 +824,9 @@ func (task *Task) Update() {
 
 		}
 
-	} else {
-		task.Contents.Update()
 	}
+
+	task.Contents.Update()
 
 }
 
@@ -922,6 +999,36 @@ func (task *Task) PostDraw() {
 
 		}
 
+		if task.Is(TASK_TYPE_TIMER) {
+
+			for _, element := range task.EditPanel.FindItems("timer_countdown") {
+				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_COUNTDOWN
+			}
+
+			for _, element := range task.EditPanel.FindItems("timer_daily") {
+				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_DAILY
+			}
+
+			for _, element := range task.EditPanel.FindItems("timer_date") {
+				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_DATE
+			}
+
+			for _, element := range task.EditPanel.FindItems("timer_stopwatch") {
+				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_STOPWATCH
+			}
+
+			for _, element := range task.EditPanel.FindItems("timer_trigger") {
+				// Stopwatches don't have any triggering ability, naturally, as they don't "go off".
+				element.On = task.TimerMode.CurrentChoice != TIMER_TYPE_STOPWATCH
+			}
+
+			for _, element := range task.EditPanel.FindItems("timer_repeating") {
+				// Stopwatches don't have any repeating ability either, naturally.
+				element.On = task.TimerMode.CurrentChoice != TIMER_TYPE_STOPWATCH
+			}
+
+		}
+
 		task.CreationLabel.Text = task.CreationTime.Format("Monday, Jan 2, 2006, 15:04")
 
 	}
@@ -936,8 +1043,11 @@ func (task *Task) DrawShadow() {
 		shadowColor := getThemeColor(GUI_SHADOW_COLOR)
 
 		shadowColor.A = 255
-		if task.Board.Project.TaskShadowSpinner.CurrentChoice != 3 {
-			shadowColor.A = 192
+
+		if task.Board.Project.TaskShadowSpinner.CurrentChoice != 3 && task.Board.Project.TaskTransparency.Number() < task.Board.Project.TaskTransparency.Maximum {
+			t := float32(task.Board.Project.TaskTransparency.Number())
+			alpha := uint8((t / float32(task.Board.Project.TaskTransparency.Maximum)) * (255 - 32))
+			shadowColor.A = 32 + alpha
 		}
 
 		if task.Board.Project.TaskShadowSpinner.CurrentChoice == 2 || task.Board.Project.TaskShadowSpinner.CurrentChoice == 3 {
@@ -1047,7 +1157,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		// 	createAtLeastOneLineEnding()
 
-		task.Board.UndoBuffer.Capture(task)
+		task.Board.UndoHistory.Capture(NewUndoState(task))
 
 		// }
 
@@ -1092,14 +1202,14 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			// thereby changing its neighbors.
 			task.Board.ReorderTasks()
 			// createAtLeastOneLineEnding()
-			task.Board.UndoBuffer.Capture(task)
+			// task.Board.UndoBuffer.Capture(task)
 
 		}
 	} else if message == MessageDragging {
 
 		if task.Selected {
 			if !task.Dragging {
-				task.Board.UndoBuffer.Capture(task) // Just started dragging
+				task.Board.UndoHistory.Capture(NewUndoState(task)) // Just started dragging
 			}
 			task.Dragging = true
 			task.MouseDragStart = GetWorldMousePosition()
@@ -1116,7 +1226,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Board.AddTaskToGrid(task)
 
 			if !task.Board.Project.JustLoaded {
-				task.Board.UndoBuffer.Capture(task)
+				task.Board.UndoHistory.Capture(NewUndoState(task))
 			}
 
 			// Delete your endings if you're no longer a Line Task
@@ -1166,6 +1276,10 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		// }
 	} else {
 		fmt.Println("UNKNOWN MESSAGE: ", message)
+	}
+
+	if task.Contents != nil {
+		task.Contents.ReceiveMessage(message)
 	}
 
 }
@@ -2509,27 +2623,31 @@ func (task *Task) IsCompletable() bool {
 	return task.Is(TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
 }
 
-func (task *Task) SetCompletion(complete bool) {
+func (task *Task) TriggerContents(trigger int) {
 
-	if task.IsCompletable() {
-
-		if len(task.SubTasks) == 0 {
-
-			task.CompletionCheckbox.Checked = complete
-
-			// VVV This is a nice addition but conversely makes it suuuuuper easy to screw yourself over
-			// for _, child := range subTasks {
-			// 	child.SetCompletion(complete)
-			// }
-
-			if complete {
-				task.CompletionProgressionCurrent.SetNumber(task.CompletionProgressionMax.Number())
-			} else {
-				task.CompletionProgressionCurrent.SetNumber(0)
-			}
-		}
-
+	if task.Contents != nil {
+		task.Contents.Trigger(trigger)
 	}
+
+	// if task.IsCompletable() {
+
+	// 	if len(task.SubTasks) == 0 {
+
+	// 		task.CompletionCheckbox.Checked = complete
+
+	// 		// VVV This is a nice addition but conversely makes it suuuuuper easy to screw yourself over
+	// 		// for _, child := range subTasks {
+	// 		// 	child.SetCompletion(complete)
+	// 		// }
+
+	// 		if complete {
+	// 			task.CompletionProgressionCurrent.SetNumber(task.CompletionProgressionMax.Number())
+	// 		} else {
+	// 			task.CompletionProgressionCurrent.SetNumber(0)
+	// 		}
+	// 	}
+
+	// }
 	// else if task.Is(TASK_TYPE_SOUND) {
 	// 	task.ToggleSound()
 	// } else if task.Is(TASK_TYPE_TIMER) {
@@ -2549,6 +2667,8 @@ func (task *Task) SetCompletion(complete bool) {
 	// } else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
 	// 	task.Whiteboard.ToggleEditing()
 	// }
+
+	task.Board.UndoHistory.Capture(NewUndoState(task))
 
 }
 

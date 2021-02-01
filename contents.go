@@ -9,6 +9,7 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/hako/durafmt"
 	"github.com/ncruces/zenity"
 )
 
@@ -16,6 +17,8 @@ type Contents interface {
 	Update()
 	Draw()
 	Destroy()
+	Trigger(int)
+	ReceiveMessage(string)
 }
 
 type taskBGProgress struct {
@@ -39,7 +42,15 @@ func (tbg *taskBGProgress) Draw() {
 	ratio := float32(0)
 
 	if tbg.Current > 0 && tbg.Max > 0 {
+
 		ratio = float32(tbg.Current) / float32(tbg.Max)
+
+		if ratio > 1 {
+			ratio = 1
+		} else if ratio < 0 {
+			ratio = 0
+		}
+
 	}
 
 	tbg.fillAmount += (ratio - tbg.fillAmount) * 0.1
@@ -163,6 +174,30 @@ func (c *CheckboxContents) Draw() {
 
 func (c *CheckboxContents) Destroy() {}
 
+func (c *CheckboxContents) ReceiveMessage(msg string) {
+
+	if msg == MessageTaskClose {
+		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
+	}
+
+}
+
+func (c *CheckboxContents) Trigger(trigger int) {
+
+	if len(c.Task.SubTasks) == 0 {
+
+		if trigger == TASK_TRIGGER_TOGGLE {
+			c.Task.CompletionCheckbox.Checked = !c.Task.CompletionCheckbox.Checked
+		} else if trigger == TASK_TRIGGER_SET {
+			c.Task.CompletionCheckbox.Checked = true
+		} else if trigger == TASK_TRIGGER_CLEAR {
+			c.Task.CompletionCheckbox.Checked = false
+		}
+
+	}
+
+}
+
 type ProgressionContents struct {
 	Task       *Task
 	bgProgress *taskBGProgress
@@ -209,12 +244,14 @@ func (c *ProgressionContents) Draw() {
 	if c.Task.SmallButton(112, 48, 16, 16, cp.X, cp.Y) {
 		c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() - 1)
 		ConsumeMouseInput(rl.MouseLeftButton)
+		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
 	}
 	cp.X += 16
 
 	if c.Task.SmallButton(96, 48, 16, 16, cp.X, cp.Y) {
 		c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() + 1)
 		ConsumeMouseInput(rl.MouseLeftButton)
+		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
 	}
 	cp.X += 16
 
@@ -262,6 +299,34 @@ func (c *ProgressionContents) Draw() {
 }
 
 func (c *ProgressionContents) Destroy() {}
+
+func (c *ProgressionContents) ReceiveMessage(msg string) {
+
+	if msg == MessageTaskClose {
+		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
+	}
+
+}
+
+func (c *ProgressionContents) Trigger(trigger int) {
+
+	if len(c.Task.SubTasks) == 0 {
+
+		if trigger == TASK_TRIGGER_TOGGLE {
+			if c.Task.CompletionProgressionCurrent.Number() > 0 {
+				c.Task.CompletionProgressionCurrent.SetNumber(0)
+			} else {
+				c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionMax.Number())
+			}
+		} else if trigger == TASK_TRIGGER_SET {
+			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionMax.Number())
+		} else if trigger == TASK_TRIGGER_CLEAR {
+			c.Task.CompletionProgressionCurrent.SetNumber(0)
+		}
+
+	}
+
+}
 
 type NoteContents struct {
 	Task               *Task
@@ -317,6 +382,16 @@ func (c *NoteContents) Draw() {
 
 func (c *NoteContents) Destroy() {}
 
+func (c *NoteContents) ReceiveMessage(msg string) {
+
+	if msg == MessageTaskClose {
+		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
+	}
+
+}
+
+func (c *NoteContents) Trigger(trigger int) {}
+
 type ImageContents struct {
 	Task           *Task
 	Resource       *Resource
@@ -370,7 +445,7 @@ func (c *ImageContents) LoadResource() {
 
 		if c.Resource.IsTexture() {
 
-			if c.Task.Original {
+			if !c.Task.DisplaySizeSet {
 				c.Task.DisplaySize.X = float32(c.Resource.Texture().Width)
 				c.Task.DisplaySize.Y = float32(c.Resource.Texture().Height)
 			}
@@ -379,7 +454,7 @@ func (c *ImageContents) LoadResource() {
 
 			c.Gif = NewGifPlayer(c.Resource.Gif())
 
-			if c.Task.Original {
+			if !c.Task.DisplaySizeSet {
 				c.Task.DisplaySize.X = float32(c.Gif.Animation.Width)
 				c.Task.DisplaySize.Y = float32(c.Gif.Animation.Height)
 			}
@@ -393,7 +468,7 @@ func (c *ImageContents) LoadResource() {
 
 		c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
 
-		c.Task.Board.UndoBuffer.Capture(c.Task)
+		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
 
 	}
 
@@ -444,7 +519,7 @@ func (c *ImageContents) Draw() {
 				tex = c.Resource.Texture()
 			} else if c.Resource.IsGif() {
 				tex = c.Gif.GetTexture()
-				c.Gif.Update(project.GetFrameTime())
+				c.Gif.Update(project.AdjustedFrameTime())
 			}
 
 			pos := rl.Vector2{c.Task.Rect.X + 1, c.Task.Rect.Y + 1}
@@ -509,7 +584,7 @@ func (c *ImageContents) Draw() {
 
 					if MouseReleased(rl.MouseLeftButton) {
 						c.resizingImage = false
-						c.Task.Board.UndoBuffer.Capture(c.Task)
+						c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
 					}
 
 					c.Task.Dragging = false
@@ -588,6 +663,10 @@ func (c *ImageContents) Destroy() {
 	}
 
 }
+
+func (c *ImageContents) ReceiveMessage(msg string) {}
+
+func (c *ImageContents) Trigger(trigger int) {}
 
 type SoundContents struct {
 	Task             *Task
@@ -722,7 +801,7 @@ func (c *SoundContents) LoadResource() {
 
 		c.LoadedResource = true
 
-		c.Task.Board.UndoBuffer.Capture(c.Task)
+		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
 
 	}
 
@@ -864,12 +943,247 @@ func (c *SoundContents) Destroy() {
 
 }
 
-type TimerContents struct {
+func (c *SoundContents) ReceiveMessage(msg string) {}
+
+func (c *SoundContents) Trigger(trigger int) {
+	if trigger == TASK_TRIGGER_TOGGLE {
+		c.SoundControl.Paused = !c.SoundControl.Paused
+	} else if trigger == TASK_TRIGGER_SET {
+		c.SoundControl.Paused = false
+	} else if trigger == TASK_TRIGGER_CLEAR {
+		c.SoundControl.Paused = true
+	}
 }
 
-func (c *TimerContents) Update() {}
+type TimerContents struct {
+	Task       *Task
+	TimerValue float32
+	// AlarmResource *Resource
+	AlarmSound *beep.Resampler
+	// TimerDelayStart time.Time
+	// TimerDelayEnd time.Time
+}
 
-func (c *TimerContents) Draw() {}
+func NewTimerContents(task *Task) *TimerContents {
+	timerContents := &TimerContents{Task: task}
+	timerContents.ReloadAlarmSound()
+	timerContents.CalculateTimeLeft() // Attempt to set the time on creation
+	return timerContents
+}
+
+func (c *TimerContents) CalculateTimeLeft() {
+
+	switch c.Task.TimerMode.CurrentChoice {
+
+	case TIMER_TYPE_DAILY:
+
+		now := time.Now()
+
+		start := time.Duration(int(now.Weekday())) * 24 * time.Hour
+		nextDate := now.Add(-start - (time.Duration(now.Minute()) * time.Minute) - (time.Duration(now.Hour()) * time.Hour) - (time.Duration(now.Second()) * time.Second))
+
+		nextDate = nextDate.Add(time.Duration(c.Task.TimerDailyDaySpinner.CurrentChoice) * time.Hour * 24)
+		nextDate = nextDate.Add(time.Duration(c.Task.TimerDailyHourSpinner.Number()) * time.Hour)
+		nextDate = nextDate.Add(time.Duration(c.Task.TimerDailyMinuteSpinner.Number()) * time.Minute)
+
+		if nextDate.Before(now) || nextDate.Sub(now).Seconds() <= 0 {
+			nextDate = nextDate.AddDate(0, 0, 7)
+		}
+
+		c.TimerValue = float32(nextDate.Sub(now).Seconds())
+
+	case TIMER_TYPE_COUNTDOWN:
+		if c.Task.TimerCountdownMinuteSpinner.Changed || c.Task.TimerCountdownSecondSpinner.Changed {
+			c.TimerValue = float32(c.Task.TimerCountdownMinuteSpinner.Number()*60 + c.Task.TimerCountdownSecondSpinner.Number())
+		}
+	}
+
+}
+
+func (c *TimerContents) Update() {
+
+	if c.Task.Open {
+		c.CalculateTimeLeft()
+	}
+
+	if c.Task.TimerRunning {
+
+		switch c.Task.TimerMode.CurrentChoice {
+
+		case TIMER_TYPE_STOPWATCH:
+			c.TimerValue += deltaTime // Stopwatches count up because they have no limit; we're using raw delta time because we want it to count regardless of what's going on
+		default:
+			c.TimerValue -= deltaTime // We count down, not count up
+
+			if c.TimerValue <= 0 {
+				c.TimeUp()
+				c.CalculateTimeLeft()
+				if c.Task.TimerRepeating.Checked {
+					c.Trigger(TASK_TRIGGER_SET)
+				} else {
+					c.Task.TimerRunning = false
+				}
+			}
+		}
+	}
+
+}
+
+func (c *TimerContents) ReloadAlarmSound() {
+
+	res, _ := c.Task.Board.Project.LoadResource(GetPath("assets", "alarm.wav"))
+	alarmSound, alarmFormat, _ := res.Audio()
+	c.AlarmSound = beep.Resample(2, alarmFormat.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), alarmSound)
+
+}
+
+func (c *TimerContents) TimeUp() {
+
+	triggeredSoundNeighbor := false
+
+	if c.Task.TimerTriggerMode.CurrentChoice != TASK_TRIGGER_NONE {
+
+		triggerNeighbor := func(neighbor *Task) {
+			neighbor.TriggerContents(c.Task.TimerTriggerMode.CurrentChoice)
+			if !triggeredSoundNeighbor && neighbor.Is(TASK_TYPE_SOUND) && neighbor.Contents != nil && neighbor.Contents.(*SoundContents).Resource != nil {
+				triggeredSoundNeighbor = true
+			}
+		}
+
+		if c.Task.TaskBelow != nil {
+			triggerNeighbor(c.Task.TaskBelow)
+		}
+
+		if c.Task.TaskAbove != nil && !c.Task.TaskAbove.Is(TASK_TYPE_TIMER) {
+			triggerNeighbor(c.Task.TaskAbove)
+		}
+
+		if c.Task.TaskRight != nil && !c.Task.TaskRight.Is(TASK_TYPE_TIMER) {
+			triggerNeighbor(c.Task.TaskRight)
+		}
+
+		if c.Task.TaskLeft != nil && !c.Task.TaskLeft.Is(TASK_TYPE_TIMER) {
+			triggerNeighbor(c.Task.TaskLeft)
+		}
+
+	}
+
+	// Line triggering also goes here
+
+	if !triggeredSoundNeighbor {
+		speaker.Play(beep.Seq(c.AlarmSound, beep.Callback(c.ReloadAlarmSound)))
+	}
+
+}
+
+func (c *TimerContents) FormatText(minutes, seconds, milliseconds int) string {
+
+	if milliseconds < 0 {
+		return fmt.Sprintf("%02d:%02d", minutes, seconds)
+	}
+	return fmt.Sprintf("%02d:%02d:%02d", minutes, seconds, milliseconds)
+
+}
+
+func (c *TimerContents) Draw() {
+
+	project := c.Task.Board.Project
+	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
+
+	c.Task.DisplaySize.X = 48
+	c.Task.DisplaySize.Y = 0
+
+	if project.ShowIcons.Checked {
+		rl.DrawTexturePro(project.GUI_Icons, rl.Rectangle{0, 16, 16, 16}, rl.Rectangle{cp.X + 8, cp.Y + 8, 16, 16}, rl.Vector2{8, 8}, 0, getThemeColor(GUI_FONT_COLOR))
+		cp.X += 16
+		c.Task.DisplaySize.X += 16
+	}
+
+	srcX := float32(16)
+	if c.Task.TimerRunning {
+		srcX += 16
+	}
+
+	if c.Task.SmallButton(srcX, 16, 16, 16, cp.X, cp.Y) {
+		c.Trigger(TASK_TRIGGER_TOGGLE)
+		ConsumeMouseInput(rl.MouseLeftButton)
+	}
+
+	cp.X += 16
+
+	if c.Task.SmallButton(48, 16, 16, 16, cp.X, cp.Y) {
+		c.CalculateTimeLeft()
+		ConsumeMouseInput(rl.MouseLeftButton)
+	}
+
+	cp.X += 16
+
+	text := c.Task.TimerName.Text() + " : "
+
+	switch c.Task.TimerMode.CurrentChoice {
+
+	case TIMER_TYPE_COUNTDOWN:
+
+		time := int(c.TimerValue)
+		minutes := time / 60
+		seconds := time - (minutes * 60)
+
+		currentTime := c.FormatText(minutes, seconds, -1)
+		maxTime := c.FormatText(c.Task.TimerCountdownMinuteSpinner.Number(), c.Task.TimerCountdownSecondSpinner.Number(), -1)
+
+		text += currentTime + " / " + maxTime
+
+	case TIMER_TYPE_DAILY:
+		if c.Task.TimerRunning {
+			text += durafmt.Parse(time.Duration(c.TimerValue) * time.Second).LimitFirstN(2).String()
+		} else {
+			text += "Timer stopped."
+		}
+	case TIMER_TYPE_STOPWATCH:
+		time := int(c.TimerValue * 100)
+		minutes := time / 100 / 60
+		seconds := time/100 - (minutes * 60)
+		milliseconds := (time - (minutes * 6000) - (seconds * 100))
+
+		currentTime := c.FormatText(minutes, seconds, milliseconds)
+
+		text += currentTime
+	}
+
+	if text != "" {
+		DrawText(cp, text)
+		ts, _ := TextSize(text, false)
+		c.Task.DisplaySize.X += ts.X
+	}
+
+	if c.Task.DisplaySize.X < 16 {
+		c.Task.DisplaySize.X = 16
+	}
+	if c.Task.DisplaySize.Y < 16 {
+		c.Task.DisplaySize.Y = 16
+	}
+
+	c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+
+}
+
+func (c *TimerContents) Destroy() {}
+
+func (c *TimerContents) ReceiveMessage(msg string) {
+
+}
+
+func (c *TimerContents) Trigger(trigger int) {
+
+	if trigger == TASK_TRIGGER_TOGGLE {
+		c.Task.TimerRunning = !c.Task.TimerRunning
+	} else if trigger == TASK_TRIGGER_SET {
+		c.Task.TimerRunning = true
+	} else if trigger == TASK_TRIGGER_CLEAR {
+		c.Task.TimerRunning = false
+	}
+
+}
 
 type LineContents struct {
 }
@@ -891,6 +1205,3 @@ type WhiteboardContents struct {
 func (c *WhiteboardContents) Update() {}
 
 func (c *WhiteboardContents) Draw() {}
-
-type URLButtonParser struct {
-}

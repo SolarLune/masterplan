@@ -21,16 +21,17 @@ import (
 //
 // Task: A, B,
 
-type Undoable interface {
-	Serialize() string
-	Deserialize(string)
-}
+// type Undoable interface {
+// 	Serialize() string
+// 	Deserialize(string)
+// }
 
 type UndoHistory struct {
-	Frames    []UndoFrame
-	NewStates *UndoGroup
-	On        bool
-	Index     int
+	Frames       []*UndoFrame
+	CurrentFrame *UndoFrame
+	On           bool
+	Index        int
+	Changed      bool
 }
 
 func NewUndoHistory(board *Board) *UndoHistory {
@@ -38,25 +39,45 @@ func NewUndoHistory(board *Board) *UndoHistory {
 	// I'm just taking a Board argument for backwards compat for now
 
 	history := &UndoHistory{
-		On:     true,
-		Frames: []UndoFrame{},
+		On:           true,
+		Frames:       []*UndoFrame{},
+		CurrentFrame: NewUndoFrame(),
 	}
-
-	history.NewStates = NewUndoGroup(history)
 
 	return history
 
 }
 
-func (history *UndoHistory) Capture(undoObject Undoable) {
+func (history *UndoHistory) Capture(newState *UndoState) {
 
 	if !history.On {
 		return
 	}
 
-	newState := NewUndoState(undoObject)
+	if existingState, exists := history.CurrentFrame.States[newState.Task]; exists {
 
-	history.NewStates.AddState(newState)
+		if existingState.SameAs(newState) {
+			return
+		}
+
+	}
+
+	if len(history.Frames) > 0 {
+		prevFrame := history.Frames[history.Index-1]
+		if existingState, exists := prevFrame.States[newState.Task]; exists {
+
+			if existingState.SameAs(newState) {
+				return
+			}
+
+		}
+
+	}
+
+	history.CurrentFrame.States[newState.Task] = newState
+
+	history.Changed = true
+
 }
 
 func (history *UndoHistory) Undo() bool {
@@ -65,9 +86,19 @@ func (history *UndoHistory) Undo() bool {
 
 		history.On = false
 
+		for _, state := range history.Frames[history.Index-1].States {
+			state.Exit(-1)
+		}
+
 		history.Index--
 
-		history.Frames[history.Index].Apply()
+		if history.Index > 0 {
+
+			for _, state := range history.Frames[history.Index-1].States {
+				state.Apply()
+			}
+
+		}
 
 		history.On = true
 
@@ -80,13 +111,19 @@ func (history *UndoHistory) Undo() bool {
 
 func (history *UndoHistory) Redo() bool {
 
-	if history.Index < len(history.Frames)-1 {
+	if history.Index < len(history.Frames) {
 
 		history.On = false
 
+		for _, state := range history.Frames[history.Index].States {
+			state.Exit(1)
+		}
+
 		history.Index++
 
-		history.Frames[history.Index].Apply()
+		for _, state := range history.Frames[history.Index-1].States {
+			state.Apply()
+		}
 
 		history.On = true
 
@@ -100,65 +137,66 @@ func (history *UndoHistory) Redo() bool {
 
 func (history *UndoHistory) Update() {
 
-	if len(history.NewStates.States) > 0 {
-
-		// GOOD GOD THIS MIGHT BE IT
-
-		// UndoGroup.ToFrames() converts a group of unique UndoStates into frames, and packs them into individual UndoFrames.
-		// It internally starts with the current UndoHistory's Frame, so that 1) any actions after this are "overwritten", and
-		// 2) UndoStates that can peacefully exist on the current Frame may do so. For example, if you moved a Task from point A to point B,
-		// then created a new Task, that process consists of two UndoStates (one of non-existence, and then one of existence) and starts
-		// on the same frame as the Task being moved to Point B.
-
-		frames := history.NewStates.ToFrames()
+	if history.Changed {
 
 		if len(history.Frames) > 0 {
-			history.Frames = append(history.Frames[:history.Index], frames...)
-		} else {
-			history.Frames = append(history.Frames, frames...)
+			history.Frames = history.Frames[:history.Index]
 		}
 
-		history.Index = len(history.Frames) - 1
+		history.Frames = append(history.Frames, history.CurrentFrame)
 
-		history.NewStates = NewUndoGroup(history)
+		history.CurrentFrame = NewUndoFrame()
+
+		history.Index = len(history.Frames)
+
+		// for i, frame := range history.Frames {
+		// 	fmt.Println("frame #", i)
+		// 	fmt.Println("states:")
+		// 	for _, state := range frame.States {
+		// 		fmt.Println("     ", state)
+		// 	}
+		// }
+
+		// fmt.Println("index: ", history.Index)
+
+		// fmt.Println("______")
+
+		history.Changed = false
 
 	}
 
 }
 
-type UndoFrame map[Undoable]*UndoState
-
-func NewUndoFrame() UndoFrame {
-	frame := UndoFrame{}
-	return frame
+type UndoFrame struct {
+	States map[*Task]*UndoState
 }
 
-func (frame *UndoFrame) Apply() {
-	for _, state := range *frame {
-		state.Apply()
-	}
+func NewUndoFrame() *UndoFrame {
+	return &UndoFrame{States: map[*Task]*UndoState{}}
 }
 
 type UndoState struct {
-	Undoable   Undoable
+	Task       *Task
 	Serialized string
 	DataMap    map[string]interface{}
+	Creation   bool
+	Deletion   bool
 }
 
-func (us *UndoState) String() string {
-	return us.Serialized
-}
+// func (us *UndoState) String() string {
+// 	return us.Serialized
+// }
 
-func NewUndoState(undoObject Undoable) *UndoState {
+func NewUndoState(task *Task) *UndoState {
 
-	state := undoObject.Serialize()
+	state := task.Serialize()
 	state, _ = sjson.Delete(state, "Selected")
 
 	// Parse to a data struct that we can compare easily
 	dataMap := gjson.Parse(state).Value().(map[string]interface{})
 
 	return &UndoState{
-		Undoable:   undoObject,
+		Task:       task,
 		Serialized: state,
 		DataMap:    dataMap,
 	}
@@ -166,99 +204,44 @@ func NewUndoState(undoObject Undoable) *UndoState {
 }
 
 func (state *UndoState) Apply() {
+	state.Task.Deserialize(state.Serialized)
+}
 
-	state.Undoable.Deserialize(state.Serialized)
+func (state *UndoState) Exit(direction int) {
+
+	if direction > 0 {
+		if state.Creation {
+			state.Task.Board.RestoreTask(state.Task)
+		} else if state.Deletion {
+			state.Task.Board.DeleteTask(state.Task)
+		}
+	} else if direction < 0 {
+		if state.Creation {
+			state.Task.Board.DeleteTask(state.Task)
+		} else if state.Deletion {
+			state.Task.Board.RestoreTask(state.Task)
+		}
+	}
 
 }
 
-func (state *UndoState) Unique(otherState *UndoState) bool {
+func (state *UndoState) SameAs(otherState *UndoState) bool {
 
-	same := true
+	if state.Deletion != otherState.Deletion {
+		return false
+	}
 
 	for k, v := range state.DataMap {
 
 		if otherState.DataMap[k] != v {
-			// fmt.Println("prev: ", prevState.Serialized)
+			// fmt.Println("prev: ", otherState.Serialized)
 			// fmt.Println("new: ", state.Serialized)
 			// fmt.Println("difference: ", k, v)
-			same = false
-			break
+			return false
 		}
 
 	}
 
-	return !same
-
-}
-
-type UndoGroup struct {
-	History *UndoHistory
-	States  []*UndoState
-}
-
-func NewUndoGroup(history *UndoHistory) *UndoGroup {
-	return &UndoGroup{History: history, States: []*UndoState{}}
-}
-
-func (group *UndoGroup) AddState(state *UndoState) {
-
-	for _, existing := range group.States {
-		if !state.Unique(existing) {
-			return
-		}
-	}
-
-	if len(group.History.Frames) > 0 {
-
-		frame := group.History.Frames[group.History.Index]
-
-		for _, existing := range frame {
-			if !state.Unique(existing) {
-				return
-			}
-		}
-
-	}
-
-	group.States = append(group.States, state)
-
-}
-
-func (group *UndoGroup) ToFrames() []UndoFrame {
-
-	frames := []UndoFrame{}
-
-	if len(group.States) == 0 {
-		return frames
-	}
-
-	if len(group.History.Frames) > 0 {
-		frames = append(frames, group.History.Frames[group.History.Index])
-	}
-
-	for _, entry := range group.States {
-
-		var foundFrame UndoFrame
-
-		for _, frame := range frames {
-			// Something is already in one slot of one of the frames, so keep looking
-			if _, exists := frame[entry.Undoable]; exists {
-				continue
-			} else {
-				foundFrame = frame
-				break
-			}
-		}
-
-		if foundFrame == nil {
-			foundFrame = NewUndoFrame()
-			frames = append(frames, foundFrame)
-		}
-
-		foundFrame[entry.Undoable] = entry
-
-	}
-
-	return frames
+	return true
 
 }

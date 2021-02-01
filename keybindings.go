@@ -45,10 +45,11 @@ var keyNames = map[int32]string{
 	rl.KeyLeftShift:    "Left Shift",
 	rl.KeyLeftControl:  "Left Control",
 	rl.KeyLeftAlt:      "Left Alt",
-	rl.KeyLeftSuper:    "Super",
+	rl.KeyLeftSuper:    "Left Super",
 	rl.KeyRightShift:   "Right Shift",
 	rl.KeyRightControl: "Right Control",
 	rl.KeyRightAlt:     "Right Alt",
+	rl.KeyRightSuper:   "Right Super",
 	rl.KeyKbMenu:       "Menu Key",
 	rl.KeyLeftBracket:  "Left Bracket",
 	rl.KeyBackSlash:    "Backslash",
@@ -243,7 +244,7 @@ func (shortcut *Shortcut) String() string {
 	return name
 }
 
-func (shortcut *Shortcut) KeyNumber() int {
+func (shortcut *Shortcut) KeyCount() int {
 	return len(shortcut.Modifiers) + 1
 }
 
@@ -403,13 +404,13 @@ func (kb *Keybindings) Default() {
 
 	for _, shortcut := range kb.Shortcuts {
 
-		_, exists := kb.ShortcutsByLevel[shortcut.KeyNumber()-1]
+		_, exists := kb.ShortcutsByLevel[shortcut.KeyCount()-1]
 
 		if !exists {
-			kb.ShortcutsByLevel[shortcut.KeyNumber()-1] = []*Shortcut{}
+			kb.ShortcutsByLevel[shortcut.KeyCount()-1] = []*Shortcut{}
 		}
 
-		kb.ShortcutsByLevel[shortcut.KeyNumber()-1] = append(kb.ShortcutsByLevel[shortcut.KeyNumber()-1], shortcut)
+		kb.ShortcutsByLevel[shortcut.KeyCount()-1] = append(kb.ShortcutsByLevel[shortcut.KeyCount()-1], shortcut)
 
 	}
 
@@ -441,8 +442,37 @@ func (kb *Keybindings) On(bindingName string) bool {
 
 	sc := kb.Shortcuts[bindingName]
 
-	for _, modifier := range sc.Modifiers {
-		if !rl.IsKeyDown(modifier) {
+	if !sc.Enabled {
+		return false
+	}
+
+	checkKey := func(key int32, keyFunc func(int32) bool) bool {
+
+		switch key {
+		case rl.KeyLeftShift:
+			fallthrough
+		case rl.KeyRightShift:
+			return keyFunc(rl.KeyLeftShift) || keyFunc(rl.KeyRightShift)
+		case rl.KeyLeftControl:
+			fallthrough
+		case rl.KeyRightControl:
+			return keyFunc(rl.KeyLeftControl) || keyFunc(rl.KeyRightControl)
+		case rl.KeyLeftAlt:
+			fallthrough
+		case rl.KeyRightAlt:
+			return keyFunc(rl.KeyLeftAlt) || keyFunc(rl.KeyRightAlt)
+		case rl.KeyLeftSuper:
+			fallthrough
+		case rl.KeyRightSuper:
+			return keyFunc(rl.KeyLeftSuper) || keyFunc(rl.KeyRightSuper)
+		default:
+			return keyFunc(key)
+		}
+
+	}
+
+	for _, mod := range sc.Modifiers {
+		if !checkKey(mod, rl.IsKeyDown) {
 			return false
 		}
 	}
@@ -451,16 +481,16 @@ func (kb *Keybindings) On(bindingName string) bool {
 
 	if sc.triggerMode == TriggerModeHold {
 
-		out = rl.IsKeyDown(sc.Key)
+		out = checkKey(sc.Key, rl.IsKeyDown)
 
 	} else if sc.triggerMode == TriggerModeRepeating {
 
 		out = false
 
-		if rl.IsKeyPressed(sc.Key) {
+		if checkKey(sc.Key, rl.IsKeyPressed) {
 			sc.Hold = time.Now()
 			out = true
-		} else if rl.IsKeyDown(sc.Key) && time.Since(sc.Hold).Seconds() >= 0.2 {
+		} else if checkKey(sc.Key, rl.IsKeyDown) && time.Since(sc.Hold).Seconds() >= 0.2 {
 			if time.Since(sc.Repeat).Seconds() >= 0.025 {
 				kb.ResetTimingOnShortcut(sc)
 				out = true
@@ -468,11 +498,7 @@ func (kb *Keybindings) On(bindingName string) bool {
 		}
 
 	} else {
-		out = rl.IsKeyPressed(sc.Key)
-	}
-
-	if !sc.Enabled {
-		return false
+		out = checkKey(sc.Key, rl.IsKeyPressed)
 	}
 
 	return out

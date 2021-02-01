@@ -183,7 +183,7 @@ func (mapImage *MapImage) Update() {
 	}
 
 	if mapImage.Changed {
-		mapImage.Task.Board.UndoBuffer.Capture(mapImage.Task)
+		mapImage.Task.Board.UndoHistory.Capture(NewUndoState(mapImage.Task))
 	}
 
 }

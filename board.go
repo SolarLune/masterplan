@@ -20,7 +20,7 @@ type Board struct {
 	Project       *Project
 	Name          string
 	TaskLocations map[Position][]*Task
-	UndoBuffer    *UndoHistory
+	UndoHistory   *UndoHistory
 }
 
 func NewBoard(project *Project) *Board {
@@ -31,7 +31,7 @@ func NewBoard(project *Project) *Board {
 		TaskLocations: map[Position][]*Task{},
 	}
 
-	board.UndoBuffer = NewUndoHistory(board)
+	board.UndoHistory = NewUndoHistory(board)
 
 	return board
 }
@@ -94,11 +94,9 @@ func (board *Board) CreateNewTask() *Task {
 
 	board.Project.Log("Created 1 new Task.")
 
-	// We need to record both the Task being invalid, as well as being valid, for undoing / redoing
-	newTask.Valid = false
-	board.UndoBuffer.Capture(newTask)
-	newTask.Valid = true
-	board.UndoBuffer.Capture(newTask)
+	state := NewUndoState(newTask)
+	state.Creation = true
+	board.UndoHistory.Capture(state)
 
 	if !board.Project.JustLoaded {
 		// If we're loading a project, we don't want to automatically select new tasks
@@ -113,9 +111,12 @@ func (board *Board) DeleteTask(task *Task) {
 	if task.Valid {
 
 		task.Valid = false
-		board.UndoBuffer.Capture(task)
+		state := NewUndoState(task)
+		state.Deletion = true
+		board.UndoHistory.Capture(state)
 		board.ToBeDeleted = append(board.ToBeDeleted, task)
 		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
+
 	}
 
 }
@@ -125,7 +126,9 @@ func (board *Board) RestoreTask(task *Task) {
 	if !task.Valid {
 
 		task.Valid = true
-		board.UndoBuffer.Capture(task)
+		state := NewUndoState(task)
+		state.Creation = true
+		board.UndoHistory.Capture(state)
 		board.ToBeRestored = append(board.ToBeRestored, task)
 		task.ReceiveMessage(MessageDropped, map[string]interface{}{"task": task})
 
@@ -152,7 +155,7 @@ func (board *Board) DeleteSelectedTasks() {
 	}
 
 	for _, s := range stackMoveUp {
-		board.UndoBuffer.Capture(s)
+		board.UndoHistory.Capture(NewUndoState(s))
 	}
 
 	for _, s := range stackMoveUp {
@@ -160,7 +163,7 @@ func (board *Board) DeleteSelectedTasks() {
 	}
 
 	for _, s := range stackMoveUp {
-		board.UndoBuffer.Capture(s)
+		board.UndoHistory.Capture(NewUndoState(s))
 	}
 
 	board.Project.Log("Deleted %d Task(s).", count)
@@ -280,7 +283,7 @@ func (board *Board) PasteTasks() {
 
 	if len(board.Project.CopyBuffer) > 0 {
 
-		board.UndoBuffer.On = false
+		board.UndoHistory.On = false
 
 		for _, task := range board.Tasks {
 			task.Selected = false
@@ -294,7 +297,6 @@ func (board *Board) PasteTasks() {
 			clone := srcTask.Clone()
 			srcTask.Board = ogBoard
 			board.Tasks = append(board.Tasks, clone)
-			// clone.LoadResource()
 			clones = append(clones, clone)
 			return clone
 		}
@@ -356,16 +358,15 @@ func (board *Board) PasteTasks() {
 		// 	}
 		// }
 
-		board.UndoBuffer.On = true
+		board.UndoHistory.On = true
 
 		for _, clone := range clones {
 
-			clone.Valid = false
-			board.UndoBuffer.Capture(clone)
-			clone.Valid = true
-			board.UndoBuffer.Capture(clone)
-
+			undoState := NewUndoState(clone)
+			undoState.Creation = true
+			board.UndoHistory.Capture(undoState)
 			clone.Selected = true
+
 		}
 
 		board.ReorderTasks()
@@ -438,12 +439,12 @@ func (board *Board) ReorderTasks() {
 
 	// Reordering Tasks should not alter the Undo Buffer, as altering the Undo Buffer generally happens explicitly
 
-	prevOn := board.UndoBuffer.On
-	board.UndoBuffer.On = false
+	prevOn := board.UndoHistory.On
+	board.UndoHistory.On = false
 	board.SendMessage(MessageDropped, nil)
 	board.SendMessage(MessageNeighbors, nil)
 	board.SendMessage(MessageNumbering, nil)
-	board.UndoBuffer.On = prevOn
+	board.UndoHistory.On = prevOn
 
 }
 
