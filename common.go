@@ -56,7 +56,7 @@ func GetMouseDelta() rl.Vector2 {
 	return vec
 }
 
-func GetPath(folders ...string) string {
+func LocalPath(folders ...string) string {
 
 	// Running apps from Finder in MacOS makes the working directory the home directory, which is nice, because
 	// now I have to make this function to do what should be done anyway and give me a relative path starting from
@@ -220,7 +220,7 @@ func GUIFontSize() float32 {
 
 func ReloadFonts() {
 
-	fontPath := GetPath("assets", "excel.ttf")
+	fontPath := LocalPath("assets", "excel.ttf")
 
 	if programSettings.CustomFontPath != "" && FileExists(programSettings.CustomFontPath) {
 		fontPath = programSettings.CustomFontPath
@@ -230,7 +230,9 @@ func ReloadFonts() {
 		rl.UnloadFont(font)
 	}
 
-	font = rl.LoadFontEx(fontPath, int32(30), nil, 256)
+	// The Basic Multilingual Plane, or BMP, contains characters for almost all modern languages, and consistutes the first 65,472 code points of the first 163 Unicode blocks.
+	// See: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
+	font = rl.LoadFontEx(fontPath, int32(30), nil, 65472)
 
 }
 

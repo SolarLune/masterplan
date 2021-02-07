@@ -1,7 +1,11 @@
 package main
 
 import (
-	"github.com/tidwall/gjson"
+	"fmt"
+	"os"
+	"strconv"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/tidwall/sjson"
 )
 
@@ -54,22 +58,35 @@ func (history *UndoHistory) Capture(newState *UndoState) {
 		return
 	}
 
-	if existingState, exists := history.CurrentFrame.States[newState.Task]; exists {
+	// Redirection of capture of Line Tasks as line endings don't really "exist"; they're Tasks just made to
+	// visualize where the Line ends, and moving them around is just really setting positions for serialization
+	// and visualization.
 
-		if existingState.SameAs(newState) {
+	if newState.Task.Is(TASK_TYPE_LINE) && newState.Task.LineStart != nil {
+		history.Capture(NewUndoState(newState.Task.LineStart))
+		return
+	}
+
+	if existingState, exists := history.CurrentFrame.States[newState.Task]; exists && existingState.SameAs(newState) {
+		return
+	}
+
+	if len(history.Frames) > 0 && history.Index > 0 {
+
+		prevFrame := history.Frames[history.Index-1]
+
+		if existingState, exists := prevFrame.States[newState.Task]; exists && existingState.SameAs(newState) {
 			return
 		}
 
-	}
-
-	if len(history.Frames) > 0 {
-		prevFrame := history.Frames[history.Index-1]
-		if existingState, exists := prevFrame.States[newState.Task]; exists {
-
-			if existingState.SameAs(newState) {
-				return
+		for i := history.Index - 1; i >= 0; i-- {
+			if olderState, exists := history.Frames[i].States[newState.Task]; exists {
+				if olderState.SameAs(newState) {
+					prevFrame.States[newState.Task] = newState
+					return
+				}
+				break
 			}
-
 		}
 
 	}
@@ -100,6 +117,10 @@ func (history *UndoHistory) Undo() bool {
 
 		}
 
+		for _, board := range currentProject.Boards {
+			board.ChangedTaskOrder = true
+		}
+
 		history.On = true
 
 		return true
@@ -123,6 +144,10 @@ func (history *UndoHistory) Redo() bool {
 
 		for _, state := range history.Frames[history.Index-1].States {
 			state.Apply()
+		}
+
+		for _, board := range currentProject.Boards {
+			board.ChangedTaskOrder = true
 		}
 
 		history.On = true
@@ -150,20 +175,37 @@ func (history *UndoHistory) Update() {
 		history.Index = len(history.Frames)
 
 		// for i, frame := range history.Frames {
-		// 	fmt.Println("frame #", i)
-		// 	fmt.Println("states:")
-		// 	for _, state := range frame.States {
-		// 		fmt.Println("     ", state)
-		// 	}
+		// fmt.Println("frame #", i)
+		// fmt.Println("states:")
+		// for _, state := range frame.States {
+		// fmt.Println("     ", state)
 		// }
-
+		// }
+		//
+		// fmt.Println("______")
+		//
 		// fmt.Println("index: ", history.Index)
-
+		//
 		// fmt.Println("______")
 
 		history.Changed = false
 
 	}
+
+	// if rl.IsKeyPressed(rl.KeyRightBracket) {
+	// file, _ := os.Create(LocalPath("undo.history"))
+	// defer file.Close()
+	// str := ""
+	// for i, frame := range history.Frames {
+	// str += "frame #" + strconv.Itoa(i) + ":\n"
+	// for _, state := range frame.States {
+	// str += "\t" + state.Serialized + "\n"
+	// }
+	// }
+	// file.WriteString(str)
+	//
+	// fmt.Println("Undo history written to file.")
+	// }
 
 }
 
@@ -178,7 +220,6 @@ func NewUndoFrame() *UndoFrame {
 type UndoState struct {
 	Task       *Task
 	Serialized string
-	DataMap    map[string]interface{}
 	Creation   bool
 	Deletion   bool
 }
@@ -192,19 +233,16 @@ func NewUndoState(task *Task) *UndoState {
 	state := task.Serialize()
 	state, _ = sjson.Delete(state, "Selected")
 
-	// Parse to a data struct that we can compare easily
-	dataMap := gjson.Parse(state).Value().(map[string]interface{})
-
 	return &UndoState{
 		Task:       task,
 		Serialized: state,
-		DataMap:    dataMap,
 	}
 
 }
 
 func (state *UndoState) Apply() {
 	state.Task.Deserialize(state.Serialized)
+	state.Task.Change = TASK_CHANGE_NONE
 }
 
 func (state *UndoState) Exit(direction int) {
@@ -223,6 +261,8 @@ func (state *UndoState) Exit(direction int) {
 		}
 	}
 
+	state.Task.Change = TASK_CHANGE_NONE
+
 }
 
 func (state *UndoState) SameAs(otherState *UndoState) bool {
@@ -231,17 +271,8 @@ func (state *UndoState) SameAs(otherState *UndoState) bool {
 		return false
 	}
 
-	for k, v := range state.DataMap {
-
-		if otherState.DataMap[k] != v {
-			// fmt.Println("prev: ", otherState.Serialized)
-			// fmt.Println("new: ", state.Serialized)
-			// fmt.Println("difference: ", k, v)
-			return false
-		}
-
-	}
-
-	return true
+	// It's faster to compare strings that a map of string to interface{}
+	// (which is how I was doing this previously).
+	return state.Serialized == otherState.Serialized
 
 }

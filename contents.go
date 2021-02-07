@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/faiface/beep"
+	"github.com/faiface/beep/effects"
 	"github.com/faiface/beep/speaker"
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/hako/durafmt"
@@ -58,6 +59,54 @@ func (tbg *taskBGProgress) Draw() {
 	rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
 }
 
+func drawTaskBG(task *Task, fillColor rl.Color) {
+
+	// task.Rect.Width = size.X
+	// task.Rect.Height = size.Y
+
+	outlineColor := getThemeColor(GUI_OUTLINE)
+
+	if task.Selected {
+		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+	} else if task.IsComplete() {
+		outlineColor = getThemeColor(GUI_OUTLINE)
+	}
+
+	// Moved this to a function because it's used for the inside and outside, and the
+	// progress bar for progression-based Tasks.
+	applyGlow := func(color rl.Color) rl.Color {
+
+		// if (task.Completable() && ((task.Complete() && task.Board.Project.CompleteTasksGlow.Checked) || (!task.Complete() && task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
+		if (task.IsCompletable() && ((task.Board.Project.CompleteTasksGlow.Checked) || (task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
+
+			glowVariance := float64(20)
+			if task.Selected {
+				glowVariance = 40
+			}
+
+			glow := int32(math.Sin(float64((rl.GetTime()*math.Pi*2-(float32(task.ID)*0.1))))*(glowVariance/2) + (glowVariance / 2))
+
+			color = ColorAdd(color, -glow)
+		}
+
+		return color
+
+	}
+
+	fillColor = applyGlow(fillColor)
+	outlineColor = applyGlow(outlineColor)
+
+	alpha := float32(task.Board.Project.TaskTransparency.Number()) / float32(task.Board.Project.TaskTransparency.Maximum)
+	fillColor.A = uint8(float32(fillColor.A) * alpha)
+
+	rl.DrawRectangleRec(task.Rect, fillColor)
+
+	if task.Board.Project.OutlineTasks.Checked {
+		DrawRectLines(task.Rect, outlineColor)
+	}
+
+}
+
 type CheckboxContents struct {
 	Task       *Task
 	bgProgress *taskBGProgress
@@ -80,6 +129,8 @@ func (c *CheckboxContents) Update() {
 
 // Draw only runs when the Task is visible.
 func (c *CheckboxContents) Draw() {
+
+	drawTaskBG(c.Task, getThemeColor(GUI_INSIDE))
 
 	cp := rl.Vector2{c.Task.Rect.X + 4, c.Task.Rect.Y}
 
@@ -174,13 +225,7 @@ func (c *CheckboxContents) Draw() {
 
 func (c *CheckboxContents) Destroy() {}
 
-func (c *CheckboxContents) ReceiveMessage(msg string) {
-
-	if msg == MessageTaskClose {
-		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
-	}
-
-}
+func (c *CheckboxContents) ReceiveMessage(msg string) {}
 
 func (c *CheckboxContents) Trigger(trigger int) {
 
@@ -220,6 +265,8 @@ func (c *ProgressionContents) Update() {
 
 func (c *ProgressionContents) Draw() {
 
+	drawTaskBG(c.Task, getThemeColor(GUI_INSIDE))
+
 	c.bgProgress.Current = c.Task.CompletionProgressionCurrent.Number()
 	c.bgProgress.Max = c.Task.CompletionProgressionMax.Number()
 	c.bgProgress.Draw()
@@ -244,14 +291,14 @@ func (c *ProgressionContents) Draw() {
 	if c.Task.SmallButton(112, 48, 16, 16, cp.X, cp.Y) {
 		c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() - 1)
 		ConsumeMouseInput(rl.MouseLeftButton)
-		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
+		c.Task.Change = TASK_CHANGE_ALTERATION
 	}
 	cp.X += 16
 
 	if c.Task.SmallButton(96, 48, 16, 16, cp.X, cp.Y) {
 		c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() + 1)
 		ConsumeMouseInput(rl.MouseLeftButton)
-		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
+		c.Task.Change = TASK_CHANGE_ALTERATION
 	}
 	cp.X += 16
 
@@ -300,13 +347,7 @@ func (c *ProgressionContents) Draw() {
 
 func (c *ProgressionContents) Destroy() {}
 
-func (c *ProgressionContents) ReceiveMessage(msg string) {
-
-	if msg == MessageTaskClose {
-		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
-	}
-
-}
+func (c *ProgressionContents) ReceiveMessage(msg string) {}
 
 func (c *ProgressionContents) Trigger(trigger int) {
 
@@ -346,6 +387,8 @@ func (c *NoteContents) Update() {}
 
 func (c *NoteContents) Draw() {
 
+	drawTaskBG(c.Task, getThemeColor(GUI_NOTE_COLOR))
+
 	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
 
 	c.Task.DisplaySize.X = 16
@@ -382,13 +425,7 @@ func (c *NoteContents) Draw() {
 
 func (c *NoteContents) Destroy() {}
 
-func (c *NoteContents) ReceiveMessage(msg string) {
-
-	if msg == MessageTaskClose {
-		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
-	}
-
-}
+func (c *NoteContents) ReceiveMessage(msg string) {}
 
 func (c *NoteContents) Trigger(trigger int) {}
 
@@ -468,13 +505,15 @@ func (c *ImageContents) LoadResource() {
 
 		c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
 
-		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
+		c.Task.Change = TASK_CHANGE_ALTERATION
 
 	}
 
 }
 
 func (c *ImageContents) Draw() {
+
+	drawTaskBG(c.Task, getThemeColor(GUI_INSIDE))
 
 	if c.Task.LoadMediaButton.Clicked {
 
@@ -584,7 +623,7 @@ func (c *ImageContents) Draw() {
 
 					if MouseReleased(rl.MouseLeftButton) {
 						c.resizingImage = false
-						c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
+						c.Task.Change = TASK_CHANGE_ALTERATION
 					}
 
 					c.Task.Dragging = false
@@ -674,6 +713,7 @@ type SoundContents struct {
 	SoundStream      beep.StreamSeekCloser
 	SoundSampler     *beep.Resampler
 	SoundControl     *beep.Ctrl
+	SoundVolume      *effects.Volume
 	LoadedResource   bool
 	LoadedPath       string
 	BGProgress       *taskBGProgress
@@ -685,6 +725,10 @@ func NewSoundContents(task *Task) *SoundContents {
 	contents := &SoundContents{
 		Task:       task,
 		BGProgress: newTaskBGProgress(task),
+		SoundVolume: &effects.Volume{
+			Base:   2,
+			Volume: float64(task.Board.Project.SoundVolume.Number()-10) / 2,
+		},
 	}
 
 	contents.LoadResource()
@@ -776,11 +820,12 @@ func (c *SoundContents) LoadResource() {
 
 	if !c.LoadedResource && c.Resource != nil && c.Resource.State() == RESOURCE_STATE_READY {
 
-		if c.Resource.IsAudio() {
+		if c.SoundStream != nil {
+			c.SoundStream.Close()
+			c.SoundControl.Paused = true
+		}
 
-			if c.SoundStream != nil {
-				c.SoundStream.Close()
-			}
+		if c.Resource.IsAudio() {
 
 			stream, format, _ := c.Resource.Audio()
 
@@ -788,7 +833,9 @@ func (c *SoundContents) LoadResource() {
 
 			c.SoundSampler = beep.Resample(1, format.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), c.SoundStream)
 
-			c.SoundControl = &beep.Ctrl{Streamer: c.SoundSampler, Paused: true}
+			c.SoundVolume.Streamer = c.SoundSampler
+
+			c.SoundControl = &beep.Ctrl{Streamer: c.SoundVolume, Paused: true}
 
 			speaker.Play(beep.Seq(c.SoundControl, beep.Callback(func() {
 				c.FinishedPlayback = true
@@ -801,7 +848,7 @@ func (c *SoundContents) LoadResource() {
 
 		c.LoadedResource = true
 
-		c.Task.Board.UndoHistory.Capture(NewUndoState(c.Task))
+		c.Task.Change = TASK_CHANGE_ALTERATION
 
 	}
 
@@ -838,6 +885,8 @@ func (c *SoundContents) StreamTime() (float64, float64) {
 }
 
 func (c *SoundContents) Draw() {
+
+	drawTaskBG(c.Task, getThemeColor(GUI_INSIDE))
 
 	project := c.Task.Board.Project
 	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
@@ -943,7 +992,18 @@ func (c *SoundContents) Destroy() {
 
 }
 
-func (c *SoundContents) ReceiveMessage(msg string) {}
+func (c *SoundContents) ReceiveMessage(msg string) {
+
+	if msg == MessageSettingsChange {
+
+		speaker.Lock()
+		c.SoundVolume.Volume = float64(c.Task.Board.Project.SoundVolume.Number()-10) / 2
+		c.SoundVolume.Silent = c.Task.Board.Project.SoundVolume.Number() == 0
+		speaker.Unlock()
+
+	}
+
+}
 
 func (c *SoundContents) Trigger(trigger int) {
 	if trigger == TASK_TRIGGER_TOGGLE {
@@ -958,6 +1018,7 @@ func (c *SoundContents) Trigger(trigger int) {
 type TimerContents struct {
 	Task       *Task
 	TimerValue float32
+	TargetDate time.Time
 	// AlarmResource *Resource
 	AlarmSound *beep.Resampler
 	// TimerDelayStart time.Time
@@ -982,20 +1043,31 @@ func (c *TimerContents) CalculateTimeLeft() {
 		start := time.Duration(int(now.Weekday())) * 24 * time.Hour
 		nextDate := now.Add(-start - (time.Duration(now.Minute()) * time.Minute) - (time.Duration(now.Hour()) * time.Hour) - (time.Duration(now.Second()) * time.Second))
 
-		nextDate = nextDate.Add(time.Duration(c.Task.TimerDailyDaySpinner.CurrentChoice) * time.Hour * 24)
-		nextDate = nextDate.Add(time.Duration(c.Task.TimerDailyHourSpinner.Number()) * time.Hour)
-		nextDate = nextDate.Add(time.Duration(c.Task.TimerDailyMinuteSpinner.Number()) * time.Minute)
+		nextDate = nextDate.Add(time.Duration(c.Task.DailyDay.CurrentChoice) * time.Hour * 24)
+		nextDate = nextDate.Add(time.Duration(c.Task.DailyHour.Number()) * time.Hour)
+		nextDate = nextDate.Add(time.Duration(c.Task.DailyMinute.Number()) * time.Minute)
 
 		if nextDate.Before(now) || nextDate.Sub(now).Seconds() <= 0 {
 			nextDate = nextDate.AddDate(0, 0, 7)
 		}
 
+		c.TargetDate = nextDate
+
 		c.TimerValue = float32(nextDate.Sub(now).Seconds())
 
+	case TIMER_TYPE_DEADLINE:
+
+		nextDate := time.Date(c.Task.DeadlineYear.Number(), time.Month(c.Task.DeadlineMonth.CurrentChoice+1), c.Task.DeadlineDay.Number(), 23, 59, 59, 0, time.Now().Location())
+		c.TargetDate = nextDate
+		c.TimerValue = float32(nextDate.Sub(time.Now()).Seconds())
+
 	case TIMER_TYPE_COUNTDOWN:
-		if c.Task.TimerCountdownMinuteSpinner.Changed || c.Task.TimerCountdownSecondSpinner.Changed {
-			c.TimerValue = float32(c.Task.TimerCountdownMinuteSpinner.Number()*60 + c.Task.TimerCountdownSecondSpinner.Number())
+		if c.Task.CountdownMinute.Changed || c.Task.CountdownSecond.Changed {
+			c.TimerValue = float32(c.Task.CountdownMinute.Number()*60 + c.Task.CountdownSecond.Number())
 		}
+
+	case TIMER_TYPE_STOPWATCH:
+		c.TimerValue = 0
 	}
 
 }
@@ -1003,6 +1075,7 @@ func (c *TimerContents) CalculateTimeLeft() {
 func (c *TimerContents) Update() {
 
 	if c.Task.Open {
+		c.Task.TimerRunning = false
 		c.CalculateTimeLeft()
 	}
 
@@ -1013,25 +1086,28 @@ func (c *TimerContents) Update() {
 		case TIMER_TYPE_STOPWATCH:
 			c.TimerValue += deltaTime // Stopwatches count up because they have no limit; we're using raw delta time because we want it to count regardless of what's going on
 		default:
-			c.TimerValue -= deltaTime // We count down, not count up
+			c.TimerValue -= deltaTime // We count down, not up, otherwise
 
 			if c.TimerValue <= 0 {
 				c.TimeUp()
 				c.CalculateTimeLeft()
-				if c.Task.TimerRepeating.Checked {
+				if c.Task.TimerRepeating.Checked && c.Task.TimerMode.CurrentChoice != TIMER_TYPE_DEADLINE {
 					c.Trigger(TASK_TRIGGER_SET)
 				} else {
 					c.Task.TimerRunning = false
 				}
+
 			}
+
 		}
+
 	}
 
 }
 
 func (c *TimerContents) ReloadAlarmSound() {
 
-	res, _ := c.Task.Board.Project.LoadResource(GetPath("assets", "alarm.wav"))
+	res, _ := c.Task.Board.Project.LoadResource(LocalPath("assets", "alarm.wav"))
 	alarmSound, alarmFormat, _ := res.Audio()
 	c.AlarmSound = beep.Resample(2, alarmFormat.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), alarmSound)
 
@@ -1087,6 +1163,8 @@ func (c *TimerContents) FormatText(minutes, seconds, milliseconds int) string {
 
 func (c *TimerContents) Draw() {
 
+	drawTaskBG(c.Task, getThemeColor(GUI_INSIDE))
+
 	project := c.Task.Board.Project
 	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
 
@@ -1129,16 +1207,22 @@ func (c *TimerContents) Draw() {
 		seconds := time - (minutes * 60)
 
 		currentTime := c.FormatText(minutes, seconds, -1)
-		maxTime := c.FormatText(c.Task.TimerCountdownMinuteSpinner.Number(), c.Task.TimerCountdownSecondSpinner.Number(), -1)
+		maxTime := c.FormatText(c.Task.CountdownMinute.Number(), c.Task.CountdownSecond.Number(), -1)
 
 		text += currentTime + " / " + maxTime
 
 	case TIMER_TYPE_DAILY:
+		fallthrough
+	case TIMER_TYPE_DEADLINE:
+
+		targetDateText := c.TargetDate.Format(" (Jan 2 2006)")
+
 		if c.Task.TimerRunning {
-			text += durafmt.Parse(time.Duration(c.TimerValue) * time.Second).LimitFirstN(2).String()
+			text += durafmt.Parse(time.Duration(c.TimerValue)*time.Second).LimitFirstN(2).String() + targetDateText
 		} else {
 			text += "Timer stopped."
 		}
+
 	case TIMER_TYPE_STOPWATCH:
 		time := int(c.TimerValue * 100)
 		minutes := time / 100 / 60
@@ -1186,11 +1270,131 @@ func (c *TimerContents) Trigger(trigger int) {
 }
 
 type LineContents struct {
+	Task *Task
 }
 
-func (c *LineContents) Update() {}
+func NewLineContents(task *Task) *LineContents {
+	return &LineContents{
+		Task: task,
+	}
+}
 
-func (c *LineContents) Draw() {}
+func (c *LineContents) Update() {
+
+	// We draw in the update section because it needs to be under the Tasks' drawing, and also needs to be done if either the line's end or start point is visible
+
+	if c.Task.LineStart != nil && (c.Task.LineStart.Visible || c.Task.Visible) {
+
+		outlinesOn := c.Task.Board.Project.OutlineTasks.Checked
+		outlineColor := getThemeColor(GUI_INSIDE)
+		fillColor := getThemeColor(GUI_FONT_COLOR)
+
+		cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
+		cp.X += c.Task.Rect.Width / 2
+		cp.Y += c.Task.Rect.Height / 2
+
+		ep := rl.Vector2{c.Task.LineStart.Rect.X, c.Task.LineStart.Rect.Y}
+		ep.X += c.Task.LineStart.Rect.Width / 2
+		ep.Y += c.Task.LineStart.Rect.Height / 2
+
+		if c.Task.LineStart.LineBezier.Checked {
+
+			if outlinesOn {
+				rl.DrawLineBezier(cp, ep, 4, outlineColor)
+			}
+
+			rl.DrawLineBezier(cp, ep, 2, fillColor)
+
+		} else {
+
+			if outlinesOn {
+				rl.DrawLineEx(cp, ep, 4, outlineColor)
+			}
+
+			rl.DrawLineEx(cp, ep, 2, fillColor)
+
+		}
+
+	}
+
+}
+
+func (c *LineContents) Draw() {
+
+	outlinesOn := c.Task.Board.Project.OutlineTasks.Checked
+	outlineColor := getThemeColor(GUI_INSIDE)
+	fillColor := getThemeColor(GUI_FONT_COLOR)
+
+	guiIcons := c.Task.Board.Project.GUI_Icons
+
+	src := rl.Rectangle{128, 32, 16, 16}
+	dst := rl.Rectangle{c.Task.Rect.X + (src.Width / 2), c.Task.Rect.Y + (src.Height / 2), src.Width, src.Height}
+
+	rotation := float32(0)
+
+	if c.Task.LineStart != nil {
+
+		src.X += 16
+
+		if c.Task.TaskUnder != nil {
+			src.X += 16
+			rotation = 0
+		} else if c.Task.TaskBelow != nil && c.Task.TaskBelow != c.Task.LineStart {
+			rotation += 90
+		} else if c.Task.TaskLeft != nil && c.Task.TaskLeft != c.Task.LineStart {
+			rotation += 180
+		} else if c.Task.TaskAbove != nil && c.Task.TaskAbove != c.Task.LineStart {
+			rotation -= 90
+		} else if c.Task.TaskRight == nil || c.Task.TaskRight == c.Task.LineStart {
+			angle := rl.Vector2Angle(c.Task.LineStart.Position, c.Task.Position)
+			rotation = angle
+		}
+
+	}
+
+	if outlinesOn {
+		rl.DrawTexturePro(guiIcons, src, dst, rl.Vector2{src.Width / 2, src.Height / 2}, rotation, outlineColor)
+	}
+
+	src.Y += 16
+
+	rl.DrawTexturePro(guiIcons, src, dst, rl.Vector2{src.Width / 2, src.Height / 2}, rotation, fillColor)
+
+	c.Task.DisplaySize.X = 16
+	c.Task.DisplaySize.Y = 16
+
+}
+
+func (c *LineContents) Trigger(triggerMode int) {}
+
+func (c *LineContents) Destroy() {
+
+	if c.Task.LineStart != nil {
+
+		for index, ending := range c.Task.LineStart.LineEndings {
+			if ending == c.Task {
+				c.Task.LineStart.LineEndings = append(c.Task.LineStart.LineEndings[:index], c.Task.LineStart.LineEndings[index+1:]...)
+				break
+			}
+		}
+
+	} else {
+
+		existingEndings := c.Task.LineEndings[:]
+
+		c.Task.LineEndings = []*Task{}
+
+		for _, ending := range existingEndings {
+			ending.Board.DeleteTask(ending)
+		}
+
+		c.Task.Change = TASK_CHANGE_NONE
+
+	}
+
+}
+
+func (c *LineContents) ReceiveMessage(msg string) {}
 
 type MapContents struct {
 }

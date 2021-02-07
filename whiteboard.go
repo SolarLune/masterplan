@@ -137,7 +137,7 @@ func (whiteboard *Whiteboard) Update() {
 	}
 
 	if makeUndo {
-		whiteboard.Task.Board.UndoHistory.Capture(NewUndoState(whiteboard.Task))
+		whiteboard.Task.Change = TASK_CHANGE_ALTERATION
 	}
 
 	cursors := []float32{

@@ -3,11 +3,14 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
+	"math/big"
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -33,6 +36,8 @@ var windowTitle = "MasterPlan"
 var deltaTime = float32(0)
 var quit = false
 var targetFPS = 60
+
+var cpuProfiling = false
 
 func init() {
 
@@ -121,7 +126,7 @@ func main() {
 	// We initialize the window using just "MasterPlan" as the title because WM_CLASS is set from this on Linux
 	rl.InitWindow(960, 540, "MasterPlan")
 
-	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
+	rl.SetWindowIcon(*rl.LoadImage(LocalPath("assets", "window_icon.png")))
 
 	if programSettings.SaveWindowPosition && programSettings.WindowPosition.Width > 0 && programSettings.WindowPosition.Height > 0 {
 		rl.SetWindowPosition(int(programSettings.WindowPosition.X), int(programSettings.WindowPosition.Y))
@@ -137,7 +142,7 @@ func main() {
 	attemptAutoload := 5
 	showedAboutDialog := false
 	splashScreenTime := float32(0)
-	splashScreen := rl.LoadTexture(GetPath("assets", "splashscreen.png"))
+	splashScreen := rl.LoadTexture(LocalPath("assets", "splashscreen.png"))
 	splashColor := rl.White
 
 	if programSettings.DisableSplashscreen {
@@ -149,8 +154,6 @@ func main() {
 	fpsDisplayValue := float32(0)
 	fpsDisplayAccumulator := float32(0)
 	fpsDisplayTimer := time.Now()
-
-	// profiling := false
 
 	elapsed := time.Duration(0)
 
@@ -165,19 +168,6 @@ func main() {
 		if rl.IsKeyPressed(rl.KeyF1) {
 			drawFPS = !drawFPS
 		}
-
-		// if rl.IsKeyPressed(rl.KeyF5) {
-		// 	if !profiling {
-		// 		cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rand.Int()))
-		// 		if err != nil {
-		// 			log.Fatal("Could not create CPU Profile: ", err)
-		// 		}
-		// 		pprof.StartCPUProfile(cpuProfFile)
-		// 	} else {
-		// 		pprof.StopCPUProfile()
-		// 	}
-		// 	profiling = !profiling
-		// }
 
 		if rl.IsKeyPressed(rl.KeyF2) {
 			rl.SetWindowSize(960, 540)
@@ -210,7 +200,7 @@ func main() {
 				// If the settings aren't successfully loaded, it's safe to assume it's because they don't exist, because the program is first loading.
 				if !settingsLoaded {
 
-					if loaded := LoadProject(GetPath("assets", "help_manual.plan")); loaded != nil {
+					if loaded := LoadProject(LocalPath("assets", "help_manual.plan")); loaded != nil {
 						currentProject = loaded
 					}
 
@@ -323,7 +313,7 @@ func main() {
 			if takeScreenshot {
 				screenshotIndex++
 				screenshotFileName := fmt.Sprintf("screenshot%d.png", screenshotIndex)
-				screenshotPath := GetPath(screenshotFileName)
+				screenshotPath := LocalPath(screenshotFileName)
 				if projectScreenshotsPath := currentProject.ScreenshotsPath.Text(); projectScreenshotsPath != "" {
 					if _, err := os.Stat(projectScreenshotsPath); err == nil {
 						screenshotPath = filepath.Join(projectScreenshotsPath, screenshotFileName)
@@ -418,5 +408,21 @@ func main() {
 	log.Println("MasterPlan exited successfully.")
 
 	currentProject.Destroy()
+
+}
+
+func toggleCPUProfiling() {
+
+	if !cpuProfiling {
+		rInt, _ := rand.Int(rand.Reader, big.NewInt(400))
+		cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rInt))
+		if err != nil {
+			log.Fatal("Could not create CPU Profile: ", err)
+		}
+		pprof.StartCPUProfile(cpuProfFile)
+	} else {
+		pprof.StopCPUProfile()
+	}
+	cpuProfiling = !cpuProfiling
 
 }

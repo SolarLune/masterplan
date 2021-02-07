@@ -56,7 +56,7 @@ func loadThemes() {
 
 	newGUIColors := map[string]map[string]rl.Color{}
 
-	filepath.Walk(GetPath("assets", "themes"), func(fp string, info os.FileInfo, err error) error {
+	filepath.Walk(LocalPath("assets", "themes"), func(fp string, info os.FileInfo, err error) error {
 
 		if !info.IsDir() {
 
@@ -1186,6 +1186,7 @@ func (spinner *Spinner) ChoiceAsString() string {
 	return spinner.Options[spinner.CurrentChoice]
 }
 
+// ChoiceAsInt formats the choice text as an integer value (i.e. if the choice for the project's sample-rate is "44100", the ChoiceAsInt() for this Spinner would return the number 44100).
 func (spinner *Spinner) ChoiceAsInt() int {
 	n := 0
 	n, _ = strconv.Atoi(spinner.ChoiceAsString())
@@ -1328,29 +1329,30 @@ var allTextboxes = []*Textbox{}
 
 type Textbox struct {
 	// Used to be a string, but now is a []rune so it can deal with UTF8 characters like À properly, HOPEFULLY
-	text                 []rune
-	Focused              bool
-	Rect                 rl.Rectangle
-	Visible              bool
-	AllowNewlines        bool
-	AllowAlphaCharacters bool
-	MaxCharactersPerLine int
-	Changed              bool
-	ClickedAway          bool // If the value in the textbox was edited and then clicked away afterwards
-	HorizontalAlignment  int
-	VerticalAlignment    int
-	SelectedRange        [2]int
-	SelectionStart       int
-	LeadingSelectionEdge int
-	ExpandHorizontally   bool
-	ExpandVertically     bool
-	Visibility           rl.Vector2
-	Buffer               rl.RenderTexture2D
-	BufferSize           rl.Vector2
-	CaretBlinkTime       time.Time
-	triggerTextRedraw    bool
-	CharToRect           map[int]rl.Rectangle
-	Lines                [][]rune
+	text                  []rune
+	Focused               bool
+	Rect                  rl.Rectangle
+	Visible               bool
+	AllowNewlines         bool
+	AllowAlphaCharacters  bool
+	MaxCharactersPerLine  int
+	Changed               bool
+	ClickedAway           bool // If the value in the textbox was edited and then clicked away afterwards
+	HorizontalAlignment   int
+	VerticalAlignment     int
+	SelectedRange         [2]int
+	SelectionStart        int
+	LeadingSelectionEdge  int
+	ExpandHorizontally    bool
+	ExpandVertically      bool
+	Visibility            rl.Vector2
+	Buffer                rl.RenderTexture2D
+	BufferSize            rl.Vector2
+	CaretBlinkTime        time.Time
+	triggerTextRedraw     bool
+	forceBufferRecreation bool
+	CharToRect            map[int]rl.Rectangle
+	Lines                 [][]rune
 
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
@@ -1377,7 +1379,10 @@ func NewTextbox(x, y, w, h float32) *Textbox {
 func (textbox *Textbox) Clone() *Textbox {
 	newTextbox := *textbox
 	newTextbox.SetText(textbox.Text())
-	newTextbox.RedrawText(true)
+	// We don't call textbox.RedrawText() to force recreation of the buffer because that would make
+	// cloning Textboxes extremely slow.
+	newTextbox.forceBufferRecreation = true
+	newTextbox.triggerTextRedraw = true
 	return &newTextbox
 }
 
@@ -1920,9 +1925,10 @@ func (textbox *Textbox) Update() {
 
 	}
 
-	if textbox.Changed || textbox.triggerTextRedraw {
-		textbox.RedrawText(false)
+	if textbox.Changed || textbox.triggerTextRedraw || textbox.forceBufferRecreation {
+		textbox.RedrawText()
 		textbox.triggerTextRedraw = false
+		textbox.forceBufferRecreation = false
 	}
 
 }
@@ -2033,7 +2039,7 @@ func (textbox *Textbox) Draw() {
 
 }
 
-func (textbox *Textbox) RedrawText(forceBufferRecreation bool) {
+func (textbox *Textbox) RedrawText() {
 
 	// if textbox.Buffer.Texture.Height > 0 {
 	// For now, this doesn't work as rl.UnloadRenderTexture() isn't unloading the texture properly
@@ -2096,7 +2102,7 @@ func (textbox *Textbox) RedrawText(forceBufferRecreation bool) {
 
 	textbox.BufferSize.X += 16 // Give us a bit of room horizontally
 
-	if forceBufferRecreation || (textbox.BufferSize.X == 0 || float32(textbox.Buffer.Texture.Width) < textbox.BufferSize.X || float32(textbox.Buffer.Texture.Height) < textbox.BufferSize.Y) {
+	if textbox.forceBufferRecreation || (textbox.BufferSize.X == 0 || float32(textbox.Buffer.Texture.Width) < textbox.BufferSize.X || float32(textbox.Buffer.Texture.Height) < textbox.BufferSize.Y) {
 		textbox.Buffer = rl.LoadRenderTexture(textbox.ClosestPowerOfTwo(textbox.BufferSize.X), textbox.ClosestPowerOfTwo(textbox.BufferSize.Y))
 	}
 

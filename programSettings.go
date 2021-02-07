@@ -86,7 +86,7 @@ func (ps *ProgramSettings) Load() bool {
 	settingsJSON, err := ioutil.ReadFile(path)
 	if err != nil {
 		// Trying to read legacy path.
-		settingsJSON, err = ioutil.ReadFile(GetPath(SETTINGS_LEGACY_PATH))
+		settingsJSON, err = ioutil.ReadFile(LocalPath(SETTINGS_LEGACY_PATH))
 	}
 	if err == nil {
 		json.Unmarshal(settingsJSON, ps)

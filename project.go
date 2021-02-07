@@ -61,15 +61,17 @@ const (
 
 	// Task messages
 
-	MessageNeighbors   = "neighbors"
-	MessageNumbering   = "numbering"
-	MessageDelete      = "delete"
-	MessageSelect      = "select"
-	MessageDropped     = "dropped"
-	MessageDoubleClick = "double click"
-	MessageDragging    = "dragging"
-	MessageTaskClose   = "task close"
-	MessageThemeChange = "theme change"
+	MessageNeighbors      = "neighbors"
+	MessageNumbering      = "numbering"
+	MessageDelete         = "delete"
+	MessageSelect         = "select"
+	MessageDropped        = "dropped"
+	MessageDoubleClick    = "double click"
+	MessageDragging       = "dragging"
+	MessageTaskClose      = "task close"
+	MessageThemeChange    = "theme change"
+	MessageSettingsChange = "settings change"
+	MessageTaskRestore    = "task restore"
 
 	// Project actions
 
@@ -184,16 +186,17 @@ type Project struct {
 	Modified             bool
 	Locked               bool
 
-	PopupPanel    *Panel
-	PopupAction   string
-	PopupArgument string
-	SettingsPanel *Panel
-	BackupTimer   time.Time
-	UndoFade      *gween.Sequence
-	Undoing       int
-	TaskEditRect  rl.Rectangle
-	TempDir       string
-	GrabClient    *grab.Client
+	PopupPanel      *Panel
+	PopupAction     string
+	PopupArgument   string
+	SettingsPanel   *Panel
+	BackupTimer     time.Time
+	UndoFade        *gween.Sequence
+	Undoing         int
+	TaskEditRect    rl.Rectangle
+	TempDir         string
+	GrabClient      *grab.Client
+	firstFreeTaskID int
 }
 
 func NewProject() *Project {
@@ -209,9 +212,9 @@ func NewProject() *Project {
 		CameraPan:            rl.Vector2{0, 0},
 		Searchbar:            searchBar,
 		StatusBar:            rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
-		GUI_Icons:            rl.LoadTexture(GetPath("assets", "gui_icons.png")),
+		GUI_Icons:            rl.LoadTexture(LocalPath("assets", "gui_icons.png")),
 		SampleBuffer:         512,
-		Patterns:             rl.LoadTexture(GetPath("assets", "patterns.png")),
+		Patterns:             rl.LoadTexture(LocalPath("assets", "patterns.png")),
 		Resources:            map[string]*Resource{},
 		DownloadingResources: map[string]*Resource{},
 		LoadRecentDropdown:   NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
@@ -618,7 +621,7 @@ func NewProject() *Project {
 	project.AutomaticBackupKeepCount.SetNumber(3)
 	project.AutomaticBackupKeepCount.Minimum = 1
 
-	project.LoadResource(GetPath("assets", "loading_image.png"))
+	project.LoadResource(LocalPath("assets", "loading_image.png"))
 
 	project.MaxUndoSteps.Minimum = 0
 
@@ -926,6 +929,8 @@ func LoadProject(filepath string) *Project {
 				task.Deserialize(taskData.String())
 			}
 
+			// We don't have to call Board.ReorderTasks() for each board here because we do it later on after first initialization
+
 			project.LogOn = true
 
 			colorTheme := getString(`ColorTheme`)
@@ -1129,49 +1134,11 @@ func (project *Project) Update() {
 		}
 	}
 
-	for _, task := range project.GetAllTasks() {
-		task.Update()
-
-		// if project.AutoReloadResources.Checked && task.FilePathTextbox.Text() != "" {
-		// 	if task.SuccessfullyLoadedResourceOnce {
-		// 		if res, newlyLoaded := project.LoadResource(task.FilePathTextbox.Text()); res != nil && newlyLoaded {
-		// 			task.LoadResource()
-		// 		}
-		// 	}
-		// }
-
+	for _, board := range project.Boards {
+		board.Update()
 	}
 
-	// Additive blending should be out here to avoid state changes mid-task drawing.
-	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
-
-	sorted := append([]*Task{}, project.CurrentBoard().Tasks...)
-
-	sort.Slice(sorted, func(i, j int) bool {
-		if sorted[i].Depth() == sorted[j].Depth() {
-			if sorted[i].Rect.Y == sorted[j].Rect.Y {
-				return sorted[i].Rect.X < sorted[j].Rect.X
-			}
-			return sorted[i].Rect.Y < sorted[j].Rect.Y
-		}
-		return sorted[i].Depth() < sorted[j].Depth()
-	})
-
-	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
-		rl.BeginBlendMode(rl.BlendAdditive)
-	}
-
-	for _, task := range sorted {
-		task.DrawShadow()
-	}
-
-	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
-		rl.EndBlendMode()
-	}
-
-	for _, task := range sorted {
-		task.Draw()
-	}
+	project.CurrentBoard().Draw()
 
 	project.HandleCamera()
 
@@ -1248,9 +1215,10 @@ func (project *Project) Update() {
 
 					if !project.DoubleClickTimer.IsZero() && project.DoubleClickTaskID == -1 {
 						task := project.CurrentBoard().CreateNewTask()
-						task.ReceiveMessage(MessageDoubleClick, nil)
+						task.ReceiveMessage(MessageTaskRestore, nil)
 						project.Selecting = false
 						project.DoubleClickTimer = time.Time{}
+						project.CurrentBoard().ChangedTaskOrder = true
 					} else {
 						project.DoubleClickTimer = time.Now()
 					}
@@ -1371,17 +1339,6 @@ func (project *Project) Update() {
 		project.Modified = false
 		project.JustLoaded = false
 
-		for _, b := range project.Boards {
-			b.UndoHistory.On = true
-			for _, task := range b.Tasks {
-				b.UndoHistory.Capture(NewUndoState(task))
-			}
-		}
-
-	}
-
-	for _, board := range project.Boards {
-		board.HandleDeletedTasks()
 	}
 
 	if project.Modified && project.AutoSave.Checked {
@@ -1597,7 +1554,8 @@ func (project *Project) Shortcuts() {
 					project.CurrentBoard().PasteTasks()
 				} else if keybindings.On(KBCreateTask) {
 					task := project.CurrentBoard().CreateNewTask()
-					task.ReceiveMessage(MessageDoubleClick, nil)
+					task.ReceiveMessage(MessageTaskRestore, nil)
+					project.CurrentBoard().ChangedTaskOrder = true
 				} else if keybindings.On(KBRedo) {
 					if project.CurrentBoard().UndoHistory.Redo() {
 						project.UndoFade.Reset()
@@ -1701,7 +1659,7 @@ func (project *Project) Shortcuts() {
 
 						board.FocusViewOnSelectedTasks()
 
-						board.ReorderTasks()
+						project.CurrentBoard().ChangedTaskOrder = true
 
 					} else {
 
@@ -1964,9 +1922,7 @@ func (project *Project) ChangeTheme(themeName string) {
 
 func (project *Project) GUI() {
 
-	for _, task := range project.CurrentBoard().Tasks {
-		task.PostDraw()
-	}
+	project.CurrentBoard().PostDraw()
 
 	if project.PopupAction != "" {
 
@@ -2161,7 +2117,8 @@ func (project *Project) GUI() {
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
-						task.ReceiveMessage(MessageDoubleClick, nil)
+						task.ReceiveMessage(MessageTaskRestore, nil)
+						project.CurrentBoard().ChangedTaskOrder = true
 
 					case "Delete Tasks":
 						project.CurrentBoard().DeleteSelectedTasks()
@@ -2182,7 +2139,7 @@ func (project *Project) GUI() {
 						takeScreenshot = true
 
 					case "Open Tutorial":
-						startingPlanPath := GetPath("assets", "help_manual.plan")
+						startingPlanPath := LocalPath("assets", "help_manual.plan")
 						if project.Modified {
 							project.PopupAction = ActionLoadProject
 							project.PopupArgument = startingPlanPath
@@ -2386,6 +2343,8 @@ func (project *Project) GUI() {
 					project.Modified = true
 				}
 				programSettings.Save()
+
+				project.SendMessage(MessageSettingsChange, nil)
 			}
 
 			if project.GridVisible.Changed {
@@ -2716,8 +2675,18 @@ func (project *Project) FirstFreeID() int {
 
 func (project *Project) LockPositionToGrid(xy rl.Vector2) rl.Vector2 {
 
-	return rl.Vector2{float32(math.Round(float64(xy.X/float32(project.GridSize)))) * float32(project.GridSize),
-		float32(math.Round(float64(xy.Y/float32(project.GridSize)))) * float32(project.GridSize)}
+	x := float32(math.Round(float64(xy.X/float32(project.GridSize)))) * float32(project.GridSize)
+	y := float32(math.Round(float64(xy.Y/float32(project.GridSize)))) * float32(project.GridSize)
+
+	if x == -0 {
+		x = 0
+	}
+
+	if y == -0 {
+		y = 0
+	}
+
+	return rl.Vector2{x, y}
 
 }
 

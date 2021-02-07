@@ -14,13 +14,14 @@ type Position struct {
 }
 
 type Board struct {
-	Tasks         []*Task
-	ToBeDeleted   []*Task
-	ToBeRestored  []*Task
-	Project       *Project
-	Name          string
-	TaskLocations map[Position][]*Task
-	UndoHistory   *UndoHistory
+	Tasks            []*Task
+	ToBeDeleted      []*Task
+	ToBeRestored     []*Task
+	Project          *Project
+	Name             string
+	TaskLocations    map[Position][]*Task
+	UndoHistory      *UndoHistory
+	ChangedTaskOrder bool
 }
 
 func NewBoard(project *Project) *Board {
@@ -36,6 +37,63 @@ func NewBoard(project *Project) *Board {
 	return board
 }
 
+func (board *Board) Update() {
+
+	for _, task := range board.Tasks {
+		task.Update()
+	}
+
+	board.HandleDeletedTasks()
+
+	// We only want to reorder tasks if tasks were moved, deleted, restored, etc., as it is costly.
+	if board.ChangedTaskOrder {
+		board.ReorderTasks()
+	}
+
+	board.ChangedTaskOrder = false
+}
+
+func (board *Board) Draw() {
+
+	// Additive blending should be out here to avoid state changes mid-task drawing.
+	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+
+	sorted := append([]*Task{}, board.Tasks...)
+
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Depth() == sorted[j].Depth() {
+			if sorted[i].Rect.Y == sorted[j].Rect.Y {
+				return sorted[i].Rect.X < sorted[j].Rect.X
+			}
+			return sorted[i].Rect.Y < sorted[j].Rect.Y
+		}
+		return sorted[i].Depth() < sorted[j].Depth()
+	})
+
+	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
+		rl.BeginBlendMode(rl.BlendAdditive)
+	}
+
+	for _, task := range sorted {
+		task.DrawShadow()
+	}
+
+	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
+		rl.EndBlendMode()
+	}
+
+	for _, task := range sorted {
+		task.Draw()
+	}
+
+}
+
+func (board *Board) PostDraw() {
+	for _, task := range board.Tasks {
+		task.PostDraw()
+	}
+}
+
 func (board *Board) CreateNewTask() *Task {
 	newTask := NewTask(board)
 	halfGrid := float32(board.Project.GridSize / 2)
@@ -46,41 +104,37 @@ func (board *Board) CreateNewTask() *Task {
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	board.Tasks = append(board.Tasks, newTask)
 
-	// selected := board.SelectedTasks(true)
+	selected := board.SelectedTasks(true)
 
-	// if len(selected) > 0 && !board.Project.JustLoaded {
-	// 	// If the project is loading, then we want to put everything back where it was
-	// 	task := selected[0]
-	// 	gs := float32(board.Project.GridSize)
-	// 	x := task.Position.X
+	if len(selected) > 0 && !board.Project.JustLoaded {
+		// If the project is loading, then we want to put everything back where it was
+		task := selected[0]
+		gs := float32(board.Project.GridSize)
+		x := task.Position.X
 
-	// 	if task.Numberable() {
+		if task.IsCompletable() {
 
-	// 		if task.TaskBelow != nil && task.TaskBelow.Numberable() && task.Numberable() {
+			if task.TaskBelow != nil && task.TaskBelow.IsCompletable() && task.IsCompletable() {
 
-	// 			for i, t := range task.RestOfStack {
+				for i, t := range task.RestOfStack {
 
-	// 				if i == 0 {
-	// 					x = t.Position.X
-	// 				}
+					if i == 0 {
+						x = t.Position.X
+					}
 
-	// 				t.Position.Y += gs
-	// 			}
+					t.Position.Y += gs
+				}
 
-	// 		}
+			}
 
-	// 		newTask.Position = task.Position
+			newTask.Position = task.Position
 
-	// 		newTask.Position.X = x
-	// 		newTask.Position.Y = task.Position.Y + gs
+			newTask.Position.X = x
+			newTask.Position.Y = task.Position.Y + gs
 
-	// 	}
+		}
 
-	// }
-
-	board.ReorderTasks()
-
-	newTask.TaskType.SetChoice(board.Project.PreviousTaskType)
+	}
 
 	// if newTask.TaskType.ChoiceAsString() == "Image" || newTask.TaskType.ChoiceAsString() == "Sound" {
 	// 	newTask.FilePathTextbox.Focused = true
@@ -92,11 +146,9 @@ func (board *Board) CreateNewTask() *Task {
 	// 	newTask.MapImage = NewMapImage(newTask)
 	// }
 
-	board.Project.Log("Created 1 new Task.")
+	newTask.TaskType.SetChoice(board.Project.PreviousTaskType)
 
-	state := NewUndoState(newTask)
-	state.Creation = true
-	board.UndoHistory.Capture(state)
+	board.Project.Log("Created 1 new Task.")
 
 	if !board.Project.JustLoaded {
 		// If we're loading a project, we don't want to automatically select new tasks
@@ -106,6 +158,19 @@ func (board *Board) CreateNewTask() *Task {
 	return newTask
 }
 
+// InsertExistingTask inserts the existing Task into the Task list for updating and drawing.
+// Note that this does NOT call Board.ReorderTasks() immediately to update the ordering, as this should be
+// called as rarely as necessary. Instead, it sets board.Changed to true, indicating that the
+// Task list should be updated.
+func (board *Board) InsertExistingTask(task *Task) {
+
+	board.Tasks = append(board.Tasks, task)
+	board.RemoveTaskFromGrid(task)
+	board.AddTaskToGrid(task)
+	board.ChangedTaskOrder = true
+
+}
+
 func (board *Board) DeleteTask(task *Task) {
 
 	if task.Valid {
@@ -113,7 +178,6 @@ func (board *Board) DeleteTask(task *Task) {
 		task.Valid = false
 		state := NewUndoState(task)
 		state.Deletion = true
-		board.UndoHistory.Capture(state)
 		board.ToBeDeleted = append(board.ToBeDeleted, task)
 		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
 
@@ -128,7 +192,6 @@ func (board *Board) RestoreTask(task *Task) {
 		task.Valid = true
 		state := NewUndoState(task)
 		state.Creation = true
-		board.UndoHistory.Capture(state)
 		board.ToBeRestored = append(board.ToBeRestored, task)
 		task.ReceiveMessage(MessageDropped, map[string]interface{}{"task": task})
 
@@ -154,21 +217,21 @@ func (board *Board) DeleteSelectedTasks() {
 		board.DeleteTask(t)
 	}
 
-	for _, s := range stackMoveUp {
-		board.UndoHistory.Capture(NewUndoState(s))
-	}
-
-	for _, s := range stackMoveUp {
-		s.Position.Y -= float32(board.Project.GridSize)
-	}
-
-	for _, s := range stackMoveUp {
-		board.UndoHistory.Capture(NewUndoState(s))
-	}
+	// for _, s := range stackMoveUp {
+	// board.UndoHistory.Capture(NewUndoState(s))
+	// }
+	//
+	// for _, s := range stackMoveUp {
+	// s.Position.Y -= float32(board.Project.GridSize)
+	// }
+	//
+	// for _, s := range stackMoveUp {
+	// board.UndoHistory.Capture(NewUndoState(s))
+	// }
 
 	board.Project.Log("Deleted %d Task(s).", count)
 
-	board.ReorderTasks()
+	board.ChangedTaskOrder = true
 
 }
 
@@ -292,23 +355,35 @@ func (board *Board) PasteTasks() {
 		clones := []*Task{}
 
 		cloneTask := func(srcTask *Task) *Task {
+
 			ogBoard := srcTask.Board
+
 			srcTask.Board = board
 			clone := srcTask.Clone()
 			srcTask.Board = ogBoard
-			board.Tasks = append(board.Tasks, clone)
+
+			board.InsertExistingTask(clone)
 			clones = append(clones, clone)
+
 			return clone
+
 		}
 
-		// copied := func(task *Task) bool {
-		// 	for _, copy := range board.Project.CopyBuffer {
-		// 		if copy == task {
-		// 			return true
-		// 		}
-		// 	}
-		// 	return false
-		// }
+		copyMap := map[*Task]bool{}
+
+		for _, copy := range board.Project.CopyBuffer {
+			copyMap[copy] = true
+		}
+
+		copied := func(task *Task) bool {
+			if task == nil {
+				return false
+			}
+			if _, exists := copyMap[task]; exists {
+				return true
+			}
+			return false
+		}
 
 		center := rl.Vector2{}
 
@@ -324,29 +399,52 @@ func (board *Board) PasteTasks() {
 
 		for _, srcTask := range board.Project.CopyBuffer {
 
-			// if srcTask.Is(TASK_TYPE_LINE) && srcTask.LineBase != nil && srcTask.Board != board {
-			// 	if !copied(srcTask.LineBase) {
-			// 		board.Project.Log("WARNING: Cannot paste Line arrows on a different board than the Line base.")
-			// 	}
-			// } else if srcTask.LineBase == nil || !copied(srcTask.LineBase) {
+			lineStartCopied := copied(srcTask.LineStart)
 
-			clone := cloneTask(srcTask)
-			diff := rl.Vector2Subtract(GetWorldMousePosition(), center)
-			clone.Position = rl.Vector2Add(clone.Position, diff)
-			clone.Position = board.Project.LockPositionToGrid(clone.Position)
+			if srcTask.LineStart != nil && srcTask.Board != board {
+				if !lineStartCopied {
+					board.Project.Log("WARNING: Cannot paste Line arrows on a different board than the Line base.")
+				}
+			} else if !srcTask.Is(TASK_TYPE_LINE) || (srcTask.LineStart == nil || !lineStartCopied) {
 
-			// 	if clone.Is(TASK_TYPE_LINE) {
-			// 		for _, ending := range clone.LineEndings {
-			// 			ending.Position = rl.Vector2Add(ending.Position, diff)
-			// 			ending.Position = board.Project.LockPositionToGrid(ending.Position)
-			// 		}
-			// 	}
+				// If you are not copying a line, OR you are copying a line and just copying ends individually, that's fine.
+				// If you're copying the base, that's also fine; we'll copy the ends automatically.
+				// If you're copying both, we will ignore the ends, as copying the start copies the ends.
 
-			// }
+				clone := cloneTask(srcTask)
+				diff := rl.Vector2Subtract(GetWorldMousePosition(), center)
+				clone.Position = board.Project.LockPositionToGrid(rl.Vector2Add(clone.Position, diff))
+
+				if srcTask.Is(TASK_TYPE_LINE) {
+
+					if srcTask.LineStart == nil {
+
+						clone.LineEndings = []*Task{}
+
+						for _, ending := range srcTask.LineEndings {
+
+							if !ending.Valid {
+								continue
+							}
+
+							newEnding := cloneTask(ending)
+							newEnding.LineStart = clone
+							clone.LineEndings = append(clone.LineEndings, newEnding)
+
+							newEnding.Position = board.Project.LockPositionToGrid(rl.Vector2Add(newEnding.Position, diff))
+
+						}
+
+					} else {
+						clone.LineStart = srcTask.LineStart
+						clone.LineStart.LineEndings = append(clone.LineStart.LineEndings, clone)
+					}
+
+				}
+
+			}
 
 		}
-
-		board.ReorderTasks()
 
 		if len(clones) > 0 {
 			board.Project.Log("Pasted %d Task(s).", len(clones))
@@ -362,14 +460,12 @@ func (board *Board) PasteTasks() {
 
 		for _, clone := range clones {
 
-			undoState := NewUndoState(clone)
-			undoState.Creation = true
-			board.UndoHistory.Capture(undoState)
+			clone.ReceiveMessage(MessageTaskRestore, nil)
 			clone.Selected = true
 
 		}
 
-		board.ReorderTasks()
+		board.ChangedTaskOrder = true
 
 		if board.Project.Cutting {
 			for _, task := range board.Project.CopyBuffer {
@@ -401,6 +497,8 @@ func (board *Board) PasteContent() {
 
 	// 	task := board.CreateNewTask()
 
+	// reorder tasks
+
 	// 	if res != nil {
 
 	// 		task.FilePathTextbox.SetText(clipboardData)
@@ -431,6 +529,9 @@ func (board *Board) ReorderTasks() {
 	sort.Slice(board.Tasks, func(i, j int) bool {
 		ba := board.Tasks[i]
 		bb := board.Tasks[j]
+		if ba.Is(TASK_TYPE_LINE) && ba.LineStart == nil {
+			return true
+		}
 		if ba.Position.Y != bb.Position.Y {
 			return ba.Position.Y < bb.Position.Y
 		}
@@ -463,6 +564,18 @@ func (board *Board) Destroy() {
 		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
 		task.Destroy()
 	}
+}
+
+func (board *Board) TaskByID(id int) *Task {
+
+	for _, task := range board.Tasks {
+		if task.ID == id {
+			return task
+		}
+	}
+
+	return nil
+
 }
 
 func (board *Board) TasksInPosition(x, y float32) []*Task {
@@ -516,6 +629,8 @@ func (board *Board) RemoveTaskFromGrid(task *Task) {
 
 	}
 
+	board.ChangedTaskOrder = true
+
 }
 
 func (board *Board) AddTaskToGrid(task *Task) {
@@ -548,6 +663,8 @@ func (board *Board) AddTaskToGrid(task *Task) {
 
 	task.gridPositions = positions
 
+	board.ChangedTaskOrder = true
+
 }
 
 func (board *Board) SelectedTasks(returnFirstSelectedTask bool) []*Task {
@@ -574,14 +691,12 @@ func (board *Board) SelectedTasks(returnFirstSelectedTask bool) []*Task {
 
 func (board *Board) HandleDeletedTasks() {
 
-	changed := false
-
 	for _, task := range board.ToBeDeleted {
 		for index, t := range board.Tasks {
 			if task == t {
 				board.Tasks[index] = nil
 				board.Tasks = append(board.Tasks[:index], board.Tasks[index+1:]...)
-				changed = true
+				board.ChangedTaskOrder = true
 				break
 			}
 		}
@@ -590,14 +705,9 @@ func (board *Board) HandleDeletedTasks() {
 
 	for _, task := range board.ToBeRestored {
 		board.Tasks = append(board.Tasks, task)
-		changed = true
+		board.ChangedTaskOrder = true
 	}
 	board.ToBeRestored = []*Task{}
-
-	// We only want to reorder tasks if tasks were actually deleted or restored, as it is costly.
-	if changed {
-		board.ReorderTasks()
-	}
 
 }
 
