@@ -18,6 +18,7 @@ Completed:
 
 To-do:
 
+- Table Task Type - A grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
 - Add a little darkness underneath the header for Maps
 - Add quit shortcut
 - Make sure the binding for stopping all sounds works?
@@ -46,7 +47,6 @@ To-do:
 - Make top-left box for Images also work for resizing, and make an option in the Task to reset size (it's not done often enough to make it viable, I think)
 - Panels should be resizeable
 - Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
-- Table Task Type - A grid of boxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
 - Vertical alignment isn't really centered for textboxes?
 - Display full Task text on hover
 - Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
@@ -84,7 +84,6 @@ includes a current number and maximum number of 999 each, so that they don't cha
 - GIF Playback speed should be customizeable?
 - GIF step next frame / prev. frame
 - Make it so that it's easier to insert Tasks (i.e. dragging tasks into a list of them will automatically space them to make room)
-- Make a set of itch keys for Tim
 
 - Export Plan to text file somehow? 
     Checkboxes become: [ ] / [x] - TASK TEXT
