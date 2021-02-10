@@ -142,10 +142,6 @@ func (board *Board) CreateNewTask() *Task {
 	// 	newTask.Description.Focused = true
 	// }
 
-	// if newTask.Is(TASK_TYPE_MAP) {
-	// 	newTask.MapImage = NewMapImage(newTask)
-	// }
-
 	newTask.TaskType.SetChoice(board.Project.PreviousTaskType)
 
 	board.Project.Log("Created 1 new Task.")

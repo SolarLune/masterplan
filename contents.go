@@ -1397,11 +1397,131 @@ func (c *LineContents) Destroy() {
 func (c *LineContents) ReceiveMessage(msg string) {}
 
 type MapContents struct {
+	Task     *Task
+	resizing bool
 }
 
-func (c *MapContents) Update() {}
+func NewMapContents(task *Task) *MapContents {
 
-func (c *MapContents) Draw() {}
+	return &MapContents{
+		Task: task,
+	}
+
+}
+
+func (c *MapContents) Update() {
+
+	if c.Task.MapImage == nil {
+
+		c.Task.MapImage = NewMapImage(c.Task)
+		c.Task.DisplaySize.X = c.Task.MapImage.Width()
+		c.Task.DisplaySize.Y = c.Task.MapImage.Height() + float32(c.Task.Board.Project.GridSize)
+
+	}
+
+}
+
+func (c *MapContents) Draw() {
+
+	drawTaskBG(c.Task, getThemeColor(GUI_INSIDE))
+
+	if c.Task.MapImage.Editing() {
+		c.Task.Dragging = false
+	}
+
+	project := c.Task.Board.Project
+	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
+
+	if project.ShowIcons.Checked {
+		rl.DrawTexturePro(project.GUI_Icons, rl.Rectangle{0, 32, 16, 16}, rl.Rectangle{cp.X + 8, cp.Y + 8, 16, 16}, rl.Vector2{8, 8}, 0, getThemeColor(GUI_FONT_COLOR))
+		cp.X += 16
+	}
+
+	if c.Task.MapImage != nil {
+
+		c.Task.Locked = c.Task.MapImage.Editing() || c.resizing
+
+		grabSize := float32(8)
+
+		corner := rl.Rectangle{c.Task.Rect.X + c.Task.Rect.Width - grabSize, c.Task.Rect.Y + c.Task.Rect.Height - grabSize, grabSize, grabSize}
+
+		if c.Task.Selected {
+
+			mp := GetWorldMousePosition()
+
+			if MousePressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(mp, corner) {
+
+				c.resizing = true
+
+			}
+
+			rl.DrawRectangleRec(corner, getThemeColor(GUI_INSIDE))
+			DrawRectLines(corner, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+
+			if c.resizing {
+
+				c.Task.MapImage.Pencil = false
+				c.Task.MapImage.RectangleTool = false
+
+				c.Task.Board.Project.Selecting = false
+
+				if MouseReleased(rl.MouseLeftButton) {
+					c.resizing = false
+					c.Task.Change = TASK_CHANGE_ALTERATION
+				}
+
+				mp.X += 4
+				mp.Y -= 4
+
+				c.Task.MapImage.Resize(mp.X+(grabSize/2)-c.Task.Position.X, mp.Y+(grabSize/2)-c.Task.Position.Y)
+
+				c.Task.DisplaySize.X = c.Task.MapImage.Width()
+				c.Task.DisplaySize.Y = c.Task.MapImage.Height() + 16
+
+			}
+
+		}
+
+		if c.Task.Locked {
+			c.Task.Dragging = false
+		}
+
+		texture := c.Task.MapImage.Texture.Texture
+		src := rl.Rectangle{0, 0, 512, 512}
+		dst := rl.Rectangle{c.Task.Rect.X, c.Task.Rect.Y + 16, 512, 512}
+		src.Height *= -1
+
+		rl.DrawTexturePro(texture, src, dst, rl.Vector2{}, 0, rl.White)
+
+		c.Task.MapImage.Draw()
+
+		if c.Task.Selected {
+			rl.DrawRectangleRec(corner, getThemeColor(GUI_INSIDE))
+			DrawRectLines(corner, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+		}
+
+	}
+
+	if c.Task.DisplaySize.X < 64 {
+		c.Task.DisplaySize.X = 64
+	}
+	if c.Task.DisplaySize.Y < 80 {
+		c.Task.DisplaySize.Y = 80
+	}
+
+}
+
+func (c *MapContents) Destroy() {}
+
+func (c *MapContents) ReceiveMessage(msg string) {}
+
+func (c *MapContents) Trigger(triggerMode int) {
+
+	if c.Task.MapImage != nil {
+		c.Task.MapImage.Pencil = !c.Task.MapImage.Pencil
+	}
+
+}
 
 type WhiteboardContents struct {
 }

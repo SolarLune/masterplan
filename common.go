@@ -102,7 +102,10 @@ func handleMouseInputs() {
 
 	for _, button := range inputs {
 
-		v := getMouseEventValue(button)
+		v, exists := mouseInputs[button]
+		if !exists {
+			v = 0
+		}
 
 		if rl.IsMouseButtonPressed(button) && v == 0 {
 			mouseInputs[button] = 1
@@ -120,14 +123,6 @@ func handleMouseInputs() {
 
 	}
 
-}
-
-func getMouseEventValue(input int32) int {
-	value, exists := mouseInputs[input]
-	if !exists {
-		return 0
-	}
-	return value
 }
 
 func MousePressed(button int32) bool {

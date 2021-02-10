@@ -1216,6 +1216,7 @@ func (project *Project) Update() {
 					if !project.DoubleClickTimer.IsZero() && project.DoubleClickTaskID == -1 {
 						task := project.CurrentBoard().CreateNewTask()
 						task.ReceiveMessage(MessageTaskRestore, nil)
+						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.Selecting = false
 						project.DoubleClickTimer = time.Time{}
 						project.CurrentBoard().ChangedTaskOrder = true
@@ -1228,7 +1229,7 @@ func (project *Project) Update() {
 					if clickedTask.ID == project.DoubleClickTaskID && !project.DoubleClickTimer.IsZero() && clickedTask.Selected {
 						clickedTask.ReceiveMessage(MessageDoubleClick, nil)
 						project.DoubleClickTimer = time.Time{}
-					} else {
+					} else if !clickedTask.Locked {
 						project.DoubleClickTimer = time.Now()
 						project.SendMessage(MessageDragging, nil)
 						project.DoubleClickTaskID = clickedTask.ID
@@ -1555,6 +1556,7 @@ func (project *Project) Shortcuts() {
 				} else if keybindings.On(KBCreateTask) {
 					task := project.CurrentBoard().CreateNewTask()
 					task.ReceiveMessage(MessageTaskRestore, nil)
+					task.ReceiveMessage(MessageDoubleClick, nil)
 					project.CurrentBoard().ChangedTaskOrder = true
 				} else if keybindings.On(KBRedo) {
 					if project.CurrentBoard().UndoHistory.Redo() {
@@ -2118,6 +2120,7 @@ func (project *Project) GUI() {
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
 						task.ReceiveMessage(MessageTaskRestore, nil)
+						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.CurrentBoard().ChangedTaskOrder = true
 
 					case "Delete Tasks":

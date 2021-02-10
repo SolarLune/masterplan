@@ -107,21 +107,21 @@ type Task struct {
 	LineBezier  *Checkbox
 	// ArrowPointingToTask *Task
 
-	TaskAbove     *Task
-	TaskBelow     *Task
-	TaskRight     *Task
-	TaskLeft      *Task
-	TaskUnder     *Task
-	RestOfStack   []*Task
-	SubTasks      []*Task
-	gridPositions []Position
-
+	TaskAbove       *Task
+	TaskBelow       *Task
+	TaskRight       *Task
+	TaskLeft        *Task
+	TaskUnder       *Task
+	RestOfStack     []*Task
+	SubTasks        []*Task
+	gridPositions   []Position
 	Valid           bool
 	EditPanel       *Panel
 	LoadMediaButton *Button
 	Change          int
-	// ClearMediaButton               *Button
-	Contents Contents
+	Contents        Contents
+	MapImage        *MapImage
+	Locked          bool
 }
 
 func NewTask(board *Board) *Task {
@@ -333,13 +333,13 @@ func (task *Task) SetPanel() {
 	row.Item(NewLabel("Bezier Lines:"), TASK_TYPE_LINE)
 	row.Item(task.LineBezier, TASK_TYPE_LINE)
 
-	// row = column.Row()
-	// row.Item(NewButton(0, 0, 128, 32, "Shift Up", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "shift up"
-	// row = column.Row()
-	// row.Item(NewButton(0, 0, 128, 32, "Shift Left", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "shift left"
-	// row.Item(NewButton(0, 0, 128, 32, "Shift Right", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "shift right"
-	// row = column.Row()
-	// row.Item(NewButton(0, 0, 128, 32, "Shift Down", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "shift down"
+	row = column.Row()
+	row.Item(NewButton(0, 0, 128, 32, "Shift Up", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "shift up"
+	row = column.Row()
+	row.Item(NewButton(0, 0, 128, 32, "Shift Left", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "shift left"
+	row.Item(NewButton(0, 0, 128, 32, "Shift Right", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "shift right"
+	row = column.Row()
+	row.Item(NewButton(0, 0, 128, 32, "Shift Down", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "shift down"
 
 	// row = column.Row()
 	// row.Item(NewButton(0, 0, 128, 32, "Clear", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "clear"
@@ -395,10 +395,10 @@ func (task *Task) Clone() *Task {
 
 	copyData.SetPanel()
 
-	// if task.MapImage != nil {
-	// 	copyData.MapImage = NewMapImage(&copyData)
-	// 	copyData.MapImage.Copy(task.MapImage)
-	// }
+	if task.MapImage != nil {
+		copyData.MapImage = NewMapImage(&copyData)
+		copyData.MapImage.Copy(task.MapImage)
+	}
 
 	// if task.Whiteboard != nil {
 	// 	copyData.Whiteboard = NewWhiteboard(&copyData)
@@ -521,16 +521,16 @@ func (task *Task) Serialize() string {
 
 	}
 
-	// if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
-	// 	data := [][]int32{}
-	// 	for y := 0; y < int(task.MapImage.cellHeight); y++ {
-	// 		data = append(data, []int32{})
-	// 		for x := 0; x < int(task.MapImage.cellWidth); x++ {
-	// 			data[y] = append(data[y], task.MapImage.Data[y][x])
-	// 		}
-	// 	}
-	// 	jsonData, _ = sjson.Set(jsonData, `MapData`, data)
-	// }
+	if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
+		data := [][]int32{}
+		for y := 0; y < int(task.MapImage.cellHeight); y++ {
+			data = append(data, []int32{})
+			for x := 0; x < int(task.MapImage.cellWidth); x++ {
+				data[y] = append(data[y], task.MapImage.Data[y][x])
+			}
+		}
+		jsonData, _ = sjson.Set(jsonData, `MapData`, data)
+	}
 
 	// if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
 	// 	jsonData, _ = sjson.Set(jsonData, `Whiteboard`, task.Whiteboard.Serialize())
@@ -699,22 +699,23 @@ func (task *Task) Deserialize(jsonData string) {
 
 	}
 
-	// if hasData(`MapData`) {
+	if hasData(`MapData`) {
 
-	// 	if task.MapImage == nil {
-	// 		task.MapImage = NewMapImage(task)
-	// 	}
+		if task.MapImage == nil {
+			task.MapImage = NewMapImage(task)
+		}
 
-	// 	for y, row := range gjson.Get(jsonData, `MapData`).Array() {
-	// 		for x, value := range row.Array() {
-	// 			task.MapImage.Data[y][x] = int32(value.Int())
-	// 		}
-	// 	}
+		for y, row := range gjson.Get(jsonData, `MapData`).Array() {
+			for x, value := range row.Array() {
+				task.MapImage.Data[y][x] = int32(value.Int())
+			}
+		}
 
-	// 	task.MapImage.cellWidth = int(int32(task.DisplaySize.X) / task.Board.Project.GridSize)
-	// 	task.MapImage.cellHeight = int((int32(task.DisplaySize.Y) - task.Board.Project.GridSize) / task.Board.Project.GridSize)
-	// 	task.MapImage.Changed = true
-	// }
+		task.MapImage.cellWidth = int(int32(task.DisplaySize.X) / task.Board.Project.GridSize)
+		task.MapImage.cellHeight = int((int32(task.DisplaySize.Y) - task.Board.Project.GridSize) / task.Board.Project.GridSize)
+		task.MapImage.Changed = true
+
+	}
 
 	// if hasData(`Whiteboard`) {
 
@@ -784,6 +785,10 @@ func (task *Task) Update() {
 
 	}
 
+	if task.Locked {
+		task.Position = task.Board.Project.LockPositionToGrid(task.Position)
+	}
+
 	if task.Contents == nil {
 		task.CreateContents()
 	}
@@ -819,7 +824,7 @@ func (task *Task) Draw() {
 
 		sequenceType := task.Board.Project.NumberingSequence.CurrentChoice
 
-		if sequenceType != NUMBERING_SEQUENCE_OFF && task.NumberingPrefix[0] != -1 && task.IsCompletable() {
+		if task.IsCompletable() && sequenceType != NUMBERING_SEQUENCE_OFF && task.NumberingPrefix[0] != -1 {
 
 			for i, value := range task.NumberingPrefix {
 
@@ -960,6 +965,23 @@ func (task *Task) PostDraw() {
 
 		}
 
+		if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
+
+			if shiftButton := task.EditPanel.FindItems("shift up")[0]; shiftButton.Element.(*Button).Clicked {
+				task.MapImage.Shift(0, -1)
+			}
+			if shiftButton := task.EditPanel.FindItems("shift right")[0]; shiftButton.Element.(*Button).Clicked {
+				task.MapImage.Shift(1, 0)
+			}
+			if shiftButton := task.EditPanel.FindItems("shift down")[0]; shiftButton.Element.(*Button).Clicked {
+				task.MapImage.Shift(0, 1)
+			}
+			if shiftButton := task.EditPanel.FindItems("shift left")[0]; shiftButton.Element.(*Button).Clicked {
+				task.MapImage.Shift(-1, 0)
+			}
+
+		}
+
 		task.CreationLabel.Text = task.CreationTime.Format("Monday, Jan 2, 2006, 15:04")
 
 	}
@@ -975,7 +997,7 @@ func (task *Task) CreateContents() {
 	case TASK_TYPE_SOUND:
 		task.Contents = NewSoundContents(task)
 	case TASK_TYPE_MAP:
-		fallthrough
+		task.Contents = NewMapContents(task)
 	case TASK_TYPE_WHITEBOARD:
 		fallthrough
 	case TASK_TYPE_TIMER:
@@ -1123,15 +1145,6 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 			task.Board.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
 
-			// if task.Is(TASK_TYPE_MAP) {
-			// 	if task.MapImage == nil {
-			// 		task.MapImage = NewMapImage(task)
-			// 	}
-			// 	task.DisplaySize.X = task.MapImage.Width()
-			// 	task.DisplaySize.Y = task.MapImage.Height() + float32(task.Board.Project.GridSize)
-			// 	task.MapImage.Update()
-			// }
-
 			// if task.Is(TASK_TYPE_WHITEBOARD) {
 			// 	if task.Whiteboard == nil {
 			// 		task.Whiteboard = NewWhiteboard(task)
@@ -1159,7 +1172,6 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		}
 
 	} else if message == MessageDropped {
-
 		if task.Valid {
 			// This gets called when we reorder the board / project, which can cause problems if the Task is already removed
 			// because it will then be immediately readded to the Board grid, thereby making it a "ghost" Task
@@ -1194,18 +1206,21 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		task.Change = TASK_CHANGE_DELETION
 
 	} else if message == MessageThemeChange {
-		// if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
-		// 	task.MapImage.Changed = true // Force update to change color palette
-		// } else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
-		// 	task.Whiteboard.Deserialize(task.Whiteboard.Serialize()) // De and re-serialize to change the colors
+		if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
+			task.MapImage.Changed = true // Force update to change color palette
+		}
+		// else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
+		// task.Whiteboard.Deserialize(task.Whiteboard.Serialize()) // De and re-serialize to change the colors
 		// }
 	} else if message == MessageSettingsChange {
 	} else if message == MessageTaskRestore {
 
-		task.CreateContents()
+		if task.Contents == nil {
+			task.CreateContents()
+		}
 
 		if !task.Is(TASK_TYPE_LINE) || task.LineStart == nil {
-			task.ReceiveMessage(MessageDoubleClick, nil)
+			// task.ReceiveMessage(MessageDoubleClick, nil)
 			task.Change = TASK_CHANGE_CREATION
 		}
 

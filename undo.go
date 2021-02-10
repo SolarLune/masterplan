@@ -1,11 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"strconv"
-
-	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/tidwall/sjson"
 )
 
