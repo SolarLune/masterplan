@@ -168,7 +168,7 @@ type Project struct {
 	CopyBuffer          []*Task
 	Cutting             bool // If cutting, then this boolean is set
 	TaskOpen            bool
-	ThemeReloadTimer    int
+	ThemeReloadTimer    float32
 	JustLoaded          bool
 	ResizingImage       bool
 	LogOn               bool
@@ -1100,11 +1100,14 @@ func (project *Project) Update() {
 
 	project.AutoBackup()
 
-	if project.AutoReloadThemes.Checked && project.ThemeReloadTimer > 30 {
-		project.ReloadThemes()
-		project.ThemeReloadTimer = 0
+	if project.AutoReloadThemes.Checked {
+		if project.ThemeReloadTimer > .5 {
+			project.ReloadThemes()
+			project.ThemeReloadTimer = 0
+		} else {
+			project.ThemeReloadTimer += deltaTime
+		}
 	}
-	project.ThemeReloadTimer++
 
 	addToSelection := programSettings.Keybindings.On(KBAddToSelection)
 	removeFromSelection := programSettings.Keybindings.On(KBRemoveFromSelection)

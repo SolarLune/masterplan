@@ -144,8 +144,8 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 	rect.Width = float32(int32(rect.Width))
 	rect.Height = float32(int32(rect.Height))
 
-	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
-	shadowColor.A = 192
+	shadowColor := rl.Black
+	shadowColor.A = 128
 	rl.DrawRectangleRec(rect, shadowColor)
 
 	rect.X -= 4
@@ -503,10 +503,10 @@ func (panel *Panel) Update() {
 	}
 
 	shadowRect := dst
-	shadowRect.X += 8
-	shadowRect.Y += 8
-	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
-	shadowColor.A = 192
+	shadowRect.X += 4
+	shadowRect.Y += 4
+	shadowColor := rl.Black
+	shadowColor.A = 128
 	rl.DrawRectangleRec(shadowRect, shadowColor)
 
 	rl.DrawRectangleRec(dst, getThemeColor(GUI_INSIDE))
@@ -956,6 +956,13 @@ func (dropdown *DropdownMenu) Update() {
 		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 		insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 	}
+
+	shadowRect := dropdown.Rect
+	shadowRect.X += 4
+	shadowRect.Y += 4
+	shadowColor := rl.Black
+	shadowColor.A = 192
+	rl.DrawRectangleRec(shadowRect, shadowColor)
 
 	rl.DrawRectangleRec(dropdown.Rect, insideColor)
 	rl.DrawRectangleLinesEx(dropdown.Rect, 1, outlineColor)
@@ -1949,8 +1956,8 @@ func (textbox *Textbox) Draw() {
 	shadowRect.X += 4
 	shadowRect.Y += 4
 
-	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
-	shadowColor.A = 192
+	shadowColor := rl.Black
+	shadowColor.A = 128
 
 	rl.DrawRectangleRec(shadowRect, shadowColor)
 

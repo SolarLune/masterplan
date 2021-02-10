@@ -7,3 +7,5 @@ System Volume Information
 *.pprof*
 *.blend*
 todo
+newTerminal.sh
+reflex.sh

@@ -9,7 +9,7 @@
     "GUI_OUTLINE_DISABLED": [200, 0, 0, 255],
 
     "//Inside for tasks, GUI background, background grid markers, axes on background grid": [],
-    "GUI_INSIDE": [20, 20, 20, 255],
+    "GUI_INSIDE": [30, 30, 30, 255],
 
     "//Inside for highlighted GUI elements, completed Tasks": [],
     "GUI_INSIDE_HIGHLIGHTED": [110, 20, 110, 255],
