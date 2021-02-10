@@ -40,8 +40,6 @@ const (
 	ALIGN_BOTTOM
 )
 
-var currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
-
 var guiColors map[string]map[string]rl.Color
 
 var worldGUI = false // Controls whether to use world coordinates for input and rendering
@@ -49,7 +47,7 @@ var worldGUI = false // Controls whether to use world coordinates for input and 
 var prioritizedGUIElement GUIElement
 
 func getThemeColor(colorConstant string) rl.Color {
-	return guiColors[currentTheme][colorConstant]
+	return guiColors[programSettings.Theme][colorConstant]
 }
 
 func loadThemes() {
@@ -141,10 +139,17 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 
 	}
 
-	rect.X = float32(int32(rect.X))
-	rect.Y = float32(int32(rect.Y))
+	rect.X = float32(int32(rect.X) + 4)
+	rect.Y = float32(int32(rect.Y) + 4)
 	rect.Width = float32(int32(rect.Width))
 	rect.Height = float32(int32(rect.Height))
+
+	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+	shadowColor.A = 192
+	rl.DrawRectangleRec(rect, shadowColor)
+
+	rect.X -= 4
+	rect.Y -= 4
 
 	rl.DrawRectangleRec(rect, insideColor)
 	rl.DrawRectangleLinesEx(rect, 1, outlineColor)
@@ -179,10 +184,15 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 		iconRotation,
 		getThemeColor(GUI_FONT_COLOR))
 
+	fontColor := getThemeColor(GUI_FONT_COLOR)
+	if disabled {
+		fontColor.A = 192 // Dim it a bit to make it easier to see
+	}
+
 	if worldGUI {
-		DrawText(pos, text)
+		DrawTextColored(pos, fontColor, text, false)
 	} else {
-		DrawGUIText(pos, text)
+		DrawTextColored(pos, fontColor, text, true)
 	}
 
 	if clicked && prioritizedGUIElement != nil {
@@ -1934,6 +1944,15 @@ func (textbox *Textbox) Update() {
 }
 
 func (textbox *Textbox) Draw() {
+
+	shadowRect := textbox.Rect
+	shadowRect.X += 4
+	shadowRect.Y += 4
+
+	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+	shadowColor.A = 192
+
+	rl.DrawRectangleRec(shadowRect, shadowColor)
 
 	if textbox.Focused {
 		rl.DrawRectangleRec(textbox.Rect, getThemeColor(GUI_INSIDE_HIGHLIGHTED))

@@ -12,11 +12,13 @@ Completed:
 - Repeatable Timers / deadlines - when completing Tasks with deadlines, it advances the deadline by a certain amount of time?; Maybe it's better to have a different kind of deadline that is repeatable, and specifies simply a time frame (x days, x weeks, x months);  Maybe it's better to repurpose a Timer for this purpose, since when it goes off, it will alert you and start counting down again?
 - Stopwatch mode for Timers
 - Add shortcut for rectangle tool on MapImages
+- Add Shadows for Buttons
+- Optional border (specifically for borderless mode)
+- Make themes global
 
 To-do:
 
-- Optional border (specifically for borderless mode)
-- Make themes global
+- Add a little darkness underneath the header for Maps
 - Add quit shortcut
 - Make sure the binding for stopping all sounds works?
 - Speed up the splashscreen, it's too sloooooooow
@@ -82,8 +84,7 @@ includes a current number and maximum number of 999 each, so that they don't cha
 - GIF Playback speed should be customizeable?
 - GIF step next frame / prev. frame
 - Make it so that it's easier to insert Tasks (i.e. dragging tasks into a list of them will automatically space them to make room)
-
-- Make a key for Tim
+- Make a set of itch keys for Tim
 
 - Export Plan to text file somehow? 
     Checkboxes become: [ ] / [x] - TASK TEXT

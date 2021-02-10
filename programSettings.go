@@ -37,6 +37,8 @@ type ProgramSettings struct {
 	FontSize                  int
 	GUIFontSizeMultiplier     string
 	Keybindings               *Keybindings
+	Theme                     string
+	DrawWindowBorder          bool
 }
 
 func NewProgramSettings() ProgramSettings {
@@ -52,6 +54,7 @@ func NewProgramSettings() ProgramSettings {
 		FontSize:               15,
 		GUIFontSizeMultiplier:  GUI_FONT_SIZE_200,
 		ScrollwheelSensitivity: 1,
+		Theme:                  "Sunlight", // Default theme
 	}
 	return ps
 }

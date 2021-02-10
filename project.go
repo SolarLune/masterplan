@@ -129,6 +129,7 @@ type Project struct {
 	PanToFocusOnZoom            *Checkbox
 	TransparentBackground       *Checkbox
 	BorderlessWindow            *Checkbox
+	DrawWindowBorder            *Checkbox
 	ScreenshotsPath             *Textbox
 	ScreenshotsPathBrowseButton *Button
 	RebindingButtons            []*Button
@@ -223,7 +224,6 @@ func NewProject() *Project {
 		PopupPanel:    NewPanel(0, 0, 480, 270),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
 
-		ColorThemeSpinner:           NewSpinner(0, 0, 256, 32),
 		TaskShadowSpinner:           NewSpinner(0, 0, 192, 32, "Off", "Flat", "Smooth", "3D"),
 		OutlineTasks:                NewCheckbox(0, 0, 32, 32),
 		GridVisible:                 NewCheckbox(0, 0, 32, 32),
@@ -257,7 +257,10 @@ func NewProject() *Project {
 		CustomFontPathBrowseButton:  NewButton(0, 0, 128, 24, "Browse", false),
 		FontSize:                    NewNumberSpinner(0, 0, 128, 40),
 		GUIFontSizeMultiplier:       NewButtonGroup(0, 0, 850, 32, 1, GUI_FONT_SIZE_100, GUI_FONT_SIZE_150, GUI_FONT_SIZE_200, GUI_FONT_SIZE_250, GUI_FONT_SIZE_300, GUI_FONT_SIZE_350, GUI_FONT_SIZE_400),
-		// Program settings GUI elements
+
+		// Global / Program settings GUI elements
+
+		ColorThemeSpinner:      NewSpinner(0, 0, 256, 32),
 		AutoLoadLastProject:    NewCheckbox(0, 0, 32, 32),
 		AutoReloadThemes:       NewCheckbox(0, 0, 32, 32),
 		DisableSplashscreen:    NewCheckbox(0, 0, 32, 32),
@@ -276,6 +279,7 @@ func NewProject() *Project {
 		DisableAboutDialogOnStart: NewCheckbox(0, 0, 32, 32),
 		TransparentBackground:     NewCheckbox(0, 0, 32, 32),
 		BorderlessWindow:          NewCheckbox(0, 0, 32, 32),
+		DrawWindowBorder:          NewCheckbox(0, 0, 32, 32),
 		SaveWindowPosition:        NewCheckbox(0, 0, 32, 32),
 		GrabClient:                grab.NewClient(),
 	}
@@ -311,10 +315,6 @@ func NewProject() *Project {
 	column.DefaultVerticalSpacing = 24
 
 	row = column.Row()
-	row.Item(NewLabel("Color Theme:"), SETTINGS_GENERAL)
-	row.Item(project.ColorThemeSpinner, SETTINGS_GENERAL)
-
-	row = column.Row()
 	row.Item(NewLabel("Backup every X minutes:"), SETTINGS_GENERAL)
 	row.Item(project.AutomaticBackupInterval, SETTINGS_GENERAL)
 
@@ -344,7 +344,7 @@ func NewProject() *Project {
 	row.Item(project.ScreenshotsPath, SETTINGS_GENERAL)
 	row.Item(project.ScreenshotsPathBrowseButton, SETTINGS_GENERAL)
 
-	// TASKS
+	// Tasks
 
 	row = column.Row()
 	row.Item(NewLabel("Task Transparency:"), SETTINGS_TASKS)
@@ -442,6 +442,10 @@ func NewProject() *Project {
 	// Global
 
 	row = column.Row()
+	row.Item(NewLabel("Color Theme:"), SETTINGS_GLOBAL)
+	row.Item(project.ColorThemeSpinner, SETTINGS_GLOBAL)
+
+	row = column.Row()
 	row.Item(NewLabel("Auto-reload Themes:"), SETTINGS_GLOBAL)
 	row.Item(project.AutoReloadThemes, SETTINGS_GLOBAL)
 
@@ -492,6 +496,10 @@ func NewProject() *Project {
 
 	row.Item(NewLabel("Transparent Window:"), SETTINGS_GLOBAL)
 	row.Item(project.TransparentBackground, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Draw Border Around Window:"), SETTINGS_GLOBAL)
+	row.Item(project.DrawWindowBorder, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel(""), SETTINGS_GLOBAL)
@@ -625,10 +633,7 @@ func NewProject() *Project {
 
 	project.MaxUndoSteps.Minimum = 0
 
-	currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
-
 	project.ReloadThemes()
-	project.ChangeTheme(currentTheme)
 
 	if strings.Contains(runtime.GOOS, "darwin") {
 		project.SampleRate.SetChoice("22050") // For some reason, sound on Mac is choppy unless the project's sample rate is 22050.
@@ -723,7 +728,6 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `Pan\.X`, project.CameraPan.X)
 			data, _ = sjson.Set(data, `Pan\.Y`, project.CameraPan.Y)
 			data, _ = sjson.Set(data, `ZoomLevel`, project.ZoomLevel)
-			data, _ = sjson.Set(data, `ColorTheme`, currentTheme)
 			data, _ = sjson.Set(data, `TaskTransparency`, project.TaskTransparency.Number())
 			data, _ = sjson.Set(data, `OutlineTasks`, project.OutlineTasks.Checked)
 			data, _ = sjson.Set(data, `BracketSubtasks`, project.BracketSubtasks.Checked)
@@ -932,11 +936,6 @@ func LoadProject(filepath string) *Project {
 			// We don't have to call Board.ReorderTasks() for each board here because we do it later on after first initialization
 
 			project.LogOn = true
-
-			colorTheme := getString(`ColorTheme`)
-			if colorTheme != "" {
-				project.ChangeTheme(colorTheme) // Changing theme regenerates the grid; we don't have to do it elsewhere
-			}
 
 			list := []string{}
 
@@ -1910,18 +1909,6 @@ func (project *Project) Shortcuts() {
 
 }
 
-func (project *Project) ChangeTheme(themeName string) {
-	_, themeExists := guiColors[themeName]
-	if themeExists {
-		project.ColorThemeSpinner.SetChoice(themeName)
-	} else {
-		project.ColorThemeSpinner.CurrentChoice = 0 // Backup in case the named theme doesn't exist
-	}
-	currentTheme = project.ColorThemeSpinner.ChoiceAsString()
-	project.GenerateGrid()
-	project.SendMessage(MessageThemeChange, nil)
-}
-
 func (project *Project) GUI() {
 
 	project.CurrentBoard().PostDraw()
@@ -2289,14 +2276,14 @@ func (project *Project) GUI() {
 			programSettings.SmoothPanning = project.SmoothPanning.Checked
 			programSettings.FontSize = project.FontSize.Number()
 			programSettings.GUIFontSizeMultiplier = project.GUIFontSizeMultiplier.ChoiceAsString()
+			programSettings.DrawWindowBorder = project.DrawWindowBorder.Checked
+			programSettings.CustomFontPath = project.CustomFontPath.Text()
 
 			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed {
 				for _, textbox := range allTextboxes {
 					textbox.triggerTextRedraw = true
 				}
 			}
-
-			programSettings.CustomFontPath = project.CustomFontPath.Text()
 
 			if project.FontSize.Changed ||
 				project.CustomFontPath.Changed ||
@@ -2355,7 +2342,11 @@ func (project *Project) GUI() {
 			}
 
 			if project.ColorThemeSpinner.Changed {
-				project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
+
+				programSettings.Theme = project.ColorThemeSpinner.ChoiceAsString()
+				project.GenerateGrid()
+				project.SendMessage(MessageThemeChange, nil)
+
 			}
 
 			if project.MaxUndoSteps.Number() == 0 {
@@ -2578,6 +2569,11 @@ func (project *Project) GUI() {
 
 	PrevMousePosition = GetMousePosition()
 
+	if programSettings.DrawWindowBorder {
+		rec := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
+		rl.DrawRectangleLinesEx(rec, 2, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+	}
+
 }
 
 func (project *Project) GetEmptyBoard() *Board {
@@ -2723,10 +2719,10 @@ func (project *Project) ReloadThemes() {
 
 	loadThemes()
 
-	_, themeExists := guiColors[currentTheme]
+	_, themeExists := guiColors[programSettings.Theme]
 	if !themeExists {
 		for k := range guiColors {
-			currentTheme = k
+			programSettings.Theme = k
 			project.ColorThemeSpinner.SetChoice(k)
 			break
 		}
@@ -2907,4 +2903,6 @@ func (project *Project) OpenSettings() {
 	project.CustomFontPath.SetText(programSettings.CustomFontPath)
 	project.FontSize.SetNumber(programSettings.FontSize)
 	project.GUIFontSizeMultiplier.SetChoice(programSettings.GUIFontSizeMultiplier)
+	project.ColorThemeSpinner.SetChoice(programSettings.Theme)
+	project.DrawWindowBorder.Checked = programSettings.DrawWindowBorder
 }
