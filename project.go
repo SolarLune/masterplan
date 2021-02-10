@@ -290,12 +290,10 @@ func NewProject() *Project {
 
 	column := project.PopupPanel.AddColumn()
 
-	column.Row().Item(NewLabel("Rename Board")).Name = "rename label"
-
-	column.Row().Item(NewLabel("Current project has changed.")).Name = "abandon label"
-	column.Row().Item(NewLabel("Abandon project?")).Name = "abandon label"
+	column.Row().Item(NewLabel("")).Name = "label"
 
 	column.Row().Item(NewTextbox(0, 0, 256, 16)).Name = "rename textbox"
+
 	row := column.Row()
 	row.Item(NewButton(0, 0, 128, 32, "Accept", false)).Name = "accept button"
 	row.Item(NewButton(0, 0, 128, 32, "Cancel", false)).Name = "cancel button"
@@ -393,7 +391,9 @@ func NewProject() *Project {
 	row.Item(project.AlwaysShowURLButtons, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Deadline Animation:"), SETTINGS_TASKS)
+	label := NewLabel("Deadline Animation")
+	label.Underline = true
+	row.Item(label, SETTINGS_TASKS)
 	row = column.Row()
 	row.Item(project.DeadlineAnimation, SETTINGS_TASKS)
 
@@ -486,7 +486,7 @@ func NewProject() *Project {
 	row.Item(project.AutoReloadResources, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	label := NewLabel("Window alterations (requires restart)")
+	label = NewLabel("Window alterations (requires restart)")
 	label.Underline = true
 	row.Item(label, SETTINGS_GLOBAL)
 
@@ -502,7 +502,9 @@ func NewProject() *Project {
 	row.Item(project.DrawWindowBorder, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel(""), SETTINGS_GLOBAL)
+	label = NewLabel("Font Settings")
+	label.Underline = true
+	row.Item(label, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Path to custom font\n(If blank, the default font is used):"), SETTINGS_GLOBAL)
@@ -1879,6 +1881,8 @@ func (project *Project) Shortcuts() {
 						}
 					}
 					project.CurrentBoard().FocusViewOnSelectedTasks()
+				} else if keybindings.On(KBQuit) {
+					project.PromptQuit()
 				}
 
 			}
@@ -1918,6 +1922,11 @@ func (project *Project) GUI() {
 
 	if project.PopupAction != "" {
 
+		textboxElement := project.PopupPanel.FindItems("rename textbox")[0]
+		textbox := textboxElement.Element.(*Textbox)
+		labelElement := project.PopupPanel.FindItems("label")[0]
+		label := labelElement.Element.(*Label)
+
 		project.PopupPanel.Update()
 
 		accept := project.PopupPanel.FindItems("accept button")[0].Element.(*Button).Clicked
@@ -1925,22 +1934,19 @@ func (project *Project) GUI() {
 
 		if project.PopupPanel.Exited || cancel {
 			project.PopupAction = ""
+
 		}
 
 		if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
 			accept = true
+			label.Text = ""
 		}
 
-		textboxElement := project.PopupPanel.FindItems("rename textbox")[0]
-		textbox := textboxElement.Element.(*Textbox)
+		label.Text = ""
 
 		if project.PopupAction == ActionRenameBoard {
 
-			project.PopupPanel.FindItems("rename label")[0].On = true
-
-			for _, element := range project.PopupPanel.FindItems("abandon label") {
-				element.On = false
-			}
+			label.Text = "Rename Board"
 
 			textboxElement.On = true
 
@@ -1960,11 +1966,11 @@ func (project *Project) GUI() {
 
 		} else {
 
-			project.PopupPanel.FindItems("rename label")[0].On = false
-
-			for _, element := range project.PopupPanel.FindItems("abandon label") {
-				element.On = true
+			if project.Modified {
+				label.Text = "\nCurrent project has been changed."
 			}
+
+			label.Text += "\nAbandon project?"
 
 			if accept {
 				project.ExecuteDestructiveAction(project.PopupAction, project.PopupArgument)
@@ -2141,11 +2147,7 @@ func (project *Project) GUI() {
 						}
 
 					case "Quit MasterPlan":
-						if project.Modified {
-							project.PopupAction = ActionQuit
-						} else {
-							project.ExecuteDestructiveAction(ActionQuit, "")
-						}
+						project.PromptQuit()
 					}
 
 				}
@@ -2908,4 +2910,10 @@ func (project *Project) OpenSettings() {
 	project.GUIFontSizeMultiplier.SetChoice(programSettings.GUIFontSizeMultiplier)
 	project.ColorThemeSpinner.SetChoice(programSettings.Theme)
 	project.DrawWindowBorder.Checked = programSettings.DrawWindowBorder
+}
+
+func (project *Project) PromptQuit() {
+
+	project.PopupAction = ActionQuit
+
 }

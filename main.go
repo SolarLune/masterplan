@@ -159,7 +159,7 @@ func main() {
 
 	log.Println("MasterPlan initialized successfully.")
 
-	for !rl.WindowShouldClose() && !quit {
+	for !quit {
 
 		currentTime := time.Now()
 
@@ -225,6 +225,10 @@ func main() {
 			}
 
 		} else {
+
+			if rl.WindowShouldClose() {
+				currentProject.PromptQuit()
+			}
 
 			if !showedAboutDialog {
 				showedAboutDialog = true

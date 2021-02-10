@@ -548,12 +548,17 @@ func (panel *Panel) Update() {
 		globalMouseOffset.X = panel.Rect.X
 		globalMouseOffset.Y = panel.Rect.Y - scroll
 
+		activeRowCount := 0
 		sorted := []*PanelItem{}
 
+		// We just want the active items
 		for _, column := range panel.Columns {
 			for _, row := range column.Rows {
-
-				sorted = append(sorted, row.ActiveItems()...)
+				activeItems := row.ActiveItems()
+				if len(activeItems) > 0 {
+					activeRowCount++
+				}
+				sorted = append(sorted, activeItems...)
 			}
 		}
 
@@ -632,12 +637,6 @@ func (panel *Panel) Update() {
 					if row.VerticalSpacing >= 0 {
 						y += lastHeight + float32(row.VerticalSpacing)
 					} else {
-						activeRowCount := 0
-						for _, row := range column.Rows {
-							if len(row.ActiveItems()) > 0 {
-								activeRowCount++
-							}
-						}
 						spacing := float32(int(panel.OriginalHeight-32-topBar.Height) / activeRowCount)
 						if spacing <= lastHeight {
 							spacing = lastHeight
@@ -781,19 +780,50 @@ func (panel *Panel) FindItems(name string) []*PanelItem {
 }
 
 type Label struct {
-	Position  rl.Vector2
-	Text      string
-	Underline bool
+	Position            rl.Vector2
+	Text                string
+	Underline           bool
+	HorizontalAlignment int
 }
 
 func NewLabel(text string) *Label {
-	return &Label{Text: text}
+	return &Label{Text: text, HorizontalAlignment: ALIGN_CENTER}
 }
 
 func (label *Label) Update() {}
 
 func (label *Label) Draw() {
-	DrawGUIText(label.Position, label.Text)
+
+	if label.HorizontalAlignment != ALIGN_LEFT && strings.Count(label.Text, "\n") > 0 {
+
+		rectSize := label.Rectangle()
+
+		pos := label.Position
+
+		for _, line := range strings.Split(label.Text, "\n") {
+
+			textSize, _ := TextSize(line, true)
+
+			if label.HorizontalAlignment == ALIGN_CENTER {
+				pos.X = label.Position.X + (rectSize.Width-textSize.X)/2
+			} else if label.HorizontalAlignment == ALIGN_RIGHT {
+				pos.X = label.Position.X + rectSize.Width - textSize.X
+			}
+
+			DrawGUIText(pos, line)
+
+			height, _ := TextHeight(line, true)
+			if line == "" {
+				height, _ = TextHeight("A", true)
+			}
+
+			pos.Y += height
+
+		}
+
+	} else {
+		DrawGUIText(label.Position, label.Text)
+	}
 	rect := label.Rectangle()
 	if label.Underline {
 		rl.DrawLineEx(

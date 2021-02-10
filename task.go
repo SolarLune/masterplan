@@ -244,14 +244,11 @@ func (task *Task) SetPanel() {
 
 	column := task.EditPanel.AddColumn()
 
-	column.DefaultVerticalSpacing = 16
+	column.DefaultVerticalSpacing = 24
 	row := column.Row()
 	row.Item(NewLabel("Task Type:"))
 	row = column.Row()
 	row.Item(task.TaskType)
-
-	row = column.Row()
-	row.Item(NewLabel(""))
 
 	row = column.Row()
 	row.Item(NewLabel("Created On:"))
@@ -811,6 +808,8 @@ func (task *Task) Update() {
 		task.Board.UndoHistory.Capture(state)
 
 		task.Change = TASK_CHANGE_NONE
+
+		task.Board.Project.Modified = true
 
 	}
 

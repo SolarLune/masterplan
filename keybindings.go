@@ -177,6 +177,7 @@ const (
 	KBSaveAs                  = "Save Project As..."
 	KBSave                    = "Save Project"
 	KBLoad                    = "Load Project"
+	KBQuit                    = "Quit MasterPlan"
 	KBUnlockImageASR          = "Unlock Image to Aspect Ratio Modifier"
 	KBUnlockImageGrid         = "Unlock Image to Grid Modifier"
 	KBURLButton               = "Show URL Buttons"
@@ -401,7 +402,8 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBUnlockImageGrid, rl.KeyLeftShift).triggerMode = TriggerModeHold
 	kb.Define(KBURLButton, rl.KeyLeftControl).triggerMode = TriggerModeHold
 
-	kb.Define(KBMapRectTool, rl.KeyC, rl.KeyLeftShift).triggerMode = TriggerModePress
+	kb.Define(KBMapRectTool, rl.KeyC, rl.KeyLeftShift)
+	kb.Define(KBQuit, rl.KeyQ, rl.KeyLeftControl)
 
 	kb.ShortcutsByLevel = map[int][]*Shortcut{}
 

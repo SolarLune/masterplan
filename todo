@@ -11,16 +11,19 @@ Completed:
 - Modifiers (left ctrl, right ctrl) are now left / right agnostic
 - Repeatable Timers / deadlines - when completing Tasks with deadlines, it advances the deadline by a certain amount of time?; Maybe it's better to have a different kind of deadline that is repeatable, and specifies simply a time frame (x days, x weeks, x months);  Maybe it's better to repurpose a Timer for this purpose, since when it goes off, it will alert you and start counting down again?
 - Stopwatch mode for Timers
-- Add shortcut for rectangle tool on MapImages
-- Add shadows for Buttons
-- Optional border (specifically for borderless mode)
-- Make themes global
+- Added shortcut for rectangle tool on MapImages
+- Added shadows for UI elements
+- Added an optional border around window (specifically for borderless mode if you want a bit more flavor)
+- Themes are now global instead of per-Project
+- Qutting MasterPlan by pressing the window's [X] now prompts for a quit
+- MasterPlan now always confirms when quitting
+- Added a shortcut to quit MasterPlan
 
 To-do:
 
+- INTERNAL: Fix Task Completion Date, it's broken
 - Table Task Type - A grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
 - Add a little darkness underneath the header for Maps
-- Add quit shortcut
 - Make sure the binding for stopping all sounds works?
 - Speed up the splashscreen, it's too sloooooooow
 - Mini-map of some description?
