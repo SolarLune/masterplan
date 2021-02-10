@@ -1019,10 +1019,7 @@ type TimerContents struct {
 	Task       *Task
 	TimerValue float32
 	TargetDate time.Time
-	// AlarmResource *Resource
 	AlarmSound *beep.Resampler
-	// TimerDelayStart time.Time
-	// TimerDelayEnd time.Time
 }
 
 func NewTimerContents(task *Task) *TimerContents {
@@ -1034,11 +1031,11 @@ func NewTimerContents(task *Task) *TimerContents {
 
 func (c *TimerContents) CalculateTimeLeft() {
 
+	now := time.Now()
+
 	switch c.Task.TimerMode.CurrentChoice {
 
 	case TIMER_TYPE_DAILY:
-
-		now := time.Now()
 
 		start := time.Duration(int(now.Weekday())) * 24 * time.Hour
 		nextDate := now.Add(-start - (time.Duration(now.Minute()) * time.Minute) - (time.Duration(now.Hour()) * time.Hour) - (time.Duration(now.Second()) * time.Second))
@@ -1057,12 +1054,14 @@ func (c *TimerContents) CalculateTimeLeft() {
 
 	case TIMER_TYPE_DEADLINE:
 
-		nextDate := time.Date(c.Task.DeadlineYear.Number(), time.Month(c.Task.DeadlineMonth.CurrentChoice+1), c.Task.DeadlineDay.Number(), 23, 59, 59, 0, time.Now().Location())
+		nextDate := time.Date(c.Task.DeadlineYear.Number(), time.Month(c.Task.DeadlineMonth.CurrentChoice+1), c.Task.DeadlineDay.Number(), 23, 59, 59, 0, now.Location())
 		c.TargetDate = nextDate
-		c.TimerValue = float32(nextDate.Sub(time.Now()).Seconds())
+		c.TimerValue = float32(nextDate.Sub(now).Seconds())
 
 	case TIMER_TYPE_COUNTDOWN:
-		if c.Task.CountdownMinute.Changed || c.Task.CountdownSecond.Changed {
+		// We check to see if the countdown GUI elements have changed because otherwise having the Task open to, say,
+		// edit the Timer Name would effectively pause the timer as the value would always be set.
+		if c.Task.CountdownMinute.Changed || c.Task.CountdownSecond.Changed || !c.Task.TimerRunning {
 			c.TimerValue = float32(c.Task.CountdownMinute.Number()*60 + c.Task.CountdownSecond.Number())
 		}
 
@@ -1089,12 +1088,13 @@ func (c *TimerContents) Update() {
 			c.TimerValue -= deltaTime // We count down, not up, otherwise
 
 			if c.TimerValue <= 0 {
+
+				c.Task.TimerRunning = false
 				c.TimeUp()
 				c.CalculateTimeLeft()
+
 				if c.Task.TimerRepeating.Checked && c.Task.TimerMode.CurrentChoice != TIMER_TYPE_DEADLINE {
 					c.Trigger(TASK_TRIGGER_SET)
-				} else {
-					c.Task.TimerRunning = false
 				}
 
 			}
