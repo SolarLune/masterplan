@@ -169,6 +169,8 @@ const (
 	KBSelectTaskLeft          = "Select / Slide Task Left"
 	KBSelectNextTask          = "Select Next Nearby Task"
 	KBSelectPrevTask          = "Select Previous Nearby Task"
+	KBSelectNextLineEnding    = "Line: Select Next Line Ending"
+	KBSelectPrevLineEnding    = "Line: Select Previous Line Ending"
 	KBSelectTopTaskInStack    = "Select Top Task in Stack"
 	KBSelectBottomTaskInStack = "Select Bottom Task in Stack"
 	KBSlideTask               = "Slide Task Modifier"
@@ -351,7 +353,6 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBPanLeft, rl.KeyA).triggerMode = TriggerModeHold
 	kb.Define(KBPanDown, rl.KeyS).triggerMode = TriggerModeHold
 	kb.Define(KBPanRight, rl.KeyD).triggerMode = TriggerModeHold
-
 	kb.Define(KBCenterView, rl.KeyBackspace)
 
 	kb.Define(KBBoard1, rl.KeyOne, rl.KeyLeftShift)
@@ -365,7 +366,6 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBBoard9, rl.KeyNine, rl.KeyLeftShift)
 	kb.Define(KBBoard10, rl.KeyZero, rl.KeyLeftShift)
 
-	kb.Define(KBSelectAllTasks, rl.KeyA, rl.KeyLeftControl)
 	kb.Define(KBCopyTasks, rl.KeyC, rl.KeyLeftControl)
 	kb.Define(KBCutTasks, rl.KeyX, rl.KeyLeftControl)
 	kb.Define(KBPaste, rl.KeyV, rl.KeyLeftControl)
@@ -380,12 +380,15 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBFindNextTask, rl.KeyF, rl.KeyLeftControl)
 	kb.Define(KBFindPreviousTask, rl.KeyF, rl.KeyLeftControl, rl.KeyLeftShift)
 
+	kb.Define(KBSelectAllTasks, rl.KeyA, rl.KeyLeftControl)
 	kb.Define(KBSelectTaskAbove, rl.KeyUp).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTaskLeft, rl.KeyLeft).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTaskBelow, rl.KeyDown).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTaskRight, rl.KeyRight).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectNextTask, rl.KeyTab).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectPrevTask, rl.KeyTab, rl.KeyLeftShift).triggerMode = TriggerModeRepeating
+	kb.Define(KBSelectPrevLineEnding, rl.KeyLeftBracket).triggerMode = TriggerModeRepeating
+	kb.Define(KBSelectNextLineEnding, rl.KeyRightBracket).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTopTaskInStack, rl.KeyPageUp)
 	kb.Define(KBSelectBottomTaskInStack, rl.KeyPageDown)
 

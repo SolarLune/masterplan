@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -1312,6 +1313,69 @@ func (c *LineContents) Update() {
 			}
 
 			rl.DrawLineEx(cp, ep, 2, fillColor)
+
+		}
+
+	}
+
+	cycleDirection := 0
+
+	if programSettings.Keybindings.On(KBSelectNextLineEnding) {
+		cycleDirection = 1
+	} else if programSettings.Keybindings.On(KBSelectPrevLineEnding) {
+		cycleDirection = -1
+	}
+
+	if c.Task.LineStart == nil && cycleDirection != 0 {
+
+		selections := []*Task{}
+
+		for _, ending := range c.Task.LineEndings {
+			selections = append(selections, ending)
+		}
+
+		sort.Slice(selections, func(i, j int) bool {
+			ba := selections[i]
+			bb := selections[j]
+			if ba.Position.Y != bb.Position.Y {
+				return ba.Position.Y < bb.Position.Y
+			}
+			return ba.Position.X < bb.Position.X
+		})
+
+		selections = append([]*Task{c.Task}, selections...)
+
+		for i, selection := range selections {
+
+			if selection.Selected {
+
+				var nextTask *Task
+
+				if cycleDirection > 0 {
+
+					if i < len(selections)-1 {
+						nextTask = selections[i+1]
+					} else {
+						nextTask = selections[0]
+					}
+
+				} else {
+
+					if i > 0 {
+						nextTask = selections[i-1]
+					} else {
+						nextTask = selections[len(selections)-1]
+					}
+
+				}
+
+				board := c.Task.Board
+				board.SendMessage(MessageSelect, map[string]interface{}{"task": nextTask})
+				board.FocusViewOnSelectedTasks()
+
+				break
+
+			}
 
 		}
 
