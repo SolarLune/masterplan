@@ -9,16 +9,24 @@ import (
 )
 
 type GifAnimation struct {
-	Data     *gif.GIF
-	Frames   []*rl.Image
-	Delays   []float32 // 100ths of a second?
-	frameImg *image.RGBA
-	Width    float32
-	Height   float32
+	Data            *gif.GIF
+	Frames          []*rl.Image
+	Delays          []float32 // 100ths of a second?
+	frameImg        *image.RGBA
+	Width           float32
+	Height          float32
+	progressChannel chan float32
+	progress        float32
 }
 
 func NewGifAnimation(data *gif.GIF) *GifAnimation {
-	anim := &GifAnimation{Data: data, frameImg: image.NewRGBA(data.Image[0].Rect), Width: float32(data.Image[0].Rect.Dx()), Height: float32(data.Image[0].Rect.Dy())}
+	anim := &GifAnimation{
+		Data:            data,
+		frameImg:        image.NewRGBA(data.Image[0].Rect),
+		Width:           float32(data.Image[0].Rect.Dx()),
+		Height:          float32(data.Image[0].Rect.Dy()),
+		progressChannel: make(chan float32, 1),
+	}
 	go anim.Load() // Load the frames in the background
 	return anim
 }
@@ -57,26 +65,36 @@ func (gifAnim *GifAnimation) Load() {
 		gifAnim.Frames = append(gifAnim.Frames, rl.NewImageFromImage(gifAnim.frameImg))
 		gifAnim.Delays = append(gifAnim.Delays, float32(gifAnim.Data.Delay[index])/100)
 
+		// If there's something in the progress channel, it's an old value indicating the progress of the
+		// loading process, so we take it out.
+		if len(gifAnim.progressChannel) > 0 {
+			<-gifAnim.progressChannel
+		}
+
+		gifAnim.progressChannel <- float32(len(gifAnim.Frames)) / float32(len(gifAnim.Data.Image))
+
 	}
 
 }
 
-func (gifAnimation *GifAnimation) Destroy() {
-	for _, frame := range gifAnimation.Frames {
+func (gifAnim *GifAnimation) Destroy() {
+	for _, frame := range gifAnim.Frames {
 		rl.UnloadImage(frame)
 	}
 }
 
-func (gifAnimation *GifAnimation) IsReady() bool {
-	return gifAnimation.LoadingProgress() >= 100
+func (gifAnim *GifAnimation) IsReady() bool {
+	return gifAnim.LoadingProgress() >= 100
 }
 
-// LoadingProgress returns the progress at loading the GIF into memory as a percent, from 0 to 1.
-func (gifAnimation *GifAnimation) LoadingProgress() float32 {
-	if len(gifAnimation.Frames) > 0 && len(gifAnimation.Data.Image) > 0 {
-		return float32(len(gifAnimation.Frames)) / float32(len(gifAnimation.Data.Image))
+// LoadingProgress returns the progress at loading the GIF into memory as a fraction spanning 0 to 1.
+func (gifAnim *GifAnimation) LoadingProgress() float32 {
+
+	for len(gifAnim.progressChannel) > 0 {
+		gifAnim.progress = <-gifAnim.progressChannel
 	}
-	return 0
+	return gifAnim.progress
+
 }
 
 type GifPlayer struct {
