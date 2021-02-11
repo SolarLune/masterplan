@@ -6,10 +6,11 @@ That really sucks, actually.
 
 Completed:
 
-- Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well)
-- Downloading images / sounds are now multithreaded
-- Modifiers (left ctrl, right ctrl) are now left / right agnostic
-- Repeatable Timers / deadlines - when completing Tasks with deadlines, it advances the deadline by a certain amount of time?; Maybe it's better to have a different kind of deadline that is repeatable, and specifies simply a time frame (x days, x weeks, x months);  Maybe it's better to repurpose a Timer for this purpose, since when it goes off, it will alert you and start counting down again?
+- Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
+- Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but is simpler in the code-base as well.
+- Downloading images / sounds are now multithreaded.
+- Modifiers (left ctrl, right ctrl) are now left / right agnostic.
+- Repeatable Timers / deadline.
 - Stopwatch mode for Timers
 - Added shortcut for rectangle tool on MapImages
 - Added shadows for UI elements
@@ -18,25 +19,29 @@ Completed:
 - Qutting MasterPlan by pressing the window's [X] now prompts for a quit
 - MasterPlan now always confirms when quitting
 - Added a shortcut to quit MasterPlan
+- INTERNAL: Add a different shortcut for toggling editing on Maps and Whiteboards
+- Map Task type background improved, is now slightly transparent.
+- INTERNAL: Add a little darkness underneath the header for Maps
+- INTERNAL: Add remaining content types
+- FIX: Whiteboard is now NOT 2x chunkier than intended.
 
 To-do:
 
-- INTERNAL: Fix Task Completion Date, it's broken
-- Table Task Type - A grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
-- Add a little darkness underneath the header for Maps
-- Make sure the binding for stopping all sounds works?
+- Implement Timer - Line interaction to trigger tasks based on a nearby line
+- Get rid of data race possibility for GIF loading
+- Pressing a key should teleport you to each end of a line.
 - Speed up the splashscreen, it's too sloooooooow
 - Mini-map of some description?
+- INTERNAL: Fix Task Completion Date, it's broken
+- Table Task Type - A grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
+- Make sure the binding for stopping all sounds works?
 - Rework Board.DeleteSelectedTasks() - it no longer moves Tasks up
 - Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
-- Add remaining content types
 - Support for non-latin characters (SHOULD be as simple as loading other (all?) glyphs from whatever font is available, but some things need to be tweaked for this to really work effectively)
-- Get rid of data race possibility for GIF loading
 - Create a window to close when X button is pressed; check "ShouldWindowClose" more often than simply once
 - Test project saving and loading
 - Daily mode for Timers (this should be able to support more than one day, and should be able to do skips (every other, every third, etc)).
 - Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
-- Pressing a key should teleport you to each end of a line.
 - Review and re-implement PasteContents()
 - Review and re-implement HandleDroppedFiles()
 - Fix up missing project logging for Task Contents
@@ -83,7 +88,7 @@ includes a current number and maximum number of 999 each, so that they don't cha
 - Password protection
 - Copying tasks between Projects
 - Rotating and mirroring images
-- Some compression of project JSON (it doesn't need to be readable if compressed)
+- Optional compression of project JSON (it doesn't need to be readable if compressed) - a quick idea while still keeping it in plain text JSON format is to reduce the length of the strings I use to refer to Task elements, and turn off pretty printing before serialization to remove excess tab and return characters.
 - GIF Playback speed should be customizeable?
 - GIF step next frame / prev. frame
 - Make it so that it's easier to insert Tasks (i.e. dragging tasks into a list of them will automatically space them to make room)

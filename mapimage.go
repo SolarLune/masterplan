@@ -6,13 +6,18 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+const (
+	MapEditToolNone = iota
+	MapEditToolPencil
+	MapEditToolRectangle
+)
+
 type MapImage struct {
 	Data           [][]int32
 	Task           *Task
 	Texture        rl.RenderTexture2D
 	Changed        bool
-	Pencil         bool
-	RectangleTool  bool
+	EditTool       int
 	RectangleStart []int
 
 	cellWidth  int
@@ -48,6 +53,10 @@ func (mapImage *MapImage) Draw() {
 
 	project := mapImage.Task.Board.Project
 
+	if project.ProjectSettingsOpen {
+		mapImage.EditTool = MapEditToolNone
+	}
+
 	if mapImage.Changed {
 
 		rl.BeginTextureMode(mapImage.Texture)
@@ -82,7 +91,7 @@ func (mapImage *MapImage) Draw() {
 				dst.X = float32(x*16) + 8
 				dst.Y = float32(y*16) + 8
 				gridColor := rl.White
-				gridColor.A = 128
+				gridColor.A = 160
 
 				if getValue(x, y) > 0 {
 
@@ -124,10 +133,6 @@ func (mapImage *MapImage) Draw() {
 
 	}
 
-	if project.ProjectSettingsOpen {
-		mapImage.Pencil = false
-	}
-
 	if mapImage.Task.Selected {
 
 		rect := rl.Rectangle{mapImage.Task.Rect.X, mapImage.Task.Rect.Y, 16, 16}
@@ -139,7 +144,7 @@ func (mapImage *MapImage) Draw() {
 		cx := int(math.Floor(float64((mousePos.X - rect.X) / gs)))
 		cy := int(math.Floor(float64((mousePos.Y - rect.Y) / gs)))
 
-		if mapImage.Pencil {
+		if mapImage.EditTool == MapEditToolPencil {
 
 			if cx >= 0 && cx <= mapImage.cellWidth-1 && cy >= 0 && cy <= mapImage.cellHeight-1 {
 				r := rl.Rectangle{mapImage.Task.Rect.X + float32(cx)*gs, mapImage.Task.Rect.Y + float32(cy)*gs + gs, gs, gs}
@@ -162,7 +167,7 @@ func (mapImage *MapImage) Draw() {
 
 			}
 
-		} else if mapImage.RectangleTool {
+		} else if mapImage.EditTool == MapEditToolRectangle {
 
 			if cx >= 0 && cx <= mapImage.cellWidth-1 && cy >= 0 && cy <= mapImage.cellHeight-1 {
 
@@ -273,32 +278,32 @@ func (mapImage *MapImage) Draw() {
 
 	if mapImage.Task.Selected {
 
-		if mapImage.Pencil {
+		if mapImage.EditTool == MapEditToolPencil {
 			pencilButton = mapImage.Task.SmallButton(32, 32, 16, 16, mapImage.Task.Rect.X+16, mapImage.Task.Rect.Y)
 		} else {
 			pencilButton = mapImage.Task.SmallButton(16, 32, 16, 16, mapImage.Task.Rect.X+16, mapImage.Task.Rect.Y)
 		}
 
-		if mapImage.RectangleTool {
+		if mapImage.EditTool == MapEditToolRectangle {
 			rectButton = mapImage.Task.SmallButton(80, 48, 16, 16, mapImage.Task.Rect.X+32, mapImage.Task.Rect.Y)
 		} else {
 			rectButton = mapImage.Task.SmallButton(64, 48, 16, 16, mapImage.Task.Rect.X+32, mapImage.Task.Rect.Y)
 		}
 
-	}
+		if pencilButton || programSettings.Keybindings.On(KBPencilTool) || (mapImage.EditTool == MapEditToolPencil && !mapImage.Task.Selected) {
+			mapImage.TogglePencil()
+			ConsumeMouseInput(rl.MouseLeftButton)
+			mapImage.Changed = true
+		}
 
-	if pencilButton || (mapImage.Pencil && !mapImage.Task.Selected) {
-		mapImage.TogglePencil()
-		ConsumeMouseInput(rl.MouseLeftButton)
-	}
+		if rectButton || programSettings.Keybindings.On(KBMapRectTool) || (mapImage.EditTool == MapEditToolRectangle && !mapImage.Task.Selected) {
+			mapImage.ToggleRectangleTool()
+			ConsumeMouseInput(rl.MouseLeftButton)
+			mapImage.Changed = true
+		}
 
-	if rectButton || (mapImage.RectangleTool && !mapImage.Task.Selected) || programSettings.Keybindings.On(KBMapRectTool) {
-		mapImage.ToggleRectangleTool()
-		ConsumeMouseInput(rl.MouseLeftButton)
-	}
-
-	if !mapImage.Task.Selected && mapImage.Pencil {
-		mapImage.Pencil = false
+	} else {
+		mapImage.EditTool = MapEditToolNone
 	}
 
 	if mapImage.Changed {
@@ -308,19 +313,24 @@ func (mapImage *MapImage) Draw() {
 }
 
 func (mapImage *MapImage) TogglePencil() {
-	mapImage.Pencil = !mapImage.Pencil
-	mapImage.RectangleTool = false
+
+	if mapImage.EditTool != MapEditToolPencil {
+		mapImage.EditTool = MapEditToolPencil
+	} else {
+		mapImage.EditTool = MapEditToolNone
+	}
+
 	mapImage.Changed = true
 }
 
 func (mapImage *MapImage) ToggleRectangleTool() {
-	mapImage.RectangleTool = !mapImage.RectangleTool
-	mapImage.Pencil = false
-	mapImage.Changed = true
-}
+	if mapImage.EditTool != MapEditToolRectangle {
+		mapImage.EditTool = MapEditToolRectangle
+	} else {
+		mapImage.EditTool = MapEditToolNone
+	}
 
-func (mapImage *MapImage) Editing() bool {
-	return mapImage.Pencil || mapImage.RectangleTool
+	mapImage.Changed = true
 }
 
 func (mapImage *MapImage) Resize(w, h float32) {

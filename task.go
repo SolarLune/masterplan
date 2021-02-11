@@ -121,6 +121,7 @@ type Task struct {
 	Change          int
 	Contents        Contents
 	MapImage        *MapImage
+	Whiteboard      *Whiteboard
 	Locked          bool
 }
 
@@ -338,9 +339,9 @@ func (task *Task) SetPanel() {
 	row = column.Row()
 	row.Item(NewButton(0, 0, 128, 32, "Shift Down", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "shift down"
 
-	// row = column.Row()
-	// row.Item(NewButton(0, 0, 128, 32, "Clear", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "clear"
-	// row.Item(NewButton(0, 0, 128, 32, "Invert", false), TASK_TYPE_WHITEBOARD).Name = "invert"
+	row = column.Row()
+	row.Item(NewButton(0, 0, 128, 32, "Clear", false), TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD).Name = "clear"
+	row.Item(NewButton(0, 0, 128, 32, "Invert", false), TASK_TYPE_WHITEBOARD).Name = "invert"
 
 }
 
@@ -529,9 +530,9 @@ func (task *Task) Serialize() string {
 		jsonData, _ = sjson.Set(jsonData, `MapData`, data)
 	}
 
-	// if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
-	// 	jsonData, _ = sjson.Set(jsonData, `Whiteboard`, task.Whiteboard.Serialize())
-	// }
+	if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
+		jsonData, _ = sjson.Set(jsonData, `Whiteboard`, task.Whiteboard.Serialize())
+	}
 
 	return jsonData
 
@@ -610,7 +611,9 @@ func (task *Task) Deserialize(jsonData string) {
 
 	}
 
-	task.Selected = getBool(`Selected`)
+	if hasData(`Selected`) {
+		task.Selected = getBool(`Selected`)
+	}
 
 	newType := getInt(`TaskType\.CurrentChoice`)
 
@@ -714,22 +717,22 @@ func (task *Task) Deserialize(jsonData string) {
 
 	}
 
-	// if hasData(`Whiteboard`) {
+	if hasData(`Whiteboard`) {
 
-	// 	if task.Whiteboard == nil {
-	// 		task.Whiteboard = NewWhiteboard(task)
-	// 	}
+		if task.Whiteboard == nil {
+			task.Whiteboard = NewWhiteboard(task)
+		}
 
-	// 	task.Whiteboard.Resize(task.DisplaySize.X, task.DisplaySize.Y-float32(task.Board.Project.GridSize))
+		task.Whiteboard.Resize(task.DisplaySize.X, task.DisplaySize.Y-float32(task.Board.Project.GridSize))
 
-	// 	wbData := []string{}
-	// 	for _, row := range gjson.Get(jsonData, `Whiteboard`).Array() {
-	// 		wbData = append(wbData, row.String())
-	// 	}
+		wbData := []string{}
+		for _, row := range gjson.Get(jsonData, `Whiteboard`).Array() {
+			wbData = append(wbData, row.String())
+		}
 
-	// 	task.Whiteboard.Deserialize(wbData)
+		task.Whiteboard.Deserialize(wbData)
 
-	// }
+	}
 
 	// // We do this to update the task after loading all of the information.
 	// task.LoadResource()
@@ -964,19 +967,42 @@ func (task *Task) PostDraw() {
 
 		}
 
-		if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
-
-			if shiftButton := task.EditPanel.FindItems("shift up")[0]; shiftButton.Element.(*Button).Clicked {
+		if shiftButton := task.EditPanel.FindItems("shift up")[0]; shiftButton.Element.(*Button).Clicked {
+			if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
 				task.MapImage.Shift(0, -1)
+			} else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
+				task.Whiteboard.Shift(0, -8)
 			}
-			if shiftButton := task.EditPanel.FindItems("shift right")[0]; shiftButton.Element.(*Button).Clicked {
+		}
+		if shiftButton := task.EditPanel.FindItems("shift right")[0]; shiftButton.Element.(*Button).Clicked {
+			if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
 				task.MapImage.Shift(1, 0)
+			} else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
+				task.Whiteboard.Shift(8, 0)
 			}
-			if shiftButton := task.EditPanel.FindItems("shift down")[0]; shiftButton.Element.(*Button).Clicked {
+		}
+		if shiftButton := task.EditPanel.FindItems("shift down")[0]; shiftButton.Element.(*Button).Clicked {
+			if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
 				task.MapImage.Shift(0, 1)
+			} else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
+				task.Whiteboard.Shift(0, 8)
 			}
-			if shiftButton := task.EditPanel.FindItems("shift left")[0]; shiftButton.Element.(*Button).Clicked {
+		}
+		if shiftButton := task.EditPanel.FindItems("shift left")[0]; shiftButton.Element.(*Button).Clicked {
+			if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
 				task.MapImage.Shift(-1, 0)
+			} else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
+				task.Whiteboard.Shift(-8, 0)
+			}
+		}
+
+		if task.Whiteboard != nil {
+
+			if invert := task.EditPanel.FindItems("invert")[0]; invert.Element.(*Button).Clicked {
+				task.Whiteboard.Invert()
+			}
+			if clear := task.EditPanel.FindItems("clear")[0]; clear.Element.(*Button).Clicked {
+				task.Whiteboard.Clear()
 			}
 
 		}
@@ -998,7 +1024,7 @@ func (task *Task) CreateContents() {
 	case TASK_TYPE_MAP:
 		task.Contents = NewMapContents(task)
 	case TASK_TYPE_WHITEBOARD:
-		fallthrough
+		task.Contents = NewWhiteboardContents(task)
 	case TASK_TYPE_TIMER:
 		task.Contents = NewTimerContents(task)
 	case TASK_TYPE_LINE:

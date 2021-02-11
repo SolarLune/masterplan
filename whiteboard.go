@@ -16,7 +16,6 @@ type Whiteboard struct {
 	PrevClickPos rl.Vector2
 	CursorSize   int
 	Colors       []rl.Color
-	Resizing     bool
 }
 
 var CursorSizes = []float32{
@@ -36,30 +35,30 @@ func NewWhiteboard(task *Task) *Whiteboard {
 
 	wb.Resize(128, 64) // Set the size of the initial texture
 
-	wb.Update()
+	wb.Draw()
 
 	return wb
 }
 
-func (whiteboard *Whiteboard) Update() {
+func (whiteboard *Whiteboard) Draw() {
 
 	clickPos := rl.Vector2{-1, -1}
 
-	if whiteboard.Task.Board.Project.ProjectSettingsOpen || whiteboard.Resizing {
+	if whiteboard.Task.Board.Project.ProjectSettingsOpen {
 		whiteboard.Editing = false
 	}
 
 	makeUndo := false
 
-	if whiteboard.Editing && !whiteboard.Resizing && whiteboard.Task.Selected {
+	if whiteboard.Editing && whiteboard.Task.Selected {
 
 		rect := rl.Rectangle{whiteboard.Task.Rect.X, whiteboard.Task.Rect.Y, 16, 16}
 
 		mousePos := GetWorldMousePosition()
 		mousePos.Y -= rect.Height
 
-		cx := int32(mousePos.X-rect.X) / 2
-		cy := int32(mousePos.Y-rect.Y) / 2
+		cx := int32(mousePos.X - rect.X)
+		cy := int32(mousePos.Y - rect.Y)
 		color := whiteboard.Colors[1]
 
 		if cx >= 0 && cx <= whiteboard.Width-1 && cy >= 0 && cy <= whiteboard.Height-1 {
@@ -125,36 +124,42 @@ func (whiteboard *Whiteboard) Update() {
 	editButton := false
 
 	if whiteboard.Task.Selected {
+
 		if whiteboard.Editing {
 			editButton = whiteboard.Task.SmallButton(32, 32, 16, 16, whiteboard.Task.Rect.X+16, whiteboard.Task.Rect.Y)
 		} else {
 			editButton = whiteboard.Task.SmallButton(16, 32, 16, 16, whiteboard.Task.Rect.X+16, whiteboard.Task.Rect.Y)
 		}
+
+		if editButton || programSettings.Keybindings.On(KBPencilTool) || (whiteboard.Editing && !whiteboard.Task.Selected) {
+			whiteboard.ToggleEditing()
+			ConsumeMouseInput(rl.MouseLeftButton)
+		}
+
+		cursorSrcX := []float32{
+			176,
+			192,
+			208,
+		}
+
+		if whiteboard.CursorSize >= len(cursorSrcX) {
+			whiteboard.CursorSize = 0
+		}
+
+		if whiteboard.Editing && (programSettings.Keybindings.On(KBChangePencilToolSize) || whiteboard.Task.SmallButton(cursorSrcX[whiteboard.CursorSize], 48, 16, 16, whiteboard.Task.Rect.X+32, whiteboard.Task.Rect.Y)) {
+			whiteboard.CursorSize++
+			ConsumeMouseInput(rl.MouseLeftButton)
+		}
+
+	} else {
+		whiteboard.Editing = false
 	}
 
-	if editButton || (whiteboard.Editing && !whiteboard.Task.Selected) {
-		whiteboard.ToggleEditing()
-	}
+	whiteboard.PrevClickPos = clickPos
 
 	if makeUndo {
 		whiteboard.Task.Change = TASK_CHANGE_ALTERATION
 	}
-
-	cursors := []float32{
-		176,
-		192,
-		208,
-	}
-
-	if whiteboard.Editing && whiteboard.Task.SmallButton(cursors[whiteboard.CursorSize], 48, 16, 16, whiteboard.Task.Rect.X+32, whiteboard.Task.Rect.Y) {
-		whiteboard.CursorSize++
-	}
-
-	if whiteboard.CursorSize >= len(cursors) {
-		whiteboard.CursorSize = 0
-	}
-
-	whiteboard.PrevClickPos = clickPos
 
 }
 
@@ -166,8 +171,24 @@ func (whiteboard *Whiteboard) Resize(w, h float32) {
 
 	ogW, ogH := whiteboard.Width, whiteboard.Height
 
-	whiteboard.Width = int32(w / 2)
-	whiteboard.Height = int32(h / 2)
+	project := whiteboard.Task.Board.Project
+
+	locked := project.LockPositionToGrid(rl.Vector2{w, h})
+
+	whiteboard.Width = int32(locked.X)
+	whiteboard.Height = int32(locked.Y)
+
+	if whiteboard.Width < 128 {
+		whiteboard.Width = 128
+	} else if whiteboard.Width > 512 {
+		whiteboard.Width = 512
+	}
+
+	if whiteboard.Height < 80 {
+		whiteboard.Height = 80
+	} else if whiteboard.Height > 512 {
+		whiteboard.Height = 512
+	}
 
 	if ogW != whiteboard.Width || ogH != whiteboard.Height {
 		whiteboard.RecreateTexture()
@@ -219,6 +240,7 @@ func (whiteboard *Whiteboard) Clear() {
 	rl.BeginTextureMode(whiteboard.Texture)
 	rl.DrawRectangle(0, 0, whiteboard.Texture.Texture.Width, whiteboard.Texture.Texture.Height, whiteboard.Colors[0])
 	rl.EndTextureMode()
+	whiteboard.Task.Change = TASK_CHANGE_ALTERATION
 	// rl.BeginMode2D(camera)
 
 }
@@ -244,6 +266,8 @@ func (whiteboard *Whiteboard) Invert() {
 	}
 
 	rl.UpdateTexture(whiteboard.Texture.Texture, colors)
+
+	whiteboard.Task.Change = TASK_CHANGE_ALTERATION
 
 }
 

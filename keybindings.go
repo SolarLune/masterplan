@@ -154,7 +154,9 @@ const (
 	KBCreateTask              = "Create New Task"
 	KBStopAllSounds           = "Stop All Playing Sounds"
 	KBToggleTasks             = "Toggle Tasks"
+	KBPencilTool              = "Map / Whiteboard: Toggle Pencil Tool"
 	KBMapRectTool             = "Map: Toggle Rectangle Tool"
+	KBChangePencilToolSize    = "Whiteboard: Change Pencil Tool Size"
 	KBDeleteTasks             = "Delete Tasks"
 	KBFocusOnTasks            = "Focus View on Tasks"
 	KBEditTasks               = "Edit Tasks"
@@ -402,7 +404,9 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBUnlockImageGrid, rl.KeyLeftShift).triggerMode = TriggerModeHold
 	kb.Define(KBURLButton, rl.KeyLeftControl).triggerMode = TriggerModeHold
 
-	kb.Define(KBMapRectTool, rl.KeyC, rl.KeyLeftShift)
+	kb.Define(KBPencilTool, rl.KeyQ)
+	kb.Define(KBMapRectTool, rl.KeyR)
+	kb.Define(KBChangePencilToolSize, rl.KeyR)
 	kb.Define(KBQuit, rl.KeyQ, rl.KeyLeftControl)
 
 	kb.ShortcutsByLevel = map[int][]*Shortcut{}

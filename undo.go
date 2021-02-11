@@ -219,10 +219,6 @@ type UndoState struct {
 	Deletion   bool
 }
 
-// func (us *UndoState) String() string {
-// 	return us.Serialized
-// }
-
 func NewUndoState(task *Task) *UndoState {
 
 	state := task.Serialize()
