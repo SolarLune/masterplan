@@ -338,8 +338,8 @@ func main() {
 
 		splashScreenTime += deltaTime
 
-		if splashScreenTime >= 1.5 {
-			sub := uint8(255 * deltaTime)
+		if splashScreenTime >= 0.5 {
+			sub := uint8(255 * deltaTime * 4)
 			if splashColor.A > sub {
 				splashColor.A -= sub
 			} else {
