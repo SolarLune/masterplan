@@ -112,31 +112,29 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 	outlineColor := getThemeColor(GUI_OUTLINE)
 	insideColor := getThemeColor(GUI_INSIDE)
 
+	pos := rl.Vector2{}
+	if worldGUI {
+		pos = GetWorldMousePosition()
+	} else {
+		pos = GetMousePosition()
+	}
+
+	if rl.CheckCollisionPointRec(pos, rect) {
+		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+		if MouseDown(rl.MouseLeftButton) {
+			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+			insideColor = getThemeColor(GUI_INSIDE_DISABLED)
+		} else if MouseReleased(rl.MouseLeftButton) {
+			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+			insideColor = getThemeColor(GUI_INSIDE_DISABLED)
+			clicked = true
+		}
+	}
+
 	if disabled {
 		outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
 		insideColor = getThemeColor(GUI_INSIDE_DISABLED)
-	} else {
-
-		pos := rl.Vector2{}
-		if worldGUI {
-			pos = GetWorldMousePosition()
-		} else {
-			pos = GetMousePosition()
-		}
-
-		if rl.CheckCollisionPointRec(pos, rect) {
-			outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
-			insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
-			if MouseDown(rl.MouseLeftButton) {
-				outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-				insideColor = getThemeColor(GUI_INSIDE_DISABLED)
-			} else if MouseReleased(rl.MouseLeftButton) {
-				outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-				insideColor = getThemeColor(GUI_INSIDE_DISABLED)
-				clicked = true
-			}
-		}
-
 	}
 
 	rect.X = float32(int32(rect.X) + 4)
@@ -172,7 +170,7 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 	if worldGUI {
 		textWidth = rl.MeasureTextEx(font, text, float32(programSettings.FontSize), spacing)
 	}
-	pos := rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2 + (iconDstRec.Width / 4), rect.Y + (rect.Height / 2) - textWidth.Y/2}
+	pos = rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2 + (iconDstRec.Width / 4), rect.Y + (rect.Height / 2) - textWidth.Y/2}
 	pos.X = float32(math.Round(float64(pos.X)))
 	pos.Y = float32(math.Round(float64(pos.Y)))
 
@@ -315,6 +313,120 @@ func (bg *ButtonGroup) SetChoice(choice string) {
 			return
 		}
 	}
+}
+
+type MultiButtonGroup struct {
+	Rect                rl.Rectangle
+	Options             []string
+	RowCount            int
+	CurrentChoices      int
+	Changed             bool
+	MinimumEnabledCount int
+}
+
+// NewButtonGroup creates a button group. The X and Y is the position of the group, while the width is how wide the group is. Height is how tall the group is,
+// but also specifies the height of the buttons. RowCount indicates the number of rows to spread the buttons across. Finally, one button will be created for each
+// option in the options variable string.
+func NewMultiButtonGroup(x, y, w, h float32, rowCount int, options ...string) *MultiButtonGroup {
+	return &MultiButtonGroup{
+		Rect:                rl.Rectangle{x, y, w, h * float32(rowCount)},
+		Options:             options,
+		RowCount:            rowCount,
+		MinimumEnabledCount: 1,
+	}
+}
+
+func (bg *MultiButtonGroup) Update() {}
+
+func (bg *MultiButtonGroup) Draw() {
+
+	bg.Changed = false
+
+	r := bg.Rect
+	r.Width /= float32(len(bg.Options) / bg.RowCount)
+	r.Height /= float32(bg.RowCount)
+
+	startingX := r.X
+
+	for i, option := range bg.Options {
+
+		bitVal := 1 << i
+		alreadyClicked := bg.CurrentChoices&bitVal != 0
+
+		if ImmediateButton(r, option, alreadyClicked) {
+
+			if alreadyClicked && bg.EnabledOptionCount() > bg.MinimumEnabledCount {
+				// Set / Add to existing bit variable
+				bg.CurrentChoices = bg.CurrentChoices &^ bitVal
+				bg.Changed = true
+			} else {
+				// Remove / clear from existing bit variable
+				bg.CurrentChoices = bg.CurrentChoices | bitVal
+				bg.Changed = true
+			}
+
+		}
+
+		r.X += r.Width
+
+		if r.X >= bg.Rect.X+bg.Rect.Width {
+			r.X = startingX
+			r.Y += r.Height
+		}
+
+	}
+
+}
+
+func (bg *MultiButtonGroup) Depth() int32 { return 0 }
+
+func (bg *MultiButtonGroup) Rectangle() rl.Rectangle {
+	return bg.Rect
+}
+
+func (bg *MultiButtonGroup) SetRectangle(rect rl.Rectangle) {
+	bg.Rect = rect
+}
+
+func (bg *MultiButtonGroup) OptionEnabled(choice string) bool {
+
+	for i, option := range bg.Options {
+		if option == choice {
+			return bg.CurrentChoices&(1<<i) != 0
+		}
+	}
+	return false
+
+}
+func (bg *MultiButtonGroup) EnableOption(choice string) {
+	for i, option := range bg.Options {
+		if option == choice {
+			bg.CurrentChoices = bg.CurrentChoices | (1 << i)
+			return
+		}
+	}
+}
+
+func (bg *MultiButtonGroup) EnabledOptionsAsArray() []bool {
+
+	enabledOptions := []bool{}
+
+	for i := 0; i < len(bg.Options); i++ {
+		enabledOptions = append(enabledOptions, bg.CurrentChoices&(1<<i) != 0)
+	}
+
+	return enabledOptions
+
+}
+
+func (bg *MultiButtonGroup) EnabledOptionCount() int {
+	count := 0
+	for _, option := range bg.EnabledOptionsAsArray() {
+		if option == true {
+			count++
+		}
+	}
+	return count
 }
 
 type PanelItem struct {

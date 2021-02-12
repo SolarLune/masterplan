@@ -8,21 +8,22 @@ Completed:
 
 - Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
 - Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but is simpler in the code-base as well.
-- Now only Check-box Tasks display Sub-Tasks as contributing to their own completion; not Progression Tasks.
 - Downloading images / sounds are now multithreaded.
 - Modifiers (left ctrl, right ctrl) are now left / right agnostic.
-- Added repeatable Timers / deadline.
+- Now only Check-box Tasks display Sub-Tasks as contributing to their own completion; not Progression Tasks.
+- Added repeatable Timers.
 - Added a Daily mode for Timers (so they can trigger every Monday, Friday, etc).
 - Added a Stopwatch mode for Timers.
 - Timers can now interact with Lines to trigger Tasks that Lines point towards or are over.
 - Added a Rectangle tool for Map Tasks.
-- Added shadows for UI elements.
-- Added an optional border around window (specifically for borderless mode if you want a bit more flavor).
 - Themes are now global instead of per-Project.
 - Qutting MasterPlan by pressing the window's [X] now prompts for a quit.
-- MasterPlan now always confirms when quitting.
+- MasterPlan now always confirms when quitting, not just when the current project has been modified.
+- Added an optional border around the window (specifically for borderless mode if you want a bit more flavor).
+- Added shadows for UI elements.
 - Added a keyboard shortcut to quit MasterPlan.
 - Map Task type background has been slightly improved, is now a bit transparent.
+- Various minor visual tweaks and smaller bug-fixes.
 - INTERNAL: Added a little darkness underneath the header for Maps.
 - INTERNAL: Added remaining content types.
 - FIX: Whiteboard is now NOT 2x chunkier than intended.
@@ -38,10 +39,12 @@ Completed:
 - Timers who are neighbors to Lines can now trigger the Tasks those Lines are pointing to, and so on.
 - INTERNAL: Next and Previous Line Ending's shortcuts are now the C and X keys by default.
 - INTERNAL: Moving Project.Shortcuts() call above Board.Update() and Board.Draw() so that shortcut clashes can properly be resolved prior to Tasks' contents being updated or drawn.
+- Timers should be able to be set for multiple days of the week, not just one
 
 To-do:
 
-- Timers should be able to be set for multiple days of the week, not just one
+- Clickable images - when you click them, they go to a location.
+- Re-add the Deadline indicators
 - FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
 - Mini-map of some description?
 - Table Task Type - A grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.

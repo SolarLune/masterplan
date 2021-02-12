@@ -78,7 +78,7 @@ type Task struct {
 	DeadlineYear        *NumberSpinner
 	CountdownMinute     *NumberSpinner
 	CountdownSecond     *NumberSpinner
-	DailyDay            *ButtonGroup
+	DailyDay            *MultiButtonGroup
 	DailyHour           *NumberSpinner
 	DailyMinute         *NumberSpinner
 	CompletionTimeLabel *Label
@@ -152,18 +152,6 @@ func NewTask(board *Board) *Task {
 		"Sat",
 	}
 
-	// days := []string{
-	// 	"Sunday",
-	// 	"Monday",
-	// 	"Tuesday",
-	// 	"Wednesday",
-	// 	"Thursday",
-	// 	"Friday",
-	// 	"Saturday",
-	// }
-
-	// postX := float32(180)
-
 	task := &Task{
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Board:                        board,
@@ -179,10 +167,10 @@ func NewTask(board *Board) *Task {
 		DeadlineMonth:                NewSpinner(0, 128, 200, 40, months...),
 		DeadlineDay:                  NewNumberSpinner(0, 80, 160, 40),
 		DeadlineYear:                 NewNumberSpinner(0, 128, 160, 40),
-		TimerMode:                    NewButtonGroup(0, 0, 600, 32, 1, "Countdown", "Daily", "Date", "Stopwatch"),
+		TimerMode:                    NewButtonGroup(0, 0, 600, 32, 1, "Countdown", "Daily", "Deadline", "Stopwatch"),
 		CountdownMinute:              NewNumberSpinner(0, 0, 160, 40),
 		CountdownSecond:              NewNumberSpinner(0, 0, 160, 40),
-		DailyDay:                     NewButtonGroup(0, 0, 650, 40, 1, days...),
+		DailyDay:                     NewMultiButtonGroup(0, 0, 650, 40, 1, days...),
 		DailyHour:                    NewNumberSpinner(0, 0, 160, 40),
 		DailyMinute:                  NewNumberSpinner(0, 0, 160, 40),
 		TimerRepeating:               NewCheckbox(0, 0, 32, 32),
@@ -195,6 +183,8 @@ func NewTask(board *Board) *Task {
 		LineBezier:                   NewCheckbox(0, 64, 32, 32),
 		LineEndings:                  []*Task{},
 	}
+
+	task.DailyDay.EnableOption(days[0])
 
 	task.SetPanel()
 
@@ -300,11 +290,11 @@ func (task *Task) SetPanel() {
 	row.Item(NewLabel("Seconds:"), TASK_TYPE_TIMER).Name = "timer_countdown"
 	row.Item(task.CountdownSecond, TASK_TYPE_TIMER).Name = "timer_countdown"
 
-	row.Item(NewLabel("Day of week:"), TASK_TYPE_TIMER).Name = "timer_daily"
+	row.Item(NewLabel("Days of the Week:"), TASK_TYPE_TIMER).Name = "timer_daily"
 	row = column.Row()
 	row.Item(task.DailyDay, TASK_TYPE_TIMER).Name = "timer_daily"
 	row = column.Row()
-	row.Item(NewLabel("At Hours:"), TASK_TYPE_TIMER).Name = "timer_daily"
+	row.Item(NewLabel("Alarm Time Hours:"), TASK_TYPE_TIMER).Name = "timer_daily"
 	row.Item(task.DailyHour, TASK_TYPE_TIMER).Name = "timer_daily"
 	row.Item(NewLabel("Minutes:"), TASK_TYPE_TIMER).Name = "timer_daily"
 	row.Item(task.DailyMinute, TASK_TYPE_TIMER).Name = "timer_daily"
@@ -474,7 +464,7 @@ func (task *Task) Serialize() string {
 		}
 
 		if task.TimerMode.CurrentChoice == TIMER_TYPE_DAILY {
-			jsonData, _ = sjson.Set(jsonData, `TimerDailyDaySpinner\.CurrentChoice`, task.DailyDay.CurrentChoice)
+			jsonData, _ = sjson.Set(jsonData, `TimerDailyDaySpinner\.CurrentChoice`, task.DailyDay.CurrentChoices)
 			jsonData, _ = sjson.Set(jsonData, `TimerDailyHourSpinner\.Number`, task.DailyHour.Number())
 			jsonData, _ = sjson.Set(jsonData, `TimerDailyMinuteSpinner\.Number`, task.DailyMinute.Number())
 		}
@@ -639,7 +629,7 @@ func (task *Task) Deserialize(jsonData string) {
 		}
 
 		if task.TimerMode.CurrentChoice == TIMER_TYPE_DAILY {
-			task.DailyDay.SetChoice(getString(`TimerDailyDaySpinner\.CurrentChoice`))
+			task.DailyDay.CurrentChoices = getInt(`TimerDailyDaySpinner\.CurrentChoice`)
 			task.DailyHour.SetNumber(getInt(`TimerDailyHourSpinner\.Number`))
 			task.DailyMinute.SetNumber(getInt(`TimerDailyMinuteSpinner\.Number`))
 		}

@@ -1061,11 +1061,18 @@ type TimerContents struct {
 	Task       *Task
 	TimerValue float32
 	TargetDate time.Time
-	AlarmSound *beep.Resampler
+	// AlarmSound  *beep.Resampler
+	AlarmSound *effects.Volume
 }
 
 func NewTimerContents(task *Task) *TimerContents {
-	timerContents := &TimerContents{Task: task}
+	timerContents := &TimerContents{
+		Task: task,
+		AlarmSound: &effects.Volume{
+			Base:   2,
+			Volume: float64(task.Board.Project.SoundVolume.Number()-10) / 2,
+		},
+	}
 	timerContents.ReloadAlarmSound()
 	timerContents.CalculateTimeLeft() // Attempt to set the time on creation
 	return timerContents
@@ -1088,14 +1095,40 @@ func (c *TimerContents) CalculateTimeLeft() {
 	case TIMER_TYPE_DAILY:
 
 		start := time.Duration(int(now.Weekday())) * 24 * time.Hour
-		nextDate := now.Add(-start - (time.Duration(now.Minute()) * time.Minute) - (time.Duration(now.Hour()) * time.Hour) - (time.Duration(now.Second()) * time.Second))
 
-		nextDate = nextDate.Add(time.Duration(c.Task.DailyDay.CurrentChoice) * time.Hour * 24)
-		nextDate = nextDate.Add(time.Duration(c.Task.DailyHour.Number()) * time.Hour)
-		nextDate = nextDate.Add(time.Duration(c.Task.DailyMinute.Number()) * time.Minute)
+		// Get a solid start that is the beginning of the week. nextDate starts as today, minus how far into the week we are
+		nextDate := now.Add(-start)
+		year, month, day := nextDate.Date()
+		nextDate = time.Date(year, month, day, 0, 0, 0, 0, now.Location()) // We just want the day, month, and year; the seconds aren't important
 
-		if nextDate.Before(now) || nextDate.Sub(now).Seconds() <= 0 {
-			nextDate = nextDate.AddDate(0, 0, 7)
+		foundNextDate := false
+		firstDate := time.Time{}
+
+		// Calculate when the next time the Timer should go off is (i.e. a Timer could go off multiple days, so we check each valid day).
+		for dayIndex, enabled := range c.Task.DailyDay.EnabledOptionsAsArray() {
+
+			if !enabled {
+				continue
+			}
+
+			day := nextDate.Add((time.Duration(dayIndex) * time.Hour * 24) +
+				(time.Duration(c.Task.DailyHour.Number()) * time.Hour) +
+				(time.Duration(c.Task.DailyMinute.Number()) * time.Minute))
+
+			if firstDate.IsZero() {
+				firstDate = day
+			}
+
+			if day.After(now) {
+				foundNextDate = true
+				nextDate = day
+				break
+			}
+
+		}
+
+		if !foundNextDate || nextDate.Sub(now).Seconds() <= 0 {
+			nextDate = firstDate.AddDate(0, 0, 7)
 		}
 
 		c.TargetDate = nextDate
@@ -1157,7 +1190,7 @@ func (c *TimerContents) ReloadAlarmSound() {
 
 	res, _ := c.Task.Board.Project.LoadResource(LocalPath("assets", "alarm.wav"))
 	alarmSound, alarmFormat, _ := res.Audio()
-	c.AlarmSound = beep.Resample(2, alarmFormat.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), alarmSound)
+	c.AlarmSound.Streamer = beep.Resample(2, alarmFormat.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), alarmSound)
 
 }
 
@@ -1341,6 +1374,15 @@ func (c *TimerContents) Draw() {
 func (c *TimerContents) Destroy() {}
 
 func (c *TimerContents) ReceiveMessage(msg string) {
+
+	if msg == MessageSettingsChange {
+
+		speaker.Lock()
+		c.AlarmSound.Volume = float64(c.Task.Board.Project.SoundVolume.Number()-10) / 2
+		c.AlarmSound.Silent = c.Task.Board.Project.SoundVolume.Number() == 0
+		speaker.Unlock()
+
+	}
 
 }
 
