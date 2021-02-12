@@ -126,6 +126,11 @@ func NewCheckboxContents(task *Task) *CheckboxContents {
 
 // Update always runs, once per Content per Task for each Task on the currently viewed Board.
 func (c *CheckboxContents) Update() {
+
+	if c.Task.Selected && !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen && programSettings.Keybindings.On(KBCheckboxToggle) {
+		c.Trigger(TASK_TRIGGER_TOGGLE)
+	}
+
 }
 
 // Draw only runs when the Task is visible.
@@ -240,6 +245,17 @@ func (c *CheckboxContents) Trigger(trigger int) {
 			c.Task.CompletionCheckbox.Checked = false
 		}
 
+	} else {
+
+		for _, task := range c.Task.SubTasks {
+
+			if task.Contents != nil {
+
+				task.Contents.Trigger(trigger)
+
+			}
+
+		}
 	}
 
 }
@@ -262,6 +278,17 @@ func NewProgressionContents(task *Task) *ProgressionContents {
 }
 
 func (c *ProgressionContents) Update() {
+
+	if c.Task.Selected && !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen {
+		if programSettings.Keybindings.On(KBProgressToggle) {
+			c.Trigger(TASK_TRIGGER_TOGGLE)
+		} else if programSettings.Keybindings.On(KBProgressUp) {
+			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() + 1)
+		} else if programSettings.Keybindings.On(KBProgressDown) {
+			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() - 1)
+		}
+	}
+
 }
 
 func (c *ProgressionContents) Draw() {
@@ -272,7 +299,7 @@ func (c *ProgressionContents) Draw() {
 	c.bgProgress.Max = c.Task.CompletionProgressionMax.Number()
 	c.bgProgress.Draw()
 
-	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
+	cp := rl.Vector2{c.Task.Rect.X + 4, c.Task.Rect.Y}
 
 	c.Task.DisplaySize.X = 48
 	c.Task.DisplaySize.Y = 16
@@ -289,22 +316,26 @@ func (c *ProgressionContents) Draw() {
 		c.Task.DisplaySize.X += 16
 	}
 
-	if c.Task.SmallButton(112, 48, 16, 16, cp.X, cp.Y) {
-		c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() - 1)
-		ConsumeMouseInput(rl.MouseLeftButton)
-		c.Task.Change = TASK_CHANGE_ALTERATION
-	}
-	cp.X += 16
+	if c.Task.Selected {
 
-	if c.Task.SmallButton(96, 48, 16, 16, cp.X, cp.Y) {
-		c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() + 1)
-		ConsumeMouseInput(rl.MouseLeftButton)
-		c.Task.Change = TASK_CHANGE_ALTERATION
+		if c.Task.SmallButton(112, 48, 16, 16, cp.X, cp.Y) {
+			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() - 1)
+			ConsumeMouseInput(rl.MouseLeftButton)
+			c.Task.Change = TASK_CHANGE_ALTERATION
+		}
+		cp.X += 16
+
+		if c.Task.SmallButton(96, 48, 16, 16, cp.X, cp.Y) {
+			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() + 1)
+			ConsumeMouseInput(rl.MouseLeftButton)
+			c.Task.Change = TASK_CHANGE_ALTERATION
+		}
+		cp.X += 16
+
 	}
-	cp.X += 16
 
 	if c.Task.CompletionProgressionCurrent.Number() > c.Task.CompletionProgressionMax.Number() {
-		c.Task.CompletionProgressionMax.SetNumber(c.Task.CompletionProgressionCurrent.Number())
+		c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionMax.Number())
 	}
 
 	txt := c.Task.Description.Text()
@@ -323,6 +354,8 @@ func (c *ProgressionContents) Draw() {
 	}
 
 	txt += fmt.Sprintf(" (%d/%d)", c.Task.CompletionProgressionCurrent.Number(), c.Task.CompletionProgressionMax.Number())
+
+	cp.X += 4 // Give a bit more room before drawing the text
 
 	DrawText(cp, txt)
 
@@ -355,10 +388,10 @@ func (c *ProgressionContents) Trigger(trigger int) {
 	if len(c.Task.SubTasks) == 0 {
 
 		if trigger == TASK_TRIGGER_TOGGLE {
-			if c.Task.CompletionProgressionCurrent.Number() > 0 {
-				c.Task.CompletionProgressionCurrent.SetNumber(0)
-			} else {
+			if c.Task.CompletionProgressionCurrent.Number() < c.Task.CompletionProgressionMax.Number() {
 				c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionMax.Number())
+			} else {
+				c.Task.CompletionProgressionCurrent.SetNumber(0)
 			}
 		} else if trigger == TASK_TRIGGER_SET {
 			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionMax.Number())
@@ -783,10 +816,16 @@ func (c *SoundContents) Update() {
 
 	}
 
-	if c.Task.Selected && programSettings.Keybindings.On(KBToggleTasks) {
+	if c.Task.Selected && !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen && programSettings.Keybindings.On(KBPlaySounds) {
 
 		if c.SoundControl != nil {
 			c.SoundControl.Paused = !c.SoundControl.Paused
+		}
+
+	} else if !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen && programSettings.Keybindings.On(KBStopAllSounds) {
+
+		if c.SoundControl != nil {
+			c.SoundControl.Paused = true
 		}
 
 	}
@@ -967,6 +1006,8 @@ func (c *SoundContents) Draw() {
 		text = "No sound loaded."
 	}
 
+	cp.X += 4
+
 	if text != "" {
 		DrawText(cp, text)
 		ts, _ := TextSize(text, false)
@@ -1036,6 +1077,14 @@ func (c *TimerContents) CalculateTimeLeft() {
 
 	switch c.Task.TimerMode.CurrentChoice {
 
+	case TIMER_TYPE_COUNTDOWN:
+		// We check to see if the countdown GUI elements have changed because otherwise having the Task open to, say,
+		// edit the Timer Name would effectively pause the timer as the value would always be set.
+		if c.Task.CountdownMinute.Changed || c.Task.CountdownSecond.Changed || !c.Task.TimerRunning {
+			c.TimerValue = float32(c.Task.CountdownMinute.Number()*60 + c.Task.CountdownSecond.Number())
+		}
+		c.TargetDate = time.Time{}
+
 	case TIMER_TYPE_DAILY:
 
 		start := time.Duration(int(now.Weekday())) * 24 * time.Hour
@@ -1051,23 +1100,11 @@ func (c *TimerContents) CalculateTimeLeft() {
 
 		c.TargetDate = nextDate
 
-		c.TimerValue = float32(nextDate.Sub(now).Seconds())
-
 	case TIMER_TYPE_DEADLINE:
 
 		nextDate := time.Date(c.Task.DeadlineYear.Number(), time.Month(c.Task.DeadlineMonth.CurrentChoice+1), c.Task.DeadlineDay.Number(), 23, 59, 59, 0, now.Location())
 		c.TargetDate = nextDate
-		c.TimerValue = float32(nextDate.Sub(now).Seconds())
 
-	case TIMER_TYPE_COUNTDOWN:
-		// We check to see if the countdown GUI elements have changed because otherwise having the Task open to, say,
-		// edit the Timer Name would effectively pause the timer as the value would always be set.
-		if c.Task.CountdownMinute.Changed || c.Task.CountdownSecond.Changed || !c.Task.TimerRunning {
-			c.TimerValue = float32(c.Task.CountdownMinute.Number()*60 + c.Task.CountdownSecond.Number())
-		}
-
-	case TIMER_TYPE_STOPWATCH:
-		c.TimerValue = 0
 	}
 
 }
@@ -1075,18 +1112,24 @@ func (c *TimerContents) CalculateTimeLeft() {
 func (c *TimerContents) Update() {
 
 	if c.Task.Open {
-		c.Task.TimerRunning = false
 		c.CalculateTimeLeft()
 	}
 
 	if c.Task.TimerRunning {
+
+		now := time.Now()
 
 		switch c.Task.TimerMode.CurrentChoice {
 
 		case TIMER_TYPE_STOPWATCH:
 			c.TimerValue += deltaTime // Stopwatches count up because they have no limit; we're using raw delta time because we want it to count regardless of what's going on
 		default:
-			c.TimerValue -= deltaTime // We count down, not up, otherwise
+
+			if c.TargetDate.IsZero() {
+				c.TimerValue -= deltaTime // We count down, not up, otherwise
+			} else {
+				c.TimerValue = float32(c.TargetDate.Sub(now).Seconds())
+			}
 
 			if c.TimerValue <= 0 {
 
@@ -1102,6 +1145,10 @@ func (c *TimerContents) Update() {
 
 		}
 
+	}
+
+	if c.Task.Selected && !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen && programSettings.Keybindings.On(KBStartTimer) {
+		c.Trigger(TASK_TRIGGER_TOGGLE)
 	}
 
 }
@@ -1120,11 +1167,46 @@ func (c *TimerContents) TimeUp() {
 
 	if c.Task.TimerTriggerMode.CurrentChoice != TASK_TRIGGER_NONE {
 
-		triggerNeighbor := func(neighbor *Task) {
-			neighbor.TriggerContents(c.Task.TimerTriggerMode.CurrentChoice)
+		triggeredTasks := []*Task{}
+
+		alreadyTriggered := func(task *Task) bool {
+			for _, t := range triggeredTasks {
+				if t == task {
+					return true
+				}
+			}
+			return false
+		}
+
+		var triggerNeighbor func(neighbor *Task)
+
+		triggerNeighbor = func(neighbor *Task) {
+
+			if alreadyTriggered(neighbor) {
+				return
+			}
+
+			triggeredTasks = append(triggeredTasks, neighbor)
+
+			if neighbor.Is(TASK_TYPE_LINE) {
+
+				for _, ending := range neighbor.LineEndings {
+
+					if pointingTo := ending.Contents.(*LineContents).PointingTo; pointingTo != nil {
+						triggerNeighbor(pointingTo)
+					}
+
+				}
+
+			} else if neighbor.Contents != nil {
+				neighbor.Contents.Trigger(c.Task.TimerTriggerMode.CurrentChoice)
+			}
+
+			// If we trigger a Sound Task, then we don't play the Alarm sound (this might be better to simply be a project setting instead)
 			if !triggeredSoundNeighbor && neighbor.Is(TASK_TYPE_SOUND) && neighbor.Contents != nil && neighbor.Contents.(*SoundContents).Resource != nil {
 				triggeredSoundNeighbor = true
 			}
+
 		}
 
 		if c.Task.TaskBelow != nil {
@@ -1141,6 +1223,10 @@ func (c *TimerContents) TimeUp() {
 
 		if c.Task.TaskLeft != nil && !c.Task.TaskLeft.Is(TASK_TYPE_TIMER) {
 			triggerNeighbor(c.Task.TaskLeft)
+		}
+
+		if c.Task.TaskUnder != nil && !c.Task.TaskUnder.Is(TASK_TYPE_TIMER) {
+			triggerNeighbor(c.Task.TaskUnder)
 		}
 
 	}
@@ -1195,7 +1281,7 @@ func (c *TimerContents) Draw() {
 		ConsumeMouseInput(rl.MouseLeftButton)
 	}
 
-	cp.X += 16
+	cp.X += 20 // Give a bit more room for the text
 
 	text := c.Task.TimerName.Text() + " : "
 
@@ -1271,7 +1357,8 @@ func (c *TimerContents) Trigger(trigger int) {
 }
 
 type LineContents struct {
-	Task *Task
+	Task       *Task
+	PointingTo *Task
 }
 
 func NewLineContents(task *Task) *LineContents {
@@ -1400,16 +1487,24 @@ func (c *LineContents) Draw() {
 
 		src.X += 16
 
+		c.PointingTo = nil
+
 		if c.Task.TaskUnder != nil {
 			src.X += 16
 			rotation = 0
+			c.PointingTo = c.Task.TaskUnder
 		} else if c.Task.TaskBelow != nil && c.Task.TaskBelow != c.Task.LineStart {
 			rotation += 90
+			c.PointingTo = c.Task.TaskBelow
 		} else if c.Task.TaskLeft != nil && c.Task.TaskLeft != c.Task.LineStart {
 			rotation += 180
+			c.PointingTo = c.Task.TaskLeft
 		} else if c.Task.TaskAbove != nil && c.Task.TaskAbove != c.Task.LineStart {
 			rotation -= 90
-		} else if c.Task.TaskRight == nil || c.Task.TaskRight == c.Task.LineStart {
+			c.PointingTo = c.Task.TaskAbove
+		} else if c.Task.TaskRight != nil && c.Task.TaskRight != c.Task.LineStart {
+			c.PointingTo = c.Task.TaskRight
+		} else {
 			angle := rl.Vector2Angle(c.Task.LineStart.Position, c.Task.Position)
 			rotation = angle
 		}

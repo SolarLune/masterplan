@@ -1401,16 +1401,6 @@ func (task *Task) IsCompletable() bool {
 	return task.Is(TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
 }
 
-func (task *Task) TriggerContents(trigger int) {
-
-	if task.Contents != nil {
-		task.Contents.Trigger(trigger)
-	}
-
-	task.Board.UndoHistory.Capture(NewUndoState(task))
-
-}
-
 func (task *Task) NeighborInDirection(dirX, dirY float32) *Task {
 	if dirX > 0 {
 		return task.TaskRight

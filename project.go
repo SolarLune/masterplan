@@ -429,7 +429,7 @@ func NewProject() *Project {
 		row = column.Row()
 		row.Item(NewLabel(shortcutName), SETTINGS_KEYBOARD).Weight = 0.425
 
-		button := NewButton(0, 0, 300, 32, programSettings.Keybindings.Shortcuts[shortcutName].String(), false)
+		button := NewButton(0, 0, 300, 32, programSettings.Keybindings.Shortcuts[shortcutName].KeysToString(), false)
 		project.RebindingButtons = append(project.RebindingButtons, button)
 		row.Item(button, SETTINGS_KEYBOARD).Weight = 0.425
 
@@ -1102,6 +1102,8 @@ func (project *Project) Update() {
 
 	project.AutoBackup()
 
+	project.Shortcuts()
+
 	if project.AutoReloadThemes.Checked {
 		if project.ThemeReloadTimer > .5 {
 			project.ReloadThemes()
@@ -1327,8 +1329,6 @@ func (project *Project) Update() {
 	project.FullyInitialized = true
 
 	rl.DrawRectangleLinesEx(selectionRect, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
-
-	project.Shortcuts()
 
 	if project.JustLoaded {
 
@@ -1578,18 +1578,6 @@ func (project *Project) Shortcuts() {
 					// 	task.StopSound()
 					// }
 					project.Log("Stopped all playing Sounds.")
-
-				} else if keybindings.On(KBToggleTasks) {
-
-					toggleCount := 0
-
-					for _, task := range project.CurrentBoard().SelectedTasks(false) {
-						task.TriggerContents(TASK_TRIGGER_TOGGLE)
-					}
-
-					if toggleCount > 0 {
-						project.Log("Completion toggled on %d Task(s).", toggleCount)
-					}
 
 				} else if keybindings.On(KBDeleteTasks) {
 					project.CurrentBoard().DeleteSelectedTasks()
@@ -2253,7 +2241,7 @@ func (project *Project) GUI() {
 						shortcut.ResetToDefault()
 					}
 
-					shortcutButton.Text = programSettings.Keybindings.Shortcuts[shortcutName].String()
+					shortcutButton.Text = programSettings.Keybindings.Shortcuts[shortcutName].KeysToString()
 
 				}
 

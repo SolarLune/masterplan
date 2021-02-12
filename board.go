@@ -446,12 +446,6 @@ func (board *Board) PasteTasks() {
 			board.Project.Log("Pasted %d Task(s).", len(clones))
 		}
 
-		// for _, clone := range clones {
-		// 	if clone.Is(TASK_TYPE_LINE) && len(clone.LineEndings) > 0 {
-		// 		clones = append(clones, clone.LineEndings...)
-		// 	}
-		// }
-
 		board.UndoHistory.On = true
 
 		for _, clone := range clones {

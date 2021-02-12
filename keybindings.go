@@ -136,6 +136,7 @@ const (
 	KBPanRight                = "Pan Right"
 	KBPanLeft                 = "Pan Left"
 	KBCenterView              = "Center View to Origin"
+	KBURLButton               = "Show URL Buttons"
 	KBBoard1                  = "Switch to Board 1"
 	KBBoard2                  = "Switch to Board 2"
 	KBBoard3                  = "Switch to Board 3"
@@ -152,11 +153,6 @@ const (
 	KBPaste                   = "Paste Tasks / Text"
 	KBPasteContent            = "Paste Content Onto Board"
 	KBCreateTask              = "Create New Task"
-	KBStopAllSounds           = "Stop All Playing Sounds"
-	KBToggleTasks             = "Toggle Tasks"
-	KBPencilTool              = "Map / Whiteboard: Toggle Pencil Tool"
-	KBMapRectTool             = "Map: Toggle Rectangle Tool"
-	KBChangePencilToolSize    = "Whiteboard: Change Pencil Tool Size"
 	KBDeleteTasks             = "Delete Tasks"
 	KBFocusOnTasks            = "Focus View on Tasks"
 	KBEditTasks               = "Edit Tasks"
@@ -184,7 +180,16 @@ const (
 	KBQuit                    = "Quit MasterPlan"
 	KBUnlockImageASR          = "Unlock Image to Aspect Ratio Modifier"
 	KBUnlockImageGrid         = "Unlock Image to Grid Modifier"
-	KBURLButton               = "Show URL Buttons"
+	KBCheckboxToggle          = "Checkbox: Toggle Completion"
+	KBProgressUp              = "Progression: Increment Completion"
+	KBProgressDown            = "Progression: Decrement Completion"
+	KBProgressToggle          = "Progression: Toggle Completion"
+	KBPencilTool              = "Map / Whiteboard: Toggle Pencil Tool"
+	KBMapRectTool             = "Map: Toggle Rectangle Tool"
+	KBPlaySounds              = "Sound: Play / Pause Sounds "
+	KBStopAllSounds           = "Stop All Playing Sounds"
+	KBStartTimer              = "Timer: Start / Pause Timer"
+	KBChangePencilToolSize    = "Whiteboard: Change Pencil Tool Size"
 )
 
 const (
@@ -242,6 +247,10 @@ func NewShortcut(name string, keycode int32, modifiers ...int32) *Shortcut {
 }
 
 func (shortcut *Shortcut) String() string {
+	return shortcut.Name + " : " + shortcut.KeysToString()
+}
+
+func (shortcut *Shortcut) KeysToString() string {
 	name := ""
 	for _, mod := range shortcut.Modifiers {
 		name += KeyNameFromKeyCode(mod) + "+"
@@ -354,6 +363,7 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBPanDown, rl.KeyS).triggerMode = TriggerModeHold
 	kb.Define(KBPanRight, rl.KeyD).triggerMode = TriggerModeHold
 	kb.Define(KBCenterView, rl.KeyBackspace)
+	kb.Define(KBURLButton, rl.KeyLeftControl).triggerMode = TriggerModeHold
 
 	kb.Define(KBBoard1, rl.KeyOne, rl.KeyLeftShift)
 	kb.Define(KBBoard2, rl.KeyTwo, rl.KeyLeftShift)
@@ -371,8 +381,6 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBPaste, rl.KeyV, rl.KeyLeftControl)
 	kb.Define(KBPasteContent, rl.KeyV, rl.KeyLeftControl, rl.KeyLeftShift)
 	kb.Define(KBCreateTask, rl.KeyN, rl.KeyLeftControl)
-	kb.Define(KBStopAllSounds, rl.KeyC, rl.KeyLeftShift)
-	kb.Define(KBToggleTasks, rl.KeyC)
 	kb.Define(KBDeleteTasks, rl.KeyDelete)
 	kb.Define(KBFocusOnTasks, rl.KeyF)
 	kb.Define(KBEditTasks, rl.KeyEnter)
@@ -387,8 +395,6 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBSelectTaskRight, rl.KeyRight).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectNextTask, rl.KeyTab).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectPrevTask, rl.KeyTab, rl.KeyLeftShift).triggerMode = TriggerModeRepeating
-	kb.Define(KBSelectPrevLineEnding, rl.KeyLeftBracket).triggerMode = TriggerModeRepeating
-	kb.Define(KBSelectNextLineEnding, rl.KeyRightBracket).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTopTaskInStack, rl.KeyPageUp)
 	kb.Define(KBSelectBottomTaskInStack, rl.KeyPageDown)
 
@@ -402,15 +408,23 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBSaveAs, rl.KeyS, rl.KeyLeftShift, rl.KeyLeftControl)
 	kb.Define(KBSave, rl.KeyS, rl.KeyLeftControl)
 	kb.Define(KBLoad, rl.KeyO, rl.KeyLeftControl)
+	kb.Define(KBQuit, rl.KeyQ, rl.KeyLeftControl)
 
 	kb.Define(KBUnlockImageASR, rl.KeyLeftAlt).triggerMode = TriggerModeHold
 	kb.Define(KBUnlockImageGrid, rl.KeyLeftShift).triggerMode = TriggerModeHold
-	kb.Define(KBURLButton, rl.KeyLeftControl).triggerMode = TriggerModeHold
 
+	kb.Define(KBCheckboxToggle, rl.KeyC)
+	kb.Define(KBProgressUp, rl.KeyC)
+	kb.Define(KBProgressDown, rl.KeyX)
+	kb.Define(KBProgressToggle, rl.KeyV)
 	kb.Define(KBPencilTool, rl.KeyQ)
-	kb.Define(KBMapRectTool, rl.KeyR)
 	kb.Define(KBChangePencilToolSize, rl.KeyR)
-	kb.Define(KBQuit, rl.KeyQ, rl.KeyLeftControl)
+	kb.Define(KBMapRectTool, rl.KeyR)
+	kb.Define(KBPlaySounds, rl.KeyC)
+	kb.Define(KBStopAllSounds, rl.KeyC, rl.KeyLeftShift)
+	kb.Define(KBStartTimer, rl.KeyC)
+	kb.Define(KBSelectPrevLineEnding, rl.KeyX).triggerMode = TriggerModeRepeating
+	kb.Define(KBSelectNextLineEnding, rl.KeyC).triggerMode = TriggerModeRepeating
 
 	kb.ShortcutsByLevel = map[int][]*Shortcut{}
 
