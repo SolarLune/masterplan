@@ -2162,14 +2162,6 @@ func (project *Project) GUI() {
 			project.SettingsPanel.Columns[0].Mode = project.SettingsSection.CurrentChoice
 			project.SettingsPanel.Update()
 
-			if project.SoundVolume.Changed {
-
-				// for _, t := range project.CurrentBoard().Tasks {
-				// 	t.UpdateSoundVolume()
-				// }
-
-			}
-
 			if project.ItchStorePageButton.Clicked {
 				browser.OpenURL("https://solarlune.itch.io/masterplan")
 			}
@@ -2278,10 +2270,10 @@ func (project *Project) GUI() {
 				}
 			}
 
-			if project.FontSize.Changed ||
-				project.CustomFontPath.Changed ||
-				project.GUIFontSizeMultiplier.Changed {
+			// SUPER HACKY; we're not supposed to manually set the Changed variable like this, but whatevs, CustomFontPath isn't updating all of the time.
+			if project.CustomFontPath.Changed {
 				ReloadFonts()
+				project.CustomFontPath.Changed = false
 			}
 
 			if project.SettingsPanel.Exited {

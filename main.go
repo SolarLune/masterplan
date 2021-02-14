@@ -31,7 +31,6 @@ var takeScreenshot = false
 
 var spacing = float32(1)
 var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
-var font rl.Font
 var windowTitle = "MasterPlan"
 var deltaTime = float32(0)
 var quit = false

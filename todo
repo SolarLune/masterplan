@@ -39,34 +39,38 @@ Completed:
 - Timers who are neighbors to Lines can now trigger the Tasks those Lines are pointing to, and so on.
 - INTERNAL: Next and Previous Line Ending's shortcuts are now the C and X keys by default.
 - INTERNAL: Moving Project.Shortcuts() call above Board.Update() and Board.Draw() so that shortcut clashes can properly be resolved prior to Tasks' contents being updated or drawn.
-- Timers should be able to be set for multiple days of the week, not just one
+- INTERNAL: Timers should be able to be set for multiple days of the week, not just one.
+- Add support for non-latin characters
+- INTERNAL: Make sure the binding for stopping all sounds works?
 
 To-do:
 
-- Clickable images - when you click them, they go to a location.
-- Re-add the Deadline indicators
-- FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
-- Mini-map of some description?
 - Table Task Type - A grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
 - Adding a new task no longer moves the entire stack below it??? Check deleting, too.
 - Dragging a task over a stack should attempt to insert it
 - Rework Board.DeleteSelectedTasks() - it no longer moves Tasks up
+- Fix up missing project logging for Task Contents
+- Changing font size shouldn't take so long - This could be simplified by making a selection for how many glyphs to load
+
+REVIEW
+
+- Test project saving and loading
 - Review and re-implement PasteContents()
 - Review and re-implement HandleDroppedFiles()
-- Make sure the binding for stopping all sounds works?
-- Test support for non-latin characters (SHOULD be as simple as loading other (all?) glyphs from whatever font is available, but some things need to be tweaked for this to really work effectively); the thing that's off about this is that I need to make sure text size detection works with foreign characters or fonts. Silver.ttf in particular seems kind of off.
+- INTERNAL: Re-add the Deadline indicators
+
+- FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
+- Downloading images / sounds should be able to be saved to a local directory per-project (?)
+- Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
 - Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
 - INTERNAL: Fix Task Completion Date, it's broken
-- Test project saving and loading
-- Daily mode for Timers (this should be able to support more than one day, and should be able to do skips (every other, every third, etc)).
-- Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
-- Fix up missing project logging for Task Contents
-- Downloading images / sounds should be able to be saved to a local directory per-project (?)
 - Make top-left box for Images also work for resizing, and make an option in the Task to reset size (it's not done often enough to make it viable, I think)
 - Timers should be able to retroactively trigger if a set time was passed (somehow)
 
 ---- RELEASE
 
+- Mini-map of some description?
+- Clickable images - when you click them, they go to a location.
 - Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
 - Replace Board.UndoHistory with a project-level one
 - Go over the tutorial to explain things a bit more; right click to open the menu should be mentioned right at launch
@@ -83,6 +87,13 @@ To-do:
 - Consolidate image and sounds into one task type?
 - Review libraries to see if the licenses are compatible with my own chosen license
 
+- Export Plan to text file somehow? 
+    Checkboxes become: [ ] / [x] - TASK TEXT
+    Progression becomes: [12/24] - TASK TEXT
+    Notes become: NOTE: - TASK TEXT
+    Timers become: DUE (X DATE) - TIMER NAME
+
+	All other Tasks are not converted.
 - Graph view that allows you to see your plan as a visual "node graph"? 
     See Nuclino: https://www.nuclino.com - It says it allows you to work in Boards and Graphs, 
     so maybe the Nodes on the Graphs should be clickable to reveal more information / reveal 
@@ -111,13 +122,6 @@ includes a current number and maximum number of 999 each, so that they don't cha
 - GIF step next frame / prev. frame
 - Make it so that it's easier to insert Tasks (i.e. dragging tasks into a list of them will automatically space them to make room)
 t+
-- Export Plan to text file somehow? 
-    Checkboxes become: [ ] / [x] - TASK TEXT
-    Progression becomes: [12/24] - TASK TEXT
-    Notes become: NOTE: - TASK TEXT
-    Timers become: DUE (X DATE) - TIMER NAME
-
-	All other Tasks are not converted.
 
 Long-term Goals
 

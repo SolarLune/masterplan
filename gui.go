@@ -2443,23 +2443,19 @@ func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bo
 	if len(variables) > 0 {
 		text = fmt.Sprintf(text, variables...)
 	}
-	pos.Y -= 2 // Text is a bit low
 
 	size := float32(programSettings.FontSize)
-	f := font
 
 	if guiMode {
 		size = float32(GUIFontSize())
-		f = font
 	}
 
 	height, lineCount := TextHeight(text, guiMode)
 
-	// pos.X = float32(int32(pos.X))
-	// pos.Y = float32(int32(pos.Y))
+	pos.Y += fontBaseline
 
 	for _, line := range strings.Split(text, "\n") {
-		rl.DrawTextEx(f, line, pos, size, spacing, fontColor)
+		rl.DrawTextEx(font, line, pos, size, spacing, fontColor)
 		pos.Y += float32(int32(height / float32(lineCount)))
 	}
 
