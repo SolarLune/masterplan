@@ -105,12 +105,9 @@ func loadThemes() {
 
 }
 
-func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, disabled bool) bool {
+func imButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, outlineColor, fillColor rl.Color) bool {
 
 	clicked := false
-
-	outlineColor := getThemeColor(GUI_OUTLINE)
-	insideColor := getThemeColor(GUI_INSIDE)
 
 	pos := rl.Vector2{}
 	if worldGUI {
@@ -119,23 +116,7 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 		pos = GetMousePosition()
 	}
 
-	if rl.CheckCollisionPointRec(pos, rect) {
-		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
-		insideColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
-		if MouseDown(rl.MouseLeftButton) {
-			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-			insideColor = getThemeColor(GUI_INSIDE_DISABLED)
-		} else if MouseReleased(rl.MouseLeftButton) {
-			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-			insideColor = getThemeColor(GUI_INSIDE_DISABLED)
-			clicked = true
-		}
-	}
-
-	if disabled {
-		outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-		insideColor = getThemeColor(GUI_INSIDE_DISABLED)
-	}
+	clicked = rl.CheckCollisionPointRec(pos, rect) && MouseReleased(rl.MouseLeftButton)
 
 	rect.X = float32(int32(rect.X) + 4)
 	rect.Y = float32(int32(rect.Y) + 4)
@@ -149,7 +130,7 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 	rect.X -= 4
 	rect.Y -= 4
 
-	rl.DrawRectangleRec(rect, insideColor)
+	rl.DrawRectangleRec(rect, fillColor)
 	rl.DrawRectangleLinesEx(rect, 1, outlineColor)
 
 	iconDstRec := rl.NewRectangle(0, 0, 0, 0)
@@ -183,9 +164,6 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 		getThemeColor(GUI_FONT_COLOR))
 
 	fontColor := getThemeColor(GUI_FONT_COLOR)
-	if disabled {
-		fontColor.A = 192 // Dim it a bit to make it easier to see
-	}
 
 	if worldGUI {
 		DrawTextColored(pos, fontColor, text, false)
@@ -198,6 +176,78 @@ func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, te
 	}
 
 	return clicked
+}
+
+func MultiImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, pressed bool) bool {
+
+	outlineColor := getThemeColor(GUI_OUTLINE)
+	fillColor := getThemeColor(GUI_INSIDE)
+
+	pos := rl.Vector2{}
+	if worldGUI {
+		pos = GetWorldMousePosition()
+	} else {
+		pos = GetMousePosition()
+	}
+
+	if pressed {
+		outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+		fillColor = getThemeColor(GUI_INSIDE_DISABLED)
+	}
+
+	if rl.CheckCollisionPointRec(pos, rect) {
+		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		fillColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+		if MouseDown(rl.MouseLeftButton) {
+			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+			fillColor = getThemeColor(GUI_INSIDE_DISABLED)
+		} else if MouseReleased(rl.MouseLeftButton) {
+			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+			fillColor = getThemeColor(GUI_INSIDE_DISABLED)
+		}
+	}
+
+	button := imButton(rect, iconSrcRec, iconRotation, text, outlineColor, fillColor)
+
+	return button
+}
+
+func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, disabled bool) bool {
+
+	outlineColor := getThemeColor(GUI_OUTLINE)
+	fillColor := getThemeColor(GUI_INSIDE)
+
+	pos := rl.Vector2{}
+	if worldGUI {
+		pos = GetWorldMousePosition()
+	} else {
+		pos = GetMousePosition()
+	}
+
+	if rl.CheckCollisionPointRec(pos, rect) {
+		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+		fillColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+		if MouseDown(rl.MouseLeftButton) {
+			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+			fillColor = getThemeColor(GUI_INSIDE_DISABLED)
+		} else if MouseReleased(rl.MouseLeftButton) {
+			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+			fillColor = getThemeColor(GUI_INSIDE_DISABLED)
+		}
+	}
+
+	if disabled {
+		outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+		fillColor = getThemeColor(GUI_INSIDE_DISABLED)
+	}
+
+	button := imButton(rect, iconSrcRec, iconRotation, text, outlineColor, fillColor)
+
+	if disabled {
+		return false
+	}
+
+	return button
 }
 
 func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
@@ -353,7 +403,7 @@ func (bg *MultiButtonGroup) Draw() {
 		bitVal := 1 << i
 		alreadyClicked := bg.CurrentChoices&bitVal != 0
 
-		if ImmediateButton(r, option, alreadyClicked) {
+		if MultiImmediateIconButton(r, rl.Rectangle{}, 0, option, alreadyClicked) {
 
 			if alreadyClicked && bg.EnabledOptionCount() > bg.MinimumEnabledCount {
 				// Set / Add to existing bit variable

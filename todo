@@ -40,8 +40,9 @@ Completed:
 - INTERNAL: Next and Previous Line Ending's shortcuts are now the C and X keys by default.
 - INTERNAL: Moving Project.Shortcuts() call above Board.Update() and Board.Draw() so that shortcut clashes can properly be resolved prior to Tasks' contents being updated or drawn.
 - INTERNAL: Timers should be able to be set for multiple days of the week, not just one.
-- Add support for non-latin characters
-- INTERNAL: Make sure the binding for stopping all sounds works?
+- Added basic support for non-latin character entry. Note that you have to specify a font that has the characters you're entering (as the default one only has latin characters).
+- INTERNAL: Made sure the binding for stopping all sounds works.
+- INTERNAL: Added a new ImmediateIconButton function specifically for MultiButtonGroups
 
 To-do:
 
