@@ -909,6 +909,9 @@ func (task *Task) PostDraw() {
 			task.CreateContents()
 		}
 
+		task.CompletionProgressionCurrent.Maximum = task.CompletionProgressionMax.Number()
+		task.CompletionProgressionMax.Minimum = task.CompletionProgressionCurrent.Number()
+
 		if task.EditPanel.Exited {
 			task.ReceiveMessage(MessageTaskClose, nil)
 		}
@@ -916,6 +919,13 @@ func (task *Task) PostDraw() {
 		if task.IsCompletable() {
 
 			completionTime := task.CompletionTime.Format("Monday, Jan 2, 2006, 15:04")
+
+			if task.IsComplete() && task.CompletionTime.IsZero() {
+				task.CompletionTime = time.Now()
+			} else if !task.IsComplete() && !task.CompletionTime.IsZero() {
+				task.CompletionTime = time.Time{}
+			}
+
 			if task.CompletionTime.IsZero() {
 				completionTime = "N/A"
 			}

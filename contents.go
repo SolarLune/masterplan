@@ -279,14 +279,24 @@ func NewProgressionContents(task *Task) *ProgressionContents {
 
 func (c *ProgressionContents) Update() {
 
+	taskChanged := false
+
 	if c.Task.Selected && !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen {
 		if programSettings.Keybindings.On(KBProgressToggle) {
 			c.Trigger(TASK_TRIGGER_TOGGLE)
+			taskChanged = true
 		} else if programSettings.Keybindings.On(KBProgressUp) {
 			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() + 1)
+			taskChanged = true
 		} else if programSettings.Keybindings.On(KBProgressDown) {
 			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() - 1)
+			taskChanged = true
+
 		}
+	}
+
+	if taskChanged {
+		c.Task.Change = TASK_CHANGE_ALTERATION
 	}
 
 }
@@ -316,26 +326,24 @@ func (c *ProgressionContents) Draw() {
 		c.Task.DisplaySize.X += 16
 	}
 
+	taskChanged := false
+
 	if c.Task.Selected {
 
 		if c.Task.SmallButton(112, 48, 16, 16, cp.X, cp.Y) {
 			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() - 1)
 			ConsumeMouseInput(rl.MouseLeftButton)
-			c.Task.Change = TASK_CHANGE_ALTERATION
+			taskChanged = true
 		}
 		cp.X += 16
 
 		if c.Task.SmallButton(96, 48, 16, 16, cp.X, cp.Y) {
 			c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionCurrent.Number() + 1)
 			ConsumeMouseInput(rl.MouseLeftButton)
-			c.Task.Change = TASK_CHANGE_ALTERATION
+			taskChanged = true
 		}
 		cp.X += 16
 
-	}
-
-	if c.Task.CompletionProgressionCurrent.Number() > c.Task.CompletionProgressionMax.Number() {
-		c.Task.CompletionProgressionCurrent.SetNumber(c.Task.CompletionProgressionMax.Number())
 	}
 
 	txt := c.Task.Description.Text()
@@ -375,6 +383,10 @@ func (c *ProgressionContents) Draw() {
 	if extendedText {
 		c.Task.DisplaySize.X += 4
 		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, rl.Rectangle{112, 0, 16, 16}, rl.Rectangle{c.Task.Rect.X + c.Task.DisplaySize.X - 16, cp.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+	}
+
+	if taskChanged {
+		c.Task.Change = TASK_CHANGE_ALTERATION
 	}
 
 }

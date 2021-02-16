@@ -55,21 +55,22 @@ To-do:
 
 REVIEW
 
+- Move "Don't open at start" window somewhere else, it being in About is kind of counter-intuitive
+- INTERNAL: Fix Task Completion Date, it's broken
 - Test project saving and loading
 - Review and re-implement PasteContents()
 - Review and re-implement HandleDroppedFiles()
-- INTERNAL: Re-add the Deadline indicators
+- Re-implement completable task-specific deadlines
 
 - FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
 - Downloading images / sounds should be able to be saved to a local directory per-project (?)
-- Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
 - Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
-- INTERNAL: Fix Task Completion Date, it's broken
-- Make top-left box for Images also work for resizing, and make an option in the Task to reset size (it's not done often enough to make it viable, I think)
-- Timers should be able to retroactively trigger if a set time was passed (somehow)
+- Make an option in the Task to reset size (it's not done often enough to make it necessary to be on the Task itself, I think)
 
 ---- RELEASE
 
+- Timers should be able to retroactively trigger if a set time was passed (somehow)
+- Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
 - Mini-map of some description?
 - Clickable images - when you click them, they go to a location.
 - Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
@@ -108,6 +109,18 @@ REVIEW
 becomes
 
 00:00:00: "Selected 2 Tasks."
+
+- Deadline write-up by BiRD: https://discordapp.com/channels/339550825154347008/758009278756946040/810779087449751593
+    The summary is:
+        - Use timers for timing and calendars for deadlines. Calendars are:
+            - Visually focused (no extraneous information)
+            - Intuitive (click a day = set the day)
+            - Efficient (fewer actions to do the same thing)
+            - Improvable (as a result of more available screen space)
+            - Reusable (calendars can be used for more than just setting deadlines)
+            - Fun (not sure what to write for this one)
+
+- Improve search functionalities - present a list of Tasks that fulfill a set of 
 
 - Add other unicode characters to default font (←№⎢¡°ᚃ√⇒∄±∑∌≠αβχδεφγηιϑΧΔΦΓ)
 - Whiteboard resolution could be increased

@@ -170,17 +170,17 @@ func (history *UndoHistory) Update() {
 		history.Index = len(history.Frames)
 
 		// for i, frame := range history.Frames {
-		// fmt.Println("frame #", i)
-		// fmt.Println("states:")
-		// for _, state := range frame.States {
-		// fmt.Println("     ", state)
+		// 	fmt.Println("frame #", i)
+		// 	fmt.Println("states:")
+		// 	for _, state := range frame.States {
+		// 		fmt.Println("     ", state)
+		// 	}
 		// }
-		// }
-		//
+
 		// fmt.Println("______")
-		//
+
 		// fmt.Println("index: ", history.Index)
-		//
+
 		// fmt.Println("______")
 
 		history.Changed = false
@@ -223,6 +223,11 @@ func NewUndoState(task *Task) *UndoState {
 
 	state := task.Serialize()
 	state, _ = sjson.Delete(state, "Selected")
+
+	// The undo system doesn't need to know about the creation or completion of Tasks, as this
+	// data is set as a result of the Task's state, so it's removed before state creation.
+	state, _ = sjson.Delete(state, "CreationTime")
+	state, _ = sjson.Delete(state, "CompletionTime")
 
 	return &UndoState{
 		Task:       task,

@@ -545,7 +545,7 @@ func NewProject() *Project {
 		row.Item(NewLabel(`"Hello! Thank you for trying out MasterPlan! I truly do appreciate it.`), SETTINGS_ABOUT)
 
 		row = column.Row()
-		row.Item(NewLabel(`In this free demo, you can fully try it out; only saving is disabled.`), SETTINGS_ABOUT)
+		row.Item(NewLabel(`In this free demo, you can fully try it out without a trial period; only saving is disabled.`), SETTINGS_ABOUT)
 
 		row = column.Row()
 		row.Item(NewLabel(`Hopefully you will find it useful and consider supporting development by`), SETTINGS_ABOUT)
