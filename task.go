@@ -38,7 +38,7 @@ const (
 const (
 	TIMER_TYPE_COUNTDOWN = iota
 	TIMER_TYPE_DAILY
-	TIMER_TYPE_DEADLINE
+	TIMER_TYPE_DATE
 	TIMER_TYPE_STOPWATCH
 )
 
@@ -73,6 +73,7 @@ type Task struct {
 	TimerRepeating      *Checkbox
 	TimerRunning        bool
 	TimerTriggerMode    *ButtonGroup
+	DeadlineOn          *Checkbox
 	DeadlineDay         *NumberSpinner
 	DeadlineMonth       *Spinner
 	DeadlineYear        *NumberSpinner
@@ -167,7 +168,8 @@ func NewTask(board *Board) *Task {
 		DeadlineMonth:                NewSpinner(0, 128, 200, 40, months...),
 		DeadlineDay:                  NewNumberSpinner(0, 80, 160, 40),
 		DeadlineYear:                 NewNumberSpinner(0, 128, 160, 40),
-		TimerMode:                    NewButtonGroup(0, 0, 600, 32, 1, "Countdown", "Daily", "Deadline", "Stopwatch"),
+		DeadlineOn:                   NewCheckbox(0, 0, 32, 32),
+		TimerMode:                    NewButtonGroup(0, 0, 600, 32, 1, "Countdown", "Daily", "Date", "Stopwatch"),
 		CountdownMinute:              NewNumberSpinner(0, 0, 160, 40),
 		CountdownSecond:              NewNumberSpinner(0, 0, 160, 40),
 		DailyDay:                     NewMultiButtonGroup(0, 0, 650, 40, 1, days...),
@@ -221,6 +223,11 @@ func NewTask(board *Board) *Task {
 	task.DeadlineDay.Minimum = 1
 	task.DeadlineDay.Maximum = 31
 	task.DeadlineDay.Loop = true
+
+	now := time.Now()
+	task.DeadlineDay.SetNumber(now.Day())
+	task.DeadlineMonth.SetChoice(now.Month().String())
+	task.DeadlineYear.SetNumber(time.Now().Year())
 
 	task.CountdownSecond.Minimum = 0
 	task.CountdownSecond.Maximum = 59
@@ -300,9 +307,13 @@ func (task *Task) SetPanel() {
 	row.Item(task.DailyMinute, TASK_TYPE_TIMER).Name = "timer_daily"
 
 	row = column.Row()
-	row.Item(task.DeadlineDay, TASK_TYPE_TIMER).Name = "timer_deadline"
-	row.Item(task.DeadlineMonth, TASK_TYPE_TIMER).Name = "timer_deadline"
-	row.Item(task.DeadlineYear, TASK_TYPE_TIMER).Name = "timer_deadline"
+	row.Item(NewLabel("Deadline:"), TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "task_deadline"
+	row.Item(task.DeadlineOn, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "task_deadline"
+
+	row = column.Row()
+	row.Item(task.DeadlineDay, TASK_TYPE_TIMER, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "deadline_date"
+	row.Item(task.DeadlineMonth, TASK_TYPE_TIMER, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "deadline_date"
+	row.Item(task.DeadlineYear, TASK_TYPE_TIMER, TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION).Name = "deadline_date"
 
 	// row.Item(NewLabel("Date"), TASK_TYPE_TIMER).Name = "timer_date"
 
@@ -469,12 +480,12 @@ func (task *Task) Serialize() string {
 			jsonData, _ = sjson.Set(jsonData, `TimerDailyMinuteSpinner\.Number`, task.DailyMinute.Number())
 		}
 
-		if task.TimerMode.CurrentChoice == TIMER_TYPE_DEADLINE {
-			jsonData, _ = sjson.Set(jsonData, `DeadlineDaySpinner\.Number`, task.DeadlineDay.Number())
-			jsonData, _ = sjson.Set(jsonData, `DeadlineMonthSpinner\.CurrentChoice`, task.DeadlineMonth.CurrentChoice)
-			jsonData, _ = sjson.Set(jsonData, `DeadlineYearSpinner\.Number`, task.DeadlineYear.Number())
-		}
+	}
 
+	if task.Is(TASK_TYPE_TIMER) && task.TimerMode.CurrentChoice == TIMER_TYPE_DATE || task.DeadlineOn.Checked {
+		jsonData, _ = sjson.Set(jsonData, `DeadlineDaySpinner\.Number`, task.DeadlineDay.Number())
+		jsonData, _ = sjson.Set(jsonData, `DeadlineMonthSpinner\.CurrentChoice`, task.DeadlineMonth.CurrentChoice)
+		jsonData, _ = sjson.Set(jsonData, `DeadlineYearSpinner\.Number`, task.DeadlineYear.Number())
 	}
 
 	jsonData, _ = sjson.Set(jsonData, `CreationTime`, task.CreationTime.Format(`Jan 2 2006 15:04:05`))
@@ -634,12 +645,15 @@ func (task *Task) Deserialize(jsonData string) {
 			task.DailyMinute.SetNumber(getInt(`TimerDailyMinuteSpinner\.Number`))
 		}
 
-		if task.TimerMode.CurrentChoice == TIMER_TYPE_DEADLINE {
-			task.DeadlineDay.SetNumber(getInt(`DeadlineDaySpinner\.Number`))
-			task.DeadlineMonth.CurrentChoice = getInt(`DeadlineMonthSpinner\.CurrentChoice`)
-			task.DeadlineYear.SetNumber(getInt(`DeadlineYearSpinner\.Number`))
-		}
+	}
 
+	if hasData(`DeadlineDaySpinner\.Number`) {
+		task.DeadlineDay.SetNumber(getInt(`DeadlineDaySpinner\.Number`))
+		task.DeadlineMonth.CurrentChoice = getInt(`DeadlineMonthSpinner\.CurrentChoice`)
+		task.DeadlineYear.SetNumber(getInt(`DeadlineYearSpinner\.Number`))
+		if !task.Is(TASK_TYPE_TIMER) {
+			task.DeadlineOn.Checked = true
+		}
 	}
 
 	creationTime, err := time.Parse(`Jan 2 2006 15:04:05`, getString(`CreationTime`))
@@ -909,6 +923,11 @@ func (task *Task) PostDraw() {
 			task.CreateContents()
 		}
 
+		// Per https://yourbasic.org/golang/last-day-month-date/, Golang's Dates automatically normalize, so to know how many days are in a month, get the
+		// day before the first day of the next month.
+		lastDayOfMonth := time.Date(task.DeadlineYear.Number(), time.Month(task.DeadlineMonth.CurrentChoice+2), 0, 0, 0, 0, 0, time.Now().Location())
+		task.DeadlineDay.Maximum = lastDayOfMonth.Day()
+
 		task.CompletionProgressionCurrent.Maximum = task.CompletionProgressionMax.Number()
 		task.CompletionProgressionMax.Minimum = task.CompletionProgressionCurrent.Number()
 
@@ -933,14 +952,18 @@ func (task *Task) PostDraw() {
 
 		}
 
+		for _, element := range task.EditPanel.FindItems("task_deadline") {
+			element.On = task.IsCompletable()
+		}
+
 		if task.Is(TASK_TYPE_TIMER) {
 
 			for _, element := range task.EditPanel.FindItems("timer_countdown") {
 				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_COUNTDOWN
 			}
 
-			for _, element := range task.EditPanel.FindItems("timer_deadline") {
-				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_DEADLINE
+			for _, element := range task.EditPanel.FindItems("deadline_date") {
+				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_DATE
 			}
 
 			for _, element := range task.EditPanel.FindItems("timer_daily") {
@@ -948,7 +971,7 @@ func (task *Task) PostDraw() {
 			}
 
 			for _, element := range task.EditPanel.FindItems("timer_date") {
-				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_DEADLINE
+				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_DATE
 			}
 
 			for _, element := range task.EditPanel.FindItems("timer_stopwatch") {
@@ -962,7 +985,13 @@ func (task *Task) PostDraw() {
 
 			for _, element := range task.EditPanel.FindItems("timer_repeating") {
 				// Stopwatches don't have any repeating ability either, naturally. Same for deadlines, as they are one-off Timers.
-				element.On = task.TimerMode.CurrentChoice != TIMER_TYPE_STOPWATCH && task.TimerMode.CurrentChoice != TIMER_TYPE_DEADLINE
+				element.On = task.TimerMode.CurrentChoice != TIMER_TYPE_STOPWATCH && task.TimerMode.CurrentChoice != TIMER_TYPE_DATE
+			}
+
+		} else {
+
+			for _, element := range task.EditPanel.FindItems("deadline_date") {
+				element.On = task.IsCompletable() && task.DeadlineOn.Checked
 			}
 
 		}
@@ -1136,14 +1165,6 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			// open the Task, as can be seen here
 			ConsumeMouseInput(rl.MouseLeftButton)
 
-			// Set sensible defaults for the deadline spinners
-			if !task.Is(TASK_TYPE_TIMER) || task.TimerMode.CurrentChoice != TIMER_TYPE_DEADLINE {
-				now := time.Now()
-				task.DeadlineDay.SetNumber(now.Day())
-				task.DeadlineMonth.SetChoice(now.Month().String())
-				task.DeadlineYear.SetNumber(time.Now().Year())
-			}
-
 			task.Open = true
 			task.Board.Project.TaskOpen = true
 			task.Dragging = false
@@ -1234,9 +1255,6 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
 			task.MapImage.Changed = true // Force update to change color palette
 		}
-		// else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
-		// task.Whiteboard.Deserialize(task.Whiteboard.Serialize()) // De and re-serialize to change the colors
-		// }
 	} else if message == MessageSettingsChange {
 	} else if message == MessageTaskRestore {
 

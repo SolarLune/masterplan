@@ -197,6 +197,7 @@ type Project struct {
 	TaskEditRect    rl.Rectangle
 	TempDir         string
 	GrabClient      *grab.Client
+	Time            float32
 	firstFreeTaskID int
 }
 
@@ -1353,6 +1354,12 @@ func (project *Project) Update() {
 	}
 
 	project.CurrentBoard().UndoHistory.Update()
+
+	project.Time += deltaTime
+
+	if project.Time > 1000000 {
+		project.Time = 0
+	}
 
 }
 

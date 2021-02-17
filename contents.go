@@ -102,9 +102,88 @@ func drawTaskBG(task *Task, fillColor rl.Color) {
 
 	rl.DrawRectangleRec(task.Rect, fillColor)
 
+	// Animate deadlines
+	deadlineAnimation := task.Board.Project.DeadlineAnimation.CurrentChoice
+
+	if task.IsCompletable() && task.DeadlineOn.Checked && !task.IsComplete() && deadlineAnimation < 4 {
+
+		deadlineAlignment := deadlineAlignment(task)
+
+		patternSrc := rl.Rectangle{task.Board.Project.Time * 16, 0, 16, 16}
+		if deadlineAlignment < 0 {
+			patternSrc.Y += 16
+			patternSrc.X *= 4
+		}
+		patternSrc.Width = task.Rect.Width
+
+		rl.DrawTexturePro(task.Board.Project.Patterns, patternSrc, task.Rect, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
+
+		if deadlineAnimation < 3 {
+			src := rl.Rectangle{144, 0, 16, 16}
+			dst := src
+			dst.X = task.Rect.X - src.Width
+			dst.Y = task.Rect.Y
+
+			if deadlineAnimation == 0 || (deadlineAnimation == 1 && deadlineAlignment < 0) {
+				dst.X += float32(math.Sin(float64(task.Board.Project.Time+((task.Rect.X+task.Rect.Y)*0.01))*math.Pi*2))*2 - 2
+			}
+
+			if deadlineAlignment == 0 {
+				src.X += 16
+			} else if deadlineAlignment < 0 {
+				// Overdue!
+				src.X += 32
+			}
+
+			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{}, 0, rl.White)
+		}
+
+	}
+
 	if task.Board.Project.OutlineTasks.Checked {
 		DrawRectLines(task.Rect, outlineColor)
 	}
+
+}
+
+func deadlineAlignment(task *Task) int {
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	targetDate := time.Date(task.DeadlineYear.Number(), time.Month(task.DeadlineMonth.CurrentChoice+1), task.DeadlineDay.Number(), 0, 0, 0, 0, now.Location())
+
+	duration := targetDate.Sub(now).Truncate(time.Hour * 24)
+	if duration.Seconds() > 0 {
+		return 1
+	} else if duration.Seconds() == 0 {
+		return 0
+	} else {
+		return -1
+	}
+}
+
+func deadlineText(task *Task) string {
+
+	txt := ""
+
+	if task.DeadlineOn.Checked && !task.IsComplete() {
+
+		now := time.Now()
+		now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		targetDate := time.Date(task.DeadlineYear.Number(), time.Month(task.DeadlineMonth.CurrentChoice+1), task.DeadlineDay.Number(), 0, 0, 0, 0, now.Location())
+
+		duration := targetDate.Sub(now).Truncate(time.Hour * 24)
+
+		if duration.Seconds() == 0 {
+			txt += " : Due today"
+		} else if duration.Seconds() > 0 {
+			txt += " : Due in " + durafmt.Parse(duration).LimitFirstN(1).String()
+		} else {
+			txt += " : Overdue by " + durafmt.Parse(-duration).LimitFirstN(1).String() + "!"
+		}
+
+	}
+
+	return txt
 
 }
 
@@ -206,6 +285,8 @@ func (c *CheckboxContents) Draw() {
 	if c.Task.PrefixText != "" {
 		txt = c.Task.PrefixText + " " + txt
 	}
+
+	txt += deadlineText(c.Task)
 
 	DrawText(cp, txt)
 
@@ -364,6 +445,8 @@ func (c *ProgressionContents) Draw() {
 	txt += fmt.Sprintf(" (%d/%d)", c.Task.CompletionProgressionCurrent.Number(), c.Task.CompletionProgressionMax.Number())
 
 	cp.X += 4 // Give a bit more room before drawing the text
+
+	txt += deadlineText(c.Task)
 
 	DrawText(cp, txt)
 
@@ -1145,7 +1228,7 @@ func (c *TimerContents) CalculateTimeLeft() {
 
 		c.TargetDate = nextDate
 
-	case TIMER_TYPE_DEADLINE:
+	case TIMER_TYPE_DATE:
 
 		nextDate := time.Date(c.Task.DeadlineYear.Number(), time.Month(c.Task.DeadlineMonth.CurrentChoice+1), c.Task.DeadlineDay.Number(), 23, 59, 59, 0, now.Location())
 		c.TargetDate = nextDate
@@ -1182,7 +1265,7 @@ func (c *TimerContents) Update() {
 				c.TimeUp()
 				c.CalculateTimeLeft()
 
-				if c.Task.TimerRepeating.Checked && c.Task.TimerMode.CurrentChoice != TIMER_TYPE_DEADLINE {
+				if c.Task.TimerRepeating.Checked && c.Task.TimerMode.CurrentChoice != TIMER_TYPE_DATE {
 					c.Trigger(TASK_TRIGGER_SET)
 				}
 
@@ -1345,7 +1428,7 @@ func (c *TimerContents) Draw() {
 
 	case TIMER_TYPE_DAILY:
 		fallthrough
-	case TIMER_TYPE_DEADLINE:
+	case TIMER_TYPE_DATE:
 
 		targetDateText := c.TargetDate.Format(" (Jan 2 2006)")
 
