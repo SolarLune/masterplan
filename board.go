@@ -48,9 +48,9 @@ func (board *Board) Update() {
 	// We only want to reorder tasks if tasks were moved, deleted, restored, etc., as it is costly.
 	if board.ChangedTaskOrder {
 		board.ReorderTasks()
+		board.ChangedTaskOrder = false
 	}
 
-	board.ChangedTaskOrder = false
 }
 
 func (board *Board) Draw() {
@@ -106,7 +106,7 @@ func (board *Board) CreateNewTask() *Task {
 
 	selected := board.SelectedTasks(true)
 
-	if len(selected) > 0 && !board.Project.JustLoaded {
+	if len(selected) > 0 && !board.Project.Loading {
 		// If the project is loading, then we want to put everything back where it was
 		task := selected[0]
 		gs := float32(board.Project.GridSize)
@@ -146,7 +146,7 @@ func (board *Board) CreateNewTask() *Task {
 
 	board.Project.Log("Created 1 new Task.")
 
-	if !board.Project.JustLoaded {
+	if !board.Project.Loading {
 		// If we're loading a project, we don't want to automatically select new tasks
 		board.Project.SendMessage(MessageSelect, map[string]interface{}{"task": newTask})
 	}

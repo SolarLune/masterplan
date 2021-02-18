@@ -7,73 +7,84 @@ That really sucks, actually.
 Completed:
 
 - Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
-- Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but is simpler in the code-base as well.
+- Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but it is now primarily simpler in the code-base.
 - Downloading images / sounds are now multithreaded.
 - Modifiers (left ctrl, right ctrl) are now left / right agnostic.
-- Now only Check-box Tasks display Sub-Tasks as contributing to their own completion; not Progression Tasks.
+- Now only Check-box Tasks display Sub-Tasks as contributing to their own completion, not any other completable Tasks.
 - Added repeatable Timers.
 - Added a Daily mode for Timers (so they can trigger every Monday, Friday, etc).
+- Added a Date mode for Timers (so they can trigger on a specific date).
 - Added a Stopwatch mode for Timers.
-- Timers can now interact with Lines to trigger Tasks that Lines point towards or are over.
+- Timers now can trigger neighbors when they run out.
+- Timers who are neighbors to Lines can now trigger the Tasks those Lines are pointing to, and so on.
 - Added a Rectangle tool for Map Tasks.
 - Themes are now global instead of per-Project.
 - Qutting MasterPlan by pressing the window's [X] now prompts for a quit.
 - MasterPlan now always confirms when quitting, not just when the current project has been modified.
 - Added an optional border around the window (specifically for borderless mode if you want a bit more flavor).
 - Added shadows for UI elements.
-- Added a keyboard shortcut to quit MasterPlan.
+- Added a keyboard shortcut to quit MasterPlan (Ctrl+Q, by default).
 - Map Task type background has been slightly improved, is now a bit transparent.
 - Various minor visual tweaks and smaller bug-fixes.
 - INTERNAL: Added a little darkness underneath the header for Maps.
 - INTERNAL: Added remaining content types.
-- FIX: Whiteboard is now NOT 2x chunkier than intended.
+- FIX: Drawing on Whiteboards is no longer chunkier than intended (the resolution isn't unnecessarily higher).
 - INTERNAL: Get rid of data race possibility for GIF loading.
 - Added shortcuts to teleport you to each end of a line, in sequence.
-- The splash screen no longer takes nearly as long as it previously did to disappear. (~2.5 seconds -> 0.75 seconds)
+- The splash screen no longer takes nearly as long as it previously did to disappear. (~2.5 seconds -> ~0.75 seconds)
 - INTERNAL: Added relevant shortcuts for each kind of Task.
 - Adding shortcuts for incrementing and decrementing Progression Tasks.
 - Triggering Checkbox Tasks that have SubTasks will now trigger those SubTasks.
-- Incrementing a Progression Task's current value no longer increases the maximum if they're the same.
+- FIX?: Incrementing a Progression Task's current value no longer increases the maximum if they're the same.
 - Timers no longer pause or reset when adjusting their values.
-- Timers now can trigger neighbors when they run out.
-- Timers who are neighbors to Lines can now trigger the Tasks those Lines are pointing to, and so on.
 - INTERNAL: Next and Previous Line Ending's shortcuts are now the C and X keys by default.
 - INTERNAL: Moving Project.Shortcuts() call above Board.Update() and Board.Draw() so that shortcut clashes can properly be resolved prior to Tasks' contents being updated or drawn.
 - INTERNAL: Timers should be able to be set for multiple days of the week, not just one.
 - Added basic support for non-latin character entry. Note that you have to specify a font that has the characters you're entering (as the default one only has latin characters).
 - INTERNAL: Made sure the binding for stopping all sounds works.
 - INTERNAL: Added a new ImmediateIconButton function specifically for MultiButtonGroups
-- Re-implement completable task-specific deadlines
+- INTERNAL: Re-implement completable task-specific deadlines
+- Table Task Type - A grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
+- INTERNAL: Fixed Task Completion Date.
+- FIX: It's no longer possible to undo a project that has just been loaded.
+- The grid dot background is now slightly transparent.
 
 To-do:
 
-- Table Task Type - A grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
-    - Left-click places a completion check or removes it, right-click places a "X", indicating it's not necessary / skipped
-- Adding a new task no longer moves the entire stack below it??? Check deleting, too.
-- Dragging a task over a stack should attempt to insert it
-- Rework Board.DeleteSelectedTasks() - it no longer moves Tasks up
-- Fix up missing project logging for Task Contents
-- Changing font size shouldn't take so long - This could be simplified by making a selection for how many glyphs to load
-- Use Lines to connect Tasks for completion
-- Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines.
+- Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
+- Adding a new task no longer moves the entire stack below it??? Check deleting, too. (Board.DeleteSelectedTasks() no longer moves Tasks up)
+- Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
+- Fix up missing project logging for Task Contents when stuff happens
+- Use Lines to connect Tasks for SubTask counting
+- Add rebindable shortcuts for window-related features in main.go (window size setting, fullscreen, etc)
+- Add option for writing text normally, but vertically for columns for Tables.
 
 REVIEW
 
-- Move "Don't open at start" window somewhere else, it being in About is kind of counter-intuitive
-- INTERNAL: Fix Task Completion Date, it's broken
-- Test project saving and loading
+- Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
+- Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
+- Test Timers going off
 - Review and re-implement PasteContents()
 - Review and re-implement HandleDroppedFiles()
 
 - FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
-- Downloading images / sounds should be able to be saved to a local directory per-project (?)
-- Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
-- Make an option in the Task to reset size (it's not done often enough to make it necessary to be on the Task itself, I think)
+- Make an option in the Task to reset image size (it's not done often enough to make it necessary to be on the Task itself, I think)
 - Add manual typing entry for month / day / year for deadlines / Timer Dates
     - Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
 
 ---- RELEASE
 
+- Table: Add button to turn a column into a row, or vice-versa
+- Add button on the Task itself to check off Checkbox Tasks
+- Add tags of some description
+- Add icons for task types in Task Edit Panel
+- Fix up horizontal alignments in Panels - rather than doing this via RowItem.Weight or HorizontalAlignment, it would be good to have a manual spacing value that indicates how far out from an item another is (how much space is between one item and the following one)
+- Changing font size shouldn't take so long - This could be simplified by making a selection for how many glyphs to load
+- Consolidate the Tasks that consist of Contents and Data Structures (somehow)
+- Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines.
+- Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
+- Downloading images / sounds should be able to be saved to a local directory per-project (?)
+- Tab focusing (pressing tab focuses on different, consecutive elements in a panel)
 - Deadline write-up by BiRD: https://discordapp.com/channels/339550825154347008/758009278756946040/810779087449751593
     The summary is:
         - Use timers for timing and calendars for deadlines. Calendars are:
@@ -94,6 +105,7 @@ REVIEW
 - Undo + Redo for textboxes
 - Panels should be resizeable
 - Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
+- Add ability to delete shortcuts?
 - Vertical alignment isn't really centered for textboxes?
 - Display full Task text on hover
 - Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
@@ -145,6 +157,9 @@ includes a current number and maximum number of 999 each, so that they don't cha
 - Resizeable Notes / Collapsible Notes
 - Time estimations per Task - these can be set as a project-level default (i.e. something like 30 minutes per-Task), and then further specified (maybe specifying something like 3 hours for a specific Task, as an example).
 - Background hint text for text entry (i.e. "Enter date in MM/DD/YYYY Format" behind something that allows you to enter a date)
+- Multitask Editing
+- Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
+- Hover over Tasks to display more information about them.
 
 Long-term Goals
 

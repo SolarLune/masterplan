@@ -105,7 +105,56 @@ func loadThemes() {
 
 }
 
-func imButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, outlineColor, fillColor rl.Color) bool {
+type ButtonStyle struct {
+	OutlineColor rl.Color
+	FillColor    rl.Color
+
+	PressedOutlineColor rl.Color
+	PressedFillColor    rl.Color
+
+	HoverOutlineColor rl.Color
+	HoverFillColor    rl.Color
+
+	IconSrcRec   rl.Rectangle
+	IconRotation float32
+	IconColor    rl.Color
+
+	ShadowOn bool
+
+	IconOriginalScale bool
+
+	FontColor rl.Color
+
+	RightClick bool
+}
+
+func NewButtonStyle() ButtonStyle {
+
+	style := ButtonStyle{
+
+		OutlineColor: getThemeColor(GUI_OUTLINE),
+		FillColor:    getThemeColor(GUI_INSIDE),
+
+		HoverOutlineColor: getThemeColor(GUI_OUTLINE_HIGHLIGHTED),
+		HoverFillColor:    getThemeColor(GUI_INSIDE_HIGHLIGHTED),
+
+		PressedOutlineColor: getThemeColor(GUI_OUTLINE_DISABLED),
+		PressedFillColor:    getThemeColor(GUI_INSIDE_DISABLED),
+
+		IconColor: getThemeColor(GUI_FONT_COLOR),
+
+		IconOriginalScale: false,
+
+		FontColor: getThemeColor(GUI_FONT_COLOR),
+
+		ShadowOn: true,
+	}
+
+	return style
+
+}
+
+func imButton(rect rl.Rectangle, text string, style ButtonStyle) bool {
 
 	clicked := false
 
@@ -116,34 +165,70 @@ func imButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, 
 		pos = GetMousePosition()
 	}
 
-	clicked = rl.CheckCollisionPointRec(pos, rect) && MouseReleased(rl.MouseLeftButton)
+	clicked = rl.CheckCollisionPointRec(pos, rect) && MousePressed(rl.MouseLeftButton)
 
-	rect.X = float32(int32(rect.X) + 4)
-	rect.Y = float32(int32(rect.Y) + 4)
-	rect.Width = float32(int32(rect.Width))
-	rect.Height = float32(int32(rect.Height))
+	if !clicked && style.RightClick {
+		clicked = rl.CheckCollisionPointRec(pos, rect) && MousePressed(rl.MouseRightButton)
+	}
 
-	shadowColor := rl.Black
-	shadowColor.A = 128
-	rl.DrawRectangleRec(rect, shadowColor)
+	outlineColor := style.OutlineColor
+	fillColor := style.FillColor
 
-	rect.X -= 4
-	rect.Y -= 4
+	if rl.CheckCollisionPointRec(pos, rect) {
+		outlineColor = style.HoverOutlineColor
+		fillColor = style.HoverFillColor
+		if MouseDown(rl.MouseLeftButton) {
+			outlineColor = style.PressedOutlineColor
+			fillColor = style.PressedFillColor
+		}
+	}
 
-	rl.DrawRectangleRec(rect, fillColor)
-	rl.DrawRectangleLinesEx(rect, 1, outlineColor)
+	if style.ShadowOn {
+
+		rect.X = float32(int32(rect.X) + 4)
+		rect.Y = float32(int32(rect.Y) + 4)
+		rect.Width = float32(int32(rect.Width))
+		rect.Height = float32(int32(rect.Height))
+
+		shadowColor := rl.Black
+		shadowColor.A = 128
+		rl.DrawRectangleRec(rect, shadowColor)
+
+		rect.X -= 4
+		rect.Y -= 4
+
+	}
+
+	rl.DrawRectangleRec(rect, outlineColor)
+	DrawRectExpanded(rect, -1, fillColor)
 
 	iconDstRec := rl.NewRectangle(0, 0, 0, 0)
 
-	if iconSrcRec.Width != 0 && iconSrcRec.Height != 0 {
+	if style.IconSrcRec.Width != 0 && style.IconSrcRec.Height != 0 {
 
-		margin := float32(4)
+		if text != "" {
 
-		iconDstRec.Width = rect.Height - margin
-		iconDstRec.Height = rect.Height - margin
+			margin := float32(4)
 
-		iconDstRec.X = rect.X + iconDstRec.Width/2 + (margin / 2)
-		iconDstRec.Y = rect.Y + iconDstRec.Height/2 + (margin / 2)
+			iconDstRec.Width = rect.Height - margin
+			iconDstRec.Height = rect.Height - margin
+
+			iconDstRec.X = rect.X + iconDstRec.Width/2 + (margin / 2)
+			iconDstRec.Y = rect.Y + iconDstRec.Height/2 + (margin / 2)
+
+		} else {
+
+			iconDstRec = rect
+
+			if style.IconOriginalScale {
+				iconDstRec.Width = style.IconSrcRec.Width
+				iconDstRec.Height = style.IconSrcRec.Height
+			}
+
+			iconDstRec.X += iconDstRec.Width / 2
+			iconDstRec.Y += iconDstRec.Height / 2
+
+		}
 
 	}
 
@@ -157,18 +242,16 @@ func imButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, 
 
 	rl.DrawTexturePro(
 		currentProject.GUI_Icons,
-		iconSrcRec,
+		style.IconSrcRec,
 		iconDstRec,
 		rl.Vector2{iconDstRec.Width / 2, iconDstRec.Height / 2},
-		iconRotation,
-		getThemeColor(GUI_FONT_COLOR))
-
-	fontColor := getThemeColor(GUI_FONT_COLOR)
+		style.IconRotation,
+		style.IconColor)
 
 	if worldGUI {
-		DrawTextColored(pos, fontColor, text, false)
+		DrawTextColored(pos, style.FontColor, text, false)
 	} else {
-		DrawTextColored(pos, fontColor, text, true)
+		DrawTextColored(pos, style.FontColor, text, true)
 	}
 
 	if clicked && prioritizedGUIElement != nil {
@@ -180,68 +263,40 @@ func imButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, 
 
 func MultiImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, pressed bool) bool {
 
-	outlineColor := getThemeColor(GUI_OUTLINE)
-	fillColor := getThemeColor(GUI_INSIDE)
+	style := NewButtonStyle()
 
-	pos := rl.Vector2{}
-	if worldGUI {
-		pos = GetWorldMousePosition()
-	} else {
-		pos = GetMousePosition()
-	}
+	style.IconSrcRec = iconSrcRec
+	style.IconRotation = iconRotation
 
 	if pressed {
-		outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-		fillColor = getThemeColor(GUI_INSIDE_DISABLED)
+		style.OutlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+		style.FillColor = getThemeColor(GUI_INSIDE_DISABLED)
 	}
 
-	if rl.CheckCollisionPointRec(pos, rect) {
-		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
-		fillColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
-		if MouseDown(rl.MouseLeftButton) {
-			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-			fillColor = getThemeColor(GUI_INSIDE_DISABLED)
-		} else if MouseReleased(rl.MouseLeftButton) {
-			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-			fillColor = getThemeColor(GUI_INSIDE_DISABLED)
-		}
-	}
-
-	button := imButton(rect, iconSrcRec, iconRotation, text, outlineColor, fillColor)
+	button := imButton(rect, text, style)
 
 	return button
 }
 
 func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, disabled bool) bool {
 
-	outlineColor := getThemeColor(GUI_OUTLINE)
-	fillColor := getThemeColor(GUI_INSIDE)
-
-	pos := rl.Vector2{}
-	if worldGUI {
-		pos = GetWorldMousePosition()
-	} else {
-		pos = GetMousePosition()
-	}
-
-	if rl.CheckCollisionPointRec(pos, rect) {
-		outlineColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
-		fillColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
-		if MouseDown(rl.MouseLeftButton) {
-			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-			fillColor = getThemeColor(GUI_INSIDE_DISABLED)
-		} else if MouseReleased(rl.MouseLeftButton) {
-			outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-			fillColor = getThemeColor(GUI_INSIDE_DISABLED)
-		}
-	}
+	style := NewButtonStyle()
+	style.IconSrcRec = iconSrcRec
+	style.IconRotation = iconRotation
 
 	if disabled {
-		outlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-		fillColor = getThemeColor(GUI_INSIDE_DISABLED)
+
+		style.OutlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+		style.HoverOutlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+		style.PressedOutlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
+
+		style.FillColor = getThemeColor(GUI_INSIDE_DISABLED)
+		style.HoverFillColor = getThemeColor(GUI_INSIDE_DISABLED)
+		style.PressedFillColor = getThemeColor(GUI_INSIDE_DISABLED)
+
 	}
 
-	button := imButton(rect, iconSrcRec, iconRotation, text, outlineColor, fillColor)
+	button := imButton(rect, text, style)
 
 	if disabled {
 		return false
@@ -403,7 +458,11 @@ func (bg *MultiButtonGroup) Draw() {
 		bitVal := 1 << i
 		alreadyClicked := bg.CurrentChoices&bitVal != 0
 
-		if MultiImmediateIconButton(r, rl.Rectangle{}, 0, option, alreadyClicked) {
+		src := rl.Rectangle{208, 32, 16, 16}
+		if alreadyClicked {
+			src.X += 16
+		}
+		if MultiImmediateIconButton(r, src, 0, option, alreadyClicked) {
 
 			if alreadyClicked && bg.EnabledOptionCount() > bg.MinimumEnabledCount {
 				// Set / Add to existing bit variable
@@ -564,6 +623,10 @@ func (column *PanelColumn) Row() *PanelRow {
 	row.VerticalSpacing = column.DefaultVerticalSpacing
 	column.Rows = append(column.Rows, row)
 	return row
+}
+
+func (column *PanelColumn) Clear() {
+	column.Rows = []*PanelRow{}
 }
 
 type Panel struct {
@@ -763,12 +826,12 @@ func (panel *Panel) Update() {
 
 					rect := item.Element.Rectangle()
 
-					rect.X = x + (width / 2)
+					rect.X = x + (width / 2) - (rect.Width / 2)
 
-					if item.HorizontalAlignment == ALIGN_CENTER {
-						rect.X -= rect.Width / 2
+					if item.HorizontalAlignment == ALIGN_LEFT {
+						rect.X -= w/2 - rect.Width/2
 					} else if item.HorizontalAlignment == ALIGN_RIGHT {
-						rect.X -= rect.Width
+						rect.X += w/2 - rect.Width/2
 					}
 
 					_, isTextbox := item.Element.(*Textbox)
@@ -984,7 +1047,10 @@ func (label *Label) Draw() {
 		}
 
 	} else {
-		DrawGUIText(label.Position, label.Text)
+		pos := label.Position
+		pos.X = float32(math.Round(float64(pos.X)))
+		pos.Y = float32(math.Round(float64(pos.Y)))
+		DrawGUIText(pos, label.Text)
 	}
 	rect := label.Rectangle()
 	if label.Underline {
@@ -1095,6 +1161,118 @@ type GUIElement interface {
 	Depth() int32
 	Rectangle() rl.Rectangle
 	SetRectangle(rl.Rectangle)
+}
+
+type DraggableElement struct {
+	Element   GUIElement
+	Dragging  bool
+	DragStart rl.Vector2
+	OnDrag    func(*DraggableElement, rl.Vector2)
+}
+
+func NewDraggableElement(element GUIElement) *DraggableElement {
+
+	return &DraggableElement{
+		Element: element,
+	}
+
+}
+
+func (drag *DraggableElement) Update() {
+
+	drag.Element.Update()
+
+}
+
+func (drag *DraggableElement) Draw() {
+
+	handleRect := drag.Element.Rectangle()
+	handleRect.Width = 16
+	handleRect.X -= handleRect.Width
+
+	mp := GetMousePosition()
+
+	if rl.CheckCollisionPointRec(mp, handleRect) && MousePressed(rl.MouseLeftButton) && prioritizedGUIElement == nil {
+		drag.Dragging = true
+		drag.DragStart = mp
+		prioritizedGUIElement = drag
+	}
+
+	if MouseReleased(rl.MouseLeftButton) && drag.Dragging {
+
+		drag.Dragging = false
+
+		if drag.OnDrag != nil {
+
+			rect := drag.Element.Rectangle()
+			diff := rl.Vector2Subtract(mp, drag.DragStart)
+			drag.OnDrag(drag, rl.Vector2{rect.X + diff.X, rect.Y + diff.Y})
+
+		}
+
+		if prioritizedGUIElement == drag {
+			prioritizedGUIElement = nil
+		}
+
+	} else {
+
+		ogRect := drag.Element.Rectangle()
+
+		if drag.Dragging {
+			diff := rl.Vector2Subtract(mp, drag.DragStart)
+			rect := ogRect
+			rect.X += diff.X
+			rect.Y += diff.Y
+			drag.Element.SetRectangle(rect)
+			handleRect.X += diff.X
+			handleRect.Y += diff.Y
+		}
+
+		shadowRect := handleRect
+		shadowRect.X += 4
+		shadowRect.Y += 4
+		shadowColor := rl.Black
+		shadowColor.A = 192
+		rl.DrawRectangleRec(shadowRect, shadowColor)
+
+		rl.DrawRectangleRec(handleRect, getThemeColor(GUI_OUTLINE))
+		DrawRectExpanded(handleRect, -1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+
+		drag.Element.Draw()
+
+		drag.Element.SetRectangle(ogRect)
+
+	}
+
+}
+
+func (drag *DraggableElement) Depth() int32 {
+	return 0
+}
+
+func (drag *DraggableElement) Rectangle() rl.Rectangle {
+
+	rect := drag.Element.Rectangle()
+	rect.X -= 16
+	rect.Width += 16
+	return rect
+
+}
+func (drag *DraggableElement) SetRectangle(rect rl.Rectangle) {
+
+	rect.X += 16
+	rect.Width -= 16
+
+	existing := drag.Element.Rectangle()
+
+	existing.X += (rect.X - existing.X) * 0.2
+	existing.Y += (rect.Y - existing.Y) * 0.2
+
+	existing.Width = rect.Width
+	existing.Height = rect.Height
+
+	drag.Element.SetRectangle(existing)
+
 }
 
 type DropdownMenu struct {
@@ -2154,11 +2332,12 @@ func (textbox *Textbox) Draw() {
 	rl.DrawRectangleRec(shadowRect, shadowColor)
 
 	if textbox.Focused {
-		rl.DrawRectangleRec(textbox.Rect, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
-		rl.DrawRectangleLinesEx(textbox.Rect, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+
+		rl.DrawRectangleRec(textbox.Rect, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+		DrawRectExpanded(textbox.Rect, -1, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
 	} else {
-		rl.DrawRectangleRec(textbox.Rect, getThemeColor(GUI_INSIDE))
-		rl.DrawRectangleLinesEx(textbox.Rect, 1, getThemeColor(GUI_OUTLINE))
+		rl.DrawRectangleRec(textbox.Rect, getThemeColor(GUI_OUTLINE))
+		DrawRectExpanded(textbox.Rect, -1, getThemeColor(GUI_INSIDE))
 	}
 
 	caretPos := textbox.CharacterToPoint(textbox.CaretPos)

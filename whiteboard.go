@@ -158,7 +158,7 @@ func (whiteboard *Whiteboard) Draw() {
 	whiteboard.PrevClickPos = clickPos
 
 	if makeUndo {
-		whiteboard.Task.Change = TASK_CHANGE_ALTERATION
+		whiteboard.Task.UndoChange = true
 	}
 
 }
@@ -240,7 +240,7 @@ func (whiteboard *Whiteboard) Clear() {
 	rl.BeginTextureMode(whiteboard.Texture)
 	rl.DrawRectangle(0, 0, whiteboard.Texture.Texture.Width, whiteboard.Texture.Texture.Height, whiteboard.Colors[0])
 	rl.EndTextureMode()
-	whiteboard.Task.Change = TASK_CHANGE_ALTERATION
+	whiteboard.Task.UndoChange = true
 	// rl.BeginMode2D(camera)
 
 }
@@ -267,7 +267,7 @@ func (whiteboard *Whiteboard) Invert() {
 
 	rl.UpdateTexture(whiteboard.Texture.Texture, colors)
 
-	whiteboard.Task.Change = TASK_CHANGE_ALTERATION
+	whiteboard.Task.UndoChange = true
 
 }
 

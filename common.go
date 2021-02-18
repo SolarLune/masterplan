@@ -158,6 +158,10 @@ func UnhideMouseInput(button int32) {
 	hiddenMouseInputs[button] = false
 }
 
+func IsColorLight(color rl.Color) bool {
+	return color.R > 128 || color.G > 128 || color.B > 128
+}
+
 func ColorAdd(color rl.Color, value int32) rl.Color {
 
 	v := uint8(math.Abs(float64(value)))
@@ -273,11 +277,12 @@ func ReloadFonts() {
 
 }
 
-func DrawRectLines(r rl.Rectangle, color rl.Color) {
+func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {
 
-	rl.DrawLineEx(rl.Vector2{r.X + 1, r.Y + 1}, rl.Vector2{r.X + r.Width - 1, r.Y + 1}, 1, color)
-	rl.DrawLineEx(rl.Vector2{r.X + r.Width - 1, r.Y}, rl.Vector2{r.X + r.Width - 1, r.Y + r.Height}, 1, color)
-	rl.DrawLineEx(rl.Vector2{r.X + r.Width - 1, r.Y + r.Height}, rl.Vector2{r.X + 1, r.Y + r.Height}, 1, color)
-	rl.DrawLineEx(rl.Vector2{r.X + 1, r.Y + r.Height}, rl.Vector2{r.X + 1, r.Y}, 1, color)
+	r.X -= thickness
+	r.Y -= thickness
+	r.Width += thickness * 2
+	r.Height += thickness * 2
+	rl.DrawRectangleRec(r, color)
 
 }

@@ -169,7 +169,7 @@ type Project struct {
 	Cutting             bool // If cutting, then this boolean is set
 	TaskOpen            bool
 	ThemeReloadTimer    float32
-	JustLoaded          bool
+	Loading             bool
 	ResizingImage       bool
 	LogOn               bool
 	LoadRecentDropdown  *DropdownMenu
@@ -632,8 +632,6 @@ func NewProject() *Project {
 	project.AutomaticBackupKeepCount.SetNumber(3)
 	project.AutomaticBackupKeepCount.Minimum = 1
 
-	project.LoadResource(LocalPath("assets", "loading_image.png"))
-
 	project.MaxUndoSteps.Minimum = 0
 
 	project.ReloadThemes()
@@ -835,7 +833,7 @@ func LoadProject(filepath string) *Project {
 
 		if data.Get("Tasks").Exists() {
 
-			project.JustLoaded = true
+			project.Loading = true
 
 			if strings.Contains(filepath, BackupDelineator) {
 				project.FilePath = strings.Split(filepath, BackupDelineator)[0]
@@ -918,7 +916,6 @@ func LoadProject(filepath string) *Project {
 			}
 
 			for i := range project.Boards {
-				project.Boards[i].UndoHistory.On = false // No undoing for the loading process
 				if i < len(boardNames) {
 					project.Boards[i].Name = boardNames[i]
 				}
@@ -934,6 +931,20 @@ func LoadProject(filepath string) *Project {
 
 				task := project.Boards[boardIndex].CreateNewTask()
 				task.Deserialize(taskData.String())
+
+				task.Rect.X = task.Position.X
+				task.Rect.Y = task.Position.Y
+
+				if task.DisplaySize.X == 0 || task.DisplaySize.Y == 0 {
+					task.Update() // We manually call Update() and Draw(), giving the Contents a chance to update and set the display size properly
+					task.Draw()
+				}
+
+				task.Rect.Width = task.DisplaySize.X
+				task.Rect.Height = task.DisplaySize.Y
+
+				task.UndoChange = true
+				task.UndoCreation = true
 			}
 
 			// We don't have to call Board.ReorderTasks() for each board here because we do it later on after first initialization
@@ -991,6 +1002,13 @@ func LoadProject(filepath string) *Project {
 
 			programSettings.Save()
 			project.Log("Load successful.")
+
+			for _, board := range project.Boards {
+				board.UndoHistory.MinimumFrame = 1 // The first frame is the frame where we load the data
+				board.ReorderTasks()
+			}
+
+			project.Loading = false
 
 			return project
 
@@ -1331,21 +1349,20 @@ func (project *Project) Update() {
 
 	rl.DrawRectangleLinesEx(selectionRect, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
-	if project.JustLoaded {
+	// if project.JustLoaded {
 
-		for _, t := range project.GetAllTasks() {
-			t.Draw() // We need to draw the task at least once to ensure the rects are updated by the Task's contents.
-			// This makes it so that neighbors can be correct.
-		}
+	// 	for _, board := range project.Boards {
 
-		for _, board := range project.Boards {
-			board.ReorderTasks()
-		}
+	// 		board.ChangedTaskOrder = true
+	// 		board.Update()
+	// 		board.Draw()
 
-		project.Modified = false
-		project.JustLoaded = false
+	// 	}
 
-	}
+	// 	project.Modified = false
+	// 	project.JustLoaded = false
+
+	// }
 
 	if project.Modified && project.AutoSave.Checked {
 		project.LogOn = false
@@ -2294,13 +2311,6 @@ func (project *Project) GUI() {
 					project.Log("Project sample rate changed to %s.", project.SampleRate.ChoiceAsString())
 					project.Log("Currently playing sounds have been stopped and resampled as necessary.")
 
-					project.LogOn = false
-					// for _, t := range project.CurrentBoard().Tasks {
-					// 	if t.Is(TASK_TYPE_SOUND) {
-					// 		t.LoadResource() // Force reloading to resample as necessary
-					// 	}
-					// }
-					project.LogOn = true
 				}
 
 				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
@@ -2367,10 +2377,19 @@ func (project *Project) GUI() {
 			for _, t := range project.CurrentBoard().Tasks {
 
 				if t.IsCompletable() {
-					taskCount++
-				}
-				if t.IsComplete() {
-					completionCount++
+
+					if t.Is(TASK_TYPE_TABLE) && t.TableData != nil {
+
+						taskCount += t.TableData.CompletionMax()
+						completionCount += t.TableData.CompletionCount()
+
+					} else {
+						taskCount++
+						if t.IsComplete() {
+							completionCount++
+						}
+					}
+
 				}
 
 			}
@@ -2481,7 +2500,8 @@ func (project *Project) GUI() {
 					if disabled {
 
 						bx := x + buttonRange - h
-						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{16, 16, 16, 16}, 90, "", boardIndex == len(project.Boards)-1) {
+
+						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{176, 16, 12, 12}, 90, "", boardIndex == len(project.Boards)-1) {
 							// Move board down
 							b := project.Boards[boardIndex+1]
 							project.Boards[boardIndex] = b
@@ -2490,7 +2510,7 @@ func (project *Project) GUI() {
 							project.Log("Moved Board %s down.", board.Name)
 						}
 						bx -= h
-						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{16, 16, 16, 16}, -90, "", boardIndex == 0) {
+						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{176, 16, 12, 12}, -90, "", boardIndex == 0) {
 							// Move board Up
 							b := project.Boards[boardIndex-1]
 							project.Boards[boardIndex] = b
@@ -2499,7 +2519,7 @@ func (project *Project) GUI() {
 							project.Log("Moved Board %s up.", board.Name)
 						}
 						bx -= h
-						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{160, 16, 16, 16}, 0, "", false) {
+						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{160, 16, 12, 12}, 0, "", false) {
 							// Rename board
 							project.PopupArgument = project.CurrentBoard().Name
 							project.PopupAction = ActionRenameBoard
@@ -2691,6 +2711,7 @@ func (project *Project) GenerateGrid() {
 			c := rl.Color{}
 			if project.GridVisible.Checked && (x%project.GridSize == 0 || x%project.GridSize == project.GridSize-1) && (y%project.GridSize == 0 || y%project.GridSize == project.GridSize-1) {
 				c = getThemeColor(GUI_INSIDE)
+				c.A = 192
 			}
 
 			data = append(data, c.R, c.G, c.B, c.A)
@@ -2766,9 +2787,7 @@ func (project *Project) RetrieveResource(resourcePath string) *Resource {
 
 // LoadResource returns the resource loaded from the filepath and a boolean indicating if it was just loaded (true), or
 // loaded previously and retrieved (false).
-func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
-
-	newlyLoaded := false
+func (project *Project) LoadResource(resourcePath string) *Resource {
 
 	var loadedResource *Resource
 
@@ -2786,7 +2805,7 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 				if stats.Size() > 0 && stats.ModTime().After(loadedResource.ModTime) {
 					loadedResource.Destroy()
 					delete(project.Resources, resourcePath)
-					loadedResource, newlyLoaded = project.LoadResource(resourcePath) // Force reloading if the file is outdated
+					loadedResource = project.LoadResource(resourcePath) // Force reloading if the file is outdated
 				}
 			}
 
@@ -2820,7 +2839,6 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 					project.Log("Could not initiate download for [%s]\nError : [%s]\nAre you sure the path or URL is correct?", url.String(), possibleError.Error())
 				} else {
 					loadedResource = project.RegisterResource(resourcePath, filename, resp)
-					newlyLoaded = true
 				}
 
 			}
@@ -2829,13 +2847,12 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 			// Local file, so we're g2g
 			loadedResource = project.RegisterResource(resourcePath, resourcePath, nil)
 			loadedResource.ParseData()
-			newlyLoaded = true
 
 		}
 
 	}
 
-	return loadedResource, newlyLoaded
+	return loadedResource
 
 }
 

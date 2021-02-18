@@ -31,6 +31,7 @@ type UndoHistory struct {
 	On           bool
 	Index        int
 	Changed      bool
+	MinimumFrame int
 }
 
 func NewUndoHistory(board *Board) *UndoHistory {
@@ -94,7 +95,7 @@ func (history *UndoHistory) Capture(newState *UndoState) {
 
 func (history *UndoHistory) Undo() bool {
 
-	if history.Index > 0 {
+	if history.Index > history.MinimumFrame {
 
 		history.On = false
 
@@ -204,6 +205,12 @@ func (history *UndoHistory) Update() {
 
 }
 
+func (history *UndoHistory) Clear() {
+	history.Frames = []*UndoFrame{}
+	history.CurrentFrame = NewUndoFrame()
+	history.Changed = false
+}
+
 type UndoFrame struct {
 	States map[*Task]*UndoState
 }
@@ -238,7 +245,9 @@ func NewUndoState(task *Task) *UndoState {
 
 func (state *UndoState) Apply() {
 	state.Task.Deserialize(state.Serialized)
-	state.Task.Change = TASK_CHANGE_NONE
+	state.Task.UndoChange = false
+	state.Task.UndoCreation = false
+	state.Task.UndoDeletion = false
 }
 
 func (state *UndoState) Exit(direction int) {
@@ -257,7 +266,9 @@ func (state *UndoState) Exit(direction int) {
 		}
 	}
 
-	state.Task.Change = TASK_CHANGE_NONE
+	state.Task.UndoChange = false
+	state.Task.UndoCreation = false
+	state.Task.UndoDeletion = false
 
 }
 

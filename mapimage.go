@@ -307,7 +307,7 @@ func (mapImage *MapImage) Draw() {
 	}
 
 	if mapImage.Changed {
-		mapImage.Task.Change = TASK_CHANGE_ALTERATION
+		mapImage.Task.UndoChange = true
 	}
 
 }

@@ -26,6 +26,7 @@ const (
 	TASK_TYPE_LINE
 	TASK_TYPE_MAP
 	TASK_TYPE_WHITEBOARD
+	TASK_TYPE_TABLE
 )
 
 const (
@@ -47,13 +48,6 @@ const (
 	TASK_TRIGGER_SET
 	TASK_TRIGGER_CLEAR
 	TASK_TRIGGER_NONE
-)
-
-const (
-	TASK_CHANGE_NONE = iota
-	TASK_CHANGE_CREATION
-	TASK_CHANGE_DELETION
-	TASK_CHANGE_ALTERATION
 )
 
 type Task struct {
@@ -119,10 +113,13 @@ type Task struct {
 	Valid           bool
 	EditPanel       *Panel
 	LoadMediaButton *Button
-	Change          int
+	UndoChange      bool
+	UndoCreation    bool
+	UndoDeletion    bool
 	Contents        Contents
 	MapImage        *MapImage
 	Whiteboard      *Whiteboard
+	TableData       *TableData
 	Locked          bool
 }
 
@@ -156,7 +153,7 @@ func NewTask(board *Board) *Task {
 	task := &Task{
 		Rect:                         rl.Rectangle{0, 0, 16, 16},
 		Board:                        board,
-		TaskType:                     NewButtonGroup(0, 32, 500, 32, 2, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line", "Map", "Whiteboard"),
+		TaskType:                     NewButtonGroup(0, 32, 500, 32, 3, "Check Box", "Progression", "Note", "Image", "Sound", "Timer", "Line", "Map", "Whiteboard", "Table"),
 		Description:                  NewTextbox(0, 64, 512, 32),
 		TimerName:                    NewTextbox(0, 64, 512, 16),
 		CompletionCheckbox:           NewCheckbox(0, 96, 32, 32),
@@ -184,9 +181,12 @@ func NewTask(board *Board) *Task {
 		CompletionTimeLabel:          NewLabel("Completion time"),
 		LineBezier:                   NewCheckbox(0, 64, 32, 32),
 		LineEndings:                  []*Task{},
+		EditPanel:                    NewPanel(63, 64, 960/4*3, 560/4*3),
 	}
 
 	task.DailyDay.EnableOption(days[0])
+
+	task.EditPanel.AddColumn()
 
 	task.SetPanel()
 
@@ -238,15 +238,20 @@ func NewTask(board *Board) *Task {
 
 func (task *Task) SetPanel() {
 
-	task.EditPanel = NewPanel(63, 64, 960/4*3, 560/4*3)
+	column := task.EditPanel.Columns[0]
 
-	column := task.EditPanel.AddColumn()
+	column.Clear()
 
-	column.DefaultVerticalSpacing = 24
+	column.DefaultVerticalSpacing = 8
+
 	row := column.Row()
 	row.Item(NewLabel("Task Type:"))
 	row = column.Row()
+	row.Item(NewLabel(""))
+	row = column.Row()
 	row.Item(task.TaskType)
+
+	column.DefaultVerticalSpacing = 24
 
 	row = column.Row()
 	row.Item(NewLabel("Created On:"))
@@ -392,6 +397,10 @@ func (task *Task) Clone() *Task {
 
 	copyData.ReceiveMessage(MessageTaskClose, nil) // We do this to recreate the resources for the Task, if necessary.
 
+	copyData.EditPanel = NewPanel(63, 64, 960/4*3, 560/4*3)
+
+	copyData.EditPanel.AddColumn()
+
 	copyData.SetPanel()
 
 	if task.MapImage != nil {
@@ -535,14 +544,17 @@ func (task *Task) Serialize() string {
 		jsonData, _ = sjson.Set(jsonData, `Whiteboard`, task.Whiteboard.Serialize())
 	}
 
+	if task.Is(TASK_TYPE_TABLE) && task.TableData != nil {
+		jsonData, _ = sjson.SetRaw(jsonData, `TableData`, task.TableData.Serialize())
+	}
+
 	return jsonData
 
 }
 
 // Serializable returns if Tasks are able to be serialized properly. Only line endings aren't properly serializeable
 func (task *Task) Serializable() bool {
-	// return !task.Is(TASK_TYPE_LINE) || task.LineBase == nil
-	return !task.Is(TASK_TYPE_LINE)
+	return !task.Is(TASK_TYPE_LINE) || task.LineStart == nil
 }
 
 // Deserialize applies the JSON data provided to the Task, effectively "loading" it from that state. Previously,
@@ -738,8 +750,15 @@ func (task *Task) Deserialize(jsonData string) {
 
 	}
 
-	// // We do this to update the task after loading all of the information.
-	// task.LoadResource()
+	if hasData(`TableData`) {
+
+		if task.TableData == nil {
+			task.TableData = NewTableData(task)
+		}
+
+		task.TableData.Deserialize(gjson.Get(jsonData, `TableData`).String())
+
+	}
 
 	// if task.SoundControl != nil {
 	// 	task.SoundControl.Paused = true
@@ -752,7 +771,7 @@ func (task *Task) Deserialize(jsonData string) {
 
 func (task *Task) Update() {
 
-	task.Visible = false
+	task.Visible = true
 
 	scrW := float32(rl.GetScreenWidth()) / camera.Zoom
 	scrH := float32(rl.GetScreenHeight()) / camera.Zoom
@@ -760,8 +779,10 @@ func (task *Task) Update() {
 	// Slight optimization
 	cameraRect := rl.Rectangle{camera.Target.X - (scrW / 2), camera.Target.Y - (scrH / 2), scrW, scrH}
 
+	// If the project isn't fully initialized, then we assume it's visible to do any extra logic like set
+	// the Tasks' rectangles, which influence their neighbors
 	if task.Board.Project.FullyInitialized {
-		if rl.CheckCollisionRecs(task.Rect, cameraRect) && task.Board.Project.CurrentBoard() == task.Board {
+		if !rl.CheckCollisionRecs(task.Rect, cameraRect) || task.Board.Project.CurrentBoard() == task.Board {
 			task.Visible = true
 		}
 	}
@@ -798,27 +819,6 @@ func (task *Task) Update() {
 	}
 
 	task.Contents.Update()
-
-	if task.Change != TASK_CHANGE_NONE && (!task.Is(TASK_TYPE_LINE) || task.LineStart == nil) {
-
-		state := NewUndoState(task)
-
-		switch task.Change {
-
-		case TASK_CHANGE_CREATION:
-			state.Creation = true
-		case TASK_CHANGE_DELETION:
-			state.Deletion = true
-
-		}
-
-		task.Board.UndoHistory.Capture(state)
-
-		task.Change = TASK_CHANGE_NONE
-
-		task.Board.Project.Modified = true
-
-	}
 
 }
 
@@ -901,6 +901,26 @@ func (task *Task) Draw() {
 
 			rl.DrawRectangleLinesEx(r, 2, c)
 		}
+
+	}
+
+	if task.UndoChange && (!task.Is(TASK_TYPE_LINE) || task.LineStart == nil) {
+
+		state := NewUndoState(task)
+
+		if task.UndoCreation {
+			state.Creation = true
+		} else if task.UndoDeletion {
+			state.Deletion = true
+		}
+
+		task.Board.UndoHistory.Capture(state)
+
+		task.UndoChange = false
+		task.UndoCreation = false
+		task.UndoDeletion = false
+
+		task.Board.Project.Modified = true
 
 	}
 
@@ -1046,6 +1066,8 @@ func (task *Task) CreateContents() {
 
 	switch task.TaskType.CurrentChoice {
 
+	case TASK_TYPE_TABLE:
+		task.Contents = NewTableContents(task)
 	case TASK_TYPE_IMAGE:
 		task.Contents = NewImageContents(task)
 	case TASK_TYPE_SOUND:
@@ -1057,6 +1079,8 @@ func (task *Task) CreateContents() {
 	case TASK_TYPE_TIMER:
 		task.Contents = NewTimerContents(task)
 	case TASK_TYPE_LINE:
+		// This has to be here rather than in NewLineContents because Task.CreateLineEnding()
+		// calls NewLineContents(), so that would be a recursive loop.
 		if len(task.LineEndings) == 0 && task.LineStart == nil {
 			task.CreateLineEnding()
 		}
@@ -1203,14 +1227,14 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			// We flip the flag indicating to reorder tasks when possible
 			task.Board.ChangedTaskOrder = true
 
-			task.Change = TASK_CHANGE_ALTERATION
+			task.UndoChange = true
 
 		}
 	} else if message == MessageDragging {
 
 		if task.Selected {
 			if !task.Dragging {
-				task.Change = TASK_CHANGE_ALTERATION // Just started dragging
+				task.UndoChange = true // Just started dragging
 			}
 			task.Dragging = true
 			task.MouseDragStart = GetWorldMousePosition()
@@ -1218,6 +1242,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		}
 
 	} else if message == MessageDropped {
+
 		if task.Valid {
 			// This gets called when we reorder the board / project, which can cause problems if the Task is already removed
 			// because it will then be immediately readded to the Board grid, thereby making it a "ghost" Task
@@ -1225,8 +1250,8 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Board.RemoveTaskFromGrid(task)
 			task.Board.AddTaskToGrid(task)
 
-			if !task.Board.Project.JustLoaded {
-				task.Change = TASK_CHANGE_ALTERATION
+			if !task.Board.Project.Loading {
+				task.UndoChange = true
 			}
 
 		}
@@ -1249,7 +1274,8 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Contents.Destroy()
 		}
 
-		task.Change = TASK_CHANGE_DELETION
+		task.UndoChange = true
+		task.UndoDeletion = true
 
 	} else if message == MessageThemeChange {
 		if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
@@ -1264,7 +1290,9 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		if !task.Is(TASK_TYPE_LINE) || task.LineStart == nil {
 			// task.ReceiveMessage(MessageDoubleClick, nil)
-			task.Change = TASK_CHANGE_CREATION
+			task.UndoChange = true
+			task.UndoCreation = true
+
 		}
 
 	} else {
@@ -1327,6 +1355,7 @@ func (task *Task) UpdateNeighbors() {
 	task.TaskUnder = nil
 
 	tasks := task.Board.TasksInRect(task.Position.X+gs, task.Position.Y, task.Rect.Width, task.Rect.Height)
+
 	sortfunc := func(i, j int) bool {
 		return tasks[i].IsCompletable() || (tasks[i].Is(TASK_TYPE_NOTE) && !tasks[j].IsCompletable()) // Prioritize Completable Tasks or Notes to be counted as neighbors (though other Tasks can be neighbors still)
 	}
@@ -1410,13 +1439,15 @@ func (task *Task) IsComplete() bool {
 			return task.CompletionCheckbox.Checked
 		} else if task.Is(TASK_TYPE_PROGRESSION) {
 			return task.CompletionProgressionMax.Number() > 0 && task.CompletionProgressionCurrent.Number() >= task.CompletionProgressionMax.Number()
+		} else if task.Is(TASK_TYPE_TABLE) && task.TableData != nil {
+			return task.TableData.IsComplete()
 		}
 	}
 	return false
 }
 
 func (task *Task) IsCompletable() bool {
-	return task.Is(TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
+	return task.Is(TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION, TASK_TYPE_TABLE)
 }
 
 func (task *Task) NeighborInDirection(dirX, dirY float32) *Task {

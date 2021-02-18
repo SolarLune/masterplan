@@ -60,6 +60,25 @@ func (tbg *taskBGProgress) Draw() {
 	rl.DrawRectangleRec(rec, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
 }
 
+func applyGlow(task *Task, color rl.Color) rl.Color {
+
+	// if (task.Completable() && ((task.Complete() && task.Board.Project.CompleteTasksGlow.Checked) || (!task.Complete() && task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
+	if (task.IsCompletable() && ((task.Board.Project.CompleteTasksGlow.Checked) || (task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
+
+		glowVariance := float64(20)
+		if task.Selected {
+			glowVariance = 40
+		}
+
+		glow := int32(math.Sin(float64((rl.GetTime()*math.Pi*2-(float32(task.ID)*0.1))))*(glowVariance/2) + (glowVariance / 2))
+
+		color = ColorAdd(color, -glow)
+	}
+
+	return color
+
+}
+
 func drawTaskBG(task *Task, fillColor rl.Color) {
 
 	// task.Rect.Width = size.X
@@ -73,34 +92,18 @@ func drawTaskBG(task *Task, fillColor rl.Color) {
 		outlineColor = getThemeColor(GUI_OUTLINE)
 	}
 
-	// Moved this to a function because it's used for the inside and outside, and the
-	// progress bar for progression-based Tasks.
-	applyGlow := func(color rl.Color) rl.Color {
-
-		// if (task.Completable() && ((task.Complete() && task.Board.Project.CompleteTasksGlow.Checked) || (!task.Complete() && task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
-		if (task.IsCompletable() && ((task.Board.Project.CompleteTasksGlow.Checked) || (task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
-
-			glowVariance := float64(20)
-			if task.Selected {
-				glowVariance = 40
-			}
-
-			glow := int32(math.Sin(float64((rl.GetTime()*math.Pi*2-(float32(task.ID)*0.1))))*(glowVariance/2) + (glowVariance / 2))
-
-			color = ColorAdd(color, -glow)
-		}
-
-		return color
-
-	}
-
-	fillColor = applyGlow(fillColor)
-	outlineColor = applyGlow(outlineColor)
+	fillColor = applyGlow(task, fillColor)
+	outlineColor = applyGlow(task, outlineColor)
 
 	alpha := float32(task.Board.Project.TaskTransparency.Number()) / float32(task.Board.Project.TaskTransparency.Maximum)
 	fillColor.A = uint8(float32(fillColor.A) * alpha)
 
-	rl.DrawRectangleRec(task.Rect, fillColor)
+	if task.Board.Project.OutlineTasks.Checked {
+		rl.DrawRectangleRec(task.Rect, outlineColor)
+		DrawRectExpanded(task.Rect, -1, fillColor)
+	} else {
+		rl.DrawRectangleRec(task.Rect, fillColor)
+	}
 
 	// Animate deadlines
 	deadlineAnimation := task.Board.Project.DeadlineAnimation.CurrentChoice
@@ -138,10 +141,6 @@ func drawTaskBG(task *Task, fillColor rl.Color) {
 			rl.DrawTexturePro(task.Board.Project.GUI_Icons, src, dst, rl.Vector2{}, 0, rl.White)
 		}
 
-	}
-
-	if task.Board.Project.OutlineTasks.Checked {
-		DrawRectLines(task.Rect, outlineColor)
 	}
 
 }
@@ -377,7 +376,7 @@ func (c *ProgressionContents) Update() {
 	}
 
 	if taskChanged {
-		c.Task.Change = TASK_CHANGE_ALTERATION
+		c.Task.UndoChange = true
 	}
 
 }
@@ -469,7 +468,7 @@ func (c *ProgressionContents) Draw() {
 	}
 
 	if taskChanged {
-		c.Task.Change = TASK_CHANGE_ALTERATION
+		c.Task.UndoChange = true
 	}
 
 }
@@ -593,7 +592,7 @@ func (c *ImageContents) LoadResource() {
 
 			project := c.Task.Board.Project
 
-			if res, _ := project.LoadResource(fp); fp != "" && res != nil {
+			if res := project.LoadResource(fp); fp != "" && res != nil {
 
 				c.Resource = res
 				c.LoadedResource = false
@@ -634,7 +633,7 @@ func (c *ImageContents) LoadResource() {
 
 		c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
 
-		c.Task.Change = TASK_CHANGE_ALTERATION
+		c.Task.UndoChange = true
 
 	}
 
@@ -722,8 +721,8 @@ func (c *ImageContents) Draw() {
 					c.Task.Board.SendMessage(MessageSelect, map[string]interface{}{"task": c.Task})
 				}
 
+				DrawRectExpanded(corner, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 				rl.DrawRectangleRec(corner, getThemeColor(GUI_INSIDE))
-				DrawRectLines(corner, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
 				// corners := []rl.Rectangle{
 				// 	{pos.X, pos.Y, grabSize, grabSize},
@@ -752,7 +751,7 @@ func (c *ImageContents) Draw() {
 
 					if MouseReleased(rl.MouseLeftButton) {
 						c.resizingImage = false
-						c.Task.Change = TASK_CHANGE_ALTERATION
+						c.Task.UndoChange = true
 					}
 
 					c.Task.Dragging = false
@@ -939,7 +938,7 @@ func (c *SoundContents) LoadResource() {
 
 			project := c.Task.Board.Project
 
-			if res, _ := project.LoadResource(fp); fp != "" && res != nil {
+			if res := project.LoadResource(fp); fp != "" && res != nil {
 
 				c.Resource = res
 				c.LoadedResource = false
@@ -983,7 +982,7 @@ func (c *SoundContents) LoadResource() {
 
 		c.LoadedResource = true
 
-		c.Task.Change = TASK_CHANGE_ALTERATION
+		c.Task.UndoChange = true
 
 	}
 
@@ -1283,7 +1282,7 @@ func (c *TimerContents) Update() {
 
 func (c *TimerContents) ReloadAlarmSound() {
 
-	res, _ := c.Task.Board.Project.LoadResource(LocalPath("assets", "alarm.wav"))
+	res := c.Task.Board.Project.LoadResource(LocalPath("assets", "alarm.wav"))
 	alarmSound, alarmFormat, _ := res.Audio()
 	c.AlarmSound.Streamer = beep.Resample(2, alarmFormat.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), alarmSound)
 
@@ -1684,7 +1683,7 @@ func (c *LineContents) Destroy() {
 			ending.Board.DeleteTask(ending)
 		}
 
-		c.Task.Change = TASK_CHANGE_NONE
+		c.Task.UndoChange = false
 
 	}
 
@@ -1728,10 +1727,6 @@ func (c *MapContents) Draw() {
 		c.Task.Dragging = false
 	}
 
-	if c.Task.Board.Project.OutlineTasks.Checked {
-		DrawRectLines(c.Task.Rect, getThemeColor(GUI_OUTLINE))
-	}
-
 	// Draw Map header
 	oldHeight := c.Task.Rect.Height
 	c.Task.Rect.Height = 16
@@ -1762,8 +1757,8 @@ func (c *MapContents) Draw() {
 				c.resizing = true
 			}
 
+			DrawRectExpanded(corner, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 			rl.DrawRectangleRec(corner, getThemeColor(GUI_INSIDE))
-			DrawRectLines(corner, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
 			if c.resizing {
 
@@ -1773,7 +1768,7 @@ func (c *MapContents) Draw() {
 
 				if MouseReleased(rl.MouseLeftButton) {
 					c.resizing = false
-					c.Task.Change = TASK_CHANGE_ALTERATION
+					c.Task.UndoChange = true
 				}
 
 				mp.X += 4
@@ -1806,11 +1801,13 @@ func (c *MapContents) Draw() {
 		// Shadow underneath the map header
 		src = rl.Rectangle{216, 16, 8, 8}
 		dst = rl.Rectangle{c.Task.Rect.X + 1, c.Task.Rect.Y + 16, c.Task.Rect.Width - 2, 8}
-		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, src, dst, rl.Vector2{}, 0, rl.Black)
+		shadowColor := rl.Black
+		shadowColor.A = 128
+		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, src, dst, rl.Vector2{}, 0, shadowColor)
 
 		if c.Task.Selected {
+			DrawRectExpanded(corner, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 			rl.DrawRectangleRec(corner, getThemeColor(GUI_INSIDE))
-			DrawRectLines(corner, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 		}
 
 	}
@@ -1882,8 +1879,8 @@ func (c *WhiteboardContents) Draw() {
 				c.resizing = true
 			}
 
+			DrawRectExpanded(corner, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 			rl.DrawRectangleRec(corner, getThemeColor(GUI_INSIDE))
-			DrawRectLines(corner, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
 			if c.resizing {
 
@@ -1892,7 +1889,7 @@ func (c *WhiteboardContents) Draw() {
 
 				if MouseReleased(rl.MouseLeftButton) {
 					c.resizing = false
-					c.Task.Change = TASK_CHANGE_ALTERATION
+					c.Task.UndoChange = true
 				}
 
 				mp.X += 4
@@ -1914,7 +1911,9 @@ func (c *WhiteboardContents) Draw() {
 	// Shadow underneath the whiteboard header
 	src := rl.Rectangle{216, 16, 8, 8}
 	dst := rl.Rectangle{c.Task.Rect.X + 1, c.Task.Rect.Y + 16, c.Task.Rect.Width - 2, 8}
-	rl.DrawTexturePro(project.GUI_Icons, src, dst, rl.Vector2{}, 0, rl.Black)
+	shadowColor := rl.Black
+	shadowColor.A = 128
+	rl.DrawTexturePro(project.GUI_Icons, src, dst, rl.Vector2{}, 0, shadowColor)
 
 }
 
@@ -1926,6 +1925,291 @@ func (c *WhiteboardContents) ReceiveMessage(msg string) {
 
 	if msg == MessageThemeChange {
 		c.Task.Whiteboard.Deserialize(c.Task.Whiteboard.Serialize())
+	}
+
+}
+
+type TableContents struct {
+	Task           *Task
+	RenderTexture  rl.RenderTexture2D
+	ButtonsActive  bool
+	StripesPattern rl.Texture2D
+}
+
+func NewTableContents(task *Task) *TableContents {
+
+	res := task.Board.Project.LoadResource(LocalPath("assets", "diagonal_stripes.png")).Texture()
+
+	return &TableContents{
+		Task: task,
+		// For some reason, smaller heights mess up the size of the rendering???
+		RenderTexture:  rl.LoadRenderTexture(128, 128),
+		StripesPattern: res,
+	}
+
+}
+
+func (c *TableContents) Update() {
+
+	if c.Task.TableData == nil {
+		c.Task.TableData = NewTableData(c.Task)
+	}
+
+	c.Task.TableData.Update()
+
+}
+
+func (c *TableContents) Draw() {
+
+	createUndo := false
+
+	drawTaskBG(c.Task, getThemeColor(GUI_INSIDE_DISABLED))
+
+	if c.Task.TableData != nil {
+
+		gs := float32(c.Task.Board.Project.GridSize)
+
+		c.Task.DisplaySize = rl.Vector2{gs * float32(len(c.Task.TableData.Columns)+1), gs * float32(len(c.Task.TableData.Rows)+1)}
+
+		longestX := float32(0)
+		longestY := float32(0)
+
+		for _, element := range c.Task.TableData.Rows {
+			size, _ := TextSize(element.Textbox.Text(), false)
+			if size.X > longestX {
+				longestX = size.X
+			}
+		}
+
+		for _, element := range c.Task.TableData.Columns {
+			size, _ := TextSize(element.Textbox.Text(), false)
+			if size.X > longestY {
+				longestY = size.X
+			}
+		}
+
+		locked := c.Task.Board.Project.LockPositionToGrid(rl.Vector2{longestX, longestY})
+
+		longestX = locked.X
+		longestY = locked.Y
+
+		c.Task.DisplaySize.X += longestX
+		c.Task.DisplaySize.Y += longestY
+
+		pos := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
+		pos.Y += gs + longestY
+
+		for i, element := range c.Task.TableData.Rows {
+
+			rec := rl.Rectangle{pos.X + 1, pos.Y, longestX + gs - 1, gs}
+
+			color := getThemeColor(GUI_NOTE_COLOR)
+			if c.Task.IsComplete() {
+				color = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+			}
+
+			if i%2 == 1 {
+				if IsColorLight(color) {
+					color = ColorAdd(color, -20)
+				} else {
+					color = ColorAdd(color, 20)
+				}
+			}
+
+			color = applyGlow(c.Task, color)
+
+			if i >= len(c.Task.TableData.Rows)-1 {
+				rec.Height -= 1
+			}
+
+			rl.DrawRectangleRec(rec, color)
+
+			DrawText(rl.Vector2{pos.X + 2, pos.Y + 2}, element.Textbox.Text())
+			pos.Y += gs
+		}
+
+		pos = rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
+		pos.X += gs + longestX
+
+		for i, element := range c.Task.TableData.Columns {
+
+			rl.EndMode2D()
+
+			rl.BeginTextureMode(c.RenderTexture)
+			rl.ClearBackground(rl.Color{0, 0, 0, 0})
+			DrawText(rl.Vector2{1, 0}, element.Textbox.Text())
+			rl.EndTextureMode()
+
+			rl.BeginMode2D(camera)
+
+			rec := rl.Rectangle{pos.X, pos.Y + 1, gs, longestY + gs - 1}
+
+			color := getThemeColor(GUI_INSIDE)
+
+			if i%2 == 1 {
+				if IsColorLight(color) {
+					color = ColorAdd(color, -20)
+				} else {
+					color = ColorAdd(color, 20)
+				}
+			}
+
+			if c.Task.IsComplete() {
+				color = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
+			}
+
+			color = applyGlow(c.Task, color)
+
+			if i >= len(c.Task.TableData.Columns)-1 {
+				rec.Width -= 1
+			}
+
+			rl.DrawRectangleRec(rec, color)
+
+			src := rl.Rectangle{0, 0, float32(c.RenderTexture.Texture.Width), float32(c.RenderTexture.Texture.Height)}
+			dst := rl.Rectangle{pos.X + gs/2 - 2, pos.Y + gs/2 + 2, src.Width, src.Height}
+			src.Height *= -1
+
+			rl.DrawTexturePro(c.RenderTexture.Texture, src, dst, rl.Vector2{gs / 2, gs / 2}, 90, rl.White)
+
+			pos.X += gs
+
+		}
+
+		gridWidth := float32(len(c.Task.TableData.Columns)) * gs
+		gridHeight := float32(len(c.Task.TableData.Rows)) * gs
+
+		pos = rl.Vector2{c.Task.Rect.X + c.Task.Rect.Width - gridWidth, c.Task.Rect.Y + c.Task.Rect.Height - gridHeight}
+
+		src := rl.Rectangle{0, 64, 16, 16}
+		dst := rl.Rectangle{pos.X, pos.Y, 16, 16}
+
+		worldGUI = true
+
+		lockTask := false
+
+		for y := range c.Task.TableData.Completions {
+
+			for x := range c.Task.TableData.Completions[y] {
+
+				value := c.Task.TableData.Completions[y][x]
+				dst.X = pos.X + (float32(x) * gs)
+				dst.Y = pos.Y + (float32(y) * gs)
+
+				if value == 0 {
+					src.X = 0
+				} else if value == 1 {
+					src.X = 16
+				} else {
+					src.X = 32
+				}
+
+				if rl.CheckCollisionPointRec(GetWorldMousePosition(), dst) {
+					lockTask = true
+				}
+
+				style := NewButtonStyle()
+				style.IconSrcRec = src
+
+				if value == 1 {
+					style.IconColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+				} else if value == 2 {
+					style.IconColor = getThemeColor(GUI_NOTE_COLOR)
+				} else {
+					style.IconColor = getThemeColor(GUI_INSIDE)
+				}
+
+				style.ShadowOn = false // Buttons shouldn't have shadows here because they're on Tasks, which already handle their own shadows
+				style.RightClick = true
+
+				if imButton(dst, "", style) {
+
+					if c.ButtonsActive && !c.Task.Board.Project.TaskOpen && !c.Task.Board.Project.ProjectSettingsOpen && c.Task.Board.Project.PopupAction == "" {
+
+						if MousePressed(rl.MouseLeftButton) {
+
+							if value == 1 {
+								c.Task.TableData.Completions[y][x] = 0
+							} else {
+								c.Task.TableData.Completions[y][x] = 1
+							}
+							ConsumeMouseInput(rl.MouseLeftButton)
+
+						} else if MousePressed(rl.MouseRightButton) {
+
+							if value == 2 {
+								c.Task.TableData.Completions[y][x] = 0
+							} else {
+								c.Task.TableData.Completions[y][x] = 2
+							}
+							ConsumeMouseInput(rl.MouseRightButton)
+
+						}
+
+						createUndo = true
+
+					}
+
+				}
+
+				// rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, src, dst, rl.Vector2{}, 0, rl.White)
+
+			}
+
+		}
+
+		// rl.DrawRectangleRec(rl.Rectangle{c.Task.Rect.X, c.Task.Rect.Y, 16, 16})
+
+		src = rl.Rectangle{1, 1, c.Task.Rect.Width - gridWidth - 1, c.Task.Rect.Height - gridHeight - 1}
+		dst = src
+		dst.X = c.Task.Rect.X + 1
+		dst.Y = c.Task.Rect.Y + 1
+		dst.Width--
+		dst.Height--
+		rl.DrawTexturePro(c.StripesPattern, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_INSIDE))
+
+		shadowColor := rl.Black
+		shadowColor.A = 128
+
+		src = rl.Rectangle{216, 16, 8, 8}
+		dst = rl.Rectangle{pos.X, pos.Y, gridWidth, 8}
+		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, src, dst, rl.Vector2{}, 0, shadowColor)
+
+		src = rl.Rectangle{224, 8, 8, 8}
+		dst = rl.Rectangle{pos.X, pos.Y, 8, gridHeight}
+		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, src, dst, rl.Vector2{}, 0, shadowColor)
+
+		c.Task.Locked = lockTask
+
+		worldGUI = false
+
+		c.Task.DisplaySize.X += 2
+		c.Task.DisplaySize.Y += 2
+
+		c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+
+	}
+
+	if !c.Task.Selected {
+		c.ButtonsActive = false
+	}
+
+	if createUndo {
+		c.Task.UndoChange = true
+	}
+
+}
+
+func (c *TableContents) Destroy() {}
+
+func (c *TableContents) Trigger(triggerMode int) {}
+
+func (c *TableContents) ReceiveMessage(msg string) {
+
+	if msg == MessageSelect && c.Task.Selected {
+
+		c.ButtonsActive = true
+
 	}
 
 }
