@@ -818,7 +818,15 @@ func (task *Task) Update() {
 		task.CreateContents()
 	}
 
+	prevSize := task.DisplaySize
+
 	task.Contents.Update()
+
+	if task.DisplaySize != prevSize {
+		task.Board.RemoveTaskFromGrid(task)
+		task.Board.AddTaskToGrid(task)
+		task.Board.ChangedTaskOrder = true // Have the board reorder if the size is different
+	}
 
 }
 
@@ -869,7 +877,15 @@ func (task *Task) Draw() {
 		task.Rect.Width += (task.DisplaySize.X - task.Rect.Width) * expandSmooth
 		task.Rect.Height += (task.DisplaySize.Y - task.Rect.Height) * expandSmooth
 
+		prevSize := task.DisplaySize
+
 		task.Contents.Draw()
+
+		if task.DisplaySize != prevSize {
+			task.Board.ChangedTaskOrder = true // Have the board reorder if the size is different
+			task.Board.RemoveTaskFromGrid(task)
+			task.Board.AddTaskToGrid(task)
+		}
 
 		if task.Selected && task.Board.Project.PulsingTaskSelection.Checked { // Drawing selection indicator
 			r := task.Rect

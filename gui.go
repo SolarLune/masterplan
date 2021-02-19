@@ -1595,10 +1595,11 @@ type NumberSpinner struct {
 	Maximum int
 	Loop    bool // If the spinner loops when attempting to add a number past the max
 	Changed bool
+	Step    int // How far buttons increment or decrement
 }
 
 func NewNumberSpinner(x, y, w, h float32) *NumberSpinner {
-	numberSpinner := &NumberSpinner{Rect: rl.Rectangle{x, y, w, h}, Textbox: NewTextbox(x+h, y, w-(h*2), h)}
+	numberSpinner := &NumberSpinner{Rect: rl.Rectangle{x, y, w, h}, Textbox: NewTextbox(x+h, y, w-(h*2), h), Step: 1}
 
 	numberSpinner.Textbox.AllowAlphaCharacters = false
 	numberSpinner.Textbox.AllowNewlines = false
@@ -1642,12 +1643,12 @@ func (numberSpinner *NumberSpinner) Draw() {
 		num := numberSpinner.Number()
 
 		if minusButton {
-			num--
+			num -= numberSpinner.Step
 			numberSpinner.Changed = true
 		}
 
 		if plusButton {
-			num++
+			num += numberSpinner.Step
 			numberSpinner.Changed = true
 		}
 

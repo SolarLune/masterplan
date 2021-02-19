@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/goware/urlx"
 	"github.com/pkg/browser"
 	"github.com/tanema/gween"
@@ -145,6 +146,8 @@ type Project struct {
 	FontSize                    *NumberSpinner
 	GUIFontSizeMultiplier       *ButtonGroup
 	DefaultFontButton           *Button
+	TableColumnsRotatedVertical *Checkbox
+	TableColumnVerticalSpacing  *NumberSpinner
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -258,6 +261,8 @@ func NewProject() *Project {
 		CustomFontPathBrowseButton:  NewButton(0, 0, 128, 24, "Browse", false),
 		FontSize:                    NewNumberSpinner(0, 0, 128, 40),
 		GUIFontSizeMultiplier:       NewButtonGroup(0, 0, 850, 32, 1, GUI_FONT_SIZE_100, GUI_FONT_SIZE_150, GUI_FONT_SIZE_200, GUI_FONT_SIZE_250, GUI_FONT_SIZE_300, GUI_FONT_SIZE_350, GUI_FONT_SIZE_400),
+		TableColumnsRotatedVertical: NewCheckbox(0, 0, 32, 32),
+		TableColumnVerticalSpacing:  NewNumberSpinner(0, 0, 128, 40),
 
 		// Global / Program settings GUI elements
 
@@ -308,6 +313,11 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(project.SettingsSection)
 	row.VerticalSpacing = 24
+
+	project.TableColumnVerticalSpacing.SetNumber(60)
+	project.TableColumnVerticalSpacing.Minimum = 0
+	project.TableColumnVerticalSpacing.Maximum = 1000
+	project.TableColumnVerticalSpacing.Step = 10
 
 	// General settings
 
@@ -390,6 +400,13 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Always Show URL Buttons:"), SETTINGS_TASKS)
 	row.Item(project.AlwaysShowURLButtons, SETTINGS_TASKS)
+
+	row = column.Row()
+	row.Item(NewLabel("Rotate Table\nColumn Names Vertically:"), SETTINGS_TASKS)
+	row.Item(project.TableColumnsRotatedVertical, SETTINGS_TASKS)
+
+	row.Item(NewLabel("Table Column\nName Vertical Spacing:"), SETTINGS_TASKS)
+	row.Item(project.TableColumnVerticalSpacing, SETTINGS_TASKS)
 
 	row = column.Row()
 	label := NewLabel("Deadline Animation")
@@ -605,9 +622,12 @@ func NewProject() *Project {
 	project.TaskTransparency.Maximum = 5
 	project.TaskTransparency.Minimum = 1
 	project.TaskTransparency.SetNumber(5)
-	project.SoundVolume.Maximum = 10
+
+	project.SoundVolume.Maximum = 100
 	project.SoundVolume.Minimum = 0
-	project.SoundVolume.SetNumber(8)
+	project.SoundVolume.Step = 10
+	project.SoundVolume.SetNumber(80)
+
 	project.IncompleteTasksGlow.Checked = true
 	project.CompleteTasksGlow.Checked = true
 	project.SelectedTasksGlow.Checked = true
@@ -688,7 +708,7 @@ func (project *Project) Save(backup bool) {
 
 	} else if demoMode != "" {
 
-		project.Log("Cannot save in MasterPlan demo mode.")
+		project.Log("Cannot save in the demo for MasterPlan.")
 
 	} else {
 
@@ -753,6 +773,8 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `ScreenshotsPath`, project.ScreenshotsPath.Text())
 			data, _ = sjson.Set(data, `GraphicalTasksTransparent`, project.GraphicalTasksTransparent.Checked)
 			data, _ = sjson.Set(data, `DeadlineAnimation`, project.DeadlineAnimation.CurrentChoice)
+			data, _ = sjson.Set(data, `TableColumnsRotatedVertical`, project.TableColumnsRotatedVertical.Checked)
+			data, _ = sjson.Set(data, `TableColumnVerticalSpacing`, project.TableColumnVerticalSpacing.Number())
 
 			boardNames := []string{}
 			for _, board := range project.Boards {
@@ -833,6 +855,8 @@ func LoadProject(filepath string) *Project {
 
 		if data.Get("Tasks").Exists() {
 
+			loadingVersion, _ := semver.Parse(data.Get(`Version`).String())
+
 			project.Loading = true
 
 			if strings.Contains(filepath, BackupDelineator) {
@@ -883,8 +907,17 @@ func LoadProject(filepath string) *Project {
 			project.GraphicalTasksTransparent.Checked = getBool(`GraphicalTasksTransparent`)
 			project.DeadlineAnimation.CurrentChoice = getInt(`DeadlineAnimation`)
 
+			if data.Get(`TableColumnsRotatedVertical`).Exists() {
+				project.TableColumnsRotatedVertical.Checked = getBool(`TableColumnsRotatedVertical`)
+				project.TableColumnVerticalSpacing.SetNumber(getInt(`TableColumnVerticalSpacing`))
+			}
+
 			if data.Get(`SoundVolume`).Exists() {
-				project.SoundVolume.SetNumber(getInt(`SoundVolume`))
+				if loadingVersion.LE(semver.MustParse("0.6.1-2")) {
+					project.SoundVolume.SetNumber(getInt(`SoundVolume`) * 10)
+				} else {
+					project.SoundVolume.SetNumber(getInt(`SoundVolume`))
+				}
 			}
 
 			if data.Get(`TaskTransparency`).Exists() {
@@ -2337,6 +2370,7 @@ func (project *Project) GUI() {
 				programSettings.Save()
 
 				project.SendMessage(MessageSettingsChange, nil)
+
 			}
 
 			if project.GridVisible.Changed {

@@ -629,7 +629,7 @@ func (board *Board) AddTaskToGrid(task *Task) {
 
 	gs := float32(board.Project.GridSize)
 	startX, startY := int(math.Round(float64(task.Position.X/gs))), int(math.Round(float64(task.Position.Y/gs)))
-	endX, endY := int(math.Round(float64((task.Position.X+task.Rect.Width)/gs))), int(math.Round(float64((task.Position.Y+task.Rect.Height)/gs)))
+	endX, endY := int(math.Round(float64((task.Position.X+task.DisplaySize.X)/gs))), int(math.Round(float64((task.Position.Y+task.DisplaySize.Y)/gs)))
 
 	for y := startY; y < endY; y++ {
 

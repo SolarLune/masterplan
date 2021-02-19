@@ -1975,17 +1975,48 @@ func (c *TableContents) Draw() {
 		longestY := float32(0)
 
 		for _, element := range c.Task.TableData.Rows {
-			size, _ := TextSize(element.Textbox.Text(), false)
-			if size.X > longestX {
-				longestX = size.X
+
+			if len(element.Textbox.Text()) > 0 {
+
+				size, _ := TextSize(element.Textbox.Text(), false)
+				if size.X > longestX {
+					longestX = size.X
+				}
+
 			}
+
 		}
 
 		for _, element := range c.Task.TableData.Columns {
-			size, _ := TextSize(element.Textbox.Text(), false)
-			if size.X > longestY {
-				longestY = size.X
+
+			if len(element.Textbox.Text()) > 0 {
+
+				if c.Task.Board.Project.TableColumnsRotatedVertical.Checked {
+
+					lineSpacing = float32(c.Task.Board.Project.TableColumnVerticalSpacing.Number()) / 100
+
+					// size := float32((len(element.Textbox.Text()) - 1) * programSettings.FontSize)
+
+					size, _ := TextHeight(element.TextVertically(), false)
+
+					if size > longestY {
+						longestY = size
+					}
+
+					lineSpacing = 1
+
+				} else {
+
+					size, _ := TextSize(element.Textbox.Text(), false)
+
+					if size.X > longestY {
+						longestY = size.X
+					}
+
+				}
+
 			}
+
 		}
 
 		locked := c.Task.Board.Project.LockPositionToGrid(rl.Vector2{longestX, longestY})
@@ -2033,15 +2064,6 @@ func (c *TableContents) Draw() {
 
 		for i, element := range c.Task.TableData.Columns {
 
-			rl.EndMode2D()
-
-			rl.BeginTextureMode(c.RenderTexture)
-			rl.ClearBackground(rl.Color{0, 0, 0, 0})
-			DrawText(rl.Vector2{1, 0}, element.Textbox.Text())
-			rl.EndTextureMode()
-
-			rl.BeginMode2D(camera)
-
 			rec := rl.Rectangle{pos.X, pos.Y + 1, gs, longestY + gs - 1}
 
 			color := getThemeColor(GUI_INSIDE)
@@ -2066,11 +2088,37 @@ func (c *TableContents) Draw() {
 
 			rl.DrawRectangleRec(rec, color)
 
-			src := rl.Rectangle{0, 0, float32(c.RenderTexture.Texture.Width), float32(c.RenderTexture.Texture.Height)}
-			dst := rl.Rectangle{pos.X + gs/2 - 2, pos.Y + gs/2 + 2, src.Width, src.Height}
-			src.Height *= -1
+			if c.Task.Board.Project.TableColumnsRotatedVertical.Checked {
 
-			rl.DrawTexturePro(c.RenderTexture.Texture, src, dst, rl.Vector2{gs / 2, gs / 2}, 90, rl.White)
+				lineSpacing = float32(c.Task.Board.Project.TableColumnVerticalSpacing.Number()) / 100
+
+				p := pos
+				// p.X += gs / 4
+				text := element.TextVertically()
+				width := rl.MeasureTextEx(font, text, float32(programSettings.FontSize), spacing)
+				p.X += gs/2 - width.X/2
+				DrawText(p, text)
+
+				lineSpacing = 1 // Can't forget to set line spacing back SPECIFICALLY for drawing the text
+
+			} else {
+
+				rl.EndMode2D()
+
+				rl.BeginTextureMode(c.RenderTexture)
+				rl.ClearBackground(rl.Color{0, 0, 0, 0})
+				DrawText(rl.Vector2{1, 0}, element.Textbox.Text())
+				rl.EndTextureMode()
+
+				rl.BeginMode2D(camera)
+
+				src := rl.Rectangle{0, 0, float32(c.RenderTexture.Texture.Width), float32(c.RenderTexture.Texture.Height)}
+				dst := rl.Rectangle{pos.X + gs/2 - 2, pos.Y + gs/2 + 2, src.Width, src.Height}
+				src.Height *= -1
+
+				rl.DrawTexturePro(c.RenderTexture.Texture, src, dst, rl.Vector2{gs / 2, gs / 2}, 90, rl.White)
+
+			}
 
 			pos.X += gs
 

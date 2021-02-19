@@ -51,18 +51,22 @@ Completed:
 
 To-do:
 
-- Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
+- Add option for writing text normally, but vertically for columns for Tables.
 - Adding a new task no longer moves the entire stack below it??? Check deleting, too. (Board.DeleteSelectedTasks() no longer moves Tasks up)
 - Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
-- Fix up missing project logging for Task Contents when stuff happens
+- Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
+- INTERNAL: Fix up missing project logging for Task Contents when stuff happens
 - Use Lines to connect Tasks for SubTask counting
 - Add rebindable shortcuts for window-related features in main.go (window size setting, fullscreen, etc)
-- Add option for writing text normally, but vertically for columns for Tables.
+- Hide grid at far zoom levels
+- Loading images should be set to a reasonable, manageable size (maybe 50% of the zoom level)
 
 REVIEW
 
 - Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
 - Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
+- Help Manual is really slow for some reason
+- Project.Modified is set directly after loading a project for some reason
 - Test Timers going off
 - Review and re-implement PasteContents()
 - Review and re-implement HandleDroppedFiles()
@@ -74,6 +78,7 @@ REVIEW
 
 ---- RELEASE
 
+- Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
 - Table: Add button to turn a column into a row, or vice-versa
 - Add button on the Task itself to check off Checkbox Tasks
 - Add tags of some description
@@ -99,7 +104,6 @@ REVIEW
 - Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
 - Mini-map of some description?
 - Clickable images - when you click them, they go to a location.
-- Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
 - Replace Board.UndoHistory with a project-level one
 - Go over the tutorial to explain things a bit more; right click to open the menu should be mentioned right at launch
 - Undo + Redo for textboxes
@@ -153,7 +157,10 @@ includes a current number and maximum number of 999 each, so that they don't cha
 - GIF step next frame / prev. frame
 - Make it so that it's easier to insert Tasks (i.e. dragging tasks into a list of them will automatically space them to make room)
 - Review ImmediateButton; lots of functions for what is effectively just one "thing".
-- Justification for Task text
+- Custom Justification for Task text
+- Custom prefix
+- Custom numbering system enabling for tasks
+- Option to indent Text with icons off
 - Resizeable Notes / Collapsible Notes
 - Time estimations per Task - these can be set as a project-level default (i.e. something like 30 minutes per-Task), and then further specified (maybe specifying something like 3 hours for a specific Task, as an example).
 - Background hint text for text entry (i.e. "Enter date in MM/DD/YYYY Format" behind something that allows you to enter a date)

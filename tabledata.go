@@ -14,6 +14,22 @@ type tableElement struct {
 	Delete    *Button
 }
 
+func (te *tableElement) TextVertically() string {
+
+	text := ""
+
+	textLen := len(te.Textbox.Text())
+
+	for i, letter := range te.Textbox.Text() {
+		text += string(letter)
+		if i < textLen-1 {
+			text += "\n"
+		}
+	}
+
+	return text
+}
+
 type TableData struct {
 	Task        *Task
 	Completions [][]int
