@@ -187,12 +187,15 @@ func deadlineText(task *Task) string {
 }
 
 type CheckboxContents struct {
-	Task       *Task
-	bgProgress *taskBGProgress
-	URLButtons *URLButtons
+	Task          *Task
+	bgProgress    *taskBGProgress
+	URLButtons    *URLButtons
+	TextSize      rl.Vector2
+	DisplayedText string
 }
 
 func NewCheckboxContents(task *Task) *CheckboxContents {
+
 	contents := &CheckboxContents{
 		Task:       task,
 		bgProgress: newTaskBGProgress(task),
@@ -291,10 +294,13 @@ func (c *CheckboxContents) Draw() {
 
 	c.URLButtons.Draw(cp)
 
-	txtSize, _ := TextSize(txt, false)
+	if txt != c.DisplayedText {
+		c.TextSize, _ = TextSize(txt, false)
+		c.DisplayedText = txt
+	}
 
-	c.Task.DisplaySize.X += txtSize.X
-	c.Task.DisplaySize.Y = txtSize.Y
+	c.Task.DisplaySize.X += c.TextSize.X
+	c.Task.DisplaySize.Y = c.TextSize.Y
 
 	// We want to lock the size to the grid if possible
 	gs := float32(c.Task.Board.Project.GridSize)
@@ -341,9 +347,11 @@ func (c *CheckboxContents) Trigger(trigger int) {
 }
 
 type ProgressionContents struct {
-	Task       *Task
-	bgProgress *taskBGProgress
-	URLButtons *URLButtons
+	Task          *Task
+	bgProgress    *taskBGProgress
+	URLButtons    *URLButtons
+	DisplayedText string
+	TextSize      rl.Vector2
 }
 
 func NewProgressionContents(task *Task) *ProgressionContents {
@@ -353,6 +361,7 @@ func NewProgressionContents(task *Task) *ProgressionContents {
 		bgProgress: newTaskBGProgress(task),
 		URLButtons: NewURLButtons(task),
 	}
+
 	return contents
 
 }
@@ -447,14 +456,17 @@ func (c *ProgressionContents) Draw() {
 
 	txt += deadlineText(c.Task)
 
+	if txt != c.DisplayedText {
+		c.TextSize, _ = TextSize(txt, false)
+		c.DisplayedText = txt
+	}
+
 	DrawText(cp, txt)
 
 	c.URLButtons.Draw(cp)
 
-	txtSize, _ := TextSize(txt, false)
-
-	c.Task.DisplaySize.X += txtSize.X
-	c.Task.DisplaySize.Y = txtSize.Y
+	c.Task.DisplaySize.X += c.TextSize.X
+	c.Task.DisplaySize.Y = c.TextSize.Y
 
 	// We want to lock the size to the grid if possible
 	gs := float32(c.Task.Board.Project.GridSize)
@@ -501,14 +513,19 @@ type NoteContents struct {
 	Task               *Task
 	progressFillAmount float32
 	URLButtons         *URLButtons
+	TextSize           rl.Vector2
+	DisplayedText      string
 }
 
 func NewNoteContents(task *Task) *NoteContents {
+
 	contents := &NoteContents{
 		Task:       task,
 		URLButtons: NewURLButtons(task),
 	}
+
 	return contents
+
 }
 
 func (c *NoteContents) Update() {}
@@ -537,12 +554,15 @@ func (c *NoteContents) Draw() {
 
 	DrawText(cp, txt)
 
+	if txt != c.DisplayedText {
+		c.TextSize, _ = TextSize(txt, false)
+		c.DisplayedText = txt
+	}
+
 	c.URLButtons.Draw(cp)
 
-	txtSize, _ := TextSize(txt, false)
-
-	c.Task.DisplaySize.X += txtSize.X
-	c.Task.DisplaySize.Y = txtSize.Y
+	c.Task.DisplaySize.X += c.TextSize.X
+	c.Task.DisplaySize.Y = c.TextSize.Y
 
 	gs := float32(c.Task.Board.Project.GridSize)
 
@@ -564,6 +584,8 @@ type ImageContents struct {
 	LoadedResource bool
 	Gif            *GifPlayer
 	LoadedPath     string
+	DisplayedText  string
+	TextSize       rl.Vector2
 }
 
 func NewImageContents(task *Task) *ImageContents {
@@ -807,9 +829,16 @@ func (c *ImageContents) Draw() {
 			cp.X += 16
 			c.Task.DisplaySize.X += 16
 		}
+
 		DrawText(cp, text)
-		ts, _ := TextSize(text, false)
-		c.Task.DisplaySize.X += ts.X
+
+		if text != c.DisplayedText {
+			c.TextSize, _ = TextSize(text, false)
+			c.DisplayedText = text
+		}
+
+		c.Task.DisplaySize.X += c.TextSize.X
+
 	}
 
 	if c.Task.DisplaySize.X < 16 {
@@ -846,6 +875,8 @@ type SoundContents struct {
 	LoadedPath       string
 	BGProgress       *taskBGProgress
 	FinishedPlayback bool
+	TextSize         rl.Vector2
+	DisplayedText    string
 }
 
 func NewSoundContents(task *Task) *SoundContents {
@@ -858,6 +889,8 @@ func NewSoundContents(task *Task) *SoundContents {
 			Volume: float64(task.Board.Project.SoundVolume.Number()-10) / 2,
 		},
 	}
+
+	contents.TextSize, _ = TextSize(task.Description.Text(), false)
 
 	contents.LoadResource()
 
@@ -1104,8 +1137,13 @@ func (c *SoundContents) Draw() {
 
 	if text != "" {
 		DrawText(cp, text)
-		ts, _ := TextSize(text, false)
-		c.Task.DisplaySize.X += ts.X
+
+		if text != c.DisplayedText {
+			c.TextSize, _ = TextSize(text, false)
+			c.DisplayedText = text
+		}
+
+		c.Task.DisplaySize.X += c.TextSize.X
 	}
 
 	if c.Task.DisplaySize.X < 16 {
@@ -1156,20 +1194,25 @@ type TimerContents struct {
 	TimerValue float32
 	TargetDate time.Time
 	// AlarmSound  *beep.Resampler
-	AlarmSound *effects.Volume
+	AlarmSound    *effects.Volume
+	TextSize      rl.Vector2
+	DisplayedText string
 }
 
 func NewTimerContents(task *Task) *TimerContents {
-	timerContents := &TimerContents{
+
+	contents := &TimerContents{
 		Task: task,
 		AlarmSound: &effects.Volume{
 			Base:   2,
 			Volume: float64(task.Board.Project.SoundVolume.Number()-10) / 2,
 		},
 	}
-	timerContents.ReloadAlarmSound()
-	timerContents.CalculateTimeLeft() // Attempt to set the time on creation
-	return timerContents
+
+	contents.ReloadAlarmSound()
+	contents.CalculateTimeLeft() // Attempt to set the time on creation
+
+	return contents
 }
 
 func (c *TimerContents) CalculateTimeLeft() {
@@ -1450,8 +1493,11 @@ func (c *TimerContents) Draw() {
 
 	if text != "" {
 		DrawText(cp, text)
-		ts, _ := TextSize(text, false)
-		c.Task.DisplaySize.X += ts.X
+		if text != c.DisplayedText {
+			c.TextSize, _ = TextSize(text, false)
+			c.DisplayedText = text
+		}
+		c.Task.DisplaySize.X += c.TextSize.X
 	}
 
 	if c.Task.DisplaySize.X < 16 {
@@ -2050,7 +2096,7 @@ func (c *TableContents) Draw() {
 			color = applyGlow(c.Task, color)
 
 			if i >= len(c.Task.TableData.Rows)-1 {
-				rec.Height -= 1
+				rec.Height--
 			}
 
 			rl.DrawRectangleRec(rec, color)

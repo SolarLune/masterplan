@@ -1174,7 +1174,8 @@ func (project *Project) Update() {
 
 	// Board name on background of project
 	boardName := project.CurrentBoard().Name
-	boardNameWidth := GUITextWidth(boardName) + 16
+	textSize, _ := TextSize(boardName, true)
+	boardNameWidth := textSize.X + 16
 	boardNameHeight, _ := TextHeight(boardName, true)
 	rl.DrawRectangle(1, 1, int32(boardNameWidth), int32(boardNameHeight), getThemeColor(GUI_INSIDE))
 	DrawGUITextColored(rl.Vector2{8, 0}, getThemeColor(GUI_INSIDE_DISABLED), boardName)
@@ -2494,7 +2495,8 @@ func (project *Project) GUI() {
 
 			w := float32(0)
 			for _, b := range project.Boards {
-				bw := GUITextWidth(b.Name)
+				textSize, _ := TextSize(b.Name, true)
+				bw := textSize.X
 				if bw > w {
 					w = bw
 				}

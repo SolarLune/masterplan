@@ -86,6 +86,8 @@ func (buttons *URLButtons) ScanText(text string) {
 
 	}
 
+	buttons.ScannedText = text
+
 }
 
 func (buttons *URLButtons) Draw(pos rl.Vector2) {

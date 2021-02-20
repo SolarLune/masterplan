@@ -1071,8 +1071,9 @@ func (label *Label) Rectangle() rl.Rectangle {
 	width := float32(0)
 
 	for _, line := range strings.Split(label.Text, "\n") {
-		if GUITextWidth(line) > width {
-			width = GUITextWidth(line)
+		size, _ := TextSize(line, true)
+		if size.X > width {
+			width = size.X
 		}
 	}
 
@@ -2368,7 +2369,8 @@ func (textbox *Textbox) Draw() {
 
 	if textbox.RangeSelected() {
 
-		singleLetterWidth := GUITextWidth("A")
+		size, _ := TextSize("A", true)
+		singleLetterWidth := size.X
 
 		for i := textbox.SelectedRange[0]; i < textbox.SelectedRange[1]; i++ {
 
@@ -2636,14 +2638,6 @@ func TextHeight(text string, usingGuiFont bool) (float32, int) {
 	}
 	return totalHeight, nCount
 
-}
-
-func GUITextWidth(text string) float32 {
-	w := float32(0)
-	for _, c := range text {
-		w += rl.MeasureTextEx(font, string(c), GUIFontSize(), spacing).X + spacing
-	}
-	return w
 }
 
 func TextSize(text string, guiText bool) (rl.Vector2, int) {

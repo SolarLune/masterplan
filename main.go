@@ -3,10 +3,8 @@
 package main
 
 import (
-	"crypto/rand"
 	"fmt"
 	"log"
-	"math/big"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -36,7 +34,7 @@ var deltaTime = float32(0)
 var quit = false
 var targetFPS = 60
 
-var cpuProfiling = false
+var cpuProfileStart = time.Time{}
 
 func init() {
 
@@ -225,6 +223,10 @@ func main() {
 
 		} else {
 
+			// if rl.IsKeyPressed(rl.KeyF5) {
+			// 	profileCPU()
+			// }
+
 			if rl.WindowShouldClose() {
 				currentProject.PromptQuit()
 			}
@@ -262,7 +264,8 @@ func main() {
 			}
 
 			if len(v) > 0 {
-				x -= GUITextWidth(v)
+				size, _ := TextSize(v, true)
+				x -= size.X
 				DrawGUITextColored(rl.Vector2{x, 8}, color, v)
 			}
 
@@ -398,6 +401,7 @@ func main() {
 		fpsDisplayAccumulator += 1.0 / float32(targetFPS)
 
 		elapsed = sleepDifference // Sleeping doesn't sleep for exact amounts; carry this into next frame for sleep attempt
+
 	}
 
 	if programSettings.SaveWindowPosition {
@@ -414,18 +418,21 @@ func main() {
 
 }
 
-func toggleCPUProfiling() {
+func profileCPU() {
 
-	if !cpuProfiling {
-		rInt, _ := rand.Int(rand.Reader, big.NewInt(400))
-		cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rInt))
-		if err != nil {
-			log.Fatal("Could not create CPU Profile: ", err)
-		}
-		pprof.StartCPUProfile(cpuProfFile)
-	} else {
-		pprof.StopCPUProfile()
+	// rInt, _ := rand.Int(rand.Reader, big.NewInt(400))
+	// cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rInt))
+	cpuProfFile, err := os.Create("cpu.pprof")
+	if err != nil {
+		log.Fatal("Could not create CPU Profile: ", err)
 	}
-	cpuProfiling = !cpuProfiling
+	pprof.StartCPUProfile(cpuProfFile)
+	currentProject.Log("CPU Profiling begun...")
+
+	time.AfterFunc(time.Second*2, func() {
+		cpuProfileStart = time.Time{}
+		pprof.StopCPUProfile()
+		currentProject.Log("CPU Profiling finished!")
+	})
 
 }

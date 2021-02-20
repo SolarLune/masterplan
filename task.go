@@ -782,8 +782,8 @@ func (task *Task) Update() {
 	// If the project isn't fully initialized, then we assume it's visible to do any extra logic like set
 	// the Tasks' rectangles, which influence their neighbors
 	if task.Board.Project.FullyInitialized {
-		if !rl.CheckCollisionRecs(task.Rect, cameraRect) || task.Board.Project.CurrentBoard() == task.Board {
-			task.Visible = true
+		if !rl.CheckCollisionRecs(task.Rect, cameraRect) || task.Board.Project.CurrentBoard() != task.Board {
+			task.Visible = false
 		}
 	}
 

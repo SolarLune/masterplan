@@ -2,6 +2,8 @@ Whoops, I deleted the previous todo list as well. :(
 
 That really sucks, actually.
 
+For the below list, INTERNAL indicates things I do for internal / non-public-facing changes to MasterPlan; this might be API changes or new features added to new features that didn't exist previously, as an example.
+
 -- Rough Changelog --
 
 Completed:
@@ -48,10 +50,10 @@ Completed:
 - INTERNAL: Fixed Task Completion Date.
 - FIX: It's no longer possible to undo a project that has just been loaded.
 - The grid dot background is now slightly transparent.
+- INTERNAL: Add option for writing text normally, but vertically for columns for Tables.
 
 To-do:
 
-- Add option for writing text normally, but vertically for columns for Tables.
 - Adding a new task no longer moves the entire stack below it??? Check deleting, too. (Board.DeleteSelectedTasks() no longer moves Tasks up)
 - Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
 - Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
@@ -63,22 +65,27 @@ To-do:
 
 REVIEW
 
+- INTERNAL: Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
 - Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
-- Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
-- Help Manual is really slow for some reason
-- Project.Modified is set directly after loading a project for some reason
+- INTERNAL: Help Manual is really slow for some reason
+- INTERNAL: Project.Modified is set directly after loading a project for some reason
 - Test Timers going off
 - Review and re-implement PasteContents()
 - Review and re-implement HandleDroppedFiles()
 
+- Panels should be resizeable
 - FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
 - Make an option in the Task to reset image size (it's not done often enough to make it necessary to be on the Task itself, I think)
 - Add manual typing entry for month / day / year for deadlines / Timer Dates
     - Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
+- Whiteboards aren't loading correctly (maybe just from older versions of MP)
+- Lines are drawing underneath Tasks (this could be configurable)
 
 ---- RELEASE
 
+- Optimize Table text size checks
 - Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
+- Table: Option to make coumn and row names invisible (so that you could for example put images there).
 - Table: Add button to turn a column into a row, or vice-versa
 - Add button on the Task itself to check off Checkbox Tasks
 - Add tags of some description
@@ -107,7 +114,6 @@ REVIEW
 - Replace Board.UndoHistory with a project-level one
 - Go over the tutorial to explain things a bit more; right click to open the menu should be mentioned right at launch
 - Undo + Redo for textboxes
-- Panels should be resizeable
 - Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
 - Add ability to delete shortcuts?
 - Vertical alignment isn't really centered for textboxes?
