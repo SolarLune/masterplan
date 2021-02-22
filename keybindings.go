@@ -190,6 +190,11 @@ const (
 	KBStopAllSounds           = "Stop All Playing Sounds"
 	KBStartTimer              = "Timer: Start / Pause Timer"
 	KBChangePencilToolSize    = "Whiteboard: Change Pencil Tool Size"
+	KBShowFPS                 = "Show FPS"
+	KBWindowSizeSmall         = "Set Window Size to 960x540"
+	KBWindowSizeNormal        = "Set Window Size to 1920x1080"
+	KBToggleFullscreen        = "Toggle Fullscreen"
+	KBTakeScreenshot          = "Take Screenshot"
 )
 
 const (
@@ -425,6 +430,11 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBStartTimer, rl.KeyC)
 	kb.Define(KBSelectPrevLineEnding, rl.KeyX).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectNextLineEnding, rl.KeyC).triggerMode = TriggerModeRepeating
+	kb.Define(KBShowFPS, rl.KeyF1)
+	kb.Define(KBWindowSizeSmall, rl.KeyF2)
+	kb.Define(KBWindowSizeNormal, rl.KeyF3)
+	kb.Define(KBToggleFullscreen, rl.KeyF4)
+	kb.Define(KBTakeScreenshot, rl.KeyF11)
 
 	kb.ShortcutsByLevel = map[int][]*Shortcut{}
 

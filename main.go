@@ -162,19 +162,19 @@ func main() {
 
 		handleMouseInputs()
 
-		if rl.IsKeyPressed(rl.KeyF1) {
+		if programSettings.Keybindings.On(KBShowFPS) {
 			drawFPS = !drawFPS
 		}
 
-		if rl.IsKeyPressed(rl.KeyF2) {
+		if programSettings.Keybindings.On(KBWindowSizeSmall) {
 			rl.SetWindowSize(960, 540)
 		}
 
-		if rl.IsKeyPressed(rl.KeyF3) {
+		if programSettings.Keybindings.On(KBWindowSizeNormal) {
 			rl.SetWindowSize(1920, 1080)
 		}
 
-		if rl.IsKeyPressed(rl.KeyF4) {
+		if programSettings.Keybindings.On(KBToggleFullscreen) {
 			rl.ToggleFullscreen()
 		}
 
@@ -311,7 +311,7 @@ func main() {
 
 			}
 
-			if rl.IsKeyPressed(rl.KeyF11) {
+			if programSettings.Keybindings.On(KBTakeScreenshot) {
 				// This is here because you can trigger a screenshot from the context menu as well.
 				takeScreenshot = true
 			}

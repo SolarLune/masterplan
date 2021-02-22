@@ -54,16 +54,15 @@ Completed:
 - INTERNAL: Help Manual was really slow; this was because Tasks were calling TextSize(), which calls rl.MeasureTextEx(), which gets slower according to the number of glyphs in the font that is passed into it (naturally). 
     This has been resolved mostly by having Tasks check displayed text to see how large it is as rarely as possible.
 - INTERNAL: Shrinking images creates an undo state for each value between where you started shrinking and where you let go; it should be just two (when you started and when you let go)
+- Added rebindable shortcuts for previously hardcoded window-related functions (window size setting, fullscreen, showing FPS, taking a screenshot).
 
 To-do:
 
-- Add rebindable shortcuts for window-related features in main.go (window size setting, fullscreen, etc)
 - Shortcuts for making specific Tasks
 - Adding a new task no longer moves the entire stack below it??? Check deleting, too. (Board.DeleteSelectedTasks() no longer moves Tasks up)
 - Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
 - Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
 - INTERNAL: Fix up missing project logging for Task Contents when stuff happens
-- Use Lines to connect Tasks for SubTask counting
 - Hide grid at far zoom levels
 - Loading images should be set to a reasonable, manageable size (maybe 50% of the zoom level)
 - Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
@@ -84,6 +83,8 @@ REVIEW
 
 ---- RELEASE
 
+- Use Lines to connect Tasks for SubTask counting
+- Fullscreen acts weird if the window isn't maximized first, so that might be a good thing to try to do? Set the window size and then fullscreen it?
 - Add pasting image data? Somehow?
 - Panels should be resizeable
 - Investigate pasting images from the clipboard?

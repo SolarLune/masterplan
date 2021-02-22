@@ -2239,10 +2239,6 @@ func (project *Project) GUI() {
 					defaultButton := project.DefaultRebindingButtons[i]
 					shortcut := programSettings.Keybindings.Shortcuts[shortcutName]
 
-					if shortcutButton.Clicked {
-						project.RebindingAction = shortcutButton
-					}
-
 					if project.RebindingAction == shortcutButton {
 
 						project.RebindingAction.Disabled = true
@@ -2283,6 +2279,10 @@ func (project *Project) GUI() {
 
 						}
 
+					}
+
+					if shortcutButton.Clicked {
+						project.RebindingAction = shortcutButton
 					}
 
 					defaultButton.Disabled = shortcut.IsDefault()
