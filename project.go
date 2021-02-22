@@ -1278,7 +1278,7 @@ func (project *Project) Update() {
 						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.Selecting = false
 						project.DoubleClickTimer = time.Time{}
-						project.CurrentBoard().ChangedTaskOrder = true
+						project.CurrentBoard().TaskChanged = true
 					} else {
 						project.DoubleClickTimer = time.Now()
 					}
@@ -1619,7 +1619,7 @@ func (project *Project) Shortcuts() {
 					task := project.CurrentBoard().CreateNewTask()
 					task.ReceiveMessage(MessageTaskRestore, nil)
 					task.ReceiveMessage(MessageDoubleClick, nil)
-					project.CurrentBoard().ChangedTaskOrder = true
+					project.CurrentBoard().TaskChanged = true
 				} else if keybindings.On(KBRedo) {
 					if project.CurrentBoard().UndoHistory.Redo() {
 						project.UndoFade.Reset()
@@ -1711,7 +1711,7 @@ func (project *Project) Shortcuts() {
 
 						board.FocusViewOnSelectedTasks()
 
-						project.CurrentBoard().ChangedTaskOrder = true
+						project.CurrentBoard().TaskChanged = true
 
 					} else {
 
@@ -2163,7 +2163,7 @@ func (project *Project) GUI() {
 						task := project.CurrentBoard().CreateNewTask()
 						task.ReceiveMessage(MessageTaskRestore, nil)
 						task.ReceiveMessage(MessageDoubleClick, nil)
-						project.CurrentBoard().ChangedTaskOrder = true
+						project.CurrentBoard().TaskChanged = true
 
 					case "Delete Tasks":
 						project.CurrentBoard().DeleteSelectedTasks()

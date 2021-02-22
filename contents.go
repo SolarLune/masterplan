@@ -221,8 +221,7 @@ func (c *CheckboxContents) Draw() {
 
 	cp := rl.Vector2{c.Task.Rect.X + 4, c.Task.Rect.Y}
 
-	c.Task.DisplaySize.X = 32
-	c.Task.DisplaySize.Y = 16
+	displaySize := rl.Vector2{32, 16}
 
 	iconColor := getThemeColor(GUI_FONT_COLOR)
 
@@ -299,18 +298,23 @@ func (c *CheckboxContents) Draw() {
 		c.DisplayedText = txt
 	}
 
-	c.Task.DisplaySize.X += c.TextSize.X
-	c.Task.DisplaySize.Y = c.TextSize.Y
+	displaySize.X += c.TextSize.X
 
-	// We want to lock the size to the grid if possible
-	gs := float32(c.Task.Board.Project.GridSize)
-
-	c.Task.DisplaySize.X = float32(math.Ceil(float64(c.Task.DisplaySize.X/gs))) * gs
-	c.Task.DisplaySize.Y = float32(math.Ceil(float64(c.Task.DisplaySize.Y/gs))) * gs
+	if c.TextSize.Y > 0 {
+		displaySize.Y = c.TextSize.Y
+	}
 
 	if extendedText {
-		c.Task.DisplaySize.X += 4
-		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, rl.Rectangle{112, 0, 16, 16}, rl.Rectangle{c.Task.Rect.X + c.Task.DisplaySize.X - 16, cp.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, rl.Rectangle{112, 0, 16, 16}, rl.Rectangle{c.Task.Rect.X + displaySize.X - 12, cp.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+		displaySize.X += 12
+	}
+
+	// We want to lock the size to the grid if possible
+	displaySize = c.Task.Board.Project.LockPositionToGrid(displaySize)
+
+	if displaySize != c.Task.DisplaySize {
+		c.Task.DisplaySize = displaySize
+		c.Task.Board.TaskChanged = true
 	}
 
 }
@@ -400,8 +404,7 @@ func (c *ProgressionContents) Draw() {
 
 	cp := rl.Vector2{c.Task.Rect.X + 4, c.Task.Rect.Y}
 
-	c.Task.DisplaySize.X = 48
-	c.Task.DisplaySize.Y = 16
+	displaySize := rl.Vector2{48, 16}
 
 	iconColor := getThemeColor(GUI_FONT_COLOR)
 
@@ -412,7 +415,7 @@ func (c *ProgressionContents) Draw() {
 		}
 		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, srcIcon, rl.Rectangle{cp.X + 8, cp.Y + 8, 16, 16}, rl.Vector2{8, 8}, 0, iconColor)
 		cp.X += 16
-		c.Task.DisplaySize.X += 16
+		displaySize.X += 16
 	}
 
 	taskChanged := false
@@ -465,18 +468,22 @@ func (c *ProgressionContents) Draw() {
 
 	c.URLButtons.Draw(cp)
 
-	c.Task.DisplaySize.X += c.TextSize.X
-	c.Task.DisplaySize.Y = c.TextSize.Y
-
-	// We want to lock the size to the grid if possible
-	gs := float32(c.Task.Board.Project.GridSize)
-
-	c.Task.DisplaySize.X = float32(math.Ceil(float64(c.Task.DisplaySize.X/gs))) * gs
-	c.Task.DisplaySize.Y = float32(math.Ceil(float64(c.Task.DisplaySize.Y/gs))) * gs
+	displaySize.X += c.TextSize.X
+	if c.TextSize.Y > 0 {
+		displaySize.Y = c.TextSize.Y
+	}
 
 	if extendedText {
-		c.Task.DisplaySize.X += 4
-		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, rl.Rectangle{112, 0, 16, 16}, rl.Rectangle{c.Task.Rect.X + c.Task.DisplaySize.X - 16, cp.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, rl.Rectangle{112, 0, 16, 16}, rl.Rectangle{c.Task.Rect.X + displaySize.X - 12, cp.Y, 16, 16}, rl.Vector2{}, 0, iconColor)
+		displaySize.X += 12
+	}
+
+	// We want to lock the size to the grid if possible
+	displaySize = c.Task.Board.Project.LockPositionToGrid(displaySize)
+
+	if displaySize != c.Task.DisplaySize {
+		c.Task.DisplaySize = displaySize
+		c.Task.Board.TaskChanged = true
 	}
 
 	if taskChanged {
@@ -510,11 +517,10 @@ func (c *ProgressionContents) Trigger(trigger int) {
 }
 
 type NoteContents struct {
-	Task               *Task
-	progressFillAmount float32
-	URLButtons         *URLButtons
-	TextSize           rl.Vector2
-	DisplayedText      string
+	Task          *Task
+	URLButtons    *URLButtons
+	TextSize      rl.Vector2
+	DisplayedText string
 }
 
 func NewNoteContents(task *Task) *NoteContents {
@@ -536,8 +542,7 @@ func (c *NoteContents) Draw() {
 
 	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
 
-	c.Task.DisplaySize.X = 16
-	c.Task.DisplaySize.Y = 16
+	displaySize := rl.Vector2{16, 16}
 
 	iconColor := getThemeColor(GUI_FONT_COLOR)
 
@@ -545,7 +550,7 @@ func (c *NoteContents) Draw() {
 		srcIcon := rl.Rectangle{64, 0, 16, 16}
 		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, srcIcon, rl.Rectangle{cp.X + 8, cp.Y + 8, 16, 16}, rl.Vector2{8, 8}, 0, iconColor)
 		cp.X += 16
-		c.Task.DisplaySize.X += 16
+		displaySize.X += 12
 	}
 
 	txt := c.Task.Description.Text()
@@ -561,13 +566,17 @@ func (c *NoteContents) Draw() {
 
 	c.URLButtons.Draw(cp)
 
-	c.Task.DisplaySize.X += c.TextSize.X
-	c.Task.DisplaySize.Y = c.TextSize.Y
+	displaySize.X += c.TextSize.X
+	if c.TextSize.Y > 0 {
+		displaySize.Y = c.TextSize.Y
+	}
 
-	gs := float32(c.Task.Board.Project.GridSize)
+	displaySize = c.Task.Board.Project.LockPositionToGrid(displaySize)
 
-	c.Task.DisplaySize.X = float32(math.Ceil(float64(c.Task.DisplaySize.X/gs))) * gs
-	c.Task.DisplaySize.Y = float32(math.Ceil(float64(c.Task.DisplaySize.Y/gs))) * gs
+	if displaySize != c.Task.DisplaySize {
+		c.Task.DisplaySize = displaySize
+		c.Task.Board.TaskChanged = true
+	}
 
 }
 
@@ -586,13 +595,17 @@ type ImageContents struct {
 	LoadedPath     string
 	DisplayedText  string
 	TextSize       rl.Vector2
+	ProgressBG     *taskBGProgress
 }
 
 func NewImageContents(task *Task) *ImageContents {
 
 	contents := &ImageContents{
-		Task: task,
+		Task:       task,
+		ProgressBG: newTaskBGProgress(task),
 	}
+
+	contents.ProgressBG.Max = 100
 
 	contents.LoadResource()
 
@@ -654,6 +667,8 @@ func (c *ImageContents) LoadResource() {
 		c.LoadedResource = true
 
 		c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+
+		c.Task.Board.TaskChanged = true
 
 		c.Task.UndoChange = true
 
@@ -774,6 +789,7 @@ func (c *ImageContents) Draw() {
 					if MouseReleased(rl.MouseLeftButton) {
 						c.resizingImage = false
 						c.Task.UndoChange = true
+						c.Task.Board.TaskChanged = true // Have the board reorder if the size is different
 					}
 
 					c.Task.Dragging = false
@@ -814,8 +830,13 @@ func (c *ImageContents) Draw() {
 
 		case RESOURCE_STATE_DOWNLOADING:
 			text = fmt.Sprintf("Downloading [%s]... [%d%%]", c.Resource.Filename(), c.Resource.Progress())
+			c.ProgressBG.Current = c.Resource.Progress()
+			c.ProgressBG.Draw()
 		case RESOURCE_STATE_LOADING:
 			text = fmt.Sprintf("Loading image [%s]... [%d%%]", c.Resource.Filename(), c.Resource.Progress())
+			c.ProgressBG.Current = c.Resource.Progress()
+			c.ProgressBG.Draw()
+
 		}
 
 	} else {
@@ -885,8 +906,8 @@ func NewSoundContents(task *Task) *SoundContents {
 		Task:       task,
 		BGProgress: newTaskBGProgress(task),
 		SoundVolume: &effects.Volume{
-			Base:   2,
-			Volume: float64(task.Board.Project.SoundVolume.Number()-10) / 2,
+			Base:   50,
+			Volume: float64(task.Board.Project.SoundVolume.Number())/100 - 1,
 		},
 	}
 
@@ -1059,7 +1080,7 @@ func (c *SoundContents) Draw() {
 	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
 	text := ""
 
-	c.Task.DisplaySize = rl.Vector2{16, 16}
+	displaySize := rl.Vector2{16, 16}
 
 	if c.SoundStream != nil {
 		c.BGProgress.Current = c.SoundStream.Position()
@@ -1070,7 +1091,7 @@ func (c *SoundContents) Draw() {
 	if project.ShowIcons.Checked {
 		rl.DrawTexturePro(project.GUI_Icons, rl.Rectangle{80, 0, 16, 16}, rl.Rectangle{cp.X + 8, cp.Y + 8, 16, 16}, rl.Vector2{8, 8}, 0, getThemeColor(GUI_FONT_COLOR))
 		cp.X += 16
-		c.Task.DisplaySize.X += 16
+		displaySize.X += 16
 	}
 
 	c.LoadResource()
@@ -1110,7 +1131,7 @@ func (c *SoundContents) Draw() {
 			}
 
 			cp.X += 16
-			c.Task.DisplaySize.X += 16
+			displaySize.X += 16
 
 			if c.Task.SmallButton(48, 16, 16, 16, cp.X, cp.Y) {
 				speaker.Lock()
@@ -1120,13 +1141,15 @@ func (c *SoundContents) Draw() {
 			}
 
 			cp.X += 16
-			c.Task.DisplaySize.X += 16
+			displaySize.X += 16
 
 			// Draw controls
 
 		case RESOURCE_STATE_DOWNLOADING:
 			text = fmt.Sprintf("Downloading [%s]... [%d%%]", c.Resource.Filename(), c.Resource.Progress())
-
+			c.BGProgress.Current = c.Resource.Progress()
+			c.BGProgress.Max = 100
+			c.BGProgress.Draw()
 		}
 
 	} else {
@@ -1143,17 +1166,22 @@ func (c *SoundContents) Draw() {
 			c.DisplayedText = text
 		}
 
-		c.Task.DisplaySize.X += c.TextSize.X
+		displaySize.X += c.TextSize.X
 	}
 
-	if c.Task.DisplaySize.X < 16 {
-		c.Task.DisplaySize.X = 16
+	if displaySize.X < 16 {
+		displaySize.X = 16
 	}
-	if c.Task.DisplaySize.Y < 16 {
-		c.Task.DisplaySize.Y = 16
+	if displaySize.Y < 16 {
+		displaySize.Y = 16
 	}
 
-	c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+	displaySize = c.Task.Board.Project.LockPositionToGrid(displaySize)
+
+	if displaySize != c.Task.DisplaySize {
+		c.Task.DisplaySize = displaySize
+		c.Task.Board.TaskChanged = true
+	}
 
 }
 
@@ -1171,7 +1199,7 @@ func (c *SoundContents) ReceiveMessage(msg string) {
 	if msg == MessageSettingsChange {
 
 		speaker.Lock()
-		c.SoundVolume.Volume = float64(c.Task.Board.Project.SoundVolume.Number()-10) / 2
+		c.SoundVolume.Volume = float64(c.Task.Board.Project.SoundVolume.Number())/100 - 1
 		c.SoundVolume.Silent = c.Task.Board.Project.SoundVolume.Number() == 0
 		speaker.Unlock()
 
@@ -1204,8 +1232,8 @@ func NewTimerContents(task *Task) *TimerContents {
 	contents := &TimerContents{
 		Task: task,
 		AlarmSound: &effects.Volume{
-			Base:   2,
-			Volume: float64(task.Board.Project.SoundVolume.Number()-10) / 2,
+			Base:   50,
+			Volume: float64(task.Board.Project.SoundVolume.Number())/100 - 1,
 		},
 	}
 
@@ -1425,13 +1453,12 @@ func (c *TimerContents) Draw() {
 	project := c.Task.Board.Project
 	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
 
-	c.Task.DisplaySize.X = 48
-	c.Task.DisplaySize.Y = 0
+	displaySize := rl.Vector2{48, 16}
 
 	if project.ShowIcons.Checked {
 		rl.DrawTexturePro(project.GUI_Icons, rl.Rectangle{0, 16, 16, 16}, rl.Rectangle{cp.X + 8, cp.Y + 8, 16, 16}, rl.Vector2{8, 8}, 0, getThemeColor(GUI_FONT_COLOR))
 		cp.X += 16
-		c.Task.DisplaySize.X += 16
+		displaySize.X += 16
 	}
 
 	srcX := float32(16)
@@ -1497,17 +1524,22 @@ func (c *TimerContents) Draw() {
 			c.TextSize, _ = TextSize(text, false)
 			c.DisplayedText = text
 		}
-		c.Task.DisplaySize.X += c.TextSize.X
+		displaySize.X += c.TextSize.X
 	}
 
-	if c.Task.DisplaySize.X < 16 {
-		c.Task.DisplaySize.X = 16
+	if displaySize.X < 16 {
+		displaySize.X = 16
 	}
-	if c.Task.DisplaySize.Y < 16 {
-		c.Task.DisplaySize.Y = 16
+	if displaySize.Y < 16 {
+		displaySize.Y = 16
 	}
 
-	c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+	displaySize = c.Task.Board.Project.LockPositionToGrid(displaySize)
+
+	if displaySize != c.Task.DisplaySize {
+		c.Task.DisplaySize = displaySize
+		c.Task.Board.TaskChanged = true
+	}
 
 }
 
@@ -1518,7 +1550,7 @@ func (c *TimerContents) ReceiveMessage(msg string) {
 	if msg == MessageSettingsChange {
 
 		speaker.Lock()
-		c.AlarmSound.Volume = float64(c.Task.Board.Project.SoundVolume.Number()-10) / 2
+		c.AlarmSound.Volume = float64(c.Task.Board.Project.SoundVolume.Number())/100 - 1
 		c.AlarmSound.Silent = c.Task.Board.Project.SoundVolume.Number() == 0
 		speaker.Unlock()
 
@@ -1815,6 +1847,7 @@ func (c *MapContents) Draw() {
 				if MouseReleased(rl.MouseLeftButton) {
 					c.resizing = false
 					c.Task.UndoChange = true
+					c.Task.Board.TaskChanged = true
 				}
 
 				mp.X += 4
@@ -1936,6 +1969,7 @@ func (c *WhiteboardContents) Draw() {
 				if MouseReleased(rl.MouseLeftButton) {
 					c.resizing = false
 					c.Task.UndoChange = true
+					c.Task.Board.TaskChanged = true
 				}
 
 				mp.X += 4
@@ -2015,7 +2049,7 @@ func (c *TableContents) Draw() {
 
 		gs := float32(c.Task.Board.Project.GridSize)
 
-		c.Task.DisplaySize = rl.Vector2{gs * float32(len(c.Task.TableData.Columns)+1), gs * float32(len(c.Task.TableData.Rows)+1)}
+		displaySize := rl.Vector2{gs * float32(len(c.Task.TableData.Columns)+1), gs * float32(len(c.Task.TableData.Rows)+1)}
 
 		longestX := float32(0)
 		longestY := float32(0)
@@ -2070,8 +2104,8 @@ func (c *TableContents) Draw() {
 		longestX = locked.X
 		longestY = locked.Y
 
-		c.Task.DisplaySize.X += longestX
-		c.Task.DisplaySize.Y += longestY
+		displaySize.X += longestX
+		displaySize.Y += longestY
 
 		pos := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
 		pos.Y += gs + longestY
@@ -2277,10 +2311,15 @@ func (c *TableContents) Draw() {
 
 		worldGUI = false
 
-		c.Task.DisplaySize.X += 2
-		c.Task.DisplaySize.Y += 2
+		displaySize.X += 2
+		displaySize.Y += 2
 
-		c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+		displaySize = c.Task.Board.Project.LockPositionToGrid(displaySize)
+
+		if c.Task.DisplaySize != displaySize {
+			c.Task.DisplaySize = displaySize
+			c.Task.Board.TaskChanged = true // Have the board reorder if the size is different
+		}
 
 	}
 

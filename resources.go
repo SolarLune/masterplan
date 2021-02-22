@@ -158,6 +158,7 @@ func (res *Resource) IsAudio() bool {
 	return strings.Contains(res.MimeData.String(), "audio")
 }
 
+// Progress returns the progress of downloading or loading the resource, as an integer ranging from 0 to 100.
 func (res *Resource) Progress() int {
 	if res.DownloadResponse != nil && !res.DownloadResponse.IsComplete() {
 		return int(res.DownloadResponse.Progress() * 100)

@@ -818,15 +818,7 @@ func (task *Task) Update() {
 		task.CreateContents()
 	}
 
-	prevSize := task.DisplaySize
-
 	task.Contents.Update()
-
-	if task.DisplaySize != prevSize {
-		task.Board.RemoveTaskFromGrid(task)
-		task.Board.AddTaskToGrid(task)
-		task.Board.ChangedTaskOrder = true // Have the board reorder if the size is different
-	}
 
 }
 
@@ -877,15 +869,7 @@ func (task *Task) Draw() {
 		task.Rect.Width += (task.DisplaySize.X - task.Rect.Width) * expandSmooth
 		task.Rect.Height += (task.DisplaySize.Y - task.Rect.Height) * expandSmooth
 
-		prevSize := task.DisplaySize
-
 		task.Contents.Draw()
-
-		if task.DisplaySize != prevSize {
-			task.Board.ChangedTaskOrder = true // Have the board reorder if the size is different
-			task.Board.RemoveTaskFromGrid(task)
-			task.Board.AddTaskToGrid(task)
-		}
 
 		if task.Selected && task.Board.Project.PulsingTaskSelection.Checked { // Drawing selection indicator
 			r := task.Rect
@@ -1241,7 +1225,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			// }
 
 			// We flip the flag indicating to reorder tasks when possible
-			task.Board.ChangedTaskOrder = true
+			task.Board.TaskChanged = true
 
 			task.UndoChange = true
 
@@ -1282,7 +1266,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		// re-place the Task at the original position.
 		task.Board.RemoveTaskFromGrid(task)
 
-		if audio, ok := task.Contents.(*SoundContents); ok {
+		if audio, ok := task.Contents.(*SoundContents); ok && audio.SoundControl != nil {
 			audio.SoundControl.Paused = true // We don't simply call contents.Destroy() because you could undo a deletion
 		}
 

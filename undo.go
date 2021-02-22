@@ -114,7 +114,7 @@ func (history *UndoHistory) Undo() bool {
 		}
 
 		for _, board := range currentProject.Boards {
-			board.ChangedTaskOrder = true
+			board.TaskChanged = true
 		}
 
 		history.On = true
@@ -143,7 +143,7 @@ func (history *UndoHistory) Redo() bool {
 		}
 
 		for _, board := range currentProject.Boards {
-			board.ChangedTaskOrder = true
+			board.TaskChanged = true
 		}
 
 		history.On = true

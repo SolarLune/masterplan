@@ -14,14 +14,14 @@ type Position struct {
 }
 
 type Board struct {
-	Tasks            []*Task
-	ToBeDeleted      []*Task
-	ToBeRestored     []*Task
-	Project          *Project
-	Name             string
-	TaskLocations    map[Position][]*Task
-	UndoHistory      *UndoHistory
-	ChangedTaskOrder bool
+	Tasks         []*Task
+	ToBeDeleted   []*Task
+	ToBeRestored  []*Task
+	Project       *Project
+	Name          string
+	TaskLocations map[Position][]*Task
+	UndoHistory   *UndoHistory
+	TaskChanged   bool
 }
 
 func NewBoard(project *Project) *Board {
@@ -46,9 +46,9 @@ func (board *Board) Update() {
 	board.HandleDeletedTasks()
 
 	// We only want to reorder tasks if tasks were moved, deleted, restored, etc., as it is costly.
-	if board.ChangedTaskOrder {
+	if board.TaskChanged {
 		board.ReorderTasks()
-		board.ChangedTaskOrder = false
+		board.TaskChanged = false
 	}
 
 }
@@ -163,7 +163,7 @@ func (board *Board) InsertExistingTask(task *Task) {
 	board.Tasks = append(board.Tasks, task)
 	board.RemoveTaskFromGrid(task)
 	board.AddTaskToGrid(task)
-	board.ChangedTaskOrder = true
+	board.TaskChanged = true
 
 }
 
@@ -227,7 +227,7 @@ func (board *Board) DeleteSelectedTasks() {
 
 	board.Project.Log("Deleted %d Task(s).", count)
 
-	board.ChangedTaskOrder = true
+	board.TaskChanged = true
 
 }
 
@@ -455,7 +455,7 @@ func (board *Board) PasteTasks() {
 
 		}
 
-		board.ChangedTaskOrder = true
+		board.TaskChanged = true
 
 		if board.Project.Cutting {
 			for _, task := range board.Project.CopyBuffer {
@@ -619,7 +619,7 @@ func (board *Board) RemoveTaskFromGrid(task *Task) {
 
 	}
 
-	board.ChangedTaskOrder = true
+	board.TaskChanged = true
 
 }
 
@@ -653,7 +653,7 @@ func (board *Board) AddTaskToGrid(task *Task) {
 
 	task.gridPositions = positions
 
-	board.ChangedTaskOrder = true
+	board.TaskChanged = true
 
 }
 
@@ -686,7 +686,7 @@ func (board *Board) HandleDeletedTasks() {
 			if task == t {
 				board.Tasks[index] = nil
 				board.Tasks = append(board.Tasks[:index], board.Tasks[index+1:]...)
-				board.ChangedTaskOrder = true
+				board.TaskChanged = true
 				break
 			}
 		}
@@ -695,7 +695,7 @@ func (board *Board) HandleDeletedTasks() {
 
 	for _, task := range board.ToBeRestored {
 		board.Tasks = append(board.Tasks, task)
-		board.ChangedTaskOrder = true
+		board.TaskChanged = true
 	}
 	board.ToBeRestored = []*Task{}
 
