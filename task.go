@@ -266,11 +266,15 @@ func (task *Task) SetPanel() {
 		TASK_TYPE_PROGRESSION,
 		TASK_TYPE_NOTE)
 
+	task.Description.Focused = true
+
 	row = column.Row()
 	row.Item(NewLabel("Timer Name:"), TASK_TYPE_TIMER)
 
 	row = column.Row()
 	row.Item(task.TimerName, TASK_TYPE_TIMER)
+
+	task.TimerName.Focused = true
 
 	row = column.Row()
 	row.Item(NewLabel("Filepath:"), TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
@@ -278,6 +282,8 @@ func (task *Task) SetPanel() {
 	row.Item(task.FilePathTextbox, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
 	row = column.Row()
 	row.Item(task.LoadMediaButton, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
+
+	task.FilePathTextbox.Focused = true
 
 	row = column.Row()
 	row.Item(NewLabel("Completed:"), TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)
@@ -1192,7 +1198,6 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Open = true
 			task.Board.Project.TaskOpen = true
 			task.Dragging = false
-			task.Description.Focused = true
 
 			// 	if task.Board.Project.TaskEditRect.Width != 0 && task.Board.Project.TaskEditRect.Height != 0 {
 			// 		task.EditPanel.Rect = task.Board.Project.TaskEditRect
@@ -1213,16 +1218,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Open = false
 			task.Board.Project.TaskOpen = false
 
-			task.Board.Project.PreviousTaskType = task.TaskType.ChoiceAsString()
-
-			// if task.Is(TASK_TYPE_WHITEBOARD) {
-			// 	if task.Whiteboard == nil {
-			// 		task.Whiteboard = NewWhiteboard(task)
-			// 	}
-			// 	task.DisplaySize.X = float32(task.Whiteboard.Width * 2)
-			// 	task.DisplaySize.Y = float32(task.Whiteboard.Height*2 + task.Board.Project.GridSize)
-			// 	task.Whiteboard.Update()
-			// }
+			task.Board.Project.PreviousTaskType = task.TaskType.CurrentChoice
 
 			// We flip the flag indicating to reorder tasks when possible
 			task.Board.TaskChanged = true

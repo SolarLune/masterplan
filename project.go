@@ -184,7 +184,7 @@ type Project struct {
 	GUI_Icons            rl.Texture2D
 	Patterns             rl.Texture2D
 	ShortcutKeyTimer     int
-	PreviousTaskType     string
+	PreviousTaskType     int
 	Resources            map[string]*Resource
 	DownloadingResources map[string]*Resource
 	Modified             bool
@@ -617,7 +617,7 @@ func NewProject() *Project {
 	project.GridVisible.Checked = true
 	project.ShowIcons.Checked = true
 	project.DoubleClickTimer = time.Time{}
-	project.PreviousTaskType = "Check Box"
+	project.PreviousTaskType = TASK_TYPE_BOOLEAN
 	project.NumberTopLevel.Checked = true
 	project.TaskTransparency.Maximum = 5
 	project.TaskTransparency.Minimum = 1
@@ -1274,6 +1274,7 @@ func (project *Project) Update() {
 
 					if !project.DoubleClickTimer.IsZero() && project.DoubleClickTaskID == -1 {
 						task := project.CurrentBoard().CreateNewTask()
+						task.TaskType.CurrentChoice = project.PreviousTaskType
 						task.ReceiveMessage(MessageTaskRestore, nil)
 						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.Selecting = false
@@ -1615,11 +1616,6 @@ func (project *Project) Shortcuts() {
 					project.CurrentBoard().PasteContent()
 				} else if keybindings.On(KBPaste) {
 					project.CurrentBoard().PasteTasks()
-				} else if keybindings.On(KBCreateTask) {
-					task := project.CurrentBoard().CreateNewTask()
-					task.ReceiveMessage(MessageTaskRestore, nil)
-					task.ReceiveMessage(MessageDoubleClick, nil)
-					project.CurrentBoard().TaskChanged = true
 				} else if keybindings.On(KBRedo) {
 					if project.CurrentBoard().UndoHistory.Redo() {
 						project.UndoFade.Reset()
@@ -1929,6 +1925,42 @@ func (project *Project) Shortcuts() {
 					project.CurrentBoard().FocusViewOnSelectedTasks()
 				} else if keybindings.On(KBQuit) {
 					project.PromptQuit()
+				} else {
+
+					setChoice := -1
+
+					if keybindings.On(KBCreateTask) {
+						setChoice = project.PreviousTaskType
+					} else if keybindings.On(KBCreateCheckboxTask) {
+						setChoice = TASK_TYPE_BOOLEAN
+					} else if keybindings.On(KBCreateProgressionTask) {
+						setChoice = TASK_TYPE_PROGRESSION
+					} else if keybindings.On(KBCreateNoteTask) {
+						setChoice = TASK_TYPE_NOTE
+					} else if keybindings.On(KBCreateImageTask) {
+						setChoice = TASK_TYPE_IMAGE
+					} else if keybindings.On(KBCreateSoundTask) {
+						setChoice = TASK_TYPE_SOUND
+					} else if keybindings.On(KBCreateTimerTask) {
+						setChoice = TASK_TYPE_TIMER
+					} else if keybindings.On(KBCreateLinetask) {
+						setChoice = TASK_TYPE_LINE
+					} else if keybindings.On(KBCreateMapTask) {
+						setChoice = TASK_TYPE_MAP
+					} else if keybindings.On(KBCreateWhiteboardTask) {
+						setChoice = TASK_TYPE_WHITEBOARD
+					} else if keybindings.On(KBCreateTableTask) {
+						setChoice = TASK_TYPE_TABLE
+					}
+
+					if setChoice >= 0 {
+						task := project.CurrentBoard().CreateNewTask()
+						task.TaskType.CurrentChoice = setChoice
+						task.ReceiveMessage(MessageTaskRestore, nil)
+						task.ReceiveMessage(MessageDoubleClick, nil)
+						project.CurrentBoard().TaskChanged = true
+					}
+
 				}
 
 			}
@@ -2161,6 +2193,7 @@ func (project *Project) GUI() {
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
+						task.TaskType.CurrentChoice = project.PreviousTaskType
 						task.ReceiveMessage(MessageTaskRestore, nil)
 						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.CurrentBoard().TaskChanged = true

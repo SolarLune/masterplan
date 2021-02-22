@@ -51,7 +51,6 @@ func NewTableData(task *Task) *TableData {
 	}
 
 	tbd.AddColumn()
-	tbd.Columns[0].Textbox.Focused = false
 
 	tbd.AddRow()
 	tbd.Rows[0].Textbox.Focused = false

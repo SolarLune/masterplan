@@ -136,14 +136,6 @@ func (board *Board) CreateNewTask() *Task {
 
 	}
 
-	// if newTask.TaskType.ChoiceAsString() == "Image" || newTask.TaskType.ChoiceAsString() == "Sound" {
-	// 	newTask.FilePathTextbox.Focused = true
-	// } else {
-	// 	newTask.Description.Focused = true
-	// }
-
-	newTask.TaskType.SetChoice(board.Project.PreviousTaskType)
-
 	board.Project.Log("Created 1 new Task.")
 
 	if !board.Project.Loading {

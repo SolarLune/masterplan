@@ -1742,6 +1742,8 @@ type Textbox struct {
 	forceBufferRecreation bool
 	CharToRect            map[int]rl.Rectangle
 	Lines                 [][]rune
+	OpenTime              float32
+	PrevUpdateTime        float32
 
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
@@ -1756,7 +1758,8 @@ type Textbox struct {
 func NewTextbox(x, y, w, h float32) *Textbox {
 	textbox := &Textbox{Rect: rl.Rectangle{x, y, w, h}, Visible: true,
 		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64, AllowAlphaCharacters: true,
-		SelectedRange: [2]int{-1, -1}, ExpandVertically: true, CharToRect: map[int]rl.Rectangle{}, Lines: [][]rune{{}}, triggerTextRedraw: true}
+		SelectedRange: [2]int{-1, -1}, ExpandVertically: true, CharToRect: map[int]rl.Rectangle{}, Lines: [][]rune{{}}, triggerTextRedraw: true,
+		OpenTime: -1, PrevUpdateTime: -1}
 
 	textbox.lineHeight, _ = TextHeight(" ", true)
 
@@ -1961,6 +1964,8 @@ func (textbox *Textbox) FindLastCharBeforeCaret(char rune, skipSeparator bool) i
 
 func (textbox *Textbox) Update() {
 
+	nowTime := currentProject.Time
+
 	// Because the text can change
 	textbox.lineHeight, _ = TextHeight(" ", true)
 
@@ -2016,16 +2021,18 @@ func (textbox *Textbox) Update() {
 			textbox.SelectAllText()
 		}
 
-		letter := int(rl.GetKeyPressed())
+		letter := rl.GetKeyPressed()
 
-		if letter != -1 {
+		// GetKeyPressed returns 0 if nothing was pressed. Also, we only want to accept key presses after the window has been
+		// open and the textbox visible for some amount of time.
+		if letter > 0 && nowTime-textbox.OpenTime > 0.1 {
 
-			numbers := []int{
+			numbers := []int32{
 				rl.KeyZero,
 				rl.KeyNine,
 			}
 
-			npNumbers := []int{
+			npNumbers := []int32{
 				rl.KeyKp0,
 				rl.KeyKp9,
 			}
@@ -2319,6 +2326,12 @@ func (textbox *Textbox) Update() {
 		textbox.triggerTextRedraw = false
 		textbox.forceBufferRecreation = false
 	}
+
+	if nowTime-textbox.PrevUpdateTime > deltaTime*2 {
+		textbox.OpenTime = nowTime
+	}
+
+	textbox.PrevUpdateTime = nowTime
 
 }
 

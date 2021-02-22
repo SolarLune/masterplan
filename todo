@@ -55,22 +55,23 @@ Completed:
     This has been resolved mostly by having Tasks check displayed text to see how large it is as rarely as possible.
 - INTERNAL: Shrinking images creates an undo state for each value between where you started shrinking and where you let go; it should be just two (when you started and when you let go)
 - Added rebindable shortcuts for previously hardcoded window-related functions (window size setting, fullscreen, showing FPS, taking a screenshot).
+- Added rebindable Shortcuts for making specific Task types.
+- FIX: Textboxes now don't take key input immediately after they're visible. This means you can now assign individual keys to shortcuts effectively (i.e. I to create an Image Task, and not type I immediately when the Task Edit dialog appears).
+- The "first / main" editable element in the Task Edit Panel for each Task type is now Focused by default.
 
 To-do:
 
-- Shortcuts for making specific Tasks
+- Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
 - Adding a new task no longer moves the entire stack below it??? Check deleting, too. (Board.DeleteSelectedTasks() no longer moves Tasks up)
 - Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
-- Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
 - INTERNAL: Fix up missing project logging for Task Contents when stuff happens
+
 - Hide grid at far zoom levels
 - Loading images should be set to a reasonable, manageable size (maybe 50% of the zoom level)
-- Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
 - FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
 - FIX: Making creating a new task just a key types that key after it's created.
 - Make an option in the Task to reset image size (it's not done often enough to make it necessary to be on the Task itself, I think)
-- Whiteboards aren't loading correctly (maybe just from older versions of MP)
-- Lines are drawing underneath Tasks (this could be configurable)
+- Whiteboards aren't loading correctly (most likely just from older versions of MP)
 - INTERNAL: Project.Modified is set directly after loading a project for some reason
 
 REVIEW
@@ -83,11 +84,19 @@ REVIEW
 
 ---- RELEASE
 
+- Lines are drawing underneath Tasks (this could be configurable)
+- Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
+- Draw text to a buffer, draw the buffer to the screen; might be considerably faster than drawing text constantly. Seems like 72% of non-sleep execution time might be spent drawing.
+- Tweakable zoom levels, rather than being hard-coded?
 - Use Lines to connect Tasks for SubTask counting
 - Fullscreen acts weird if the window isn't maximized first, so that might be a good thing to try to do? Set the window size and then fullscreen it?
 - Add pasting image data? Somehow?
 - Panels should be resizeable
 - Investigate pasting images from the clipboard?
+
+- A mobile version of MasterPlan, where you can take pictures or record video and have it copy over to your plan somehow (gasp!).
+- Re-make Dino Riki? Aw Nuts!? 7DRL on 3/4/21?!?!?!
+
 - Add manual typing entry for month / day / year for deadlines / Timer Dates
     - Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
 - Optimize Table text size checks

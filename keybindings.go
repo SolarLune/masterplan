@@ -153,6 +153,16 @@ const (
 	KBPaste                   = "Paste Tasks / Text"
 	KBPasteContent            = "Paste Content Onto Board"
 	KBCreateTask              = "Create New Task"
+	KBCreateCheckboxTask      = "Create Checkbox Task"
+	KBCreateProgressionTask   = "Create Progression Task"
+	KBCreateNoteTask          = "Create Note Task"
+	KBCreateImageTask         = "Create Image Task"
+	KBCreateSoundTask         = "Create Sound Task"
+	KBCreateTimerTask         = "Create Timer Task"
+	KBCreateLinetask          = "Create Line Task"
+	KBCreateMapTask           = "Create Map Task"
+	KBCreateWhiteboardTask    = "Create Whiteboard Task"
+	KBCreateTableTask         = "Create Table Task"
 	KBDeleteTasks             = "Delete Tasks"
 	KBFocusOnTasks            = "Focus View on Tasks"
 	KBEditTasks               = "Edit Tasks"
@@ -386,14 +396,26 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBPaste, rl.KeyV, rl.KeyLeftControl)
 	kb.Define(KBPasteContent, rl.KeyV, rl.KeyLeftControl, rl.KeyLeftShift)
 	kb.Define(KBCreateTask, rl.KeyN, rl.KeyLeftControl)
+
+	kb.Define(KBCreateCheckboxTask, rl.KeyOne, rl.KeyLeftControl)
+	kb.Define(KBCreateProgressionTask, rl.KeyTwo, rl.KeyLeftControl)
+	kb.Define(KBCreateNoteTask, rl.KeyThree, rl.KeyLeftControl)
+	kb.Define(KBCreateImageTask, rl.KeyFour, rl.KeyLeftControl)
+	kb.Define(KBCreateSoundTask, rl.KeyFive, rl.KeyLeftControl)
+	kb.Define(KBCreateTimerTask, rl.KeySix, rl.KeyLeftControl)
+	kb.Define(KBCreateLinetask, rl.KeySeven, rl.KeyLeftControl)
+	kb.Define(KBCreateMapTask, rl.KeyEight, rl.KeyLeftControl)
+	kb.Define(KBCreateWhiteboardTask, rl.KeyNine, rl.KeyLeftControl)
+	kb.Define(KBCreateTableTask, rl.KeyZero, rl.KeyLeftControl)
+
 	kb.Define(KBDeleteTasks, rl.KeyDelete)
 	kb.Define(KBFocusOnTasks, rl.KeyF)
 	kb.Define(KBEditTasks, rl.KeyEnter)
-	kb.Define(KBDeselectTasks, rl.KeyEscape)
 	kb.Define(KBFindNextTask, rl.KeyF, rl.KeyLeftControl)
 	kb.Define(KBFindPreviousTask, rl.KeyF, rl.KeyLeftControl, rl.KeyLeftShift)
 
 	kb.Define(KBSelectAllTasks, rl.KeyA, rl.KeyLeftControl)
+	kb.Define(KBDeselectTasks, rl.KeyEscape)
 	kb.Define(KBSelectTaskAbove, rl.KeyUp).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTaskLeft, rl.KeyLeft).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTaskBelow, rl.KeyDown).triggerMode = TriggerModeRepeating
