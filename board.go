@@ -43,8 +43,6 @@ func (board *Board) Update() {
 		task.Update()
 	}
 
-	board.HandleDeletedTasks()
-
 	// We only want to reorder tasks if tasks were moved, deleted, restored, etc., as it is costly.
 	if board.TaskChanged {
 		board.ReorderTasks()
@@ -83,8 +81,15 @@ func (board *Board) Draw() {
 	}
 
 	for _, task := range sorted {
+
 		task.Draw()
+
 	}
+
+	// HandleDeletedTasks should be here specifically because we're trying to do this last, after any Tasks that
+	// have been notified that they will be deleted have had a chance to update and draw one last time so that they can
+	// create UndoStates as necessary.
+	board.HandleDeletedTasks()
 
 }
 
@@ -164,8 +169,6 @@ func (board *Board) DeleteTask(task *Task) {
 	if task.Valid {
 
 		task.Valid = false
-		state := NewUndoState(task)
-		state.Deletion = true
 		board.ToBeDeleted = append(board.ToBeDeleted, task)
 		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
 
@@ -178,8 +181,6 @@ func (board *Board) RestoreTask(task *Task) {
 	if !task.Valid {
 
 		task.Valid = true
-		state := NewUndoState(task)
-		state.Creation = true
 		board.ToBeRestored = append(board.ToBeRestored, task)
 		task.ReceiveMessage(MessageDropped, map[string]interface{}{"task": task})
 
@@ -189,35 +190,48 @@ func (board *Board) RestoreTask(task *Task) {
 
 func (board *Board) DeleteSelectedTasks() {
 
-	count := 0
-
 	selected := board.SelectedTasks(false)
 
 	stackMoveUp := []*Task{}
+	moveUpY := map[*Task][]float32{}
+	moveUpDistance := map[*Task][]float32{}
 
 	for _, t := range selected {
-		count++
+
+		if _, exists := moveUpY[t.StackHead]; !exists {
+			moveUpY[t.StackHead] = []float32{}
+			moveUpDistance[t.StackHead] = []float32{}
+		}
+
+		moveUpY[t.StackHead] = append(moveUpY[t.StackHead], t.Position.Y)
+		moveUpDistance[t.StackHead] = append(moveUpDistance[t.StackHead], t.DisplaySize.Y)
+
 		for _, rest := range t.RestOfStack {
-			if !rest.Selected {
+			if rest.Selected {
+				break
+			} else {
 				stackMoveUp = append(stackMoveUp, rest)
 			}
 		}
+
 		board.DeleteTask(t)
+
 	}
 
-	// for _, s := range stackMoveUp {
-	// board.UndoHistory.Capture(NewUndoState(s))
-	// }
-	//
-	// for _, s := range stackMoveUp {
-	// s.Position.Y -= float32(board.Project.GridSize)
-	// }
-	//
-	// for _, s := range stackMoveUp {
-	// board.UndoHistory.Capture(NewUndoState(s))
-	// }
+	// We want to move each Task in the stack that is NOT selected, up by the height of each Task that was deleted, but only if they're below that Y position
+	for _, taskInStack := range stackMoveUp {
 
-	board.Project.Log("Deleted %d Task(s).", count)
+		for i := len(moveUpY[taskInStack.StackHead]) - 1; i >= 0; i-- {
+
+			if taskInStack.Position.Y >= moveUpY[taskInStack.StackHead][i] {
+				taskInStack.Position.Y -= moveUpDistance[taskInStack.StackHead][i]
+			}
+
+		}
+
+	}
+
+	board.Project.Log("Deleted %d Task(s).", len(selected))
 
 	board.TaskChanged = true
 
@@ -674,6 +688,10 @@ func (board *Board) SelectedTasks(returnFirstSelectedTask bool) []*Task {
 func (board *Board) HandleDeletedTasks() {
 
 	for _, task := range board.ToBeDeleted {
+
+		// We call this here to ensure the Task creates an UndoState prior to deletion, as it could have been deleted after both of its Update() and Draw() methods were called.
+		task.CreateUndoState()
+
 		for index, t := range board.Tasks {
 			if task == t {
 				board.Tasks[index] = nil

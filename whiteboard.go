@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 
+	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -299,21 +301,44 @@ func (whiteboard *Whiteboard) Serialize() []string {
 
 func (whiteboard *Whiteboard) Deserialize(data []string) {
 
+	project := whiteboard.Task.Board.Project
+
 	colors := []rl.Color{}
 
 	whiteboard.SetColors()
 
 	for i := len(data) - 1; i >= 0; i-- {
 		ogData, _ := base64.StdEncoding.DecodeString(data[i])
+
+		rowColors := []rl.Color{}
+
 		for _, value := range ogData {
-			if value == 0 {
-				colors = append(colors, whiteboard.Colors[0])
-			} else if value == 1 {
-				colors = append(colors, whiteboard.Colors[1])
+
+			color := whiteboard.Colors[0]
+
+			if value == 1 {
+				color = whiteboard.Colors[1]
+			}
+
+			rowColors = append(rowColors, color)
+
+			// Append the color again if it's an older plan, as they were "doubly thick"
+			if project.Loading && project.LoadingVersion.LTE(semver.MustParse("0.6.1-3")) {
+				rowColors = append(rowColors, color)
 			}
 
 		}
 
+		colors = append(colors, rowColors...)
+
+		if project.Loading && project.LoadingVersion.LTE(semver.MustParse("0.6.1-3")) {
+			colors = append(colors, rowColors...)
+		}
+
+	}
+
+	if whiteboard.Task.Board.Project.Loading {
+		fmt.Println(len(colors))
 	}
 
 	rl.UpdateTexture(whiteboard.Texture.Texture, colors)

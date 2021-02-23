@@ -173,6 +173,7 @@ type Project struct {
 	TaskOpen            bool
 	ThemeReloadTimer    float32
 	Loading             bool
+	LoadingVersion      semver.Version
 	ResizingImage       bool
 	LogOn               bool
 	LoadRecentDropdown  *DropdownMenu
@@ -288,6 +289,7 @@ func NewProject() *Project {
 		DrawWindowBorder:          NewCheckbox(0, 0, 32, 32),
 		SaveWindowPosition:        NewCheckbox(0, 0, 32, 32),
 		GrabClient:                grab.NewClient(),
+		LogOn:                     true,
 	}
 
 	project.TempDir, _ = ioutil.TempDir("", "masterplan")
@@ -611,7 +613,6 @@ func NewProject() *Project {
 
 	project.OutlineTasks.Checked = true
 	project.BracketSubtasks.Checked = true
-	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
 	project.TaskShadowSpinner.CurrentChoice = 2
 	project.GridVisible.Checked = true
@@ -855,7 +856,7 @@ func LoadProject(filepath string) *Project {
 
 		if data.Get("Tasks").Exists() {
 
-			loadingVersion, _ := semver.Parse(data.Get(`Version`).String())
+			project.LoadingVersion, _ = semver.Parse(data.Get(`Version`).String())
 
 			project.Loading = true
 
@@ -913,7 +914,7 @@ func LoadProject(filepath string) *Project {
 			}
 
 			if data.Get(`SoundVolume`).Exists() {
-				if loadingVersion.LE(semver.MustParse("0.6.1-2")) {
+				if project.LoadingVersion.LE(semver.MustParse("0.6.1-2")) {
 					project.SoundVolume.SetNumber(getInt(`SoundVolume`) * 10)
 				} else {
 					project.SoundVolume.SetNumber(getInt(`SoundVolume`))
@@ -1695,12 +1696,22 @@ func (project *Project) Shortcuts() {
 							}
 
 							if neighbor != nil {
+
+								// We manually create an UndoState for the neighbor. The true argument here places the state in the previous UndoFrame (which is necessary
+								// to be able to ensure a Task creates an undoable state prior to the movement for the Tasks not selected that are swapped). The alternative
+								// to this was to copy the previous Frame's States to the new one, effectively serializing all prior Tasks and the new one every frame,
+								// thereby slowing undo and redo down noticeably. I believe this to be a necessary hack.
+								neighbor.Board.UndoHistory.Capture(NewUndoState(neighbor), true)
+
 								neighbor.Move(-dx*size(task), -dy*size(task))
 								task.Position.X += dx * size(neighbor)
 								task.Position.Y += dy * size(neighbor)
+								neighbor.UndoChange = true
+								task.UndoChange = true
 							} else {
 								task.Position.X += dx * gs
 								task.Position.Y += dy * gs
+								task.UndoChange = true
 							}
 
 						}
@@ -1895,36 +1906,58 @@ func (project *Project) Shortcuts() {
 						project.ExecuteDestructiveAction(ActionLoadProject, "")
 					}
 				} else if keybindings.On(KBDeselectTasks) {
+
 					project.SendMessage(MessageSelect, nil)
 					project.Log("Deselected all Task(s).")
+
 				} else if keybindings.On(KBSelectTopTaskInStack) {
+
 					for _, task := range project.CurrentBoard().SelectedTasks(true) {
+
 						next := task.TaskAbove
-						for next != nil && next.TaskAbove != nil {
-							next = next.TaskAbove
-						}
-						if next != nil {
-							project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
-						}
-						break
-					}
-					project.CurrentBoard().FocusViewOnSelectedTasks()
-				} else if keybindings.On(KBSelectBottomTaskInStack) {
-					for _, task := range project.CurrentBoard().Tasks {
-						if task.Selected {
-							next := task.TaskBelow
-							for next != nil && next.TaskBelow != nil {
-								next = next.TaskBelow
-							}
-							if next != nil {
+
+						for next != nil {
+
+							if keybindings.On(KBAddToSelection) {
+								next.ReceiveMessage(MessageSelect, map[string]interface{}{"task": next})
+							} else if next.TaskAbove == nil {
 								project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
 							}
-							break
+
+							next = next.TaskAbove
+
 						}
+
 					}
+
 					project.CurrentBoard().FocusViewOnSelectedTasks()
+
+				} else if keybindings.On(KBSelectBottomTaskInStack) {
+
+					for _, task := range project.CurrentBoard().SelectedTasks(true) {
+
+						next := task.TaskBelow
+
+						for next != nil {
+
+							if keybindings.On(KBAddToSelection) {
+								next.ReceiveMessage(MessageSelect, map[string]interface{}{"task": next})
+							} else if next.TaskBelow == nil {
+								project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
+							}
+
+							next = next.TaskBelow
+
+						}
+
+					}
+
+					project.CurrentBoard().FocusViewOnSelectedTasks()
+
 				} else if keybindings.On(KBQuit) {
+
 					project.PromptQuit()
+
 				} else {
 
 					setChoice := -1

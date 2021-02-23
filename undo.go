@@ -48,7 +48,10 @@ func NewUndoHistory(board *Board) *UndoHistory {
 
 }
 
-func (history *UndoHistory) Capture(newState *UndoState) {
+// Capture captures the created UndoState and adds it to the UndoHistory if it's a unique UndoState (and not a duplicate of any other State in either the current frame, or
+// the previous frame). previousState indicates whether to place the new UndoState in the previous frame or not - this is useful specifically for undoing swapping Tasks, where
+// we need both an old state (where it was previously), and a new State (where it's been moved).
+func (history *UndoHistory) Capture(newState *UndoState, previousState bool) {
 
 	if !history.On {
 		return
@@ -59,7 +62,7 @@ func (history *UndoHistory) Capture(newState *UndoState) {
 	// and visualization.
 
 	if newState.Task.Is(TASK_TYPE_LINE) && newState.Task.LineStart != nil {
-		history.Capture(NewUndoState(newState.Task.LineStart))
+		history.Capture(NewUndoState(newState.Task.LineStart), previousState)
 		return
 	}
 
@@ -75,6 +78,7 @@ func (history *UndoHistory) Capture(newState *UndoState) {
 			return
 		}
 
+		// TODO: Review this, this seems odd???
 		for i := history.Index - 1; i >= 0; i-- {
 			if olderState, exists := history.Frames[i].States[newState.Task]; exists {
 				if olderState.SameAs(newState) {
@@ -87,7 +91,11 @@ func (history *UndoHistory) Capture(newState *UndoState) {
 
 	}
 
-	history.CurrentFrame.States[newState.Task] = newState
+	if previousState && len(history.Frames) > 0 && history.Index > 0 {
+		history.Frames[history.Index-1].States[newState.Task] = newState
+	} else {
+		history.CurrentFrame.States[newState.Task] = newState
+	}
 
 	history.Changed = true
 

@@ -108,6 +108,7 @@ type Task struct {
 	TaskLeft        *Task
 	TaskUnder       *Task
 	RestOfStack     []*Task
+	StackHead       *Task
 	SubTasks        []*Task
 	gridPositions   []Position
 	Valid           bool
@@ -697,6 +698,9 @@ func (task *Task) Deserialize(jsonData string) {
 		// We make a copy of the LineEndings slice because each Task's LineContents.Destroy() function removes the Task from the
 		// LineEndings list on destruction.
 
+		prevLogOn := task.Board.Project.LogOn
+		task.Board.Project.LogOn = false
+
 		previousEndings := task.LineEndings[:]
 
 		task.LineEndings = []*Task{}
@@ -714,10 +718,14 @@ func (task *Task) Deserialize(jsonData string) {
 				newEnding := task.CreateLineEnding()
 				newEnding.Position.X = float32(endingPositions[i].Float())
 				newEnding.Position.Y = float32(endingPositions[i+1].Float())
+				newEnding.Rect.X = newEnding.Position.X
+				newEnding.Rect.Y = newEnding.Position.Y
 
 			}
 
 		}
+
+		task.Board.Project.LogOn = prevLogOn
 
 	}
 
@@ -910,6 +918,12 @@ func (task *Task) Draw() {
 
 	}
 
+	task.CreateUndoState()
+
+}
+
+func (task *Task) CreateUndoState() {
+
 	if task.UndoChange && (!task.Is(TASK_TYPE_LINE) || task.LineStart == nil) {
 
 		state := NewUndoState(task)
@@ -920,7 +934,7 @@ func (task *Task) Draw() {
 			state.Deletion = true
 		}
 
-		task.Board.UndoHistory.Capture(state)
+		task.Board.UndoHistory.Capture(state, false)
 
 		task.UndoChange = false
 		task.UndoCreation = false
@@ -1466,46 +1480,63 @@ func (task *Task) SetPrefix() {
 
 	loopIndex := 0
 
-	if task.IsCompletable() {
+	task.RestOfStack = []*Task{}
+	task.SubTasks = []*Task{}
+	task.StackHead = task
 
-		task.RestOfStack = []*Task{}
-		task.SubTasks = []*Task{}
-		below := task.TaskBelow
-		countingSubTasks := true
+	above := task.TaskAbove
+	below := task.TaskBelow
 
-		for countingSubTasks && below != nil && below != task {
+	countingSubTasks := true
 
-			// We want to break out in case of situations where Tasks create an infinite loop (a.Below = b, b.Below = c, c.Below = a kind of thing)
-			if loopIndex > 1000 {
-				break // Emergency in case we get stuck in a loop
+	for below != nil && below != task {
+
+		// We want to break out in case of situations where Tasks create an infinite loop (a.Below = b, b.Below = c, c.Below = a kind of thing)
+		if loopIndex > 1000 {
+			break // Emergency in case we get stuck in a loop
+		}
+
+		task.RestOfStack = append(task.RestOfStack, below)
+
+		if countingSubTasks && below.IsCompletable() {
+
+			taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
+			belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
+
+			if belowX == taskX+1 && task.IsCompletable() {
+				task.SubTasks = append(task.SubTasks, below)
+			} else if belowX <= taskX {
+				countingSubTasks = false
 			}
-
-			if below.IsCompletable() {
-
-				task.RestOfStack = append(task.RestOfStack, below)
-
-				taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
-				belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
-
-				if countingSubTasks && belowX == taskX+1 && task.Is(TASK_TYPE_BOOLEAN) {
-					task.SubTasks = append(task.SubTasks, below)
-				} else if belowX <= taskX {
-					countingSubTasks = false
-				}
-
-			}
-
-			below = below.TaskBelow
-
-			loopIndex++
 
 		}
 
+		below = below.TaskBelow
+
+		loopIndex++
+
 	}
 
-	above := task.TaskAbove
+	loopIndex = 0
 
-	below := task.TaskBelow
+	for above != nil && above != task && above.TaskAbove != nil {
+
+		above = above.TaskAbove
+
+		if loopIndex > 1000 {
+			break // This SHOULD never happen, but you never know
+		}
+
+		loopIndex++
+
+	}
+
+	if above != nil {
+		task.StackHead = above
+	}
+
+	above = task.TaskAbove
+	below = task.TaskBelow
 
 	loopIndex = 0
 

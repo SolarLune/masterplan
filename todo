@@ -58,21 +58,23 @@ Completed:
 - Added rebindable Shortcuts for making specific Task types.
 - FIX: Textboxes now don't take key input immediately after they're visible. This means you can now assign individual keys to shortcuts effectively (i.e. I to create an Image Task, and not type I immediately when the Task Edit dialog appears).
 - The "first / main" editable element in the Task Edit Panel for each Task type is now Focused by default.
+- Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
+- Project Volume spinner now goes from 0 to 100, rather than 0 to 10. The volume is also now more naturally distributed, audibly.
+- FIX: Adding a new task or deleting Tasks now properly moves the entire stack below it. This works if Tasks are selected across multiple stacks.
+- FIX: Making creating a new task just a key types that key after it's created.
+- Adding the ability to hold Shift to select all Tasks between the selected one and the end of the Stack if you press the shortcut for it (Page Up or Page Down, by default).
+- INTERNAL: Whiteboards (including those from older MasterPlan versions) load properly now.
 
 To-do:
 
-- Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
-- Adding a new task no longer moves the entire stack below it??? Check deleting, too. (Board.DeleteSelectedTasks() no longer moves Tasks up)
-- Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
+- Make an option in the Task to reset image size (it's not done often enough to make it necessary to be on the Task itself, I think)
 - INTERNAL: Fix up missing project logging for Task Contents when stuff happens
-
 - Hide grid at far zoom levels
 - Loading images should be set to a reasonable, manageable size (maybe 50% of the zoom level)
 - FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
-- FIX: Making creating a new task just a key types that key after it's created.
-- Make an option in the Task to reset image size (it's not done often enough to make it necessary to be on the Task itself, I think)
-- Whiteboards aren't loading correctly (most likely just from older versions of MP)
 - INTERNAL: Project.Modified is set directly after loading a project for some reason
+- INTERNAL: Fix Line head moving on undo and redo
+- INTERNAL: Re-implement sub-task bracketing
 
 REVIEW
 
@@ -84,6 +86,8 @@ REVIEW
 
 ---- RELEASE
 
+- Task Neighbors could contain loops sometimes; this should be resolved when establishing the neighbors.
+- Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
 - Lines are drawing underneath Tasks (this could be configurable)
 - Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
 - Draw text to a buffer, draw the buffer to the screen; might be considerably faster than drawing text constantly. Seems like 72% of non-sleep execution time might be spent drawing.
