@@ -1069,7 +1069,7 @@ func (project *Project) Log(text string, variables ...interface{}) {
 	}
 
 	if project.LogOn {
-		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text, gween.New(255, 0, 7, ease.InExpo)})
+		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text, gween.New(255, 0, 3, ease.InExpo)})
 	}
 
 	log.Println(text)
@@ -1627,13 +1627,6 @@ func (project *Project) Shortcuts() {
 						project.UndoFade.Reset()
 						project.Undoing = -1
 					}
-				} else if keybindings.On(KBStopAllSounds) {
-
-					// for _, task := range project.GetAllTasks() {
-					// 	task.StopSound()
-					// }
-					project.Log("Stopped all playing Sounds.")
-
 				} else if keybindings.On(KBDeleteTasks) {
 					project.CurrentBoard().DeleteSelectedTasks()
 				} else if keybindings.On(KBFocusOnTasks) {

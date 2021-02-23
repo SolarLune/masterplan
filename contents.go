@@ -972,7 +972,8 @@ func (c *SoundContents) Update() {
 
 	} else if !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen && programSettings.Keybindings.On(KBStopAllSounds) {
 
-		if c.SoundControl != nil {
+		if c.SoundControl != nil && !c.SoundControl.Paused {
+			c.Task.Board.Project.Log("Stopped playing [%s].", c.LoadedPath)
 			c.SoundControl.Paused = true
 		}
 
@@ -1361,7 +1362,11 @@ func (c *TimerContents) ReloadAlarmSound() {
 
 func (c *TimerContents) TimeUp() {
 
+	project := c.Task.Board.Project
+
 	triggeredSoundNeighbor := false
+
+	project.Log("Timer [%s] went off.", c.Task.TimerName.Text())
 
 	if c.Task.TimerTriggerMode.CurrentChoice != TASK_TRIGGER_NONE {
 
@@ -1397,7 +1402,20 @@ func (c *TimerContents) TimeUp() {
 				}
 
 			} else if neighbor.Contents != nil {
+
+				// We have to capture a state of the item before triggering, otherwise we can't really undo it
+				neighbor.Board.UndoHistory.Capture(NewUndoState(neighbor), true)
+
 				neighbor.Contents.Trigger(c.Task.TimerTriggerMode.CurrentChoice)
+
+				effect := "set"
+				if c.Task.TimerTriggerMode.CurrentChoice == TASK_TRIGGER_TOGGLE {
+					effect = "toggled"
+				} else if c.Task.TimerTriggerMode.CurrentChoice == TASK_TRIGGER_CLEAR {
+					effect = "un-set"
+				}
+
+				project.Log("Timer [%s] %s Task at [%d, %d].", c.Task.TimerName.Text(), effect, int32(neighbor.Position.X), int32(neighbor.Position.Y))
 			}
 
 			// If we trigger a Sound Task, then we don't play the Alarm sound (this might be better to simply be a project setting instead)
@@ -1999,7 +2017,18 @@ func (c *WhiteboardContents) Draw() {
 
 func (c *WhiteboardContents) Destroy() {}
 
-func (c *WhiteboardContents) Trigger(triggerMode int) {}
+func (c *WhiteboardContents) Trigger(triggerMode int) {
+
+	if triggerMode == TASK_TRIGGER_TOGGLE {
+		c.Task.Whiteboard.Invert()
+	} else if triggerMode == TASK_TRIGGER_SET {
+		c.Task.Whiteboard.Clear()
+		c.Task.Whiteboard.Invert()
+	} else if triggerMode == TASK_TRIGGER_CLEAR {
+		c.Task.Whiteboard.Clear()
+	}
+
+}
 
 func (c *WhiteboardContents) ReceiveMessage(msg string) {
 
@@ -2163,7 +2192,7 @@ func (c *TableContents) Draw() {
 			color = applyGlow(c.Task, color)
 
 			if i >= len(c.Task.TableData.Columns)-1 {
-				rec.Width -= 1
+				rec.Width--
 			}
 
 			rl.DrawRectangleRec(rec, color)
@@ -2335,7 +2364,39 @@ func (c *TableContents) Draw() {
 
 func (c *TableContents) Destroy() {}
 
-func (c *TableContents) Trigger(triggerMode int) {}
+func (c *TableContents) Trigger(triggerMode int) {
+
+	for y := range c.Task.TableData.Completions {
+
+		for x := range c.Task.TableData.Completions {
+
+			if triggerMode == TASK_TRIGGER_SET {
+
+				c.Task.TableData.Completions[y][x] = 1
+
+			} else if triggerMode == TASK_TRIGGER_CLEAR {
+
+				c.Task.TableData.Completions[y][x] = 0
+
+			} else if triggerMode == TASK_TRIGGER_TOGGLE {
+
+				value := c.Task.TableData.Completions[y][x]
+				if value == 0 {
+					value = 1
+				} else {
+					value = 0
+				}
+				c.Task.TableData.Completions[y][x] = value
+
+			}
+
+		}
+
+	}
+
+	c.Task.UndoChange = true
+
+}
 
 func (c *TableContents) ReceiveMessage(msg string) {
 

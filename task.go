@@ -44,10 +44,10 @@ const (
 )
 
 const (
-	TASK_TRIGGER_TOGGLE = iota
+	TASK_TRIGGER_NONE = iota
+	TASK_TRIGGER_TOGGLE
 	TASK_TRIGGER_SET
 	TASK_TRIGGER_CLEAR
-	TASK_TRIGGER_NONE
 )
 
 type Task struct {
@@ -174,7 +174,7 @@ func NewTask(board *Board) *Task {
 		DailyHour:                    NewNumberSpinner(0, 0, 160, 40),
 		DailyMinute:                  NewNumberSpinner(0, 0, 160, 40),
 		TimerRepeating:               NewCheckbox(0, 0, 32, 32),
-		TimerTriggerMode:             NewButtonGroup(0, 0, 400, 32, 1, "Toggle", "Set", "Clear", "None"),
+		TimerTriggerMode:             NewButtonGroup(0, 0, 400, 32, 1, "None", "Toggle", "Set", "Clear"),
 		gridPositions:                []Position{},
 		Valid:                        true,
 		LoadMediaButton:              NewButton(0, 0, 128, 32, "Load", false),

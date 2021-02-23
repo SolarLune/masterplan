@@ -64,6 +64,10 @@ Completed:
 - FIX: Making creating a new task just a key types that key after it's created.
 - Adding the ability to hold Shift to select all Tasks between the selected one and the end of the Stack if you press the shortcut for it (Page Up or Page Down, by default).
 - INTERNAL: Whiteboards (including those from older MasterPlan versions) load properly now.
+- INTERNAL: Fixed timer not creating an UndoState when triggering Tasks.
+- Messages that display at the top-left last for a much shorter period of time (7 > 3 seconds).
+- Timer triggering defaults to off now.
+- Whiteboards have smaller minimum sizes now (128x64 > 64x32).
 
 To-do:
 
@@ -86,7 +90,11 @@ REVIEW
 
 ---- RELEASE
 
+- Make some kind of indication (maybe a little chain link icon) indicating a Task is linked to another, like a Timer or by a Line?
+- Logs should be created on each successful start, rather than putting them all into log.txt
+- Add option for log display time - this and the volume could be a new Slider GUI element.
 - Task Neighbors could contain loops sometimes; this should be resolved when establishing the neighbors.
+- Consolidate the Tasks that consist of Contents and Data Structures (somehow)
 - Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
 - Lines are drawing underneath Tasks (this could be configurable)
 - Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
@@ -112,7 +120,6 @@ REVIEW
 - Add icons for task types in Task Edit Panel
 - Fix up horizontal alignments in Panels - rather than doing this via RowItem.Weight or HorizontalAlignment, it would be good to have a manual spacing value that indicates how far out from an item another is (how much space is between one item and the following one)
 - Changing font size shouldn't take so long - This could be simplified by making a selection for how many glyphs to load
-- Consolidate the Tasks that consist of Contents and Data Structures (somehow)
 - Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines.
 - Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
 - Downloading images / sounds should be able to be saved to a local directory per-project (?)

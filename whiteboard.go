@@ -35,7 +35,7 @@ func NewWhiteboard(task *Task) *Whiteboard {
 
 	wb.SetColors()
 
-	wb.Resize(128, 64) // Set the size of the initial texture
+	wb.Resize(64, 32) // Set the size of the initial texture
 
 	wb.Draw()
 
@@ -180,14 +180,14 @@ func (whiteboard *Whiteboard) Resize(w, h float32) {
 	whiteboard.Width = int32(locked.X)
 	whiteboard.Height = int32(locked.Y)
 
-	if whiteboard.Width < 128 {
-		whiteboard.Width = 128
+	if whiteboard.Width < 64 {
+		whiteboard.Width = 64
 	} else if whiteboard.Width > 512 {
 		whiteboard.Width = 512
 	}
 
-	if whiteboard.Height < 80 {
-		whiteboard.Height = 80
+	if whiteboard.Height < 32 {
+		whiteboard.Height = 32
 	} else if whiteboard.Height > 512 {
 		whiteboard.Height = 512
 	}
