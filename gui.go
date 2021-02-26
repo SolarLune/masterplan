@@ -1602,7 +1602,7 @@ type NumberSpinner struct {
 func NewNumberSpinner(x, y, w, h float32) *NumberSpinner {
 	numberSpinner := &NumberSpinner{Rect: rl.Rectangle{x, y, w, h}, Textbox: NewTextbox(x+h, y, w-(h*2), h), Step: 1}
 
-	numberSpinner.Textbox.AllowAlphaCharacters = false
+	numberSpinner.Textbox.AllowOnlyNumbers = true
 	numberSpinner.Textbox.AllowNewlines = false
 	numberSpinner.Textbox.HorizontalAlignment = ALIGN_CENTER
 	numberSpinner.Textbox.VerticalAlignment = ALIGN_CENTER
@@ -1723,7 +1723,7 @@ type Textbox struct {
 	Rect                  rl.Rectangle
 	Visible               bool
 	AllowNewlines         bool
-	AllowAlphaCharacters  bool
+	AllowOnlyNumbers      bool
 	MaxCharactersPerLine  int
 	Changed               bool
 	ClickedAway           bool // If the value in the textbox was edited and then clicked away afterwards
@@ -1757,7 +1757,7 @@ type Textbox struct {
 
 func NewTextbox(x, y, w, h float32) *Textbox {
 	textbox := &Textbox{Rect: rl.Rectangle{x, y, w, h}, Visible: true,
-		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64, AllowAlphaCharacters: true,
+		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64,
 		SelectedRange: [2]int{-1, -1}, ExpandVertically: true, CharToRect: map[int]rl.Rectangle{}, Lines: [][]rune{{}}, triggerTextRedraw: true,
 		OpenTime: -1, PrevUpdateTime: -1}
 
@@ -1837,6 +1837,15 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
 }
 
+func (textbox *Textbox) IsCharacterAllowed(char rune) bool {
+
+	if (char == '\n' && !textbox.AllowNewlines) || ((char < 48 || char > 58) && textbox.AllowOnlyNumbers) {
+		return false
+	}
+	return true
+
+}
+
 func (textbox *Textbox) InsertCharacterAtCaret(char rune) {
 
 	// Oh LORDY this was the only way I could get this to work
@@ -1857,11 +1866,14 @@ func (textbox *Textbox) InsertCharacterAtCaret(char rune) {
 	textbox.text = append(a, b...)
 	textbox.CaretPos++
 	textbox.Changed = true
+
 }
 
 func (textbox *Textbox) InsertTextAtCaret(text string) {
 	for _, char := range text {
-		textbox.InsertCharacterAtCaret(char)
+		if textbox.IsCharacterAllowed(char) {
+			textbox.InsertCharacterAtCaret(char)
+		}
 	}
 }
 
@@ -2027,26 +2039,16 @@ func (textbox *Textbox) Update() {
 		// open and the textbox visible for some amount of time.
 		if letter > 0 && nowTime-textbox.OpenTime > 0.1 {
 
-			numbers := []int32{
-				rl.KeyZero,
-				rl.KeyNine,
-			}
-
-			npNumbers := []int32{
-				rl.KeyKp0,
-				rl.KeyKp9,
-			}
-
-			isNum := (letter >= numbers[0] && letter <= numbers[1]) || (letter >= npNumbers[0] && letter <= npNumbers[1])
-
 			if len(textbox.Lines[textbox.LineNumberByPosition(textbox.CaretPos)]) < textbox.MaxCharactersPerLine {
 
-				if letter != 0 && (textbox.AllowAlphaCharacters || isNum) {
+				if letter != 0 && textbox.IsCharacterAllowed(letter) {
+
 					if textbox.RangeSelected() {
 						textbox.DeleteSelectedText()
 					}
 					textbox.ClearSelection()
 					textbox.InsertCharacterAtCaret(rune(letter))
+
 				}
 
 			}

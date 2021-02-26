@@ -40,24 +40,29 @@ func (gifAnim *GifAnimation) Load() {
 		// can only have frames that account for changed pixels (i.e. if you have a 320x240 GIF, but on frame
 		// 17 only one pixel changes, the image generated for frame 17 will be 1x1 for Bounds.Size()).
 
-		disposalMode := gifAnim.Data.Disposal[0] // Maybe just the first frame's disposal is what we need?
-		// disposalMode := gifAnim.Data.Disposal[index]
-
 		for y := 0; y < gifAnim.frameImg.Bounds().Size().Y; y++ {
+
 			for x := 0; x < gifAnim.frameImg.Bounds().Size().X; x++ {
-				if x >= img.Bounds().Min.X && x < img.Bounds().Max.X && y >= img.Bounds().Min.Y && y < img.Bounds().Max.Y {
-					color := img.At(x, y)
-					_, _, _, a := color.RGBA()
-					if disposalMode != gif.DisposalNone || a >= 255 {
-						gifAnim.frameImg.Set(x, y, color)
-					}
-				} else {
-					if disposalMode == gif.DisposalBackground {
-						gifAnim.frameImg.Set(x, y, color.RGBA{0, 0, 0, 0})
-					}
-					// For gif.DisposalNone, it doesn't matter, I think?
-					// For clarification on disposal method specs, see: https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+
+				// We clear each pixel of each frame, but only the pixels within the rectangle specified by the frame is plotted below, as
+				// some frames of GIFs can have a "changed rectangle", indicating which pixels in which rectangle need to actually change.
+				disposalMode := gifAnim.Data.Disposal[index]
+
+				if disposalMode == gif.DisposalPrevious {
+					gifAnim.frameImg.Set(x, y, gifAnim.frameImg.At(x, y))
+				} else if disposalMode == gif.DisposalBackground {
+					gifAnim.frameImg.Set(x, y, color.RGBA{0, 0, 0, 0})
 				}
+
+				if x >= img.Bounds().Min.X && x < img.Bounds().Max.X && y >= img.Bounds().Min.Y && y < img.Bounds().Max.Y {
+
+					color := img.At(x, y)
+					if _, _, _, alpha := color.RGBA(); alpha > 0 {
+						gifAnim.frameImg.Set(x, y, img.At(x, y))
+					}
+
+				}
+
 			}
 
 		}

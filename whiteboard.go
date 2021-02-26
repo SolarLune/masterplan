@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -20,12 +19,6 @@ type Whiteboard struct {
 	Colors       []rl.Color
 }
 
-var CursorSizes = []float32{
-	1,
-	3,
-	8,
-}
-
 func NewWhiteboard(task *Task) *Whiteboard {
 
 	wb := &Whiteboard{
@@ -35,7 +28,7 @@ func NewWhiteboard(task *Task) *Whiteboard {
 
 	wb.SetColors()
 
-	wb.Resize(64, 32) // Set the size of the initial texture
+	wb.Resize(0, 0) // Set the size of the initial texture; by default, it'll be the minimum size.
 
 	wb.Draw()
 
@@ -89,7 +82,13 @@ func (whiteboard *Whiteboard) Draw() {
 
 			rl.BeginTextureMode(whiteboard.Texture)
 
-			cursorSize := CursorSizes[whiteboard.CursorSize]
+			var cursorSizes = []float32{
+				1,
+				3,
+				8,
+			}
+
+			cursorSize := cursorSizes[whiteboard.CursorSize]
 
 			if whiteboard.PrevClickPos.X < 0 && whiteboard.PrevClickPos.Y < 0 {
 				rl.DrawCircleV(clickPos, cursorSize, color)
@@ -180,14 +179,14 @@ func (whiteboard *Whiteboard) Resize(w, h float32) {
 	whiteboard.Width = int32(locked.X)
 	whiteboard.Height = int32(locked.Y)
 
-	if whiteboard.Width < 64 {
-		whiteboard.Width = 64
+	if whiteboard.Width < 128 {
+		whiteboard.Width = 128
 	} else if whiteboard.Width > 512 {
 		whiteboard.Width = 512
 	}
 
-	if whiteboard.Height < 32 {
-		whiteboard.Height = 32
+	if whiteboard.Height < 64 {
+		whiteboard.Height = 64
 	} else if whiteboard.Height > 512 {
 		whiteboard.Height = 512
 	}
@@ -335,10 +334,6 @@ func (whiteboard *Whiteboard) Deserialize(data []string) {
 			colors = append(colors, rowColors...)
 		}
 
-	}
-
-	if whiteboard.Task.Board.Project.Loading {
-		fmt.Println(len(colors))
 	}
 
 	rl.UpdateTexture(whiteboard.Texture.Texture, colors)

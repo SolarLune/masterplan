@@ -62,23 +62,23 @@ type Task struct {
 	CompletionTime time.Time
 	Description    *Textbox
 
-	TimerName           *Textbox
-	TimerMode           *ButtonGroup
-	TimerRepeating      *Checkbox
-	TimerRunning        bool
-	TimerTriggerMode    *ButtonGroup
-	DeadlineOn          *Checkbox
-	DeadlineDay         *NumberSpinner
-	DeadlineMonth       *Spinner
-	DeadlineYear        *NumberSpinner
-	CountdownMinute     *NumberSpinner
-	CountdownSecond     *NumberSpinner
-	DailyDay            *MultiButtonGroup
-	DailyHour           *NumberSpinner
-	DailyMinute         *NumberSpinner
-	CompletionTimeLabel *Label
-	CreationLabel       *Label
-
+	TimerName                    *Textbox
+	TimerMode                    *ButtonGroup
+	TimerRepeating               *Checkbox
+	TimerRunning                 bool
+	TimerTriggerMode             *ButtonGroup
+	DeadlineOn                   *Checkbox
+	DeadlineDay                  *NumberSpinner
+	DeadlineMonth                *Spinner
+	DeadlineYear                 *NumberSpinner
+	CountdownMinute              *NumberSpinner
+	CountdownSecond              *NumberSpinner
+	DailyDay                     *MultiButtonGroup
+	DailyHour                    *NumberSpinner
+	DailyMinute                  *NumberSpinner
+	CompletionTimeLabel          *Label
+	CreationLabel                *Label
+	ResetImageSizeButton         *Button
 	CompletionCheckbox           *Checkbox
 	CompletionProgressionCurrent *NumberSpinner
 	CompletionProgressionMax     *NumberSpinner
@@ -162,6 +162,7 @@ func NewTask(board *Board) *Task {
 		CompletionProgressionMax:     NewNumberSpinner(0+80, 96, 128, 40),
 		NumberingPrefix:              []int{-1},
 		ID:                           board.Project.FirstFreeID(),
+		ResetImageSizeButton:         NewButton(0, 0, 192, 32, "Reset Image Size", false),
 		FilePathTextbox:              NewTextbox(0, 64, 512, 16),
 		DeadlineMonth:                NewSpinner(0, 128, 200, 40, months...),
 		DeadlineDay:                  NewNumberSpinner(0, 80, 160, 40),
@@ -283,6 +284,9 @@ func (task *Task) SetPanel() {
 	row.Item(task.FilePathTextbox, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
 	row = column.Row()
 	row.Item(task.LoadMediaButton, TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
+
+	row = column.Row()
+	row.Item(task.ResetImageSizeButton, TASK_TYPE_IMAGE)
 
 	task.FilePathTextbox.Focused = true
 
@@ -437,8 +441,8 @@ func (task *Task) Serialize() string {
 	jsonData, _ = sjson.Set(jsonData, `Position\.Y`, pos.Y)
 
 	if task.Is(TASK_TYPE_IMAGE, TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD) {
-		jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.X`, task.DisplaySize.X)
-		jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.Y`, task.DisplaySize.Y)
+		jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.X`, math.Round(float64(task.DisplaySize.X)))
+		jsonData, _ = sjson.Set(jsonData, `ImageDisplaySize\.Y`, math.Round(float64(task.DisplaySize.Y)))
 	}
 
 	jsonData, _ = sjson.Set(jsonData, `Checkbox\.Checked`, task.CompletionCheckbox.Checked)

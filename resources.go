@@ -40,6 +40,10 @@ type Resource struct {
 
 	// MIME data for the Resource.
 	MimeData *mimetype.MIME
+
+	Exists bool
+
+	Project *Project
 }
 
 func (project *Project) RegisterResource(resourcePath, localFilepath string, response *grab.Response) *Resource {
@@ -57,6 +61,7 @@ func (project *Project) RegisterResource(resourcePath, localFilepath string, res
 		LocalFilepath:    localFilepath,
 		ModTime:          modTime,
 		DownloadResponse: response,
+		Project:          project,
 	}
 
 	project.Resources[resourcePath] = res
@@ -77,39 +82,61 @@ func (res *Resource) ParseData() error {
 
 	var err error = nil
 
-	// ParseData() is automatically called when the resource is (or, at least, should be) fully downloaded, so the Mime data should be complete and usable
-	mime, _ := mimetype.DetectFile(res.LocalFilepath)
+	if !FileExists(res.LocalFilepath) {
+		err = errors.New("file doesn't exist")
+		res.Exists = false
+	} else {
 
-	res.MimeData = mime
+		// ParseData() is automatically called when the resource is (or, at least, should be) fully downloaded, so the Mime data should be complete and usable
+		mime, _ := mimetype.DetectFile(res.LocalFilepath)
 
-	if strings.Contains(res.MimeData.String(), "image") {
+		res.MimeData = mime
 
-		if strings.Contains(res.MimeData.String(), "gif") {
-
-			file, newError := os.Open(res.LocalFilepath)
-			if newError != nil {
-				err = newError
-			}
-
-			defer file.Close()
-
-			gifFile, newError := gif.DecodeAll(file)
-
-			if newError != nil {
-				err = newError
-			}
-
-			gif := NewGifAnimation(gifFile)
-			res.Data = gif
-
-		} else { // Ordinary image
-			res.Data = rl.LoadTexture(res.LocalFilepath)
+		// We have to do this because sometimes the suggested filepath is simply not enough to go off of (images off of Twitter, for example, don't have extensions).
+		// Without an extension, raylib can't identify the file to load it.
+		if filepath.Ext(res.LocalFilepath) == "" {
+			os.Rename(res.LocalFilepath, res.LocalFilepath+mime.Extension())
+			res.LocalFilepath += mime.Extension()
 		}
 
-	} else if strings.Contains(res.MimeData.String(), "audio") {
-		res.Data = res.MimeData.String() // We don't actually have any data to store for audio, as Sound Tasks simply create their own streams
-	} else {
-		err = errors.New("unknown resource type")
+		res.Exists = true
+
+		if strings.Contains(res.MimeData.String(), "image") {
+
+			if strings.Contains(res.MimeData.String(), "gif") {
+
+				file, newError := os.Open(res.LocalFilepath)
+				if newError != nil {
+					err = newError
+				}
+
+				defer file.Close()
+
+				gifFile, newError := gif.DecodeAll(file)
+
+				if newError != nil {
+					err = newError
+				}
+
+				gif := NewGifAnimation(gifFile)
+				res.Data = gif
+
+			} else { // Ordinary image
+				res.Data = rl.LoadTexture(res.LocalFilepath)
+			}
+
+		} else if strings.Contains(res.MimeData.String(), "audio") {
+			res.Data = res.MimeData.String() // We don't actually have any data to store for audio, as Sound Tasks simply create their own streams
+		} else {
+			err = errors.New("unrecognized resource type")
+			res.Exists = false
+		}
+
+	}
+
+	if err != nil {
+		res.Project.Log("ERROR : "+err.Error()+" : %s", res.ResourcePath)
+		delete(res.Project.DownloadingResources, res.ResourcePath)
 	}
 
 	return err
@@ -118,7 +145,7 @@ func (res *Resource) ParseData() error {
 
 func (res *Resource) State() int {
 
-	if res.DownloadResponse != nil && res.DownloadResponse.Progress() < 1 {
+	if res.DownloadResponse != nil && !res.DownloadResponse.IsComplete() {
 		return RESOURCE_STATE_DOWNLOADING
 	}
 
@@ -158,9 +185,12 @@ func (res *Resource) IsAudio() bool {
 	return strings.Contains(res.MimeData.String(), "audio")
 }
 
-// Progress returns the progress of downloading or loading the resource, as an integer ranging from 0 to 100.
+// Progress returns the progress of downloading or loading the resource, as an integer ranging from 0 to 100. If the returned value is less than 0, the progress cannot be determined.
 func (res *Resource) Progress() int {
 	if res.DownloadResponse != nil && !res.DownloadResponse.IsComplete() {
+		if res.DownloadResponse.Size < 0 {
+			return -1 // We have to return some kind of number
+		}
 		return int(res.DownloadResponse.Progress() * 100)
 	} else if res.IsGif() {
 		return int(res.Gif().LoadingProgress() * 100)

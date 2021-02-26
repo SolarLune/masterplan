@@ -587,15 +587,15 @@ func (c *NoteContents) ReceiveMessage(msg string) {}
 func (c *NoteContents) Trigger(trigger int) {}
 
 type ImageContents struct {
-	Task           *Task
-	Resource       *Resource
-	resizingImage  bool
-	LoadedResource bool
-	Gif            *GifPlayer
-	LoadedPath     string
-	DisplayedText  string
-	TextSize       rl.Vector2
-	ProgressBG     *taskBGProgress
+	Task            *Task
+	Resource        *Resource
+	GifPlayer       *GifPlayer
+	LoadedPath      string
+	DisplayedText   string
+	TextSize        rl.Vector2
+	ProgressBG      *taskBGProgress
+	resizing        bool
+	ChangedResource bool
 }
 
 func NewImageContents(task *Task) *ImageContents {
@@ -613,64 +613,137 @@ func NewImageContents(task *Task) *ImageContents {
 
 }
 
-func (c *ImageContents) Update() {}
+func (c *ImageContents) Update() {
 
-func (c *ImageContents) LoadResource() {
+	if c.resizing && MouseReleased(rl.MouseLeftButton) {
+		c.resizing = false
+		c.Task.UndoChange = true
+		c.Task.Board.TaskChanged = true // Have the board reorder if the size is different
+	}
 
-	fp := c.Task.FilePathTextbox.Text()
+	if c.Task.Open && c.Task.ResetImageSizeButton.Clicked {
 
-	if !c.Task.Open {
+		if c.Resource != nil {
 
-		if c.LoadedPath != fp {
-
-			c.LoadedPath = fp
-
-			project := c.Task.Board.Project
-
-			if res := project.LoadResource(fp); fp != "" && res != nil {
-
-				c.Resource = res
-				c.LoadedResource = false
-
+			if c.Resource.IsTexture() {
+				c.Task.DisplaySize.X = float32(c.Resource.Texture().Width)
+				c.Task.DisplaySize.Y = float32(c.Resource.Texture().Height)
 			} else {
-				c.Resource = nil
-				c.LoadedResource = true
+				c.Task.DisplaySize.X = float32(c.Resource.Gif().Width)
+				c.Task.DisplaySize.Y = float32(c.Resource.Gif().Height)
 			}
 
+			c.Task.Board.TaskChanged = true
+
+		} else {
+			c.Task.Board.Project.Log("Cannot reset image size if it's invalid or loading.")
 		}
 
 	}
 
-	if !c.LoadedResource && c.Resource != nil && c.Resource.State() == RESOURCE_STATE_READY {
+}
 
-		if c.Resource.IsTexture() {
+func (c *ImageContents) LoadResource() {
 
-			if !c.Task.DisplaySizeSet {
-				c.Task.DisplaySize.X = float32(c.Resource.Texture().Width)
-				c.Task.DisplaySize.Y = float32(c.Resource.Texture().Height)
+	if c.Task.Open {
+
+		if c.Task.LoadMediaButton.Clicked {
+
+			filepath := ""
+			var err error
+
+			filepath, err = zenity.SelectFile(zenity.Title("Select image file"), zenity.FileFilters{zenity.FileFilter{Name: "Image File", Patterns: []string{
+				"*.png",
+				"*.bmp",
+				"*.jpeg",
+				"*.jpg",
+				"*.gif",
+				"*.dds",
+				"*.hdr",
+				"*.ktx",
+				"*.astc",
+			}}})
+
+			if err == nil && filepath != "" {
+				c.Task.FilePathTextbox.SetText(filepath)
 			}
 
-		} else if c.Resource.IsGif() {
-
-			c.Gif = NewGifPlayer(c.Resource.Gif())
-
-			if !c.Task.DisplaySizeSet {
-				c.Task.DisplaySize.X = float32(c.Gif.Animation.Width)
-				c.Task.DisplaySize.Y = float32(c.Gif.Animation.Height)
-			}
-
-		} else {
-			c.Resource = nil
-			c.Task.Board.Project.Log("Cannot load file: [%s]\nAre you sure it's an image file?", c.Task.FilePathTextbox.Text())
 		}
 
-		c.LoadedResource = true
+		// Might've changed it by pasting a path directly into the textbox
+		if c.Task.FilePathTextbox.Changed {
+			c.ChangedResource = true
+		}
 
-		c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+	}
 
-		c.Task.Board.TaskChanged = true
+	fp := c.Task.FilePathTextbox.Text()
 
-		c.Task.UndoChange = true
+	if !c.Task.Open && c.LoadedPath != fp {
+
+		c.LoadedPath = fp
+
+		newResource := c.Task.Board.Project.LoadResource(fp)
+
+		if c.ChangedResource && newResource != c.Resource {
+			c.Task.DisplaySizeSet = false
+		}
+
+		c.ChangedResource = false
+		c.Resource = newResource
+
+	}
+
+	if c.Resource != nil && c.Resource.State() == RESOURCE_STATE_READY {
+
+		if c.Resource.IsGif() && (c.GifPlayer == nil || c.GifPlayer.Animation != c.Resource.Gif()) {
+			c.GifPlayer = NewGifPlayer(c.Resource.Gif())
+		}
+
+		if !c.Task.DisplaySizeSet {
+
+			valid := true
+
+			width := float32(0)
+			height := float32(0)
+
+			if c.Resource.IsTexture() {
+				width = float32(c.Resource.Texture().Width)
+				height = float32(c.Resource.Texture().Height)
+			} else if c.Resource.IsGif() {
+				width = c.Resource.Gif().Width
+				height = c.Resource.Gif().Height
+			} else {
+				valid = false
+			}
+
+			if valid {
+
+				yAspectRatio := float32(height / width)
+				xAspectRatio := float32(width / height)
+
+				coverage := c.Task.Board.Project.ScreenSize.X / camera.Zoom * 0.25
+
+				if width > height {
+					c.Task.DisplaySize.X = coverage
+					c.Task.DisplaySize.Y = coverage * yAspectRatio
+				} else {
+					c.Task.DisplaySize.X = coverage * xAspectRatio
+					c.Task.DisplaySize.Y = coverage
+				}
+
+				c.Task.DisplaySizeSet = true
+
+			} else {
+				c.Resource = nil
+				c.Task.Board.Project.Log("Cannot load file: [%s]\nAre you sure it's an image file?", c.Task.FilePathTextbox.Text())
+			}
+
+			c.Task.Board.TaskChanged = true
+
+			c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+
+		}
 
 	}
 
@@ -679,29 +752,6 @@ func (c *ImageContents) LoadResource() {
 func (c *ImageContents) Draw() {
 
 	drawTaskBG(c.Task, getThemeColor(GUI_INSIDE))
-
-	if c.Task.LoadMediaButton.Clicked {
-
-		filepath := ""
-		var err error
-
-		filepath, err = zenity.SelectFile(zenity.Title("Select image file"), zenity.FileFilters{zenity.FileFilter{Name: "Image File", Patterns: []string{
-			"*.png",
-			"*.bmp",
-			"*.jpeg",
-			"*.jpg",
-			"*.gif",
-			"*.dds",
-			"*.hdr",
-			"*.ktx",
-			"*.astc",
-		}}})
-
-		if err == nil && filepath != "" {
-			c.Task.FilePathTextbox.SetText(filepath)
-		}
-
-	}
 
 	project := c.Task.Board.Project
 	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
@@ -722,8 +772,8 @@ func (c *ImageContents) Draw() {
 			if c.Resource.IsTexture() {
 				tex = c.Resource.Texture()
 			} else if c.Resource.IsGif() {
-				tex = c.Gif.GetTexture()
-				c.Gif.Update(project.AdjustedFrameTime())
+				tex = c.GifPlayer.GetTexture()
+				c.GifPlayer.Update(project.AdjustedFrameTime())
 			}
 
 			pos := rl.Vector2{c.Task.Rect.X + 1, c.Task.Rect.Y + 1}
@@ -739,20 +789,20 @@ func (c *ImageContents) Draw() {
 			}
 			rl.DrawTexturePro(tex, src, dst, rl.Vector2{}, 0, color)
 
-			grabSize := float32(dst.Width * 0.05)
+			grabSize := float32(math.Min(float64(dst.Width), float64(dst.Height)) * 0.05)
 
 			if c.Task.Selected {
 
 				// Draw resize controls
 
-				if dst.Width <= 64 {
+				if grabSize <= 5 {
 					grabSize = float32(5)
 				}
 
 				corner := rl.Rectangle{pos.X + dst.Width - grabSize, pos.Y + dst.Height - grabSize, grabSize, grabSize}
 
 				if MousePressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(mp, corner) {
-					c.resizingImage = true
+					c.resizing = true
 					c.Task.DisplaySize.X = c.Task.Position.X + c.Task.DisplaySize.X
 					c.Task.DisplaySize.Y = c.Task.Position.Y + c.Task.DisplaySize.Y
 					c.Task.Board.SendMessage(MessageSelect, map[string]interface{}{"task": c.Task})
@@ -782,15 +832,9 @@ func (c *ImageContents) Draw() {
 
 				// }
 
-				if c.resizingImage {
+				if c.resizing {
 
 					c.Task.Board.Project.Selecting = false
-
-					if MouseReleased(rl.MouseLeftButton) {
-						c.resizingImage = false
-						c.Task.UndoChange = true
-						c.Task.Board.TaskChanged = true // Have the board reorder if the size is different
-					}
 
 					c.Task.Dragging = false
 
@@ -829,13 +873,25 @@ func (c *ImageContents) Draw() {
 			}
 
 		case RESOURCE_STATE_DOWNLOADING:
-			text = fmt.Sprintf("Downloading [%s]... [%d%%]", c.Resource.Filename(), c.Resource.Progress())
-			c.ProgressBG.Current = c.Resource.Progress()
-			c.ProgressBG.Draw()
+			// Some resources have no visible progress when downloading
+			progress := c.Resource.Progress()
+			if progress >= 0 {
+				text = fmt.Sprintf("Downloading [%s]... [%d%%]", c.Resource.Filename(), progress)
+				c.ProgressBG.Current = progress
+				c.ProgressBG.Draw()
+			} else {
+				text = fmt.Sprintf("Downloading [%s]...", c.Resource.Filename())
+			}
+
 		case RESOURCE_STATE_LOADING:
-			text = fmt.Sprintf("Loading image [%s]... [%d%%]", c.Resource.Filename(), c.Resource.Progress())
-			c.ProgressBG.Current = c.Resource.Progress()
-			c.ProgressBG.Draw()
+
+			if c.Resource.Exists {
+				text = fmt.Sprintf("Loading image [%s]... [%d%%]", c.Resource.Filename(), c.Resource.Progress())
+				c.ProgressBG.Current = c.Resource.Progress()
+				c.ProgressBG.Draw()
+			} else {
+				text = fmt.Sprintf("Non-existant image [%s]", c.Resource.Filename())
+			}
 
 		}
 
@@ -860,6 +916,8 @@ func (c *ImageContents) Draw() {
 
 		c.Task.DisplaySize.X += c.TextSize.X
 
+		c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+
 	}
 
 	if c.Task.DisplaySize.X < 16 {
@@ -869,14 +927,12 @@ func (c *ImageContents) Draw() {
 		c.Task.DisplaySize.Y = 16
 	}
 
-	c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
-
 }
 
 func (c *ImageContents) Destroy() {
 
-	if c.Gif != nil {
-		c.Gif.Destroy()
+	if c.GifPlayer != nil {
+		c.GifPlayer.Destroy()
 	}
 
 }
@@ -1147,10 +1203,18 @@ func (c *SoundContents) Draw() {
 			// Draw controls
 
 		case RESOURCE_STATE_DOWNLOADING:
-			text = fmt.Sprintf("Downloading [%s]... [%d%%]", c.Resource.Filename(), c.Resource.Progress())
-			c.BGProgress.Current = c.Resource.Progress()
-			c.BGProgress.Max = 100
-			c.BGProgress.Draw()
+
+			// Some resources have no visible progress when downloading
+			progress := c.Resource.Progress()
+			if progress >= 0 {
+				text = fmt.Sprintf("Downloading [%s]... [%d%%]", c.Resource.Filename(), progress)
+				c.BGProgress.Current = c.Resource.Progress()
+				c.BGProgress.Max = 100
+				c.BGProgress.Draw()
+			} else {
+				text = fmt.Sprintf("Downloading [%s]...", c.Resource.Filename())
+			}
+
 		}
 
 	} else {
@@ -1802,6 +1866,12 @@ func NewMapContents(task *Task) *MapContents {
 
 func (c *MapContents) Update() {
 
+	if c.resizing && MouseReleased(rl.MouseLeftButton) {
+		c.resizing = false
+		c.Task.UndoChange = true
+		c.Task.Board.TaskChanged = true
+	}
+
 	if c.Task.MapImage == nil {
 
 		c.Task.MapImage = NewMapImage(c.Task)
@@ -1861,12 +1931,6 @@ func (c *MapContents) Draw() {
 				c.Task.MapImage.EditTool = MapEditToolNone
 
 				c.Task.Board.Project.Selecting = false
-
-				if MouseReleased(rl.MouseLeftButton) {
-					c.resizing = false
-					c.Task.UndoChange = true
-					c.Task.Board.TaskChanged = true
-				}
 
 				mp.X += 4
 				mp.Y -= 4
@@ -1930,6 +1994,12 @@ func NewWhiteboardContents(task *Task) *WhiteboardContents {
 
 func (c *WhiteboardContents) Update() {
 
+	if c.resizing && MouseReleased(rl.MouseLeftButton) {
+		c.resizing = false
+		c.Task.UndoChange = true
+		c.Task.Board.TaskChanged = true
+	}
+
 	if c.Task.Whiteboard == nil {
 
 		c.Task.Whiteboard = NewWhiteboard(c.Task)
@@ -1983,12 +2053,6 @@ func (c *WhiteboardContents) Draw() {
 
 				c.Task.Whiteboard.Editing = false
 				c.Task.Board.Project.Selecting = false
-
-				if MouseReleased(rl.MouseLeftButton) {
-					c.resizing = false
-					c.Task.UndoChange = true
-					c.Task.Board.TaskChanged = true
-				}
 
 				mp.X += 4
 				mp.Y -= 4

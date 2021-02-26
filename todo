@@ -8,6 +8,7 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 Completed:
 
+- Added basic support for non-latin character entry. Note that you have to specify a font that has the characters you'll be entering (as the default one only has latin characters).
 - Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
 - Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but it is now primarily simpler in the code-base.
 - Downloading images / sounds are now multithreaded.
@@ -30,9 +31,9 @@ Completed:
 - Various minor visual tweaks and smaller bug-fixes.
 - INTERNAL: Added a little darkness underneath the header for Maps.
 - INTERNAL: Added remaining content types.
-- FIX: Drawing on Whiteboards is no longer chunkier than intended (the resolution isn't unnecessarily higher).
+- FIX: Drawing on Whiteboards is no longer chunkier than intended (the resolution has been increased).
 - INTERNAL: Get rid of data race possibility for GIF loading.
-- Added shortcuts to teleport you to each end of a line, in sequence.
+- Added shortcuts to teleport the camera to each end of a line, in sequence.
 - The splash screen no longer takes nearly as long as it previously did to disappear. (~2.5 seconds -> ~0.75 seconds)
 - INTERNAL: Added relevant shortcuts for each kind of Task.
 - Adding shortcuts for incrementing and decrementing Progression Tasks.
@@ -42,7 +43,6 @@ Completed:
 - INTERNAL: Next and Previous Line Ending's shortcuts are now the C and X keys by default.
 - INTERNAL: Moving Project.Shortcuts() call above Board.Update() and Board.Draw() so that shortcut clashes can properly be resolved prior to Tasks' contents being updated or drawn.
 - INTERNAL: Timers should be able to be set for multiple days of the week, not just one.
-- Added basic support for non-latin character entry. Note that you have to specify a font that has the characters you're entering (as the default one only has latin characters).
 - INTERNAL: Made sure the binding for stopping all sounds works.
 - INTERNAL: Added a new ImmediateIconButton function specifically for MultiButtonGroups
 - INTERNAL: Re-implement completable task-specific deadlines
@@ -61,27 +61,31 @@ Completed:
 - Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
 - Project Volume spinner now goes from 0 to 100, rather than 0 to 10. The volume is also now more naturally distributed, audibly.
 - FIX: Adding a new task or deleting Tasks now properly moves the entire stack below it. This works if Tasks are selected across multiple stacks.
-- FIX: Making creating a new task just a key types that key after it's created.
-- Adding the ability to hold Shift to select all Tasks between the selected one and the end of the Stack if you press the shortcut for it (Page Up or Page Down, by default).
+- FIX: Shortcuts that are one key and create Tasks no longer immediately also enters the key of the shortcut into a textbox, if it's there and focused.
+- You can now hold Shift to select all Tasks between the currently selected one and the top or bottom of the stack.
 - INTERNAL: Whiteboards (including those from older MasterPlan versions) load properly now.
 - INTERNAL: Fixed timer not creating an UndoState when triggering Tasks.
 - Messages that display at the top-left last for a much shorter period of time (7 > 3 seconds).
 - Timer triggering defaults to off now.
-- Whiteboards have smaller minimum sizes now (128x64 > 64x32).
+- FIX: You can't paste characters into Textboxes that don't allow those characters.
+- Images now load in at their original aspect ratio, but the size depends on the zoom level of the camera. This means that images and GIFs should generally always be wholly visible onscreen.
+- INTERNAL: Added back a button in the Task to reset image size (it's not done often enough to make it necessary to be on the Task itself, I think).
+- INTERNAL: Fix up missing project logging for Task Contents when stuff happens
+- INTERNAL: Fix Line head moving on undo and redo
+- Errors in 
+- FIX: GIF Animation has been reviewed; frames should be displayed more accurately.
+- Errors in the text log now show up as red in MasterPlan.
 
 To-do:
 
-- Make an option in the Task to reset image size (it's not done often enough to make it necessary to be on the Task itself, I think)
-- INTERNAL: Fix up missing project logging for Task Contents when stuff happens
 - Hide grid at far zoom levels
-- Loading images should be set to a reasonable, manageable size (maybe 50% of the zoom level)
 - FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
 - INTERNAL: Project.Modified is set directly after loading a project for some reason
-- INTERNAL: Fix Line head moving on undo and redo
 - INTERNAL: Re-implement sub-task bracketing
 
 REVIEW
 
+- Auto-load Resources not doing anything.
 - Review GIF loading again, seems like it's not working correctly with a certain disposal (see /home/solarlune/Pictures/MasterPlanTables.gif)
 - INTERNAL: Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
 - Test Timers going off
@@ -90,6 +94,9 @@ REVIEW
 
 ---- RELEASE
 
+- Textbox dies when there's a ton of text.
+- Add fill tool to Map Task.
+- Add diagonal corners to Map Task.
 - Make some kind of indication (maybe a little chain link icon) indicating a Task is linked to another, like a Timer or by a Line?
 - Logs should be created on each successful start, rather than putting them all into log.txt
 - Add option for log display time - this and the volume could be a new Slider GUI element.
@@ -133,7 +140,7 @@ REVIEW
             - Improvable (as a result of more available screen space)
             - Reusable (calendars can be used for more than just setting deadlines)
             - Fun (not sure what to write for this one)
-
+- Icon beside board name when due, deadlined, or late
 - Timers should be able to retroactively trigger if a set time was passed (somehow)
 - Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
 - Mini-map of some description?
@@ -175,7 +182,7 @@ becomes
 00:00:00: "Selected 2 Tasks."
 
 - Improve search functionalities - present a list of Tasks that fulfill a set of 
-
+- Add image backgrounds instead of the grid.
 - Add other unicode characters to default font (←№⎢¡°ᚃ√⇒∄±∑∌≠αβχδεφγηιϑΧΔΦΓ)
 - Whiteboard resolution could be increased
 - Replace Board-level Undo with Project-level Undo, focus on Tasks when undoing or redoing

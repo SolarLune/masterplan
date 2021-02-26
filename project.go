@@ -203,6 +203,7 @@ type Project struct {
 	GrabClient      *grab.Client
 	Time            float32
 	firstFreeTaskID int
+	ScreenSize      rl.Vector2
 }
 
 func NewProject() *Project {
@@ -291,6 +292,9 @@ func NewProject() *Project {
 		GrabClient:                grab.NewClient(),
 		LogOn:                     true,
 	}
+
+	project.ScreenSize.X = float32(rl.GetScreenWidth())
+	project.ScreenSize.Y = float32(rl.GetScreenHeight())
 
 	project.TempDir, _ = ioutil.TempDir("", "masterplan")
 
@@ -792,7 +796,7 @@ func (project *Project) Save(backup bool) {
 
 			f, err := os.Create(project.FilePath)
 			if err != nil {
-				project.Log("Error in creating save file: ", err.Error())
+				project.Log("ERROR: Could not create save file: ", err.Error())
 			} else {
 				defer f.Close()
 
@@ -1055,7 +1059,7 @@ func LoadProject(filepath string) *Project {
 
 	// We log on the current project because this project didn't load correctly
 
-	currentProject.Log("Error: Could not load plan:\n[ %s ].", filepath)
+	currentProject.Log("ERROR: Could not load plan:\n[ %s ].", filepath)
 	currentProject.Log("Are you sure it's a valid MasterPlan project?")
 
 	return nil
@@ -1152,6 +1156,9 @@ func (project *Project) MousingOver() string {
 }
 
 func (project *Project) Update() {
+
+	project.ScreenSize.X = float32(rl.GetScreenWidth())
+	project.ScreenSize.Y = float32(rl.GetScreenHeight())
 
 	project.AutoBackup()
 
@@ -2880,8 +2887,7 @@ func (project *Project) RetrieveResource(resourcePath string) *Resource {
 
 }
 
-// LoadResource returns the resource loaded from the filepath and a boolean indicating if it was just loaded (true), or
-// loaded previously and retrieved (false).
+// LoadResource returns the resource loaded from the filepath. If it doesn't exist, then
 func (project *Project) LoadResource(resourcePath string) *Resource {
 
 	var loadedResource *Resource
@@ -2918,7 +2924,7 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 			req, err := grab.NewRequest(filename, url.String())
 
 			if err != nil {
-				project.Log("Could not initiate download for [%s]\nError : [%s]", url.String(), err.Error())
+				project.Log("ERROR: Could not initiate download for [%s]\nError : [%s]", url.String(), err.Error())
 			} else {
 
 				resp := project.GrabClient.Do(req)
@@ -2931,7 +2937,7 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 				}
 
 				if possibleError != nil {
-					project.Log("Could not initiate download for [%s]\nError : [%s]\nAre you sure the path or URL is correct?", url.String(), possibleError.Error())
+					project.Log("ERROR: Could not initiate download for [%s]\nError : [%s]\nAre you sure the path or URL is correct?", url.String(), possibleError.Error())
 				} else {
 					loadedResource = project.RegisterResource(resourcePath, filename, resp)
 				}

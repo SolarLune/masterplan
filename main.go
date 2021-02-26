@@ -284,6 +284,13 @@ func main() {
 					text = strings.ReplaceAll(text, "\n", "\n                    ")
 
 					alpha, done := msg.Tween.Update(rl.GetFrameTime())
+
+					if strings.HasPrefix(msg.Text, "ERROR") {
+						color = rl.Red
+					} else {
+						color = rl.White
+					}
+
 					color.A = uint8(alpha)
 					bgColor.A = color.A
 
