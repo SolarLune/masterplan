@@ -669,6 +669,10 @@ func NewProject() *Project {
 	speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
 	project.SetSampleRate = project.SampleRate.ChoiceAsInt()
 
+	// We have to open the settings and then close it so the settings options update to the programSettings stored values.
+	project.OpenSettings()
+	project.ProjectSettingsOpen = false
+
 	return project
 
 }
@@ -2903,10 +2907,11 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 
 			if stats, err := file.Stat(); err == nil {
 				// We have to check if the size is greater than 0 because it's possible we're seeing the file before it's been written fully to disk;
-				if stats.Size() > 0 && stats.ModTime().After(loadedResource.ModTime) {
+				if stats.Size() > 0 && (!stats.ModTime().Equal(loadedResource.ModTime) || stats.Size() != loadedResource.Size) {
 					loadedResource.Destroy()
 					delete(project.Resources, resourcePath)
 					loadedResource = project.LoadResource(resourcePath) // Force reloading if the file is outdated
+					loadedResource.ParseData()
 				}
 			}
 

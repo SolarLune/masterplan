@@ -594,6 +594,7 @@ type ImageContents struct {
 	DisplayedText   string
 	TextSize        rl.Vector2
 	ProgressBG      *taskBGProgress
+	ResetSize       bool
 	resizing        bool
 	ChangedResource bool
 }
@@ -619,26 +620,6 @@ func (c *ImageContents) Update() {
 		c.resizing = false
 		c.Task.UndoChange = true
 		c.Task.Board.TaskChanged = true // Have the board reorder if the size is different
-	}
-
-	if c.Task.Open && c.Task.ResetImageSizeButton.Clicked {
-
-		if c.Resource != nil {
-
-			if c.Resource.IsTexture() {
-				c.Task.DisplaySize.X = float32(c.Resource.Texture().Width)
-				c.Task.DisplaySize.Y = float32(c.Resource.Texture().Height)
-			} else {
-				c.Task.DisplaySize.X = float32(c.Resource.Gif().Width)
-				c.Task.DisplaySize.Y = float32(c.Resource.Gif().Height)
-			}
-
-			c.Task.Board.TaskChanged = true
-
-		} else {
-			c.Task.Board.Project.Log("Cannot reset image size if it's invalid or loading.")
-		}
-
 	}
 
 }
@@ -670,23 +651,43 @@ func (c *ImageContents) LoadResource() {
 
 		}
 
-		// Might've changed it by pasting a path directly into the textbox
+		// Manually changed the image filepath by keyboard or by Load button
 		if c.Task.FilePathTextbox.Changed {
 			c.ChangedResource = true
+		}
+
+		if c.Task.ResetImageSizeButton.Clicked {
+
+			if c.Resource != nil {
+
+				if c.Resource.IsTexture() {
+					c.Task.DisplaySize.X = float32(c.Resource.Texture().Width)
+					c.Task.DisplaySize.Y = float32(c.Resource.Texture().Height)
+				} else {
+					c.Task.DisplaySize.X = float32(c.Resource.Gif().Width)
+					c.Task.DisplaySize.Y = float32(c.Resource.Gif().Height)
+				}
+
+				c.Task.Board.TaskChanged = true
+
+			} else {
+				c.Task.Board.Project.Log("Cannot reset image size if it's invalid or loading.")
+			}
+
 		}
 
 	}
 
 	fp := c.Task.FilePathTextbox.Text()
 
-	if !c.Task.Open && c.LoadedPath != fp {
+	if !c.Task.Open && (c.LoadedPath != fp || c.Task.Board.Project.AutoReloadResources.Checked) {
 
 		c.LoadedPath = fp
 
 		newResource := c.Task.Board.Project.LoadResource(fp)
 
 		if c.ChangedResource && newResource != c.Resource {
-			c.Task.DisplaySizeSet = false
+			c.ResetSize = true
 		}
 
 		c.ChangedResource = false
@@ -700,7 +701,9 @@ func (c *ImageContents) LoadResource() {
 			c.GifPlayer = NewGifPlayer(c.Resource.Gif())
 		}
 
-		if !c.Task.DisplaySizeSet {
+		if c.ResetSize {
+
+			c.ResetSize = false
 
 			valid := true
 
@@ -731,8 +734,6 @@ func (c *ImageContents) LoadResource() {
 					c.Task.DisplaySize.X = coverage * xAspectRatio
 					c.Task.DisplaySize.Y = coverage
 				}
-
-				c.Task.DisplaySizeSet = true
 
 			} else {
 				c.Resource = nil
@@ -900,11 +901,11 @@ func (c *ImageContents) Draw() {
 	}
 
 	if text != "" {
-		c.Task.DisplaySize = rl.Vector2{16, 16}
+		c.Task.TempDisplaySize = rl.Vector2{16, 16}
 		if project.ShowIcons.Checked {
 			rl.DrawTexturePro(project.GUI_Icons, rl.Rectangle{96, 0, 16, 16}, rl.Rectangle{cp.X + 8, cp.Y + 8, 16, 16}, rl.Vector2{8, 8}, 0, getThemeColor(GUI_FONT_COLOR))
 			cp.X += 16
-			c.Task.DisplaySize.X += 16
+			c.Task.TempDisplaySize.X += 16
 		}
 
 		DrawText(cp, text)
@@ -914,9 +915,9 @@ func (c *ImageContents) Draw() {
 			c.DisplayedText = text
 		}
 
-		c.Task.DisplaySize.X += c.TextSize.X
+		c.Task.TempDisplaySize.X += c.TextSize.X
 
-		c.Task.DisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.DisplaySize)
+		c.Task.TempDisplaySize = c.Task.Board.Project.LockPositionToGrid(c.Task.TempDisplaySize)
 
 	}
 
@@ -1041,34 +1042,29 @@ func (c *SoundContents) LoadResource() {
 
 	fp := c.Task.FilePathTextbox.Text()
 
-	if !c.Task.Open {
+	if !c.Task.Open && (c.LoadedPath != fp || c.Task.Board.Project.AutoReloadResources.Checked) {
 
-		if c.LoadedPath != fp {
+		c.LoadedPath = fp
 
-			c.LoadedPath = fp
+		newRes := c.Task.Board.Project.LoadResource(fp)
 
-			project := c.Task.Board.Project
-
-			if res := project.LoadResource(fp); fp != "" && res != nil {
-
-				c.Resource = res
-				c.LoadedResource = false
-
-			} else {
-				c.Resource = nil
-				c.LoadedResource = true
-			}
-
+		if newRes != nil && newRes != c.Resource {
+			c.LoadedResource = false
+		} else {
+			// Couldn't load the resource for some reason, so don't try again
+			c.LoadedResource = true
 		}
+
+		if c.Resource != nil && c.Resource != newRes {
+			c.SoundStream.Close()
+			c.SoundControl.Paused = true
+		}
+
+		c.Resource = newRes
 
 	}
 
 	if !c.LoadedResource && c.Resource != nil && c.Resource.State() == RESOURCE_STATE_READY {
-
-		if c.SoundStream != nil {
-			c.SoundStream.Close()
-			c.SoundControl.Paused = true
-		}
 
 		if c.Resource.IsAudio() {
 
@@ -1937,9 +1933,6 @@ func (c *MapContents) Draw() {
 
 				c.Task.MapImage.Resize(mp.X+(grabSize/2)-c.Task.Position.X, mp.Y+(grabSize/2)-c.Task.Position.Y)
 
-				c.Task.DisplaySize.X = c.Task.MapImage.Width()
-				c.Task.DisplaySize.Y = c.Task.MapImage.Height() + 16
-
 			}
 
 		}
@@ -1970,6 +1963,9 @@ func (c *MapContents) Draw() {
 			DrawRectExpanded(corner, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 			rl.DrawRectangleRec(corner, getThemeColor(GUI_INSIDE))
 		}
+
+		c.Task.DisplaySize.X = c.Task.MapImage.Width()
+		c.Task.DisplaySize.Y = c.Task.MapImage.Height() + 16
 
 	}
 

@@ -85,7 +85,7 @@ type Task struct {
 
 	FilePathTextbox *Textbox
 	DisplaySize     rl.Vector2
-	DisplaySizeSet  bool
+	TempDisplaySize rl.Vector2
 	Dragging        bool
 	MouseDragStart  rl.Vector2
 	TaskDragStart   rl.Vector2
@@ -383,10 +383,6 @@ func (task *Task) Clone() *Task {
 
 	copyData.Contents = nil // We'll leave it to the copy to create its own contents
 
-	if copyData.Is(TASK_TYPE_IMAGE, TASK_TYPE_MAP, TASK_TYPE_WHITEBOARD) {
-		copyData.DisplaySizeSet = true
-	}
-
 	copyData.CountdownMinute = task.CountdownMinute.Clone()
 	copyData.CountdownSecond = task.CountdownSecond.Clone()
 
@@ -606,7 +602,6 @@ func (task *Task) Deserialize(jsonData string) {
 	if gjson.Get(jsonData, `ImageDisplaySize\.X`).Exists() {
 		task.DisplaySize.X = getFloat(`ImageDisplaySize\.X`)
 		task.DisplaySize.Y = getFloat(`ImageDisplaySize\.Y`)
-		task.DisplaySizeSet = true
 	}
 
 	task.CompletionCheckbox.Checked = getBool(`Checkbox\.Checked`)
@@ -789,6 +784,9 @@ func (task *Task) Deserialize(jsonData string) {
 
 func (task *Task) Update() {
 
+	task.TempDisplaySize.X = 0
+	task.TempDisplaySize.Y = 0
+
 	task.Visible = true
 
 	scrW := float32(rl.GetScreenWidth()) / camera.Zoom
@@ -884,10 +882,16 @@ func (task *Task) Draw() {
 
 		expandSmooth := float32(0.6)
 
-		task.Rect.Width += (task.DisplaySize.X - task.Rect.Width) * expandSmooth
-		task.Rect.Height += (task.DisplaySize.Y - task.Rect.Height) * expandSmooth
-
 		task.Contents.Draw()
+
+		displaySize := task.DisplaySize
+
+		if task.TempDisplaySize.X > 0 {
+			displaySize = task.TempDisplaySize
+		}
+
+		task.Rect.Width += (displaySize.X - task.Rect.Width) * expandSmooth
+		task.Rect.Height += (displaySize.Y - task.Rect.Height) * expandSmooth
 
 		if task.Selected && task.Board.Project.PulsingTaskSelection.Checked { // Drawing selection indicator
 			r := task.Rect

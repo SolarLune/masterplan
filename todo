@@ -8,17 +8,18 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 Completed:
 
-- Added basic support for non-latin character entry. Note that you have to specify a font that has the characters you'll be entering (as the default one only has latin characters).
+- Added basic support for non-latin / foreign character entry. Note that you have to specify a font that has the characters you'll be entering (as the default one only has latin characters).
 - Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
 - Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but it is now primarily simpler in the code-base.
 - Downloading images / sounds are now multithreaded.
 - Modifiers (left ctrl, right ctrl) are now left / right agnostic.
-- Now only Check-box Tasks display Sub-Tasks as contributing to their own completion, not any other completable Tasks.
-- Added repeatable Timers.
-- Added a Daily mode for Timers (so they can trigger every Monday, Friday, etc).
-- Added a Date mode for Timers (so they can trigger on a specific date).
+- Now ONLY Check-box Tasks display Sub-Tasks as contributing to their own completion, not any other completable Tasks.
+- Added a Daily mode for Timers (so a Timer can trigger every Monday, Friday, etc).
+- Added a Date mode for Timers (so a Timer can trigger on a specific date).
 - Added a Stopwatch mode for Timers.
-- Timers now can trigger neighbors when they run out.
+- Added a repeatable option for certain Timer types.
+- Timers now can trigger neighbor Tasks when they run out. The effect of the trigger differs depending on the Task type - Completable Tasks change their completion level, while 
+  Whiteboard Tasks change their colors. Timers start or stop when triggered, naturally.
 - Timers who are neighbors to Lines can now trigger the Tasks those Lines are pointing to, and so on.
 - Added a Rectangle tool for Map Tasks.
 - Themes are now global instead of per-Project.
@@ -59,7 +60,7 @@ Completed:
 - FIX: Textboxes now don't take key input immediately after they're visible. This means you can now assign individual keys to shortcuts effectively (i.e. I to create an Image Task, and not type I immediately when the Task Edit dialog appears).
 - The "first / main" editable element in the Task Edit Panel for each Task type is now Focused by default.
 - Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
-- Project Volume spinner now goes from 0 to 100, rather than 0 to 10. The volume is also now more naturally distributed, audibly.
+- Project Volume spinner now goes from 0 to 100, rather than 0 to 10. The volume is also now more naturally distributed audibly.
 - FIX: Adding a new task or deleting Tasks now properly moves the entire stack below it. This works if Tasks are selected across multiple stacks.
 - FIX: Shortcuts that are one key and create Tasks no longer immediately also enters the key of the shortcut into a textbox, if it's there and focused.
 - You can now hold Shift to select all Tasks between the currently selected one and the top or bottom of the stack.
@@ -72,21 +73,21 @@ Completed:
 - INTERNAL: Added back a button in the Task to reset image size (it's not done often enough to make it necessary to be on the Task itself, I think).
 - INTERNAL: Fix up missing project logging for Task Contents when stuff happens
 - INTERNAL: Fix Line head moving on undo and redo
-- Errors in 
-- FIX: GIF Animation has been reviewed; frames should be displayed more accurately.
-- Errors in the text log now show up as red in MasterPlan.
+- FIX: GIF Animation has been reviewed and fixed up. Animation frames should now be displayed more accurately (though not perfect in all cases, yet).
+- Errors in the message log at the top-left now show up as red in MasterPlan.
+- INTERNAL: Auto-load Resources not doing anything.
+- When Project resource auto-reloading is on, MasterPlan will reload a file if the size OR modified time differs from what is cached in the project. 
+  Previously, this was just based on reloading resources if the modified time was later than the modified time of the resource recorded when it was loaded into MasterPlan.
+- Optimized rendering (about a 50% CPU usage decrease, from what just I've personally observed in my limited tests).
 
 To-do:
 
-- Hide grid at far zoom levels
 - FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
 - INTERNAL: Project.Modified is set directly after loading a project for some reason
 - INTERNAL: Re-implement sub-task bracketing
 
 REVIEW
 
-- Auto-load Resources not doing anything.
-- Review GIF loading again, seems like it's not working correctly with a certain disposal (see /home/solarlune/Pictures/MasterPlanTables.gif)
 - INTERNAL: Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
 - Test Timers going off
 - Review and re-implement PasteContents()
@@ -94,6 +95,7 @@ REVIEW
 
 ---- RELEASE
 
+- Hide grid at far zoom levels
 - Textbox dies when there's a ton of text.
 - Add fill tool to Map Task.
 - Add diagonal corners to Map Task.

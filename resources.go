@@ -25,7 +25,11 @@ const (
 )
 
 type Resource struct {
+	// Modified time of the local filepath resource
 	ModTime time.Time
+
+	// Size of the resource on disk
+	Size int64
 	// Path facing the object requesting the resouce (e.g. "~/home/pictures/test.png" or "https://solarlune.com/media/bartender.png")
 	ResourcePath string
 
@@ -49,17 +53,20 @@ type Resource struct {
 func (project *Project) RegisterResource(resourcePath, localFilepath string, response *grab.Response) *Resource {
 
 	modTime := time.Time{}
+	size := int64(0)
 
 	if localFile, err := os.Open(localFilepath); err == nil {
 		if stats, err := localFile.Stat(); err == nil {
 			modTime = stats.ModTime()
+			size = stats.Size()
 		}
 	}
 
 	res := &Resource{
+		ModTime:          modTime,
+		Size:             size,
 		ResourcePath:     resourcePath,
 		LocalFilepath:    localFilepath,
-		ModTime:          modTime,
 		DownloadResponse: response,
 		Project:          project,
 	}
