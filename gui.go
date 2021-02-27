@@ -1748,9 +1748,11 @@ type Textbox struct {
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
 
-	KeyholdTimer   time.Time
-	KeyrepeatTimer time.Time
-	CaretPos       int
+	KeyholdTimer     time.Time
+	KeyrepeatTimer   time.Time
+	CaretPos         int
+	TextSize         rl.Vector2
+	MarginX, MarginY float32
 
 	lineHeight float32
 }
@@ -1759,9 +1761,7 @@ func NewTextbox(x, y, w, h float32) *Textbox {
 	textbox := &Textbox{Rect: rl.Rectangle{x, y, w, h}, Visible: true,
 		MinSize: rl.Vector2{w, h}, MaxSize: rl.Vector2{9999, 9999}, MaxCharactersPerLine: math.MaxInt64,
 		SelectedRange: [2]int{-1, -1}, ExpandVertically: true, CharToRect: map[int]rl.Rectangle{}, Lines: [][]rune{{}}, triggerTextRedraw: true,
-		OpenTime: -1, PrevUpdateTime: -1}
-
-	textbox.lineHeight, _ = TextHeight(" ", true)
+		OpenTime: -1, PrevUpdateTime: -1, MarginX: 6, MarginY: 2}
 
 	allTextboxes = append(allTextboxes, textbox)
 
@@ -1922,14 +1922,14 @@ func (textbox *Textbox) CharacterToPoint(charIndex int) rl.Vector2 {
 	rect := textbox.CharToRect[charIndex]
 
 	if len(textbox.text) == 0 {
-		return rl.NewVector2(textbox.Rect.X, textbox.Rect.Y+2)
+		return rl.NewVector2(textbox.Rect.X+2, textbox.Rect.Y+textbox.MarginY)
 	}
 
 	if charIndex < 0 {
 		rect = textbox.CharToRect[0]
 	}
 
-	if len(textbox.CharToRect) >= 1 && charIndex > 0 {
+	if len(textbox.CharToRect) > 0 && charIndex > 0 {
 
 		char := textbox.text[charIndex-1]
 
@@ -2018,6 +2018,7 @@ func (textbox *Textbox) Update() {
 			if textbox.RangeSelected() {
 				textbox.DeleteSelectedText()
 			}
+			textbox.ClearSelection()
 			textbox.InsertCharacterAtCaret('\n')
 		}
 
@@ -2087,14 +2088,12 @@ func (textbox *Textbox) Update() {
 				keyState[k] = 1
 				textbox.KeyholdTimer = time.Now()
 			} else if rl.IsKeyDown(k) {
-				if time.Since(textbox.KeyholdTimer).Seconds() > 0.5 {
+				if !textbox.KeyholdTimer.IsZero() && time.Since(textbox.KeyholdTimer).Seconds() > 0.5 {
 					if time.Since(textbox.KeyrepeatTimer).Seconds() > 0.025 {
 						textbox.KeyrepeatTimer = time.Now()
 						keyState[k] = 1
 					}
 				}
-			} else if rl.IsKeyReleased(k) {
-				textbox.KeyholdTimer = time.Time{}
 			}
 		}
 
@@ -2151,11 +2150,11 @@ func (textbox *Textbox) Update() {
 			lineIndex := textbox.LineNumberByPosition(textbox.CaretPos)
 			if lineIndex > 0 {
 
-				textPos := textbox.PositionInLine(textbox.CaretPos)
-				textbox.CaretPos -= textPos + 1
+				caretPosInLine := textbox.PositionInLine(textbox.CaretPos)
+				textbox.CaretPos -= caretPosInLine + 1
 				prevLineLength := len(textbox.Lines[lineIndex-1])
-				if prevLineLength >= textPos {
-					textbox.CaretPos -= prevLineLength - textPos - 1
+				if prevLineLength > caretPosInLine {
+					textbox.CaretPos -= prevLineLength - caretPosInLine - 1
 				}
 
 			} else {
@@ -2171,10 +2170,13 @@ func (textbox *Textbox) Update() {
 				textbox.CaretPos += len(textbox.Lines[lineIndex]) - textPos
 
 				nextLineLength := len(textbox.Lines[lineIndex+1])
-				if nextLineLength >= textPos {
+				if nextLineLength > textPos {
 					textbox.CaretPos += textPos
 				} else {
-					textbox.CaretPos += nextLineLength - 1
+					textbox.CaretPos += nextLineLength
+					if nextLineLength > 0 {
+						textbox.CaretPos--
+					}
 				}
 			} else {
 				textbox.CaretPos = len(textbox.text)
@@ -2359,11 +2361,12 @@ func (textbox *Textbox) Draw() {
 
 	caretPos := textbox.CharacterToPoint(textbox.CaretPos)
 	caretPos.X -= textbox.Rect.X
+	caretPos.X -= 2
 
 	alignmentOffset := textbox.AlignmentOffset()
 
-	if caretPos.X+16 > textbox.Visibility.X+textbox.Rect.Width {
-		textbox.Visibility.X = caretPos.X - textbox.Rect.Width + 16
+	if caretPos.X+16 > textbox.Visibility.X+textbox.Rect.Width-textbox.MarginX {
+		textbox.Visibility.X = caretPos.X - textbox.Rect.Width - textbox.MarginX + 16
 	}
 
 	if caretPos.X-16 < textbox.Visibility.X {
@@ -2374,8 +2377,8 @@ func (textbox *Textbox) Draw() {
 		textbox.Visibility.X = 0
 	}
 
-	if textbox.Visibility.X > float32(textbox.BufferSize.X)-textbox.Rect.Width {
-		textbox.Visibility.X = float32(textbox.BufferSize.X) - textbox.Rect.Width
+	if textbox.Visibility.X > float32(textbox.BufferSize.X)-textbox.Rect.Width-textbox.MarginX {
+		textbox.Visibility.X = float32(textbox.BufferSize.X) - textbox.Rect.Width - textbox.MarginX
 	}
 
 	if float32(textbox.BufferSize.X) <= textbox.Rect.Width+16 {
@@ -2383,9 +2386,6 @@ func (textbox *Textbox) Draw() {
 	}
 
 	if textbox.RangeSelected() {
-
-		size, _ := TextSize("A", true)
-		singleLetterWidth := size.X
 
 		for i := textbox.SelectedRange[0]; i < textbox.SelectedRange[1]; i++ {
 
@@ -2395,17 +2395,15 @@ func (textbox *Textbox) Draw() {
 
 			rec.X -= textbox.Visibility.X
 
-			if rec.X < textbox.Rect.X || rec.X+rec.Width >= textbox.Rect.X+textbox.Rect.Width || textbox.text[i] == '\n' {
+			if rec.X < textbox.Rect.X || rec.X+rec.Width >= textbox.Rect.X+textbox.Rect.Width {
 				continue
 			}
 
-			if i >= textbox.CaretPos {
-				rec.X += rec.Width / 2
-			}
-			if rec.Width < singleLetterWidth {
-				rec.Width = singleLetterWidth
-			}
+			rec.X -= 2
 
+			if rec.Width < 2 {
+				rec.Width = 2
+			}
 			rec.Width += 2
 
 			if rec.X+rec.Width >= textbox.Rect.X+textbox.Rect.Width-2 {
@@ -2429,7 +2427,7 @@ func (textbox *Textbox) Draw() {
 
 		if blink > blinkTime/4 {
 
-			caretPos = rl.Vector2{textbox.Rect.X + caretPos.X - textbox.Visibility.X + 2, caretPos.Y + 2}
+			caretPos = rl.Vector2{textbox.Rect.X + caretPos.X - textbox.Visibility.X, caretPos.Y + textbox.MarginY}
 			caretPos.X += alignmentOffset.X
 			caretPos.Y += alignmentOffset.Y
 
@@ -2437,17 +2435,18 @@ func (textbox *Textbox) Draw() {
 			if blink > blinkTime {
 				textbox.CaretBlinkTime = time.Now()
 			}
+
 		}
 
 	}
 
 	src := rl.Rectangle{textbox.Visibility.X, 0, textbox.Rect.Width - 4, textbox.Rect.Height - 4}
 
-	textDrawPosition := rl.NewVector2(textbox.Rect.X+2, textbox.Rect.Y+2)
+	textDrawPosition := rl.NewVector2(textbox.Rect.X+textbox.MarginX, textbox.Rect.Y+textbox.MarginY)
 	textDrawPosition.X += alignmentOffset.X
 	textDrawPosition.Y += alignmentOffset.Y
 
-	dst := rl.Rectangle{textDrawPosition.X, textDrawPosition.Y, textbox.Rect.Width - 4, textbox.Rect.Height - 4}
+	dst := rl.Rectangle{textDrawPosition.X, textDrawPosition.Y, textbox.Rect.Width - (textbox.MarginX * 2), textbox.Rect.Height - (textbox.MarginY * 2)}
 
 	src.Height *= -1
 	rl.DrawTexturePro(textbox.Buffer.Texture, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_FONT_COLOR))
@@ -2461,12 +2460,11 @@ func (textbox *Textbox) RedrawText() {
 	// 	rl.UnloadRenderTexture(textbox.Buffer)
 	// }
 
-	x := textbox.Rect.X
-	y := textbox.Rect.Y + 2
+	x := textbox.Rect.X + textbox.MarginX
+	y := textbox.Rect.Y + textbox.MarginY
 
 	textbox.Lines = [][]rune{}
 	line := []rune{}
-	newlineCount := 0
 
 	textbox.CharToRect = map[int]rl.Rectangle{}
 
@@ -2476,10 +2474,10 @@ func (textbox *Textbox) RedrawText() {
 
 		var charSize rl.Vector2
 
-		if string(char) == "\n" {
+		if char == '\n' {
 			textbox.Lines = append(textbox.Lines, line)
 			line = []rune{}
-			charSize = rl.Vector2{0, 0}
+			charSize = rl.Vector2{0, textbox.lineHeight}
 		} else {
 			charSize = rl.MeasureTextEx(font, string(char), GUIFontSize(), spacing)
 		}
@@ -2488,22 +2486,22 @@ func (textbox *Textbox) RedrawText() {
 
 		x += charSize.X + spacing
 
-		if string(char) == "\n" {
+		if char == '\n' {
 			y += textbox.lineHeight
-			x = textbox.Rect.X
-			newlineCount++
+			x = textbox.Rect.X + textbox.MarginX
 		}
 
 	}
 
+	textbox.TextSize, _ = TextSize(textbox.Text(), true)
+
 	textbox.Lines = append(textbox.Lines, line)
 
-	textSize, _ := TextSize(textbox.Text(), true)
 	margin := float32(2)
 	tbpos := rl.Vector2{0, 0}
 
-	textbox.BufferSize.X = textSize.X
-	textbox.BufferSize.Y = textSize.Y
+	textbox.BufferSize.X = textbox.TextSize.X
+	textbox.BufferSize.Y = textbox.TextSize.Y
 
 	// Buffer size has to be locked to the textbox size at minimum
 
@@ -2525,9 +2523,9 @@ func (textbox *Textbox) RedrawText() {
 	if textbox.VerticalAlignment == ALIGN_CENTER {
 		tbpos.Y = float32(textbox.Buffer.Texture.Height/2) - 2
 	} else if textbox.VerticalAlignment == ALIGN_BOTTOM {
-		tbpos.Y = -textSize.Y - margin
+		tbpos.Y = -textbox.TextSize.Y - margin
 	} else {
-		tbpos.Y = float32(textbox.Buffer.Texture.Height) - textSize.Y - margin
+		tbpos.Y = float32(textbox.Buffer.Texture.Height) - textbox.TextSize.Y - margin
 	}
 
 	rl.BeginTextureMode(textbox.Buffer)
@@ -2556,12 +2554,10 @@ func (textbox *Textbox) ClosestPowerOfTwo(number float32) int32 {
 // to align it according to the textbox's text alignment (horizontally and vertically).
 func (textbox *Textbox) AlignmentOffset() rl.Vector2 {
 
-	textSize, _ := TextSize(textbox.Text(), true)
-
 	newPosition := rl.NewVector2(0, 0)
 
 	if textbox.HorizontalAlignment == ALIGN_CENTER {
-		newPosition.X = textbox.Rect.Width/2 - textSize.X/2
+		newPosition.X = textbox.Rect.Width/2 - textbox.TextSize.X/2
 	}
 
 	return newPosition

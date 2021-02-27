@@ -78,11 +78,12 @@ Completed:
 - INTERNAL: Auto-load Resources not doing anything.
 - When Project resource auto-reloading is on, MasterPlan will reload a file if the size OR modified time differs from what is cached in the project. 
   Previously, this was just based on reloading resources if the modified time was later than the modified time of the resource recorded when it was loaded into MasterPlan.
-- Optimized rendering (about a 50% CPU usage decrease, from what just I've personally observed in my limited tests).
+- Optimized general rendering of Tasks (about a 50% CPU usage decrease, from what just I've personally observed in my limited tests).
+- FIX: Newlines sometimes being overwritten in Textboxes.
+- FIX: Slight basic improvements with regards to textbox usability mechanics.
 
 To-do:
 
-- FIX: Enter creates a newline, but not always? Sometimes after creating a new Task and then changing its type, it doesn't work...?
 - INTERNAL: Project.Modified is set directly after loading a project for some reason
 - INTERNAL: Re-implement sub-task bracketing
 
@@ -95,6 +96,10 @@ REVIEW
 
 ---- RELEASE
 
+- Label each quadrant of a board?
+- Note color change
+- Show Map or Whiteboard size somewhere
+- List Tasks completed from those selected
 - Hide grid at far zoom levels
 - Textbox dies when there's a ton of text.
 - Add fill tool to Map Task.
@@ -212,6 +217,7 @@ includes a current number and maximum number of 999 each, so that they don't cha
 
 Long-term Goals
 
+- Do stuff on the overview, rather than needing to open a Panel. This is requested pretty regularly, but I'm not 100% on how to do so seamlessly.
 - Collaboration - Real quick idea: 
     - Clone the plan to all connected users' computers.
     - One person is host and the others are guests. This is mostly for internal purposes, the actual implementation shouldn't really make a huge distinction here.
