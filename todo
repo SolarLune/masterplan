@@ -81,11 +81,11 @@ Completed:
 - Optimized general rendering of Tasks (about a 50% CPU usage decrease, from what just I've personally observed in my limited tests).
 - FIX: Newlines sometimes being overwritten in Textboxes.
 - FIX: Slight basic improvements with regards to textbox usability mechanics.
+- INTERNAL: Re-implemented sub-task bracketing.
 
 To-do:
 
 - INTERNAL: Project.Modified is set directly after loading a project for some reason
-- INTERNAL: Re-implement sub-task bracketing
 
 REVIEW
 

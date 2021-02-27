@@ -836,6 +836,38 @@ func (task *Task) Update() {
 
 	task.Contents.Update()
 
+	if task.Board.Project.BracketSubtasks.Checked {
+
+		for _, subTask := range task.SubTasks {
+
+			half := float32(task.Board.Project.GridSize) / 2
+			quarter := float32(task.Board.Project.GridSize) / 4
+
+			lines := []rl.Vector2{
+				rl.Vector2{task.Rect.X - quarter, task.Rect.Y + half},
+				rl.Vector2{task.Rect.X - half, task.Rect.Y + half},
+				rl.Vector2{task.Rect.X - half, subTask.Rect.Y + half},
+				rl.Vector2{subTask.Rect.X - quarter, subTask.Rect.Y + half},
+			}
+
+			for i := 0; i < len(lines)-1; i++ {
+
+				selectionColor := getThemeColor(GUI_INSIDE)
+
+				if task.IsComplete() {
+					selectionColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+				} else if subTask.IsComplete() && i >= 2 {
+					selectionColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
+				}
+
+				rl.DrawLineEx(lines[i], lines[i+1], 2, selectionColor)
+
+			}
+
+		}
+
+	}
+
 }
 
 func (task *Task) Draw() {
@@ -956,6 +988,10 @@ func (task *Task) CreateUndoState() {
 
 func (task *Task) PostDraw() {
 
+	// This is here because the progression current value can be influenced by shortcuts, without the task being open.
+	task.CompletionProgressionCurrent.Maximum = task.CompletionProgressionMax.Number()
+	task.CompletionProgressionMax.Minimum = task.CompletionProgressionCurrent.Number()
+
 	if task.Open {
 
 		prevType := task.TaskType.CurrentChoice
@@ -975,9 +1011,6 @@ func (task *Task) PostDraw() {
 		// day before the first day of the next month.
 		lastDayOfMonth := time.Date(task.DeadlineYear.Number(), time.Month(task.DeadlineMonth.CurrentChoice+2), 0, 0, 0, 0, 0, time.Now().Location())
 		task.DeadlineDay.Maximum = lastDayOfMonth.Day()
-
-		task.CompletionProgressionCurrent.Maximum = task.CompletionProgressionMax.Number()
-		task.CompletionProgressionMax.Minimum = task.CompletionProgressionCurrent.Number()
 
 		if task.EditPanel.Exited {
 			task.ReceiveMessage(MessageTaskClose, nil)
@@ -1445,7 +1478,7 @@ func (task *Task) UpdateNeighbors() {
 
 func (task *Task) IsComplete() bool {
 
-	if task.IsCompletable() && len(task.SubTasks) > 0 {
+	if task.Is(TASK_TYPE_BOOLEAN) && len(task.SubTasks) > 0 {
 		for _, child := range task.SubTasks {
 			if !child.IsComplete() {
 				return false
@@ -1497,31 +1530,35 @@ func (task *Task) SetPrefix() {
 
 	countingSubTasks := true
 
-	for below != nil && below != task {
+	if task.Is(TASK_TYPE_BOOLEAN) {
 
-		// We want to break out in case of situations where Tasks create an infinite loop (a.Below = b, b.Below = c, c.Below = a kind of thing)
-		if loopIndex > 1000 {
-			break // Emergency in case we get stuck in a loop
-		}
+		for below != nil && below != task {
 
-		task.RestOfStack = append(task.RestOfStack, below)
-
-		if countingSubTasks && below.IsCompletable() {
-
-			taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
-			belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
-
-			if belowX == taskX+1 && task.IsCompletable() {
-				task.SubTasks = append(task.SubTasks, below)
-			} else if belowX <= taskX {
-				countingSubTasks = false
+			// We want to break out in case of situations where Tasks create an infinite loop (a.Below = b, b.Below = c, c.Below = a kind of thing)
+			if loopIndex > 1000 {
+				break // Emergency in case we get stuck in a loop
 			}
 
+			task.RestOfStack = append(task.RestOfStack, below)
+
+			if countingSubTasks && below.IsCompletable() {
+
+				taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
+				belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
+
+				if belowX == taskX+1 {
+					task.SubTasks = append(task.SubTasks, below)
+				} else if belowX <= taskX {
+					countingSubTasks = false
+				}
+
+			}
+
+			below = below.TaskBelow
+
+			loopIndex++
+
 		}
-
-		below = below.TaskBelow
-
-		loopIndex++
 
 	}
 

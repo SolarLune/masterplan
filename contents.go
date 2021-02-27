@@ -36,10 +36,12 @@ func newTaskBGProgress(task *Task) *taskBGProgress {
 func (tbg *taskBGProgress) Draw() {
 
 	rec := tbg.Task.Rect
-	rec.Width -= 2
-	rec.X++
-	rec.Y++
-	rec.Height -= 2
+	if tbg.Task.Board.Project.OutlineTasks.Checked {
+		rec.Width -= 2
+		rec.X++
+		rec.Y++
+		rec.Height -= 2
+	}
 
 	ratio := float32(0)
 
@@ -2101,7 +2103,6 @@ func (c *WhiteboardContents) ReceiveMessage(msg string) {
 type TableContents struct {
 	Task           *Task
 	RenderTexture  rl.RenderTexture2D
-	ButtonsActive  bool
 	StripesPattern rl.Texture2D
 }
 
@@ -2341,7 +2342,7 @@ func (c *TableContents) Draw() {
 
 				if imButton(dst, "", style) {
 
-					if c.ButtonsActive && !c.Task.Board.Project.TaskOpen && !c.Task.Board.Project.ProjectSettingsOpen && c.Task.Board.Project.PopupAction == "" {
+					if !c.Task.Board.Project.TaskOpen && !c.Task.Board.Project.ProjectSettingsOpen && c.Task.Board.Project.PopupAction == "" {
 
 						if MousePressed(rl.MouseLeftButton) {
 
@@ -2412,10 +2413,6 @@ func (c *TableContents) Draw() {
 
 	}
 
-	if !c.Task.Selected {
-		c.ButtonsActive = false
-	}
-
 	if createUndo {
 		c.Task.UndoChange = true
 	}
@@ -2428,7 +2425,7 @@ func (c *TableContents) Trigger(triggerMode int) {
 
 	for y := range c.Task.TableData.Completions {
 
-		for x := range c.Task.TableData.Completions {
+		for x := range c.Task.TableData.Completions[y] {
 
 			if triggerMode == TASK_TRIGGER_SET {
 
@@ -2458,12 +2455,4 @@ func (c *TableContents) Trigger(triggerMode int) {
 
 }
 
-func (c *TableContents) ReceiveMessage(msg string) {
-
-	if msg == MessageSelect && c.Task.Selected {
-
-		c.ButtonsActive = true
-
-	}
-
-}
+func (c *TableContents) ReceiveMessage(msg string) {}
