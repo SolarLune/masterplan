@@ -431,7 +431,7 @@ func (task *Task) Serialize() string {
 	jsonData, _ = sjson.Set(jsonData, `BoardIndex`, task.Board.Index())
 
 	// IT CAN BE NEGATIVE ZERO HOHMYGOSH; That's why we call Project.LockPositionToGrid, because it also handles settings -0 to 0.
-	pos := task.Board.Project.LockPositionToGrid(task.Position)
+	pos := task.Board.Project.RoundPositionToGrid(task.Position)
 
 	jsonData, _ = sjson.Set(jsonData, `Position\.X`, pos.X)
 	jsonData, _ = sjson.Set(jsonData, `Position\.Y`, pos.Y)
@@ -526,7 +526,7 @@ func (task *Task) Serialize() string {
 				continue
 			}
 
-			locked := task.Board.Project.LockPositionToGrid(ending.Position)
+			locked := task.Board.Project.RoundPositionToGrid(ending.Position)
 
 			endings = append(endings, locked.X, locked.Y)
 
@@ -661,6 +661,13 @@ func (task *Task) Deserialize(jsonData string) {
 			task.DailyDay.CurrentChoices = getInt(`TimerDailyDaySpinner\.CurrentChoice`)
 			task.DailyHour.SetNumber(getInt(`TimerDailyHourSpinner\.Number`))
 			task.DailyMinute.SetNumber(getInt(`TimerDailyMinuteSpinner\.Number`))
+		}
+
+		// If the project is loading, we want to calculate the time left.
+		if task.Board.Project.Loading {
+			timerContents := NewTimerContents(task)
+			timerContents.CalculateTimeLeft()
+			task.Contents = timerContents
 		}
 
 	}
@@ -827,7 +834,7 @@ func (task *Task) Update() {
 	}
 
 	if task.Locked {
-		task.Position = task.Board.Project.LockPositionToGrid(task.Position)
+		task.Position = task.Board.Project.RoundPositionToGrid(task.Position)
 	}
 
 	if task.Contents == nil {
@@ -1297,7 +1304,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		if task.Valid {
 			// This gets called when we reorder the board / project, which can cause problems if the Task is already removed
 			// because it will then be immediately readded to the Board grid, thereby making it a "ghost" Task
-			task.Position = task.Board.Project.LockPositionToGrid(task.Position)
+			task.Position = task.Board.Project.RoundPositionToGrid(task.Position)
 			task.Board.RemoveTaskFromGrid(task)
 			task.Board.AddTaskToGrid(task)
 
@@ -1530,35 +1537,31 @@ func (task *Task) SetPrefix() {
 
 	countingSubTasks := true
 
-	if task.Is(TASK_TYPE_BOOLEAN) {
+	for below != nil && below != task {
 
-		for below != nil && below != task {
+		// We want to break out in case of situations where Tasks create an infinite loop (a.Below = b, b.Below = c, c.Below = a kind of thing)
+		if loopIndex > 1000 {
+			break // Emergency in case we get stuck in a loop
+		}
 
-			// We want to break out in case of situations where Tasks create an infinite loop (a.Below = b, b.Below = c, c.Below = a kind of thing)
-			if loopIndex > 1000 {
-				break // Emergency in case we get stuck in a loop
+		task.RestOfStack = append(task.RestOfStack, below)
+
+		if task.Is(TASK_TYPE_BOOLEAN) && countingSubTasks && below.IsCompletable() {
+
+			taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
+			belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
+
+			if belowX == taskX+1 {
+				task.SubTasks = append(task.SubTasks, below)
+			} else if belowX <= taskX {
+				countingSubTasks = false
 			}
-
-			task.RestOfStack = append(task.RestOfStack, below)
-
-			if countingSubTasks && below.IsCompletable() {
-
-				taskX, _ := task.Board.Project.WorldToGrid(task.Position.X, task.Position.Y)
-				belowX, _ := task.Board.Project.WorldToGrid(below.Position.X, below.Position.Y)
-
-				if belowX == taskX+1 {
-					task.SubTasks = append(task.SubTasks, below)
-				} else if belowX <= taskX {
-					countingSubTasks = false
-				}
-
-			}
-
-			below = below.TaskBelow
-
-			loopIndex++
 
 		}
+
+		below = below.TaskBelow
+
+		loopIndex++
 
 	}
 

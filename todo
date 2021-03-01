@@ -82,20 +82,20 @@ Completed:
 - FIX: Newlines sometimes being overwritten in Textboxes.
 - FIX: Slight basic improvements with regards to textbox usability mechanics.
 - INTERNAL: Re-implemented sub-task bracketing.
-
-To-do:
-
-- INTERNAL: Project.Modified is set directly after loading a project for some reason
+- INTERNAL: Review and re-implement PasteContents()
+- INTERNAL: Review and re-implement HandleDroppedFiles()
 
 REVIEW
 
+- INTERNAL: Lines aren't on top anymore.
 - INTERNAL: Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
 - Test Timers going off
-- Review and re-implement PasteContents()
-- Review and re-implement HandleDroppedFiles()
 
 ---- RELEASE
 
+- INTERNAL: Project.Modified is set directly after loading a project for some reason
+- Optimize map image serialization by using bitwise operations and storing the array as a bitwise number
+- Add image filtering option, as you may not want it to be pixelly
 - Label each quadrant of a board?
 - Note color change
 - Show Map or Whiteboard size somewhere
@@ -119,7 +119,7 @@ REVIEW
 - Add pasting image data? Somehow?
 - Panels should be resizeable
 - Investigate pasting images from the clipboard?
-
+- MP4 video support?
 - A mobile version of MasterPlan, where you can take pictures or record video and have it copy over to your plan somehow (gasp!).
 - Re-make Dino Riki? Aw Nuts!? 7DRL on 3/4/21?!?!?!
 

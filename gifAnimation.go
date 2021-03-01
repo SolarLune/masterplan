@@ -68,7 +68,14 @@ func (gifAnim *GifAnimation) Load() {
 		}
 
 		gifAnim.Frames = append(gifAnim.Frames, rl.NewImageFromImage(gifAnim.frameImg))
-		gifAnim.Delays = append(gifAnim.Delays, float32(gifAnim.Data.Delay[index])/100)
+
+		delay := float32(gifAnim.Data.Delay[index]) / 100
+
+		if delay <= 0 {
+			delay = 0.1
+		}
+
+		gifAnim.Delays = append(gifAnim.Delays, delay)
 
 		// If there's something in the progress channel, it's an old value indicating the progress of the
 		// loading process, so we take it out.

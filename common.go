@@ -83,7 +83,7 @@ func WorkingDirectory() string {
 func FileExists(filepath string) bool {
 	_, err := os.Stat(filepath)
 
-	if os.IsNotExist(err) {
+	if err != nil && !os.IsExist(err) {
 		return false
 	}
 	return true
@@ -220,6 +220,8 @@ func GUIFontSize() float32 {
 var font rl.Font
 var loadedFontPath = ""
 var fontBaseline = float32(0)
+var spacing = float32(1)
+var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
 
 func ReloadFonts() {
 
@@ -284,5 +286,17 @@ func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {
 	r.Width += thickness * 2
 	r.Height += thickness * 2
 	rl.DrawRectangleRec(r, color)
+
+}
+
+func ClosestPowerOfTwo(number float32) int32 {
+
+	o := int32(2)
+
+	for o < int32(number) {
+		o *= 2
+	}
+
+	return o
 
 }

@@ -1829,8 +1829,8 @@ func (textbox *Textbox) ClosestPointInText(point rl.Vector2) int {
 
 	}
 
-	if closestIndex == len(textbox.CharToRect)-1 && point.X > closestRect.X+closestRect.Width {
-		return closestIndex + 1
+	if point.X > closestRect.X+closestRect.Width {
+		closestIndex++
 	}
 
 	return closestIndex
@@ -1922,7 +1922,7 @@ func (textbox *Textbox) CharacterToPoint(charIndex int) rl.Vector2 {
 	rect := textbox.CharToRect[charIndex]
 
 	if len(textbox.text) == 0 {
-		return rl.NewVector2(textbox.Rect.X+2, textbox.Rect.Y+textbox.MarginY)
+		return rl.NewVector2(textbox.Rect.X+textbox.MarginX, textbox.Rect.Y+textbox.MarginY)
 	}
 
 	if charIndex < 0 {
@@ -1930,18 +1930,8 @@ func (textbox *Textbox) CharacterToPoint(charIndex int) rl.Vector2 {
 	}
 
 	if len(textbox.CharToRect) > 0 && charIndex > 0 {
-
-		char := textbox.text[charIndex-1]
-
-		if char == '\n' {
-			rect = textbox.CharToRect[charIndex-1]
-			rect.X = textbox.Rect.X + 2
-			rect.Y += textbox.lineHeight
-		} else {
-			rect = textbox.CharToRect[charIndex-1]
-			rect.X += rect.Width
-		}
-
+		rect = textbox.CharToRect[charIndex-1]
+		rect.X += rect.Width
 	}
 
 	return rl.Vector2{rect.X, rect.Y}
@@ -2361,7 +2351,6 @@ func (textbox *Textbox) Draw() {
 
 	caretPos := textbox.CharacterToPoint(textbox.CaretPos)
 	caretPos.X -= textbox.Rect.X
-	caretPos.X -= 2
 
 	alignmentOffset := textbox.AlignmentOffset()
 
@@ -2440,7 +2429,7 @@ func (textbox *Textbox) Draw() {
 
 	}
 
-	src := rl.Rectangle{textbox.Visibility.X, 0, textbox.Rect.Width - 4, textbox.Rect.Height - 4}
+	src := rl.Rectangle{textbox.Visibility.X, 0, textbox.Rect.Width - (textbox.MarginX * 2), textbox.Rect.Height - (textbox.MarginY * 2)}
 
 	textDrawPosition := rl.NewVector2(textbox.Rect.X+textbox.MarginX, textbox.Rect.Y+textbox.MarginY)
 	textDrawPosition.X += alignmentOffset.X
@@ -2478,6 +2467,8 @@ func (textbox *Textbox) RedrawText() {
 			textbox.Lines = append(textbox.Lines, line)
 			line = []rune{}
 			charSize = rl.Vector2{0, textbox.lineHeight}
+			y += textbox.lineHeight
+			x = textbox.Rect.X + textbox.MarginX
 		} else {
 			charSize = rl.MeasureTextEx(font, string(char), GUIFontSize(), spacing)
 		}
@@ -2485,11 +2476,6 @@ func (textbox *Textbox) RedrawText() {
 		textbox.CharToRect[index] = rl.NewRectangle(x, y, charSize.X, charSize.Y)
 
 		x += charSize.X + spacing
-
-		if char == '\n' {
-			y += textbox.lineHeight
-			x = textbox.Rect.X + textbox.MarginX
-		}
 
 	}
 
@@ -2516,7 +2502,7 @@ func (textbox *Textbox) RedrawText() {
 	textbox.BufferSize.X += 16 // Give us a bit of room horizontally
 
 	if textbox.forceBufferRecreation || (textbox.BufferSize.X == 0 || float32(textbox.Buffer.Texture.Width) < textbox.BufferSize.X || float32(textbox.Buffer.Texture.Height) < textbox.BufferSize.Y) {
-		textbox.Buffer = rl.LoadRenderTexture(textbox.ClosestPowerOfTwo(textbox.BufferSize.X), textbox.ClosestPowerOfTwo(textbox.BufferSize.Y))
+		textbox.Buffer = rl.LoadRenderTexture(ClosestPowerOfTwo(textbox.BufferSize.X), ClosestPowerOfTwo(textbox.BufferSize.Y))
 	}
 
 	// Because we're rendering to a texture that can be bigger, we have to draw vertically reversed
@@ -2532,21 +2518,10 @@ func (textbox *Textbox) RedrawText() {
 
 	rl.ClearBackground(rl.Color{0, 0, 0, 0})
 
+	// We draw white because this gets tinted later when drawing the texture.
 	DrawGUITextColored(tbpos, rl.White, textbox.Text())
 
 	rl.EndTextureMode()
-
-}
-
-func (textbox *Textbox) ClosestPowerOfTwo(number float32) int32 {
-
-	o := int32(2)
-
-	for o < int32(number) {
-		o *= 2
-	}
-
-	return o
 
 }
 
@@ -2663,6 +2638,7 @@ func TextSize(text string, guiText bool) (rl.Vector2, int) {
 
 	size := rl.MeasureTextEx(font, text, fs, spacing)
 
+	// We manually set the line spacing because otherwise, it's off
 	if guiText {
 		size.Y = float32(nCount) * lineSpacing * GUIFontSize()
 	} else {
@@ -2689,6 +2665,11 @@ func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bo
 
 	pos.Y += fontBaseline
 
+	// This is done to make the text not draw "weird" and corrupted if drawn to a texture; not really sure why it works.
+	pos.X += 0.1
+	pos.Y += 0.1
+
+	// There's a huge spacing between lines sometimes, so we manually render the lines ourselves.
 	for _, line := range strings.Split(text, "\n") {
 		rl.DrawTextEx(font, line, pos, size, spacing, fontColor)
 		pos.Y += float32(int32(height / float32(lineCount)))
@@ -2706,4 +2687,83 @@ func DrawGUIText(pos rl.Vector2, text string, values ...interface{}) {
 
 func DrawGUITextColored(pos rl.Vector2, fontColor rl.Color, text string, values ...interface{}) {
 	DrawTextColored(pos, fontColor, text, true, values...)
+}
+
+// TextRenderer is a struct specifically designed to render large amounts of text efficently by rendering to a RenderTexture2D, and then drawing that in the designated location.
+type TextRenderer struct {
+	text          string
+	RenderTexture rl.RenderTexture2D
+	Size          rl.Vector2
+	Valid         bool
+}
+
+func NewTextRenderer() *TextRenderer {
+
+	return &TextRenderer{
+		// 256x256 seems like a sensible default
+		// RenderTexture: rl.LoadRenderTexture(128, 128),
+		Valid: true,
+	}
+
+}
+
+// SetText sets the text that the TextRenderer is supposed to render; it's safe to call this frequently, as a
+func (tr *TextRenderer) SetText(text string) {
+
+	if tr.text != text {
+
+		tr.text = text
+		tr.RecreateTexture()
+
+	}
+
+}
+
+func (tr *TextRenderer) RecreateTexture() {
+
+	tr.Size, _ = TextSize(tr.text, false)
+
+	tx := int32(ClosestPowerOfTwo(tr.Size.X))
+	ty := int32(ClosestPowerOfTwo(tr.Size.Y))
+
+	if tr.RenderTexture.Texture.Width < tx || tr.RenderTexture.Texture.Height < ty {
+		tr.RenderTexture = rl.LoadRenderTexture(tx, ty)
+	}
+
+	rl.EndMode2D()
+
+	rl.BeginTextureMode(tr.RenderTexture)
+
+	rl.ClearBackground(rl.Color{})
+
+	DrawText(rl.Vector2{}, tr.text)
+
+	rl.EndTextureMode()
+
+	rl.BeginMode2D(camera)
+
+}
+
+func (tr *TextRenderer) Draw(pos rl.Vector2) {
+
+	if tr.Valid {
+
+		src := rl.Rectangle{0, 0, float32(tr.RenderTexture.Texture.Width), float32(tr.RenderTexture.Texture.Height)}
+		dst := src
+		dst.X = pos.X
+		dst.Y = pos.Y
+		src.Height *= -1
+
+		rl.DrawTexturePro(tr.RenderTexture.Texture, src, dst, rl.Vector2{}, 0, rl.White)
+
+	}
+
+}
+
+func (tr *TextRenderer) Destroy() {
+
+	tr.Valid = false
+	// Seems to corrupt other TextRenderers. TODO: Uncomment when raylib-go is updated with the latest C sources.
+	// rl.UnloadRenderTexture(tr.RenderTexture)
+
 }

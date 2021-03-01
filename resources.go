@@ -45,7 +45,7 @@ type Resource struct {
 	// MIME data for the Resource.
 	MimeData *mimetype.MIME
 
-	Exists bool
+	DataParsed bool
 
 	Project *Project
 }
@@ -74,7 +74,24 @@ func (project *Project) RegisterResource(resourcePath, localFilepath string, res
 	project.Resources[resourcePath] = res
 
 	if response != nil {
+
 		project.DownloadingResources[resourcePath] = res
+
+		// The first few bytes of a file indicates the kind of file it is; according to mimetype's internals, it's 3072 (at max, probably).
+		for !response.IsComplete() && response.BytesComplete() < 3072 {
+			time.Sleep(time.Millisecond * 100)
+		}
+		time.Sleep(time.Millisecond * 100)
+
+	}
+
+	res.MimeData, _ = mimetype.DetectFile(res.LocalFilepath)
+
+	// We have to do this because sometimes the suggested filepath is simply not enough to go off of (images off of Twitter, for example, don't have extensions).
+	// Without an extension, raylib can't identify the file to load it.
+	if filepath.Ext(res.LocalFilepath) == "" {
+		os.Rename(res.LocalFilepath, res.LocalFilepath+res.MimeData.Extension())
+		res.LocalFilepath += res.MimeData.Extension()
 	}
 
 	return res
@@ -89,24 +106,17 @@ func (res *Resource) ParseData() error {
 
 	var err error = nil
 
+	// If the mime data is just a generic sequence of data, then try to parse it again
+	if res.MimeData.Is("application/octet-stream") {
+		res.MimeData, _ = mimetype.DetectFile(res.LocalFilepath)
+	}
+
 	if !FileExists(res.LocalFilepath) {
 		err = errors.New("file doesn't exist")
-		res.Exists = false
+		res.DataParsed = false
 	} else {
 
-		// ParseData() is automatically called when the resource is (or, at least, should be) fully downloaded, so the Mime data should be complete and usable
-		mime, _ := mimetype.DetectFile(res.LocalFilepath)
-
-		res.MimeData = mime
-
-		// We have to do this because sometimes the suggested filepath is simply not enough to go off of (images off of Twitter, for example, don't have extensions).
-		// Without an extension, raylib can't identify the file to load it.
-		if filepath.Ext(res.LocalFilepath) == "" {
-			os.Rename(res.LocalFilepath, res.LocalFilepath+mime.Extension())
-			res.LocalFilepath += mime.Extension()
-		}
-
-		res.Exists = true
+		res.DataParsed = true
 
 		if strings.Contains(res.MimeData.String(), "image") {
 
@@ -136,7 +146,7 @@ func (res *Resource) ParseData() error {
 			res.Data = res.MimeData.String() // We don't actually have any data to store for audio, as Sound Tasks simply create their own streams
 		} else {
 			err = errors.New("unrecognized resource type")
-			res.Exists = false
+			res.DataParsed = false
 		}
 
 	}
@@ -148,6 +158,14 @@ func (res *Resource) ParseData() error {
 
 	return err
 
+}
+
+func (res *Resource) MimeIsImage() bool {
+	return res.MimeData != nil && strings.Contains(res.MimeData.String(), "image")
+}
+
+func (res *Resource) MimeIsAudio() bool {
+	return res.MimeData != nil && strings.Contains(res.MimeData.String(), "audio")
 }
 
 func (res *Resource) State() int {

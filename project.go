@@ -2396,6 +2396,7 @@ func (project *Project) GUI() {
 				for _, textbox := range allTextboxes {
 					textbox.triggerTextRedraw = true
 				}
+				project.CurrentBoard().SendMessage(MessageSettingsChange, nil)
 			}
 
 			// SUPER HACKY; we're not supposed to manually set the Changed variable like this, but whatevs, CustomFontPath isn't updating all of the time.
@@ -2790,10 +2791,27 @@ func (project *Project) FirstFreeID() int {
 
 }
 
-func (project *Project) LockPositionToGrid(xy rl.Vector2) rl.Vector2 {
+func (project *Project) RoundPositionToGrid(position rl.Vector2) rl.Vector2 {
 
-	x := float32(math.Round(float64(xy.X/float32(project.GridSize)))) * float32(project.GridSize)
-	y := float32(math.Round(float64(xy.Y/float32(project.GridSize)))) * float32(project.GridSize)
+	x := float32(math.Round(float64(position.X/float32(project.GridSize)))) * float32(project.GridSize)
+	y := float32(math.Round(float64(position.Y/float32(project.GridSize)))) * float32(project.GridSize)
+
+	if x == -0 {
+		x = 0
+	}
+
+	if y == -0 {
+		y = 0
+	}
+
+	return rl.Vector2{x, y}
+
+}
+
+func (project *Project) CeilingPositionToGrid(position rl.Vector2) rl.Vector2 {
+
+	x := float32(math.Ceil(float64(position.X/float32(project.GridSize)))) * float32(project.GridSize)
+	y := float32(math.Ceil(float64(position.Y/float32(project.GridSize)))) * float32(project.GridSize)
 
 	if x == -0 {
 		x = 0
@@ -2950,9 +2968,12 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 			}
 
 		} else {
-			// Local file, so we're g2g
-			loadedResource = project.RegisterResource(resourcePath, resourcePath, nil)
-			loadedResource.ParseData()
+
+			if FileExists(resourcePath) {
+				// Local file, so we're g2g
+				loadedResource = project.RegisterResource(resourcePath, resourcePath, nil)
+				loadedResource.ParseData()
+			}
 
 		}
 

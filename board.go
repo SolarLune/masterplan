@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/atotto/clipboard"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -104,7 +106,7 @@ func (board *Board) CreateNewTask() *Task {
 	halfGrid := float32(board.Project.GridSize / 2)
 	gp := rl.Vector2{GetWorldMousePosition().X - halfGrid, GetWorldMousePosition().Y - halfGrid}
 
-	newTask.Position = board.Project.LockPositionToGrid(gp)
+	newTask.Position = board.Project.RoundPositionToGrid(gp)
 
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	board.Tasks = append(board.Tasks, newTask)
@@ -268,55 +270,57 @@ func (board *Board) FocusViewOnSelectedTasks() {
 
 func (board *Board) HandleDroppedFiles() {
 
-	// if rl.IsFileDropped() {
+	if rl.IsFileDropped() {
 
-	// 	fileCount := int32(0)
-	// 	for _, filePath := range rl.GetDroppedFiles(&fileCount) {
+		fileCount := int32(0)
 
-	// 		taskType, _ := mimetype.DetectFile(filePath)
+		for _, filepath := range rl.GetDroppedFiles(&fileCount) {
 
-	// 		if taskType != nil {
+			board.Project.LogOn = false
 
-	// 			task := NewTask(board)
-	// 			task.Position.X = camera.Target.X
-	// 			task.Position.Y = camera.Target.Y
-	// 			success := true
+			if guess := board.GuessTaskTypeFromText(filepath); guess >= 0 {
 
-	// 			if strings.Contains(taskType.String(), "image") {
-	// 				board.Project.Log("Added Image for [%s] successfully.", filePath)
-	// 				task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-	// 				task.FilePathTextbox.SetText(filePath)
-	// 				task.LoadResource()
-	// 			} else if strings.Contains(taskType.String(), "audio") {
-	// 				board.Project.Log("Added Sound for [%s] successfully.", filePath)
-	// 				task.TaskType.CurrentChoice = TASK_TYPE_SOUND
-	// 				task.FilePathTextbox.SetText(filePath)
-	// 				task.LoadResource()
-	// 			} else if strings.HasPrefix(taskType.String(), "text/") {
-	// 				board.Project.Log("Added Note for [%s] successfully.", filePath)
+				task := board.CreateNewTask()
 
-	// 				// Attempt to read it in
-	// 				data, err := ioutil.ReadFile(filePath)
-	// 				if err == nil {
-	// 					task.Description.SetText(string(data))
-	// 					task.TaskType.CurrentChoice = TASK_TYPE_NOTE
-	// 				}
+				board.Project.LogOn = true
 
-	// 			} else {
-	// 				board.Project.Log("Could not create a Task for incompatible file at [%s].", filePath)
-	// 				success = false
-	// 			}
+				// Attempt to load the resource
+				task.TaskType.CurrentChoice = guess
 
-	// 			board.Tasks = append(board.Tasks, task)
-	// 			if !success {
-	// 				board.DeleteTask(task)
-	// 			}
-	// 			continue
-	// 		}
-	// 	}
-	// 	rl.ClearDroppedFiles()
+				if guess == TASK_TYPE_IMAGE {
 
-	// }
+					task.FilePathTextbox.SetText(filepath)
+					task.CreateContents()
+					task.Contents.(*ImageContents).ResetSize = true
+
+				} else if guess == TASK_TYPE_SOUND {
+
+					task.FilePathTextbox.SetText(filepath)
+
+				} else {
+
+					text, err := ioutil.ReadFile(filepath)
+					if err == nil {
+						task.Description.SetText(string(text))
+					} else {
+						board.Project.Log("Could not read file: %s", filepath)
+					}
+
+				}
+
+				task.ReceiveMessage(MessageTaskRestore, nil)
+
+				board.Project.Log("Created new %s Task from dropped file content.", task.TaskType.ChoiceAsString())
+
+			}
+
+		}
+
+		board.Project.LogOn = true
+
+		rl.ClearDroppedFiles()
+
+	}
 
 }
 
@@ -415,7 +419,7 @@ func (board *Board) PasteTasks() {
 
 				clone := cloneTask(srcTask)
 				diff := rl.Vector2Subtract(GetWorldMousePosition(), center)
-				clone.Position = board.Project.LockPositionToGrid(rl.Vector2Add(clone.Position, diff))
+				clone.Position = board.Project.RoundPositionToGrid(rl.Vector2Add(clone.Position, diff))
 
 				if srcTask.Is(TASK_TYPE_LINE) {
 
@@ -433,7 +437,7 @@ func (board *Board) PasteTasks() {
 							newEnding.LineStart = clone
 							clone.LineEndings = append(clone.LineEndings, newEnding)
 
-							newEnding.Position = board.Project.LockPositionToGrid(rl.Vector2Add(newEnding.Position, diff))
+							newEnding.Position = board.Project.RoundPositionToGrid(rl.Vector2Add(newEnding.Position, diff))
 
 						}
 
@@ -479,44 +483,72 @@ func (board *Board) PasteContent() {
 
 	clipboard.ReadAll()
 
-	// clipboardData, _ := clipboard.ReadAll() // Tanks FPS if done every frame because of course it does
-	// if clipboardData != "" {
+	clipboardData, _ := clipboard.ReadAll() // Tanks FPS if done every frame because of course it does
 
-	// 	if strings.Contains(clipboardData, "file://") {
-	// 		fn := strings.Split(clipboardData, "file://")
-	// 		clipboardData = strings.TrimSpace(fn[1])
-	// 	}
+	if clipboardData != "" {
 
-	// 	board.Project.LogOn = false
-	// 	res, _ := board.Project.LoadResource(clipboardData) // Attempt to load the resource
-	// 	board.Project.LogOn = true
+		// clipboardData = strings.TrimSpace(clipboardData)
 
-	// 	task := board.CreateNewTask()
+		clipboardLines := strings.Split(clipboardData, "\n")
 
-	// reorder tasks
+		for strings.TrimSpace(clipboardLines[0]) == "" {
+			clipboardLines = clipboardLines[1:]
+		}
 
-	// 	if res != nil {
+		for strings.TrimSpace(clipboardLines[len(clipboardLines)-1]) == "" {
+			clipboardLines = clipboardLines[:len(clipboardLines)-1]
+		}
 
-	// 		task.FilePathTextbox.SetText(clipboardData)
+		clipboardData = strings.Join(clipboardLines, "\n")
 
-	// 		if res.IsTexture() || res.IsGIF() {
-	// 			task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-	// 		} else if res.IsAudio() {
-	// 			task.TaskType.CurrentChoice = TASK_TYPE_SOUND
-	// 		}
+		board.Project.LogOn = false
 
-	// 		task.LoadResource()
+		task := board.CreateNewTask()
 
-	// 	} else {
-	// 		task.TaskType.CurrentChoice = TASK_TYPE_NOTE
-	// 		task.Description.SetText(clipboardData)
-	// 	}
+		guess := board.GuessTaskTypeFromText(clipboardData)
 
-	// 	board.Project.Log("Pasted 1 new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
+		// Attempt to load the resource
+		task.TaskType.CurrentChoice = guess
 
-	// } else {
-	// 	board.Project.Log("Unable to create Task from clipboard content.")
-	// }
+		if guess == TASK_TYPE_IMAGE {
+			task.FilePathTextbox.SetText(clipboardData)
+			task.CreateContents()
+			task.Contents.(*ImageContents).ResetSize = true
+
+		} else if guess == TASK_TYPE_SOUND {
+			task.FilePathTextbox.SetText(clipboardData)
+		} else {
+			task.Description.SetText(clipboardData)
+		}
+
+		task.ReceiveMessage(MessageTaskRestore, nil)
+
+		board.Project.LogOn = true
+
+		board.Project.Log("Pasted a new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
+
+	} else {
+		board.Project.Log("Unable to create Task from clipboard content.")
+	}
+
+}
+
+func (board *Board) GuessTaskTypeFromText(filepath string) int {
+
+	// Attempt to load the resource
+	if res := board.Project.LoadResource(filepath); res != nil && (res.DownloadResponse != nil || FileExists(res.LocalFilepath)) {
+
+		if res.MimeIsImage() {
+			return TASK_TYPE_IMAGE
+		} else if res.MimeIsAudio() {
+			return TASK_TYPE_SOUND
+		} else {
+			return TASK_TYPE_NOTE
+		}
+
+	}
+
+	return -1
 
 }
 

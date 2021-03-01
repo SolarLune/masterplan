@@ -174,7 +174,7 @@ func (whiteboard *Whiteboard) Resize(w, h float32) {
 
 	project := whiteboard.Task.Board.Project
 
-	locked := project.LockPositionToGrid(rl.Vector2{w, h})
+	locked := project.RoundPositionToGrid(rl.Vector2{w, h})
 
 	whiteboard.Width = int32(locked.X)
 	whiteboard.Height = int32(locked.Y)
