@@ -91,6 +91,11 @@ Completed:
 - INTERNAL: Use one panel for every Task, rather than each one having its own edit panel, obvs
 - INTERNAL: Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
 - Sound Tasks now show the length of the sound and the current position of the playhead.
+- Subtask bracketing tweaked to use different colors.
+- FIX: Whether timers are playing is now properly saved on project plan save.
+- Adding some basic logging to the project loading process to help diagnose any issues with it.
+- Map icon changed from a map to a thumbtack pin.
+- Cloudy theme outline darkened to increase readability.
 
 ---- RELEASE
 
