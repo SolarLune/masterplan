@@ -1,0 +1,254 @@
+Whoops, I deleted the previous todo list as well. :(
+
+That really sucks, actually.
+
+For the below list, INTERNAL indicates things I do for internal / non-public-facing changes to MasterPlan; this might be API changes or new features added to new features that didn't exist previously, as an example.
+
+-- Rough Changelog --
+
+Completed:
+
+- Added basic support for non-latin / foreign character entry. Note that you have to specify a font that has the characters you'll be entering (as the default one only has latin characters).
+- Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
+- Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but it is now primarily simpler in the code-base.
+- Tables have been added. A Table is a grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
+- Downloading images / sounds are now multithreaded.
+- Modifiers (left ctrl, right ctrl) are now left / right agnostic.
+- Now ONLY Check-box Tasks display Sub-Tasks as contributing to their own completion, not any other completable Tasks.
+- Added a Daily mode for Timers (so a Timer can trigger every Monday, Friday, etc).
+- Added a Date mode for Timers (so a Timer can trigger on a specific date).
+- Added a Stopwatch mode for Timers.
+- Added a repeatable option for certain Timer types.
+- Timers now can trigger neighbor Tasks when they run out. The effect of the trigger differs depending on the Task type - Completable Tasks change their completion level, while 
+  Whiteboard Tasks change their colors. Timers start or stop when triggered, naturally.
+- Timers who are neighbors to Lines can now trigger the Tasks those Lines are pointing to, and so on.
+- Added a Rectangle tool for Map Tasks.
+- Themes are now global instead of per-Project.
+- Qutting MasterPlan by pressing the window's [X] now prompts for a quit.
+- MasterPlan now always confirms when quitting, not just when the current project has been modified.
+- Added a keyboard shortcut to quit MasterPlan (Ctrl+Q, by default).
+- Added an optional border around the window (specifically for borderless mode if you want a bit more flavor).
+- Added shadows for UI elements.
+- Map Task type background has been slightly improved, is now a bit transparent.
+- Various minor visual tweaks and smaller bug-fixes.
+- INTERNAL: Added a little darkness underneath the header for Maps.
+- INTERNAL: Added remaining content types.
+- FIX: Drawing on Whiteboards is no longer chunkier than intended (the resolution has been increased).
+- INTERNAL: Get rid of data race possibility for GIF loading.
+- Added shortcuts to teleport the camera to each end of a line, in sequence.
+- The splash screen no longer takes nearly as long as it previously did to disappear. (~2.5 seconds -> ~0.75 seconds)
+- INTERNAL: Added relevant shortcuts for each kind of Task.
+- Adding shortcuts for incrementing and decrementing Progression Tasks.
+- Triggering Checkbox Tasks that have SubTasks will now trigger those SubTasks.
+- FIX?: Incrementing a Progression Task's current value no longer increases the maximum if they're the same.
+- Timers no longer pause or reset when adjusting their values.
+- INTERNAL: Next and Previous Line Ending's shortcuts are now the C and X keys by default.
+- INTERNAL: Moving Project.Shortcuts() call above Board.Update() and Board.Draw() so that shortcut clashes can properly be resolved prior to Tasks' contents being updated or drawn.
+- INTERNAL: Timers should be able to be set for multiple days of the week, not just one.
+- INTERNAL: Made sure the binding for stopping all sounds works.
+- INTERNAL: Added a new ImmediateIconButton function specifically for MultiButtonGroups
+- INTERNAL: Re-implement completable task-specific deadlines
+- INTERNAL: Fixed Task Completion Date.
+- FIX: It's no longer possible to undo a project that has just been loaded.
+- The grid dot background is now slightly transparent.
+- INTERNAL: Add option for writing text normally, but vertically for columns for Tables.
+- INTERNAL: Help Manual was really slow; this was because Tasks were calling TextSize(), which calls rl.MeasureTextEx(), which gets slower according to the number of glyphs in the font that is passed into it (naturally). 
+    This has been resolved mostly by having Tasks check displayed text to see how large it is as rarely as possible.
+- INTERNAL: Shrinking images creates an undo state for each value between where you started shrinking and where you let go; it should be just two (when you started and when you let go)
+- Added rebindable shortcuts for previously hardcoded window-related functions (window size setting, fullscreen, showing FPS, taking a screenshot).
+- Added rebindable Shortcuts for making specific Task types.
+- FIX: Textboxes now don't take key input immediately after they're visible. This means you can now assign individual keys to shortcuts effectively (i.e. I to create an Image Task, and not type I immediately when the Task Edit dialog appears).
+- The "first / main" editable element in the Task Edit Panel for each Task type is now Focused by default.
+- Fix task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
+- Project Volume spinner now goes from 0 to 100, rather than 0 to 10. The volume is also now more naturally distributed audibly.
+- FIX: Adding a new task or deleting Tasks now properly moves the entire stack below it. This works if Tasks are selected across multiple stacks.
+- FIX: Shortcuts that are one key and create Tasks no longer immediately also enters the key of the shortcut into a textbox, if it's there and focused.
+- You can now hold Shift to select all Tasks between the currently selected one and the top or bottom of the stack.
+- INTERNAL: Whiteboards (including those from older MasterPlan versions) load properly now.
+- INTERNAL: Fixed timer not creating an UndoState when triggering Tasks.
+- Messages that display at the top-left last for a much shorter period of time (7 > 3 seconds).
+- Timer triggering defaults to off now.
+- FIX: You can't paste characters into Textboxes that don't allow those characters.
+- Images now load in at their original aspect ratio, but the size depends on the zoom level of the camera. This means that images and GIFs should generally always be wholly visible onscreen.
+- INTERNAL: Added back a button in the Task to reset image size (it's not done often enough to make it necessary to be on the Task itself, I think).
+- INTERNAL: Fix up missing project logging for Task Contents when stuff happens
+- INTERNAL: Fix Line head moving on undo and redo
+- FIX: GIF Animation has been reviewed and fixed up. Animation frames should now be displayed more accurately (though not perfect in all cases, yet).
+- Errors in the message log at the top-left now show up as red in MasterPlan.
+- INTERNAL: Auto-load Resources not doing anything.
+- When Project resource auto-reloading is on, MasterPlan will reload a file if the size OR modified time differs from what is cached in the project. 
+  Previously, this was just based on reloading resources if the modified time was later than the modified time of the resource recorded when it was loaded into MasterPlan.
+- Optimized general rendering of Tasks (about a 50% CPU usage decrease, from what just I've personally observed in my limited tests).
+- FIX: Newlines sometimes being overwritten in Textboxes.
+- FIX: Slight basic improvements with regards to textbox usability mechanics.
+- INTERNAL: Re-implemented sub-task bracketing.
+- INTERNAL: Review and re-implement PasteContents()
+- INTERNAL: Review and re-implement HandleDroppedFiles()
+- INTERNAL: Lines aren't on top anymore.
+- INTERNAL: Test Timers going off
+- OPTIMIZATION: Cut down VRAM usage for Task editing considerably. This number can account for roughly 80% of the VRAM used for Tasks. (In testing, a plan that previously had 284 Tasks, most of which were Checkbox Tasks, used 1084mb of VRAM. Now it uses 204mb).
+- OPTIMIZATION: Text rendering for Notes is now rendered to a texture, which is then rendered to the screen. This increases VRAM usage for Notes specifically, but is faster than rendering text directly.
+- INTERNAL: Use one panel for every Task, rather than each one having its own edit panel, obvs
+- INTERNAL: Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
+- Sound Tasks now show the length of the sound and the current position of the playhead.
+- Subtask bracketing tweaked to use different colors.
+- FIX: Whether timers are playing is now properly saved on project plan save.
+- Adding some basic logging to the project loading process to help diagnose any issues with it.
+- Map icon changed from a map to a thumbtack pin.
+- Cloudy theme outline darkened to increase readability.
+
+---- RELEASE
+
+- Re-implement progress bar behind timer
+- IMPLEMENT RL.UNLOADTEXTURE(), BECAUSE THIS VRAM MEMORY LEAK IS ANNOYING AS H*CK
+- Implement button to return all settings to default
+- Note renderering could use a grayscale texture for limited VRAM usage, as it's not necessary for Notes to be colored (for now)
+- The ability to copy a list and paste it as a list (this may be doable using the clipboard tool)
+- Make a video talking a bit about what MasterPlan is and why it's useful. It helps you think, it helps you create links between tasks, it allows you to complete things that need to be done, and it helps you to say no. 
+  This video could be accessible from the Steam forums, or from the MasterPlan menu.
+- Note: If you save a project in a newer version of MasterPlan, loading it in an older version should say something like "Are you sure? It might not work correctly."
+- INTERNAL: Project.Modified is set directly after loading a project for some reason
+- Optimize map image serialization by using bitwise operations and storing the array as a bitwise number
+- Add image filtering option, as you may not want it to be pixelly
+- Label each quadrant of a board?
+- Note color change
+- Show Map or Whiteboard size somewhere
+- List Tasks completed from those selected
+- Hide grid at far zoom levels
+- Textbox dies when there's a ton of text.
+- Add fill tool to Map Task.
+- Add diagonal corners to Map Task.
+- Make some kind of indication (maybe a little chain link icon) indicating a Task is linked to another, like a Timer or by a Line?
+- Logs should be created on each successful start, rather than putting them all into log.txt
+- Add option for log display time - this and the volume could be a new Slider GUI element.
+- Task Neighbors could contain loops sometimes; this should be resolved when establishing the neighbors.
+- Consolidate the Tasks that consist of Contents and Data Structures (somehow)
+- Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
+- Lines are drawing underneath Tasks (this could be configurable)
+- Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
+- Draw text to a buffer, draw the buffer to the screen; might be considerably faster than drawing text constantly. Seems like 72% of non-sleep execution time might be spent drawing.
+- Tweakable zoom levels, rather than being hard-coded?
+- Use Lines to connect Tasks for SubTask counting
+- Fullscreen acts weird if the window isn't maximized first, so that might be a good thing to try to do? Set the window size and then fullscreen it?
+- Add pasting image data? Somehow?
+- Panels should be resizeable
+- Investigate pasting images from the clipboard?
+- MP4 video support?
+- A mobile version of MasterPlan, where you can take pictures or record video and have it copy over to your plan somehow (gasp!).
+- Re-make Dino Riki? Aw Nuts!? 7DRL on 3/4/21?!?!?!
+
+- Add manual typing entry for month / day / year for deadlines / Timer Dates
+    - Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
+- Optimize Table text size checks
+- Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
+- Table: Option to make coumn and row names invisible (so that you could for example put images there).
+- Table: Add button to turn a column into a row, or vice-versa
+- Add button on the Task itself to check off Checkbox Tasks
+- Add tags of some description
+- Add icons for task types in Task Edit Panel
+- Fix up horizontal alignments in Panels - rather than doing this via RowItem.Weight or HorizontalAlignment, it would be good to have a manual spacing value that indicates how far out from an item another is (how much space is between one item and the following one)
+- Changing font size shouldn't take so long - This could be simplified by making a selection for how many glyphs to load
+- Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines.
+- Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
+- Downloading images / sounds should be able to be saved to a local directory per-project (?)
+- Tab focusing (pressing tab focuses on different, consecutive elements in a panel)
+- Deadline write-up by BiRD: https://discordapp.com/channels/339550825154347008/758009278756946040/810779087449751593
+    The summary is:
+        - Use timers for timing and calendars for deadlines. Calendars are:
+            - Visually focused (no extraneous information)
+            - Intuitive (click a day = set the day)
+            - Efficient (fewer actions to do the same thing)
+            - Improvable (as a result of more available screen space)
+            - Reusable (calendars can be used for more than just setting deadlines)
+            - Fun (not sure what to write for this one)
+- Icon beside board name when due, deadlined, or late
+- Timers should be able to retroactively trigger if a set time was passed (somehow)
+- Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
+- Mini-map of some description?
+- Clickable images - when you click them, they go to a location.
+- Replace Board.UndoHistory with a project-level one
+- Go over the tutorial to explain things a bit more; right click to open the menu should be mentioned right at launch
+- Undo + Redo for textboxes
+- Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
+- Add ability to delete shortcuts?
+- Vertical alignment isn't really centered for textboxes?
+- Display full Task text on hover
+- Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
+- Similarly, extend parsing to parse text to become clickable links to be able to open files or directories
+- Hide status bar elements except for the search bar if there isn't enough room horizontally
+- Moveable status bar
+- Searchable shortcuts
+- Consolidate image and sounds into one task type?
+- Review libraries to see if the licenses are compatible with my own chosen license
+
+- Export Plan to text file somehow? 
+    Checkboxes become: [ ] / [x] - TASK TEXT
+    Progression becomes: [12/24] - TASK TEXT
+    Notes become: NOTE: - TASK TEXT
+    Timers become: DUE (X DATE) - TIMER NAME
+
+	All other Tasks are not converted.
+- Graph view that allows you to see your plan as a visual "node graph"? 
+    See Nuclino: https://www.nuclino.com - It says it allows you to work in Boards and Graphs, 
+    so maybe the Nodes on the Graphs should be clickable to reveal more information / reveal 
+    the Task on the Board
+- Smooth out panel scrolling according to texture coords?       
+- Consolidate logging messages so messages that are the same get "compounded". For example:
+
+00:00:00: "Selected 1 Tasks."
+00:00:00: "Selected 1 Tasks."
+
+becomes
+
+00:00:00: "Selected 2 Tasks."
+
+- Improve search functionalities - present a list of Tasks that fulfill a set of 
+- Add image backgrounds instead of the grid.
+- Add other unicode characters to default font (←№⎢¡°ᚃ√⇒∄±∑∌≠αβχδεφγηιϑΧΔΦΓ)
+- Whiteboard resolution could be increased
+- Replace Board-level Undo with Project-level Undo, focus on Tasks when undoing or redoing
+- Clicking in the window when the window wasn't focused should be discarded
+- Display size for Tasks should be dependant on maximum theoretical feasible size (for example, a Progression Task should have a maximum size that 
+includes a current number and maximum number of 999 each, so that they don't change size when incrementing or decrementing)
+- Password protection
+- Copying tasks between Projects
+- Rotating and mirroring images
+- Optional compression of project JSON (it doesn't need to be readable if compressed) - a quick idea while still keeping it in plain text JSON format is to reduce the length of the strings I use to refer to Task elements, and turn off pretty printing before serialization to remove excess tab and return characters.
+- GIF Playback speed should be customizeable?
+- GIF step next frame / prev. frame
+- Make it so that it's easier to insert Tasks (i.e. dragging tasks into a list of them will automatically space them to make room)
+- Review ImmediateButton; lots of functions for what is effectively just one "thing".
+- Custom Justification for Task text
+- Custom prefix
+- Custom numbering system enabling for tasks
+- Option to indent Text with icons off
+- Resizeable Notes / Collapsible Notes
+- Time estimations per Task - these can be set as a project-level default (i.e. something like 30 minutes per-Task), and then further specified (maybe specifying something like 3 hours for a specific Task, as an example).
+- Background hint text for text entry (i.e. "Enter date in MM/DD/YYYY Format" behind something that allows you to enter a date)
+- Multitask Editing
+- Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
+- Hover over Tasks to display more information about them.
+
+Long-term Goals
+
+- Do stuff on the overview, rather than needing to open a Panel. This is requested pretty regularly, but I'm not 100% on how to do so seamlessly.
+- Collaboration - Real quick idea: 
+    - Clone the plan to all connected users' computers.
+    - One person is host and the others are guests. This is mostly for internal purposes, the actual implementation shouldn't really make a huge distinction here.
+    - Show each user's (colored / numbered, like P1, P2, etc., haha) mouse cursor on your screen.
+    - Each Task can only be edited by one person at a time.
+    - When a Task is changed (i.e. an UndoState is generated), send the updated version of the Task over the network to the other connected users.
+    - Periodically, the host sends the entire serialized Project to all connected users for syncing.
+    - Test ping to each person and suggest a host based on that.
+    - Connection should be able to be done from within MasterPlan.
+        - Through IP addresses. This could be simplified into some sort of simple alphabet-based code?
+        - Perhaps through straight up some sort of code system so that you can easily join other "planners". It'd be interesting to join random "games", though 
+        this would open up the possiblity of using MasterPlan for illegal or otherwise horrible activities, so this is probably not feasible.
+    - Sending data should be UDP. Data could probably be compressed in some way so as not to send actual string data.
+
+- Git integration (git messages can refer to Task IDs to automatically complete them)
+- GUI Scaling
+- Video streaming (i.e. from YouTube / Vimeo)
+- Music streaming (i.e. from Spotify / SoundCloud (not sure if this is feasible, but I'd like to do it))
+- Internationalization and translation to other common languages
+- Charts and data visualization

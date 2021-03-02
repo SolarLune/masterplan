@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	"image/gif"
-	"io"
 	"io/ioutil"
 	"log"
 	"math"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/goware/urlx"
 	"github.com/pkg/browser"
 	"github.com/tanema/gween"
@@ -27,7 +25,7 @@ import (
 
 	"github.com/ncruces/zenity"
 
-	"github.com/gabriel-vasile/mimetype"
+	"github.com/cavaliercoder/grab"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -64,15 +62,18 @@ const (
 
 	// Task messages
 
-	MessageNeighbors   = "neighbors"
-	MessageNumbering   = "numbering"
-	MessageDelete      = "delete"
-	MessageSelect      = "select"
-	MessageDropped     = "dropped"
-	MessageDoubleClick = "double click"
-	MessageDragging    = "dragging"
-	MessageTaskClose   = "task close"
-	MessageThemeChange = "theme change"
+	MessageNeighbors           = "neighbors"
+	MessageNumbering           = "numbering"
+	MessageDelete              = "delete"
+	MessageSelect              = "select"
+	MessageDropped             = "dropped"
+	MessageDoubleClick         = "double click"
+	MessageDragging            = "dragging"
+	MessageTaskClose           = "task close"
+	MessageThemeChange         = "theme change"
+	MessageSettingsChange      = "settings change"
+	MessageTaskRestore         = "task restore"
+	MessageTaskDeserialization = "task deserialization"
 
 	// Project actions
 
@@ -98,9 +99,6 @@ type Project struct {
 	ShowIcons                   *Checkbox
 	PulsingTaskSelection        *Checkbox
 	AutoSave                    *Checkbox
-	AutoReloadThemes            *Checkbox
-	AutoLoadLastProject         *Checkbox
-	DisableSplashscreen         *Checkbox
 	SaveSoundsPlaying           *Checkbox
 	OutlineTasks                *Checkbox
 	ColorThemeSpinner           *Spinner
@@ -111,7 +109,6 @@ type Project struct {
 	AutomaticBackupInterval     *NumberSpinner
 	AutomaticBackupKeepCount    *NumberSpinner
 	MaxUndoSteps                *NumberSpinner
-	DisableMessageLog           *Checkbox
 	TaskTransparency            *NumberSpinner
 	AlwaysShowURLButtons        *Checkbox
 	SettingsSection             *ButtonGroup
@@ -122,14 +119,6 @@ type Project struct {
 	AboutDiscordButton          *Button
 	AboutTwitterButton          *Button
 	ItchStorePageButton         *Button
-	DisableAboutDialogOnStart   *Checkbox
-	SaveWindowPosition          *Checkbox
-	AutoReloadResources         *Checkbox
-	TargetFPS                   *NumberSpinner
-	UnfocusedFPS                *NumberSpinner
-	PanToFocusOnZoom            *Checkbox
-	TransparentBackground       *Checkbox
-	BorderlessWindow            *Checkbox
 	ScreenshotsPath             *Textbox
 	ScreenshotsPathBrowseButton *Button
 	RebindingButtons            []*Button
@@ -138,13 +127,30 @@ type Project struct {
 	RebindingHeldKeys           []int32
 	GraphicalTasksTransparent   *Checkbox
 	DeadlineAnimation           *ButtonGroup
+
+	TransparentBackground       *Checkbox
+	BorderlessWindow            *Checkbox
+	DrawWindowBorder            *Checkbox
+	SaveWindowPosition          *Checkbox
+	PanToFocusOnZoom            *Checkbox
+	DisableMessageLog           *Checkbox
+	DisableSplashscreen         *Checkbox
+	AutoReloadThemes            *Checkbox
+	AutoLoadLastProject         *Checkbox
+	AutoReloadResources         *Checkbox
 	ScrollwheelSensitivity      *NumberSpinner
+	TargetFPS                   *NumberSpinner
+	UnfocusedFPS                *NumberSpinner
 	SmoothPanning               *Checkbox
 	CustomFontPath              *Textbox
 	CustomFontPathBrowseButton  *Button
 	FontSize                    *NumberSpinner
 	GUIFontSizeMultiplier       *ButtonGroup
 	DefaultFontButton           *Button
+	TableColumnsRotatedVertical *Checkbox
+	TableColumnVerticalSpacing  *NumberSpinner
+	DisableAboutDialogOnStart   *Checkbox
+	DownloadTimeout             *NumberSpinner
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -152,6 +158,7 @@ type Project struct {
 	Boards              []*Board
 	BoardIndex          int
 	BoardPanel          rl.Rectangle
+	TaskEditPanel       *Panel
 	ZoomLevel           int
 	CurrentZoomLevel    int
 	CameraPan           rl.Vector2
@@ -168,8 +175,9 @@ type Project struct {
 	CopyBuffer          []*Task
 	Cutting             bool // If cutting, then this boolean is set
 	TaskOpen            bool
-	ThemeReloadTimer    int
-	JustLoaded          bool
+	ThemeReloadTimer    float32
+	Loading             bool
+	LoadingVersion      semver.Version
 	ResizingImage       bool
 	LogOn               bool
 	LoadRecentDropdown  *DropdownMenu
@@ -181,19 +189,24 @@ type Project struct {
 	GUI_Icons         rl.Texture2D
 	Patterns          rl.Texture2D
 	ShortcutKeyTimer  int
-	PreviousTaskType  string
+	PreviousTaskType  int
 	Resources         map[string]*Resource
 	Modified          bool
 	Locked            bool
 
-	PopupPanel    *Panel
-	PopupAction   string
-	PopupArgument string
-	SettingsPanel *Panel
-	BackupTimer   time.Time
-	UndoFade      *gween.Sequence
-	Undoing       int
-	TaskEditRect  rl.Rectangle
+	PopupPanel      *Panel
+	PopupAction     string
+	PopupArgument   string
+	SettingsPanel   *Panel
+	BackupTimer     time.Time
+	UndoFade        *gween.Sequence
+	Undoing         int
+	TaskEditRect    rl.Rectangle
+	TempDir         string
+	GrabClient      *grab.Client
+	Time            float32
+	firstFreeTaskID int
+	ScreenSize      rl.Vector2
 }
 
 func NewProject() *Project {
@@ -209,17 +222,17 @@ func NewProject() *Project {
 		CameraPan:          rl.Vector2{0, 0},
 		Searchbar:          searchBar,
 		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
-		GUI_Icons:          rl.LoadTexture(GetPath("assets", "gui_icons.png")),
+		GUI_Icons:          rl.LoadTexture(LocalPath("assets", "gui_icons.png")),
 		SampleBuffer:       512,
-		Patterns:           rl.LoadTexture(GetPath("assets", "patterns.png")),
+		Patterns:           rl.LoadTexture(LocalPath("assets", "patterns.png")),
 		Resources:          map[string]*Resource{},
 		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
 		UndoFade:           gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
 
 		PopupPanel:    NewPanel(0, 0, 480, 270),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
+		TaskEditPanel: NewPanel(63, 64, 960/4*3, 560/4*3),
 
-		ColorThemeSpinner:           NewSpinner(0, 0, 256, 32),
 		TaskShadowSpinner:           NewSpinner(0, 0, 192, 32, "Off", "Flat", "Smooth", "3D"),
 		OutlineTasks:                NewCheckbox(0, 0, 32, 32),
 		GridVisible:                 NewCheckbox(0, 0, 32, 32),
@@ -253,7 +266,12 @@ func NewProject() *Project {
 		CustomFontPathBrowseButton:  NewButton(0, 0, 128, 24, "Browse", false),
 		FontSize:                    NewNumberSpinner(0, 0, 128, 40),
 		GUIFontSizeMultiplier:       NewButtonGroup(0, 0, 850, 32, 1, GUI_FONT_SIZE_100, GUI_FONT_SIZE_150, GUI_FONT_SIZE_200, GUI_FONT_SIZE_250, GUI_FONT_SIZE_300, GUI_FONT_SIZE_350, GUI_FONT_SIZE_400),
-		// Program settings GUI elements
+		TableColumnsRotatedVertical: NewCheckbox(0, 0, 32, 32),
+		TableColumnVerticalSpacing:  NewNumberSpinner(0, 0, 128, 40),
+
+		// Global / Program settings GUI elements
+
+		ColorThemeSpinner:      NewSpinner(0, 0, 256, 32),
 		AutoLoadLastProject:    NewCheckbox(0, 0, 32, 32),
 		AutoReloadThemes:       NewCheckbox(0, 0, 32, 32),
 		DisableSplashscreen:    NewCheckbox(0, 0, 32, 32),
@@ -264,7 +282,7 @@ func NewProject() *Project {
 		PanToFocusOnZoom:       NewCheckbox(0, 0, 32, 32),
 		ScrollwheelSensitivity: NewNumberSpinner(0, 0, 128, 40),
 		SmoothPanning:          NewCheckbox(0, 0, 32, 32),
-		DefaultFontButton:      NewButton(0, 0, 256, 32, "Reset Font to Default", false),
+		DefaultFontButton:      NewButton(0, 0, 400, 32, "Reset Font Settings to Default", false),
 
 		AboutDiscordButton:        NewButton(0, 0, 200, 36, "Discord", false),
 		AboutTwitterButton:        NewButton(0, 0, 200, 36, "Twitter", false),
@@ -272,19 +290,30 @@ func NewProject() *Project {
 		DisableAboutDialogOnStart: NewCheckbox(0, 0, 32, 32),
 		TransparentBackground:     NewCheckbox(0, 0, 32, 32),
 		BorderlessWindow:          NewCheckbox(0, 0, 32, 32),
+		DrawWindowBorder:          NewCheckbox(0, 0, 32, 32),
 		SaveWindowPosition:        NewCheckbox(0, 0, 32, 32),
+		DownloadTimeout:           NewNumberSpinner(0, 0, 128, 40),
+		GrabClient:                grab.NewClient(),
+		LogOn:                     true,
 	}
+
+	project.GrabClient.HTTPClient.Timeout = time.Second * time.Duration(programSettings.DownloadTimeout)
+
+	project.TaskEditPanel.AddColumn()
+
+	project.ScreenSize.X = float32(rl.GetScreenWidth())
+	project.ScreenSize.Y = float32(rl.GetScreenHeight())
+
+	project.TempDir, _ = ioutil.TempDir("", "masterplan")
 
 	project.SettingsPanel.Center(0.5, 0.5)
 
 	column := project.PopupPanel.AddColumn()
 
-	column.Row().Item(NewLabel("Rename Board")).Name = "rename label"
-
-	column.Row().Item(NewLabel("Current project has changed.")).Name = "abandon label"
-	column.Row().Item(NewLabel("Abandon project?")).Name = "abandon label"
+	column.Row().Item(NewLabel("")).Name = "label"
 
 	column.Row().Item(NewTextbox(0, 0, 256, 16)).Name = "rename textbox"
+
 	row := column.Row()
 	row.Item(NewButton(0, 0, 128, 32, "Accept", false)).Name = "accept button"
 	row.Item(NewButton(0, 0, 128, 32, "Cancel", false)).Name = "cancel button"
@@ -299,13 +328,15 @@ func NewProject() *Project {
 	row.Item(project.SettingsSection)
 	row.VerticalSpacing = 24
 
+	project.TableColumnVerticalSpacing.SetNumber(60)
+	project.TableColumnVerticalSpacing.Minimum = 0
+	project.TableColumnVerticalSpacing.Maximum = 1000
+	project.TableColumnVerticalSpacing.Step = 10
+	project.DownloadTimeout.Minimum = 1
+
 	// General settings
 
 	column.DefaultVerticalSpacing = 24
-
-	row = column.Row()
-	row.Item(NewLabel("Color Theme:"), SETTINGS_GENERAL)
-	row.Item(project.ColorThemeSpinner, SETTINGS_GENERAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Backup every X minutes:"), SETTINGS_GENERAL)
@@ -337,7 +368,7 @@ func NewProject() *Project {
 	row.Item(project.ScreenshotsPath, SETTINGS_GENERAL)
 	row.Item(project.ScreenshotsPathBrowseButton, SETTINGS_GENERAL)
 
-	// TASKS
+	// Tasks
 
 	row = column.Row()
 	row.Item(NewLabel("Task Transparency:"), SETTINGS_TASKS)
@@ -386,7 +417,16 @@ func NewProject() *Project {
 	row.Item(project.AlwaysShowURLButtons, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Deadline Animation:"), SETTINGS_TASKS)
+	row.Item(NewLabel("Rotate Table\nColumn Names Vertically:"), SETTINGS_TASKS)
+	row.Item(project.TableColumnsRotatedVertical, SETTINGS_TASKS)
+
+	row.Item(NewLabel("Table Column\nName Vertical Spacing:"), SETTINGS_TASKS)
+	row.Item(project.TableColumnVerticalSpacing, SETTINGS_TASKS)
+
+	row = column.Row()
+	label := NewLabel("Deadline Animation")
+	label.Underline = true
+	row.Item(label, SETTINGS_TASKS)
 	row = column.Row()
 	row.Item(project.DeadlineAnimation, SETTINGS_TASKS)
 
@@ -422,7 +462,7 @@ func NewProject() *Project {
 		row = column.Row()
 		row.Item(NewLabel(shortcutName), SETTINGS_KEYBOARD).Weight = 0.425
 
-		button := NewButton(0, 0, 300, 32, programSettings.Keybindings.Shortcuts[shortcutName].String(), false)
+		button := NewButton(0, 0, 300, 32, programSettings.Keybindings.Shortcuts[shortcutName].KeysToString(), false)
 		project.RebindingButtons = append(project.RebindingButtons, button)
 		row.Item(button, SETTINGS_KEYBOARD).Weight = 0.425
 
@@ -433,6 +473,10 @@ func NewProject() *Project {
 	}
 
 	// Global
+
+	row = column.Row()
+	row.Item(NewLabel("Color Theme:"), SETTINGS_GLOBAL)
+	row.Item(project.ColorThemeSpinner, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Auto-reload Themes:"), SETTINGS_GLOBAL)
@@ -463,6 +507,10 @@ func NewProject() *Project {
 	row.Item(project.UnfocusedFPS, SETTINGS_GLOBAL)
 
 	row = column.Row()
+	row.Item(NewLabel("Download Time-out\n(In Seconds):"), SETTINGS_GLOBAL)
+	row.Item(project.DownloadTimeout, SETTINGS_GLOBAL)
+
+	row = column.Row()
 	row.Item(NewLabel("Pan to Cursor When\nZooming In:"), SETTINGS_GLOBAL)
 	row.Item(project.PanToFocusOnZoom, SETTINGS_GLOBAL)
 
@@ -475,7 +523,7 @@ func NewProject() *Project {
 	row.Item(project.AutoReloadResources, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	label := NewLabel("Window alterations (requires restart)")
+	label = NewLabel("Window alterations (requires restart)")
 	label.Underline = true
 	row.Item(label, SETTINGS_GLOBAL)
 
@@ -487,7 +535,13 @@ func NewProject() *Project {
 	row.Item(project.TransparentBackground, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel(""), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Draw Border\nAround Window:"), SETTINGS_GLOBAL)
+	row.Item(project.DrawWindowBorder, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	label = NewLabel("Font Settings")
+	label.Underline = true
+	row.Item(label, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Path to custom font\n(If blank, the default font is used):"), SETTINGS_GLOBAL)
@@ -528,7 +582,7 @@ func NewProject() *Project {
 		row.Item(NewLabel(`"Hello! Thank you for trying out MasterPlan! I truly do appreciate it.`), SETTINGS_ABOUT)
 
 		row = column.Row()
-		row.Item(NewLabel(`In this free demo, you can fully try it out; only saving is disabled.`), SETTINGS_ABOUT)
+		row.Item(NewLabel(`In this free demo, you can fully try it out without a trial period; only saving is disabled.`), SETTINGS_ABOUT)
 
 		row = column.Row()
 		row.Item(NewLabel(`Hopefully you will find it useful and consider supporting development by`), SETTINGS_ABOUT)
@@ -576,20 +630,22 @@ func NewProject() *Project {
 
 	project.OutlineTasks.Checked = true
 	project.BracketSubtasks.Checked = true
-	project.LogOn = true
 	project.PulsingTaskSelection.Checked = true
 	project.TaskShadowSpinner.CurrentChoice = 2
 	project.GridVisible.Checked = true
 	project.ShowIcons.Checked = true
 	project.DoubleClickTimer = time.Time{}
-	project.PreviousTaskType = "Check Box"
+	project.PreviousTaskType = TASK_TYPE_BOOLEAN
 	project.NumberTopLevel.Checked = true
 	project.TaskTransparency.Maximum = 5
 	project.TaskTransparency.Minimum = 1
 	project.TaskTransparency.SetNumber(5)
-	project.SoundVolume.Maximum = 10
+
+	project.SoundVolume.Maximum = 100
 	project.SoundVolume.Minimum = 0
-	project.SoundVolume.SetNumber(8)
+	project.SoundVolume.Step = 10
+	project.SoundVolume.SetNumber(80)
+
 	project.IncompleteTasksGlow.Checked = true
 	project.CompleteTasksGlow.Checked = true
 	project.SelectedTasksGlow.Checked = true
@@ -616,10 +672,7 @@ func NewProject() *Project {
 
 	project.MaxUndoSteps.Minimum = 0
 
-	currentTheme = "Sunlight" // Default theme for new projects and new sessions is the Sunlight theme
-
 	project.ReloadThemes()
-	project.ChangeTheme(currentTheme)
 
 	if strings.Contains(runtime.GOOS, "darwin") {
 		project.SampleRate.SetChoice("22050") // For some reason, sound on Mac is choppy unless the project's sample rate is 22050.
@@ -628,6 +681,10 @@ func NewProject() *Project {
 	}
 	speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
 	project.SetSampleRate = project.SampleRate.ChoiceAsInt()
+
+	// We have to open the settings and then close it so the settings options update to the programSettings stored values.
+	project.OpenSettings()
+	project.ProjectSettingsOpen = false
 
 	return project
 
@@ -673,7 +730,7 @@ func (project *Project) Save(backup bool) {
 
 	} else if demoMode != "" {
 
-		project.Log("Cannot save in MasterPlan demo mode.")
+		project.Log("Cannot save in the demo for MasterPlan.")
 
 	} else {
 
@@ -714,7 +771,6 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `Pan\.X`, project.CameraPan.X)
 			data, _ = sjson.Set(data, `Pan\.Y`, project.CameraPan.Y)
 			data, _ = sjson.Set(data, `ZoomLevel`, project.ZoomLevel)
-			data, _ = sjson.Set(data, `ColorTheme`, currentTheme)
 			data, _ = sjson.Set(data, `TaskTransparency`, project.TaskTransparency.Number())
 			data, _ = sjson.Set(data, `OutlineTasks`, project.OutlineTasks.Checked)
 			data, _ = sjson.Set(data, `BracketSubtasks`, project.BracketSubtasks.Checked)
@@ -739,6 +795,8 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `ScreenshotsPath`, project.ScreenshotsPath.Text())
 			data, _ = sjson.Set(data, `GraphicalTasksTransparent`, project.GraphicalTasksTransparent.Checked)
 			data, _ = sjson.Set(data, `DeadlineAnimation`, project.DeadlineAnimation.CurrentChoice)
+			data, _ = sjson.Set(data, `TableColumnsRotatedVertical`, project.TableColumnsRotatedVertical.Checked)
+			data, _ = sjson.Set(data, `TableColumnVerticalSpacing`, project.TableColumnVerticalSpacing.Number())
 
 			boardNames := []string{}
 			for _, board := range project.Boards {
@@ -755,7 +813,7 @@ func (project *Project) Save(backup bool) {
 
 			f, err := os.Create(project.FilePath)
 			if err != nil {
-				project.Log("Error in creating save file: ", err.Error())
+				project.Log("ERROR: Could not create save file: ", err.Error())
 			} else {
 				defer f.Close()
 
@@ -819,7 +877,11 @@ func LoadProject(filepath string) *Project {
 
 		if data.Get("Tasks").Exists() {
 
-			project.JustLoaded = true
+			log.Println("Project load starts")
+
+			project.LoadingVersion, _ = semver.Parse(data.Get(`Version`).String())
+
+			project.Loading = true
 
 			if strings.Contains(filepath, BackupDelineator) {
 				project.FilePath = strings.Split(filepath, BackupDelineator)[0]
@@ -869,8 +931,17 @@ func LoadProject(filepath string) *Project {
 			project.GraphicalTasksTransparent.Checked = getBool(`GraphicalTasksTransparent`)
 			project.DeadlineAnimation.CurrentChoice = getInt(`DeadlineAnimation`)
 
+			if data.Get(`TableColumnsRotatedVertical`).Exists() {
+				project.TableColumnsRotatedVertical.Checked = getBool(`TableColumnsRotatedVertical`)
+				project.TableColumnVerticalSpacing.SetNumber(getInt(`TableColumnVerticalSpacing`))
+			}
+
 			if data.Get(`SoundVolume`).Exists() {
-				project.SoundVolume.SetNumber(getInt(`SoundVolume`))
+				if project.LoadingVersion.LE(semver.MustParse("0.6.1-3")) {
+					project.SoundVolume.SetNumber(getInt(`SoundVolume`) * 10)
+				} else {
+					project.SoundVolume.SetNumber(getInt(`SoundVolume`))
+				}
 			}
 
 			if data.Get(`TaskTransparency`).Exists() {
@@ -902,13 +973,14 @@ func LoadProject(filepath string) *Project {
 			}
 
 			for i := range project.Boards {
-				project.Boards[i].UndoBuffer.On = false // No undoing for the loading process
 				if i < len(boardNames) {
 					project.Boards[i].Name = boardNames[i]
 				}
 			}
 
-			for _, taskData := range data.Get(`Tasks`).Array() {
+			log.Println("total number of tasks to deserialize: ", len(data.Get(`Tasks`).Array()))
+
+			for i, taskData := range data.Get(`Tasks`).Array() {
 
 				boardIndex := 0
 
@@ -918,14 +990,27 @@ func LoadProject(filepath string) *Project {
 
 				task := project.Boards[boardIndex].CreateNewTask()
 				task.Deserialize(taskData.String())
+
+				task.Rect.X = task.Position.X
+				task.Rect.Y = task.Position.Y
+
+				if task.DisplaySize.X == 0 || task.DisplaySize.Y == 0 {
+					task.Update() // We manually call Update() and Draw(), giving the Contents a chance to update and set the display size properly
+					task.Draw()
+				}
+
+				task.Rect.Width = task.DisplaySize.X
+				task.Rect.Height = task.DisplaySize.Y
+
+				task.UndoChange = true
+				task.UndoCreation = true
+
+				log.Println("task ", i, "successfully deserialized")
 			}
+
+			// We don't have to call Board.ReorderTasks() for each board here because we do it later on after first initialization
 
 			project.LogOn = true
-
-			colorTheme := getString(`ColorTheme`)
-			if colorTheme != "" {
-				project.ChangeTheme(colorTheme) // Changing theme regenerates the grid; we don't have to do it elsewhere
-			}
 
 			list := []string{}
 
@@ -979,6 +1064,15 @@ func LoadProject(filepath string) *Project {
 			programSettings.Save()
 			project.Log("Load successful.")
 
+			for _, board := range project.Boards {
+				board.UndoHistory.MinimumFrame = 1 // The first frame is the frame where we load the data
+				board.ReorderTasks()
+			}
+
+			project.Loading = false
+
+			log.Println("load finished")
+
 			return project
 
 		}
@@ -990,7 +1084,7 @@ func LoadProject(filepath string) *Project {
 
 	// We log on the current project because this project didn't load correctly
 
-	currentProject.Log("Error: Could not load plan:\n[ %s ].", filepath)
+	currentProject.Log("ERROR: Could not load plan:\n[ %s ].", filepath)
 	currentProject.Log("Are you sure it's a valid MasterPlan project?")
 
 	return nil
@@ -1004,7 +1098,7 @@ func (project *Project) Log(text string, variables ...interface{}) {
 	}
 
 	if project.LogOn {
-		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text, gween.New(255, 0, 7, ease.InExpo)})
+		eventLogBuffer = append(eventLogBuffer, EventLog{time.Now(), text, gween.New(255, 0, 3, ease.InExpo)})
 	}
 
 	log.Println(text)
@@ -1041,7 +1135,7 @@ func (project *Project) HandleCamera() {
 		project.CameraPan.Y += (-mousePos.Y - project.CameraPan.Y) * 0.5
 	}
 
-	camera.Zoom += (targetZoom - camera.Zoom) * (project.GetFrameTime() * 12)
+	camera.Zoom += (targetZoom - camera.Zoom) * (project.AdjustedFrameTime() * 12)
 
 	if math.Abs(float64(targetZoom-camera.Zoom)) < 0.001 {
 		camera.Zoom = targetZoom
@@ -1056,7 +1150,7 @@ func (project *Project) HandleCamera() {
 	smoothing := float32(1)
 
 	if programSettings.SmoothPanning {
-		smoothing = project.GetFrameTime() * 12
+		smoothing = project.AdjustedFrameTime() * 12
 	}
 
 	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * smoothing
@@ -1088,13 +1182,21 @@ func (project *Project) MousingOver() string {
 
 func (project *Project) Update() {
 
+	project.ScreenSize.X = float32(rl.GetScreenWidth())
+	project.ScreenSize.Y = float32(rl.GetScreenHeight())
+
 	project.AutoBackup()
 
-	if project.AutoReloadThemes.Checked && project.ThemeReloadTimer > 30 {
-		project.ReloadThemes()
-		project.ThemeReloadTimer = 0
+	project.Shortcuts()
+
+	if project.AutoReloadThemes.Checked {
+		if project.ThemeReloadTimer > .5 {
+			project.ReloadThemes()
+			project.ThemeReloadTimer = 0
+		} else {
+			project.ThemeReloadTimer += deltaTime
+		}
 	}
-	project.ThemeReloadTimer++
 
 	addToSelection := programSettings.Keybindings.On(KBAddToSelection)
 	removeFromSelection := programSettings.Keybindings.On(KBRemoveFromSelection)
@@ -1105,7 +1207,8 @@ func (project *Project) Update() {
 
 	// Board name on background of project
 	boardName := project.CurrentBoard().Name
-	boardNameWidth := GUITextWidth(boardName) + 16
+	textSize, _ := TextSize(boardName, true)
+	boardNameWidth := textSize.X + 16
 	boardNameHeight, _ := TextHeight(boardName, true)
 	rl.DrawRectangle(1, 1, int32(boardNameWidth), int32(boardNameHeight), getThemeColor(GUI_INSIDE))
 	DrawGUITextColored(rl.Vector2{8, 0}, getThemeColor(GUI_INSIDE_DISABLED), boardName)
@@ -1116,53 +1219,11 @@ func (project *Project) Update() {
 
 	selectionRect := rl.Rectangle{}
 
-	for _, task := range project.GetAllTasks() {
-		task.Update()
-
-		if project.AutoReloadResources.Checked && task.FilePathTextbox.Text() != "" {
-			if task.SuccessfullyLoadedResourceOnce {
-				if res, newlyLoaded := project.LoadResource(task.FilePathTextbox.Text()); res != nil && newlyLoaded {
-					task.LoadResource()
-				}
-			}
-		}
-
+	for _, board := range project.Boards {
+		board.Update()
 	}
 
-	// Additive blending should be out here to avoid state changes mid-task drawing.
-	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
-
-	sorted := append([]*Task{}, project.CurrentBoard().Tasks...)
-
-	sort.Slice(sorted, func(i, j int) bool {
-		if sorted[i].Depth() == sorted[j].Depth() {
-			if sorted[i].Rect.Y == sorted[j].Rect.Y {
-				return sorted[i].Rect.X < sorted[j].Rect.X
-			}
-			return sorted[i].Rect.Y < sorted[j].Rect.Y
-		}
-		return sorted[i].Depth() < sorted[j].Depth()
-	})
-
-	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
-		rl.BeginBlendMode(rl.BlendAdditive)
-	}
-
-	for _, task := range sorted {
-		task.DrawShadow()
-	}
-
-	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
-		rl.EndBlendMode()
-	}
-
-	for _, task := range sorted {
-		task.Draw()
-	}
-
-	for _, task := range sorted {
-		task.DrawLine()
-	}
+	project.CurrentBoard().Draw()
 
 	project.HandleCamera()
 
@@ -1239,9 +1300,12 @@ func (project *Project) Update() {
 
 					if !project.DoubleClickTimer.IsZero() && project.DoubleClickTaskID == -1 {
 						task := project.CurrentBoard().CreateNewTask()
+						task.TaskType.CurrentChoice = project.PreviousTaskType
+						task.ReceiveMessage(MessageTaskRestore, nil)
 						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.Selecting = false
 						project.DoubleClickTimer = time.Time{}
+						project.CurrentBoard().TaskChanged = true
 					} else {
 						project.DoubleClickTimer = time.Now()
 					}
@@ -1251,7 +1315,7 @@ func (project *Project) Update() {
 					if clickedTask.ID == project.DoubleClickTaskID && !project.DoubleClickTimer.IsZero() && clickedTask.Selected {
 						clickedTask.ReceiveMessage(MessageDoubleClick, nil)
 						project.DoubleClickTimer = time.Time{}
-					} else {
+					} else if !clickedTask.Locked {
 						project.DoubleClickTimer = time.Now()
 						project.SendMessage(MessageDragging, nil)
 						project.DoubleClickTaskID = clickedTask.ID
@@ -1337,7 +1401,7 @@ func (project *Project) Update() {
 			}
 		}
 
-		project.CurrentBoard().UndoBuffer.Update()
+		// project.CurrentBoard().UndoBuffer.Update()
 
 	}
 
@@ -1346,39 +1410,33 @@ func (project *Project) Update() {
 
 	rl.DrawRectangleLinesEx(selectionRect, 1, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
-	project.Shortcuts()
+	// if project.JustLoaded {
 
-	if project.JustLoaded {
+	// 	for _, board := range project.Boards {
 
-		for _, t := range project.GetAllTasks() {
-			t.Draw() // We need to draw the task at least once to ensure the rects are updated by the Task's contents.
-			// This makes it so that neighbors can be correct.
-		}
+	// 		board.ChangedTaskOrder = true
+	// 		board.Update()
+	// 		board.Draw()
 
-		for _, board := range project.Boards {
-			board.ReorderTasks()
-		}
+	// 	}
 
-		project.Modified = false
-		project.JustLoaded = false
+	// 	project.Modified = false
+	// 	project.JustLoaded = false
 
-		for _, b := range project.Boards {
-			b.UndoBuffer.On = true
-			for _, task := range b.Tasks {
-				b.UndoBuffer.Capture(task)
-			}
-		}
-
-	}
-
-	for _, board := range project.Boards {
-		board.HandleDeletedTasks()
-	}
+	// }
 
 	if project.Modified && project.AutoSave.Checked {
 		project.LogOn = false
 		project.Save(false)
 		project.LogOn = true
+	}
+
+	project.CurrentBoard().UndoHistory.Update()
+
+	project.Time += deltaTime
+
+	if project.Time > 1000000 {
+		project.Time = 0
 	}
 
 }
@@ -1584,41 +1642,16 @@ func (project *Project) Shortcuts() {
 					project.CurrentBoard().PasteContent()
 				} else if keybindings.On(KBPaste) {
 					project.CurrentBoard().PasteTasks()
-				} else if keybindings.On(KBCreateTask) {
-					task := project.CurrentBoard().CreateNewTask()
-					task.ReceiveMessage(MessageDoubleClick, nil)
 				} else if keybindings.On(KBRedo) {
-					if project.CurrentBoard().UndoBuffer.Redo() {
+					if project.CurrentBoard().UndoHistory.Redo() {
 						project.UndoFade.Reset()
 						project.Undoing = 1
 					}
 				} else if keybindings.On(KBUndo) {
-					if project.CurrentBoard().UndoBuffer.Undo() {
+					if project.CurrentBoard().UndoHistory.Undo() {
 						project.UndoFade.Reset()
 						project.Undoing = -1
 					}
-				} else if keybindings.On(KBStopAllSounds) {
-
-					for _, task := range project.GetAllTasks() {
-						task.StopSound()
-					}
-					project.Log("Stopped all playing Sounds.")
-
-				} else if keybindings.On(KBToggleTasks) {
-
-					toggleCount := 0
-
-					for _, task := range project.CurrentBoard().SelectedTasks(false) {
-						if task.Completable() {
-							toggleCount++
-						}
-						task.SetCompletion(!task.Complete())
-					}
-
-					if toggleCount > 0 {
-						project.Log("Completion toggled on %d Task(s).", toggleCount)
-					}
-
 				} else if keybindings.On(KBDeleteTasks) {
 					project.CurrentBoard().DeleteSelectedTasks()
 				} else if keybindings.On(KBFocusOnTasks) {
@@ -1681,19 +1714,29 @@ func (project *Project) Shortcuts() {
 							}
 
 							if neighbor != nil {
+
+								// We manually create an UndoState for the neighbor. The true argument here places the state in the previous UndoFrame (which is necessary
+								// to be able to ensure a Task creates an undoable state prior to the movement for the Tasks not selected that are swapped). The alternative
+								// to this was to copy the previous Frame's States to the new one, effectively serializing all prior Tasks and the new one every frame,
+								// thereby slowing undo and redo down noticeably. I believe this to be a necessary hack.
+								neighbor.Board.UndoHistory.Capture(NewUndoState(neighbor), true)
+
 								neighbor.Move(-dx*size(task), -dy*size(task))
 								task.Position.X += dx * size(neighbor)
 								task.Position.Y += dy * size(neighbor)
+								neighbor.UndoChange = true
+								task.UndoChange = true
 							} else {
 								task.Position.X += dx * gs
 								task.Position.Y += dy * gs
+								task.UndoChange = true
 							}
 
 						}
 
 						board.FocusViewOnSelectedTasks()
 
-						board.ReorderTasks()
+						project.CurrentBoard().TaskChanged = true
 
 					} else {
 
@@ -1817,11 +1860,11 @@ func (project *Project) Shortcuts() {
 
 						if selected.Is(TASK_TYPE_LINE) {
 
-							if selected.LineBase == nil {
-								checkDistance = rl.Vector2Distance(selected.Position, selected.LineEndings[0].Position)
-							} else {
-								checkDistance = rl.Vector2Distance(selected.Position, selected.LineBase.Position)
-							}
+							// if selected.LineBase == nil {
+							// 	checkDistance = rl.Vector2Distance(selected.Position, selected.LineEndings[0].Position)
+							// } else {
+							// 	checkDistance = rl.Vector2Distance(selected.Position, selected.LineBase.Position)
+							// }
 							checkDistance += 64
 
 						}
@@ -1881,34 +1924,94 @@ func (project *Project) Shortcuts() {
 						project.ExecuteDestructiveAction(ActionLoadProject, "")
 					}
 				} else if keybindings.On(KBDeselectTasks) {
+
 					project.SendMessage(MessageSelect, nil)
 					project.Log("Deselected all Task(s).")
+
 				} else if keybindings.On(KBSelectTopTaskInStack) {
+
 					for _, task := range project.CurrentBoard().SelectedTasks(true) {
+
 						next := task.TaskAbove
-						for next != nil && next.TaskAbove != nil {
-							next = next.TaskAbove
-						}
-						if next != nil {
-							project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
-						}
-						break
-					}
-					project.CurrentBoard().FocusViewOnSelectedTasks()
-				} else if keybindings.On(KBSelectBottomTaskInStack) {
-					for _, task := range project.CurrentBoard().Tasks {
-						if task.Selected {
-							next := task.TaskBelow
-							for next != nil && next.TaskBelow != nil {
-								next = next.TaskBelow
-							}
-							if next != nil {
+
+						for next != nil {
+
+							if keybindings.On(KBAddToSelection) {
+								next.ReceiveMessage(MessageSelect, map[string]interface{}{"task": next})
+							} else if next.TaskAbove == nil {
 								project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
 							}
-							break
+
+							next = next.TaskAbove
+
 						}
+
 					}
+
 					project.CurrentBoard().FocusViewOnSelectedTasks()
+
+				} else if keybindings.On(KBSelectBottomTaskInStack) {
+
+					for _, task := range project.CurrentBoard().SelectedTasks(true) {
+
+						next := task.TaskBelow
+
+						for next != nil {
+
+							if keybindings.On(KBAddToSelection) {
+								next.ReceiveMessage(MessageSelect, map[string]interface{}{"task": next})
+							} else if next.TaskBelow == nil {
+								project.SendMessage(MessageSelect, map[string]interface{}{"task": next})
+							}
+
+							next = next.TaskBelow
+
+						}
+
+					}
+
+					project.CurrentBoard().FocusViewOnSelectedTasks()
+
+				} else if keybindings.On(KBQuit) {
+
+					project.PromptQuit()
+
+				} else {
+
+					setChoice := -1
+
+					if keybindings.On(KBCreateTask) {
+						setChoice = project.PreviousTaskType
+					} else if keybindings.On(KBCreateCheckboxTask) {
+						setChoice = TASK_TYPE_BOOLEAN
+					} else if keybindings.On(KBCreateProgressionTask) {
+						setChoice = TASK_TYPE_PROGRESSION
+					} else if keybindings.On(KBCreateNoteTask) {
+						setChoice = TASK_TYPE_NOTE
+					} else if keybindings.On(KBCreateImageTask) {
+						setChoice = TASK_TYPE_IMAGE
+					} else if keybindings.On(KBCreateSoundTask) {
+						setChoice = TASK_TYPE_SOUND
+					} else if keybindings.On(KBCreateTimerTask) {
+						setChoice = TASK_TYPE_TIMER
+					} else if keybindings.On(KBCreateLinetask) {
+						setChoice = TASK_TYPE_LINE
+					} else if keybindings.On(KBCreateMapTask) {
+						setChoice = TASK_TYPE_MAP
+					} else if keybindings.On(KBCreateWhiteboardTask) {
+						setChoice = TASK_TYPE_WHITEBOARD
+					} else if keybindings.On(KBCreateTableTask) {
+						setChoice = TASK_TYPE_TABLE
+					}
+
+					if setChoice >= 0 {
+						task := project.CurrentBoard().CreateNewTask()
+						task.TaskType.CurrentChoice = setChoice
+						task.ReceiveMessage(MessageTaskRestore, nil)
+						task.ReceiveMessage(MessageDoubleClick, nil)
+						project.CurrentBoard().TaskChanged = true
+					}
+
 				}
 
 			}
@@ -1942,25 +2045,16 @@ func (project *Project) Shortcuts() {
 
 }
 
-func (project *Project) ChangeTheme(themeName string) {
-	_, themeExists := guiColors[themeName]
-	if themeExists {
-		project.ColorThemeSpinner.SetChoice(themeName)
-	} else {
-		project.ColorThemeSpinner.CurrentChoice = 0 // Backup in case the named theme doesn't exist
-	}
-	currentTheme = project.ColorThemeSpinner.ChoiceAsString()
-	project.GenerateGrid()
-	project.SendMessage(MessageThemeChange, nil)
-}
-
 func (project *Project) GUI() {
 
-	for _, task := range project.CurrentBoard().Tasks {
-		task.PostDraw()
-	}
+	project.CurrentBoard().PostDraw()
 
 	if project.PopupAction != "" {
+
+		textboxElement := project.PopupPanel.FindItems("rename textbox")[0]
+		textbox := textboxElement.Element.(*Textbox)
+		labelElement := project.PopupPanel.FindItems("label")[0]
+		label := labelElement.Element.(*Label)
 
 		project.PopupPanel.Update()
 
@@ -1969,22 +2063,19 @@ func (project *Project) GUI() {
 
 		if project.PopupPanel.Exited || cancel {
 			project.PopupAction = ""
+
 		}
 
 		if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
 			accept = true
+			label.Text = ""
 		}
 
-		textboxElement := project.PopupPanel.FindItems("rename textbox")[0]
-		textbox := textboxElement.Element.(*Textbox)
+		label.Text = ""
 
 		if project.PopupAction == ActionRenameBoard {
 
-			project.PopupPanel.FindItems("rename label")[0].On = true
-
-			for _, element := range project.PopupPanel.FindItems("abandon label") {
-				element.On = false
-			}
+			label.Text = "Rename Board"
 
 			textboxElement.On = true
 
@@ -2004,11 +2095,11 @@ func (project *Project) GUI() {
 
 		} else {
 
-			project.PopupPanel.FindItems("rename label")[0].On = false
-
-			for _, element := range project.PopupPanel.FindItems("abandon label") {
-				element.On = true
+			if project.Modified {
+				label.Text = "\nCurrent project has been changed."
 			}
+
+			label.Text += "\nAbandon project?"
 
 			if accept {
 				project.ExecuteDestructiveAction(project.PopupAction, project.PopupArgument)
@@ -2153,7 +2244,10 @@ func (project *Project) GUI() {
 
 					case "New Task":
 						task := project.CurrentBoard().CreateNewTask()
+						task.TaskType.CurrentChoice = project.PreviousTaskType
+						task.ReceiveMessage(MessageTaskRestore, nil)
 						task.ReceiveMessage(MessageDoubleClick, nil)
+						project.CurrentBoard().TaskChanged = true
 
 					case "Delete Tasks":
 						project.CurrentBoard().DeleteSelectedTasks()
@@ -2174,7 +2268,7 @@ func (project *Project) GUI() {
 						takeScreenshot = true
 
 					case "Open Tutorial":
-						startingPlanPath := GetPath("assets", "help_manual.plan")
+						startingPlanPath := LocalPath("assets", "help_manual.plan")
 						if project.Modified {
 							project.PopupAction = ActionLoadProject
 							project.PopupArgument = startingPlanPath
@@ -2183,11 +2277,7 @@ func (project *Project) GUI() {
 						}
 
 					case "Quit MasterPlan":
-						if project.Modified {
-							project.PopupAction = ActionQuit
-						} else {
-							project.ExecuteDestructiveAction(ActionQuit, "")
-						}
+						project.PromptQuit()
 					}
 
 				}
@@ -2214,14 +2304,6 @@ func (project *Project) GUI() {
 			project.SettingsPanel.Columns[0].Mode = project.SettingsSection.CurrentChoice
 			project.SettingsPanel.Update()
 
-			if project.SoundVolume.Changed {
-
-				for _, t := range project.CurrentBoard().Tasks {
-					t.UpdateSoundVolume()
-				}
-
-			}
-
 			if project.ItchStorePageButton.Clicked {
 				browser.OpenURL("https://solarlune.itch.io/masterplan")
 			}
@@ -2240,10 +2322,6 @@ func (project *Project) GUI() {
 					shortcutButton := project.RebindingButtons[i]
 					defaultButton := project.DefaultRebindingButtons[i]
 					shortcut := programSettings.Keybindings.Shortcuts[shortcutName]
-
-					if shortcutButton.Clicked {
-						project.RebindingAction = shortcutButton
-					}
 
 					if project.RebindingAction == shortcutButton {
 
@@ -2287,13 +2365,17 @@ func (project *Project) GUI() {
 
 					}
 
+					if shortcutButton.Clicked {
+						project.RebindingAction = shortcutButton
+					}
+
 					defaultButton.Disabled = shortcut.IsDefault()
 
 					if defaultButton.Clicked {
 						shortcut.ResetToDefault()
 					}
 
-					shortcutButton.Text = programSettings.Keybindings.Shortcuts[shortcutName].String()
+					shortcutButton.Text = programSettings.Keybindings.Shortcuts[shortcutName].KeysToString()
 
 				}
 
@@ -2321,19 +2403,13 @@ func (project *Project) GUI() {
 			programSettings.SmoothPanning = project.SmoothPanning.Checked
 			programSettings.FontSize = project.FontSize.Number()
 			programSettings.GUIFontSizeMultiplier = project.GUIFontSizeMultiplier.ChoiceAsString()
-
-			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed {
-				for _, textbox := range allTextboxes {
-					textbox.triggerTextRedraw = true
-				}
-			}
-
+			programSettings.DrawWindowBorder = project.DrawWindowBorder.Checked
 			programSettings.CustomFontPath = project.CustomFontPath.Text()
 
-			if project.FontSize.Changed ||
-				project.CustomFontPath.Changed ||
-				project.GUIFontSizeMultiplier.Changed {
+			// SUPER HACKY; we're not supposed to manually set the Changed variable like this, but whatevs, CustomFontPath isn't updating all of the time.
+			if project.CustomFontPath.Changed {
 				ReloadFonts()
+				project.CustomFontPath.Changed = false
 			}
 
 			if project.SettingsPanel.Exited {
@@ -2347,13 +2423,6 @@ func (project *Project) GUI() {
 					project.Log("Project sample rate changed to %s.", project.SampleRate.ChoiceAsString())
 					project.Log("Currently playing sounds have been stopped and resampled as necessary.")
 
-					project.LogOn = false
-					for _, t := range project.CurrentBoard().Tasks {
-						if t.Is(TASK_TYPE_SOUND) {
-							t.LoadResource() // Force reloading to resample as necessary
-						}
-					}
-					project.LogOn = true
 				}
 
 				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
@@ -2378,14 +2447,25 @@ func (project *Project) GUI() {
 					project.Modified = true
 				}
 				programSettings.Save()
+
+				project.SendMessage(MessageSettingsChange, nil)
+
 			}
 
 			if project.GridVisible.Changed {
 				project.GenerateGrid()
 			}
 
+			if project.SoundVolume.Changed {
+				project.SendMessage(MessageSettingsChange, nil)
+			}
+
 			if project.ColorThemeSpinner.Changed {
-				project.ChangeTheme(project.ColorThemeSpinner.ChoiceAsString())
+
+				programSettings.Theme = project.ColorThemeSpinner.ChoiceAsString()
+				project.GenerateGrid()
+				project.SendMessage(MessageThemeChange, nil)
+
 			}
 
 			if project.MaxUndoSteps.Number() == 0 {
@@ -2394,6 +2474,13 @@ func (project *Project) GUI() {
 
 			if !project.LockProject.Checked {
 				project.Locked = false
+			}
+
+			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed || project.ColorThemeSpinner.Changed {
+				for _, textbox := range allTextboxes {
+					textbox.triggerTextRedraw = true
+				}
+				project.CurrentBoard().SendMessage(MessageSettingsChange, nil)
 			}
 
 		}
@@ -2413,11 +2500,20 @@ func (project *Project) GUI() {
 
 			for _, t := range project.CurrentBoard().Tasks {
 
-				if t.Completable() {
-					taskCount++
-				}
-				if t.Complete() {
-					completionCount++
+				if t.IsCompletable() {
+
+					if t.Is(TASK_TYPE_TABLE) && t.TableData != nil {
+
+						taskCount += t.TableData.CompletionMax()
+						completionCount += t.TableData.CompletionCount()
+
+					} else {
+						taskCount++
+						if t.IsComplete() {
+							completionCount++
+						}
+					}
+
 				}
 
 			}
@@ -2488,7 +2584,8 @@ func (project *Project) GUI() {
 
 			w := float32(0)
 			for _, b := range project.Boards {
-				bw := GUITextWidth(b.Name)
+				textSize, _ := TextSize(b.Name, true)
+				bw := textSize.X
 				if bw > w {
 					w = bw
 				}
@@ -2528,7 +2625,8 @@ func (project *Project) GUI() {
 					if disabled {
 
 						bx := x + buttonRange - h
-						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{16, 16, 16, 16}, 90, "", boardIndex == len(project.Boards)-1) {
+
+						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{176, 16, 12, 12}, 90, "", boardIndex == len(project.Boards)-1) {
 							// Move board down
 							b := project.Boards[boardIndex+1]
 							project.Boards[boardIndex] = b
@@ -2537,7 +2635,7 @@ func (project *Project) GUI() {
 							project.Log("Moved Board %s down.", board.Name)
 						}
 						bx -= h
-						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{16, 16, 16, 16}, -90, "", boardIndex == 0) {
+						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{176, 16, 12, 12}, -90, "", boardIndex == 0) {
 							// Move board Up
 							b := project.Boards[boardIndex-1]
 							project.Boards[boardIndex] = b
@@ -2546,7 +2644,7 @@ func (project *Project) GUI() {
 							project.Log("Moved Board %s up.", board.Name)
 						}
 						bx -= h
-						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{160, 16, 16, 16}, 0, "", false) {
+						if ImmediateIconButton(rl.Rectangle{bx, y, h, h}, rl.Rectangle{160, 16, 12, 12}, 0, "", false) {
 							// Rename board
 							project.PopupArgument = project.CurrentBoard().Name
 							project.PopupAction = ActionRenameBoard
@@ -2607,6 +2705,11 @@ func (project *Project) GUI() {
 	}
 
 	PrevMousePosition = GetMousePosition()
+
+	if programSettings.DrawWindowBorder {
+		rec := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
+		rl.DrawRectangleLinesEx(rec, 2, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+	}
 
 }
 
@@ -2706,10 +2809,37 @@ func (project *Project) FirstFreeID() int {
 
 }
 
-func (project *Project) LockPositionToGrid(xy rl.Vector2) rl.Vector2 {
+func (project *Project) RoundPositionToGrid(position rl.Vector2) rl.Vector2 {
 
-	return rl.Vector2{float32(math.Round(float64(xy.X/float32(project.GridSize)))) * float32(project.GridSize),
-		float32(math.Round(float64(xy.Y/float32(project.GridSize)))) * float32(project.GridSize)}
+	x := float32(math.Round(float64(position.X/float32(project.GridSize)))) * float32(project.GridSize)
+	y := float32(math.Round(float64(position.Y/float32(project.GridSize)))) * float32(project.GridSize)
+
+	if x == -0 {
+		x = 0
+	}
+
+	if y == -0 {
+		y = 0
+	}
+
+	return rl.Vector2{x, y}
+
+}
+
+func (project *Project) CeilingPositionToGrid(position rl.Vector2) rl.Vector2 {
+
+	x := float32(math.Ceil(float64(position.X/float32(project.GridSize)))) * float32(project.GridSize)
+	y := float32(math.Ceil(float64(position.Y/float32(project.GridSize)))) * float32(project.GridSize)
+
+	if x == -0 {
+		x = 0
+	}
+
+	if y == -0 {
+		y = 0
+	}
+
+	return rl.Vector2{x, y}
 
 }
 
@@ -2723,6 +2853,7 @@ func (project *Project) GenerateGrid() {
 			c := rl.Color{}
 			if project.GridVisible.Checked && (x%project.GridSize == 0 || x%project.GridSize == project.GridSize-1) && (y%project.GridSize == 0 || y%project.GridSize == project.GridSize-1) {
 				c = getThemeColor(GUI_INSIDE)
+				c.A = 192
 			}
 
 			data = append(data, c.R, c.G, c.B, c.A)
@@ -2743,10 +2874,10 @@ func (project *Project) ReloadThemes() {
 
 	loadThemes()
 
-	_, themeExists := guiColors[currentTheme]
+	_, themeExists := guiColors[programSettings.Theme]
 	if !themeExists {
 		for k := range guiColors {
-			currentTheme = k
+			programSettings.Theme = k
 			project.ColorThemeSpinner.SetChoice(k)
 			break
 		}
@@ -2762,11 +2893,11 @@ func (project *Project) ReloadThemes() {
 
 }
 
-func (project *Project) GetFrameTime() float32 {
+func (project *Project) AdjustedFrameTime() float32 {
 	ft := deltaTime
-	if ft > (1/float32(programSettings.TargetFPS))*4 {
+	if ft > (1/float32(targetFPS))*4 {
 		// This artificial limiting is done to ensure the delta time never gets so high that it makes major problems.
-		ft = (1 / float32(programSettings.TargetFPS)) * 4
+		ft = (1 / float32(targetFPS)) * 4
 	}
 	return ft
 }
@@ -2781,6 +2912,8 @@ func (project *Project) Destroy() {
 		res.Destroy()
 	}
 
+	os.RemoveAll(project.TempDir)
+
 }
 
 func (project *Project) RetrieveResource(resourcePath string) *Resource {
@@ -2794,12 +2927,8 @@ func (project *Project) RetrieveResource(resourcePath string) *Resource {
 
 }
 
-// LoadResource returns the resource loaded from the filepath and a boolean indicating if it was just loaded (true), or
-// loaded previously and retrieved (false).
-func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
-
-	downloadedFile := false
-	newlyLoaded := false
+// LoadResource returns the resource loaded from the filepath. If it doesn't exist, then
+func (project *Project) LoadResource(resourcePath string) *Resource {
 
 	var loadedResource *Resource
 
@@ -2810,15 +2939,15 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 		loadedResource = existingResource
 
 		// We check to see if the mod time isn't the same; if so, we destroy the old one and load it again
-
-		if file, err := os.Open(loadedResource.LocalFilepath); !loadedResource.Temporary && err == nil {
+		if file, err := os.Open(loadedResource.LocalFilepath); loadedResource.DownloadResponse == nil && err == nil {
 
 			if stats, err := file.Stat(); err == nil {
 				// We have to check if the size is greater than 0 because it's possible we're seeing the file before it's been written fully to disk;
-				if stats.Size() > 0 && stats.ModTime().After(loadedResource.ModTime) {
+				if stats.Size() > 0 && (!stats.ModTime().Equal(loadedResource.ModTime) || stats.Size() != loadedResource.Size) {
 					loadedResource.Destroy()
 					delete(project.Resources, resourcePath)
-					loadedResource, newlyLoaded = project.LoadResource(resourcePath) // Force reloading if the file is outdated
+					loadedResource = project.LoadResource(resourcePath) // Force reloading if the file is outdated
+					loadedResource.ParseData()
 				}
 			}
 
@@ -2828,94 +2957,55 @@ func (project *Project) LoadResource(resourcePath string) (*Resource, bool) {
 
 	} else if resourcePath != "" {
 
-		localFilepath := resourcePath
-
-		// Attempt downloading it if it's an HTTP file
+		// Attempt downloading it if it's an online resource (e.g. "https://solarlune.com/media/bartender.png")
 		if url, err := urlx.Parse(resourcePath); err == nil && url.Host != "" && url.Scheme != "" {
 
-			response, err := http.Get(url.String())
+			filename := filepath.Join(project.TempDir, filepath.FromSlash(url.Hostname()+"/"+url.Path))
+
+			req, err := grab.NewRequest(filename, url.String())
 
 			if err != nil {
-
-				project.Log("Could not open HTTP address: ", err.Error())
-
+				project.Log("ERROR: Could not initiate download for [%s]\nError : [%s]", url.String(), err.Error())
 			} else {
 
-				tempFile, err := ioutil.TempFile("", "masterplan_resource")
-				if err != nil {
-					project.Log("Could not open temporary file: ", err.Error())
-				} else {
-					io.Copy(tempFile, response.Body)
-					newlyLoaded = true
-					localFilepath = tempFile.Name()
-					downloadedFile = true
+				resp := project.GrabClient.Do(req)
+
+				var possibleError error
+
+				// response.Err() blocks until complete, so we want to see if the response is instantly complete, and if so, see if there's any error.
+				if resp.IsComplete() {
+					possibleError = resp.Err()
 				}
 
-				response.Body.Close()
+				if possibleError != nil {
+					project.Log("ERROR: Could not initiate download for [%s]\nError : [%s]\nAre you sure the path or URL is correct?", url.String(), possibleError.Error())
+				} else {
 
-				tempFile.Close()
+					loadedResource = project.RegisterResource(resourcePath, filename, resp)
+
+					// After the download is complete, we want to parse the data
+					req.AfterCopy = func(resp *grab.Response) error {
+						loadedResource.ParseData()
+						return nil
+					}
+
+				}
 
 			}
 
-		}
-
-		fileType, err := mimetype.DetectFile(localFilepath)
-
-		if err != nil {
-			project.Log("Error identifying file type: ", err.Error())
 		} else {
 
-			newlyLoaded = true
-
-			// We have to rename the resource according to what it is because raylib expects the extensions of files to be correct.
-			// png image files need to have .png as an extension, for example.
-			if downloadedFile && !fileType.Is(strings.ToLower(filepath.Ext(localFilepath))) {
-				newName := localFilepath + fileType.Extension()
-				os.Rename(localFilepath, newName)
-				localFilepath = newName
-			}
-
-			if strings.Contains(fileType.String(), "image") {
-
-				if strings.Contains(fileType.String(), "gif") {
-					file, err := os.Open(localFilepath)
-					if err != nil {
-						project.Log("Could not open GIF: ", err.Error())
-					} else {
-
-						defer file.Close()
-
-						gifFile, err := gif.DecodeAll(file)
-
-						if err != nil {
-							project.Log("Could not decode GIF: ", err.Error())
-						} else {
-							res := project.RegisterResource(resourcePath, localFilepath, gifFile)
-							res.Temporary = downloadedFile
-							loadedResource = res
-						}
-
-					}
-				} else { // Ordinary image
-					tex := rl.LoadTexture(localFilepath)
-					res := project.RegisterResource(resourcePath, localFilepath, tex)
-					res.Temporary = downloadedFile
-					loadedResource = res
-				}
-
-			} else if strings.Contains(fileType.String(), "audio") {
-				res := project.RegisterResource(resourcePath, localFilepath, nil)
-				res.Temporary = downloadedFile
-				loadedResource = res
-			} else {
-				project.Log("Unable to load resource [%s].", resourcePath)
+			if FileExists(resourcePath) {
+				// Local file, so we're g2g
+				loadedResource = project.RegisterResource(resourcePath, resourcePath, nil)
+				loadedResource.ParseData()
 			}
 
 		}
 
 	}
 
-	return loadedResource, newlyLoaded
+	return loadedResource
 
 }
 
@@ -2975,4 +3065,13 @@ func (project *Project) OpenSettings() {
 	project.CustomFontPath.SetText(programSettings.CustomFontPath)
 	project.FontSize.SetNumber(programSettings.FontSize)
 	project.GUIFontSizeMultiplier.SetChoice(programSettings.GUIFontSizeMultiplier)
+	project.ColorThemeSpinner.SetChoice(programSettings.Theme)
+	project.DrawWindowBorder.Checked = programSettings.DrawWindowBorder
+	project.DownloadTimeout.SetNumber(programSettings.DownloadTimeout)
+}
+
+func (project *Project) PromptQuit() {
+
+	project.PopupAction = ActionQuit
+
 }

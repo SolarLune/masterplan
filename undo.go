@@ -1,183 +1,160 @@
 package main
 
 import (
-	"fmt"
-	"sort"
-
-	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
 
-var newStepIndex = 0
+// HISTORY    v
+// TASK #0  -------O-XO
+// TASK #1  --O--OO----
+// TASK #2  XO-O----O--
+// TASK #3  ---XO-O---O
+//
+// Basic idea for new UndoBuffer; each Buffer contains lanes, one for each Task created. When you first create a Task,
+// it creates a non-existent step, and an existent step for it. Any change creates a step. Undoing or redoing pushes
+// the "frame" forward or back a step, and it sets all Tasks to the last key, looking back from the frame, in their
+// respective lanes.
+// Anything that can be serialized and deserialized can be undo-able, not just Tasks.
 
-type UndoBuffer struct {
-	Steps       []*UndoStep
-	Index       int
-	Board       *Board
-	On          bool
-	NewCaptures *UndoStep
+//       0, 1, 2
+//
+// Task: A, B,
+
+// type Undoable interface {
+// 	Serialize() string
+// 	Deserialize(string)
+// }
+
+type UndoHistory struct {
+	Frames       []*UndoFrame
+	CurrentFrame *UndoFrame
+	On           bool
+	Index        int
+	Changed      bool
+	MinimumFrame int
 }
 
-func NewUndoBuffer(board *Board) *UndoBuffer {
-	return &UndoBuffer{Steps: []*UndoStep{}, Board: board, On: true, NewCaptures: NewUndoStep()}
+func NewUndoHistory(board *Board) *UndoHistory {
+
+	// I'm just taking a Board argument for backwards compat for now
+
+	history := &UndoHistory{
+		On:           true,
+		Frames:       []*UndoFrame{},
+		CurrentFrame: NewUndoFrame(),
+	}
+
+	return history
+
 }
 
-// Capture creates and registers a new UndoState for the Task as it currently can be serialized in the current
-// undo step in the undo buffer.
-func (ub *UndoBuffer) Capture(task *Task) {
+// Capture captures the created UndoState and adds it to the UndoHistory if it's a unique UndoState (and not a duplicate of any other State in either the current frame, or
+// the previous frame). previousState indicates whether to place the new UndoState in the previous frame or not - this is useful specifically for undoing swapping Tasks, where
+// we need both an old state (where it was previously), and a new State (where it's been moved).
+func (history *UndoHistory) Capture(newState *UndoState, previousState bool) {
 
-	if !ub.On {
+	if !history.On {
 		return
 	}
 
-	newState := NewUndoState(task)
+	// Redirection of capture of Line Tasks as line endings don't really "exist"; they're Tasks just made to
+	// visualize where the Line ends, and moving them around is just really setting positions for serialization
+	// and visualization.
 
-	if ub.NewCaptures.UniqueUndoState(newState) {
-		ub.NewCaptures.Add(newState)
+	if newState.Task.Is(TASK_TYPE_LINE) && newState.Task.LineStart != nil {
+		history.Capture(NewUndoState(newState.Task.LineStart), previousState)
+		return
 	}
+
+	if existingState, exists := history.CurrentFrame.States[newState.Task]; exists && existingState.SameAs(newState) {
+		return
+	}
+
+	if len(history.Frames) > 0 && history.Index > 0 {
+
+		prevFrame := history.Frames[history.Index-1]
+
+		if existingState, exists := prevFrame.States[newState.Task]; exists && existingState.SameAs(newState) {
+			return
+		}
+
+		// TODO: Review this, this seems odd???
+		for i := history.Index - 1; i >= 0; i-- {
+			if olderState, exists := history.Frames[i].States[newState.Task]; exists {
+				if olderState.SameAs(newState) {
+					prevFrame.States[newState.Task] = newState
+					return
+				}
+				break
+			}
+		}
+
+	}
+
+	if previousState && len(history.Frames) > 0 && history.Index > 0 {
+		history.Frames[history.Index-1].States[newState.Task] = newState
+	} else {
+		history.CurrentFrame.States[newState.Task] = newState
+	}
+
+	history.Changed = true
 
 }
 
-func (ub *UndoBuffer) Update() {
+func (history *UndoHistory) Undo() bool {
 
-	// Add the NewCaptures list's states to the Steps history
-	if len(ub.NewCaptures.States) > 0 {
+	if history.Index > history.MinimumFrame {
 
-		if len(ub.Steps) > 0 && ub.Index >= len(ub.Steps) {
-			ub.Index = len(ub.Steps) - 1
-		} else if ub.Index < 0 {
-			ub.Index = 0
+		history.On = false
+
+		for _, state := range history.Frames[history.Index-1].States {
+			state.Exit(-1)
 		}
 
-		if len(ub.Steps) > ub.Index+1 {
-			ub.Steps = ub.Steps[:ub.Index+1]
-		}
+		history.Index--
 
-		added := false
+		if history.Index > 0 {
 
-		for _, cap := range ub.NewCaptures.States {
-
-			stepIndex := -1
-			unique := true
-
-			for i := ub.Index; i < len(ub.Steps); i++ {
-
-				step := ub.Steps[i]
-				if !step.UniqueUndoState(cap) {
-					unique = false
-					break
-				}
-
-				if !step.ContainsUndoStateFromTask(cap.SourceTask) {
-					stepIndex = i
-					break
-				}
-
-			}
-
-			if !unique {
-				continue
-			}
-
-			var step *UndoStep
-
-			if stepIndex >= 0 {
-				step = ub.Steps[stepIndex]
-			} else {
-				step = NewUndoStep()
-				ub.Steps = append(ub.Steps, step)
-				added = true
-				newStepIndex++
-			}
-
-			step.Add(cap)
-
-			if newStepIndex > 1 {
-				ub.Board.Project.Modified = true
+			for _, state := range history.Frames[history.Index-1].States {
+				state.Apply()
 			}
 
 		}
 
-		if len(ub.Steps) > 1 && added {
-			ub.Index++
+		for _, board := range currentProject.Boards {
+			board.TaskChanged = true
 		}
+
+		history.On = true
+
+		return true
 
 	}
 
-	ub.NewCaptures = NewUndoStep()
-
-	max := ub.Board.Project.MaxUndoSteps.Number()
-
-	if max > 0 {
-		for len(ub.Steps) > max {
-
-			// This big block is actually super simple in terms of what it does; it just loops through the buffer to
-			// see if every Task in the step that is being forgotten in case of exceeding the maximum undo step number
-			// is used again elsewhere. If not, then the Task is to be destroyed (its resources freed).
-			old := ub.Steps[0]
-			for _, t := range old.States {
-				if !t.SourceTask.Valid {
-					stillInUndoStack := false
-					for _, state := range ub.Steps[1:] {
-						for _, o := range state.States {
-							if o.SourceTask == t.SourceTask {
-								stillInUndoStack = true
-								break
-							}
-						}
-						if stillInUndoStack {
-							break
-						}
-					}
-					if !stillInUndoStack {
-						t.SourceTask.Destroy()
-					}
-				}
-			}
-
-			ub.Steps = ub.Steps[1:]
-		}
-		if ub.Index >= len(ub.Steps) {
-			ub.Index = len(ub.Steps) - 1
-		}
-	}
-
+	return false
 }
 
-// apply applies the undo or redo in the direction given.
-func (ub *UndoBuffer) apply(direction int) bool {
+func (history *UndoHistory) Redo() bool {
 
-	if len(ub.Steps) > 0 && ub.Index+direction >= 0 && ub.Index+direction < len(ub.Steps) {
+	if history.Index < len(history.Frames) {
 
-		ub.On = false
+		history.On = false
 
-		ub.Index += direction
-
-		ub.Board.Project.LogOn = false
-
-		selectedTasks := []*Task{}
-		for _, task := range ub.Board.Project.CurrentBoard().SelectedTasks(false) {
-			selectedTasks = append(selectedTasks, task)
+		for _, state := range history.Frames[history.Index].States {
+			state.Exit(1)
 		}
 
-		// Deselect all Tasks before application, as otherwise creating new Tasks push selected Tasks down.
-		ub.Board.Project.SendMessage(MessageSelect, nil)
+		history.Index++
 
-		for _, undoState := range ub.Steps[ub.Index].States {
-			undoState.Apply()
+		for _, state := range history.Frames[history.Index-1].States {
+			state.Apply()
 		}
 
-		ub.Board.ReorderTasks()
-
-		ub.Board.Project.Modified = true
-
-		ub.Board.Project.LogOn = true
-
-		ub.On = true
-
-		for _, task := range selectedTasks {
-			task.Selected = true
+		for _, board := range currentProject.Boards {
+			board.TaskChanged = true
 		}
+
+		history.On = true
 
 		return true
 
@@ -187,128 +164,130 @@ func (ub *UndoBuffer) apply(direction int) bool {
 
 }
 
-// Undo undoes the previous state recorded in the UndoBuffer's Steps stack.
-func (ub *UndoBuffer) Undo() bool {
-	return ub.apply(-1)
-}
+func (history *UndoHistory) Update() {
 
-// Redo redoes the next state recorded in the UndoBuffer's Steps stack.
-func (ub *UndoBuffer) Redo() bool {
-	return ub.apply(1)
-}
+	if history.Changed {
 
-func (ub *UndoBuffer) String() string {
-
-	str := ""
-
-	if len(ub.Steps) == 0 {
-		str += fmt.Sprintf("| %d | []", ub.Index)
-	}
-
-	for i, step := range ub.Steps {
-
-		if i == ub.Index {
-			str += fmt.Sprintf("| %d | ", ub.Index)
+		if len(history.Frames) > 0 {
+			history.Frames = history.Frames[:history.Index]
 		}
 
-		str += "["
+		history.Frames = append(history.Frames, history.CurrentFrame)
 
-		ids := []string{}
-		for _, task := range step.States {
-			ids = append(ids, fmt.Sprintf("%p", task.SourceTask))
-		}
+		history.CurrentFrame = NewUndoFrame()
 
-		sort.Strings(ids)
+		history.Index = len(history.Frames)
 
-		for _, id := range ids {
-			str += fmt.Sprintf("%s, ", id)
-		}
+		// for i, frame := range history.Frames {
+		// 	fmt.Println("frame #", i)
+		// 	fmt.Println("states:")
+		// 	for _, state := range frame.States {
+		// 		fmt.Println("     ", state)
+		// 	}
+		// }
 
-		str += "]"
+		// fmt.Println("______")
+
+		// fmt.Println("index: ", history.Index)
+
+		// fmt.Println("______")
+
+		history.Changed = false
 
 	}
 
-	return str
+	// if rl.IsKeyPressed(rl.KeyRightBracket) {
+	// file, _ := os.Create(LocalPath("undo.history"))
+	// defer file.Close()
+	// str := ""
+	// for i, frame := range history.Frames {
+	// str += "frame #" + strconv.Itoa(i) + ":\n"
+	// for _, state := range frame.States {
+	// str += "\t" + state.Serialized + "\n"
+	// }
+	// }
+	// file.WriteString(str)
+	//
+	// fmt.Println("Undo history written to file.")
+	// }
 
 }
 
-type UndoStep struct {
-	States []*UndoState
+func (history *UndoHistory) Clear() {
+	history.Frames = []*UndoFrame{}
+	history.CurrentFrame = NewUndoFrame()
+	history.Changed = false
 }
 
-func NewUndoStep() *UndoStep {
-	return &UndoStep{States: []*UndoState{}}
+type UndoFrame struct {
+	States map[*Task]*UndoState
 }
 
-func (us *UndoStep) UniqueUndoState(undoState *UndoState) bool {
-	for _, state := range us.States {
-		if state.Status == undoState.Status {
-			return false
-		}
-	}
-	return true
-}
-
-func (us *UndoStep) ContainsUndoStateFromTask(task *Task) bool {
-	for _, state := range us.States {
-		if state.SourceTask == task {
-			return true
-		}
-	}
-	return false
-}
-
-func (us *UndoStep) Add(undoState *UndoState) {
-	us.States = append(us.States, undoState)
+func NewUndoFrame() *UndoFrame {
+	return &UndoFrame{States: map[*Task]*UndoState{}}
 }
 
 type UndoState struct {
-	SourceTask *Task
-	Status     string
+	Task       *Task
+	Serialized string
+	Creation   bool
+	Deletion   bool
 }
 
 func NewUndoState(task *Task) *UndoState {
-	state := &UndoState{SourceTask: task}
 
-	state.Status = state.SourceTask.Serialize()
+	state := task.Serialize()
+	state, _ = sjson.Delete(state, "Selected")
 
-	if task.Valid {
-		state.Status, _ = sjson.Set(state.Status, "valid", true)
-	} else {
-		state.Status, _ = sjson.Set(state.Status, "valid", false)
+	// The undo system doesn't need to know about the creation or completion of Tasks, as this
+	// data is set as a result of the Task's state, so it's removed before state creation.
+	state, _ = sjson.Delete(state, "CreationTime")
+	state, _ = sjson.Delete(state, "CompletionTime")
+
+	return &UndoState{
+		Task:       task,
+		Serialized: state,
 	}
 
-	state.Status, _ = sjson.Set(state.Status, "id", task.ID) // We care about the ID because, for example, two different Tasks of the same kind could be in the same location
-
-	state.Status, _ = sjson.Delete(state.Status, "Selected") // We don't care about selection being a mark of distinction
-
-	state.Status, _ = sjson.Delete(state.Status, "LineEndings") // We don't want line endings to be serialized
-
-	// Sounds should be forced to not pause when undoing / redoing.
-	if task.SoundControl != nil {
-		state.Status, _ = sjson.Set(state.Status, `SoundPaused`, task.SoundControl.Paused)
-	}
-
-	return state
 }
 
-// Apply loads the status in the UndoState to apply it to the SourceTask.
-func (undo *UndoState) Apply() {
+func (state *UndoState) Apply() {
+	state.Task.Deserialize(state.Serialized)
+	state.Task.UndoChange = false
+	state.Task.UndoCreation = false
+	state.Task.UndoDeletion = false
+}
 
-	undo.SourceTask.Board.Project.LogOn = false
-	undo.SourceTask.Deserialize(undo.Status)
-	undo.SourceTask.Board.Project.LogOn = true
+func (state *UndoState) Exit(direction int) {
 
-	if gjson.Get(undo.Status, "valid").Exists() {
-
-		valid := gjson.Get(undo.Status, "valid").Bool()
-
-		if valid && !undo.SourceTask.Valid {
-			undo.SourceTask.Board.RestoreTask(undo.SourceTask)
-		} else if !valid && undo.SourceTask.Valid {
-			undo.SourceTask.Board.DeleteTask(undo.SourceTask)
+	if direction > 0 {
+		if state.Creation {
+			state.Task.Board.RestoreTask(state.Task)
+		} else if state.Deletion {
+			state.Task.Board.DeleteTask(state.Task)
 		}
-
+	} else if direction < 0 {
+		if state.Creation {
+			state.Task.Board.DeleteTask(state.Task)
+		} else if state.Deletion {
+			state.Task.Board.RestoreTask(state.Task)
+		}
 	}
+
+	state.Task.UndoChange = false
+	state.Task.UndoCreation = false
+	state.Task.UndoDeletion = false
+
+}
+
+func (state *UndoState) SameAs(otherState *UndoState) bool {
+
+	if state.Deletion != otherState.Deletion {
+		return false
+	}
+
+	// It's faster to compare strings that a map of string to interface{}
+	// (which is how I was doing this previously).
+	return state.Serialized == otherState.Serialized
 
 }

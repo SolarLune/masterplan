@@ -45,10 +45,11 @@ var keyNames = map[int32]string{
 	rl.KeyLeftShift:    "Left Shift",
 	rl.KeyLeftControl:  "Left Control",
 	rl.KeyLeftAlt:      "Left Alt",
-	rl.KeyLeftSuper:    "Super",
+	rl.KeyLeftSuper:    "Left Super",
 	rl.KeyRightShift:   "Right Shift",
 	rl.KeyRightControl: "Right Control",
 	rl.KeyRightAlt:     "Right Alt",
+	rl.KeyRightSuper:   "Right Super",
 	rl.KeyKbMenu:       "Menu Key",
 	rl.KeyLeftBracket:  "Left Bracket",
 	rl.KeyBackSlash:    "Backslash",
@@ -135,6 +136,7 @@ const (
 	KBPanRight                = "Pan Right"
 	KBPanLeft                 = "Pan Left"
 	KBCenterView              = "Center View to Origin"
+	KBURLButton               = "Show URL Buttons"
 	KBBoard1                  = "Switch to Board 1"
 	KBBoard2                  = "Switch to Board 2"
 	KBBoard3                  = "Switch to Board 3"
@@ -151,8 +153,16 @@ const (
 	KBPaste                   = "Paste Tasks / Text"
 	KBPasteContent            = "Paste Content Onto Board"
 	KBCreateTask              = "Create New Task"
-	KBStopAllSounds           = "Stop All Playing Sounds"
-	KBToggleTasks             = "Toggle Tasks"
+	KBCreateCheckboxTask      = "Create Checkbox Task"
+	KBCreateProgressionTask   = "Create Progression Task"
+	KBCreateNoteTask          = "Create Note Task"
+	KBCreateImageTask         = "Create Image Task"
+	KBCreateSoundTask         = "Create Sound Task"
+	KBCreateTimerTask         = "Create Timer Task"
+	KBCreateLinetask          = "Create Line Task"
+	KBCreateMapTask           = "Create Map Task"
+	KBCreateWhiteboardTask    = "Create Whiteboard Task"
+	KBCreateTableTask         = "Create Table Task"
 	KBDeleteTasks             = "Delete Tasks"
 	KBFocusOnTasks            = "Focus View on Tasks"
 	KBEditTasks               = "Edit Tasks"
@@ -165,6 +175,8 @@ const (
 	KBSelectTaskLeft          = "Select / Slide Task Left"
 	KBSelectNextTask          = "Select Next Nearby Task"
 	KBSelectPrevTask          = "Select Previous Nearby Task"
+	KBSelectNextLineEnding    = "Line: Select Next Line Ending"
+	KBSelectPrevLineEnding    = "Line: Select Previous Line Ending"
 	KBSelectTopTaskInStack    = "Select Top Task in Stack"
 	KBSelectBottomTaskInStack = "Select Bottom Task in Stack"
 	KBSlideTask               = "Slide Task Modifier"
@@ -175,9 +187,24 @@ const (
 	KBSaveAs                  = "Save Project As..."
 	KBSave                    = "Save Project"
 	KBLoad                    = "Load Project"
+	KBQuit                    = "Quit MasterPlan"
 	KBUnlockImageASR          = "Unlock Image to Aspect Ratio Modifier"
 	KBUnlockImageGrid         = "Unlock Image to Grid Modifier"
-	KBURLButton               = "Show URL Buttons"
+	KBCheckboxToggle          = "Checkbox: Toggle Completion"
+	KBProgressUp              = "Progression: Increment Completion"
+	KBProgressDown            = "Progression: Decrement Completion"
+	KBProgressToggle          = "Progression: Toggle Completion"
+	KBPencilTool              = "Map / Whiteboard: Toggle Pencil Tool"
+	KBMapRectTool             = "Map: Toggle Rectangle Tool"
+	KBPlaySounds              = "Sound: Play / Pause Sounds "
+	KBStopAllSounds           = "Stop All Playing Sounds"
+	KBStartTimer              = "Timer: Start / Pause Timer"
+	KBChangePencilToolSize    = "Whiteboard: Change Pencil Tool Size"
+	KBShowFPS                 = "Show FPS"
+	KBWindowSizeSmall         = "Set Window Size to 960x540"
+	KBWindowSizeNormal        = "Set Window Size to 1920x1080"
+	KBToggleFullscreen        = "Toggle Fullscreen"
+	KBTakeScreenshot          = "Take Screenshot"
 )
 
 const (
@@ -235,6 +262,10 @@ func NewShortcut(name string, keycode int32, modifiers ...int32) *Shortcut {
 }
 
 func (shortcut *Shortcut) String() string {
+	return shortcut.Name + " : " + shortcut.KeysToString()
+}
+
+func (shortcut *Shortcut) KeysToString() string {
 	name := ""
 	for _, mod := range shortcut.Modifiers {
 		name += KeyNameFromKeyCode(mod) + "+"
@@ -243,7 +274,7 @@ func (shortcut *Shortcut) String() string {
 	return name
 }
 
-func (shortcut *Shortcut) KeyNumber() int {
+func (shortcut *Shortcut) KeyCount() int {
 	return len(shortcut.Modifiers) + 1
 }
 
@@ -346,8 +377,8 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBPanLeft, rl.KeyA).triggerMode = TriggerModeHold
 	kb.Define(KBPanDown, rl.KeyS).triggerMode = TriggerModeHold
 	kb.Define(KBPanRight, rl.KeyD).triggerMode = TriggerModeHold
-
 	kb.Define(KBCenterView, rl.KeyBackspace)
+	kb.Define(KBURLButton, rl.KeyLeftControl).triggerMode = TriggerModeHold
 
 	kb.Define(KBBoard1, rl.KeyOne, rl.KeyLeftShift)
 	kb.Define(KBBoard2, rl.KeyTwo, rl.KeyLeftShift)
@@ -360,21 +391,31 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBBoard9, rl.KeyNine, rl.KeyLeftShift)
 	kb.Define(KBBoard10, rl.KeyZero, rl.KeyLeftShift)
 
-	kb.Define(KBSelectAllTasks, rl.KeyA, rl.KeyLeftControl)
 	kb.Define(KBCopyTasks, rl.KeyC, rl.KeyLeftControl)
 	kb.Define(KBCutTasks, rl.KeyX, rl.KeyLeftControl)
 	kb.Define(KBPaste, rl.KeyV, rl.KeyLeftControl)
 	kb.Define(KBPasteContent, rl.KeyV, rl.KeyLeftControl, rl.KeyLeftShift)
 	kb.Define(KBCreateTask, rl.KeyN, rl.KeyLeftControl)
-	kb.Define(KBStopAllSounds, rl.KeyC, rl.KeyLeftShift)
-	kb.Define(KBToggleTasks, rl.KeyC)
+
+	kb.Define(KBCreateCheckboxTask, rl.KeyOne, rl.KeyLeftControl)
+	kb.Define(KBCreateProgressionTask, rl.KeyTwo, rl.KeyLeftControl)
+	kb.Define(KBCreateNoteTask, rl.KeyThree, rl.KeyLeftControl)
+	kb.Define(KBCreateImageTask, rl.KeyFour, rl.KeyLeftControl)
+	kb.Define(KBCreateSoundTask, rl.KeyFive, rl.KeyLeftControl)
+	kb.Define(KBCreateTimerTask, rl.KeySix, rl.KeyLeftControl)
+	kb.Define(KBCreateLinetask, rl.KeySeven, rl.KeyLeftControl)
+	kb.Define(KBCreateMapTask, rl.KeyEight, rl.KeyLeftControl)
+	kb.Define(KBCreateWhiteboardTask, rl.KeyNine, rl.KeyLeftControl)
+	kb.Define(KBCreateTableTask, rl.KeyZero, rl.KeyLeftControl)
+
 	kb.Define(KBDeleteTasks, rl.KeyDelete)
 	kb.Define(KBFocusOnTasks, rl.KeyF)
 	kb.Define(KBEditTasks, rl.KeyEnter)
-	kb.Define(KBDeselectTasks, rl.KeyEscape)
 	kb.Define(KBFindNextTask, rl.KeyF, rl.KeyLeftControl)
 	kb.Define(KBFindPreviousTask, rl.KeyF, rl.KeyLeftControl, rl.KeyLeftShift)
 
+	kb.Define(KBSelectAllTasks, rl.KeyA, rl.KeyLeftControl)
+	kb.Define(KBDeselectTasks, rl.KeyEscape)
 	kb.Define(KBSelectTaskAbove, rl.KeyUp).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTaskLeft, rl.KeyLeft).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectTaskBelow, rl.KeyDown).triggerMode = TriggerModeRepeating
@@ -394,22 +435,40 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBSaveAs, rl.KeyS, rl.KeyLeftShift, rl.KeyLeftControl)
 	kb.Define(KBSave, rl.KeyS, rl.KeyLeftControl)
 	kb.Define(KBLoad, rl.KeyO, rl.KeyLeftControl)
+	kb.Define(KBQuit, rl.KeyQ, rl.KeyLeftControl)
 
 	kb.Define(KBUnlockImageASR, rl.KeyLeftAlt).triggerMode = TriggerModeHold
 	kb.Define(KBUnlockImageGrid, rl.KeyLeftShift).triggerMode = TriggerModeHold
-	kb.Define(KBURLButton, rl.KeyLeftControl).triggerMode = TriggerModeHold
+
+	kb.Define(KBCheckboxToggle, rl.KeyC)
+	kb.Define(KBProgressUp, rl.KeyC)
+	kb.Define(KBProgressDown, rl.KeyX)
+	kb.Define(KBProgressToggle, rl.KeyV)
+	kb.Define(KBPencilTool, rl.KeyQ)
+	kb.Define(KBChangePencilToolSize, rl.KeyR)
+	kb.Define(KBMapRectTool, rl.KeyR)
+	kb.Define(KBPlaySounds, rl.KeyC)
+	kb.Define(KBStopAllSounds, rl.KeyC, rl.KeyLeftShift)
+	kb.Define(KBStartTimer, rl.KeyC)
+	kb.Define(KBSelectPrevLineEnding, rl.KeyX).triggerMode = TriggerModeRepeating
+	kb.Define(KBSelectNextLineEnding, rl.KeyC).triggerMode = TriggerModeRepeating
+	kb.Define(KBShowFPS, rl.KeyF1)
+	kb.Define(KBWindowSizeSmall, rl.KeyF2)
+	kb.Define(KBWindowSizeNormal, rl.KeyF3)
+	kb.Define(KBToggleFullscreen, rl.KeyF4)
+	kb.Define(KBTakeScreenshot, rl.KeyF11)
 
 	kb.ShortcutsByLevel = map[int][]*Shortcut{}
 
 	for _, shortcut := range kb.Shortcuts {
 
-		_, exists := kb.ShortcutsByLevel[shortcut.KeyNumber()-1]
+		_, exists := kb.ShortcutsByLevel[shortcut.KeyCount()-1]
 
 		if !exists {
-			kb.ShortcutsByLevel[shortcut.KeyNumber()-1] = []*Shortcut{}
+			kb.ShortcutsByLevel[shortcut.KeyCount()-1] = []*Shortcut{}
 		}
 
-		kb.ShortcutsByLevel[shortcut.KeyNumber()-1] = append(kb.ShortcutsByLevel[shortcut.KeyNumber()-1], shortcut)
+		kb.ShortcutsByLevel[shortcut.KeyCount()-1] = append(kb.ShortcutsByLevel[shortcut.KeyCount()-1], shortcut)
 
 	}
 
@@ -441,8 +500,37 @@ func (kb *Keybindings) On(bindingName string) bool {
 
 	sc := kb.Shortcuts[bindingName]
 
-	for _, modifier := range sc.Modifiers {
-		if !rl.IsKeyDown(modifier) {
+	if !sc.Enabled {
+		return false
+	}
+
+	checkKey := func(key int32, keyFunc func(int32) bool) bool {
+
+		switch key {
+		case rl.KeyLeftShift:
+			fallthrough
+		case rl.KeyRightShift:
+			return keyFunc(rl.KeyLeftShift) || keyFunc(rl.KeyRightShift)
+		case rl.KeyLeftControl:
+			fallthrough
+		case rl.KeyRightControl:
+			return keyFunc(rl.KeyLeftControl) || keyFunc(rl.KeyRightControl)
+		case rl.KeyLeftAlt:
+			fallthrough
+		case rl.KeyRightAlt:
+			return keyFunc(rl.KeyLeftAlt) || keyFunc(rl.KeyRightAlt)
+		case rl.KeyLeftSuper:
+			fallthrough
+		case rl.KeyRightSuper:
+			return keyFunc(rl.KeyLeftSuper) || keyFunc(rl.KeyRightSuper)
+		default:
+			return keyFunc(key)
+		}
+
+	}
+
+	for _, mod := range sc.Modifiers {
+		if !checkKey(mod, rl.IsKeyDown) {
 			return false
 		}
 	}
@@ -451,16 +539,16 @@ func (kb *Keybindings) On(bindingName string) bool {
 
 	if sc.triggerMode == TriggerModeHold {
 
-		out = rl.IsKeyDown(sc.Key)
+		out = checkKey(sc.Key, rl.IsKeyDown)
 
 	} else if sc.triggerMode == TriggerModeRepeating {
 
 		out = false
 
-		if rl.IsKeyPressed(sc.Key) {
+		if checkKey(sc.Key, rl.IsKeyPressed) {
 			sc.Hold = time.Now()
 			out = true
-		} else if rl.IsKeyDown(sc.Key) && time.Since(sc.Hold).Seconds() >= 0.2 {
+		} else if checkKey(sc.Key, rl.IsKeyDown) && time.Since(sc.Hold).Seconds() >= 0.2 {
 			if time.Since(sc.Repeat).Seconds() >= 0.025 {
 				kb.ResetTimingOnShortcut(sc)
 				out = true
@@ -468,11 +556,7 @@ func (kb *Keybindings) On(bindingName string) bool {
 		}
 
 	} else {
-		out = rl.IsKeyPressed(sc.Key)
-	}
-
-	if !sc.Enabled {
-		return false
+		out = checkKey(sc.Key, rl.IsKeyPressed)
 	}
 
 	return out

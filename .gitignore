@@ -6,3 +6,6 @@ System Volume Information
 .stfolder
 *.pprof*
 *.blend*
+todo
+newTerminal.sh
+reflex.sh

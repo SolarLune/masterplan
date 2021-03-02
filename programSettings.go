@@ -37,6 +37,9 @@ type ProgramSettings struct {
 	FontSize                  int
 	GUIFontSizeMultiplier     string
 	Keybindings               *Keybindings
+	Theme                     string
+	DrawWindowBorder          bool
+	DownloadTimeout           int
 }
 
 func NewProgramSettings() ProgramSettings {
@@ -52,6 +55,8 @@ func NewProgramSettings() ProgramSettings {
 		FontSize:               15,
 		GUIFontSizeMultiplier:  GUI_FONT_SIZE_200,
 		ScrollwheelSensitivity: 1,
+		Theme:                  "Sunlight", // Default theme
+		DownloadTimeout:        4,
 	}
 	return ps
 }
@@ -86,7 +91,7 @@ func (ps *ProgramSettings) Load() bool {
 	settingsJSON, err := ioutil.ReadFile(path)
 	if err != nil {
 		// Trying to read legacy path.
-		settingsJSON, err = ioutil.ReadFile(GetPath(SETTINGS_LEGACY_PATH))
+		settingsJSON, err = ioutil.ReadFile(LocalPath(SETTINGS_LEGACY_PATH))
 	}
 	if err == nil {
 		json.Unmarshal(settingsJSON, ps)

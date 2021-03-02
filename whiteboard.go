@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 
+	"github.com/blang/semver"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -18,12 +19,6 @@ type Whiteboard struct {
 	Colors       []rl.Color
 }
 
-var CursorSizes = []float32{
-	1,
-	3,
-	8,
-}
-
 func NewWhiteboard(task *Task) *Whiteboard {
 
 	wb := &Whiteboard{
@@ -33,32 +28,32 @@ func NewWhiteboard(task *Task) *Whiteboard {
 
 	wb.SetColors()
 
-	wb.Resize(128, 64) // Set the size of the initial texture
+	wb.Resize(0, 0) // Set the size of the initial texture; by default, it'll be the minimum size.
 
-	wb.Update()
+	wb.Draw()
 
 	return wb
 }
 
-func (whiteboard *Whiteboard) Update() {
+func (whiteboard *Whiteboard) Draw() {
 
 	clickPos := rl.Vector2{-1, -1}
 
-	if whiteboard.Task.Board.Project.ProjectSettingsOpen || whiteboard.Task.Resizing {
+	if whiteboard.Task.Board.Project.ProjectSettingsOpen {
 		whiteboard.Editing = false
 	}
 
 	makeUndo := false
 
-	if whiteboard.Editing && !whiteboard.Task.Resizing && whiteboard.Task.Selected {
+	if whiteboard.Editing && whiteboard.Task.Selected {
 
 		rect := rl.Rectangle{whiteboard.Task.Rect.X, whiteboard.Task.Rect.Y, 16, 16}
 
 		mousePos := GetWorldMousePosition()
 		mousePos.Y -= rect.Height
 
-		cx := int32(mousePos.X-rect.X) / 2
-		cy := int32(mousePos.Y-rect.Y) / 2
+		cx := int32(mousePos.X - rect.X)
+		cy := int32(mousePos.Y - rect.Y)
 		color := whiteboard.Colors[1]
 
 		if cx >= 0 && cx <= whiteboard.Width-1 && cy >= 0 && cy <= whiteboard.Height-1 {
@@ -87,7 +82,13 @@ func (whiteboard *Whiteboard) Update() {
 
 			rl.BeginTextureMode(whiteboard.Texture)
 
-			cursorSize := CursorSizes[whiteboard.CursorSize]
+			var cursorSizes = []float32{
+				1,
+				3,
+				8,
+			}
+
+			cursorSize := cursorSizes[whiteboard.CursorSize]
 
 			if whiteboard.PrevClickPos.X < 0 && whiteboard.PrevClickPos.Y < 0 {
 				rl.DrawCircleV(clickPos, cursorSize, color)
@@ -124,36 +125,42 @@ func (whiteboard *Whiteboard) Update() {
 	editButton := false
 
 	if whiteboard.Task.Selected {
+
 		if whiteboard.Editing {
 			editButton = whiteboard.Task.SmallButton(32, 32, 16, 16, whiteboard.Task.Rect.X+16, whiteboard.Task.Rect.Y)
 		} else {
 			editButton = whiteboard.Task.SmallButton(16, 32, 16, 16, whiteboard.Task.Rect.X+16, whiteboard.Task.Rect.Y)
 		}
-	}
 
-	if editButton || (whiteboard.Editing && !whiteboard.Task.Selected) {
-		whiteboard.ToggleEditing()
-	}
+		if editButton || programSettings.Keybindings.On(KBPencilTool) || (whiteboard.Editing && !whiteboard.Task.Selected) {
+			whiteboard.ToggleEditing()
+			ConsumeMouseInput(rl.MouseLeftButton)
+		}
 
-	if makeUndo {
-		whiteboard.Task.Board.UndoBuffer.Capture(whiteboard.Task)
-	}
+		cursorSrcX := []float32{
+			176,
+			192,
+			208,
+		}
 
-	cursors := []float32{
-		176,
-		192,
-		208,
-	}
+		if whiteboard.CursorSize >= len(cursorSrcX) {
+			whiteboard.CursorSize = 0
+		}
 
-	if whiteboard.Editing && whiteboard.Task.SmallButton(cursors[whiteboard.CursorSize], 48, 16, 16, whiteboard.Task.Rect.X+32, whiteboard.Task.Rect.Y) {
-		whiteboard.CursorSize++
-	}
+		if whiteboard.Editing && (programSettings.Keybindings.On(KBChangePencilToolSize) || whiteboard.Task.SmallButton(cursorSrcX[whiteboard.CursorSize], 48, 16, 16, whiteboard.Task.Rect.X+32, whiteboard.Task.Rect.Y)) {
+			whiteboard.CursorSize++
+			ConsumeMouseInput(rl.MouseLeftButton)
+		}
 
-	if whiteboard.CursorSize >= len(cursors) {
-		whiteboard.CursorSize = 0
+	} else {
+		whiteboard.Editing = false
 	}
 
 	whiteboard.PrevClickPos = clickPos
+
+	if makeUndo {
+		whiteboard.Task.UndoChange = true
+	}
 
 }
 
@@ -165,8 +172,24 @@ func (whiteboard *Whiteboard) Resize(w, h float32) {
 
 	ogW, ogH := whiteboard.Width, whiteboard.Height
 
-	whiteboard.Width = int32(w / 2)
-	whiteboard.Height = int32(h / 2)
+	project := whiteboard.Task.Board.Project
+
+	locked := project.RoundPositionToGrid(rl.Vector2{w, h})
+
+	whiteboard.Width = int32(locked.X)
+	whiteboard.Height = int32(locked.Y)
+
+	if whiteboard.Width < 128 {
+		whiteboard.Width = 128
+	} else if whiteboard.Width > 512 {
+		whiteboard.Width = 512
+	}
+
+	if whiteboard.Height < 64 {
+		whiteboard.Height = 64
+	} else if whiteboard.Height > 512 {
+		whiteboard.Height = 512
+	}
 
 	if ogW != whiteboard.Width || ogH != whiteboard.Height {
 		whiteboard.RecreateTexture()
@@ -200,7 +223,7 @@ func (whiteboard *Whiteboard) RecreateTexture() {
 
 func (whiteboard *Whiteboard) Copy(other *Whiteboard) {
 
-	whiteboard.Resize(float32(other.Width*2), float32(other.Height*2))
+	whiteboard.Resize(float32(other.Width), float32(other.Height))
 	rl.BeginTextureMode(whiteboard.Texture)
 	if other.Texture.ID > 0 {
 		src := rl.Rectangle{0, 0, float32(whiteboard.Texture.Texture.Width), -float32(whiteboard.Texture.Texture.Height)}
@@ -218,6 +241,7 @@ func (whiteboard *Whiteboard) Clear() {
 	rl.BeginTextureMode(whiteboard.Texture)
 	rl.DrawRectangle(0, 0, whiteboard.Texture.Texture.Width, whiteboard.Texture.Texture.Height, whiteboard.Colors[0])
 	rl.EndTextureMode()
+	whiteboard.Task.UndoChange = true
 	// rl.BeginMode2D(camera)
 
 }
@@ -243,6 +267,8 @@ func (whiteboard *Whiteboard) Invert() {
 	}
 
 	rl.UpdateTexture(whiteboard.Texture.Texture, colors)
+
+	whiteboard.Task.UndoChange = true
 
 }
 
@@ -274,19 +300,38 @@ func (whiteboard *Whiteboard) Serialize() []string {
 
 func (whiteboard *Whiteboard) Deserialize(data []string) {
 
+	project := whiteboard.Task.Board.Project
+
 	colors := []rl.Color{}
 
 	whiteboard.SetColors()
 
 	for i := len(data) - 1; i >= 0; i-- {
 		ogData, _ := base64.StdEncoding.DecodeString(data[i])
+
+		rowColors := []rl.Color{}
+
 		for _, value := range ogData {
-			if value == 0 {
-				colors = append(colors, whiteboard.Colors[0])
-			} else if value == 1 {
-				colors = append(colors, whiteboard.Colors[1])
+
+			color := whiteboard.Colors[0]
+
+			if value == 1 {
+				color = whiteboard.Colors[1]
 			}
 
+			rowColors = append(rowColors, color)
+
+			// Append the color again if it's an older plan, as they were "doubly thick"
+			if project.Loading && project.LoadingVersion.LTE(semver.MustParse("0.6.1-3")) {
+				rowColors = append(rowColors, color)
+			}
+
+		}
+
+		colors = append(colors, rowColors...)
+
+		if project.Loading && project.LoadingVersion.LTE(semver.MustParse("0.6.1-3")) {
+			colors = append(colors, rowColors...)
 		}
 
 	}

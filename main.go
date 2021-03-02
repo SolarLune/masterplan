@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -23,15 +24,15 @@ var demoMode = "" // If set to something other than "", it's a demo
 var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
 var currentProject *Project
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.6.1-3")
+var softwareVersion, _ = semver.Make("0.7.0")
 var takeScreenshot = false
 
-var spacing = float32(1)
-var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
-var font rl.Font
 var windowTitle = "MasterPlan"
 var deltaTime = float32(0)
 var quit = false
+var targetFPS = 60
+
+var cpuProfileStart = time.Time{}
 
 func init() {
 
@@ -120,7 +121,7 @@ func main() {
 	// We initialize the window using just "MasterPlan" as the title because WM_CLASS is set from this on Linux
 	rl.InitWindow(960, 540, "MasterPlan")
 
-	rl.SetWindowIcon(*rl.LoadImage(GetPath("assets", "window_icon.png")))
+	rl.SetWindowIcon(*rl.LoadImage(LocalPath("assets", "window_icon.png")))
 
 	if programSettings.SaveWindowPosition && programSettings.WindowPosition.Width > 0 && programSettings.WindowPosition.Height > 0 {
 		rl.SetWindowPosition(int(programSettings.WindowPosition.X), int(programSettings.WindowPosition.Y))
@@ -136,7 +137,7 @@ func main() {
 	attemptAutoload := 5
 	showedAboutDialog := false
 	splashScreenTime := float32(0)
-	splashScreen := rl.LoadTexture(GetPath("assets", "splashscreen.png"))
+	splashScreen := rl.LoadTexture(LocalPath("assets", "splashscreen.png"))
 	splashColor := rl.White
 
 	if programSettings.DisableSplashscreen {
@@ -149,44 +150,29 @@ func main() {
 	fpsDisplayAccumulator := float32(0)
 	fpsDisplayTimer := time.Now()
 
-	// profiling := false
-
 	elapsed := time.Duration(0)
 
 	log.Println("MasterPlan initialized successfully.")
 
-	for !rl.WindowShouldClose() && !quit {
+	for !quit {
 
 		currentTime := time.Now()
 
 		handleMouseInputs()
 
-		if rl.IsKeyPressed(rl.KeyF1) {
+		if programSettings.Keybindings.On(KBShowFPS) {
 			drawFPS = !drawFPS
 		}
 
-		// if rl.IsKeyPressed(rl.KeyF5) {
-		// 	if !profiling {
-		// 		cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rand.Int()))
-		// 		if err != nil {
-		// 			log.Fatal("Could not create CPU Profile: ", err)
-		// 		}
-		// 		pprof.StartCPUProfile(cpuProfFile)
-		// 	} else {
-		// 		pprof.StopCPUProfile()
-		// 	}
-		// 	profiling = !profiling
-		// }
-
-		if rl.IsKeyPressed(rl.KeyF2) {
+		if programSettings.Keybindings.On(KBWindowSizeSmall) {
 			rl.SetWindowSize(960, 540)
 		}
 
-		if rl.IsKeyPressed(rl.KeyF3) {
+		if programSettings.Keybindings.On(KBWindowSizeNormal) {
 			rl.SetWindowSize(1920, 1080)
 		}
 
-		if rl.IsKeyPressed(rl.KeyF4) {
+		if programSettings.Keybindings.On(KBToggleFullscreen) {
 			rl.ToggleFullscreen()
 		}
 
@@ -209,7 +195,7 @@ func main() {
 				// If the settings aren't successfully loaded, it's safe to assume it's because they don't exist, because the program is first loading.
 				if !settingsLoaded {
 
-					if loaded := LoadProject(GetPath("assets", "help_manual.plan")); loaded != nil {
+					if loaded := LoadProject(LocalPath("assets", "help_manual.plan")); loaded != nil {
 						currentProject = loaded
 					}
 
@@ -234,6 +220,14 @@ func main() {
 			}
 
 		} else {
+
+			// if rl.IsKeyPressed(rl.KeyF5) {
+			// 	profileCPU()
+			// }
+
+			if rl.WindowShouldClose() {
+				currentProject.PromptQuit()
+			}
 
 			if !showedAboutDialog {
 				showedAboutDialog = true
@@ -268,7 +262,8 @@ func main() {
 			}
 
 			if len(v) > 0 {
-				x -= GUITextWidth(v)
+				size, _ := TextSize(v, true)
+				x -= size.X
 				DrawGUITextColored(rl.Vector2{x, 8}, color, v)
 			}
 
@@ -287,6 +282,13 @@ func main() {
 					text = strings.ReplaceAll(text, "\n", "\n                    ")
 
 					alpha, done := msg.Tween.Update(rl.GetFrameTime())
+
+					if strings.HasPrefix(msg.Text, "ERROR") {
+						color = rl.Red
+					} else {
+						color = rl.White
+					}
+
 					color.A = uint8(alpha)
 					bgColor.A = color.A
 
@@ -314,7 +316,7 @@ func main() {
 
 			}
 
-			if rl.IsKeyPressed(rl.KeyF11) {
+			if programSettings.Keybindings.On(KBTakeScreenshot) {
 				// This is here because you can trigger a screenshot from the context menu as well.
 				takeScreenshot = true
 			}
@@ -322,7 +324,7 @@ func main() {
 			if takeScreenshot {
 				screenshotIndex++
 				screenshotFileName := fmt.Sprintf("screenshot%d.png", screenshotIndex)
-				screenshotPath := GetPath(screenshotFileName)
+				screenshotPath := LocalPath(screenshotFileName)
 				if projectScreenshotsPath := currentProject.ScreenshotsPath.Text(); projectScreenshotsPath != "" {
 					if _, err := os.Stat(projectScreenshotsPath); err == nil {
 						screenshotPath = filepath.Join(projectScreenshotsPath, screenshotFileName)
@@ -343,8 +345,8 @@ func main() {
 
 		splashScreenTime += deltaTime
 
-		if splashScreenTime >= 1.5 {
-			sub := uint8(255 * deltaTime)
+		if splashScreenTime >= 0.5 {
+			sub := uint8(255 * deltaTime * 4)
 			if splashColor.A > sub {
 				splashColor.A -= sub
 			} else {
@@ -376,7 +378,7 @@ func main() {
 			windowTitle = title
 		}
 
-		targetFPS := programSettings.TargetFPS
+		targetFPS = programSettings.TargetFPS
 
 		if !rl.IsWindowFocused() || rl.IsWindowHidden() || rl.IsWindowMinimized() {
 			targetFPS = programSettings.UnfocusedFPS
@@ -404,6 +406,7 @@ func main() {
 		fpsDisplayAccumulator += 1.0 / float32(targetFPS)
 
 		elapsed = sleepDifference // Sleeping doesn't sleep for exact amounts; carry this into next frame for sleep attempt
+
 	}
 
 	if programSettings.SaveWindowPosition {
@@ -417,5 +420,24 @@ func main() {
 	log.Println("MasterPlan exited successfully.")
 
 	currentProject.Destroy()
+
+}
+
+func profileCPU() {
+
+	// rInt, _ := rand.Int(rand.Reader, big.NewInt(400))
+	// cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rInt))
+	cpuProfFile, err := os.Create("cpu.pprof")
+	if err != nil {
+		log.Fatal("Could not create CPU Profile: ", err)
+	}
+	pprof.StartCPUProfile(cpuProfFile)
+	currentProject.Log("CPU Profiling begun...")
+
+	time.AfterFunc(time.Second*10, func() {
+		cpuProfileStart = time.Time{}
+		pprof.StopCPUProfile()
+		currentProject.Log("CPU Profiling finished!")
+	})
 
 }

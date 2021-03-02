@@ -1,6 +1,6 @@
 {
     "//Outline for tasks, non-highlighted GUI elements, unchecked boxes": [],
-    "GUI_OUTLINE": [40, 40, 40, 255],
+    "GUI_OUTLINE": [10, 20, 30, 255],
 
     "//Outline for highlighted GUI elements, checked boxes, icon colors": [],
     "GUI_OUTLINE_HIGHLIGHTED": [160, 180, 220, 255],

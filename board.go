@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"sort"
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/gabriel-vasile/mimetype"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -22,7 +22,8 @@ type Board struct {
 	Project       *Project
 	Name          string
 	TaskLocations map[Position][]*Task
-	UndoBuffer    *UndoBuffer
+	UndoHistory   *UndoHistory
+	TaskChanged   bool
 }
 
 func NewBoard(project *Project) *Board {
@@ -33,9 +34,73 @@ func NewBoard(project *Project) *Board {
 		TaskLocations: map[Position][]*Task{},
 	}
 
-	board.UndoBuffer = NewUndoBuffer(board)
+	board.UndoHistory = NewUndoHistory(board)
 
 	return board
+}
+
+func (board *Board) Update() {
+
+	for _, task := range board.Tasks {
+		task.Update()
+	}
+
+	// We only want to reorder tasks if tasks were moved, deleted, restored, etc., as it is costly.
+	if board.TaskChanged {
+		board.ReorderTasks()
+		board.TaskChanged = false
+	}
+
+}
+
+func (board *Board) Draw() {
+
+	// Additive blending should be out here to avoid state changes mid-task drawing.
+	shadowColor := getThemeColor(GUI_SHADOW_COLOR)
+
+	sorted := append([]*Task{}, board.Tasks...)
+
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Depth() == sorted[j].Depth() {
+			if sorted[i].Rect.Y == sorted[j].Rect.Y {
+				return sorted[i].Rect.X < sorted[j].Rect.X
+			}
+			return sorted[i].Rect.Y < sorted[j].Rect.Y
+		}
+		return sorted[i].Depth() < sorted[j].Depth()
+	})
+
+	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
+		rl.BeginBlendMode(rl.BlendAdditive)
+	}
+
+	for _, task := range sorted {
+		task.DrawShadow()
+	}
+
+	if shadowColor.R > 254 || shadowColor.G > 254 || shadowColor.B > 254 {
+		rl.EndBlendMode()
+	}
+
+	for _, task := range sorted {
+		task.Draw()
+	}
+
+	for _, task := range sorted {
+		task.UpperDraw()
+	}
+
+	// HandleDeletedTasks should be here specifically because we're trying to do this last, after any Tasks that
+	// have been notified that they will be deleted have had a chance to update and draw one last time so that they can
+	// create UndoStates as necessary.
+	board.HandleDeletedTasks()
+
+}
+
+func (board *Board) PostDraw() {
+	for _, task := range board.Tasks {
+		task.PostDraw()
+	}
 }
 
 func (board *Board) CreateNewTask() *Task {
@@ -43,22 +108,22 @@ func (board *Board) CreateNewTask() *Task {
 	halfGrid := float32(board.Project.GridSize / 2)
 	gp := rl.Vector2{GetWorldMousePosition().X - halfGrid, GetWorldMousePosition().Y - halfGrid}
 
-	newTask.Position = board.Project.LockPositionToGrid(gp)
+	newTask.Position = board.Project.RoundPositionToGrid(gp)
 
 	newTask.Rect.X, newTask.Rect.Y = newTask.Position.X, newTask.Position.Y
 	board.Tasks = append(board.Tasks, newTask)
 
 	selected := board.SelectedTasks(true)
 
-	if len(selected) > 0 && !board.Project.JustLoaded {
+	if len(selected) > 0 && !board.Project.Loading {
 		// If the project is loading, then we want to put everything back where it was
 		task := selected[0]
 		gs := float32(board.Project.GridSize)
 		x := task.Position.X
 
-		if task.Numberable() {
+		if task.IsCompletable() {
 
-			if task.TaskBelow != nil && task.TaskBelow.Numberable() && task.Numberable() {
+			if task.TaskBelow != nil && task.TaskBelow.IsCompletable() && task.IsCompletable() {
 
 				for i, t := range task.RestOfStack {
 
@@ -80,29 +145,9 @@ func (board *Board) CreateNewTask() *Task {
 
 	}
 
-	board.ReorderTasks()
-
-	newTask.TaskType.SetChoice(board.Project.PreviousTaskType)
-
-	if newTask.TaskType.ChoiceAsString() == "Image" || newTask.TaskType.ChoiceAsString() == "Sound" {
-		newTask.FilePathTextbox.Focused = true
-	} else {
-		newTask.Description.Focused = true
-	}
-
-	if newTask.Is(TASK_TYPE_MAP) {
-		newTask.MapImage = NewMapImage(newTask)
-	}
-
 	board.Project.Log("Created 1 new Task.")
 
-	// We need to record both the Task being invalid, as well as being valid, for undoing / redoing
-	newTask.Valid = false
-	board.UndoBuffer.Capture(newTask)
-	newTask.Valid = true
-	board.UndoBuffer.Capture(newTask)
-
-	if !board.Project.JustLoaded {
+	if !board.Project.Loading {
 		// If we're loading a project, we don't want to automatically select new tasks
 		board.Project.SendMessage(MessageSelect, map[string]interface{}{"task": newTask})
 	}
@@ -110,16 +155,27 @@ func (board *Board) CreateNewTask() *Task {
 	return newTask
 }
 
+// InsertExistingTask inserts the existing Task into the Task list for updating and drawing.
+// Note that this does NOT call Board.ReorderTasks() immediately to update the ordering, as this should be
+// called as rarely as necessary. Instead, it sets board.Changed to true, indicating that the
+// Task list should be updated.
+func (board *Board) InsertExistingTask(task *Task) {
+
+	board.Tasks = append(board.Tasks, task)
+	board.RemoveTaskFromGrid(task)
+	board.AddTaskToGrid(task)
+	board.TaskChanged = true
+
+}
+
 func (board *Board) DeleteTask(task *Task) {
 
 	if task.Valid {
 
-		board.UndoBuffer.Capture(task)
 		task.Valid = false
-		board.UndoBuffer.Capture(task)
-
 		board.ToBeDeleted = append(board.ToBeDeleted, task)
 		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
+
 	}
 
 }
@@ -128,10 +184,7 @@ func (board *Board) RestoreTask(task *Task) {
 
 	if !task.Valid {
 
-		board.UndoBuffer.Capture(task)
 		task.Valid = true
-		board.UndoBuffer.Capture(task)
-
 		board.ToBeRestored = append(board.ToBeRestored, task)
 		task.ReceiveMessage(MessageDropped, map[string]interface{}{"task": task})
 
@@ -141,37 +194,50 @@ func (board *Board) RestoreTask(task *Task) {
 
 func (board *Board) DeleteSelectedTasks() {
 
-	count := 0
-
 	selected := board.SelectedTasks(false)
 
 	stackMoveUp := []*Task{}
+	moveUpY := map[*Task][]float32{}
+	moveUpDistance := map[*Task][]float32{}
 
 	for _, t := range selected {
-		count++
+
+		if _, exists := moveUpY[t.StackHead]; !exists {
+			moveUpY[t.StackHead] = []float32{}
+			moveUpDistance[t.StackHead] = []float32{}
+		}
+
+		moveUpY[t.StackHead] = append(moveUpY[t.StackHead], t.Position.Y)
+		moveUpDistance[t.StackHead] = append(moveUpDistance[t.StackHead], t.DisplaySize.Y)
+
 		for _, rest := range t.RestOfStack {
-			if !rest.Selected {
+			if rest.Selected {
+				break
+			} else {
 				stackMoveUp = append(stackMoveUp, rest)
 			}
 		}
+
 		board.DeleteTask(t)
+
 	}
 
-	for _, s := range stackMoveUp {
-		board.UndoBuffer.Capture(s)
+	// We want to move each Task in the stack that is NOT selected, up by the height of each Task that was deleted, but only if they're below that Y position
+	for _, taskInStack := range stackMoveUp {
+
+		for i := len(moveUpY[taskInStack.StackHead]) - 1; i >= 0; i-- {
+
+			if taskInStack.Position.Y >= moveUpY[taskInStack.StackHead][i] {
+				taskInStack.Position.Y -= moveUpDistance[taskInStack.StackHead][i]
+			}
+
+		}
+
 	}
 
-	for _, s := range stackMoveUp {
-		s.Position.Y -= float32(board.Project.GridSize)
-	}
+	board.Project.Log("Deleted %d Task(s).", len(selected))
 
-	for _, s := range stackMoveUp {
-		board.UndoBuffer.Capture(s)
-	}
-
-	board.Project.Log("Deleted %d Task(s).", count)
-
-	board.ReorderTasks()
+	board.TaskChanged = true
 
 }
 
@@ -209,49 +275,51 @@ func (board *Board) HandleDroppedFiles() {
 	if rl.IsFileDropped() {
 
 		fileCount := int32(0)
-		for _, filePath := range rl.GetDroppedFiles(&fileCount) {
 
-			taskType, _ := mimetype.DetectFile(filePath)
+		for _, filepath := range rl.GetDroppedFiles(&fileCount) {
 
-			if taskType != nil {
+			board.Project.LogOn = false
 
-				task := NewTask(board)
-				task.Position.X = camera.Target.X
-				task.Position.Y = camera.Target.Y
-				success := true
+			if guess := board.GuessTaskTypeFromText(filepath); guess >= 0 {
 
-				if strings.Contains(taskType.String(), "image") {
-					board.Project.Log("Added Image for [%s] successfully.", filePath)
-					task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-					task.FilePathTextbox.SetText(filePath)
-					task.LoadResource()
-				} else if strings.Contains(taskType.String(), "audio") {
-					board.Project.Log("Added Sound for [%s] successfully.", filePath)
-					task.TaskType.CurrentChoice = TASK_TYPE_SOUND
-					task.FilePathTextbox.SetText(filePath)
-					task.LoadResource()
-				} else if strings.HasPrefix(taskType.String(), "text/") {
-					board.Project.Log("Added Note for [%s] successfully.", filePath)
+				task := board.CreateNewTask()
 
-					// Attempt to read it in
-					data, err := ioutil.ReadFile(filePath)
-					if err == nil {
-						task.Description.SetText(string(data))
-						task.TaskType.CurrentChoice = TASK_TYPE_NOTE
-					}
+				board.Project.LogOn = true
+
+				// Attempt to load the resource
+				task.TaskType.CurrentChoice = guess
+
+				if guess == TASK_TYPE_IMAGE {
+
+					task.FilePathTextbox.SetText(filepath)
+					task.SetContents()
+					task.Contents.(*ImageContents).ResetSize = true
+
+				} else if guess == TASK_TYPE_SOUND {
+
+					task.FilePathTextbox.SetText(filepath)
 
 				} else {
-					board.Project.Log("Could not create a Task for incompatible file at [%s].", filePath)
-					success = false
+
+					text, err := ioutil.ReadFile(filepath)
+					if err == nil {
+						task.Description.SetText(string(text))
+					} else {
+						board.Project.Log("Could not read file: %s", filepath)
+					}
+
 				}
 
-				board.Tasks = append(board.Tasks, task)
-				if !success {
-					board.DeleteTask(task)
-				}
-				continue
+				task.ReceiveMessage(MessageTaskRestore, nil)
+
+				board.Project.Log("Created new %s Task from dropped file content.", task.TaskType.ChoiceAsString())
+
 			}
+
 		}
+
+		board.Project.LogOn = true
+
 		rl.ClearDroppedFiles()
 
 	}
@@ -286,7 +354,7 @@ func (board *Board) PasteTasks() {
 
 	if len(board.Project.CopyBuffer) > 0 {
 
-		board.UndoBuffer.On = false
+		board.UndoHistory.On = false
 
 		for _, task := range board.Tasks {
 			task.Selected = false
@@ -295,21 +363,32 @@ func (board *Board) PasteTasks() {
 		clones := []*Task{}
 
 		cloneTask := func(srcTask *Task) *Task {
+
 			ogBoard := srcTask.Board
+
 			srcTask.Board = board
 			clone := srcTask.Clone()
 			srcTask.Board = ogBoard
-			board.Tasks = append(board.Tasks, clone)
-			clone.LoadResource()
+
+			board.InsertExistingTask(clone)
 			clones = append(clones, clone)
+
 			return clone
+
+		}
+
+		copyMap := map[*Task]bool{}
+
+		for _, copy := range board.Project.CopyBuffer {
+			copyMap[copy] = true
 		}
 
 		copied := func(task *Task) bool {
-			for _, copy := range board.Project.CopyBuffer {
-				if copy == task {
-					return true
-				}
+			if task == nil {
+				return false
+			}
+			if _, exists := copyMap[task]; exists {
+				return true
 			}
 			return false
 		}
@@ -328,53 +407,67 @@ func (board *Board) PasteTasks() {
 
 		for _, srcTask := range board.Project.CopyBuffer {
 
-			if srcTask.Is(TASK_TYPE_LINE) && srcTask.LineBase != nil && srcTask.Board != board {
-				if !copied(srcTask.LineBase) {
+			lineStartCopied := copied(srcTask.LineStart)
+
+			if srcTask.LineStart != nil && srcTask.Board != board {
+				if !lineStartCopied {
 					board.Project.Log("WARNING: Cannot paste Line arrows on a different board than the Line base.")
 				}
-			} else if srcTask.LineBase == nil || !copied(srcTask.LineBase) {
+			} else if !srcTask.Is(TASK_TYPE_LINE) || (srcTask.LineStart == nil || !lineStartCopied) {
+
+				// If you are not copying a line, OR you are copying a line and just copying ends individually, that's fine.
+				// If you're copying the base, that's also fine; we'll copy the ends automatically.
+				// If you're copying both, we will ignore the ends, as copying the start copies the ends.
 
 				clone := cloneTask(srcTask)
 				diff := rl.Vector2Subtract(GetWorldMousePosition(), center)
-				clone.Position = rl.Vector2Add(clone.Position, diff)
-				clone.Position = board.Project.LockPositionToGrid(clone.Position)
+				clone.Position = board.Project.RoundPositionToGrid(rl.Vector2Add(clone.Position, diff))
 
-				if clone.Is(TASK_TYPE_LINE) {
-					for _, ending := range clone.LineEndings {
-						ending.Position = rl.Vector2Add(ending.Position, diff)
-						ending.Position = board.Project.LockPositionToGrid(ending.Position)
+				if srcTask.Is(TASK_TYPE_LINE) {
+
+					if srcTask.LineStart == nil {
+
+						clone.LineEndings = []*Task{}
+
+						for _, ending := range srcTask.LineEndings {
+
+							if !ending.Valid {
+								continue
+							}
+
+							newEnding := cloneTask(ending)
+							newEnding.LineStart = clone
+							clone.LineEndings = append(clone.LineEndings, newEnding)
+
+							newEnding.Position = board.Project.RoundPositionToGrid(rl.Vector2Add(newEnding.Position, diff))
+
+						}
+
+					} else {
+						clone.LineStart = srcTask.LineStart
+						clone.LineStart.LineEndings = append(clone.LineStart.LineEndings, clone)
 					}
+
 				}
 
 			}
 
 		}
-
-		board.ReorderTasks()
 
 		if len(clones) > 0 {
 			board.Project.Log("Pasted %d Task(s).", len(clones))
 		}
 
-		for _, clone := range clones {
-			if clone.Is(TASK_TYPE_LINE) && len(clone.LineEndings) > 0 {
-				clones = append(clones, clone.LineEndings...)
-			}
-		}
-
-		board.UndoBuffer.On = true
+		board.UndoHistory.On = true
 
 		for _, clone := range clones {
 
-			clone.Valid = false
-			board.UndoBuffer.Capture(clone)
-			clone.Valid = true
-			board.UndoBuffer.Capture(clone)
-
+			clone.ReceiveMessage(MessageTaskRestore, nil)
 			clone.Selected = true
+
 		}
 
-		board.ReorderTasks()
+		board.TaskChanged = true
 
 		if board.Project.Cutting {
 			for _, task := range board.Project.CopyBuffer {
@@ -390,39 +483,74 @@ func (board *Board) PasteTasks() {
 
 func (board *Board) PasteContent() {
 
+	clipboard.ReadAll()
+
 	clipboardData, _ := clipboard.ReadAll() // Tanks FPS if done every frame because of course it does
 
 	if clipboardData != "" {
 
+		// clipboardData = strings.TrimSpace(clipboardData)
+
+		clipboardLines := strings.Split(clipboardData, "\n")
+
+		for strings.TrimSpace(clipboardLines[0]) == "" {
+			clipboardLines = clipboardLines[1:]
+		}
+
+		for strings.TrimSpace(clipboardLines[len(clipboardLines)-1]) == "" {
+			clipboardLines = clipboardLines[:len(clipboardLines)-1]
+		}
+
+		clipboardData = strings.Join(clipboardLines, "\n")
+
 		board.Project.LogOn = false
-		res, _ := board.Project.LoadResource(clipboardData) // Attempt to load the resource
-		board.Project.LogOn = true
 
 		task := board.CreateNewTask()
 
-		task.TaskType.CurrentChoice = TASK_TYPE_NOTE
+		guess := board.GuessTaskTypeFromText(clipboardData)
 
-		if res != nil {
+		// Attempt to load the resource
+		task.TaskType.CurrentChoice = guess
 
+		if guess == TASK_TYPE_IMAGE {
 			task.FilePathTextbox.SetText(clipboardData)
+			task.SetContents()
+			task.Contents.(*ImageContents).ResetSize = true
 
-			if res.IsTexture() || res.IsGIF() {
-				task.TaskType.CurrentChoice = TASK_TYPE_IMAGE
-			} else if res.IsAudio() {
-				task.TaskType.CurrentChoice = TASK_TYPE_SOUND
-			}
-
-			task.LoadResource()
-
+		} else if guess == TASK_TYPE_SOUND {
+			task.FilePathTextbox.SetText(clipboardData)
 		} else {
 			task.Description.SetText(clipboardData)
 		}
 
-		board.Project.Log("Pasted 1 new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
+		task.ReceiveMessage(MessageTaskRestore, nil)
+
+		board.Project.LogOn = true
+
+		board.Project.Log("Pasted a new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
 
 	} else {
 		board.Project.Log("Unable to create Task from clipboard content.")
 	}
+
+}
+
+func (board *Board) GuessTaskTypeFromText(filepath string) int {
+
+	// Attempt to load the resource
+	if res := board.Project.LoadResource(filepath); res != nil && (res.DownloadResponse != nil || FileExists(res.LocalFilepath)) {
+
+		if res.MimeIsImage() {
+			return TASK_TYPE_IMAGE
+		} else if res.MimeIsAudio() {
+			return TASK_TYPE_SOUND
+		} else {
+			return TASK_TYPE_NOTE
+		}
+
+	}
+
+	return -1
 
 }
 
@@ -431,20 +559,23 @@ func (board *Board) ReorderTasks() {
 	sort.Slice(board.Tasks, func(i, j int) bool {
 		ba := board.Tasks[i]
 		bb := board.Tasks[j]
-		if ba.Position.Y == bb.Position.Y {
-			return ba.Position.X < bb.Position.X
+		if ba.Is(TASK_TYPE_LINE) && ba.LineStart == nil {
+			return true
 		}
-		return ba.Position.Y < bb.Position.Y
+		if ba.Position.Y != bb.Position.Y {
+			return ba.Position.Y < bb.Position.Y
+		}
+		return ba.Position.X < bb.Position.X
 	})
 
 	// Reordering Tasks should not alter the Undo Buffer, as altering the Undo Buffer generally happens explicitly
 
-	prevOn := board.UndoBuffer.On
-	board.UndoBuffer.On = false
+	prevOn := board.UndoHistory.On
+	board.UndoHistory.On = false
 	board.SendMessage(MessageDropped, nil)
 	board.SendMessage(MessageNeighbors, nil)
 	board.SendMessage(MessageNumbering, nil)
-	board.UndoBuffer.On = prevOn
+	board.UndoHistory.On = prevOn
 
 }
 
@@ -463,6 +594,18 @@ func (board *Board) Destroy() {
 		task.ReceiveMessage(MessageDelete, map[string]interface{}{"task": task})
 		task.Destroy()
 	}
+}
+
+func (board *Board) TaskByID(id int) *Task {
+
+	for _, task := range board.Tasks {
+		if task.ID == id {
+			return task
+		}
+	}
+
+	return nil
+
 }
 
 func (board *Board) TasksInPosition(x, y float32) []*Task {
@@ -502,7 +645,7 @@ func (board *Board) TasksInRect(x, y, w, h float32) []*Task {
 
 func (board *Board) RemoveTaskFromGrid(task *Task) {
 
-	for _, position := range task.GridPositions {
+	for _, position := range task.gridPositions {
 
 		for i, t := range board.TaskLocations[position] {
 
@@ -516,6 +659,8 @@ func (board *Board) RemoveTaskFromGrid(task *Task) {
 
 	}
 
+	board.TaskChanged = true
+
 }
 
 func (board *Board) AddTaskToGrid(task *Task) {
@@ -523,8 +668,8 @@ func (board *Board) AddTaskToGrid(task *Task) {
 	positions := []Position{}
 
 	gs := float32(board.Project.GridSize)
-	startX, startY := int(task.Position.X/gs), int(task.Position.Y/gs)
-	endX, endY := int((task.Position.X+task.Rect.Width)/gs), int((task.Position.Y+task.Rect.Height)/gs)
+	startX, startY := int(math.Round(float64(task.Position.X/gs))), int(math.Round(float64(task.Position.Y/gs)))
+	endX, endY := int(math.Round(float64((task.Position.X+task.DisplaySize.X)/gs))), int(math.Round(float64((task.Position.Y+task.DisplaySize.Y)/gs)))
 
 	for y := startY; y < endY; y++ {
 
@@ -546,7 +691,9 @@ func (board *Board) AddTaskToGrid(task *Task) {
 
 	}
 
-	task.GridPositions = positions
+	task.gridPositions = positions
+
+	board.TaskChanged = true
 
 }
 
@@ -574,14 +721,16 @@ func (board *Board) SelectedTasks(returnFirstSelectedTask bool) []*Task {
 
 func (board *Board) HandleDeletedTasks() {
 
-	changed := false
-
 	for _, task := range board.ToBeDeleted {
+
+		// We call this here to ensure the Task creates an UndoState prior to deletion, as it could have been deleted after both of its Update() and Draw() methods were called.
+		task.CreateUndoState()
+
 		for index, t := range board.Tasks {
 			if task == t {
 				board.Tasks[index] = nil
 				board.Tasks = append(board.Tasks[:index], board.Tasks[index+1:]...)
-				changed = true
+				board.TaskChanged = true
 				break
 			}
 		}
@@ -590,14 +739,9 @@ func (board *Board) HandleDeletedTasks() {
 
 	for _, task := range board.ToBeRestored {
 		board.Tasks = append(board.Tasks, task)
-		changed = true
+		board.TaskChanged = true
 	}
 	board.ToBeRestored = []*Task{}
-
-	// We only want to reorder tasks if tasks were actually deleted or restored, as it is costly.
-	if changed {
-		board.ReorderTasks()
-	}
 
 }
 

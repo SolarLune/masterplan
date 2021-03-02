@@ -56,7 +56,7 @@ func GetMouseDelta() rl.Vector2 {
 	return vec
 }
 
-func GetPath(folders ...string) string {
+func LocalPath(folders ...string) string {
 
 	// Running apps from Finder in MacOS makes the working directory the home directory, which is nice, because
 	// now I have to make this function to do what should be done anyway and give me a relative path starting from
@@ -83,7 +83,7 @@ func WorkingDirectory() string {
 func FileExists(filepath string) bool {
 	_, err := os.Stat(filepath)
 
-	if os.IsNotExist(err) {
+	if err != nil && !os.IsExist(err) {
 		return false
 	}
 	return true
@@ -102,7 +102,10 @@ func handleMouseInputs() {
 
 	for _, button := range inputs {
 
-		v := getMouseEventValue(button)
+		v, exists := mouseInputs[button]
+		if !exists {
+			v = 0
+		}
 
 		if rl.IsMouseButtonPressed(button) && v == 0 {
 			mouseInputs[button] = 1
@@ -120,14 +123,6 @@ func handleMouseInputs() {
 
 	}
 
-}
-
-func getMouseEventValue(input int32) int {
-	value, exists := mouseInputs[input]
-	if !exists {
-		return 0
-	}
-	return value
 }
 
 func MousePressed(button int32) bool {
@@ -161,6 +156,10 @@ func HideMouseInput(button int32) {
 
 func UnhideMouseInput(button int32) {
 	hiddenMouseInputs[button] = false
+}
+
+func IsColorLight(color rl.Color) bool {
+	return color.R > 128 || color.G > 128 || color.B > 128
 }
 
 func ColorAdd(color rl.Color, value int32) rl.Color {
@@ -218,18 +217,86 @@ func GUIFontSize() float32 {
 	return float32(programSettings.FontSize) * (float32(i) / 100)
 }
 
+var font rl.Font
+var loadedFontPath = ""
+var fontBaseline = float32(0)
+var spacing = float32(1)
+var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
+
 func ReloadFonts() {
 
-	fontPath := GetPath("assets", "excel.ttf")
+	fontPath := LocalPath("assets", "excel.ttf")
 
 	if programSettings.CustomFontPath != "" && FileExists(programSettings.CustomFontPath) {
 		fontPath = programSettings.CustomFontPath
 	}
 
-	if font.BaseSize > 0 {
-		rl.UnloadFont(font)
+	if loadedFontPath != fontPath {
+
+		if font.BaseSize > 0 {
+			rl.UnloadFont(font)
+		}
+
+		// The Basic Multilingual Plane, or BMP, contains characters for almost all modern languages, and consistutes the first 65,472 code points of the first 163 Unicode blocks.
+		// See: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
+		font = rl.LoadFontEx(fontPath, int32(30), nil, 65472)
+
+		loadedFontPath = fontPath
+
+		// It should be possible to get the baseline of a font from the font data in the font struct returned by rl.LoadFontEx(), but from my investigation, this either isn't provided or it's not correct with the current incarnation
+		// of raylib-go. So, my hacky workaround is to render a symbol that should definitely be on the baseline (a ".") to an image, see how far down into the image that is, and use that for the baseline calculation.
+		// Yes, this is ridiculous, but fortunately this should add very little to the wait time.
+
+		img := rl.GenImageColor(32, 32, rl.Color{0, 0, 0, 0})
+		pos := rl.Vector2{}
+		rl.ImageDrawTextEx(img, pos, font, ".", 30, spacing, rl.Black)
+		// rl.ExportImage(*img, "testimg.png") // Just for debugging and ensuring the offset found is accurate.
+
+		x, y := img.Width, img.Height
+
+		imageData := rl.GetImageData(img)
+
+		for i := len(imageData) - 1; i > 0; i-- {
+
+			if x < 0 {
+				x += img.Width
+				y--
+			}
+
+			if imageData[i].A >= 255 {
+				break
+			}
+
+			x--
+
+		}
+
+		fontBaseline = float32(24-y) - 2
+
+		rl.UnloadImage(img)
+
 	}
 
-	font = rl.LoadFontEx(fontPath, int32(30), nil, 256)
+}
+
+func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {
+
+	r.X -= thickness
+	r.Y -= thickness
+	r.Width += thickness * 2
+	r.Height += thickness * 2
+	rl.DrawRectangleRec(r, color)
+
+}
+
+func ClosestPowerOfTwo(number float32) int32 {
+
+	o := int32(2)
+
+	for o < int32(number) {
+		o *= 2
+	}
+
+	return o
 
 }
