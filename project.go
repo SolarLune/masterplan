@@ -62,17 +62,18 @@ const (
 
 	// Task messages
 
-	MessageNeighbors      = "neighbors"
-	MessageNumbering      = "numbering"
-	MessageDelete         = "delete"
-	MessageSelect         = "select"
-	MessageDropped        = "dropped"
-	MessageDoubleClick    = "double click"
-	MessageDragging       = "dragging"
-	MessageTaskClose      = "task close"
-	MessageThemeChange    = "theme change"
-	MessageSettingsChange = "settings change"
-	MessageTaskRestore    = "task restore"
+	MessageNeighbors           = "neighbors"
+	MessageNumbering           = "numbering"
+	MessageDelete              = "delete"
+	MessageSelect              = "select"
+	MessageDropped             = "dropped"
+	MessageDoubleClick         = "double click"
+	MessageDragging            = "dragging"
+	MessageTaskClose           = "task close"
+	MessageThemeChange         = "theme change"
+	MessageSettingsChange      = "settings change"
+	MessageTaskRestore         = "task restore"
+	MessageTaskDeserialization = "task deserialization"
 
 	// Project actions
 
@@ -98,9 +99,6 @@ type Project struct {
 	ShowIcons                   *Checkbox
 	PulsingTaskSelection        *Checkbox
 	AutoSave                    *Checkbox
-	AutoReloadThemes            *Checkbox
-	AutoLoadLastProject         *Checkbox
-	DisableSplashscreen         *Checkbox
 	SaveSoundsPlaying           *Checkbox
 	OutlineTasks                *Checkbox
 	ColorThemeSpinner           *Spinner
@@ -111,7 +109,6 @@ type Project struct {
 	AutomaticBackupInterval     *NumberSpinner
 	AutomaticBackupKeepCount    *NumberSpinner
 	MaxUndoSteps                *NumberSpinner
-	DisableMessageLog           *Checkbox
 	TaskTransparency            *NumberSpinner
 	AlwaysShowURLButtons        *Checkbox
 	SettingsSection             *ButtonGroup
@@ -122,15 +119,6 @@ type Project struct {
 	AboutDiscordButton          *Button
 	AboutTwitterButton          *Button
 	ItchStorePageButton         *Button
-	DisableAboutDialogOnStart   *Checkbox
-	SaveWindowPosition          *Checkbox
-	AutoReloadResources         *Checkbox
-	TargetFPS                   *NumberSpinner
-	UnfocusedFPS                *NumberSpinner
-	PanToFocusOnZoom            *Checkbox
-	TransparentBackground       *Checkbox
-	BorderlessWindow            *Checkbox
-	DrawWindowBorder            *Checkbox
 	ScreenshotsPath             *Textbox
 	ScreenshotsPathBrowseButton *Button
 	RebindingButtons            []*Button
@@ -139,7 +127,20 @@ type Project struct {
 	RebindingHeldKeys           []int32
 	GraphicalTasksTransparent   *Checkbox
 	DeadlineAnimation           *ButtonGroup
+
+	TransparentBackground       *Checkbox
+	BorderlessWindow            *Checkbox
+	DrawWindowBorder            *Checkbox
+	SaveWindowPosition          *Checkbox
+	PanToFocusOnZoom            *Checkbox
+	DisableMessageLog           *Checkbox
+	DisableSplashscreen         *Checkbox
+	AutoReloadThemes            *Checkbox
+	AutoLoadLastProject         *Checkbox
+	AutoReloadResources         *Checkbox
 	ScrollwheelSensitivity      *NumberSpinner
+	TargetFPS                   *NumberSpinner
+	UnfocusedFPS                *NumberSpinner
 	SmoothPanning               *Checkbox
 	CustomFontPath              *Textbox
 	CustomFontPathBrowseButton  *Button
@@ -148,6 +149,8 @@ type Project struct {
 	DefaultFontButton           *Button
 	TableColumnsRotatedVertical *Checkbox
 	TableColumnVerticalSpacing  *NumberSpinner
+	DisableAboutDialogOnStart   *Checkbox
+	DownloadTimeout             *NumberSpinner
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -155,6 +158,7 @@ type Project struct {
 	Boards              []*Board
 	BoardIndex          int
 	BoardPanel          rl.Rectangle
+	TaskEditPanel       *Panel
 	ZoomLevel           int
 	CurrentZoomLevel    int
 	CameraPan           rl.Vector2
@@ -178,18 +182,17 @@ type Project struct {
 	LogOn               bool
 	LoadRecentDropdown  *DropdownMenu
 
-	SearchedTasks        []*Task
-	FocusedSearchTask    int
-	Searchbar            *Textbox
-	StatusBar            rl.Rectangle
-	GUI_Icons            rl.Texture2D
-	Patterns             rl.Texture2D
-	ShortcutKeyTimer     int
-	PreviousTaskType     int
-	Resources            map[string]*Resource
-	DownloadingResources map[string]*Resource
-	Modified             bool
-	Locked               bool
+	SearchedTasks     []*Task
+	FocusedSearchTask int
+	Searchbar         *Textbox
+	StatusBar         rl.Rectangle
+	GUI_Icons         rl.Texture2D
+	Patterns          rl.Texture2D
+	ShortcutKeyTimer  int
+	PreviousTaskType  int
+	Resources         map[string]*Resource
+	Modified          bool
+	Locked            bool
 
 	PopupPanel      *Panel
 	PopupAction     string
@@ -212,23 +215,23 @@ func NewProject() *Project {
 	searchBar.AllowNewlines = false
 
 	project := &Project{
-		FilePath:             "",
-		GridSize:             16,
-		ZoomLevel:            3,
-		CurrentZoomLevel:     3,
-		CameraPan:            rl.Vector2{0, 0},
-		Searchbar:            searchBar,
-		StatusBar:            rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
-		GUI_Icons:            rl.LoadTexture(LocalPath("assets", "gui_icons.png")),
-		SampleBuffer:         512,
-		Patterns:             rl.LoadTexture(LocalPath("assets", "patterns.png")),
-		Resources:            map[string]*Resource{},
-		DownloadingResources: map[string]*Resource{},
-		LoadRecentDropdown:   NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
-		UndoFade:             gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
+		FilePath:           "",
+		GridSize:           16,
+		ZoomLevel:          3,
+		CurrentZoomLevel:   3,
+		CameraPan:          rl.Vector2{0, 0},
+		Searchbar:          searchBar,
+		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
+		GUI_Icons:          rl.LoadTexture(LocalPath("assets", "gui_icons.png")),
+		SampleBuffer:       512,
+		Patterns:           rl.LoadTexture(LocalPath("assets", "patterns.png")),
+		Resources:          map[string]*Resource{},
+		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
+		UndoFade:           gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
 
 		PopupPanel:    NewPanel(0, 0, 480, 270),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
+		TaskEditPanel: NewPanel(63, 64, 960/4*3, 560/4*3),
 
 		TaskShadowSpinner:           NewSpinner(0, 0, 192, 32, "Off", "Flat", "Smooth", "3D"),
 		OutlineTasks:                NewCheckbox(0, 0, 32, 32),
@@ -279,7 +282,7 @@ func NewProject() *Project {
 		PanToFocusOnZoom:       NewCheckbox(0, 0, 32, 32),
 		ScrollwheelSensitivity: NewNumberSpinner(0, 0, 128, 40),
 		SmoothPanning:          NewCheckbox(0, 0, 32, 32),
-		DefaultFontButton:      NewButton(0, 0, 256, 32, "Reset Font to Default", false),
+		DefaultFontButton:      NewButton(0, 0, 400, 32, "Reset Font Settings to Default", false),
 
 		AboutDiscordButton:        NewButton(0, 0, 200, 36, "Discord", false),
 		AboutTwitterButton:        NewButton(0, 0, 200, 36, "Twitter", false),
@@ -289,9 +292,14 @@ func NewProject() *Project {
 		BorderlessWindow:          NewCheckbox(0, 0, 32, 32),
 		DrawWindowBorder:          NewCheckbox(0, 0, 32, 32),
 		SaveWindowPosition:        NewCheckbox(0, 0, 32, 32),
+		DownloadTimeout:           NewNumberSpinner(0, 0, 128, 40),
 		GrabClient:                grab.NewClient(),
 		LogOn:                     true,
 	}
+
+	project.GrabClient.HTTPClient.Timeout = time.Second * time.Duration(programSettings.DownloadTimeout)
+
+	project.TaskEditPanel.AddColumn()
 
 	project.ScreenSize.X = float32(rl.GetScreenWidth())
 	project.ScreenSize.Y = float32(rl.GetScreenHeight())
@@ -324,6 +332,7 @@ func NewProject() *Project {
 	project.TableColumnVerticalSpacing.Minimum = 0
 	project.TableColumnVerticalSpacing.Maximum = 1000
 	project.TableColumnVerticalSpacing.Step = 10
+	project.DownloadTimeout.Minimum = 1
 
 	// General settings
 
@@ -498,6 +507,10 @@ func NewProject() *Project {
 	row.Item(project.UnfocusedFPS, SETTINGS_GLOBAL)
 
 	row = column.Row()
+	row.Item(NewLabel("Download Time-out\n(In Seconds):"), SETTINGS_GLOBAL)
+	row.Item(project.DownloadTimeout, SETTINGS_GLOBAL)
+
+	row = column.Row()
 	row.Item(NewLabel("Pan to Cursor When\nZooming In:"), SETTINGS_GLOBAL)
 	row.Item(project.PanToFocusOnZoom, SETTINGS_GLOBAL)
 
@@ -522,7 +535,7 @@ func NewProject() *Project {
 	row.Item(project.TransparentBackground, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Draw Border Around Window:"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Draw Border\nAround Window:"), SETTINGS_GLOBAL)
 	row.Item(project.DrawWindowBorder, SETTINGS_GLOBAL)
 
 	row = column.Row()
@@ -864,6 +877,8 @@ func LoadProject(filepath string) *Project {
 
 		if data.Get("Tasks").Exists() {
 
+			log.Println("Project load starts")
+
 			project.LoadingVersion, _ = semver.Parse(data.Get(`Version`).String())
 
 			project.Loading = true
@@ -922,7 +937,7 @@ func LoadProject(filepath string) *Project {
 			}
 
 			if data.Get(`SoundVolume`).Exists() {
-				if project.LoadingVersion.LE(semver.MustParse("0.6.1-2")) {
+				if project.LoadingVersion.LE(semver.MustParse("0.6.1-3")) {
 					project.SoundVolume.SetNumber(getInt(`SoundVolume`) * 10)
 				} else {
 					project.SoundVolume.SetNumber(getInt(`SoundVolume`))
@@ -963,7 +978,9 @@ func LoadProject(filepath string) *Project {
 				}
 			}
 
-			for _, taskData := range data.Get(`Tasks`).Array() {
+			log.Println("total number of tasks to deserialize: ", len(data.Get(`Tasks`).Array()))
+
+			for i, taskData := range data.Get(`Tasks`).Array() {
 
 				boardIndex := 0
 
@@ -987,6 +1004,8 @@ func LoadProject(filepath string) *Project {
 
 				task.UndoChange = true
 				task.UndoCreation = true
+
+				log.Println("task ", i, "successfully deserialized")
 			}
 
 			// We don't have to call Board.ReorderTasks() for each board here because we do it later on after first initialization
@@ -1051,6 +1070,8 @@ func LoadProject(filepath string) *Project {
 			}
 
 			project.Loading = false
+
+			log.Println("load finished")
 
 			return project
 
@@ -1197,13 +1218,6 @@ func (project *Project) Update() {
 	rl.DrawLineEx(rl.Vector2{-100000, 0}, rl.Vector2{100000, 0}, 2, getThemeColor(GUI_INSIDE))
 
 	selectionRect := rl.Rectangle{}
-
-	for resName, resource := range project.DownloadingResources {
-		if resource.DownloadResponse.IsComplete() {
-			delete(project.DownloadingResources, resName)
-			project.Resources[resName].ParseData()
-		}
-	}
 
 	for _, board := range project.Boards {
 		board.Update()
@@ -2392,13 +2406,6 @@ func (project *Project) GUI() {
 			programSettings.DrawWindowBorder = project.DrawWindowBorder.Checked
 			programSettings.CustomFontPath = project.CustomFontPath.Text()
 
-			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed {
-				for _, textbox := range allTextboxes {
-					textbox.triggerTextRedraw = true
-				}
-				project.CurrentBoard().SendMessage(MessageSettingsChange, nil)
-			}
-
 			// SUPER HACKY; we're not supposed to manually set the Changed variable like this, but whatevs, CustomFontPath isn't updating all of the time.
 			if project.CustomFontPath.Changed {
 				ReloadFonts()
@@ -2449,6 +2456,10 @@ func (project *Project) GUI() {
 				project.GenerateGrid()
 			}
 
+			if project.SoundVolume.Changed {
+				project.SendMessage(MessageSettingsChange, nil)
+			}
+
 			if project.ColorThemeSpinner.Changed {
 
 				programSettings.Theme = project.ColorThemeSpinner.ChoiceAsString()
@@ -2463,6 +2474,13 @@ func (project *Project) GUI() {
 
 			if !project.LockProject.Checked {
 				project.Locked = false
+			}
+
+			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed || project.ColorThemeSpinner.Changed {
+				for _, textbox := range allTextboxes {
+					textbox.triggerTextRedraw = true
+				}
+				project.CurrentBoard().SendMessage(MessageSettingsChange, nil)
 			}
 
 		}
@@ -2728,17 +2746,17 @@ func (project *Project) SearchForTasks() {
 		project.FocusedSearchTask = 0
 	}
 
-	// for _, task := range project.GetAllTasks() {
+	for _, task := range project.GetAllTasks() {
 
-	// 	searchText := strings.ToLower(project.Searchbar.Text())
+		searchText := strings.ToLower(project.Searchbar.Text())
 
-	// 	if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text()), searchText) ||
-	// 		(task.UsesMedia() && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText)) ||
-	// 		(task.Is(TASK_TYPE_TIMER) && strings.Contains(strings.ToLower(task.TimerName.Text()), searchText))) {
-	// 		project.SearchedTasks = append(project.SearchedTasks, task)
-	// 	}
+		if searchText != "" && (strings.Contains(strings.ToLower(task.Description.Text()), searchText) ||
+			(task.UsesMedia() && strings.Contains(strings.ToLower(task.FilePathTextbox.Text()), searchText)) ||
+			(task.Is(TASK_TYPE_TIMER) && strings.Contains(strings.ToLower(task.TimerName.Text()), searchText))) {
+			project.SearchedTasks = append(project.SearchedTasks, task)
+		}
 
-	// }
+	}
 
 	if len(project.SearchedTasks) == 0 {
 		project.FocusedSearchTask = 0
@@ -2962,7 +2980,15 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 				if possibleError != nil {
 					project.Log("ERROR: Could not initiate download for [%s]\nError : [%s]\nAre you sure the path or URL is correct?", url.String(), possibleError.Error())
 				} else {
+
 					loadedResource = project.RegisterResource(resourcePath, filename, resp)
+
+					// After the download is complete, we want to parse the data
+					req.AfterCopy = func(resp *grab.Response) error {
+						loadedResource.ParseData()
+						return nil
+					}
+
 				}
 
 			}
@@ -3041,6 +3067,7 @@ func (project *Project) OpenSettings() {
 	project.GUIFontSizeMultiplier.SetChoice(programSettings.GUIFontSizeMultiplier)
 	project.ColorThemeSpinner.SetChoice(programSettings.Theme)
 	project.DrawWindowBorder.Checked = programSettings.DrawWindowBorder
+	project.DownloadTimeout.SetNumber(programSettings.DownloadTimeout)
 }
 
 func (project *Project) PromptQuit() {

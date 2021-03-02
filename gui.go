@@ -924,10 +924,9 @@ func (panel *Panel) Update() {
 				newHeight = panel.OriginalHeight
 			}
 
-			if newHeight != panel.Rect.Height {
-				panel.Rect.Height = newHeight
-				panel.recreateRenderTexture()
-			}
+			panel.Rect.Height = newHeight
+
+			panel.recreateRenderTexture()
 
 		}
 
@@ -983,8 +982,16 @@ func (panel *Panel) AddColumn() *PanelColumn {
 }
 
 func (panel *Panel) recreateRenderTexture() {
-	// This might be a memory leak; I believe it needs to be unloaded first if it has been created already, but it causes issues with rendering for now.
-	panel.RenderTexture = rl.LoadRenderTexture(int32(panel.Rect.Width), int32(panel.Rect.Height))
+
+	// TODO: Implement unloading when raylib-go is updated / fixed
+	// if panel.RenderTexture.ID > 0 {
+	// 	rl.UnloadRenderTexture(panel.RenderTexture)
+	// }
+
+	if panel.RenderTexture.Texture.Width != int32(panel.Rect.Width) || panel.RenderTexture.Texture.Height != int32(panel.Rect.Height) {
+		// This might be a memory leak; I believe it needs to be unloaded first if it has been created already, but it causes issues with rendering for now.
+		panel.RenderTexture = rl.LoadRenderTexture(int32(panel.Rect.Width), int32(panel.Rect.Height))
+	}
 }
 
 func (panel *Panel) FindItems(name string) []*PanelItem {
@@ -2444,7 +2451,7 @@ func (textbox *Textbox) Draw() {
 
 func (textbox *Textbox) RedrawText() {
 
-	// if textbox.Buffer.Texture.Height > 0 {
+	// if textbox.Buffer.ID > 0 {
 	// For now, this doesn't work as rl.UnloadRenderTexture() isn't unloading the texture properly
 	// 	rl.UnloadRenderTexture(textbox.Buffer)
 	// }
@@ -2736,7 +2743,7 @@ func (tr *TextRenderer) RecreateTexture() {
 
 	rl.ClearBackground(rl.Color{})
 
-	DrawText(rl.Vector2{}, tr.text)
+	DrawTextColored(rl.Vector2{}, rl.White, tr.text, false)
 
 	rl.EndTextureMode()
 
@@ -2754,7 +2761,7 @@ func (tr *TextRenderer) Draw(pos rl.Vector2) {
 		dst.Y = pos.Y
 		src.Height *= -1
 
-		rl.DrawTexturePro(tr.RenderTexture.Texture, src, dst, rl.Vector2{}, 0, rl.White)
+		rl.DrawTexturePro(tr.RenderTexture.Texture, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_FONT_COLOR))
 
 	}
 
@@ -2762,7 +2769,7 @@ func (tr *TextRenderer) Draw(pos rl.Vector2) {
 
 func (tr *TextRenderer) Destroy() {
 
-	tr.Valid = false
+	// tr.Valid = false
 	// Seems to corrupt other TextRenderers. TODO: Uncomment when raylib-go is updated with the latest C sources.
 	// rl.UnloadRenderTexture(tr.RenderTexture)
 

@@ -20,6 +20,7 @@ type GifAnimation struct {
 }
 
 func NewGifAnimation(data *gif.GIF) *GifAnimation {
+
 	anim := &GifAnimation{
 		Data:            data,
 		frameImg:        image.NewRGBA(data.Image[0].Rect),
@@ -141,9 +142,9 @@ func (gifPlayer *GifPlayer) Update(dt float32) {
 }
 
 func (gifPlayer *GifPlayer) Destroy() {
-	if gifPlayer.DrawTexture != nil {
-		rl.UnloadTexture(*gifPlayer.DrawTexture)
-	}
+	// if gifPlayer.DrawTexture != nil {
+	// 	rl.UnloadTexture(*gifPlayer.DrawTexture)
+	// }
 }
 
 func (gifPlayer *GifPlayer) GetTexture() rl.Texture2D {

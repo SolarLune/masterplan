@@ -45,7 +45,8 @@ type Resource struct {
 	// MIME data for the Resource.
 	MimeData *mimetype.MIME
 
-	DataParsed bool
+	// DataParsed bool
+	DataParsed chan bool
 
 	Project *Project
 }
@@ -69,13 +70,12 @@ func (project *Project) RegisterResource(resourcePath, localFilepath string, res
 		LocalFilepath:    localFilepath,
 		DownloadResponse: response,
 		Project:          project,
+		DataParsed:       make(chan bool, 1),
 	}
 
 	project.Resources[resourcePath] = res
 
 	if response != nil {
-
-		project.DownloadingResources[resourcePath] = res
 
 		// The first few bytes of a file indicates the kind of file it is; according to mimetype's internals, it's 3072 (at max, probably).
 		for !response.IsComplete() && response.BytesComplete() < 3072 {
@@ -104,6 +104,11 @@ func (res *Resource) Filename() string {
 
 func (res *Resource) ParseData() error {
 
+	// If we've already parsed the data once before, remove the indicator before parsing it again.
+	if len(res.DataParsed) > 0 {
+		<-res.DataParsed
+	}
+
 	var err error = nil
 
 	// If the mime data is just a generic sequence of data, then try to parse it again
@@ -113,10 +118,7 @@ func (res *Resource) ParseData() error {
 
 	if !FileExists(res.LocalFilepath) {
 		err = errors.New("file doesn't exist")
-		res.DataParsed = false
 	} else {
-
-		res.DataParsed = true
 
 		if strings.Contains(res.MimeData.String(), "image") {
 
@@ -146,14 +148,14 @@ func (res *Resource) ParseData() error {
 			res.Data = res.MimeData.String() // We don't actually have any data to store for audio, as Sound Tasks simply create their own streams
 		} else {
 			err = errors.New("unrecognized resource type")
-			res.DataParsed = false
 		}
 
 	}
 
 	if err != nil {
 		res.Project.Log("ERROR : "+err.Error()+" : %s", res.ResourcePath)
-		delete(res.Project.DownloadingResources, res.ResourcePath)
+	} else {
+		res.DataParsed <- true
 	}
 
 	return err
@@ -181,7 +183,7 @@ func (res *Resource) State() int {
 
 	}
 
-	if res.Data != nil {
+	if len(res.DataParsed) > 0 && res.Data != nil {
 		return RESOURCE_STATE_READY
 	}
 	return RESOURCE_STATE_LOADING

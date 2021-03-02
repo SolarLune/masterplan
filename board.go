@@ -83,9 +83,11 @@ func (board *Board) Draw() {
 	}
 
 	for _, task := range sorted {
-
 		task.Draw()
+	}
 
+	for _, task := range sorted {
+		task.UpperDraw()
 	}
 
 	// HandleDeletedTasks should be here specifically because we're trying to do this last, after any Tasks that
@@ -290,7 +292,7 @@ func (board *Board) HandleDroppedFiles() {
 				if guess == TASK_TYPE_IMAGE {
 
 					task.FilePathTextbox.SetText(filepath)
-					task.CreateContents()
+					task.SetContents()
 					task.Contents.(*ImageContents).ResetSize = true
 
 				} else if guess == TASK_TYPE_SOUND {
@@ -512,7 +514,7 @@ func (board *Board) PasteContent() {
 
 		if guess == TASK_TYPE_IMAGE {
 			task.FilePathTextbox.SetText(clipboardData)
-			task.CreateContents()
+			task.SetContents()
 			task.Contents.(*ImageContents).ResetSize = true
 
 		} else if guess == TASK_TYPE_SOUND {

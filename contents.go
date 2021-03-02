@@ -601,13 +601,7 @@ func (c *NoteContents) Destroy() {
 
 }
 
-func (c *NoteContents) ReceiveMessage(msg string) {
-
-	if msg == MessageSettingsChange {
-		c.TextRenderer.RecreateTexture()
-	}
-
-}
+func (c *NoteContents) ReceiveMessage(msg string) {}
 
 func (c *NoteContents) Trigger(trigger int) {}
 
@@ -923,7 +917,7 @@ func (c *ImageContents) Draw() {
 
 		case RESOURCE_STATE_LOADING:
 
-			if c.Resource.DataParsed {
+			if FileExists(c.Resource.LocalFilepath) {
 				text = fmt.Sprintf("Loading image [%s]... [%d%%]", c.Resource.Filename(), c.Resource.Progress())
 				c.ProgressBG.Current = c.Resource.Progress()
 				c.ProgressBG.Draw()
@@ -1319,13 +1313,13 @@ func (c *SoundContents) Trigger(trigger int) {
 }
 
 type TimerContents struct {
-	Task       *Task
-	TimerValue float32
-	TargetDate time.Time
-	// AlarmSound  *beep.Resampler
+	Task          *Task
+	TimerValue    float32
+	TargetDate    time.Time
 	AlarmSound    *effects.Volume
 	TextSize      rl.Vector2
 	DisplayedText string
+	Initialized   bool
 }
 
 func NewTimerContents(task *Task) *TimerContents {
@@ -1353,7 +1347,7 @@ func (c *TimerContents) CalculateTimeLeft() {
 	case TIMER_TYPE_COUNTDOWN:
 		// We check to see if the countdown GUI elements have changed because otherwise having the Task open to, say,
 		// edit the Timer Name would effectively pause the timer as the value would always be set.
-		if c.Task.CountdownMinute.Changed || c.Task.CountdownSecond.Changed || !c.Task.TimerRunning {
+		if c.Task.TimerMode.Changed || !c.Initialized || c.Task.CountdownMinute.Changed || c.Task.CountdownSecond.Changed || !c.Task.TimerRunning || c.Task.Board.Project.Loading {
 			c.TimerValue = float32(c.Task.CountdownMinute.Number()*60 + c.Task.CountdownSecond.Number())
 		}
 		c.TargetDate = time.Time{}
@@ -1401,14 +1395,21 @@ func (c *TimerContents) CalculateTimeLeft() {
 
 	case TIMER_TYPE_DATE:
 
-		nextDate := time.Date(c.Task.DeadlineYear.Number(), time.Month(c.Task.DeadlineMonth.CurrentChoice+1), c.Task.DeadlineDay.Number(), 23, 59, 59, 0, now.Location())
-		c.TargetDate = nextDate
+		c.TargetDate = time.Date(c.Task.DeadlineYear.Number(), time.Month(c.Task.DeadlineMonth.CurrentChoice+1), c.Task.DeadlineDay.Number(), 23, 59, 59, 0, now.Location())
+
+	case TIMER_TYPE_STOPWATCH:
+
+		if c.Task.TimerMode.Changed {
+			c.TimerValue = 0
+		}
 
 	}
 
 }
 
 func (c *TimerContents) Update() {
+
+	c.Initialized = true // This is here to allow for deserializing Tasks to undo or redo correctly, as Deserializing recreates the contents of a Task
 
 	if c.Task.Open {
 		c.CalculateTimeLeft()
@@ -1672,18 +1673,25 @@ func (c *TimerContents) ReceiveMessage(msg string) {
 		c.AlarmSound.Silent = c.Task.Board.Project.SoundVolume.Number() == 0
 		speaker.Unlock()
 
+	} else if msg == MessageTaskDeserialization {
+		// If undo or redo, recalculate the time left.
+		c.CalculateTimeLeft()
 	}
 
 }
 
 func (c *TimerContents) Trigger(trigger int) {
 
-	if trigger == TASK_TRIGGER_TOGGLE {
-		c.Task.TimerRunning = !c.Task.TimerRunning
-	} else if trigger == TASK_TRIGGER_SET {
-		c.Task.TimerRunning = true
-	} else if trigger == TASK_TRIGGER_CLEAR {
-		c.Task.TimerRunning = false
+	if c.TimerValue > 0 || !c.TargetDate.IsZero() {
+		if trigger == TASK_TRIGGER_TOGGLE {
+			c.Task.TimerRunning = !c.Task.TimerRunning
+		} else if trigger == TASK_TRIGGER_SET {
+			c.Task.TimerRunning = true
+		} else if trigger == TASK_TRIGGER_CLEAR {
+			c.Task.TimerRunning = false
+		}
+
+		c.Task.UndoChange = true
 	}
 
 }
@@ -1700,42 +1708,6 @@ func NewLineContents(task *Task) *LineContents {
 }
 
 func (c *LineContents) Update() {
-
-	// We draw in the update section because it needs to be under the Tasks' drawing, and also needs to be done if either the line's end or start point is visible
-
-	if c.Task.LineStart != nil && (c.Task.LineStart.Visible || c.Task.Visible) {
-
-		outlinesOn := c.Task.Board.Project.OutlineTasks.Checked
-		outlineColor := getThemeColor(GUI_INSIDE)
-		fillColor := getThemeColor(GUI_FONT_COLOR)
-
-		cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
-		cp.X += c.Task.Rect.Width / 2
-		cp.Y += c.Task.Rect.Height / 2
-
-		ep := rl.Vector2{c.Task.LineStart.Rect.X, c.Task.LineStart.Rect.Y}
-		ep.X += c.Task.LineStart.Rect.Width / 2
-		ep.Y += c.Task.LineStart.Rect.Height / 2
-
-		if c.Task.LineStart.LineBezier.Checked {
-
-			if outlinesOn {
-				rl.DrawLineBezier(cp, ep, 4, outlineColor)
-			}
-
-			rl.DrawLineBezier(cp, ep, 2, fillColor)
-
-		} else {
-
-			if outlinesOn {
-				rl.DrawLineEx(cp, ep, 4, outlineColor)
-			}
-
-			rl.DrawLineEx(cp, ep, 2, fillColor)
-
-		}
-
-	}
 
 	cycleDirection := 0
 
@@ -1797,6 +1769,48 @@ func (c *LineContents) Update() {
 			}
 
 		}
+
+	}
+
+}
+
+func (c *LineContents) DrawLines() {
+
+	if c.Task.LineStart != nil && (c.Task.LineStart.Visible || c.Task.Visible) {
+
+		rl.BeginMode2D(camera)
+
+		outlinesOn := c.Task.Board.Project.OutlineTasks.Checked
+		outlineColor := getThemeColor(GUI_INSIDE)
+		fillColor := getThemeColor(GUI_FONT_COLOR)
+
+		cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
+		cp.X += c.Task.Rect.Width / 2
+		cp.Y += c.Task.Rect.Height / 2
+
+		ep := rl.Vector2{c.Task.LineStart.Rect.X, c.Task.LineStart.Rect.Y}
+		ep.X += c.Task.LineStart.Rect.Width / 2
+		ep.Y += c.Task.LineStart.Rect.Height / 2
+
+		if c.Task.LineStart.LineBezier.Checked {
+
+			if outlinesOn {
+				rl.DrawLineBezier(cp, ep, 4, outlineColor)
+			}
+
+			rl.DrawLineBezier(cp, ep, 2, fillColor)
+
+		} else {
+
+			if outlinesOn {
+				rl.DrawLineEx(cp, ep, 4, outlineColor)
+			}
+
+			rl.DrawLineEx(cp, ep, 2, fillColor)
+
+		}
+
+		rl.EndMode2D()
 
 	}
 
@@ -2370,7 +2384,7 @@ func (c *TableContents) Draw() {
 				if value == 1 {
 					style.IconColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
 				} else if value == 2 {
-					style.IconColor = getThemeColor(GUI_NOTE_COLOR)
+					style.IconColor = getThemeColor(GUI_INSIDE_HIGHLIGHTED)
 				} else {
 					style.IconColor = getThemeColor(GUI_INSIDE)
 				}

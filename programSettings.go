@@ -39,6 +39,7 @@ type ProgramSettings struct {
 	Keybindings               *Keybindings
 	Theme                     string
 	DrawWindowBorder          bool
+	DownloadTimeout           int
 }
 
 func NewProgramSettings() ProgramSettings {
@@ -55,6 +56,7 @@ func NewProgramSettings() ProgramSettings {
 		GUIFontSizeMultiplier:  GUI_FONT_SIZE_200,
 		ScrollwheelSensitivity: 1,
 		Theme:                  "Sunlight", // Default theme
+		DownloadTimeout:        4,
 	}
 	return ps
 }

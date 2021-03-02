@@ -434,7 +434,7 @@ func profileCPU() {
 	pprof.StartCPUProfile(cpuProfFile)
 	currentProject.Log("CPU Profiling begun...")
 
-	time.AfterFunc(time.Second*2, func() {
+	time.AfterFunc(time.Second*10, func() {
 		cpuProfileStart = time.Time{}
 		pprof.StopCPUProfile()
 		currentProject.Log("CPU Profiling finished!")

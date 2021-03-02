@@ -321,7 +321,7 @@ func (tb *TableData) Update() {
 
 		tb.Task.SetPanel()
 
-		column := tb.Task.EditPanel.Columns[0]
+		column := tb.Task.Board.Project.TaskEditPanel.Columns[0]
 
 		row := column.Row()
 		row.Item(NewLabel("Columns:"), TASK_TYPE_TABLE).Name = "table_columns"
@@ -419,11 +419,11 @@ func (tb *TableData) Update() {
 			}
 		}
 
-		if addRow := tb.Task.EditPanel.FindItems("table_add_row")[0]; addRow.Element.(*Button).Clicked {
+		if addRow := tb.Task.Board.Project.TaskEditPanel.FindItems("table_add_row")[0]; addRow.Element.(*Button).Clicked {
 			tb.AddRow()
 		}
 
-		if addColumn := tb.Task.EditPanel.FindItems("table_add_column")[0]; addColumn.Element.(*Button).Clicked {
+		if addColumn := tb.Task.Board.Project.TaskEditPanel.FindItems("table_add_column")[0]; addColumn.Element.(*Button).Clicked {
 			tb.AddColumn()
 		}
 

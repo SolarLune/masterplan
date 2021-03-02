@@ -11,6 +11,7 @@ Completed:
 - Added basic support for non-latin / foreign character entry. Note that you have to specify a font that has the characters you'll be entering (as the default one only has latin characters).
 - Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
 - Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but it is now primarily simpler in the code-base.
+- Tables have been added. A Table is a grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
 - Downloading images / sounds are now multithreaded.
 - Modifiers (left ctrl, right ctrl) are now left / right agnostic.
 - Now ONLY Check-box Tasks display Sub-Tasks as contributing to their own completion, not any other completable Tasks.
@@ -25,9 +26,9 @@ Completed:
 - Themes are now global instead of per-Project.
 - Qutting MasterPlan by pressing the window's [X] now prompts for a quit.
 - MasterPlan now always confirms when quitting, not just when the current project has been modified.
+- Added a keyboard shortcut to quit MasterPlan (Ctrl+Q, by default).
 - Added an optional border around the window (specifically for borderless mode if you want a bit more flavor).
 - Added shadows for UI elements.
-- Added a keyboard shortcut to quit MasterPlan (Ctrl+Q, by default).
 - Map Task type background has been slightly improved, is now a bit transparent.
 - Various minor visual tweaks and smaller bug-fixes.
 - INTERNAL: Added a little darkness underneath the header for Maps.
@@ -47,7 +48,6 @@ Completed:
 - INTERNAL: Made sure the binding for stopping all sounds works.
 - INTERNAL: Added a new ImmediateIconButton function specifically for MultiButtonGroups
 - INTERNAL: Re-implement completable task-specific deadlines
-- Table Task Type - A grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
 - INTERNAL: Fixed Task Completion Date.
 - FIX: It's no longer possible to undo a project that has just been loaded.
 - The grid dot background is now slightly transparent.
@@ -84,15 +84,24 @@ Completed:
 - INTERNAL: Re-implemented sub-task bracketing.
 - INTERNAL: Review and re-implement PasteContents()
 - INTERNAL: Review and re-implement HandleDroppedFiles()
-
-REVIEW
-
 - INTERNAL: Lines aren't on top anymore.
+- INTERNAL: Test Timers going off
+- OPTIMIZATION: Cut down VRAM usage for Task editing considerably. This number can account for roughly 80% of the VRAM used for Tasks. (In testing, a plan that previously had 284 Tasks, most of which were Checkbox Tasks, used 1084mb of VRAM. Now it uses 204mb).
+- OPTIMIZATION: Text rendering for Notes is now rendered to a texture, which is then rendered to the screen. This increases VRAM usage for Notes specifically, but is faster than rendering text directly.
+- INTERNAL: Use one panel for every Task, rather than each one having its own edit panel, obvs
 - INTERNAL: Test project saving and loading - seems like there's some kind of crash that happens sometimes when loading? Might be good to spam LoadProject() to track it down
-- Test Timers going off
+- Sound Tasks now show the length of the sound and the current position of the playhead.
 
 ---- RELEASE
 
+- Re-implement progress bar behind timer
+- IMPLEMENT RL.UNLOADTEXTURE(), BECAUSE THIS VRAM MEMORY LEAK IS ANNOYING AS H*CK
+- Implement button to return all settings to default
+- Note renderering could use a grayscale texture for limited VRAM usage, as it's not necessary for Notes to be colored (for now)
+- The ability to copy a list and paste it as a list (this may be doable using the clipboard tool)
+- Make a video talking a bit about what MasterPlan is and why it's useful. It helps you think, it helps you create links between tasks, it allows you to complete things that need to be done, and it helps you to say no. 
+  This video could be accessible from the Steam forums, or from the MasterPlan menu.
+- Note: If you save a project in a newer version of MasterPlan, loading it in an older version should say something like "Are you sure? It might not work correctly."
 - INTERNAL: Project.Modified is set directly after loading a project for some reason
 - Optimize map image serialization by using bitwise operations and storing the array as a bitwise number
 - Add image filtering option, as you may not want it to be pixelly

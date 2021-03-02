@@ -112,12 +112,12 @@ type Task struct {
 	SubTasks        []*Task
 	gridPositions   []Position
 	Valid           bool
-	EditPanel       *Panel
 	LoadMediaButton *Button
 	UndoChange      bool
 	UndoCreation    bool
 	UndoDeletion    bool
 	Contents        Contents
+	ContentBank     map[int]Contents
 	MapImage        *MapImage
 	Whiteboard      *Whiteboard
 	TableData       *TableData
@@ -183,14 +183,10 @@ func NewTask(board *Board) *Task {
 		CompletionTimeLabel:          NewLabel("Completion time"),
 		LineBezier:                   NewCheckbox(0, 64, 32, 32),
 		LineEndings:                  []*Task{},
-		EditPanel:                    NewPanel(63, 64, 960/4*3, 560/4*3),
+		ContentBank:                  map[int]Contents{},
 	}
 
 	task.DailyDay.EnableOption(days[0])
-
-	task.EditPanel.AddColumn()
-
-	task.SetPanel()
 
 	task.DailyHour.Maximum = 23
 	task.DailyHour.Minimum = 0
@@ -240,7 +236,10 @@ func NewTask(board *Board) *Task {
 
 func (task *Task) SetPanel() {
 
-	column := task.EditPanel.Columns[0]
+	// We now just store a single Panel, which is shared amongst all Tasks, rather than creating one
+	// for each Task.
+
+	column := task.Board.Project.TaskEditPanel.Columns[0]
 
 	column.Clear()
 
@@ -403,12 +402,6 @@ func (task *Task) Clone() *Task {
 	copyData.ID = copyData.Board.Project.FirstFreeID()
 
 	copyData.ReceiveMessage(MessageTaskClose, nil) // We do this to recreate the resources for the Task, if necessary.
-
-	copyData.EditPanel = NewPanel(63, 64, 960/4*3, 560/4*3)
-
-	copyData.EditPanel.AddColumn()
-
-	copyData.SetPanel()
 
 	if task.MapImage != nil {
 		copyData.MapImage = NewMapImage(&copyData)
@@ -634,15 +627,7 @@ func (task *Task) Deserialize(jsonData string) {
 		task.Selected = getBool(`Selected`)
 	}
 
-	newType := getInt(`TaskType\.CurrentChoice`)
-
-	if newType != task.TaskType.CurrentChoice {
-		task.TaskType.CurrentChoice = newType
-		if task.Contents != nil {
-			task.Contents.Destroy()
-		}
-		task.CreateContents()
-	}
+	task.TaskType.CurrentChoice = getInt(`TaskType\.CurrentChoice`)
 
 	if task.Is(TASK_TYPE_TIMER) {
 
@@ -661,13 +646,6 @@ func (task *Task) Deserialize(jsonData string) {
 			task.DailyDay.CurrentChoices = getInt(`TimerDailyDaySpinner\.CurrentChoice`)
 			task.DailyHour.SetNumber(getInt(`TimerDailyHourSpinner\.Number`))
 			task.DailyMinute.SetNumber(getInt(`TimerDailyMinuteSpinner\.Number`))
-		}
-
-		// If the project is loading, we want to calculate the time left.
-		if task.Board.Project.Loading {
-			timerContents := NewTimerContents(task)
-			timerContents.CalculateTimeLeft()
-			task.Contents = timerContents
 		}
 
 	}
@@ -780,12 +758,9 @@ func (task *Task) Deserialize(jsonData string) {
 
 	}
 
-	// if task.SoundControl != nil {
-	// 	task.SoundControl.Paused = true
-	// 	if gjson.Get(jsonData, `SoundPaused`).Exists() {
-	// 		task.SoundControl.Paused = getBool(`SoundPaused`)
-	// 	}
-	// }
+	if task.Contents != nil {
+		task.Contents.ReceiveMessage(MessageTaskDeserialization)
+	}
 
 }
 
@@ -837,13 +812,11 @@ func (task *Task) Update() {
 		task.Position = task.Board.Project.RoundPositionToGrid(task.Position)
 	}
 
-	if task.Contents == nil {
-		task.CreateContents()
-	}
+	task.SetContents()
 
 	task.Contents.Update()
 
-	if task.Board.Project.BracketSubtasks.Checked {
+	if task.Board.Project.CurrentBoard() == task.Board && task.Board.Project.BracketSubtasks.Checked {
 
 		for _, subTask := range task.SubTasks {
 
@@ -851,15 +824,15 @@ func (task *Task) Update() {
 			quarter := float32(task.Board.Project.GridSize) / 4
 
 			lines := []rl.Vector2{
-				rl.Vector2{task.Rect.X - quarter, task.Rect.Y + half},
-				rl.Vector2{task.Rect.X - half, task.Rect.Y + half},
-				rl.Vector2{task.Rect.X - half, subTask.Rect.Y + half},
-				rl.Vector2{subTask.Rect.X - quarter, subTask.Rect.Y + half},
+				{task.Rect.X - quarter, task.Rect.Y + half},
+				{task.Rect.X - half, task.Rect.Y + half},
+				{task.Rect.X - half, subTask.Rect.Y + half},
+				{subTask.Rect.X - quarter, subTask.Rect.Y + half},
 			}
 
 			for i := 0; i < len(lines)-1; i++ {
 
-				selectionColor := getThemeColor(GUI_INSIDE)
+				selectionColor := getThemeColor(GUI_OUTLINE)
 
 				if task.IsComplete() {
 					selectionColor = getThemeColor(GUI_OUTLINE_HIGHLIGHTED)
@@ -969,6 +942,14 @@ func (task *Task) Draw() {
 
 }
 
+func (task *Task) UpperDraw() {
+
+	if line, ok := task.Contents.(*LineContents); ok {
+		line.DrawLines()
+	}
+
+}
+
 func (task *Task) CreateUndoState() {
 
 	if task.UndoChange && (!task.Is(TASK_TYPE_LINE) || task.LineStart == nil) {
@@ -1003,15 +984,18 @@ func (task *Task) PostDraw() {
 
 		prevType := task.TaskType.CurrentChoice
 
-		task.EditPanel.Columns[0].Mode = task.TaskType.CurrentChoice
+		taskEditPanel := task.Board.Project.TaskEditPanel
 
-		task.EditPanel.Update()
+		taskEditPanel.Columns[0].Mode = task.TaskType.CurrentChoice
+
+		taskEditPanel.Update()
 
 		if task.TaskType.CurrentChoice != prevType {
 			if task.Contents != nil {
 				task.Contents.Destroy()
 			}
-			task.CreateContents()
+			task.SetContents()
+			task.SetPanel() // We call this after creating contents because creating a Line task calls SetPanel()
 		}
 
 		// Per https://yourbasic.org/golang/last-day-month-date/, Golang's Dates automatically normalize, so to know how many days are in a month, get the
@@ -1019,7 +1003,7 @@ func (task *Task) PostDraw() {
 		lastDayOfMonth := time.Date(task.DeadlineYear.Number(), time.Month(task.DeadlineMonth.CurrentChoice+2), 0, 0, 0, 0, 0, time.Now().Location())
 		task.DeadlineDay.Maximum = lastDayOfMonth.Day()
 
-		if task.EditPanel.Exited {
+		if taskEditPanel.Exited {
 			task.ReceiveMessage(MessageTaskClose, nil)
 		}
 
@@ -1040,72 +1024,72 @@ func (task *Task) PostDraw() {
 
 		}
 
-		for _, element := range task.EditPanel.FindItems("task_deadline") {
+		for _, element := range taskEditPanel.FindItems("task_deadline") {
 			element.On = task.IsCompletable()
 		}
 
 		if task.Is(TASK_TYPE_TIMER) {
 
-			for _, element := range task.EditPanel.FindItems("timer_countdown") {
+			for _, element := range taskEditPanel.FindItems("timer_countdown") {
 				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_COUNTDOWN
 			}
 
-			for _, element := range task.EditPanel.FindItems("deadline_date") {
+			for _, element := range taskEditPanel.FindItems("deadline_date") {
 				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_DATE
 			}
 
-			for _, element := range task.EditPanel.FindItems("timer_daily") {
+			for _, element := range taskEditPanel.FindItems("timer_daily") {
 				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_DAILY
 			}
 
-			for _, element := range task.EditPanel.FindItems("timer_date") {
+			for _, element := range taskEditPanel.FindItems("timer_date") {
 				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_DATE
 			}
 
-			for _, element := range task.EditPanel.FindItems("timer_stopwatch") {
+			for _, element := range taskEditPanel.FindItems("timer_stopwatch") {
 				element.On = task.TimerMode.CurrentChoice == TIMER_TYPE_STOPWATCH
 			}
 
-			for _, element := range task.EditPanel.FindItems("timer_trigger") {
+			for _, element := range taskEditPanel.FindItems("timer_trigger") {
 				// Stopwatches don't have any triggering ability, naturally, as they don't "go off".
 				element.On = task.TimerMode.CurrentChoice != TIMER_TYPE_STOPWATCH
 			}
 
-			for _, element := range task.EditPanel.FindItems("timer_repeating") {
+			for _, element := range taskEditPanel.FindItems("timer_repeating") {
 				// Stopwatches don't have any repeating ability either, naturally. Same for deadlines, as they are one-off Timers.
 				element.On = task.TimerMode.CurrentChoice != TIMER_TYPE_STOPWATCH && task.TimerMode.CurrentChoice != TIMER_TYPE_DATE
 			}
 
 		} else {
 
-			for _, element := range task.EditPanel.FindItems("deadline_date") {
+			for _, element := range taskEditPanel.FindItems("deadline_date") {
 				element.On = task.IsCompletable() && task.DeadlineOn.Checked
 			}
 
 		}
 
-		if shiftButton := task.EditPanel.FindItems("shift up")[0]; shiftButton.Element.(*Button).Clicked {
+		if shiftButton := taskEditPanel.FindItems("shift up")[0]; shiftButton.Element.(*Button).Clicked {
 			if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
 				task.MapImage.Shift(0, -1)
 			} else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
 				task.Whiteboard.Shift(0, -8)
 			}
 		}
-		if shiftButton := task.EditPanel.FindItems("shift right")[0]; shiftButton.Element.(*Button).Clicked {
+		if shiftButton := taskEditPanel.FindItems("shift right")[0]; shiftButton.Element.(*Button).Clicked {
 			if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
 				task.MapImage.Shift(1, 0)
 			} else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
 				task.Whiteboard.Shift(8, 0)
 			}
 		}
-		if shiftButton := task.EditPanel.FindItems("shift down")[0]; shiftButton.Element.(*Button).Clicked {
+		if shiftButton := taskEditPanel.FindItems("shift down")[0]; shiftButton.Element.(*Button).Clicked {
 			if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
 				task.MapImage.Shift(0, 1)
 			} else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
 				task.Whiteboard.Shift(0, 8)
 			}
 		}
-		if shiftButton := task.EditPanel.FindItems("shift left")[0]; shiftButton.Element.(*Button).Clicked {
+		if shiftButton := taskEditPanel.FindItems("shift left")[0]; shiftButton.Element.(*Button).Clicked {
 			if task.Is(TASK_TYPE_MAP) && task.MapImage != nil {
 				task.MapImage.Shift(-1, 0)
 			} else if task.Is(TASK_TYPE_WHITEBOARD) && task.Whiteboard != nil {
@@ -1115,10 +1099,10 @@ func (task *Task) PostDraw() {
 
 		if task.Whiteboard != nil {
 
-			if invert := task.EditPanel.FindItems("invert")[0]; invert.Element.(*Button).Clicked {
+			if invert := taskEditPanel.FindItems("invert")[0]; invert.Element.(*Button).Clicked {
 				task.Whiteboard.Invert()
 			}
-			if clear := task.EditPanel.FindItems("clear")[0]; clear.Element.(*Button).Clicked {
+			if clear := taskEditPanel.FindItems("clear")[0]; clear.Element.(*Button).Clicked {
 				task.Whiteboard.Clear()
 			}
 
@@ -1130,35 +1114,44 @@ func (task *Task) PostDraw() {
 
 }
 
-func (task *Task) CreateContents() {
+func (task *Task) SetContents() {
 
-	switch task.TaskType.CurrentChoice {
+	// This has to be here rather than in NewLineContents because Task.CreateLineEnding()
+	// calls NewLineContents(), so that would be a recursive loop.
+	if task.Is(TASK_TYPE_LINE) && len(task.LineEndings) == 0 && task.LineStart == nil {
+		task.CreateLineEnding()
+	}
 
-	case TASK_TYPE_TABLE:
-		task.Contents = NewTableContents(task)
-	case TASK_TYPE_IMAGE:
-		task.Contents = NewImageContents(task)
-	case TASK_TYPE_SOUND:
-		task.Contents = NewSoundContents(task)
-	case TASK_TYPE_MAP:
-		task.Contents = NewMapContents(task)
-	case TASK_TYPE_WHITEBOARD:
-		task.Contents = NewWhiteboardContents(task)
-	case TASK_TYPE_TIMER:
-		task.Contents = NewTimerContents(task)
-	case TASK_TYPE_LINE:
-		// This has to be here rather than in NewLineContents because Task.CreateLineEnding()
-		// calls NewLineContents(), so that would be a recursive loop.
-		if len(task.LineEndings) == 0 && task.LineStart == nil {
-			task.CreateLineEnding()
+	if content, ok := task.ContentBank[task.TaskType.CurrentChoice]; ok {
+		task.Contents = content
+	} else {
+
+		switch task.TaskType.CurrentChoice {
+
+		case TASK_TYPE_TABLE:
+			task.Contents = NewTableContents(task)
+		case TASK_TYPE_IMAGE:
+			task.Contents = NewImageContents(task)
+		case TASK_TYPE_SOUND:
+			task.Contents = NewSoundContents(task)
+		case TASK_TYPE_MAP:
+			task.Contents = NewMapContents(task)
+		case TASK_TYPE_WHITEBOARD:
+			task.Contents = NewWhiteboardContents(task)
+		case TASK_TYPE_TIMER:
+			task.Contents = NewTimerContents(task)
+		case TASK_TYPE_LINE:
+			task.Contents = NewLineContents(task)
+		case TASK_TYPE_NOTE:
+			task.Contents = NewNoteContents(task)
+		case TASK_TYPE_PROGRESSION:
+			task.Contents = NewProgressionContents(task)
+		case TASK_TYPE_BOOLEAN:
+			task.Contents = NewCheckboxContents(task)
+
 		}
-		task.Contents = NewLineContents(task)
-	case TASK_TYPE_NOTE:
-		task.Contents = NewNoteContents(task)
-	case TASK_TYPE_PROGRESSION:
-		task.Contents = NewProgressionContents(task)
-	case TASK_TYPE_BOOLEAN:
-		task.Contents = NewCheckboxContents(task)
+
+		task.ContentBank[task.TaskType.CurrentChoice] = task.Contents
 
 	}
 
@@ -1250,7 +1243,6 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 		if task.LineStart != nil {
 			task.LineStart.ReceiveMessage(MessageDoubleClick, nil)
 		} else {
-			// } else if (!task.Is(TASK_TYPE_MAP) || task.MapImage == nil || !task.MapImage.Editing) && (!task.Is(TASK_TYPE_WHITEBOARD) || task.Whiteboard == nil || !task.Whiteboard.Editing) {
 
 			// We have to consume after double-clicking so you don't click outside of the new panel and exit it immediately
 			// or actuate a GUI element accidentally. HOWEVER, we want it here because double-clicking might not actually
@@ -1258,12 +1250,12 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			ConsumeMouseInput(rl.MouseLeftButton)
 
 			task.Open = true
+			// We call SetPanel() here specifically because there's no need to set the panel before opening, but also because
+			// doing so on Task creation alters which properties of which Task are being changed if another Task is created
+			// during the editing process (like if you switch Task Type to Line, and a new Line Ending needs to be created).
+			task.SetPanel()
 			task.Board.Project.TaskOpen = true
 			task.Dragging = false
-
-			// 	if task.Board.Project.TaskEditRect.Width != 0 && task.Board.Project.TaskEditRect.Height != 0 {
-			// 		task.EditPanel.Rect = task.Board.Project.TaskEditRect
-			// 	}
 
 			if task.Contents != nil {
 				task.Contents.Update()
@@ -1275,7 +1267,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 
 		if task.Open {
 
-			task.Board.Project.TaskEditRect = task.EditPanel.Rect
+			task.Board.Project.TaskEditRect = task.Board.Project.TaskEditPanel.Rect
 
 			task.Open = false
 			task.Board.Project.TaskOpen = false
@@ -1343,7 +1335,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else if message == MessageTaskRestore {
 
 		if task.Contents == nil {
-			task.CreateContents()
+			task.SetContents()
 		}
 
 		if !task.Is(TASK_TYPE_LINE) || task.LineStart == nil {
@@ -1368,21 +1360,20 @@ func (task *Task) CreateLineEnding() *Task {
 	task.Board.UndoHistory.On = false
 
 	ending := task.Board.CreateNewTask()
-	lineContents := NewLineContents(ending)
 
 	ending.Position = task.Position
 	ending.Position.X += 32
 	ending.Rect.X = ending.Position.X
 	ending.Rect.Y = ending.Position.Y
 	ending.TaskType.CurrentChoice = TASK_TYPE_LINE
-	ending.Contents = lineContents
 	ending.LineStart = task
 	task.LineEndings = append(task.LineEndings, ending)
 
-	ending.Board.UndoHistory.On = true
+	lineContents := NewLineContents(ending)
+	ending.ContentBank[TASK_TYPE_LINE] = lineContents
+	ending.Contents = lineContents
 
-	// We're going ahead and creating an UndoState here like normal, but Line Endings don't actually
-	// get serialized and deserialized. This is redirected in UndoHistory.Capture().
+	ending.Board.UndoHistory.On = true
 
 	return ending
 
