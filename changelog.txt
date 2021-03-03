@@ -1,5 +1,14 @@
 -------
 
+v0.7.0-1
+
+-------
+
+FIX: Lines no longer stop the selection box from showing.
+FIX: Switching from Table to another Task type and back no longer crashes.
+
+-------
+
 v0.7.0
 
 -------
@@ -38,7 +47,8 @@ Also, there were some changes to keyboard shortcuts. Please check them after loa
 [*] Adding shortcuts for incrementing and decrementing Progression Tasks.
 [*] Triggering Checkbox Tasks that have SubTasks will now trigger those SubTasks.
 [*] FIX?: Incrementing a Progression Task's current value no longer increases the maximum if they're the same.
-[*] Timers no longer pause or reset when adjusting their values.
+[*] Timers no longer pause when adjusting their values.
+[*] Count-down timers can't be started if their value is 0.
 [*] FIX: It's no longer possible to undo a project that has just been loaded.
 [*] The grid dot background is now slightly transparent.
 [*] Added rebindable shortcuts for previously hardcoded window-related functions (window size setting, fullscreen, showing FPS, taking a screenshot).

@@ -1798,8 +1798,6 @@ func (c *LineContents) DrawLines() {
 
 	if c.Task.LineStart != nil && (c.Task.LineStart.Visible || c.Task.Visible) {
 
-		rl.BeginMode2D(camera)
-
 		outlinesOn := c.Task.Board.Project.OutlineTasks.Checked
 		outlineColor := getThemeColor(GUI_INSIDE)
 		fillColor := getThemeColor(GUI_FONT_COLOR)
@@ -1829,8 +1827,6 @@ func (c *LineContents) DrawLines() {
 			rl.DrawLineEx(cp, ep, 2, fillColor)
 
 		}
-
-		rl.EndMode2D()
 
 	}
 

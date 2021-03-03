@@ -1009,6 +1009,8 @@ func (task *Task) PostDraw() {
 
 			task.SetPanel() // We call this after creating contents because creating a Line task calls SetPanel()
 
+			task.Contents.ReceiveMessage(MessageDoubleClick) // We call this so that Tables can know to re-set the Panel
+
 		}
 
 		// Per https://yourbasic.org/golang/last-day-month-date/, Golang's Dates automatically normalize, so to know how many days are in a month, get the

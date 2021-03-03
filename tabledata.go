@@ -386,11 +386,11 @@ func (tb *TableData) Update() {
 			}
 		}
 
-		if addRow := tb.Task.Board.Project.TaskEditPanel.FindItems("table_add_row")[0]; addRow.Element.(*Button).Clicked {
+		if addRow := tb.Task.Board.Project.TaskEditPanel.FindItems("table_add_row"); len(addRow) > 0 && addRow[0].Element.(*Button).Clicked {
 			tb.AddRow()
 		}
 
-		if addColumn := tb.Task.Board.Project.TaskEditPanel.FindItems("table_add_column")[0]; addColumn.Element.(*Button).Clicked {
+		if addColumn := tb.Task.Board.Project.TaskEditPanel.FindItems("table_add_column"); len(addColumn) > 0 && addColumn[0].Element.(*Button).Clicked {
 			tb.AddColumn()
 		}
 
