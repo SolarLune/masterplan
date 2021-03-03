@@ -1135,7 +1135,7 @@ func (task *Task) SetContents() {
 
 	// This has to be here rather than in NewLineContents because Task.CreateLineEnding()
 	// calls NewLineContents(), so that would be a recursive loop.
-	if task.Is(TASK_TYPE_LINE) && len(task.LineEndings) == 0 && task.LineStart == nil {
+	if task.Valid && task.Is(TASK_TYPE_LINE) && len(task.LineEndings) == 0 && task.LineStart == nil {
 		task.CreateLineEnding()
 	}
 
@@ -1324,6 +1324,10 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 	} else if message == MessageNumbering {
 		task.SetPrefix()
 	} else if message == MessageDelete {
+
+		if task.LineStart != nil && len(task.LineStart.LineEndings) == 1 {
+			task.Board.DeleteTask(task.LineStart)
+		}
 
 		// We remove the Task from the grid but not change the GridPositions list because undos need to
 		// re-place the Task at the original position.

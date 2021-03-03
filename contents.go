@@ -1899,7 +1899,17 @@ func (c *LineContents) Destroy() {
 
 }
 
-func (c *LineContents) ReceiveMessage(msg string) {}
+func (c *LineContents) ReceiveMessage(msg string) {
+
+	if msg == MessageTaskDeserialization {
+
+		if c.Task.LineStart == nil && !c.Task.Is(TASK_TYPE_LINE) {
+			c.Destroy()
+		}
+
+	}
+
+}
 
 type MapContents struct {
 	Task     *Task
