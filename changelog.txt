@@ -6,6 +6,9 @@ v0.7.0
 
 MASSIVE update. Huge rewrite of the interior of MasterPlan; still tons of work to do.
 
+NOTE: It would be wise to back up your plans prior to loading them in the new version of MasterPlan, just to ensure no data is lost.
+Also, there were some changes to keyboard shortcuts. Please check them after loading MasterPlan up again.
+
 - Added basic support for non-latin / foreign character entry. Note that you have to specify a font that has the characters you'll be entering (as the default one only has latin characters).
 - Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
 - Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but it is now primarily simpler in the code-base.

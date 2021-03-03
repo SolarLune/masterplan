@@ -99,6 +99,8 @@ Completed:
 
 ---- RELEASE
 
+- Remove Project.RetrieveResource()?
+- Implement text displaying better for fonts of different size; seems like they rarely line up properly 
 - Re-implement progress bar behind timer
 - IMPLEMENT RL.UNLOADTEXTURE(), BECAUSE THIS VRAM MEMORY LEAK IS ANNOYING AS H*CK
 - Implement button to return all settings to default

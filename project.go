@@ -182,17 +182,18 @@ type Project struct {
 	LogOn               bool
 	LoadRecentDropdown  *DropdownMenu
 
-	SearchedTasks     []*Task
-	FocusedSearchTask int
-	Searchbar         *Textbox
-	StatusBar         rl.Rectangle
-	GUI_Icons         rl.Texture2D
-	Patterns          rl.Texture2D
-	ShortcutKeyTimer  int
-	PreviousTaskType  int
-	Resources         map[string]*Resource
-	Modified          bool
-	Locked            bool
+	SearchedTasks        []*Task
+	FocusedSearchTask    int
+	Searchbar            *Textbox
+	StatusBar            rl.Rectangle
+	GUI_Icons            rl.Texture2D
+	Patterns             rl.Texture2D
+	ShortcutKeyTimer     int
+	PreviousTaskType     int
+	Resources            map[string]*Resource
+	DownloadingResources map[string]*Resource
+	Modified             bool
+	Locked               bool
 
 	PopupPanel      *Panel
 	PopupAction     string
@@ -215,19 +216,20 @@ func NewProject() *Project {
 	searchBar.AllowNewlines = false
 
 	project := &Project{
-		FilePath:           "",
-		GridSize:           16,
-		ZoomLevel:          3,
-		CurrentZoomLevel:   3,
-		CameraPan:          rl.Vector2{0, 0},
-		Searchbar:          searchBar,
-		StatusBar:          rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
-		GUI_Icons:          rl.LoadTexture(LocalPath("assets", "gui_icons.png")),
-		SampleBuffer:       512,
-		Patterns:           rl.LoadTexture(LocalPath("assets", "patterns.png")),
-		Resources:          map[string]*Resource{},
-		LoadRecentDropdown: NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
-		UndoFade:           gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
+		FilePath:             "",
+		GridSize:             16,
+		ZoomLevel:            3,
+		CurrentZoomLevel:     3,
+		CameraPan:            rl.Vector2{0, 0},
+		Searchbar:            searchBar,
+		StatusBar:            rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
+		GUI_Icons:            rl.LoadTexture(LocalPath("assets", "gui_icons.png")),
+		SampleBuffer:         512,
+		Patterns:             rl.LoadTexture(LocalPath("assets", "patterns.png")),
+		Resources:            map[string]*Resource{},
+		DownloadingResources: map[string]*Resource{},
+		LoadRecentDropdown:   NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
+		UndoFade:             gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
 
 		PopupPanel:    NewPanel(0, 0, 480, 270),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
@@ -1181,6 +1183,16 @@ func (project *Project) MousingOver() string {
 }
 
 func (project *Project) Update() {
+
+	// We have to call ParseData() manually here instead of in a goroutine or as a grab.Hook in a request callback because rl.LoadTexture requires being
+	// called on the thread that OpenGL is operating on / has the context for. Otherwise it panics~
+	for key, resource := range project.DownloadingResources {
+		if resource.DownloadResponse.IsComplete() {
+			resource.ParseData()
+			delete(project.DownloadingResources, key)
+			break
+		}
+	}
 
 	project.ScreenSize.X = float32(rl.GetScreenWidth())
 	project.ScreenSize.Y = float32(rl.GetScreenHeight())
@@ -2980,15 +2992,7 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 				if possibleError != nil {
 					project.Log("ERROR: Could not initiate download for [%s]\nError : [%s]\nAre you sure the path or URL is correct?", url.String(), possibleError.Error())
 				} else {
-
 					loadedResource = project.RegisterResource(resourcePath, filename, resp)
-
-					// After the download is complete, we want to parse the data
-					req.AfterCopy = func(resp *grab.Response) error {
-						loadedResource.ParseData()
-						return nil
-					}
-
 				}
 
 			}

@@ -77,11 +77,13 @@ func (project *Project) RegisterResource(resourcePath, localFilepath string, res
 
 	if response != nil {
 
+		project.DownloadingResources[resourcePath] = res
+
 		// The first few bytes of a file indicates the kind of file it is; according to mimetype's internals, it's 3072 (at max, probably).
+		// We wait for a fe4w seconds to at least let that download before attempting to detect the mime type below
 		for !response.IsComplete() && response.BytesComplete() < 3072 {
 			time.Sleep(time.Millisecond * 100)
 		}
-		time.Sleep(time.Millisecond * 100)
 
 	}
 
