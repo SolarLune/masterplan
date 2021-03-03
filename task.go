@@ -479,10 +479,6 @@ func (task *Task) Serialize() string {
 	jsonData, _ = sjson.Set(jsonData, `Selected`, task.Selected)
 	jsonData, _ = sjson.Set(jsonData, `TaskType\.CurrentChoice`, task.TaskType.CurrentChoice)
 
-	// if task.Board.Project.SaveSoundsPlaying.Checked {
-	// 	jsonData, _ = sjson.Set(jsonData, `SoundPaused`, task.SoundControl != nil && task.SoundControl.Paused)
-	// }
-
 	if task.Is(TASK_TYPE_TIMER) {
 
 		jsonData, _ = sjson.Set(jsonData, `TimerMode\.CurrentChoice`, task.TimerMode.CurrentChoice)

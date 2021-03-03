@@ -99,7 +99,6 @@ type Project struct {
 	ShowIcons                   *Checkbox
 	PulsingTaskSelection        *Checkbox
 	AutoSave                    *Checkbox
-	SaveSoundsPlaying           *Checkbox
 	OutlineTasks                *Checkbox
 	ColorThemeSpinner           *Spinner
 	BracketSubtasks             *Checkbox
@@ -243,7 +242,6 @@ func NewProject() *Project {
 		NumberTopLevel:              NewCheckbox(0, 0, 32, 32),
 		PulsingTaskSelection:        NewCheckbox(0, 0, 32, 32),
 		AutoSave:                    NewCheckbox(0, 0, 32, 32),
-		SaveSoundsPlaying:           NewCheckbox(0, 0, 32, 32),
 		SampleRate:                  NewSpinner(0, 0, 192, 32, "22050", "44100", "48000", "88200", "96000"),
 		BracketSubtasks:             NewCheckbox(0, 0, 32, 32),
 		LockProject:                 NewCheckbox(0, 0, 32, 32),
@@ -444,10 +442,6 @@ func NewProject() *Project {
 	row.Item(NewLabel("Project Samplerate:"), SETTINGS_AUDIO)
 	row.Item(project.SampleRate, SETTINGS_AUDIO)
 
-	row = column.Row()
-	row.Item(NewLabel("Save Sound Playback:"), SETTINGS_AUDIO)
-	row.Item(project.SaveSoundsPlaying, SETTINGS_AUDIO)
-
 	// Keyboard
 
 	column.DefaultVerticalSpacing = 24
@@ -521,7 +515,7 @@ func NewProject() *Project {
 	row.Item(project.SaveWindowPosition, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Automatically reload changed\nlocal resources (experimental!):"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Automatically Reload Changed\nLocal Resources:"), SETTINGS_GLOBAL)
 	row.Item(project.AutoReloadResources, SETTINGS_GLOBAL)
 
 	row = column.Row()
@@ -785,7 +779,6 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `GridSize`, project.GridSize)
 			data, _ = sjson.Set(data, `SampleRate`, project.SampleRate.ChoiceAsInt())
 			data, _ = sjson.Set(data, `SampleBuffer`, project.SampleBuffer)
-			data, _ = sjson.Set(data, `SaveSoundsPlaying`, project.SaveSoundsPlaying.Checked)
 			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.Number())
 			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.Number())
 			data, _ = sjson.Set(data, `UndoMaxSteps`, project.MaxUndoSteps.Number())
@@ -923,7 +916,6 @@ func LoadProject(filepath string) *Project {
 			project.NumberTopLevel.Checked = getBool(`NumberTopLevel`)
 			project.PulsingTaskSelection.Checked = getBool(`PulsingTaskSelection`)
 			project.AutoSave.Checked = getBool(`AutoSave`)
-			project.SaveSoundsPlaying.Checked = getBool(`SaveSoundsPlaying`)
 			project.BoardIndex = getInt(`BoardIndex`)
 			project.LockProject.Checked = getBool(`LockProject`)
 			project.AutomaticBackupInterval.SetNumber(getInt(`BackupInterval`))
@@ -1191,6 +1183,14 @@ func (project *Project) Update() {
 			resource.ParseData()
 			delete(project.DownloadingResources, key)
 			break
+		}
+	}
+
+	// If auto-reload resources is checked, then we can loop through each resource and attempt to load it; LoadResource() will reload the resource if it
+	// has changed.
+	if project.AutoReloadResources.Checked {
+		for key := range project.Resources {
+			project.LoadResource(key)
 		}
 	}
 
@@ -2957,7 +2957,6 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 				// We have to check if the size is greater than 0 because it's possible we're seeing the file before it's been written fully to disk;
 				if stats.Size() > 0 && (!stats.ModTime().Equal(loadedResource.ModTime) || stats.Size() != loadedResource.Size) {
 					loadedResource.Destroy()
-					delete(project.Resources, resourcePath)
 					loadedResource = project.LoadResource(resourcePath) // Force reloading if the file is outdated
 					loadedResource.ParseData()
 				}

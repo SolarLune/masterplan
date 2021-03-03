@@ -22,6 +22,7 @@ const (
 	RESOURCE_STATE_DOWNLOADING = iota
 	RESOURCE_STATE_LOADING
 	RESOURCE_STATE_READY
+	RESOURCE_STATE_DELETED
 )
 
 type Resource struct {
@@ -49,6 +50,8 @@ type Resource struct {
 	DataParsed chan bool
 
 	Project *Project
+
+	Valid bool
 }
 
 func (project *Project) RegisterResource(resourcePath, localFilepath string, response *grab.Response) *Resource {
@@ -71,6 +74,7 @@ func (project *Project) RegisterResource(resourcePath, localFilepath string, res
 		DownloadResponse: response,
 		Project:          project,
 		DataParsed:       make(chan bool, 1),
+		Valid:            true,
 	}
 
 	project.Resources[resourcePath] = res
@@ -173,6 +177,10 @@ func (res *Resource) MimeIsAudio() bool {
 }
 
 func (res *Resource) State() int {
+
+	if !res.Valid {
+		return RESOURCE_STATE_DELETED
+	}
 
 	if res.DownloadResponse != nil && !res.DownloadResponse.IsComplete() {
 		return RESOURCE_STATE_DOWNLOADING
@@ -283,5 +291,9 @@ func (res *Resource) Destroy() {
 	// if res.DownloadResponse != nil {
 	// 	os.Remove(res.LocalFilepath)
 	// }
+
+	delete(res.Project.Resources, res.ResourcePath)
+
+	res.Valid = false
 
 }

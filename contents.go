@@ -699,7 +699,7 @@ func (c *ImageContents) LoadResource() {
 
 	fp := c.Task.FilePathTextbox.Text()
 
-	if !c.Task.Open && (c.LoadedPath != fp || c.Task.Board.Project.AutoReloadResources.Checked) {
+	if !c.Task.Open && c.LoadedPath != fp {
 
 		c.LoadedPath = fp
 
@@ -714,54 +714,61 @@ func (c *ImageContents) LoadResource() {
 
 	}
 
-	if c.Resource != nil && c.Resource.State() == RESOURCE_STATE_READY {
+	if c.Resource != nil {
 
-		if c.Resource.IsGif() && (c.GifPlayer == nil || c.GifPlayer.Animation != c.Resource.Gif()) {
-			c.GifPlayer = NewGifPlayer(c.Resource.Gif())
-		}
+		if !c.Resource.Valid {
+			c.Resource = nil
+			c.LoadedPath = ""
+		} else if c.Resource.State() == RESOURCE_STATE_READY {
 
-		if c.ResetSize {
-
-			c.ResetSize = false
-
-			valid := true
-
-			width := float32(0)
-			height := float32(0)
-
-			if c.Resource.IsTexture() {
-				width = float32(c.Resource.Texture().Width)
-				height = float32(c.Resource.Texture().Height)
-			} else if c.Resource.IsGif() {
-				width = c.Resource.Gif().Width
-				height = c.Resource.Gif().Height
-			} else {
-				valid = false
+			if c.Resource.IsGif() && (c.GifPlayer == nil || c.GifPlayer.Animation != c.Resource.Gif()) {
+				c.GifPlayer = NewGifPlayer(c.Resource.Gif())
 			}
 
-			if valid {
+			if c.ResetSize {
 
-				yAspectRatio := float32(height / width)
-				xAspectRatio := float32(width / height)
+				c.ResetSize = false
 
-				coverage := c.Task.Board.Project.ScreenSize.X / camera.Zoom * 0.25
+				valid := true
 
-				if width > height {
-					c.Task.DisplaySize.X = coverage
-					c.Task.DisplaySize.Y = coverage * yAspectRatio
+				width := float32(0)
+				height := float32(0)
+
+				if c.Resource.IsTexture() {
+					width = float32(c.Resource.Texture().Width)
+					height = float32(c.Resource.Texture().Height)
+				} else if c.Resource.IsGif() {
+					width = c.Resource.Gif().Width
+					height = c.Resource.Gif().Height
 				} else {
-					c.Task.DisplaySize.X = coverage * xAspectRatio
-					c.Task.DisplaySize.Y = coverage
+					valid = false
 				}
 
-			} else {
-				c.Resource = nil
-				c.Task.Board.Project.Log("Cannot load file: [%s]\nAre you sure it's an image file?", c.Task.FilePathTextbox.Text())
+				if valid {
+
+					yAspectRatio := float32(height / width)
+					xAspectRatio := float32(width / height)
+
+					coverage := c.Task.Board.Project.ScreenSize.X / camera.Zoom * 0.25
+
+					if width > height {
+						c.Task.DisplaySize.X = coverage
+						c.Task.DisplaySize.Y = coverage * yAspectRatio
+					} else {
+						c.Task.DisplaySize.X = coverage * xAspectRatio
+						c.Task.DisplaySize.Y = coverage
+					}
+
+				} else {
+					c.Resource = nil
+					c.Task.Board.Project.Log("Cannot load file: [%s]\nAre you sure it's an image file?", c.Task.FilePathTextbox.Text())
+				}
+
+				c.Task.Board.TaskChanged = true
+
+				c.Task.DisplaySize = c.Task.Board.Project.RoundPositionToGrid(c.Task.DisplaySize)
+
 			}
-
-			c.Task.Board.TaskChanged = true
-
-			c.Task.DisplaySize = c.Task.Board.Project.RoundPositionToGrid(c.Task.DisplaySize)
 
 		}
 
@@ -1073,7 +1080,7 @@ func (c *SoundContents) LoadResource() {
 
 	fp := c.Task.FilePathTextbox.Text()
 
-	if !c.Task.Open && (c.LoadedPath != fp || c.Task.Board.Project.AutoReloadResources.Checked) {
+	if !c.Task.Open && c.LoadedPath != fp {
 
 		c.LoadedPath = fp
 
@@ -1095,32 +1102,45 @@ func (c *SoundContents) LoadResource() {
 
 	}
 
-	if !c.LoadedResource && c.Resource != nil && c.Resource.State() == RESOURCE_STATE_READY {
+	if c.Resource != nil {
 
-		if c.Resource.IsAudio() {
+		if !c.Resource.Valid {
 
-			stream, format, _ := c.Resource.Audio()
-
-			c.SoundStream = stream
-
-			c.SoundSampler = beep.Resample(1, format.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), c.SoundStream)
-
-			c.SoundVolume.Streamer = c.SoundSampler
-
-			c.SoundControl = &beep.Ctrl{Streamer: c.SoundVolume, Paused: true}
-
-			speaker.Play(beep.Seq(c.SoundControl, beep.Callback(func() {
-				c.FinishedPlayback = true
-			})))
-
-		} else {
-			c.Task.Board.Project.Log("Cannot load file: [%s]\nAre you sure it's a sound file?", c.Task.FilePathTextbox.Text())
 			c.Resource = nil
+			c.LoadedPath = ""
+			if c.SoundControl != nil {
+				c.SoundControl.Paused = true
+				c.SoundStream.Close()
+			}
+
+		} else if !c.LoadedResource && c.Resource.State() == RESOURCE_STATE_READY {
+
+			if c.Resource.IsAudio() {
+
+				stream, format, _ := c.Resource.Audio()
+
+				c.SoundStream = stream
+
+				c.SoundSampler = beep.Resample(1, format.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), c.SoundStream)
+
+				c.SoundVolume.Streamer = c.SoundSampler
+
+				c.SoundControl = &beep.Ctrl{Streamer: c.SoundVolume, Paused: true}
+
+				speaker.Play(beep.Seq(c.SoundControl, beep.Callback(func() {
+					c.FinishedPlayback = true
+				})))
+
+			} else {
+				c.Task.Board.Project.Log("Cannot load file: [%s]\nAre you sure it's a sound file?", c.Task.FilePathTextbox.Text())
+				c.Resource = nil
+			}
+
+			c.LoadedResource = true
+
+			c.Task.UndoChange = true
+
 		}
-
-		c.LoadedResource = true
-
-		c.Task.UndoChange = true
 
 	}
 

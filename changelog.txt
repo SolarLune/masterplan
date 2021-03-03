@@ -10,6 +10,7 @@ NOTE: It would be wise to back up your plans prior to loading them in the new ve
 Also, there were some changes to keyboard shortcuts. Please check them after loading MasterPlan up again.
 
 [*] Added basic support for non-latin / foreign character entry. Note that you have to specify a font that has the characters you'll be entering (as the default one only has latin characters).
+[*] Tasks now open, move, and expand more smoothly.
 [*] Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
 [*] Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but it is now primarily simpler in the code-base.
 [*] Tables have been added. A Table is a grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
@@ -56,18 +57,20 @@ Also, there were some changes to keyboard shortcuts. Please check them after loa
 [*] The option to reset images now is in the Task Edit panel.
 [*] FIX: GIF Animation has been reviewed and fixed up. Animation frames should now be displayed more accurately (though not perfect in all cases, yet). The timing has also been tweaked to properly display GIFs that lack timing information and rely on default timings.
 [*] Errors in the message log at the top-left now show up as red in MasterPlan.
-[*] When Project resource auto-reloading is on, MasterPlan will reload a file if the size OR modified time differs from what is cached in the project. (Previously, this was just based on the file being modified after the time when the resource was loaded.)
+[*] When Project resource auto-reloading is on, MasterPlan will now reload a file if the size OR modified time differs from what is cached in the project. (Previously, this was just based on the file being modified after the time when the resource was loaded.)
+[*] Fixed up image and sound auto-reloading. It's no longer experimental, though it's still defaulted to being off.
 [*] Optimized general rendering of Tasks.
 [*] FIX: Newlines sometimes being overwritten in Textboxes.
 [*] FIX: Slight basic improvements with regards to textbox usability.
 [*] OPTIMIZATION: Cut down VRAM usage for Task editing considerably. This number can account for roughly 80% of the VRAM used for Tasks. (In testing, a plan that previously had 284 Tasks, most of which were Checkbox Tasks, used 1084mb of VRAM. Now it uses 204mb).
 [*] OPTIMIZATION: Text rendering for Notes is now rendered to a texture, which is then rendered to the screen. This increases VRAM usage for Notes specifically, but is faster than rendering text directly to the screen. Work still remains to be done in this area, as there are still VRAM leaks in this regard.
 [*] Sound Tasks now show the length of the sound and the current position of the playhead.
-[*] Subtask bracketing tweaked to use different colors.
+[*] Subtask bracketing tweaked to use different colors and is now slightly thicker.
 [*] FIX: Whether timers are playing is now properly saved in the project plan.
 [*] Adding some basic logging to the project loading process to help diagnose any issues with it.
 [*] Map icon changed from a map to a thumbtack pin.
 [*] Cloudy theme outline darkened to increase readability.
+[*] Removing option to save sounds playing in the project settings; feels like a setting there wasn't really a use case for.
 
 -------
 
