@@ -806,30 +806,22 @@ func (project *Project) Save(backup bool) {
 
 			data, _ = sjson.SetRaw(data, `Tasks`, taskData) // taskData is already properly encoded and formatted JSON
 
-			f, err := os.Create(project.FilePath)
-			if err != nil {
+			data = gjson.Parse(data).Get("@pretty").String() // Pretty print it so it's visually nice in the .plan file.
+
+			if err := ioutil.WriteFile(project.FilePath, []byte(data), 0); err != nil {
 				project.Log("ERROR: Could not create save file: ", err.Error())
-			} else {
-				defer f.Close()
-
-				data = gjson.Parse(data).Get("@pretty").String() // Pretty print it so it's visually nice in the .plan file.
-
-				f.Write([]byte(data))
-				programSettings.Save()
-
-				err = f.Sync() // Want to make sure the file is written
-				if err != nil {
-					project.Log("ERROR: Can't write file to system: ", err.Error())
-					success = false
-				}
-
+				success = false
 			}
+
+			// Previously, I opened the file myself and called file.Sync(), but that makes autosaving stuttery, so I'm moving away
+			// from that to writing the file with ioutil and not calling Sync() explicitly. This makes it easier and simpler.
 
 		} else {
 			success = false
+			project.Log("WARNING: Auto-save unsuccessful. The Project has to have been manually saved once first.")
 		}
 
-		if success {
+		if success && !project.AutoSave.Checked {
 			if !backup {
 				project.Log("Save successful.")
 				// Modified flag only gets cleared on manual saves, not automatic backups
@@ -837,8 +829,6 @@ func (project *Project) Save(backup bool) {
 			} else {
 				project.Log("Backup successful.")
 			}
-		} else {
-			project.Log("ERROR: Save / backup unsuccessful.")
 		}
 
 	}
@@ -1438,9 +1428,8 @@ func (project *Project) Update() {
 	// }
 
 	if project.Modified && project.AutoSave.Checked {
-		project.LogOn = false
 		project.Save(false)
-		project.LogOn = true
+		project.Modified = false
 	}
 
 	project.CurrentBoard().UndoHistory.Update()

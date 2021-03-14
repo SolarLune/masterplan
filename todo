@@ -1,15 +1,25 @@
-Whoops, I deleted the previous todo list as well. :(
-
-That really sucks, actually.
-
 For the below list, INTERNAL indicates things I do for internal / non-public-facing changes to MasterPlan; this might be API changes or new features added to new features that didn't exist previously, as an example.
 
 -- Rough Changelog --
 
+FINISHED
+
+- Saving no longer stutters slightly, making Project Auto-save usable.
+
+TODO
+
+- Stopwatch doesn't work when created fresh
 - Optimize text rendering (just load at least the number of characters that we need?)
     - If I could reload fonts during run without crashing, that would be great
     - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
-
+- Crash when typing End and Delete in a Textbox? Specifically the backup one.
+- Make backup timer textbox move in steps of 5 minutes.
+- Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines. Also, Zones could be collapsible, allowing you to hide Zones for simplicity and readability.
+- Calendar Task, allowing you to put Tasks on specific days (see TreeSheets: http://strlen.com/treesheets/docs/screenshots.html)
+  - This will probably necessitate a Calendar UI element as well.
+    - Maybe just a Calendar mode for the Table? That would basically turn it into a Table that has slots for each day in the month, and you could cycle through it using < and > buttons. It would have a max of 31 slots so the size is consistent, and the column headers would just be the day of the month. 
+    - This should be more "in line with the design philosophy of MasterPlan", though; simply making it a Calendar works OK, but you can't put things into a Table. Maybe you should be able to? Maybe Note Tasks could be placed in there??? Maybe you could just put Zones into Tasks.
+- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800
 - Remove Project.RetrieveResource()?
 - Implement text displaying better for fonts of different size; seems like they rarely line up properly 
 - Re-implement progress bar behind timer
@@ -61,7 +71,6 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 - Add icons for task types in Task Edit Panel
 - Fix up horizontal alignments in Panels - rather than doing this via RowItem.Weight or HorizontalAlignment, it would be good to have a manual spacing value that indicates how far out from an item another is (how much space is between one item and the following one)
 - Changing font size shouldn't take so long - This could be simplified by making a selection for how many glyphs to load
-- Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines.
 - Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
 - Downloading images / sounds should be able to be saved to a local directory per-project (?)
 - Tab focusing (pressing tab focuses on different, consecutive elements in a panel)
