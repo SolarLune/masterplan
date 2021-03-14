@@ -1615,6 +1615,9 @@ func (c *TimerContents) Draw() {
 	if c.Task.SmallButton(48, 16, 16, 16, cp.X, cp.Y) {
 		c.CalculateTimeLeft()
 		ConsumeMouseInput(rl.MouseLeftButton)
+		if c.Task.TimerMode.CurrentChoice == TIMER_TYPE_STOPWATCH {
+			c.TimerValue = 0
+		}
 	}
 
 	cp.X += 20 // Give a bit more room for the text
@@ -1702,7 +1705,7 @@ func (c *TimerContents) ReceiveMessage(msg string) {
 
 func (c *TimerContents) Trigger(trigger int) {
 
-	if c.TimerValue > 0 || !c.TargetDate.IsZero() {
+	if c.Task.TimerMode.CurrentChoice == TIMER_TYPE_STOPWATCH || c.TimerValue > 0 || !c.TargetDate.IsZero() {
 		if trigger == TASK_TRIGGER_TOGGLE {
 			c.Task.TimerRunning = !c.Task.TimerRunning
 		} else if trigger == TASK_TRIGGER_SET {

@@ -4,11 +4,12 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 FINISHED
 
-- Saving no longer stutters slightly, making Project Auto-save usable.
+- FIX: Saving no longer stutters slightly, making Project Auto-save usable.
+- FIX: Stopwatch can't be started.
+- FIX: Can't reset Stopwatch.
 
 TODO
 
-- Stopwatch doesn't work when created fresh
 - Optimize text rendering (just load at least the number of characters that we need?)
     - If I could reload fonts during run without crashing, that would be great
     - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
