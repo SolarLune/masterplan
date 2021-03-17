@@ -544,13 +544,11 @@ func (board *Board) GuessTaskTypeFromText(filepath string) int {
 			return TASK_TYPE_IMAGE
 		} else if res.MimeIsAudio() {
 			return TASK_TYPE_SOUND
-		} else {
-			return TASK_TYPE_NOTE
 		}
 
 	}
 
-	return -1
+	return TASK_TYPE_NOTE
 
 }
 
