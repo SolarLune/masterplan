@@ -2058,21 +2058,35 @@ func (textbox *Textbox) Update() {
 			textbox.SelectAllText()
 		}
 
-		letter := rl.GetKeyPressed()
+		letters := []rune{}
+
+		for true {
+
+			letter := rl.GetKeyPressed()
+			if letter == 0 {
+				break
+			}
+			letters = append(letters, letter)
+
+		}
 
 		// GetKeyPressed returns 0 if nothing was pressed. Also, we only want to accept key presses after the window has been
 		// open and the textbox visible for some amount of time.
-		if letter > 0 && nowTime-textbox.OpenTime > 0.1 {
+		if len(letters) > 0 && nowTime-textbox.OpenTime > 0.1 {
 
 			if len(textbox.Lines[textbox.LineNumberByPosition(textbox.CaretPos)]) < textbox.MaxCharactersPerLine {
 
-				if letter != 0 && textbox.IsCharacterAllowed(letter) {
+				for _, letter := range letters {
 
-					if textbox.RangeSelected() {
-						textbox.DeleteSelectedText()
+					if textbox.IsCharacterAllowed(letter) {
+
+						if textbox.RangeSelected() {
+							textbox.DeleteSelectedText()
+						}
+						textbox.ClearSelection()
+						textbox.InsertCharacterAtCaret(rune(letter))
+
 					}
-					textbox.ClearSelection()
-					textbox.InsertCharacterAtCaret(rune(letter))
 
 				}
 
