@@ -652,17 +652,18 @@ func (c *ImageContents) LoadResource() {
 			filepath := ""
 			var err error
 
-			filepath, err = zenity.SelectFile(zenity.Title("Select image file"), zenity.FileFilters{zenity.FileFilter{Name: "Image File", Patterns: []string{
-				"*.png",
-				"*.bmp",
-				"*.jpeg",
-				"*.jpg",
-				"*.gif",
-				"*.dds",
-				"*.hdr",
-				"*.ktx",
-				"*.astc",
-			}}})
+			patterns := []string{}
+			patterns = append(patterns, PermutateCaseForString("png", "*.")...)
+			patterns = append(patterns, PermutateCaseForString("bmp", "*.")...)
+			patterns = append(patterns, PermutateCaseForString("jpeg", "*.")...)
+			patterns = append(patterns, PermutateCaseForString("jpg", "*.")...)
+			patterns = append(patterns, PermutateCaseForString("gif", "*.")...)
+			patterns = append(patterns, PermutateCaseForString("dds", "*.")...)
+			patterns = append(patterns, PermutateCaseForString("hdr", "*.")...)
+			patterns = append(patterns, PermutateCaseForString("ktx", "*.")...)
+			patterns = append(patterns, PermutateCaseForString("astc", "*.")...)
+
+			filepath, err = zenity.SelectFile(zenity.Title("Select image file"), zenity.FileFilters{{Name: "Image File", Patterns: patterns}})
 
 			if err == nil && filepath != "" {
 				c.Task.FilePathTextbox.SetText(filepath)
@@ -1020,12 +1021,13 @@ func (c *SoundContents) Update() {
 		filepath := ""
 		var err error
 
-		filepath, err = zenity.SelectFile(zenity.Title("Select sound file"), zenity.FileFilters{zenity.FileFilter{Name: "Sound File", Patterns: []string{
-			"*.wav",
-			"*.ogg",
-			"*.flac",
-			"*.mp3",
-		}}})
+		patterns := []string{}
+		patterns = append(patterns, PermutateCaseForString("wav", "*.")...)
+		patterns = append(patterns, PermutateCaseForString("ogg", "*.")...)
+		patterns = append(patterns, PermutateCaseForString("flac", "*.")...)
+		patterns = append(patterns, PermutateCaseForString("mp3", "*.")...)
+
+		filepath, err = zenity.SelectFile(zenity.Title("Select sound file"), zenity.FileFilters{{Name: "Sound File", Patterns: patterns}})
 
 		if err == nil && filepath != "" {
 			c.Task.FilePathTextbox.SetText(filepath)

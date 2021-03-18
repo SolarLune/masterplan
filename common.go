@@ -300,3 +300,49 @@ func ClosestPowerOfTwo(number float32) int32 {
 	return o
 
 }
+
+// PermutateCaseForString returns a list of strings in which the case is fully permutated for each rune in each string (i.e. passing a text of "ttf" returns []string{"TTF", "TTf", "TtF", "Ttf", "tTF", "tTf", "ttF", "ttf"}).
+// The prefix string will be appended to the beginning of each string.
+func PermutateCaseForString(text string, prefix string) []string {
+
+	patternMap := map[string]bool{}
+
+	if len(text) > 0 {
+
+		i := 0
+
+		for true {
+
+			iter := ""
+
+			for letterIndex := len(text) - 1; letterIndex >= 0; letterIndex-- {
+
+				letter := text[letterIndex]
+
+				if i&(1<<letterIndex) > 0 {
+					iter = strings.ToUpper(string(letter)) + iter
+				} else {
+					iter = string(letter) + iter
+				}
+			}
+
+			if exists := patternMap[prefix+iter]; exists {
+				break
+			}
+
+			patternMap[prefix+iter] = true
+
+			i++
+
+		}
+
+	}
+
+	patterns := []string{}
+	for p := range patternMap {
+		patterns = append(patterns, p)
+	}
+
+	return patterns
+
+}

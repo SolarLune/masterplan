@@ -2389,9 +2389,13 @@ func (project *Project) GUI() {
 			}
 
 			if project.CustomFontPathBrowseButton.Clicked {
-				if customFontPath, err := zenity.SelectFile(zenity.FileFilters{zenity.FileFilter{Name: "Font (*.ttf, *.otf)", Patterns: []string{"*.ttf", "*.otf"}}}); err == nil && customFontPath != "" {
+
+				patterns := append(PermutateCaseForString("ttf", "*."), PermutateCaseForString("otf", "*.")...)
+
+				if customFontPath, err := zenity.SelectFile(zenity.FileFilters{{Name: "Font (*.ttf, *.otf)", Patterns: patterns}}); err == nil && customFontPath != "" {
 					project.CustomFontPath.SetText(customFontPath)
 				}
+
 			}
 
 			if project.DefaultFontButton.Clicked {
