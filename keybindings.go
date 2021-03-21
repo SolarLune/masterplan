@@ -149,8 +149,8 @@ const (
 	KBBoard10                 = "Switch to Board 10"
 	KBSelectAllTasks          = "Select All Tasks"
 	KBCopyTasks               = "Copy Tasks"
-	KBCutTasks                = "Cut Tasks / Text"
-	KBPaste                   = "Paste Tasks / Text"
+	KBCutTasks                = "Cut Tasks"
+	KBPasteTasks              = "Paste Tasks"
 	KBPasteContent            = "Paste Content Onto Board"
 	KBCreateTask              = "Create New Task"
 	KBCreateCheckboxTask      = "Create Checkbox Task"
@@ -205,6 +205,10 @@ const (
 	KBWindowSizeNormal        = "Set Window Size to 1920x1080"
 	KBToggleFullscreen        = "Toggle Fullscreen"
 	KBTakeScreenshot          = "Take Screenshot"
+	KBSelectAllText           = "Textbox: Select All Text"
+	KBCopyText                = "Textbox: Copy Text"
+	KBPasteText               = "Textbox: Paste Text"
+	KBCutText                 = "Textbox: Cut Text"
 )
 
 const (
@@ -240,6 +244,7 @@ type Shortcut struct {
 	Repeat           time.Time
 	DefaultKey       int32
 	DefaultModifiers []int32
+	canClash         bool
 }
 
 func NewShortcut(name string, keycode int32, modifiers ...int32) *Shortcut {
@@ -250,6 +255,7 @@ func NewShortcut(name string, keycode int32, modifiers ...int32) *Shortcut {
 		Key:        keycode,
 		Modifiers:  modifiers,
 		DefaultKey: keycode,
+		canClash:   true,
 	}
 
 	shortcut.DefaultModifiers = []int32{}
@@ -371,6 +377,11 @@ func (kb *Keybindings) Default() {
 
 	kb.Define(KBZoomIn, rl.KeyEqual).triggerMode = TriggerModeRepeating
 	kb.Define(KBZoomOut, rl.KeyMinus).triggerMode = TriggerModeRepeating
+	kb.Define(KBShowFPS, rl.KeyF1)
+	kb.Define(KBWindowSizeSmall, rl.KeyF2)
+	kb.Define(KBWindowSizeNormal, rl.KeyF3)
+	kb.Define(KBToggleFullscreen, rl.KeyF4)
+	kb.Define(KBTakeScreenshot, rl.KeyF11)
 
 	kb.Define(KBFasterPan, rl.KeyLeftShift).triggerMode = TriggerModeHold
 	kb.Define(KBPanUp, rl.KeyW).triggerMode = TriggerModeHold
@@ -393,7 +404,7 @@ func (kb *Keybindings) Default() {
 
 	kb.Define(KBCopyTasks, rl.KeyC, rl.KeyLeftControl)
 	kb.Define(KBCutTasks, rl.KeyX, rl.KeyLeftControl)
-	kb.Define(KBPaste, rl.KeyV, rl.KeyLeftControl)
+	kb.Define(KBPasteTasks, rl.KeyV, rl.KeyLeftControl)
 	kb.Define(KBPasteContent, rl.KeyV, rl.KeyLeftControl, rl.KeyLeftShift)
 	kb.Define(KBCreateTask, rl.KeyN, rl.KeyLeftControl)
 
@@ -452,11 +463,20 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBStartTimer, rl.KeyC)
 	kb.Define(KBSelectPrevLineEnding, rl.KeyX).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectNextLineEnding, rl.KeyC).triggerMode = TriggerModeRepeating
-	kb.Define(KBShowFPS, rl.KeyF1)
-	kb.Define(KBWindowSizeSmall, rl.KeyF2)
-	kb.Define(KBWindowSizeNormal, rl.KeyF3)
-	kb.Define(KBToggleFullscreen, rl.KeyF4)
-	kb.Define(KBTakeScreenshot, rl.KeyF11)
+
+	// Textbox shortcuts all have the same triggerMode and rule, so it makes sense to put them in a
+	// for loop
+	textboxShortcuts := map[string][]int32{
+		KBSelectAllText: {rl.KeyA, rl.KeyLeftControl},
+		KBCopyText:      {rl.KeyC, rl.KeyLeftControl},
+		KBPasteText:     {rl.KeyV, rl.KeyLeftControl},
+		KBCutText:       {rl.KeyX, rl.KeyLeftControl},
+	}
+
+	for shortcutName, keys := range textboxShortcuts {
+		shortcut := kb.Define(shortcutName, keys[0], keys[1])
+		shortcut.canClash = false
+	}
 
 	kb.ShortcutsByLevel = map[int][]*Shortcut{}
 
@@ -593,7 +613,7 @@ func (kb *Keybindings) GetClashes() []*Shortcut {
 				}
 			}
 
-			if keysAreDown {
+			if keysAreDown && shortcut.canClash {
 
 				if i > 0 {
 

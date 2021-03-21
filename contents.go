@@ -225,7 +225,7 @@ func NewCheckboxContents(task *Task) *CheckboxContents {
 // Update always runs, once per Content per Task for each Task on the currently viewed Board.
 func (c *CheckboxContents) Update() {
 
-	if c.Task.Selected && !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen && programSettings.Keybindings.On(KBCheckboxToggle) {
+	if c.Task.Selected && programSettings.Keybindings.On(KBCheckboxToggle) && c.Task.Board.Project.IsInNeutralState() {
 		c.Trigger(TASK_TRIGGER_TOGGLE)
 	}
 
@@ -338,7 +338,13 @@ func (c *CheckboxContents) Draw() {
 
 func (c *CheckboxContents) Destroy() {}
 
-func (c *CheckboxContents) ReceiveMessage(msg string) {}
+func (c *CheckboxContents) ReceiveMessage(msg string) {
+
+	if msg == MessageSettingsChange {
+		c.DisplayedText = ""
+	}
+
+}
 
 func (c *CheckboxContents) Trigger(trigger int) {
 
@@ -391,7 +397,7 @@ func (c *ProgressionContents) Update() {
 
 	taskChanged := false
 
-	if c.Task.Selected && !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen {
+	if c.Task.Selected && c.Task.Board.Project.IsInNeutralState() {
 		if programSettings.Keybindings.On(KBProgressToggle) {
 			c.Trigger(TASK_TRIGGER_TOGGLE)
 			taskChanged = true
@@ -511,7 +517,13 @@ func (c *ProgressionContents) Draw() {
 
 func (c *ProgressionContents) Destroy() {}
 
-func (c *ProgressionContents) ReceiveMessage(msg string) {}
+func (c *ProgressionContents) ReceiveMessage(msg string) {
+
+	if msg == MessageSettingsChange {
+		c.DisplayedText = ""
+	}
+
+}
 
 func (c *ProgressionContents) Trigger(trigger int) {
 
@@ -564,7 +576,7 @@ func (c *NoteContents) Draw() {
 
 	cp := rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}
 
-	displaySize := rl.Vector2{16, 16}
+	displaySize := rl.Vector2{8, 16}
 
 	iconColor := getThemeColor(GUI_FONT_COLOR)
 
@@ -572,8 +584,10 @@ func (c *NoteContents) Draw() {
 		srcIcon := rl.Rectangle{64, 0, 16, 16}
 		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, srcIcon, rl.Rectangle{cp.X + 8, cp.Y + 8, 16, 16}, rl.Vector2{8, 8}, 0, iconColor)
 		cp.X += 16
-		displaySize.X += 12
+		displaySize.X += 16
 	}
+
+	cp.X += 2
 
 	c.TextRenderer.Draw(cp)
 
@@ -601,7 +615,13 @@ func (c *NoteContents) Destroy() {
 
 }
 
-func (c *NoteContents) ReceiveMessage(msg string) {}
+func (c *NoteContents) ReceiveMessage(msg string) {
+
+	if msg == MessageSettingsChange {
+		c.TextRenderer.RecreateTexture()
+	}
+
+}
 
 func (c *NoteContents) Trigger(trigger int) {}
 
@@ -831,7 +851,7 @@ func (c *ImageContents) Draw() {
 
 			grabSize := float32(math.Min(float64(dst.Width), float64(dst.Height)) * 0.05)
 
-			if c.Task.Selected {
+			if c.Task.Selected && c.Task.Board.Project.IsInNeutralState() {
 
 				// Draw resize controls
 
@@ -1061,19 +1081,22 @@ func (c *SoundContents) Update() {
 
 	}
 
-	if c.Task.Selected && !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen && programSettings.Keybindings.On(KBPlaySounds) {
+	if c.Task.Board.Project.IsInNeutralState() {
 
-		if c.SoundControl != nil {
-			c.SoundControl.Paused = !c.SoundControl.Paused
+		if c.Task.Selected && programSettings.Keybindings.On(KBPlaySounds) {
+
+			if c.SoundControl != nil {
+				c.SoundControl.Paused = !c.SoundControl.Paused
+			}
+
+		} else if programSettings.Keybindings.On(KBStopAllSounds) {
+
+			if c.SoundControl != nil && !c.SoundControl.Paused {
+				c.Task.Board.Project.Log("Stopped playing [%s].", c.LoadedPath)
+				c.SoundControl.Paused = true
+			}
+
 		}
-
-	} else if !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen && programSettings.Keybindings.On(KBStopAllSounds) {
-
-		if c.SoundControl != nil && !c.SoundControl.Paused {
-			c.Task.Board.Project.Log("Stopped playing [%s].", c.LoadedPath)
-			c.SoundControl.Paused = true
-		}
-
 	}
 
 }
@@ -1320,6 +1343,8 @@ func (c *SoundContents) ReceiveMessage(msg string) {
 		c.SoundVolume.Silent = c.Task.Board.Project.SoundVolume.Number() == 0
 		speaker.Unlock()
 
+		c.DisplayedText = ""
+
 	}
 
 }
@@ -1469,7 +1494,7 @@ func (c *TimerContents) Update() {
 
 	}
 
-	if c.Task.Selected && !c.Task.Open && !c.Task.Board.Project.ProjectSettingsOpen && programSettings.Keybindings.On(KBStartTimer) {
+	if c.Task.Selected && programSettings.Keybindings.On(KBStartTimer) && c.Task.Board.Project.IsInNeutralState() {
 		c.Trigger(TASK_TRIGGER_TOGGLE)
 	}
 
@@ -1698,6 +1723,8 @@ func (c *TimerContents) ReceiveMessage(msg string) {
 		c.AlarmSound.Silent = c.Task.Board.Project.SoundVolume.Number() == 0
 		speaker.Unlock()
 
+		c.DisplayedText = ""
+
 	} else if msg == MessageTaskDeserialization {
 		// If undo or redo, recalculate the time left.
 		c.CalculateTimeLeft()
@@ -1736,10 +1763,14 @@ func (c *LineContents) Update() {
 
 	cycleDirection := 0
 
-	if programSettings.Keybindings.On(KBSelectNextLineEnding) {
-		cycleDirection = 1
-	} else if programSettings.Keybindings.On(KBSelectPrevLineEnding) {
-		cycleDirection = -1
+	if c.Task.Board.Project.IsInNeutralState() {
+
+		if programSettings.Keybindings.On(KBSelectNextLineEnding) {
+			cycleDirection = 1
+		} else if programSettings.Keybindings.On(KBSelectPrevLineEnding) {
+			cycleDirection = -1
+		}
+
 	}
 
 	if c.Task.LineStart == nil && cycleDirection != 0 {
@@ -2248,8 +2279,6 @@ func (c *TableContents) Draw() {
 
 					lineSpacing = float32(c.Task.Board.Project.TableColumnVerticalSpacing.Number()) / 100
 
-					// size := float32((len(element.Textbox.Text()) - 1) * programSettings.FontSize)
-
 					size, _ := TextHeight(element.TextVertically(), false)
 
 					if size > longestY {
@@ -2309,7 +2338,8 @@ func (c *TableContents) Draw() {
 			rl.DrawRectangleRec(rec, color)
 
 			DrawText(rl.Vector2{pos.X + 2, pos.Y + 2}, element.Textbox.Text())
-			pos.Y += gs
+			height, _ := TextHeight(element.Textbox.Text(), false)
+			pos.Y += height
 		}
 
 		pos = rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}

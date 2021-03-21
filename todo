@@ -7,31 +7,49 @@ FINISHED
 - FIX: Saving no longer stutters slightly, making Project Auto-save usable.
 - FIX: Stopwatch can't be started.
 - FIX: Can't reset Stopwatch.
+- FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now.
+- FIX: Loading files (images, sounds) isn't case-sensitive anymore (specifically, this was for Linux).
+- FIX: Textboxes don't update their fonts when the font changes.
 
 TODO
 
+- Keyboard shortcuts for adding columns and rows (enter to add a column or row, backspace when the name is blank to delete it, maybe?)
+- Lines only display if both the base and the end are visible.
+- High-res fonts that are rendered to an image (for Notes, for example) is low-res
+- Overdue Tasks skip a day: https://github.com/SolarLune/masterplan/issues/51
+- Time until Daily Timer goes off is incorrect (one hour behind): https://github.com/SolarLune/masterplan/issues/50
+- Crash when pressing Reset Image Size on an unloaded image?
+- Sound playback issues (choppy / slow; must be to do with resampling)
+- Make backup timer textbox move in steps of 5 minutes.
+- See about implementing a backend system, switching from Raylib to SDL for (HOPEFULLY!) more up-to-date fundamentals (render-to-texture, texture unloading, better font support, better IME support).
+- Project.Modified is set directly after loading a project for some reason
+- Crash when typing End and Delete in a Textbox? Specifically the backup one.
+- Implement text displaying better for fonts of different size; seems like they rarely line up properly 
+- Re-implement progress bar behind timer
+- Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
+- Can't make shortcut on Mac?
+- The ability to copy a set of Tasks and paste them as a text list (this may be doable using the clipboard tool)
+- Building MasterPlan doesn't work sometimes?: https://github.com/SolarLune/masterplan/issues/39
+- Lines shouldn't have to point in a specific direction / shouldn't point towards each other if possible
+- Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
+- Similarly, extend parsing to parse text to become clickable links to be able to open files or directories
+
+- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800
 - Optimize text rendering (just load at least the number of characters that we need?)
     - If I could reload fonts during run without crashing, that would be great
     - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
-- Crash when typing End and Delete in a Textbox? Specifically the backup one.
-- Make backup timer textbox move in steps of 5 minutes.
 - Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines. Also, Zones could be collapsible, allowing you to hide Zones for simplicity and readability.
 - Calendar Task, allowing you to put Tasks on specific days (see TreeSheets: http://strlen.com/treesheets/docs/screenshots.html)
   - This will probably necessitate a Calendar UI element as well.
     - Maybe just a Calendar mode for the Table? That would basically turn it into a Table that has slots for each day in the month, and you could cycle through it using < and > buttons. It would have a max of 31 slots so the size is consistent, and the column headers would just be the day of the month. 
     - This should be more "in line with the design philosophy of MasterPlan", though; simply making it a Calendar works OK, but you can't put things into a Table. Maybe you should be able to? Maybe Note Tasks could be placed in there??? Maybe you could just put Zones into Tasks.
-- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800
 - Remove Project.RetrieveResource()?
-- Implement text displaying better for fonts of different size; seems like they rarely line up properly 
-- Re-implement progress bar behind timer
 - IMPLEMENT RL.UNLOADTEXTURE(), BECAUSE THIS VRAM MEMORY LEAK IS ANNOYING AS H*CK
 - Implement button to return all settings to default
 - Note renderering could use a grayscale texture for limited VRAM usage, as it's not necessary for Notes to be colored (for now)
-- The ability to copy a list and paste it as a list (this may be doable using the clipboard tool)
 - Make a video talking a bit about what MasterPlan is and why it's useful. It helps you think, it helps you create links between tasks, it allows you to complete things that need to be done, and it helps you to say no. 
   This video could be accessible from the Steam forums, or from the MasterPlan menu.
 - Note: If you save a project in a newer version of MasterPlan, loading it in an older version should say something like "Are you sure? It might not work correctly."
-- INTERNAL: Project.Modified is set directly after loading a project for some reason
 - Optimize map image serialization by using bitwise operations and storing the array as a bitwise number
 - Add image filtering option, as you may not want it to be pixelly
 - Label each quadrant of a board?
@@ -92,12 +110,9 @@ TODO
 - Replace Board.UndoHistory with a project-level one
 - Go over the tutorial to explain things a bit more; right click to open the menu should be mentioned right at launch
 - Undo + Redo for textboxes
-- Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
 - Add ability to delete shortcuts?
 - Vertical alignment isn't really centered for textboxes?
 - Display full Task text on hover
-- Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
-- Similarly, extend parsing to parse text to become clickable links to be able to open files or directories
 - Hide status bar elements except for the search bar if there isn't enough room horizontally
 - Moveable status bar
 - Searchable shortcuts

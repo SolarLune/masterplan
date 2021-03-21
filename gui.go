@@ -1778,6 +1778,7 @@ type Textbox struct {
 	Lines                 [][]rune
 	OpenTime              float32
 	PrevUpdateTime        float32
+	SpecialZero           string
 
 	MinSize rl.Vector2
 	MaxSize rl.Vector2
@@ -2054,7 +2055,7 @@ func (textbox *Textbox) Update() {
 		}
 
 		// Shortcuts
-		if programSettings.Keybindings.On(KBSelectAllTasks) {
+		if programSettings.Keybindings.On(KBSelectAllText) {
 			textbox.SelectAllText()
 		}
 
@@ -2222,7 +2223,7 @@ func (textbox *Textbox) Update() {
 			if !shift {
 				textbox.ClearSelection()
 			}
-		} else if programSettings.Keybindings.On(KBPaste) {
+		} else if programSettings.Keybindings.On(KBPasteText) {
 			clipboardText, err := clipboard.ReadAll()
 			if clipboardText != "" {
 
@@ -2263,7 +2264,7 @@ func (textbox *Textbox) Update() {
 
 		if textbox.RangeSelected() {
 
-			if programSettings.Keybindings.On(KBCopyTasks) {
+			if programSettings.Keybindings.On(KBCopyText) {
 
 				err := clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
 
@@ -2271,7 +2272,7 @@ func (textbox *Textbox) Update() {
 					currentProject.Log(err.Error())
 				}
 
-			} else if programSettings.Keybindings.On(KBCutTasks) {
+			} else if programSettings.Keybindings.On(KBCutText) {
 
 				err := clipboard.WriteAll(string(textbox.text[textbox.SelectedRange[0]:textbox.SelectedRange[1]]))
 
@@ -2477,7 +2478,9 @@ func (textbox *Textbox) Draw() {
 
 	}
 
+	// src := rl.Rectangle{textbox.Visibility.X, 0, textbox.Rect.Width - (textbox.MarginX * 2), textbox.Rect.Height - (textbox.MarginY * 2)}
 	src := rl.Rectangle{textbox.Visibility.X, 0, textbox.Rect.Width - (textbox.MarginX * 2), textbox.Rect.Height - (textbox.MarginY * 2)}
+	src.Y = float32(textbox.Buffer.Depth.Height) - textbox.Rect.Height
 
 	textDrawPosition := rl.NewVector2(textbox.Rect.X+textbox.MarginX, textbox.Rect.Y+textbox.MarginY)
 	textDrawPosition.X += alignmentOffset.X
@@ -2527,11 +2530,15 @@ func (textbox *Textbox) RedrawText() {
 
 	}
 
-	textbox.TextSize, _ = TextSize(textbox.Text(), true)
+	txt := textbox.Text()
+	if txt == "0" && textbox.SpecialZero != "" {
+		txt = textbox.SpecialZero
+	}
+
+	textbox.TextSize, _ = TextSize(txt, true)
 
 	textbox.Lines = append(textbox.Lines, line)
 
-	margin := float32(2)
 	tbpos := rl.Vector2{0, 0}
 
 	textbox.BufferSize.X = textbox.TextSize.X
@@ -2553,21 +2560,13 @@ func (textbox *Textbox) RedrawText() {
 		textbox.Buffer = rl.LoadRenderTexture(ClosestPowerOfTwo(textbox.BufferSize.X), ClosestPowerOfTwo(textbox.BufferSize.Y))
 	}
 
-	// Because we're rendering to a texture that can be bigger, we have to draw vertically reversed
-	if textbox.VerticalAlignment == ALIGN_CENTER {
-		tbpos.Y = float32(textbox.Buffer.Texture.Height/2) - 2
-	} else if textbox.VerticalAlignment == ALIGN_BOTTOM {
-		tbpos.Y = -textbox.TextSize.Y - margin
-	} else {
-		tbpos.Y = float32(textbox.Buffer.Texture.Height) - textbox.TextSize.Y - margin
-	}
-
 	rl.BeginTextureMode(textbox.Buffer)
 
 	rl.ClearBackground(rl.Color{0, 0, 0, 0})
 
 	// We draw white because this gets tinted later when drawing the texture.
-	DrawGUITextColored(tbpos, rl.White, textbox.Text())
+
+	DrawGUITextColored(tbpos, rl.White, txt)
 
 	rl.EndTextureMode()
 
@@ -2581,6 +2580,13 @@ func (textbox *Textbox) AlignmentOffset() rl.Vector2 {
 
 	if textbox.HorizontalAlignment == ALIGN_CENTER {
 		newPosition.X = textbox.Rect.Width/2 - textbox.TextSize.X/2
+	}
+
+	// Because we're rendering to a texture that can be bigger, we have to draw vertically reversed
+	if textbox.VerticalAlignment == ALIGN_CENTER {
+		newPosition.Y = textbox.Rect.Height/2 - textbox.TextSize.Y/2
+	} else if textbox.VerticalAlignment == ALIGN_BOTTOM {
+		newPosition.Y = textbox.Rect.Height - textbox.TextSize.Y - textbox.MarginY
 	}
 
 	return newPosition

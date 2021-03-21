@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/goware/urlx"
@@ -98,12 +99,19 @@ func (buttons *URLButtons) Draw(pos rl.Vector2) {
 
 	for _, urlButton := range buttons.Buttons {
 
-		if programSettings.Keybindings.On(KBURLButton) || project.AlwaysShowURLButtons.Checked {
+		if project.IsInNeutralState() && (project.AlwaysShowURLButtons.Checked || programSettings.Keybindings.On(KBURLButton)) {
 
 			margin := float32(2)
 			dst := rl.Rectangle{pos.X + urlButton.Pos.X - margin, pos.Y + urlButton.Pos.Y, urlButton.Size.X + (margin * 2), urlButton.Size.Y}
+
 			if ImmediateButton(dst, urlButton.Text, false) {
-				browser.OpenURL(urlButton.Link)
+
+				// We delay opening the URL by a few milliseconds to try to ensure you have time to let go of the mouse button
+				go func() {
+					time.Sleep(time.Millisecond * 100)
+					browser.OpenURL(urlButton.Link)
+				}()
+
 			}
 
 		}

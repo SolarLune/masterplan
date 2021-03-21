@@ -297,6 +297,9 @@ func NewProject() *Project {
 		LogOn:                     true,
 	}
 
+	project.AutomaticBackupInterval.Textbox.SpecialZero = "Off"
+	project.MaxUndoSteps.Textbox.SpecialZero = "Unlimited"
+
 	project.GrabClient.HTTPClient.Timeout = time.Second * time.Duration(programSettings.DownloadTimeout)
 
 	project.TaskEditPanel.AddColumn()
@@ -417,7 +420,7 @@ func NewProject() *Project {
 	row.Item(project.AlwaysShowURLButtons, SETTINGS_TASKS)
 
 	row = column.Row()
-	row.Item(NewLabel("Rotate Table\nColumn Names Vertically:"), SETTINGS_TASKS)
+	row.Item(NewLabel("Display Table\nColumn Names Vertically:"), SETTINGS_TASKS)
 	row.Item(project.TableColumnsRotatedVertical, SETTINGS_TASKS)
 
 	row.Item(NewLabel("Table Column\nName Vertical Spacing:"), SETTINGS_TASKS)
@@ -1444,11 +1447,7 @@ func (project *Project) Update() {
 
 func (project *Project) AutoBackup() {
 
-	if project.AutomaticBackupInterval.Number() == 0 {
-		if !project.AutomaticBackupInterval.Textbox.Focused {
-			project.AutomaticBackupInterval.Textbox.SetText("OFF")
-		}
-	} else {
+	if project.AutomaticBackupInterval.Number() > 0 {
 
 		if project.BackupTimer.IsZero() {
 			project.BackupTimer = time.Now()
@@ -1641,7 +1640,7 @@ func (project *Project) Shortcuts() {
 					project.CurrentBoard().CutSelectedTasks()
 				} else if keybindings.On(KBPasteContent) {
 					project.CurrentBoard().PasteContent()
-				} else if keybindings.On(KBPaste) {
+				} else if keybindings.On(KBPasteTasks) {
 					project.CurrentBoard().PasteTasks()
 				} else if keybindings.On(KBRedo) {
 					if project.CurrentBoard().UndoHistory.Redo() {
@@ -2015,9 +2014,12 @@ func (project *Project) Shortcuts() {
 
 				}
 
-			}
+				if keybindings.On(KBFindNextTask) || keybindings.On(KBFindPreviousTask) {
+					project.SearchForTasks()
+					project.Searchbar.Focused = true
+				}
 
-			if project.Searchbar.Focused {
+			} else {
 
 				if rl.IsKeyPressed(rl.KeyEnter) {
 					if keybindings.On(KBAddToSelection) {
@@ -2033,11 +2035,7 @@ func (project *Project) Shortcuts() {
 					project.FocusedSearchTask++
 				}
 				project.SearchForTasks()
-			} else {
-				if keybindings.On(KBFindNextTask) || keybindings.On(KBFindPreviousTask) {
-					project.SearchForTasks()
-					project.Searchbar.Focused = true
-				}
+
 			}
 
 		}
@@ -2411,12 +2409,6 @@ func (project *Project) GUI() {
 			programSettings.DrawWindowBorder = project.DrawWindowBorder.Checked
 			programSettings.CustomFontPath = project.CustomFontPath.Text()
 
-			// SUPER HACKY; we're not supposed to manually set the Changed variable like this, but whatevs, CustomFontPath isn't updating all of the time.
-			if project.CustomFontPath.Changed {
-				ReloadFonts()
-				project.CustomFontPath.Changed = false
-			}
-
 			if project.SettingsPanel.Exited {
 
 				project.ProjectSettingsOpen = false
@@ -2473,19 +2465,25 @@ func (project *Project) GUI() {
 
 			}
 
-			if project.MaxUndoSteps.Number() == 0 {
-				project.MaxUndoSteps.Textbox.SetText("Unlimited")
-			}
-
 			if !project.LockProject.Checked {
 				project.Locked = false
 			}
 
-			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed || project.ColorThemeSpinner.Changed {
+			if project.CustomFontPath.Changed {
+				ReloadFonts()
+			}
+
+			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed || project.ColorThemeSpinner.Changed || project.DefaultFontButton.Clicked {
+
+				project.CurrentBoard().SendMessage(MessageSettingsChange, nil)
+
 				for _, textbox := range allTextboxes {
 					textbox.triggerTextRedraw = true
 				}
-				project.CurrentBoard().SendMessage(MessageSettingsChange, nil)
+
+				// SUPER HACKY; we're not supposed to manually set the Changed variable like this, but whatevs, CustomFontPath isn't updating all of the time.
+				project.CustomFontPath.Changed = false
+
 			}
 
 		}
@@ -3067,7 +3065,10 @@ func (project *Project) OpenSettings() {
 }
 
 func (project *Project) PromptQuit() {
-
 	project.PopupAction = ActionQuit
+}
 
+// IsInNeutralState returns true if the Project is in a neutral state (no Tasks open, settings not open, searchbar not focused, etc)
+func (project *Project) IsInNeutralState() bool {
+	return !project.TaskOpen && !project.ProjectSettingsOpen && project.PopupAction == "" && !project.Searchbar.Focused
 }
