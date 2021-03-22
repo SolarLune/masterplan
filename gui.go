@@ -2038,7 +2038,7 @@ func (textbox *Textbox) Update() {
 			textbox.Focused = false
 		}
 
-		if textbox.AllowNewlines && (rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)) {
+		if textbox.AllowNewlines && nowTime-textbox.OpenTime > 0.1 && (rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)) {
 			textbox.Changed = true
 			if textbox.RangeSelected() {
 				textbox.DeleteSelectedText()
@@ -2122,18 +2122,22 @@ func (textbox *Textbox) Update() {
 			rl.KeyV:         0,
 		}
 
-		for k := range keyState {
-			if rl.IsKeyPressed(k) {
-				keyState[k] = 1
-				textbox.KeyholdTimer = time.Now()
-			} else if rl.IsKeyDown(k) {
-				if !textbox.KeyholdTimer.IsZero() && time.Since(textbox.KeyholdTimer).Seconds() > 0.5 {
-					if time.Since(textbox.KeyrepeatTimer).Seconds() > 0.025 {
-						textbox.KeyrepeatTimer = time.Now()
-						keyState[k] = 1
+		if nowTime-textbox.OpenTime > 0.1 {
+
+			for k := range keyState {
+				if rl.IsKeyPressed(k) {
+					keyState[k] = 1
+					textbox.KeyholdTimer = time.Now()
+				} else if rl.IsKeyDown(k) {
+					if !textbox.KeyholdTimer.IsZero() && time.Since(textbox.KeyholdTimer).Seconds() > 0.5 {
+						if time.Since(textbox.KeyrepeatTimer).Seconds() > 0.025 {
+							textbox.KeyrepeatTimer = time.Now()
+							keyState[k] = 1
+						}
 					}
 				}
 			}
+
 		}
 
 		if keyState[rl.KeyRight] > 0 {

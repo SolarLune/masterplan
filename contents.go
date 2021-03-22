@@ -2338,8 +2338,7 @@ func (c *TableContents) Draw() {
 			rl.DrawRectangleRec(rec, color)
 
 			DrawText(rl.Vector2{pos.X + 2, pos.Y + 2}, element.Textbox.Text())
-			height, _ := TextHeight(element.Textbox.Text(), false)
-			pos.Y += height
+			pos.Y += rec.Height
 		}
 
 		pos = rl.Vector2{c.Task.Rect.X, c.Task.Rect.Y}

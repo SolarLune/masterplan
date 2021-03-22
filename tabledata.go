@@ -370,20 +370,83 @@ func (tb *TableData) Update() {
 
 		}
 
-		for i, element := range tb.Columns {
-			if element.Delete.Clicked {
-				tb.Columns = append(tb.Columns[:i], tb.Columns[i+1:]...)
-				tb.UpdateCompletionsData(i, -1, false)
-				tb.SetPanel()
-			}
-		}
+		enter := rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)
+		shift := rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift)
 
-		for i, element := range tb.Rows {
-			if element.Delete.Clicked {
-				tb.Rows = append(tb.Rows[:i], tb.Rows[i+1:]...)
-				tb.UpdateCompletionsData(i, -1, true)
-				tb.SetPanel()
+		focused := false
+
+		// Handle shortcuts to add or remove (or highlight the next or previous) column or row
+		for dataIndex, data := range [][]*tableElement{tb.Columns, tb.Rows} {
+
+			rows := dataIndex == 1
+
+			for i, element := range data {
+
+				if !focused && element.Textbox.Focused {
+
+					if enter {
+
+						focused = true
+
+						if shift {
+
+							if i > 0 {
+
+								element.Textbox.Focused = false
+								data[i-1].Textbox.Focused = true
+								data[i-1].Textbox.SelectAllText()
+
+							}
+
+						} else {
+
+							if i == len(data)-1 {
+								element.Textbox.Focused = false
+								if rows {
+									tb.AddRow()
+								} else {
+									tb.AddColumn()
+								}
+							} else {
+								element.Textbox.Focused = false
+								data[i+1].Textbox.Focused = true
+								data[i+1].Textbox.SelectAllText()
+							}
+
+						}
+
+					} else if rl.IsKeyPressed(rl.KeyBackspace) {
+
+						if i > 0 && element.Textbox.Text() == "" {
+							focused = true
+							element.Textbox.Focused = false
+							element.Delete.Clicked = true
+							data[i-1].Textbox.OpenTime = tb.Task.Board.Project.Time
+						}
+
+					}
+
+				}
+
+				if element.Delete.Clicked {
+
+					if rows {
+						tb.Rows = append(tb.Rows[:i], tb.Rows[i+1:]...)
+						tb.Rows[i-1].Textbox.Focused = true
+						tb.Rows[i-1].Textbox.SelectAllText()
+					} else {
+						tb.Columns = append(tb.Columns[:i], tb.Columns[i+1:]...)
+						tb.Columns[i-1].Textbox.Focused = true
+						tb.Columns[i-1].Textbox.SelectAllText()
+					}
+
+					tb.UpdateCompletionsData(i, -1, rows)
+					tb.SetPanel()
+
+				}
+
 			}
+
 		}
 
 		if addRow := tb.Task.Board.Project.TaskEditPanel.FindItems("table_add_row"); len(addRow) > 0 && addRow[0].Element.(*Button).Clicked {

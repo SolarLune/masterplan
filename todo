@@ -10,18 +10,23 @@ FINISHED
 - FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now.
 - FIX: Loading files (images, sounds) isn't case-sensitive anymore (specifically, this was for Linux).
 - FIX: Textboxes don't update their fonts when the font changes.
+- FIX: Task-specific shortcuts should now only work when the project is in a neutral state (search textbox not focused, task isn't being edited, etc). This means it's not possible to, say, complete a Checkbox while a Panel is open.
+- FIX: Checkbox / Progression / Note / Sound / Timer Tasks now properly recalculate their size when the font or font size changes.
+- FIX: URL buttons appear when the project is in neutral state only.
+- FIX: Textboxes are now more properly aligned horizontally.
+- Adding shortcuts for text manipulation within Textboxes.
+- Other minor visual fixes.
+- Added shortcuts to add or delete columns and rows. Shift+Enter goes to the previous column or row, Enter goes to the next one. If the last column or row is highlighted, Enter will create a new one. Pressing backspace when a column or row's name is empty will delete it.
 
 TODO
 
-- Keyboard shortcuts for adding columns and rows (enter to add a column or row, backspace when the name is blank to delete it, maybe?)
+- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800
+- Sound playback issues (choppy / slow; must be to do with resampling)
 - Lines only display if both the base and the end are visible.
-- High-res fonts that are rendered to an image (for Notes, for example) is low-res
 - Overdue Tasks skip a day: https://github.com/SolarLune/masterplan/issues/51
 - Time until Daily Timer goes off is incorrect (one hour behind): https://github.com/SolarLune/masterplan/issues/50
 - Crash when pressing Reset Image Size on an unloaded image?
-- Sound playback issues (choppy / slow; must be to do with resampling)
 - Make backup timer textbox move in steps of 5 minutes.
-- See about implementing a backend system, switching from Raylib to SDL for (HOPEFULLY!) more up-to-date fundamentals (render-to-texture, texture unloading, better font support, better IME support).
 - Project.Modified is set directly after loading a project for some reason
 - Crash when typing End and Delete in a Textbox? Specifically the backup one.
 - Implement text displaying better for fonts of different size; seems like they rarely line up properly 
@@ -33,8 +38,9 @@ TODO
 - Lines shouldn't have to point in a specific direction / shouldn't point towards each other if possible
 - Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
 - Similarly, extend parsing to parse text to become clickable links to be able to open files or directories
+- See about implementing a backend system, switching from Raylib to SDL for (HOPEFULLY!) more up-to-date fundamentals (render-to-texture, texture unloading, better font support, better IME support).
 
-- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800
+- High-res fonts that are rendered to an image (for Notes, for example) is low-res
 - Optimize text rendering (just load at least the number of characters that we need?)
     - If I could reload fonts during run without crashing, that would be great
     - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
