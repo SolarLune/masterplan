@@ -737,10 +737,7 @@ func (c *ImageContents) LoadResource() {
 
 	if c.Resource != nil {
 
-		if !c.Resource.Valid {
-			c.Resource = nil
-			c.LoadedPath = ""
-		} else if c.Resource.State() == RESOURCE_STATE_READY {
+		if c.Resource.State() == RESOURCE_STATE_READY {
 
 			if c.Resource.IsGif() && (c.GifPlayer == nil || c.GifPlayer.Animation != c.Resource.Gif()) {
 				c.GifPlayer = NewGifPlayer(c.Resource.Gif())
@@ -791,6 +788,9 @@ func (c *ImageContents) LoadResource() {
 
 			}
 
+		} else if c.Resource.State() == RESOURCE_STATE_DELETED {
+			c.Resource = nil
+			c.LoadedPath = ""
 		}
 
 	}
@@ -1023,7 +1023,7 @@ func NewSoundContents(task *Task) *SoundContents {
 		BGProgress: newTaskBGProgress(task),
 		SoundVolume: &effects.Volume{
 			Base:   50,
-			Volume: float64(task.Board.Project.SoundVolume.Number())/100 - 1,
+			Volume: float64(task.Board.Project.AudioVolume.Number())/100 - 1,
 		},
 	}
 
@@ -1129,32 +1129,11 @@ func (c *SoundContents) LoadResource() {
 
 	if c.Resource != nil {
 
-		if !c.Resource.Valid {
-
-			c.Resource = nil
-			c.LoadedPath = ""
-			if c.SoundControl != nil {
-				c.SoundControl.Paused = true
-				c.SoundStream.Close()
-			}
-
-		} else if !c.LoadedResource && c.Resource.State() == RESOURCE_STATE_READY {
+		if !c.LoadedResource && c.Resource.State() == RESOURCE_STATE_READY {
 
 			if c.Resource.IsAudio() {
 
-				stream, format, _ := c.Resource.Audio()
-
-				c.SoundStream = stream
-
-				c.SoundSampler = beep.Resample(1, format.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), c.SoundStream)
-
-				c.SoundVolume.Streamer = c.SoundSampler
-
-				c.SoundControl = &beep.Ctrl{Streamer: c.SoundVolume, Paused: true}
-
-				speaker.Play(beep.Seq(c.SoundControl, beep.Callback(func() {
-					c.FinishedPlayback = true
-				})))
+				c.ReloadSound()
 
 			} else {
 				c.Task.Board.Project.Log("Cannot load file: [%s]\nAre you sure it's a sound file?", c.Task.FilePathTextbox.Text())
@@ -1165,9 +1144,36 @@ func (c *SoundContents) LoadResource() {
 
 			c.Task.UndoChange = true
 
+		} else if c.Resource.State() == RESOURCE_STATE_DELETED {
+
+			c.Resource = nil
+			c.LoadedPath = ""
+			if c.SoundControl != nil {
+				c.SoundControl.Paused = true
+				c.SoundStream.Close()
+			}
+
 		}
 
 	}
+
+}
+
+func (c *SoundContents) ReloadSound() {
+
+	stream, format, _ := c.Resource.Audio()
+
+	c.SoundStream = stream
+
+	c.SoundSampler = beep.Resample(2, format.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), c.SoundStream)
+
+	c.SoundVolume.Streamer = c.SoundSampler
+
+	c.SoundControl = &beep.Ctrl{Streamer: c.SoundVolume, Paused: true}
+
+	speaker.Play(beep.Seq(c.SoundControl, beep.Callback(func() {
+		c.FinishedPlayback = true
+	})))
 
 }
 
@@ -1338,9 +1344,14 @@ func (c *SoundContents) ReceiveMessage(msg string) {
 
 	if msg == MessageSettingsChange {
 
+		if c.Resource != nil && c.Resource.State() == RESOURCE_STATE_READY && c.Resource.IsAudio() {
+			c.ReloadSound()
+		}
+
+		// We lock the speaker after reloading the sound because we call speaker.Play() within ReloadSound(); if it's locked, this creates a deadlock.
 		speaker.Lock()
-		c.SoundVolume.Volume = float64(c.Task.Board.Project.SoundVolume.Number())/100 - 1
-		c.SoundVolume.Silent = c.Task.Board.Project.SoundVolume.Number() == 0
+		c.SoundVolume.Volume = float64(c.Task.Board.Project.AudioVolume.Number())/100 - 1
+		c.SoundVolume.Silent = c.Task.Board.Project.AudioVolume.Number() == 0
 		speaker.Unlock()
 
 		c.DisplayedText = ""
@@ -1375,7 +1386,7 @@ func NewTimerContents(task *Task) *TimerContents {
 		Task: task,
 		AlarmSound: &effects.Volume{
 			Base:   50,
-			Volume: float64(task.Board.Project.SoundVolume.Number())/100 - 1,
+			Volume: float64(task.Board.Project.AudioVolume.Number())/100 - 1,
 		},
 	}
 
@@ -1718,9 +1729,11 @@ func (c *TimerContents) ReceiveMessage(msg string) {
 
 	if msg == MessageSettingsChange {
 
+		c.ReloadAlarmSound()
+
 		speaker.Lock()
-		c.AlarmSound.Volume = float64(c.Task.Board.Project.SoundVolume.Number())/100 - 1
-		c.AlarmSound.Silent = c.Task.Board.Project.SoundVolume.Number() == 0
+		c.AlarmSound.Volume = float64(c.Task.Board.Project.AudioVolume.Number())/100 - 1
+		c.AlarmSound.Silent = c.Task.Board.Project.AudioVolume.Number() == 0
 		speaker.Unlock()
 
 		c.DisplayedText = ""

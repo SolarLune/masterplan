@@ -4,10 +4,12 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 FINISHED
 
+- FIX: Recreate sound streams when changing project sampler settings. This fixes sounds not being resampled properly and being crackly when played back.
+- CHANGE: Audio settings (sample rate and volume) are now global, not per-Project, and are available in the Global section of the settings menu.
 - FIX: Saving no longer stutters slightly, making Project Auto-save usable.
 - FIX: Stopwatch can't be started.
 - FIX: Can't reset Stopwatch.
-- FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now.
+- FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now; previously, only the first character was entered.
 - FIX: Loading files (images, sounds) isn't case-sensitive anymore (specifically, this was for Linux).
 - FIX: Textboxes don't update their fonts when the font changes.
 - FIX: Task-specific shortcuts should now only work when the project is in a neutral state (search textbox not focused, task isn't being edited, etc). This means it's not possible to, say, complete a Checkbox while a Panel is open.

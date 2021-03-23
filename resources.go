@@ -51,7 +51,7 @@ type Resource struct {
 
 	Project *Project
 
-	Valid bool
+	valid bool
 }
 
 func (project *Project) RegisterResource(resourcePath, localFilepath string, response *grab.Response) *Resource {
@@ -74,7 +74,7 @@ func (project *Project) RegisterResource(resourcePath, localFilepath string, res
 		DownloadResponse: response,
 		Project:          project,
 		DataParsed:       make(chan bool, 1),
-		Valid:            true,
+		valid:            true,
 	}
 
 	project.Resources[resourcePath] = res
@@ -178,7 +178,7 @@ func (res *Resource) MimeIsAudio() bool {
 
 func (res *Resource) State() int {
 
-	if !res.Valid {
+	if !res.valid {
 		return RESOURCE_STATE_DELETED
 	}
 
@@ -294,6 +294,6 @@ func (res *Resource) Destroy() {
 
 	delete(res.Project.Resources, res.ResourcePath)
 
-	res.Valid = false
+	res.valid = false
 
 }

@@ -7,8 +7,8 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,7 +42,6 @@ const (
 const (
 	SETTINGS_GENERAL = iota
 	SETTINGS_TASKS
-	SETTINGS_AUDIO
 	SETTINGS_GLOBAL
 	SETTINGS_KEYBOARD
 	SETTINGS_ABOUT
@@ -93,7 +92,7 @@ type Project struct {
 	// Project Settings
 	TaskShadowSpinner           *Spinner
 	GridVisible                 *Checkbox
-	SampleRate                  *Spinner
+	AudioSampleRate             *Spinner
 	SetSampleRate               int
 	SampleBuffer                int
 	ShowIcons                   *Checkbox
@@ -111,7 +110,7 @@ type Project struct {
 	TaskTransparency            *NumberSpinner
 	AlwaysShowURLButtons        *Checkbox
 	SettingsSection             *ButtonGroup
-	SoundVolume                 *NumberSpinner
+	AudioVolume                 *NumberSpinner
 	IncompleteTasksGlow         *Checkbox
 	CompleteTasksGlow           *Checkbox
 	SelectedTasksGlow           *Checkbox
@@ -242,7 +241,8 @@ func NewProject() *Project {
 		NumberTopLevel:              NewCheckbox(0, 0, 32, 32),
 		PulsingTaskSelection:        NewCheckbox(0, 0, 32, 32),
 		AutoSave:                    NewCheckbox(0, 0, 32, 32),
-		SampleRate:                  NewSpinner(0, 0, 192, 32, "22050", "44100", "48000", "88200", "96000"),
+		AudioSampleRate:             NewSpinner(0, 0, 192, 32, "22050", "44100", "48000", "88200", "96000"),
+		AudioVolume:                 NewNumberSpinner(0, 0, 128, 40),
 		BracketSubtasks:             NewCheckbox(0, 0, 32, 32),
 		LockProject:                 NewCheckbox(0, 0, 32, 32),
 		AutomaticBackupInterval:     NewNumberSpinner(0, 0, 128, 40),
@@ -250,11 +250,10 @@ func NewProject() *Project {
 		MaxUndoSteps:                NewNumberSpinner(0, 0, 192, 40),
 		TaskTransparency:            NewNumberSpinner(0, 0, 128, 40),
 		AlwaysShowURLButtons:        NewCheckbox(0, 0, 32, 32),
-		SettingsSection:             NewButtonGroup(0, 0, 700, 32, 1, "General", "Tasks", "Audio", "Global", "Shortcuts", "About"),
+		SettingsSection:             NewButtonGroup(0, 0, 700, 32, 1, "General", "Tasks", "Global", "Shortcuts", "About"),
 		RebindingButtons:            []*Button{},
 		DefaultRebindingButtons:     []*Button{},
 		RebindingHeldKeys:           []int32{},
-		SoundVolume:                 NewNumberSpinner(0, 0, 128, 40),
 		IncompleteTasksGlow:         NewCheckbox(0, 0, 32, 32),
 		CompleteTasksGlow:           NewCheckbox(0, 0, 32, 32),
 		SelectedTasksGlow:           NewCheckbox(0, 0, 32, 32),
@@ -433,21 +432,7 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(project.DeadlineAnimation, SETTINGS_TASKS)
 
-	// Audio
-
-	column.DefaultVerticalSpacing = -1
-
-	row = column.Row()
-	row.Item(NewLabel("Volume:"), SETTINGS_AUDIO)
-	row.Item(project.SoundVolume, SETTINGS_AUDIO)
-
-	row = column.Row()
-	row.Item(NewLabel("Project Samplerate:"), SETTINGS_AUDIO)
-	row.Item(project.SampleRate, SETTINGS_AUDIO)
-
 	// Keyboard
-
-	column.DefaultVerticalSpacing = 24
 
 	row = column.Row()
 	row.Item(NewLabel("Click a button for a shortcut and enter a key sequence to reassign it."), SETTINGS_KEYBOARD)
@@ -473,6 +458,8 @@ func NewProject() *Project {
 
 	// Global
 
+	// Visual
+
 	row = column.Row()
 	row.Item(NewLabel("Color Theme:"), SETTINGS_GLOBAL)
 	row.Item(project.ColorThemeSpinner, SETTINGS_GLOBAL)
@@ -483,6 +470,17 @@ func NewProject() *Project {
 
 	row.Item(NewLabel("Auto-load Last Project:"), SETTINGS_GLOBAL)
 	row.Item(project.AutoLoadLastProject, SETTINGS_GLOBAL)
+
+	// Audio
+
+	row = column.Row()
+	row.Item(NewLabel("Audio Volume:"), SETTINGS_GLOBAL)
+	row.Item(project.AudioVolume, SETTINGS_GLOBAL)
+
+	row.Item(NewLabel("Audio Samplerate:"), SETTINGS_GLOBAL)
+	row.Item(project.AudioSampleRate, SETTINGS_GLOBAL)
+
+	// Program settings
 
 	row = column.Row()
 	row.Item(NewLabel("Disable Splashscreen:"), SETTINGS_GLOBAL)
@@ -640,10 +638,10 @@ func NewProject() *Project {
 	project.TaskTransparency.Minimum = 1
 	project.TaskTransparency.SetNumber(5)
 
-	project.SoundVolume.Maximum = 100
-	project.SoundVolume.Minimum = 0
-	project.SoundVolume.Step = 10
-	project.SoundVolume.SetNumber(80)
+	project.AudioVolume.Maximum = 100
+	project.AudioVolume.Minimum = 0
+	project.AudioVolume.Step = 10
+	project.AudioVolume.SetNumber(80)
 
 	project.IncompleteTasksGlow.Checked = true
 	project.CompleteTasksGlow.Checked = true
@@ -673,17 +671,13 @@ func NewProject() *Project {
 
 	project.ReloadThemes()
 
-	if strings.Contains(runtime.GOOS, "darwin") {
-		project.SampleRate.SetChoice("22050") // For some reason, sound on Mac is choppy unless the project's sample rate is 22050.
-	} else {
-		project.SampleRate.SetChoice("44100")
-	}
-	speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
-	project.SetSampleRate = project.SampleRate.ChoiceAsInt()
+	speaker.Init(beep.SampleRate(project.AudioSampleRate.ChoiceAsInt()), project.SampleBuffer)
 
 	// We have to open the settings and then close it so the settings options update to the programSettings stored values.
 	project.OpenSettings()
 	project.ProjectSettingsOpen = false
+
+	project.SetSampleRate = project.AudioSampleRate.ChoiceAsInt()
 
 	return project
 
@@ -780,13 +774,12 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `PulsingTaskSelection`, project.PulsingTaskSelection.Checked)
 			data, _ = sjson.Set(data, `GridVisible`, project.GridVisible.Checked)
 			data, _ = sjson.Set(data, `GridSize`, project.GridSize)
-			data, _ = sjson.Set(data, `SampleRate`, project.SampleRate.ChoiceAsInt())
+			data, _ = sjson.Set(data, `SampleRate`, project.AudioSampleRate.ChoiceAsInt())
 			data, _ = sjson.Set(data, `SampleBuffer`, project.SampleBuffer)
 			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.Number())
 			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.Number())
 			data, _ = sjson.Set(data, `UndoMaxSteps`, project.MaxUndoSteps.Number())
 			data, _ = sjson.Set(data, `AlwaysShowURLButtons`, project.AlwaysShowURLButtons.Checked)
-			data, _ = sjson.Set(data, `SoundVolume`, project.SoundVolume.Number())
 			data, _ = sjson.Set(data, `IncompleteTasksGlow`, project.IncompleteTasksGlow.Checked)
 			data, _ = sjson.Set(data, `CompleteTasksGlow`, project.CompleteTasksGlow.Checked)
 			data, _ = sjson.Set(data, `SelectedTasksGlow`, project.SelectedTasksGlow.Checked)
@@ -898,7 +891,7 @@ func LoadProject(filepath string) *Project {
 			project.CameraPan.Y = getFloat(`Pan\.Y`)
 			project.ZoomLevel = getInt(`ZoomLevel`)
 			project.CurrentZoomLevel = project.ZoomLevel
-			project.SampleRate.SetChoice(getString(`SampleRate`))
+			project.AudioSampleRate.SetChoice(getString(`SampleRate`))
 			project.SampleBuffer = getInt(`SampleBuffer`)
 			project.TaskShadowSpinner.CurrentChoice = getInt(`TaskShadow`)
 			project.OutlineTasks.Checked = getBool(`OutlineTasks`)
@@ -923,14 +916,6 @@ func LoadProject(filepath string) *Project {
 				project.TableColumnVerticalSpacing.SetNumber(getInt(`TableColumnVerticalSpacing`))
 			}
 
-			if data.Get(`SoundVolume`).Exists() {
-				if project.LoadingVersion.LE(semver.MustParse("0.6.1-3")) {
-					project.SoundVolume.SetNumber(getInt(`SoundVolume`) * 10)
-				} else {
-					project.SoundVolume.SetNumber(getInt(`SoundVolume`))
-				}
-			}
-
 			if data.Get(`TaskTransparency`).Exists() {
 				project.TaskTransparency.SetNumber(getInt(`TaskTransparency`))
 			}
@@ -944,9 +929,6 @@ func LoadProject(filepath string) *Project {
 			if project.LockProject.Checked {
 				project.Locked = true
 			}
-
-			speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
-			project.SetSampleRate = project.SampleRate.ChoiceAsInt()
 
 			project.LogOn = false
 
@@ -2413,15 +2395,17 @@ func (project *Project) GUI() {
 
 				project.ProjectSettingsOpen = false
 
-				if project.SampleRate.ChoiceAsInt() != project.SetSampleRate {
+				if project.AudioSampleRate.ChoiceAsInt() != project.SetSampleRate {
 
-					speaker.Init(beep.SampleRate(project.SampleRate.ChoiceAsInt()), project.SampleBuffer)
-					project.SetSampleRate = project.SampleRate.ChoiceAsInt()
-					project.Log("Project sample rate changed to %s.", project.SampleRate.ChoiceAsString())
+					speaker.Init(beep.SampleRate(project.AudioSampleRate.ChoiceAsInt()), project.SampleBuffer)
+					project.SetSampleRate = project.AudioSampleRate.ChoiceAsInt()
+					programSettings.AudioSampleRate = project.AudioSampleRate.ChoiceAsInt()
+					project.Log("Project sample rate changed to %s.", project.AudioSampleRate.ChoiceAsString())
 					project.Log("Currently playing sounds have been stopped and resampled as necessary.")
 
 				}
 
+				programSettings.AudioVolume = project.AudioVolume.Number()
 				programSettings.AutoloadLastPlan = project.AutoLoadLastProject.Checked
 				programSettings.DisableSplashscreen = project.DisableSplashscreen.Checked
 				programSettings.AutoReloadThemes = project.AutoReloadThemes.Checked
@@ -2453,7 +2437,7 @@ func (project *Project) GUI() {
 				project.GenerateGrid()
 			}
 
-			if project.SoundVolume.Changed {
+			if project.AudioVolume.Changed {
 				project.SendMessage(MessageSettingsChange, nil)
 			}
 
@@ -3062,6 +3046,8 @@ func (project *Project) OpenSettings() {
 	project.ColorThemeSpinner.SetChoice(programSettings.Theme)
 	project.DrawWindowBorder.Checked = programSettings.DrawWindowBorder
 	project.DownloadTimeout.SetNumber(programSettings.DownloadTimeout)
+	project.AudioSampleRate.SetChoice(strconv.Itoa(programSettings.AudioSampleRate))
+	project.AudioVolume.SetNumber(programSettings.AudioVolume)
 }
 
 func (project *Project) PromptQuit() {

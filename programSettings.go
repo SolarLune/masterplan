@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"runtime"
+	"strings"
 
 	"github.com/adrg/xdg"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -40,6 +42,8 @@ type ProgramSettings struct {
 	Theme                     string
 	DrawWindowBorder          bool
 	DownloadTimeout           int
+	AudioVolume               int
+	AudioSampleRate           int
 }
 
 func NewProgramSettings() ProgramSettings {
@@ -57,7 +61,15 @@ func NewProgramSettings() ProgramSettings {
 		ScrollwheelSensitivity: 1,
 		Theme:                  "Sunlight", // Default theme
 		DownloadTimeout:        4,
+		AudioVolume:            80,
 	}
+
+	if strings.Contains(runtime.GOOS, "darwin") {
+		ps.AudioSampleRate = 22050 // For some reason, sound on Mac is choppy unless the project's sample rate is 22050 (by default).
+	} else {
+		ps.AudioSampleRate = 44100
+	}
+
 	return ps
 }
 
