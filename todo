@@ -19,12 +19,11 @@ FINISHED
 - Adding shortcuts for text manipulation within Textboxes.
 - Other minor visual fixes.
 - Added shortcuts to add or delete columns and rows. Shift+Enter goes to the previous column or row, Enter goes to the next one. If the last column or row is highlighted, Enter will create a new one. Pressing backspace when a column or row's name is empty will delete it.
+- FIX: Lines now always display, not just if both the base and the end are visible.
 
 TODO
 
-- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800
-- Sound playback issues (choppy / slow; must be to do with resampling)
-- Lines only display if both the base and the end are visible.
+- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800 - this actually isn't a bug, the user probably didn't specify a font that has Thai characters in it and the default (my font) doesn't have those characters.
 - Overdue Tasks skip a day: https://github.com/SolarLune/masterplan/issues/51
 - Time until Daily Timer goes off is incorrect (one hour behind): https://github.com/SolarLune/masterplan/issues/50
 - Crash when pressing Reset Image Size on an unloaded image?

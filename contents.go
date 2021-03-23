@@ -1845,7 +1845,7 @@ func (c *LineContents) Update() {
 
 func (c *LineContents) DrawLines() {
 
-	if c.Task.LineStart != nil && (c.Task.LineStart.Visible || c.Task.Visible) {
+	if c.Task.LineStart != nil {
 
 		outlinesOn := c.Task.Board.Project.OutlineTasks.Checked
 		outlineColor := getThemeColor(GUI_INSIDE)
