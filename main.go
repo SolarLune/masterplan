@@ -256,7 +256,12 @@ func main() {
 					v += "Project Lock Present"
 				}
 			} else if currentProject.AutoSave.Checked {
-				v += "Autosave On"
+				if currentProject.FilePath == "" {
+					v += "Please Manually Save Project"
+					color.R = 255
+				} else {
+					v += "Autosave On"
+				}
 			} else if currentProject.Modified {
 				v += "Modified"
 			}

@@ -177,6 +177,17 @@ func deadlineAlignment(task *Task) int {
 	}
 }
 
+// DSTChange returns whether the timezone of the time given is different from now's timezone (i.e. from PST to PDT or vice-versa).
+func DSTChange(startTime time.Time) bool {
+
+	nowZone, _ := time.Now().Zone()
+	startZone, _ := startTime.Zone()
+
+	// Returns the offset amount of the difference between
+	return nowZone != startZone
+
+}
+
 func deadlineText(task *Task) string {
 
 	txt := ""
@@ -185,16 +196,18 @@ func deadlineText(task *Task) string {
 
 		now := time.Now()
 		now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
 		targetDate := time.Date(task.DeadlineYear.Number(), time.Month(task.DeadlineMonth.CurrentChoice+1), task.DeadlineDay.Number(), 0, 0, 0, 0, now.Location())
 
-		duration := targetDate.Sub(now).Truncate(time.Hour * 24)
+		// Don't truncate by time because it cuts off daylight savings time changes (where the time change date could be 23 or 25 hours, not just 24)
+		duration := targetDate.Sub(now)
 
 		if duration.Seconds() == 0 {
 			txt += " : Due today"
 		} else if duration.Seconds() > 0 {
-			txt += " : Due in " + durafmt.Parse(duration).LimitFirstN(1).String()
+			txt += " : Due in " + durafmt.Parse(duration).LimitFirstN(2).String()
 		} else {
-			txt += " : Overdue by " + durafmt.Parse(-duration).LimitFirstN(1).String() + "!"
+			txt += " : Overdue by " + durafmt.Parse(-duration).LimitFirstN(2).String() + "!"
 		}
 
 	}
@@ -1412,15 +1425,10 @@ func (c *TimerContents) CalculateTimeLeft() {
 
 	case TIMER_TYPE_DAILY:
 
-		start := time.Duration(int(now.Weekday())) * 24 * time.Hour
-
 		// Get a solid start that is the beginning of the week. nextDate starts as today, minus how far into the week we are
-		nextDate := now.Add(-start)
-		year, month, day := nextDate.Date()
-		nextDate = time.Date(year, month, day, 0, 0, 0, 0, now.Location()) // We just want the day, month, and year; the seconds aren't important
+		weekStart := time.Date(now.Year(), now.Month(), now.Day()-int(now.Weekday()), c.Task.DailyHour.Number(), c.Task.DailyMinute.Number(), 0, 0, now.Location())
 
-		foundNextDate := false
-		firstDate := time.Time{}
+		nextDate := time.Time{}
 
 		// Calculate when the next time the Timer should go off is (i.e. a Timer could go off multiple days, so we check each valid day).
 		for dayIndex, enabled := range c.Task.DailyDay.EnabledOptionsAsArray() {
@@ -1429,24 +1437,16 @@ func (c *TimerContents) CalculateTimeLeft() {
 				continue
 			}
 
-			day := nextDate.Add((time.Duration(dayIndex) * time.Hour * 24) +
-				(time.Duration(c.Task.DailyHour.Number()) * time.Hour) +
-				(time.Duration(c.Task.DailyMinute.Number()) * time.Minute))
+			day := weekStart.AddDate(0, 0, dayIndex)
 
-			if firstDate.IsZero() {
-				firstDate = day
-			}
-
-			if day.After(now) {
-				foundNextDate = true
+			if nextDate.IsZero() || day.After(nextDate) {
 				nextDate = day
-				break
 			}
 
 		}
 
-		if !foundNextDate || nextDate.Sub(now).Seconds() <= 0 {
-			nextDate = firstDate.AddDate(0, 0, 7)
+		if !nextDate.After(now) {
+			nextDate = nextDate.AddDate(0, 0, 7)
 		}
 
 		c.TargetDate = nextDate
@@ -1682,7 +1682,12 @@ func (c *TimerContents) Draw() {
 		targetDateText := c.TargetDate.Format(" (Jan 2 2006)")
 
 		if c.Task.TimerRunning {
+
 			text += durafmt.Parse(time.Duration(c.TimerValue)*time.Second).LimitFirstN(2).String() + targetDateText
+
+			if DSTChange(c.TargetDate) {
+				text += " (DST change)"
+			}
 		} else {
 			text += "Timer stopped."
 		}

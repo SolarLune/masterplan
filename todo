@@ -4,9 +4,11 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 FINISHED
 
-- FIX: Recreate sound streams when changing project sampler settings. This fixes sounds not being resampled properly and being crackly when played back.
-- CHANGE: Audio settings (sample rate and volume) are now global, not per-Project, and are available in the Global section of the settings menu.
+- Added shortcuts to add or delete columns and rows. Shift+Enter goes to the previous column or row, Enter goes to the next one. If the last column or row is highlighted, Enter will create a new one. Pressing backspace when a column or row's name is empty will delete it.
+- FIX: Sound streams are properly resampled now when changing project sampler settings. This should fix sounds being crackly when played back.
+- CHANGE: Audio settings (sample rate and volume) are now global, not per-Project, and are available in the Global section of the settings menu. The Audio section is now removed.
 - FIX: Saving no longer stutters slightly, making Project Auto-save usable.
+- FIX: MasterPlan warns you when you haven't saved the project and have Auto-Save enabled.
 - FIX: Stopwatch can't be started.
 - FIX: Can't reset Stopwatch.
 - FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now; previously, only the first character was entered.
@@ -18,44 +20,51 @@ FINISHED
 - FIX: Textboxes are now more properly aligned horizontally.
 - Adding shortcuts for text manipulation within Textboxes.
 - Other minor visual fixes.
-- Added shortcuts to add or delete columns and rows. Shift+Enter goes to the previous column or row, Enter goes to the next one. If the last column or row is highlighted, Enter will create a new one. Pressing backspace when a column or row's name is empty will delete it.
 - FIX: Lines now always display, not just if both the base and the end are visible.
+- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800 - This actually isn't a bug, the user probably didn't specify a font that has Thai characters in it and the default (my font) doesn't have those characters.
+- Crash when typing End and Delete in a Textbox? Specifically the backup one. - This doesn't seem to happen anymore.
 
 TODO
 
-- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800 - this actually isn't a bug, the user probably didn't specify a font that has Thai characters in it and the default (my font) doesn't have those characters.
+- Split newlines by \r\n on Windows, not just \n; there should be an os package constant for this, I think?
+- Autosave should only happen when an UndoState is generated (possibly also when undoing / redoing); that's how we can know something happened.
 - Overdue Tasks skip a day: https://github.com/SolarLune/masterplan/issues/51
+- The ability to copy a set of Tasks and paste them as a text list (this may be doable using the clipboard tool)
+- Conversely, the ability to copy a list and paste it as a set of Tasks
 - Time until Daily Timer goes off is incorrect (one hour behind): https://github.com/SolarLune/masterplan/issues/50
+- Add audio buffer size, just in case
+- Add button on the Task itself to check off Checkbox Tasks
 - Crash when pressing Reset Image Size on an unloaded image?
 - Make backup timer textbox move in steps of 5 minutes.
 - Project.Modified is set directly after loading a project for some reason
-- Crash when typing End and Delete in a Textbox? Specifically the backup one.
+- Lines shouldn't have to point in a specific direction / shouldn't point towards each other if possible
+- Add option to change double-click speed
+- Change durations to be more descriptive / simpler (a duration of "1 day" could mean "1 day 23 hours")
+- Dedicated media folder (drag and dropped files get automatically copied to a customizeable location): https://itch.io/t/1275925/option-to-copy-dragged-and-dropped-images-into-a-specific-folder-inside-masterplans-directory?before=3#post-2901238
+- Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
+- Similarly, extend parsing to parse text to become clickable links to be able to open files or directories
 - Implement text displaying better for fonts of different size; seems like they rarely line up properly 
 - Re-implement progress bar behind timer
 - Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
 - Can't make shortcut on Mac?
-- The ability to copy a set of Tasks and paste them as a text list (this may be doable using the clipboard tool)
 - Building MasterPlan doesn't work sometimes?: https://github.com/SolarLune/masterplan/issues/39
-- Lines shouldn't have to point in a specific direction / shouldn't point towards each other if possible
-- Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
-- Similarly, extend parsing to parse text to become clickable links to be able to open files or directories
 - See about implementing a backend system, switching from Raylib to SDL for (HOPEFULLY!) more up-to-date fundamentals (render-to-texture, texture unloading, better font support, better IME support).
+- Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
 
-- High-res fonts that are rendered to an image (for Notes, for example) is low-res
-- Optimize text rendering (just load at least the number of characters that we need?)
-    - If I could reload fonts during run without crashing, that would be great
-    - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
 - Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines. Also, Zones could be collapsible, allowing you to hide Zones for simplicity and readability.
 - Calendar Task, allowing you to put Tasks on specific days (see TreeSheets: http://strlen.com/treesheets/docs/screenshots.html)
   - This will probably necessitate a Calendar UI element as well.
     - Maybe just a Calendar mode for the Table? That would basically turn it into a Table that has slots for each day in the month, and you could cycle through it using < and > buttons. It would have a max of 31 slots so the size is consistent, and the column headers would just be the day of the month. 
     - This should be more "in line with the design philosophy of MasterPlan", though; simply making it a Calendar works OK, but you can't put things into a Table. Maybe you should be able to? Maybe Note Tasks could be placed in there??? Maybe you could just put Zones into Tasks.
+- High-res fonts that are rendered to an image (for Notes, for example) is low-res
+- Optimize text rendering (just load at least the number of characters that we need?)
+    - If I could reload fonts during run without crashing, that would be great
+    - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
 - Remove Project.RetrieveResource()?
 - IMPLEMENT RL.UNLOADTEXTURE(), BECAUSE THIS VRAM MEMORY LEAK IS ANNOYING AS H*CK
 - Implement button to return all settings to default
 - Note renderering could use a grayscale texture for limited VRAM usage, as it's not necessary for Notes to be colored (for now)
-- Make a video talking a bit about what MasterPlan is and why it's useful. It helps you think, it helps you create links between tasks, it allows you to complete things that need to be done, and it helps you to say no. 
-  This video could be accessible from the Steam forums, or from the MasterPlan menu.
+- Make a video talking a bit about what MasterPlan is and why it's useful. It helps you think, it helps you create links between tasks, it allows you to complete things that need to be done, and it helps you to say no. This video could be accessible from the Steam forums, or from the MasterPlan Settings (?) menu.
 - Note: If you save a project in a newer version of MasterPlan, loading it in an older version should say something like "Are you sure? It might not work correctly."
 - Optimize map image serialization by using bitwise operations and storing the array as a bitwise number
 - Add image filtering option, as you may not want it to be pixelly
@@ -79,9 +88,8 @@ TODO
 - Tweakable zoom levels, rather than being hard-coded?
 - Use Lines to connect Tasks for SubTask counting
 - Fullscreen acts weird if the window isn't maximized first, so that might be a good thing to try to do? Set the window size and then fullscreen it?
-- Add pasting image data? Somehow?
-- Panels should be resizeable
 - Investigate pasting images from the clipboard?
+- Panels should be resizeable
 - MP4 video support?
 - A mobile version of MasterPlan, where you can take pictures or record video and have it copy over to your plan somehow (gasp!).
 - Re-make Dino Riki? Aw Nuts!? 7DRL on 3/4/21?!?!?!
@@ -89,10 +97,8 @@ TODO
 - Add manual typing entry for month / day / year for deadlines / Timer Dates
     - Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
 - Optimize Table text size checks
-- Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
 - Table: Option to make coumn and row names invisible (so that you could for example put images there).
 - Table: Add button to turn a column into a row, or vice-versa
-- Add button on the Task itself to check off Checkbox Tasks
 - Add tags of some description
 - Add icons for task types in Task Edit Panel
 - Fix up horizontal alignments in Panels - rather than doing this via RowItem.Weight or HorizontalAlignment, it would be good to have a manual spacing value that indicates how far out from an item another is (how much space is between one item and the following one)

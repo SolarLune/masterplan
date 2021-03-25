@@ -168,7 +168,7 @@ type Project struct {
 	ProjectSettingsOpen bool
 	Selecting           bool
 	SelectionStart      rl.Vector2
-	DoubleClickTimer    time.Time
+	DoubleClickTimer    float32
 	DoubleClickTaskID   int
 	CopyBuffer          []*Task
 	Cutting             bool // If cutting, then this boolean is set
@@ -229,7 +229,7 @@ func NewProject() *Project {
 		LoadRecentDropdown:   NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
 		UndoFade:             gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
 
-		PopupPanel:    NewPanel(0, 0, 480, 270),
+		PopupPanel:    NewPanel(0, 0, 500, 320),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
 		TaskEditPanel: NewPanel(63, 64, 960/4*3, 560/4*3),
 
@@ -357,7 +357,15 @@ func NewProject() *Project {
 	row.Item(project.LockProject, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Auto-save Project:"), SETTINGS_GENERAL)
+	row.Item(NewLabel(""), SETTINGS_GENERAL)
+
+	row = column.Row()
+	autosaveLabel := NewLabel("NOTE: Auto-save automatically saves your project whenever changes\nare made, but only works after you've manually saved the project once.")
+	autosaveLabel.Underline = true
+	row.Item(autosaveLabel, SETTINGS_GENERAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Enable Auto-save:"), SETTINGS_GENERAL)
 	row.Item(project.AutoSave, SETTINGS_GENERAL)
 
 	row = column.Row()
@@ -631,7 +639,7 @@ func NewProject() *Project {
 	project.TaskShadowSpinner.CurrentChoice = 2
 	project.GridVisible.Checked = true
 	project.ShowIcons.Checked = true
-	project.DoubleClickTimer = time.Time{}
+	project.DoubleClickTimer = -1
 	project.PreviousTaskType = TASK_TYPE_BOOLEAN
 	project.NumberTopLevel.Checked = true
 	project.TaskTransparency.Maximum = 5
@@ -671,12 +679,11 @@ func NewProject() *Project {
 
 	project.ReloadThemes()
 
-	speaker.Init(beep.SampleRate(project.AudioSampleRate.ChoiceAsInt()), project.SampleBuffer)
-
 	// We have to open the settings and then close it so the settings options update to the programSettings stored values.
 	project.OpenSettings()
 	project.ProjectSettingsOpen = false
 
+	speaker.Init(beep.SampleRate(project.AudioSampleRate.ChoiceAsInt()), project.SampleBuffer)
 	project.SetSampleRate = project.AudioSampleRate.ChoiceAsInt()
 
 	return project
@@ -804,7 +811,8 @@ func (project *Project) Save(backup bool) {
 
 			data = gjson.Parse(data).Get("@pretty").String() // Pretty print it so it's visually nice in the .plan file.
 
-			if err := ioutil.WriteFile(project.FilePath, []byte(data), 0); err != nil {
+			// 0666 is an octal digit indicating read / write / no execute permissions for user, group, and other: https://stackoverflow.com/questions/18415904/what-does-mode-t-0644-mean/18415935
+			if err := os.WriteFile(project.FilePath, []byte(data), 0666); err != nil {
 				project.Log("ERROR: Could not create save file: ", err.Error())
 				success = false
 			}
@@ -1243,8 +1251,8 @@ func (project *Project) Update() {
 
 			}
 
-			if time.Since(project.DoubleClickTimer).Seconds() > 0.33 {
-				project.DoubleClickTimer = time.Time{}
+			if project.Time-project.DoubleClickTimer > 0.5 {
+				project.DoubleClickTimer = -1
 			}
 
 			if clicked {
@@ -1285,25 +1293,25 @@ func (project *Project) Update() {
 
 					project.DoubleClickTaskID = -1
 
-					if !project.DoubleClickTimer.IsZero() && project.DoubleClickTaskID == -1 {
+					if project.DoubleClickTimer >= 0 && project.DoubleClickTaskID == -1 {
 						task := project.CurrentBoard().CreateNewTask()
 						task.TaskType.CurrentChoice = project.PreviousTaskType
 						task.ReceiveMessage(MessageTaskRestore, nil)
 						task.ReceiveMessage(MessageDoubleClick, nil)
 						project.Selecting = false
-						project.DoubleClickTimer = time.Time{}
+						project.DoubleClickTimer = -1
 						project.CurrentBoard().TaskChanged = true
 					} else {
-						project.DoubleClickTimer = time.Now()
+						project.DoubleClickTimer = project.Time
 					}
 
 				} else {
 
-					if clickedTask.ID == project.DoubleClickTaskID && !project.DoubleClickTimer.IsZero() && clickedTask.Selected {
+					if clickedTask.ID == project.DoubleClickTaskID && project.DoubleClickTimer >= 0 && clickedTask.Selected {
 						clickedTask.ReceiveMessage(MessageDoubleClick, nil)
-						project.DoubleClickTimer = time.Time{}
+						project.DoubleClickTimer = -1
 					} else if !clickedTask.Locked {
-						project.DoubleClickTimer = time.Now()
+						project.DoubleClickTimer = project.Time
 						project.SendMessage(MessageDragging, nil)
 						project.DoubleClickTaskID = clickedTask.ID
 					}
@@ -2078,6 +2086,8 @@ func (project *Project) GUI() {
 
 			if project.Modified {
 				label.Text = "\nCurrent project has been changed."
+			} else if project.FilePath == "" && project.AutoSave.Checked {
+				label.Text = "\nProject is NOT saved, due to having\nno project file path (not being manually saved)."
 			}
 
 			label.Text += "\nAbandon project?"
