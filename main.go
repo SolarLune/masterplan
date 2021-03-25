@@ -290,6 +290,8 @@ func main() {
 
 					if strings.HasPrefix(msg.Text, "ERROR") {
 						color = rl.Red
+					} else if strings.HasPrefix(msg.Text, "WARNING") {
+						color = rl.Yellow
 					} else {
 						color = rl.White
 					}

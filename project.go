@@ -2086,7 +2086,7 @@ func (project *Project) GUI() {
 
 			if project.Modified {
 				label.Text = "\nCurrent project has been changed."
-			} else if project.FilePath == "" && project.AutoSave.Checked {
+			} else if project.AutoSaveInvalid() {
 				label.Text = "\nProject is NOT saved, due to having\nno project file path (not being manually saved)."
 			}
 
@@ -2211,7 +2211,7 @@ func (project *Project) GUI() {
 					switch option {
 
 					case "New Project":
-						if project.Modified {
+						if project.Modified || project.AutoSaveInvalid() {
 							project.PopupAction = ActionNewProject
 						} else {
 							project.ExecuteDestructiveAction(ActionNewProject, "")
@@ -3067,4 +3067,8 @@ func (project *Project) PromptQuit() {
 // IsInNeutralState returns true if the Project is in a neutral state (no Tasks open, settings not open, searchbar not focused, etc)
 func (project *Project) IsInNeutralState() bool {
 	return !project.TaskOpen && !project.ProjectSettingsOpen && project.PopupAction == "" && !project.Searchbar.Focused
+}
+
+func (project *Project) AutoSaveInvalid() bool {
+	return project.AutoSave.Checked && project.FilePath == ""
 }

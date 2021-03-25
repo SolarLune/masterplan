@@ -25,7 +25,8 @@ FINISHED
 - Crash when typing End and Delete in a Textbox? Specifically the backup one. - This doesn't seem to happen anymore.
 - FIX: Overdue Tasks no longer skip a day around DST.
 - FIX: Time until Daily Timer goes off is incorrect around DST: https://github.com/SolarLune/masterplan/issues/50
-- FIX: Messages fade out over delta time, unadjusted by current FPS. This means messages always appear, rather than sometimes not being visible (i.e. when using Save Project As...).
+- FIX: Messages fade out over delta time, unadjusted by current FPS, but rather by ideal delta time. This means messages always appear, rather than sometimes not being visible (i.e. when using Save Project As...).
+- Warning messages are now yellow.
 
 TODO
 
@@ -95,6 +96,7 @@ TODO
 - A mobile version of MasterPlan, where you can take pictures or record video and have it copy over to your plan somehow (gasp!).
 - Re-make Dino Riki? Aw Nuts!? 7DRL on 3/4/21?!?!?!
 
+- Time estimations per Task - these can be set as a project-level default (i.e. something like 30 minutes per-Task), and then further specified (maybe specifying something like 3 hours for a specific Task, as an example).
 - Add manual typing entry for month / day / year for deadlines / Timer Dates
     - Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
 - Optimize Table text size checks
@@ -175,14 +177,13 @@ includes a current number and maximum number of 999 each, so that they don't cha
 - Custom numbering system enabling for tasks
 - Option to indent Text with icons off
 - Resizeable Notes / Collapsible Notes
-- Time estimations per Task - these can be set as a project-level default (i.e. something like 30 minutes per-Task), and then further specified (maybe specifying something like 3 hours for a specific Task, as an example).
 - Background hint text for text entry (i.e. "Enter date in MM/DD/YYYY Format" behind something that allows you to enter a date)
-- Multitask Editing
 - Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
 - Hover over Tasks to display more information about them.
 
 Long-term Goals
 
+- Multitask Editing
 - Do stuff on the overview, rather than needing to open a Panel. This is requested pretty regularly, but I'm not 100% on how to do so seamlessly.
 - Collaboration - Real quick idea: 
     - Clone the plan to all connected users' computers.
@@ -197,6 +198,7 @@ Long-term Goals
         - Perhaps through straight up some sort of code system so that you can easily join other "planners". It'd be interesting to join random "games", though 
         this would open up the possiblity of using MasterPlan for illegal or otherwise horrible activities, so this is probably not feasible.
     - Sending data should be UDP. Data could probably be compressed in some way so as not to send actual string data.
+    - Chat window, of course
 
 - Git integration (git messages can refer to Task IDs to automatically complete them)
 - GUI Scaling
