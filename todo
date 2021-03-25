@@ -27,13 +27,14 @@ FINISHED
 - FIX: Time until Daily Timer goes off is incorrect around DST: https://github.com/SolarLune/masterplan/issues/50
 - FIX: Messages fade out over delta time, unadjusted by current FPS, but rather by ideal delta time. This means messages always appear, rather than sometimes not being visible (i.e. when using Save Project As...).
 - Warning messages are now yellow.
+- FIX #52: Text pasted into MasterPlan that has Windows carriage return characters is now properly split by newlines.
 
 TODO
 
-- Split newlines by \r\n on Windows, not just \n; there should be an os package constant for this, I think?
-- Autosave should only happen when an UndoState is generated (possibly also when undoing / redoing); that's how we can know something happened.
 - The ability to copy a set of Tasks and paste them as a text list (this may be doable using the clipboard tool)
 - Conversely, the ability to copy a list and paste it as a set of Tasks
+
+- Autosave should only happen when an UndoState is generated (possibly also when undoing / redoing); that's how we can know something happened.
 - Add audio buffer size
 - Add button on the Task itself to check off Checkbox Tasks
 - Crash when pressing Reset Image Size on an unloaded image? : https://steamcommunity.com/app/1269310/discussions/1/3105766884450239608/

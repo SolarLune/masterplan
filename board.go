@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
+	"os"
 	"sort"
 	"strings"
 
@@ -301,7 +301,7 @@ func (board *Board) HandleDroppedFiles() {
 
 				} else {
 
-					text, err := ioutil.ReadFile(filepath)
+					text, err := os.ReadFile(filepath)
 					if err == nil {
 						task.Description.SetText(string(text))
 					} else {
@@ -489,7 +489,7 @@ func (board *Board) PasteContent() {
 
 	if clipboardData != "" {
 
-		// clipboardData = strings.TrimSpace(clipboardData)
+		clipboardData = strings.ReplaceAll(clipboardData, "\r\n", "\n")
 
 		clipboardLines := strings.Split(clipboardData, "\n")
 

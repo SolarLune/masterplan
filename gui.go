@@ -2231,6 +2231,8 @@ func (textbox *Textbox) Update() {
 			clipboardText, err := clipboard.ReadAll()
 			if clipboardText != "" {
 
+				clipboardText = strings.ReplaceAll(clipboardText, "\r\n", "\n")
+
 				textbox.Changed = true
 				if textbox.RangeSelected() {
 					textbox.DeleteSelectedText()
