@@ -286,7 +286,7 @@ func main() {
 					text := "- " + msg.Time.Format("15:04:05") + " : " + msg.Text
 					text = strings.ReplaceAll(text, "\n", "\n                    ")
 
-					alpha, done := msg.Tween.Update(rl.GetFrameTime())
+					alpha, done := msg.Tween.Update(1 / float32(programSettings.TargetFPS))
 
 					if strings.HasPrefix(msg.Text, "ERROR") {
 						color = rl.Red

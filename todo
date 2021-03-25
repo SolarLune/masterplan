@@ -23,18 +23,19 @@ FINISHED
 - FIX: Lines now always display, not just if both the base and the end are visible.
 - Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800 - This actually isn't a bug, the user probably didn't specify a font that has Thai characters in it and the default (my font) doesn't have those characters.
 - Crash when typing End and Delete in a Textbox? Specifically the backup one. - This doesn't seem to happen anymore.
+- FIX: Overdue Tasks no longer skip a day around DST.
+- FIX: Time until Daily Timer goes off is incorrect around DST: https://github.com/SolarLune/masterplan/issues/50
+- FIX: Messages fade out over delta time, unadjusted by current FPS. This means messages always appear, rather than sometimes not being visible (i.e. when using Save Project As...).
 
 TODO
 
 - Split newlines by \r\n on Windows, not just \n; there should be an os package constant for this, I think?
 - Autosave should only happen when an UndoState is generated (possibly also when undoing / redoing); that's how we can know something happened.
-- Overdue Tasks skip a day: https://github.com/SolarLune/masterplan/issues/51
 - The ability to copy a set of Tasks and paste them as a text list (this may be doable using the clipboard tool)
 - Conversely, the ability to copy a list and paste it as a set of Tasks
-- Time until Daily Timer goes off is incorrect (one hour behind): https://github.com/SolarLune/masterplan/issues/50
-- Add audio buffer size, just in case
+- Add audio buffer size
 - Add button on the Task itself to check off Checkbox Tasks
-- Crash when pressing Reset Image Size on an unloaded image?
+- Crash when pressing Reset Image Size on an unloaded image? : https://steamcommunity.com/app/1269310/discussions/1/3105766884450239608/
 - Make backup timer textbox move in steps of 5 minutes.
 - Project.Modified is set directly after loading a project for some reason
 - Lines shouldn't have to point in a specific direction / shouldn't point towards each other if possible
