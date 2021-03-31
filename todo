@@ -4,14 +4,19 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 FINISHED
 
+- Adding ability to copy Tasks into the system clipboard to paste as text, with a corresponding option in Settings to disable as desired.
+- Adding ability to paste text that starts with "[ ]", "[x]", or "[o]" as Checkbox Tasks.
+- Removing Square and Star numbering sequences for now, to try to move over to pure letters / unicode characters for text-related rendering to make spacing simpler, rather than having icons in there, too (or, this could be, ideally, revisited again with better-looking icons).
+- Settings > Global menu is now categorized to make things a bit easier to find.
 - Added shortcuts to add or delete columns and rows. Shift+Enter goes to the previous column or row, Enter goes to the next one. If the last column or row is highlighted, Enter will create a new one. Pressing backspace when a column or row's name is empty will delete it.
+- FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now; previously, only the first character was entered.
 - FIX: Sound streams are properly resampled now when changing project sampler settings. This should fix sounds being crackly when played back.
 - CHANGE: Audio settings (sample rate and volume) are now global, not per-Project, and are available in the Global section of the settings menu. The Audio section is now removed.
 - FIX: Saving no longer stutters slightly, making Project Auto-save usable.
 - FIX: MasterPlan warns you when you haven't saved the project and have Auto-Save enabled.
-- FIX: Stopwatch can't be started.
+- FIX: MasterPlan warns you when you try to exit or load a new project, and Auto-Save isn't working (for the above reason).
+- FIX: Stopwatch can't be started sometimes.
 - FIX: Can't reset Stopwatch.
-- FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now; previously, only the first character was entered.
 - FIX: Loading files (images, sounds) isn't case-sensitive anymore (specifically, this was for Linux).
 - FIX: Textboxes don't update their fonts when the font changes.
 - FIX: Task-specific shortcuts should now only work when the project is in a neutral state (search textbox not focused, task isn't being edited, etc). This means it's not possible to, say, complete a Checkbox while a Panel is open.
@@ -19,15 +24,20 @@ FINISHED
 - FIX: URL buttons appear when the project is in neutral state only.
 - FIX: Textboxes are now more properly aligned horizontally.
 - Adding shortcuts for text manipulation within Textboxes.
-- Other minor visual fixes.
 - FIX: Lines now always display, not just if both the base and the end are visible.
+- FIX: Overdue Tasks no longer skip a day around Daylight Savings Time starting.
+- FIX: Time until Daily Timer goes off is no longer incorrect around DST: https://github.com/SolarLune/masterplan/issues/50
+- FIX: Messages that are spawned by processes that take some time (i.e. when using Save Project As...) now properly show up. Internally, this is because messages now fade out over by ideal delta frame-time, rather than fading by the system clock.
+- FIX: Text pasted into MasterPlan on Windows no longer adds an underscore on every line.
+- Warning messages that appear at the top-left are now yellow.
+- Underlined text in panels are now a bit visually nicer, being slightly thicker, wider, and fading out on the edges.
+- Other minor visual fixes.
+- FIX: Files with upper-case extensions (i.e. JPG instead of jpg) weren't visible on Linux when attempting to load images or sounds from disk.
+
+DISREGARDED
+
+- FIX?: MasterPlan no longer crashes when typing End and Delete in a Textbox? Specifically the backup one. - This doesn't seem to happen anymore.
 - Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800 - This actually isn't a bug, the user probably didn't specify a font that has Thai characters in it and the default (my font) doesn't have those characters.
-- Crash when typing End and Delete in a Textbox? Specifically the backup one. - This doesn't seem to happen anymore.
-- FIX: Overdue Tasks no longer skip a day around DST.
-- FIX: Time until Daily Timer goes off is incorrect around DST: https://github.com/SolarLune/masterplan/issues/50
-- FIX: Messages fade out over delta time, unadjusted by current FPS, but rather by ideal delta time. This means messages always appear, rather than sometimes not being visible (i.e. when using Save Project As...).
-- Warning messages are now yellow.
-- FIX: Text pasted into MasterPlan that has Windows carriage return characters is now properly split by newlines.
 
 TODO
 

@@ -1076,14 +1076,33 @@ func (label *Label) Draw() {
 		pos.Y = float32(math.Round(float64(pos.Y)))
 		DrawGUIText(pos, label.Text)
 	}
-	rect := label.Rectangle()
+
 	if label.Underline {
-		rl.DrawLineEx(
-			rl.Vector2{rect.X, rect.Y + rect.Height + 1},
-			rl.Vector2{rect.X + rect.Width, rect.Y + rect.Height + 1},
-			2,
-			getThemeColor(GUI_FONT_COLOR))
+
+		color := getThemeColor(GUI_FONT_COLOR)
+
+		rect := label.Rectangle()
+		start := rl.Vector2{rect.X - 8, rect.Y + rect.Height + 2}
+		end := rl.Vector2{rect.X + rect.Width + 8, rect.Y + rect.Height + 2}
+
+		rl.DrawLineEx(start, end, 2, color)
+
+		src := rl.Rectangle{224, 16, 5, 1}
+		dst := src
+		dst.Height = 2
+
+		dst.X = end.X
+		dst.Y = end.Y - 1
+
+		rl.DrawTexturePro(currentProject.GUI_Icons, src, dst, rl.Vector2{}, 0, color)
+
+		dst.X = start.X - dst.Width
+		src.Width *= -1
+
+		rl.DrawTexturePro(currentProject.GUI_Icons, src, dst, rl.Vector2{}, 0, color)
+
 	}
+
 }
 
 func (label *Label) Depth() int32 {
