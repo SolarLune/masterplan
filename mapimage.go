@@ -439,3 +439,11 @@ func (mapImage *MapImage) Width() float32 {
 func (mapImage *MapImage) Height() float32 {
 	return float32(int32(mapImage.cellHeight) * mapImage.Task.Board.Project.GridSize)
 }
+
+func (mapImage *MapImage) CellWidth() int {
+	return mapImage.cellWidth
+}
+
+func (mapImage *MapImage) CellHeight() int {
+	return mapImage.cellHeight
+}

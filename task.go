@@ -887,11 +887,7 @@ func (task *Task) Draw() {
 						task.PrefixText += fmt.Sprintf("%d-", value)
 					}
 				case NUMBERING_SEQUENCE_BULLET:
-					fallthrough
-				case NUMBERING_SEQUENCE_SQUARE:
-					fallthrough
-				case NUMBERING_SEQUENCE_STAR:
-					task.PrefixText += "   "
+					task.PrefixText += "•"
 				case NUMBERING_SEQUENCE_ROMAN:
 					task.PrefixText += fmt.Sprintf("%s.", romanNumber)
 

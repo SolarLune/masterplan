@@ -44,6 +44,7 @@ type ProgramSettings struct {
 	DownloadTimeout           int
 	AudioVolume               int
 	AudioSampleRate           int
+	CopyTasksToClipboard      bool
 }
 
 func NewProgramSettings() ProgramSettings {
@@ -62,6 +63,7 @@ func NewProgramSettings() ProgramSettings {
 		Theme:                  "Sunlight", // Default theme
 		DownloadTimeout:        4,
 		AudioVolume:            80,
+		CopyTasksToClipboard:   true,
 	}
 
 	if strings.Contains(runtime.GOOS, "darwin") {

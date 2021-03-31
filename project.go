@@ -34,8 +34,6 @@ const (
 	NUMBERING_SEQUENCE_NUMBER_DASH
 	NUMBERING_SEQUENCE_ROMAN
 	NUMBERING_SEQUENCE_BULLET
-	NUMBERING_SEQUENCE_SQUARE
-	NUMBERING_SEQUENCE_STAR
 	NUMBERING_SEQUENCE_OFF
 )
 
@@ -92,14 +90,12 @@ type Project struct {
 	// Project Settings
 	TaskShadowSpinner           *Spinner
 	GridVisible                 *Checkbox
-	AudioSampleRate             *Spinner
 	SetSampleRate               int
 	SampleBuffer                int
 	ShowIcons                   *Checkbox
 	PulsingTaskSelection        *Checkbox
 	AutoSave                    *Checkbox
 	OutlineTasks                *Checkbox
-	ColorThemeSpinner           *Spinner
 	BracketSubtasks             *Checkbox
 	LockProject                 *Checkbox
 	NumberingSequence           *Spinner
@@ -110,7 +106,6 @@ type Project struct {
 	TaskTransparency            *NumberSpinner
 	AlwaysShowURLButtons        *Checkbox
 	SettingsSection             *ButtonGroup
-	AudioVolume                 *NumberSpinner
 	IncompleteTasksGlow         *Checkbox
 	CompleteTasksGlow           *Checkbox
 	SelectedTasksGlow           *Checkbox
@@ -125,30 +120,32 @@ type Project struct {
 	RebindingHeldKeys           []int32
 	GraphicalTasksTransparent   *Checkbox
 	DeadlineAnimation           *ButtonGroup
-
-	TransparentBackground       *Checkbox
-	BorderlessWindow            *Checkbox
-	DrawWindowBorder            *Checkbox
-	SaveWindowPosition          *Checkbox
-	PanToFocusOnZoom            *Checkbox
-	DisableMessageLog           *Checkbox
-	DisableSplashscreen         *Checkbox
-	AutoReloadThemes            *Checkbox
-	AutoLoadLastProject         *Checkbox
-	AutoReloadResources         *Checkbox
-	ScrollwheelSensitivity      *NumberSpinner
-	TargetFPS                   *NumberSpinner
-	UnfocusedFPS                *NumberSpinner
-	SmoothPanning               *Checkbox
-	CustomFontPath              *Textbox
-	CustomFontPathBrowseButton  *Button
-	FontSize                    *NumberSpinner
-	GUIFontSizeMultiplier       *ButtonGroup
-	DefaultFontButton           *Button
 	TableColumnsRotatedVertical *Checkbox
 	TableColumnVerticalSpacing  *NumberSpinner
-	DisableAboutDialogOnStart   *Checkbox
-	DownloadTimeout             *NumberSpinner
+
+	ColorThemeSpinner         *Spinner
+	AutoReloadThemes          *Checkbox
+	AutoLoadLastProject       *Checkbox
+	AudioVolume               *NumberSpinner
+	AudioSampleRate           *Spinner
+	ScrollwheelSensitivity    *NumberSpinner
+	SmoothPanning             *Checkbox
+	TargetFPS                 *NumberSpinner
+	UnfocusedFPS              *NumberSpinner
+	DisableSplashscreen       *Checkbox
+	DisableMessageLog         *Checkbox
+	TransparentBackground     *Checkbox
+	BorderlessWindow          *Checkbox
+	DrawWindowBorder          *Checkbox
+	SaveWindowPosition        *Checkbox
+	PanToFocusOnZoom          *Checkbox
+	AutoReloadResources       *Checkbox
+	CustomFontPath            *Textbox
+	FontSize                  *NumberSpinner
+	GUIFontSizeMultiplier     *ButtonGroup
+	DisableAboutDialogOnStart *Checkbox
+	DownloadTimeout           *NumberSpinner
+	CopyTasksToClipboard      *Checkbox
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -193,19 +190,21 @@ type Project struct {
 	Modified             bool
 	Locked               bool
 
-	PopupPanel      *Panel
-	PopupAction     string
-	PopupArgument   string
-	SettingsPanel   *Panel
-	BackupTimer     time.Time
-	UndoFade        *gween.Sequence
-	Undoing         int
-	TaskEditRect    rl.Rectangle
-	TempDir         string
-	GrabClient      *grab.Client
-	Time            float32
-	firstFreeTaskID int
-	ScreenSize      rl.Vector2
+	CustomFontPathBrowseButton *Button
+	DefaultFontButton          *Button
+	PopupPanel                 *Panel
+	PopupAction                string
+	PopupArgument              string
+	SettingsPanel              *Panel
+	BackupTimer                time.Time
+	UndoFade                   *gween.Sequence
+	Undoing                    int
+	TaskEditRect               rl.Rectangle
+	TempDir                    string
+	GrabClient                 *grab.Client
+	Time                       float32
+	firstFreeTaskID            int
+	ScreenSize                 rl.Vector2
 }
 
 func NewProject() *Project {
@@ -237,7 +236,7 @@ func NewProject() *Project {
 		OutlineTasks:                NewCheckbox(0, 0, 32, 32),
 		GridVisible:                 NewCheckbox(0, 0, 32, 32),
 		ShowIcons:                   NewCheckbox(0, 0, 32, 32),
-		NumberingSequence:           NewSpinner(0, 0, 192, 32, "1.1.", "1-1)", "I.I.", "Bullets", "Squares", "Stars", "Off"),
+		NumberingSequence:           NewSpinner(0, 0, 192, 32, "1.1.", "1-1)", "I.I.", "Bullets", "Off"),
 		NumberTopLevel:              NewCheckbox(0, 0, 32, 32),
 		PulsingTaskSelection:        NewCheckbox(0, 0, 32, 32),
 		AutoSave:                    NewCheckbox(0, 0, 32, 32),
@@ -292,6 +291,7 @@ func NewProject() *Project {
 		DrawWindowBorder:          NewCheckbox(0, 0, 32, 32),
 		SaveWindowPosition:        NewCheckbox(0, 0, 32, 32),
 		DownloadTimeout:           NewNumberSpinner(0, 0, 128, 40),
+		CopyTasksToClipboard:      NewCheckbox(0, 0, 32, 32),
 		GrabClient:                grab.NewClient(),
 		LogOn:                     true,
 	}
@@ -357,7 +357,8 @@ func NewProject() *Project {
 	row.Item(project.LockProject, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel(""), SETTINGS_GENERAL)
+	row.Item(NewLabel("Maximum Undo Steps:"), SETTINGS_GENERAL)
+	row.Item(project.MaxUndoSteps, SETTINGS_GENERAL)
 
 	row = column.Row()
 	autosaveLabel := NewLabel("NOTE: Auto-save automatically saves your project whenever changes\nare made, but only works after you've manually saved the project once.")
@@ -369,8 +370,9 @@ func NewProject() *Project {
 	row.Item(project.AutoSave, SETTINGS_GENERAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Maximum Undo Steps:"), SETTINGS_GENERAL)
-	row.Item(project.MaxUndoSteps, SETTINGS_GENERAL)
+	label := NewLabel("                          ")
+	label.Underline = true
+	row.Item(label, SETTINGS_GENERAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Screenshots Path (If empty, project directory is used):"), SETTINGS_GENERAL)
@@ -434,7 +436,7 @@ func NewProject() *Project {
 	row.Item(project.TableColumnVerticalSpacing, SETTINGS_TASKS)
 
 	row = column.Row()
-	label := NewLabel("Deadline Animation")
+	label = NewLabel("Deadline Animation")
 	label.Underline = true
 	row.Item(label, SETTINGS_TASKS)
 	row = column.Row()
@@ -469,6 +471,11 @@ func NewProject() *Project {
 	// Visual
 
 	row = column.Row()
+	label = NewLabel("Visual")
+	label.Underline = true
+	row.Item(label, SETTINGS_GLOBAL)
+
+	row = column.Row()
 	row.Item(NewLabel("Color Theme:"), SETTINGS_GLOBAL)
 	row.Item(project.ColorThemeSpinner, SETTINGS_GLOBAL)
 
@@ -479,7 +486,16 @@ func NewProject() *Project {
 	row.Item(NewLabel("Auto-load Last Project:"), SETTINGS_GLOBAL)
 	row.Item(project.AutoLoadLastProject, SETTINGS_GLOBAL)
 
+	row = column.Row()
+	row.Item(NewLabel("Automatically Reload Changed\nLocal Resources:"), SETTINGS_GLOBAL)
+	row.Item(project.AutoReloadResources, SETTINGS_GLOBAL)
+
 	// Audio
+
+	row = column.Row()
+	label = NewLabel("Audio")
+	label.Underline = true
+	row.Item(label, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Audio Volume:"), SETTINGS_GLOBAL)
@@ -489,6 +505,15 @@ func NewProject() *Project {
 	row.Item(project.AudioSampleRate, SETTINGS_GLOBAL)
 
 	// Program settings
+
+	row = column.Row()
+	label = NewLabel("System Settings")
+	label.Underline = true
+	row.Item(label, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Copy Tasks to System Clipboard as Text:"), SETTINGS_GLOBAL)
+	row.Item(project.CopyTasksToClipboard, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Disable Splashscreen:"), SETTINGS_GLOBAL)
@@ -512,23 +537,18 @@ func NewProject() *Project {
 	row.Item(project.UnfocusedFPS, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Download Time-out\n(In Seconds):"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Download Time-out (In Seconds):"), SETTINGS_GLOBAL)
 	row.Item(project.DownloadTimeout, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Pan to Cursor When\nZooming In:"), SETTINGS_GLOBAL)
 	row.Item(project.PanToFocusOnZoom, SETTINGS_GLOBAL)
 
-	row = column.Row()
-	row.Item(NewLabel("Save Window Position On Exit:"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Save Window\nPosition On Exit:"), SETTINGS_GLOBAL)
 	row.Item(project.SaveWindowPosition, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Automatically Reload Changed\nLocal Resources:"), SETTINGS_GLOBAL)
-	row.Item(project.AutoReloadResources, SETTINGS_GLOBAL)
-
-	row = column.Row()
-	label = NewLabel("Window alterations (requires restart)")
+	label = NewLabel("Window Alterations (Requires Restart)")
 	label.Underline = true
 	row.Item(label, SETTINGS_GLOBAL)
 
@@ -540,7 +560,7 @@ func NewProject() *Project {
 	row.Item(project.TransparentBackground, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Draw Border\nAround Window:"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Colored Window Border:"), SETTINGS_GLOBAL)
 	row.Item(project.DrawWindowBorder, SETTINGS_GLOBAL)
 
 	row = column.Row()
@@ -2428,6 +2448,8 @@ func (project *Project) GUI() {
 				programSettings.PanToFocusOnZoom = project.PanToFocusOnZoom.Checked
 				programSettings.BorderlessWindow = project.BorderlessWindow.Checked
 				programSettings.TransparentBackground = project.TransparentBackground.Checked
+				programSettings.DownloadTimeout = project.DownloadTimeout.Number()
+				programSettings.CopyTasksToClipboard = project.CopyTasksToClipboard.Checked
 
 				if project.AutoSave.Checked {
 					project.LogOn = false
@@ -3056,6 +3078,7 @@ func (project *Project) OpenSettings() {
 	project.ColorThemeSpinner.SetChoice(programSettings.Theme)
 	project.DrawWindowBorder.Checked = programSettings.DrawWindowBorder
 	project.DownloadTimeout.SetNumber(programSettings.DownloadTimeout)
+	project.CopyTasksToClipboard.Checked = programSettings.CopyTasksToClipboard
 	project.AudioSampleRate.SetChoice(strconv.Itoa(programSettings.AudioSampleRate))
 	project.AudioVolume.SetNumber(programSettings.AudioVolume)
 }

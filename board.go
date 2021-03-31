@@ -5,10 +5,13 @@ import (
 	"math"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/atotto/clipboard"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/hako/durafmt"
 )
 
 type Position struct {
@@ -332,8 +335,249 @@ func (board *Board) CopySelectedTasks() {
 
 	board.Project.CopyBuffer = []*Task{}
 
+	taskText := "\n"
+
+	convertedTasks := map[*Task]bool{}
+
+	taskToString := func(task *Task) string {
+
+		convertedTasks[task] = true
+
+		tabs := ""
+
+		if task.StackHead != nil {
+
+			diff := int32(task.Position.X-task.StackHead.Position.X) / board.Project.GridSize
+
+			for i := int32(0); i < diff; i++ {
+				tabs += "   "
+			}
+
+		}
+
+		icon := ""
+
+		text := task.Description.Text()
+
+		if task.PrefixText != "" {
+			text = task.PrefixText + " " + text
+		}
+
+		switch task.TaskType.CurrentChoice {
+
+		case TASK_TYPE_PROGRESSION:
+
+			current := task.CompletionProgressionCurrent.Number()
+			max := task.CompletionProgressionMax.Number()
+
+			text += " [" + strconv.Itoa(current) + "/" + strconv.Itoa(max) + "] "
+
+			fallthrough
+
+		case TASK_TYPE_BOOLEAN:
+
+			if task.IsComplete() {
+				icon = "[o] "
+			} else {
+				icon = "[ ] "
+			}
+
+			if task.DeadlineOn.Checked {
+				text += deadlineText(task)
+			}
+
+		case TASK_TYPE_NOTE:
+			icon = "NOTE : "
+
+		case TASK_TYPE_SOUND:
+
+			icon = "SOUND : "
+			text = `"` + task.FilePathTextbox.Text() + `"`
+
+		case TASK_TYPE_IMAGE:
+
+			icon = "IMAGE : "
+			text = `"` + task.FilePathTextbox.Text() + `"`
+
+		case TASK_TYPE_TIMER:
+
+			if task.Contents != nil {
+
+				timerContents := task.Contents.(*TimerContents)
+				icon = "TIMER : "
+				text = task.TimerName.Text() + " : " + durafmt.Parse(time.Duration(timerContents.TimerValue)*time.Second).String()
+
+				if !timerContents.TargetDate.IsZero() {
+					text += " [" + timerContents.TargetDate.Format("Mon, Jan 2, 2006") + "]"
+				}
+
+			}
+
+		case TASK_TYPE_TABLE:
+
+			if task.TableData != nil {
+
+				textHeight := 0
+				textWidth := 0
+				text := "\n"
+
+				for _, column := range task.TableData.Columns {
+
+					if textHeight < len(column.Textbox.Text()) {
+						textHeight = len(column.Textbox.Text())
+					}
+
+				}
+
+				for _, row := range task.TableData.Rows {
+
+					if textWidth < len(row.Textbox.Text()) {
+						textWidth = len(row.Textbox.Text())
+					}
+
+				}
+
+				textHeight++
+				textWidth++
+
+				for ri, row := range task.TableData.Rows {
+
+					text += row.Textbox.Text()
+
+					for i := len(row.Textbox.Text()); i < textWidth; i++ {
+						text += " "
+					}
+
+					for ci := range task.TableData.Columns {
+
+						completion := task.TableData.Completions[ri][ci]
+
+						if completion == 1 {
+							text += "[o]"
+						} else if completion == 2 {
+							text += "[x]"
+						} else {
+							text += "[ ]"
+						}
+
+					}
+
+					text += "\n"
+				}
+
+				columnNames := []string{}
+
+				for letterIndex := 0; letterIndex < textHeight; letterIndex++ {
+
+					name := ""
+
+					for columnIndex := 0; columnIndex < len(task.TableData.Columns); columnIndex++ {
+
+						columnTitle := task.TableData.Columns[columnIndex].Textbox.Text()
+
+						if len(columnTitle) > letterIndex {
+							name += string(columnTitle[letterIndex])
+						} else {
+							name += " "
+						}
+
+						name += "  "
+
+					}
+
+					columnNames = append(columnNames, name)
+
+				}
+
+				for i, cn := range columnNames {
+					spaces := " "
+					for i := 0; i < textWidth; i++ {
+						spaces += " "
+					}
+					columnNames[i] = spaces + cn
+				}
+
+				text = strings.Join(columnNames, "\n") + text
+
+				return text
+
+			}
+
+		case TASK_TYPE_MAP:
+
+			if task.MapImage != nil {
+
+				text += " "
+				for i := 0; i < task.MapImage.CellWidth(); i++ {
+					text += "_"
+				}
+
+				text += "\n"
+
+				for y := 0; y < task.MapImage.CellHeight(); y++ {
+					for x := 0; x < task.MapImage.CellWidth(); x++ {
+
+						if x == 0 {
+							text += "|"
+						}
+
+						if task.MapImage.Data[y][x] == 0 {
+							text += " "
+						} else {
+							text += "o"
+						}
+
+						if x == task.MapImage.CellWidth()-1 {
+							text += "|"
+						}
+
+					}
+					text += "\n"
+				}
+
+				text += " "
+
+				for i := 0; i < task.MapImage.CellWidth(); i++ {
+					text += "¯"
+				}
+
+			}
+
+		default:
+
+			return ""
+
+		}
+
+		outText := icon + tabs + text + "\n"
+
+		return outText
+
+	}
+
 	for _, task := range board.SelectedTasks(false) {
+
 		board.Project.CopyBuffer = append(board.Project.CopyBuffer, task)
+
+		if _, exists := convertedTasks[task]; board.Project.CopyTasksToClipboard.Checked && !exists {
+
+			tts := taskToString(task)
+
+			for _, child := range task.RestOfStack {
+				tts += taskToString(child)
+			}
+
+			if tts != "" {
+				tts += "\n"
+				taskText += tts
+			}
+
+		}
+
+	}
+
+	if board.Project.CopyTasksToClipboard.Checked {
+		clipboard.WriteAll(taskText)
 	}
 
 	board.Project.Log("Copied %d Task(s).", len(board.Project.CopyBuffer))
@@ -493,41 +737,99 @@ func (board *Board) PasteContent() {
 
 		clipboardLines := strings.Split(clipboardData, "\n")
 
-		for strings.TrimSpace(clipboardLines[0]) == "" {
+		// Get rid of empty starting and ending
+		for strings.TrimSpace(clipboardLines[0]) == "" && len(clipboardLines) > 0 {
 			clipboardLines = clipboardLines[1:]
 		}
 
-		for strings.TrimSpace(clipboardLines[len(clipboardLines)-1]) == "" {
+		for strings.TrimSpace(clipboardLines[len(clipboardLines)-1]) == "" && len(clipboardLines) > 0 {
 			clipboardLines = clipboardLines[:len(clipboardLines)-1]
 		}
 
-		clipboardData = strings.Join(clipboardLines, "\n")
+		todoList := strings.HasPrefix(clipboardLines[0], "[")
 
-		board.Project.LogOn = false
+		if todoList {
 
-		task := board.CreateNewTask()
+			lines := []string{}
+			linesOut := []string{}
 
-		guess := board.GuessTaskTypeFromText(clipboardData)
+			for i, line := range clipboardLines {
 
-		// Attempt to load the resource
-		task.TaskType.CurrentChoice = guess
+				if len(lines) == 0 || line[0] != '[' {
 
-		if guess == TASK_TYPE_IMAGE {
-			task.FilePathTextbox.SetText(clipboardData)
-			task.SetContents()
-			task.Contents.(*ImageContents).ResetSize = true
+					lines = append(lines, line)
 
-		} else if guess == TASK_TYPE_SOUND {
-			task.FilePathTextbox.SetText(clipboardData)
+				} else {
+
+					linesOut = append(linesOut, strings.Join(lines, "\n"))
+
+					lines = []string{line}
+
+					if i == len(clipboardLines)-1 {
+						linesOut = append(linesOut, line)
+					}
+
+				}
+
+			}
+
+			board.Project.LogOn = false
+
+			for _, taskLine := range linesOut {
+
+				task := board.CreateNewTask()
+
+				completed := taskLine[:3] != "[ ]"
+
+				taskLine = taskLine[3:]
+				taskLine = strings.Replace(taskLine, "[o]", "", 1)
+				taskLine = strings.TrimSpace(taskLine)
+
+				task.Description.SetText(taskLine)
+
+				if completed {
+					task.CompletionCheckbox.Checked = true
+				}
+
+				task.ReceiveMessage(MessageTaskRestore, nil)
+
+			}
+
+			board.Project.LogOn = true
+
+			board.Project.Log("Pasted %d new Checkbox Tasks from clipboard content.", len(linesOut))
+
 		} else {
-			task.Description.SetText(clipboardData)
+
+			clipboardData = strings.Join(clipboardLines, "\n")
+
+			board.Project.LogOn = false
+
+			task := board.CreateNewTask()
+
+			guess := board.GuessTaskTypeFromText(clipboardData)
+
+			// Attempt to load the resource
+			task.TaskType.CurrentChoice = guess
+
+			if guess == TASK_TYPE_IMAGE {
+				task.FilePathTextbox.SetText(clipboardData)
+				task.SetContents()
+				task.Contents.(*ImageContents).ResetSize = true
+
+			} else if guess == TASK_TYPE_SOUND {
+				task.FilePathTextbox.SetText(clipboardData)
+			} else {
+				task.Description.SetText(clipboardData)
+			}
+
+			task.ReceiveMessage(MessageTaskRestore, nil)
+
+			board.Project.LogOn = true
+
+			board.Project.Log("Pasted a new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
+
 		}
-
-		task.ReceiveMessage(MessageTaskRestore, nil)
-
-		board.Project.LogOn = true
-
-		board.Project.Log("Pasted a new %s Task from clipboard content.", task.TaskType.ChoiceAsString())
 
 	} else {
 		board.Project.Log("Unable to create Task from clipboard content.")

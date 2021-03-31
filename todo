@@ -27,12 +27,30 @@ FINISHED
 - FIX: Time until Daily Timer goes off is incorrect around DST: https://github.com/SolarLune/masterplan/issues/50
 - FIX: Messages fade out over delta time, unadjusted by current FPS, but rather by ideal delta time. This means messages always appear, rather than sometimes not being visible (i.e. when using Save Project As...).
 - Warning messages are now yellow.
-- FIX #52: Text pasted into MasterPlan that has Windows carriage return characters is now properly split by newlines.
+- FIX: Text pasted into MasterPlan that has Windows carriage return characters is now properly split by newlines.
 
 TODO
 
+- You can copy a deleted line (see: https://discord.com/channels/339550825154347008/606565892142399488/826383072282279987)
+- Doubleclick should not trigger if you click outside of a task window or something
+- Drag and drop .plan files to open them as a project.
+- Replace MapImage.Data's [][]int32 with [][]bool
 - The ability to copy a set of Tasks and paste them as a text list (this may be doable using the clipboard tool)
 - Conversely, the ability to copy a list and paste it as a set of Tasks
+- Export Plan to text file somehow? 
+
+    Checkboxes become: [ ] / [x] - TASK TEXT - DUE 1/1/2001
+
+    Progression becomes: [12/24] - TASK TEXT
+
+    Notes become: NOTE: - TASK TEXT
+    
+    Timers become: DUE (X DATE) - TIMER NAME
+
+	All other Tasks are not converted.
+
+- Shifting drawings messes them up? 
+- Define UTI for Mac OS .plan files - seems like it should work if properly done? : https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/understanding_utis/understand_utis_declare/understand_utis_declare.html#//apple_ref/doc/uid/TP40001319-CH204-SW1
 
 - Autosave should only happen when an UndoState is generated (possibly also when undoing / redoing); that's how we can know something happened.
 - Add audio buffer size
@@ -129,20 +147,12 @@ TODO
 - Undo + Redo for textboxes
 - Add ability to delete shortcuts?
 - Vertical alignment isn't really centered for textboxes?
-- Display full Task text on hover
 - Hide status bar elements except for the search bar if there isn't enough room horizontally
 - Moveable status bar
 - Searchable shortcuts
 - Consolidate image and sounds into one task type?
 - Review libraries to see if the licenses are compatible with my own chosen license
 
-- Export Plan to text file somehow? 
-    Checkboxes become: [ ] / [x] - TASK TEXT
-    Progression becomes: [12/24] - TASK TEXT
-    Notes become: NOTE: - TASK TEXT
-    Timers become: DUE (X DATE) - TIMER NAME
-
-	All other Tasks are not converted.
 - Graph view that allows you to see your plan as a visual "node graph"? 
     See Nuclino: https://www.nuclino.com - It says it allows you to work in Boards and Graphs, 
     so maybe the Nodes on the Graphs should be clickable to reveal more information / reveal 
@@ -180,7 +190,7 @@ includes a current number and maximum number of 999 each, so that they don't cha
 - Resizeable Notes / Collapsible Notes
 - Background hint text for text entry (i.e. "Enter date in MM/DD/YYYY Format" behind something that allows you to enter a date)
 - Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
-- Hover over Tasks to display more information about them.
+- Hover over Tasks to display more information about them (full task, creation date, completion date, etc).
 
 Long-term Goals
 
