@@ -90,8 +90,6 @@ type Project struct {
 	// Project Settings
 	TaskShadowSpinner           *Spinner
 	GridVisible                 *Checkbox
-	SetSampleRate               int
-	SampleBuffer                int
 	ShowIcons                   *Checkbox
 	PulsingTaskSelection        *Checkbox
 	AutoSave                    *Checkbox
@@ -122,12 +120,16 @@ type Project struct {
 	DeadlineAnimation           *ButtonGroup
 	TableColumnsRotatedVertical *Checkbox
 	TableColumnVerticalSpacing  *NumberSpinner
+	ColorThemeSpinner           *Spinner
+	AutoReloadThemes            *Checkbox
+	AutoLoadLastProject         *Checkbox
 
-	ColorThemeSpinner         *Spinner
-	AutoReloadThemes          *Checkbox
-	AutoLoadLastProject       *Checkbox
-	AudioVolume               *NumberSpinner
-	AudioSampleRate           *Spinner
+	AudioVolume          *NumberSpinner
+	AudioSampleRate      *Spinner
+	AudioSetSampleRate   int
+	AudioSampleBuffer    *NumberSpinner
+	AudioSetSampleBuffer int
+
 	ScrollwheelSensitivity    *NumberSpinner
 	SmoothPanning             *Checkbox
 	TargetFPS                 *NumberSpinner
@@ -221,7 +223,6 @@ func NewProject() *Project {
 		Searchbar:            searchBar,
 		StatusBar:            rl.Rectangle{0, float32(rl.GetScreenHeight()) - 32, float32(rl.GetScreenWidth()), 32},
 		GUI_Icons:            rl.LoadTexture(LocalPath("assets", "gui_icons.png")),
-		SampleBuffer:         512,
 		Patterns:             rl.LoadTexture(LocalPath("assets", "patterns.png")),
 		Resources:            map[string]*Resource{},
 		DownloadingResources: map[string]*Resource{},
@@ -241,6 +242,7 @@ func NewProject() *Project {
 		PulsingTaskSelection:        NewCheckbox(0, 0, 32, 32),
 		AutoSave:                    NewCheckbox(0, 0, 32, 32),
 		AudioSampleRate:             NewSpinner(0, 0, 192, 32, "22050", "44100", "48000", "88200", "96000"),
+		AudioSampleBuffer:           NewNumberSpinner(0, 0, 256, 40),
 		AudioVolume:                 NewNumberSpinner(0, 0, 128, 40),
 		BracketSubtasks:             NewCheckbox(0, 0, 32, 32),
 		LockProject:                 NewCheckbox(0, 0, 32, 32),
@@ -498,11 +500,15 @@ func NewProject() *Project {
 	row.Item(label, SETTINGS_GLOBAL)
 
 	row = column.Row()
-	row.Item(NewLabel("Audio Volume:"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Volume:"), SETTINGS_GLOBAL)
 	row.Item(project.AudioVolume, SETTINGS_GLOBAL)
 
-	row.Item(NewLabel("Audio Samplerate:"), SETTINGS_GLOBAL)
+	row.Item(NewLabel("Sample-Rate:"), SETTINGS_GLOBAL)
 	row.Item(project.AudioSampleRate, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Buffer Size:"), SETTINGS_GLOBAL)
+	row.Item(project.AudioSampleBuffer, SETTINGS_GLOBAL)
 
 	// Program settings
 
@@ -697,14 +703,19 @@ func NewProject() *Project {
 
 	project.MaxUndoSteps.Minimum = 0
 
+	project.AudioSampleBuffer.Minimum = 64
+	project.AudioSampleBuffer.Step = 64
+
 	project.ReloadThemes()
 
 	// We have to open the settings and then close it so the settings options update to the programSettings stored values.
 	project.OpenSettings()
 	project.ProjectSettingsOpen = false
 
-	speaker.Init(beep.SampleRate(project.AudioSampleRate.ChoiceAsInt()), project.SampleBuffer)
-	project.SetSampleRate = project.AudioSampleRate.ChoiceAsInt()
+	speaker.Init(beep.SampleRate(project.AudioSampleRate.ChoiceAsInt()), project.AudioSampleBuffer.Number())
+
+	project.AudioSetSampleRate = project.AudioSampleRate.ChoiceAsInt()
+	project.AudioSetSampleBuffer = project.AudioSampleBuffer.Number()
 
 	return project
 
@@ -801,8 +812,6 @@ func (project *Project) Save(backup bool) {
 			data, _ = sjson.Set(data, `PulsingTaskSelection`, project.PulsingTaskSelection.Checked)
 			data, _ = sjson.Set(data, `GridVisible`, project.GridVisible.Checked)
 			data, _ = sjson.Set(data, `GridSize`, project.GridSize)
-			data, _ = sjson.Set(data, `SampleRate`, project.AudioSampleRate.ChoiceAsInt())
-			data, _ = sjson.Set(data, `SampleBuffer`, project.SampleBuffer)
 			data, _ = sjson.Set(data, `BackupInterval`, project.AutomaticBackupInterval.Number())
 			data, _ = sjson.Set(data, `BackupKeepCount`, project.AutomaticBackupKeepCount.Number())
 			data, _ = sjson.Set(data, `UndoMaxSteps`, project.MaxUndoSteps.Number())
@@ -906,10 +915,6 @@ func LoadProject(filepath string) *Project {
 				return int(data.Get(name).Int())
 			}
 
-			getString := func(name string) string {
-				return data.Get(name).String()
-			}
-
 			getBool := func(name string) bool {
 				return data.Get(name).Bool()
 			}
@@ -919,8 +924,6 @@ func LoadProject(filepath string) *Project {
 			project.CameraPan.Y = getFloat(`Pan\.Y`)
 			project.ZoomLevel = getInt(`ZoomLevel`)
 			project.CurrentZoomLevel = project.ZoomLevel
-			project.AudioSampleRate.SetChoice(getString(`SampleRate`))
-			project.SampleBuffer = getInt(`SampleBuffer`)
 			project.TaskShadowSpinner.CurrentChoice = getInt(`TaskShadow`)
 			project.OutlineTasks.Checked = getBool(`OutlineTasks`)
 			project.BracketSubtasks.Checked = getBool(`BracketSubtasks`)
@@ -2425,12 +2428,17 @@ func (project *Project) GUI() {
 
 				project.ProjectSettingsOpen = false
 
-				if project.AudioSampleRate.ChoiceAsInt() != project.SetSampleRate {
+				if project.AudioSampleRate.ChoiceAsInt() != project.AudioSetSampleRate || project.AudioSampleBuffer.Number() != project.AudioSetSampleBuffer {
 
-					speaker.Init(beep.SampleRate(project.AudioSampleRate.ChoiceAsInt()), project.SampleBuffer)
-					project.SetSampleRate = project.AudioSampleRate.ChoiceAsInt()
+					speaker.Init(beep.SampleRate(project.AudioSampleRate.ChoiceAsInt()), project.AudioSampleBuffer.Number())
+					project.AudioSetSampleRate = project.AudioSampleRate.ChoiceAsInt()
+					project.AudioSetSampleBuffer = project.AudioSampleBuffer.Number()
+
 					programSettings.AudioSampleRate = project.AudioSampleRate.ChoiceAsInt()
+					programSettings.AudioSampleBuffer = project.AudioSampleBuffer.Number()
+
 					project.Log("Project sample rate changed to %s.", project.AudioSampleRate.ChoiceAsString())
+					project.Log("Project sample buffer changed to %d.", project.AudioSampleBuffer.Number())
 					project.Log("Currently playing sounds have been stopped and resampled as necessary.")
 
 				}
@@ -3079,7 +3087,9 @@ func (project *Project) OpenSettings() {
 	project.DrawWindowBorder.Checked = programSettings.DrawWindowBorder
 	project.DownloadTimeout.SetNumber(programSettings.DownloadTimeout)
 	project.CopyTasksToClipboard.Checked = programSettings.CopyTasksToClipboard
+
 	project.AudioSampleRate.SetChoice(strconv.Itoa(programSettings.AudioSampleRate))
+	project.AudioSampleBuffer.SetNumber(programSettings.AudioSampleBuffer)
 	project.AudioVolume.SetNumber(programSettings.AudioVolume)
 }
 

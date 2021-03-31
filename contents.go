@@ -1178,7 +1178,7 @@ func (c *SoundContents) ReloadSound() {
 
 	c.SoundStream = stream
 
-	c.SoundSampler = beep.Resample(2, format.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), c.SoundStream)
+	c.SoundSampler = beep.Resample(2, format.SampleRate, beep.SampleRate(c.Task.Board.Project.AudioSetSampleRate), c.SoundStream)
 
 	c.SoundVolume.Streamer = c.SoundSampler
 
@@ -1207,7 +1207,7 @@ func (c *SoundContents) StreamTime() (float64, float64) {
 
 	if c.SoundSampler != nil {
 
-		rate := c.SoundSampler.Ratio() * float64(c.Task.Board.Project.SetSampleRate)
+		rate := c.SoundSampler.Ratio() * float64(c.Task.Board.Project.AudioSetSampleRate)
 
 		playTime := float64(c.SoundStream.Position()) / rate
 		lengthTime := float64(c.SoundStream.Len()) / rate
@@ -1515,7 +1515,7 @@ func (c *TimerContents) ReloadAlarmSound() {
 
 	res := c.Task.Board.Project.LoadResource(LocalPath("assets", "alarm.wav"))
 	alarmSound, alarmFormat, _ := res.Audio()
-	c.AlarmSound.Streamer = beep.Resample(2, alarmFormat.SampleRate, beep.SampleRate(c.Task.Board.Project.SetSampleRate), alarmSound)
+	c.AlarmSound.Streamer = beep.Resample(2, alarmFormat.SampleRate, beep.SampleRate(c.Task.Board.Project.AudioSetSampleRate), alarmSound)
 
 }
 

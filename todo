@@ -4,6 +4,7 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 FINISHED
 
+- Adding customizeable audio sample buffer size.
 - Adding ability to copy Tasks into the system clipboard to paste as text, with a corresponding option in Settings to disable as desired.
 - Adding ability to paste text that starts with "[ ]", "[x]", or "[o]" as Checkbox Tasks.
 - Removing Square and Star numbering sequences for now, to try to move over to pure letters / unicode characters for text-related rendering to make spacing simpler, rather than having icons in there, too (or, this could be, ideally, revisited again with better-looking icons).
