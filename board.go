@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -304,7 +304,7 @@ func (board *Board) HandleDroppedFiles() {
 
 				} else {
 
-					text, err := os.ReadFile(filepath)
+					text, err := ioutil.ReadFile(filepath)
 					if err == nil {
 						task.Description.SetText(string(text))
 					} else {

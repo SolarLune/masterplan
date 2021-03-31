@@ -832,7 +832,7 @@ func (project *Project) Save(backup bool) {
 			data = gjson.Parse(data).Get("@pretty").String() // Pretty print it so it's visually nice in the .plan file.
 
 			// 0666 is an octal digit indicating read / write / no execute permissions for user, group, and other: https://stackoverflow.com/questions/18415904/what-does-mode-t-0644-mean/18415935
-			if err := os.WriteFile(project.FilePath, []byte(data), 0666); err != nil {
+			if err := ioutil.WriteFile(project.FilePath, []byte(data), 0666); err != nil {
 				project.Log("ERROR: Could not create save file: ", err.Error())
 				success = false
 			}
