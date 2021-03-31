@@ -653,6 +653,12 @@ func (board *Board) PasteTasks() {
 
 			lineStartCopied := copied(srcTask.LineStart)
 
+			// For now, we simply don't attempt to copy a Line base Task if it's been deleted; we can't know which endings were existent or which weren't at the moment of deletion.
+			if !srcTask.Valid && srcTask.Is(TASK_TYPE_LINE) && srcTask.LineStart == nil {
+				board.Project.Log("WARNING: Cannot paste a Line base that has already been deleted.")
+				continue
+			}
+
 			if srcTask.LineStart != nil && srcTask.Board != board {
 				if !lineStartCopied {
 					board.Project.Log("WARNING: Cannot paste Line arrows on a different board than the Line base.")
@@ -664,6 +670,7 @@ func (board *Board) PasteTasks() {
 				// If you're copying both, we will ignore the ends, as copying the start copies the ends.
 
 				clone := cloneTask(srcTask)
+				clone.Valid = true
 				diff := rl.Vector2Subtract(GetWorldMousePosition(), center)
 				clone.Position = board.Project.RoundPositionToGrid(rl.Vector2Add(clone.Position, diff))
 

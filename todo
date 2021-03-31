@@ -4,7 +4,7 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 FINISHED
 
-- Adding customizeable audio sample buffer size.
+- Adding customizeable audio sample buffer size. A sample buffer size of 2048 seems to be a good default. If the sound is crackly, try raising it.
 - Adding ability to copy Tasks into the system clipboard to paste as text, with a corresponding option in Settings to disable as desired.
 - Adding ability to paste text that starts with "[ ]", "[x]", or "[o]" as Checkbox Tasks.
 - Removing Square and Star numbering sequences for now, to try to move over to pure letters / unicode characters for text-related rendering to make spacing simpler, rather than having icons in there, too (or, this could be, ideally, revisited again with better-looking icons).
@@ -34,6 +34,8 @@ FINISHED
 - Underlined text in panels are now a bit visually nicer, being slightly thicker, wider, and fading out on the edges.
 - Other minor visual fixes.
 - FIX: Files with upper-case extensions (i.e. JPG instead of jpg) weren't visible on Linux when attempting to load images or sounds from disk.
+- FIX: It's not longer possible to paste a Line base that has been deleted after copying. (This created an orphaned base.)
+- FIX: Pasting a Line ending that was deleted after copying now no longer creates an orphaned arrow.
 
 DISREGARDED
 
