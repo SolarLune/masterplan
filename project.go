@@ -81,6 +81,7 @@ const (
 	ActionQuit          = "quit"
 
 	BackupDelineator = "_bak_"
+	FileTimeFormat   = "01_02_06_15_04_05"
 )
 
 var firstFreeTaskID = 0
@@ -1481,46 +1482,24 @@ func (project *Project) AutoBackup() {
 			project.BackupTimer = time.Now()
 		} else if time.Since(project.BackupTimer).Minutes() >= float64(project.AutomaticBackupInterval.Number()) && project.FilePath != "" {
 
-			dir, _ := filepath.Split(project.FilePath)
+			dir, filename := filepath.Split(project.FilePath)
 
 			existingBackups := []string{}
 
-			// Walk the home directory to find
-			filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-				if path != project.FilePath && strings.Contains(path, project.FilePath) {
-					existingBackups = append(existingBackups, path)
+			for _, file := range FilesInDirectory(dir, filename) {
+				if file != project.FilePath {
+					existingBackups = append(existingBackups, file)
 				}
-				return nil
-			})
-
-			timeFormat := "01_02_06_15_04"
-
-			if len(existingBackups) > 0 {
-
-				sort.Slice(existingBackups, func(i, j int) bool {
-
-					dti := strings.Split(existingBackups[i], BackupDelineator)
-					dateTextI := dti[len(dti)-1]
-					timeI, _ := time.Parse(timeFormat, dateTextI)
-
-					dtj := strings.Split(existingBackups[j], BackupDelineator)
-					dateTextJ := dtj[len(dtj)-1]
-					timeJ, _ := time.Parse(timeFormat, dateTextJ)
-
-					return timeI.Before(timeJ)
-
-				})
-
 			}
 
-			for i := 0; i < len(existingBackups)-project.AutomaticBackupKeepCount.Number()+1; i++ {
+			for len(existingBackups)+1-project.AutomaticBackupKeepCount.Number() > 0 {
 				oldest := existingBackups[0]
 				os.Remove(oldest)
 				existingBackups = existingBackups[1:]
 			}
 
 			fp := strings.Split(project.FilePath, BackupDelineator)[0]
-			project.FilePath += BackupDelineator + time.Now().Format(timeFormat)
+			project.FilePath += BackupDelineator + time.Now().Format(FileTimeFormat)
 			project.Save(true)
 			project.BackupTimer = time.Now()
 			project.FilePath = fp

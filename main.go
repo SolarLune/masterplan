@@ -40,7 +40,19 @@ func init() {
 
 		// Redirect STDERR and STDOUT to log.txt in release mode
 
-		logPath, err := xdg.ConfigFile("MasterPlan/log.txt")
+		existingLogs := []string{}
+
+		for _, file := range FilesInDirectory(filepath.Join(xdg.ConfigHome, "MasterPlan"), "log") {
+			existingLogs = append(existingLogs, file)
+		}
+
+		// Destroy old logs; max is 20 (for now)
+		for len(existingLogs) > 20 {
+			os.Remove(existingLogs[0])
+			existingLogs = existingLogs[1:]
+		}
+
+		logPath, err := xdg.ConfigFile("MasterPlan/log_" + time.Now().Format(FileTimeFormat) + ".txt")
 		if err != nil {
 			panic(err)
 		}

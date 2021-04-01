@@ -4,8 +4,10 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -344,5 +346,40 @@ func PermutateCaseForString(text string, prefix string) []string {
 	}
 
 	return patterns
+
+}
+
+// FilesinDirectory lists the files in a directory that have a filename as the base.
+func FilesInDirectory(dir string, prefix string) []string {
+
+	existingFiles := []string{}
+
+	// Walk the home directory to find
+	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if strings.Contains(path, filepath.Join(dir, prefix)) {
+			existingFiles = append(existingFiles, path)
+		}
+		return nil
+	})
+
+	if len(existingFiles) > 0 {
+
+		sort.Slice(existingFiles, func(i, j int) bool {
+
+			dti := strings.Split(existingFiles[i], BackupDelineator)
+			dateTextI := dti[len(dti)-1]
+			timeI, _ := time.Parse(FileTimeFormat, dateTextI)
+
+			dtj := strings.Split(existingFiles[j], BackupDelineator)
+			dateTextJ := dtj[len(dtj)-1]
+			timeJ, _ := time.Parse(FileTimeFormat, dateTextJ)
+
+			return timeI.Before(timeJ)
+
+		})
+
+	}
+
+	return existingFiles
 
 }
