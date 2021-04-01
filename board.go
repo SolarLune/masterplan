@@ -773,6 +773,10 @@ func (board *Board) PasteContent() {
 
 			for i, line := range clipboardLines {
 
+				if len(line) == 0 {
+					continue
+				}
+
 				if len(lines) == 0 || line[0] != '[' {
 
 					lines = append(lines, line)
