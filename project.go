@@ -175,6 +175,7 @@ type Project struct {
 	TaskOpen            bool
 	ThemeReloadTimer    float32
 	Loading             bool
+	MessagesSent        bool
 	LoadingVersion      semver.Version
 	ResizingImage       bool
 	LogOn               bool
@@ -1079,8 +1080,6 @@ func LoadProject(filepath string) *Project {
 				board.ReorderTasks()
 			}
 
-			project.Loading = false
-
 			log.Println("load finished")
 
 			return project
@@ -1464,6 +1463,13 @@ func (project *Project) Update() {
 	if project.Time > 1000000 {
 		project.Time = 0
 	}
+
+	// We have to do this late because we don't want the process of loading / calling Board.ReorderTasks() to cause Project.Modified to be true immediately on load.
+	if project.Loading && !project.MessagesSent {
+		project.Loading = false
+	}
+
+	project.MessagesSent = false
 
 }
 

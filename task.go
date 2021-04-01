@@ -973,7 +973,9 @@ func (task *Task) CreateUndoState() {
 		task.UndoCreation = false
 		task.UndoDeletion = false
 
-		task.Board.Project.Modified = true
+		if !task.Board.Project.Loading {
+			task.Board.Project.Modified = true
+		}
 
 	}
 
@@ -1307,9 +1309,7 @@ func (task *Task) ReceiveMessage(message string, data map[string]interface{}) {
 			task.Board.RemoveTaskFromGrid(task)
 			task.Board.AddTaskToGrid(task)
 
-			if !task.Board.Project.Loading {
-				task.UndoChange = true
-			}
+			task.UndoChange = true
 
 		}
 

@@ -1069,6 +1069,8 @@ func (board *Board) HandleDeletedTasks() {
 
 func (board *Board) SendMessage(message string, data map[string]interface{}) {
 
+	board.Project.MessagesSent = true
+
 	for _, task := range board.Tasks {
 		task.ReceiveMessage(message, data)
 	}
