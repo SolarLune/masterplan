@@ -148,6 +148,7 @@ type Project struct {
 	DisableAboutDialogOnStart *Checkbox
 	DownloadTimeout           *NumberSpinner
 	CopyTasksToClipboard      *Checkbox
+	DoubleClickRate           *NumberSpinner
 
 	// Internal data to make stuff work
 	FilePath            string
@@ -249,6 +250,7 @@ func NewProject() *Project {
 		AutomaticBackupInterval:     NewNumberSpinner(0, 0, 128, 40),
 		AutomaticBackupKeepCount:    NewNumberSpinner(0, 0, 128, 40),
 		MaxUndoSteps:                NewNumberSpinner(0, 0, 192, 40),
+		DoubleClickRate:             NewNumberSpinner(0, 0, 192, 40),
 		TaskTransparency:            NewNumberSpinner(0, 0, 128, 40),
 		AlwaysShowURLButtons:        NewCheckbox(0, 0, 32, 32),
 		SettingsSection:             NewButtonGroup(0, 0, 700, 32, 1, "General", "Tasks", "Global", "Shortcuts", "About"),
@@ -337,6 +339,10 @@ func NewProject() *Project {
 	project.TableColumnVerticalSpacing.Maximum = 1000
 	project.TableColumnVerticalSpacing.Step = 10
 	project.DownloadTimeout.Minimum = 1
+
+	project.DoubleClickRate.Minimum = 100
+	project.DoubleClickRate.Maximum = 10000
+	project.DoubleClickRate.Step = 50
 
 	// General settings
 
@@ -510,7 +516,7 @@ func NewProject() *Project {
 	row.Item(NewLabel("Buffer Size:"), SETTINGS_GLOBAL)
 	row.Item(project.AudioSampleBuffer, SETTINGS_GLOBAL)
 
-	// Program settings
+	// System settings
 
 	row = column.Row()
 	label = NewLabel("System Settings")
@@ -534,6 +540,10 @@ func NewProject() *Project {
 
 	row.Item(NewLabel("Smooth camera panning:"), SETTINGS_GLOBAL)
 	row.Item(project.SmoothPanning, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Double-click Sensitivity\nIn Milliseconds:"), SETTINGS_GLOBAL)
+	row.Item(project.DoubleClickRate, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("Target FPS When\nWindow is Focused:"), SETTINGS_GLOBAL)
@@ -1274,16 +1284,35 @@ func (project *Project) Update() {
 
 			}
 
-			if project.Time-project.DoubleClickTimer > 0.5 {
+			doubleClickSensitivity := float32(project.DoubleClickRate.Number()) / 1000
+
+			if project.Time-project.DoubleClickTimer > doubleClickSensitivity {
 				project.DoubleClickTimer = -1
 			}
 
 			if clicked {
 
 				if clickedTask == nil {
+
 					project.SelectionStart = GetWorldMousePosition()
 					project.Selecting = true
+
+					if project.DoubleClickTimer >= 0 && project.DoubleClickTaskID == -1 {
+						task := project.CurrentBoard().CreateNewTask()
+						task.TaskType.CurrentChoice = project.PreviousTaskType
+						task.ReceiveMessage(MessageTaskRestore, nil)
+						task.ReceiveMessage(MessageDoubleClick, nil)
+						project.Selecting = false
+						project.DoubleClickTimer = -1
+						project.CurrentBoard().TaskChanged = true
+					} else {
+						project.DoubleClickTimer = project.Time
+					}
+
+					project.DoubleClickTaskID = -1
+
 				} else {
+
 					project.Selecting = false
 
 					if removeFromSelection && clickedTask.Selected {
@@ -1309,26 +1338,6 @@ func (project *Project) Update() {
 							})
 						}
 					}
-
-				}
-
-				if clickedTask == nil {
-
-					project.DoubleClickTaskID = -1
-
-					if project.DoubleClickTimer >= 0 && project.DoubleClickTaskID == -1 {
-						task := project.CurrentBoard().CreateNewTask()
-						task.TaskType.CurrentChoice = project.PreviousTaskType
-						task.ReceiveMessage(MessageTaskRestore, nil)
-						task.ReceiveMessage(MessageDoubleClick, nil)
-						project.Selecting = false
-						project.DoubleClickTimer = -1
-						project.CurrentBoard().TaskChanged = true
-					} else {
-						project.DoubleClickTimer = project.Time
-					}
-
-				} else {
 
 					if clickedTask.ID == project.DoubleClickTaskID && project.DoubleClickTimer >= 0 && clickedTask.Selected {
 						clickedTask.ReceiveMessage(MessageDoubleClick, nil)
@@ -2458,6 +2467,7 @@ func (project *Project) GUI() {
 				programSettings.TransparentBackground = project.TransparentBackground.Checked
 				programSettings.DownloadTimeout = project.DownloadTimeout.Number()
 				programSettings.CopyTasksToClipboard = project.CopyTasksToClipboard.Checked
+				programSettings.DoubleClickRate = project.DoubleClickRate.Number()
 
 				if project.AutoSave.Checked {
 					project.LogOn = false
@@ -3091,6 +3101,7 @@ func (project *Project) OpenSettings() {
 	project.AudioSampleRate.SetChoice(strconv.Itoa(programSettings.AudioSampleRate))
 	project.AudioSampleBuffer.SetNumber(programSettings.AudioSampleBuffer)
 	project.AudioVolume.SetNumber(programSettings.AudioVolume)
+	project.DoubleClickRate.SetNumber(programSettings.DoubleClickRate)
 }
 
 func (project *Project) PromptQuit() {

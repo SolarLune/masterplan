@@ -44,6 +44,7 @@ type ProgramSettings struct {
 	AudioSampleRate           int
 	AudioSampleBuffer         int
 	CopyTasksToClipboard      bool
+	DoubleClickRate           int
 }
 
 func NewProgramSettings() ProgramSettings {
@@ -66,9 +67,8 @@ func NewProgramSettings() ProgramSettings {
 		AudioSampleRate:        44100,
 		AudioSampleBuffer:      2048,
 		CopyTasksToClipboard:   true,
+		DoubleClickRate:        500,
 	}
-
-	ps.AudioSampleRate = 44100
 
 	return ps
 }
