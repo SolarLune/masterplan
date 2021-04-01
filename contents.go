@@ -297,7 +297,7 @@ func (c *CheckboxContents) Draw() {
 			srcIcon.X += 16
 		}
 
-		if c.Task.SmallButton(srcIcon.X, srcIcon.Y, 16, 16, c.Task.Position.X, c.Task.Position.Y) {
+		if c.Task.SmallButton(srcIcon.X, srcIcon.Y, 16, 16, c.Task.Rect.X, c.Task.Rect.Y) {
 			c.Trigger(TASK_TRIGGER_TOGGLE)
 			ConsumeMouseInput(rl.MouseLeftButton)
 		}
