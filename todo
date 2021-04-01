@@ -4,12 +4,20 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 FINISHED
 
+- Adding ability to click on Checkbox Tasks to check them off.
+- Adding ability to drag and drop .plan files onto MasterPlan to load them.
+- Backup filename format has been tweaked (for example, from "test.plan_bak_3.1.21.15.04" > "test.plan_bak_03_01_21_15_04").
 - Adding customizeable audio sample buffer size. A sample buffer size of 2048 seems to be a good default. If the sound is crackly, try raising it.
 - Adding ability to copy Tasks into the system clipboard to paste as text, with a corresponding option in Settings to disable as desired.
 - Adding ability to paste text that starts with "[ ]", "[x]", or "[o]" as Checkbox Tasks.
 - Removing Square and Star numbering sequences for now, to try to move over to pure letters / unicode characters for text-related rendering to make spacing simpler, rather than having icons in there, too (or, this could be, ideally, revisited again with better-looking icons).
 - Settings > Global menu is now categorized to make things a bit easier to find.
 - Added shortcuts to add or delete columns and rows. Shift+Enter goes to the previous column or row, Enter goes to the next one. If the last column or row is highlighted, Enter will create a new one. Pressing backspace when a column or row's name is empty will delete it.
+- Adding shortcuts for text manipulation within Textboxes.
+- Warning messages that appear at the top-left are now yellow.
+- Underlined text in panels are now a bit visually nicer, being slightly thicker, wider, and fading out on the edges.
+- Adding double-clicking sensitivity option in Settings.
+- Other minor visual fixes.
 - FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now; previously, only the first character was entered.
 - FIX: Sound streams are properly resampled now when changing project sampler settings. This should fix sounds being crackly when played back.
 - CHANGE: Audio settings (sample rate and volume) are now global, not per-Project, and are available in the Global section of the settings menu. The Audio section is now removed.
@@ -24,44 +32,27 @@ FINISHED
 - FIX: Checkbox / Progression / Note / Sound / Timer Tasks now properly recalculate their size when the font or font size changes.
 - FIX: URL buttons appear when the project is in neutral state only.
 - FIX: Textboxes are now more properly aligned horizontally.
-- Adding shortcuts for text manipulation within Textboxes.
 - FIX: Lines now always display, not just if both the base and the end are visible.
 - FIX: Overdue Tasks no longer skip a day around Daylight Savings Time starting.
 - FIX: Time until Daily Timer goes off is no longer incorrect around DST: https://github.com/SolarLune/masterplan/issues/50
 - FIX: Messages that are spawned by processes that take some time (i.e. when using Save Project As...) now properly show up. Internally, this is because messages now fade out over by ideal delta frame-time, rather than fading by the system clock.
 - FIX: Text pasted into MasterPlan on Windows no longer adds an underscore on every line.
-- Warning messages that appear at the top-left are now yellow.
-- Underlined text in panels are now a bit visually nicer, being slightly thicker, wider, and fading out on the edges.
-- Other minor visual fixes.
 - FIX: Files with upper-case extensions (i.e. JPG instead of jpg) weren't visible on Linux when attempting to load images or sounds from disk.
 - FIX: It's not longer possible to paste a Line base that has been deleted after copying. (This created an orphaned base.)
 - FIX: Pasting a Line ending that was deleted after copying now no longer creates an orphaned arrow.
+- FIX: Double-clicking no longer triggers if the two clicks are on different objects. For example, clicking once on a Task and then on the background no longer registers as a double-click.
+- FIX: Double-clicking is now slightly easier by default (0.33 seconds > 0.5 seconds).
 
-DISREGARDED
+RESOLVED
 
 - FIX?: MasterPlan no longer crashes when typing End and Delete in a Textbox? Specifically the backup one. - This doesn't seem to happen anymore.
 - Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800 - This actually isn't a bug, the user probably didn't specify a font that has Thai characters in it and the default (my font) doesn't have those characters.
 
 TODO
 
-- You can copy a deleted line (see: https://discord.com/channels/339550825154347008/606565892142399488/826383072282279987)
-- Doubleclick should not trigger if you click outside of a task window or something
+- Transparency and outlines don't mix
 - Drag and drop .plan files to open them as a project.
 - Replace MapImage.Data's [][]int32 with [][]bool
-- The ability to copy a set of Tasks and paste them as a text list (this may be doable using the clipboard tool)
-- Conversely, the ability to copy a list and paste it as a set of Tasks
-- Export Plan to text file somehow? 
-
-    Checkboxes become: [ ] / [x] - TASK TEXT - DUE 1/1/2001
-
-    Progression becomes: [12/24] - TASK TEXT
-
-    Notes become: NOTE: - TASK TEXT
-    
-    Timers become: DUE (X DATE) - TIMER NAME
-
-	All other Tasks are not converted.
-
 - Shifting drawings messes them up? 
 - Define UTI for Mac OS .plan files - seems like it should work if properly done? : https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/understanding_utis/understand_utis_declare/understand_utis_declare.html#//apple_ref/doc/uid/TP40001319-CH204-SW1
 

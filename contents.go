@@ -285,16 +285,25 @@ func (c *CheckboxContents) Draw() {
 	c.bgProgress.Draw()
 
 	if c.Task.Board.Project.ShowIcons.Checked {
+
 		srcIcon := rl.Rectangle{0, 0, 16, 16}
+
 		if isParent {
 			srcIcon.X = 128
 			srcIcon.Y = 16
 		}
+
 		if c.Task.IsComplete() {
 			srcIcon.X += 16
 		}
-		rl.DrawTexturePro(c.Task.Board.Project.GUI_Icons, srcIcon, rl.Rectangle{cp.X + 8 - 4, cp.Y + 8, 16, 16}, rl.Vector2{8, 8}, 0, iconColor)
+
+		if c.Task.SmallButton(srcIcon.X, srcIcon.Y, 16, 16, c.Task.Position.X, c.Task.Position.Y) {
+			c.Trigger(TASK_TRIGGER_TOGGLE)
+			ConsumeMouseInput(rl.MouseLeftButton)
+		}
+
 		cp.X += 16
+
 	}
 
 	txt := c.Task.Description.Text()
