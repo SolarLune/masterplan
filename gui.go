@@ -650,6 +650,8 @@ type Panel struct {
 	Rect            rl.Rectangle
 	OriginalWidth   float32
 	OriginalHeight  float32
+	MinimumWidth    float32
+	MinimumHeight   float32
 	ViewPosition    rl.Vector2
 	Columns         []*PanelColumn
 	Exited          bool
@@ -658,6 +660,9 @@ type Panel struct {
 	AutoExpand      bool
 	EnableScrolling bool
 	DragStart       rl.Vector2
+	Resizeable      bool
+	Resizing        bool
+	ResizeDragStart rl.Vector2
 	PrevWindowSize  rl.Vector2
 	JustOpened      bool
 }
@@ -668,10 +673,13 @@ func NewPanel(x, y, w, h float32) *Panel {
 		Rect:            rl.Rectangle{x, y, w, h},
 		OriginalWidth:   w,
 		OriginalHeight:  h,
+		MinimumWidth:    w,
+		MinimumHeight:   h,
 		AutoExpand:      true,
 		Scrollbar:       NewScrollbar(0, 0, 16, h-80),
 		EnableScrolling: true,
 		DragStart:       rl.Vector2{-1, -1},
+		Resizeable:      true,
 	}
 
 	panel.ViewPosition = rl.Vector2{0, 0}
@@ -688,6 +696,40 @@ func (panel *Panel) Update() {
 	winSize := rl.Vector2{float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
 	exitButtonSize := float32(32)
 	panel.Exited = false
+
+	// Resizing
+
+	resizeCorner := rl.Rectangle{0, 0, 12, 12}
+	resizeCorner.X = panel.Rect.X + panel.OriginalWidth - resizeCorner.Width
+	resizeCorner.Y = panel.Rect.Y + panel.OriginalHeight - resizeCorner.Height
+
+	if panel.Resizeable && MousePressed(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), resizeCorner) {
+		panel.Resizing = true
+		panel.ResizeDragStart = rl.Vector2Subtract(GetMousePosition(), rl.Vector2{panel.Rect.X, panel.Rect.Y})
+	}
+
+	panel.Scrollbar.Locked = panel.Resizing
+
+	if panel.Resizing {
+
+		end := rl.Vector2Subtract(GetMousePosition(), rl.Vector2{panel.Rect.X, panel.Rect.Y})
+
+		panel.OriginalWidth = float32(math.Round(float64(end.X)))
+		panel.OriginalHeight = float32(math.Round(float64(end.Y)))
+
+		if panel.OriginalWidth < panel.MinimumWidth {
+			panel.OriginalWidth = panel.MinimumWidth
+		} else if panel.Rect.X+panel.OriginalWidth > winSize.X {
+			panel.OriginalWidth = winSize.X - panel.Rect.X
+		}
+
+		if panel.OriginalHeight < panel.MinimumHeight {
+			panel.OriginalHeight = panel.MinimumHeight
+		} else if panel.Rect.Y+panel.OriginalHeight > winSize.Y {
+			panel.OriginalHeight = winSize.Y - panel.Rect.Y
+		}
+
+	}
 
 	if prioritizedGUIElement == nil && ((MousePressed(rl.MouseLeftButton) && !rl.CheckCollisionPointRec(GetMousePosition(), dst)) || rl.IsKeyPressed(rl.KeyEscape)) {
 		panel.Exited = true
@@ -714,18 +756,25 @@ func (panel *Panel) Update() {
 			HideMouseInput(rl.MouseLeftButton)
 		}
 
+		if panel.OriginalWidth > winSize.X {
+			panel.OriginalWidth = winSize.X
+		}
+		if panel.OriginalHeight > winSize.Y {
+			panel.OriginalHeight = winSize.Y
+		}
+
 		if panel.Rect.X < 0 {
 			panel.Rect.X = 0
 		}
-		if panel.Rect.X+panel.OriginalWidth > float32(rl.GetScreenWidth()) {
-			panel.Rect.X = float32(rl.GetScreenWidth()) - panel.OriginalWidth
+		if panel.Rect.X+panel.OriginalWidth > winSize.X {
+			panel.Rect.X = winSize.X - panel.OriginalWidth
 		}
 
 		if panel.Rect.Y < 0 {
 			panel.Rect.Y = 0
 		}
-		if panel.Rect.Y+panel.OriginalHeight > float32(rl.GetScreenHeight()) {
-			panel.Rect.Y = float32(rl.GetScreenHeight()) - panel.OriginalHeight
+		if panel.Rect.Y+panel.OriginalHeight > winSize.Y {
+			panel.Rect.Y = winSize.Y - panel.OriginalHeight
 		}
 
 		dst.X = panel.Rect.X
@@ -742,6 +791,7 @@ func (panel *Panel) Update() {
 	} else {
 		panel.Scrollbar.Rect.X = dst.X + dst.Width - panel.Scrollbar.Rect.Width
 		panel.Scrollbar.Rect.Y = dst.Y + 48
+		panel.Scrollbar.Rect.Height = panel.OriginalHeight - 80
 	}
 
 	shadowRect := dst
@@ -753,11 +803,11 @@ func (panel *Panel) Update() {
 
 	rl.DrawRectangleRec(dst, getThemeColor(GUI_INSIDE))
 
-	panelVisible := panel.OriginalHeight < panel.Rect.Height-topBar.Height && panel.EnableScrolling
+	scrollbarVisible := panel.OriginalHeight < panel.Rect.Height-topBar.Height && panel.EnableScrolling
 
 	scroll := float32(0)
 
-	if panelVisible {
+	if scrollbarVisible {
 
 		totalScroll := float32(panel.RenderTexture.Texture.Height) - panel.OriginalHeight
 		chunk := float32(0)
@@ -787,7 +837,9 @@ func (panel *Panel) Update() {
 		y := float32(0)
 		lowestY := float32(0)
 
-		globalMouseOffset.X = panel.Rect.X
+		dx := (panel.OriginalWidth - float32(panel.RenderTexture.Texture.Width)) / 2
+
+		globalMouseOffset.X = panel.Rect.X + dx
 		globalMouseOffset.Y = panel.Rect.Y - scroll
 
 		activeRowCount := 0
@@ -919,6 +971,15 @@ func (panel *Panel) Update() {
 		globalMouseOffset.Y = 0
 
 		src := rl.Rectangle{panel.ViewPosition.X, panel.ViewPosition.Y, panel.OriginalWidth, panel.OriginalHeight}
+
+		if src.Width > float32(panel.RenderTexture.Texture.Width) {
+			src.Width = float32(panel.RenderTexture.Texture.Width)
+		}
+
+		if src.Height > float32(panel.RenderTexture.Texture.Height) {
+			src.Height = float32(panel.RenderTexture.Texture.Height)
+		}
+
 		src.Height *= -1
 		src.Y -= float32(panel.RenderTexture.Texture.Height) - src.Height + scroll
 
@@ -927,6 +988,13 @@ func (panel *Panel) Update() {
 
 		dst.X = float32(int32(dst.X))
 		dst.Y = float32(int32(dst.Y))
+
+		dst.Width = src.Width
+		dst.Height = -src.Height
+
+		if dst.Width < panel.OriginalWidth {
+			dst.X += float32(math.Round(float64((panel.OriginalWidth - dst.Width) / 2)))
+		}
 
 		rl.DrawTexturePro(panel.RenderTexture.Texture,
 			src,
@@ -947,16 +1015,17 @@ func (panel *Panel) Update() {
 
 		}
 
-		if panelVisible {
+		if scrollbarVisible {
 			panel.Scrollbar.Update()
 			panel.Scrollbar.Draw()
 		} else {
 			panel.Scrollbar.ScrollAmount = 0 // Reset the scrollbar to the top
+			panel.Scrollbar.TargetScroll = 0 // Reset the scrollbar to the top
 		}
 
 	}
 
-	quitButton = ImmediateButton(rl.Rectangle{float32(int32(panel.Rect.X + panel.Rect.Width - exitButtonSize)), panel.Rect.Y, exitButtonSize, exitButtonSize}, "X", false)
+	quitButton = ImmediateButton(rl.Rectangle{float32(int32(panel.Rect.X + panel.OriginalWidth - exitButtonSize)), panel.Rect.Y, exitButtonSize, exitButtonSize}, "X", false)
 
 	if quitButton {
 		panel.Exited = true
@@ -965,14 +1034,19 @@ func (panel *Panel) Update() {
 
 	if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
 		panel.DragStart = rl.Vector2{-1, -1}
+		panel.Resizing = false
 		UnhideMouseInput(rl.MouseLeftButton)
 	}
 
 	rl.DrawRectangleRec(topBar, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 
-	rl.DrawRectangleLinesEx(dst, 1, getThemeColor(GUI_OUTLINE))
+	rl.DrawRectangleLinesEx(rl.Rectangle{panel.Rect.X, panel.Rect.Y, panel.OriginalWidth, panel.OriginalHeight}, 1, getThemeColor(GUI_OUTLINE))
 
 	panel.PrevWindowSize = winSize
+
+	if panel.Resizeable {
+		rl.DrawRectangleRec(resizeCorner, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+	}
 
 	panel.JustOpened = false
 
@@ -1136,6 +1210,7 @@ type Scrollbar struct {
 	Horizontal   bool
 	ScrollAmount float32
 	TargetScroll float32
+	Locked       bool
 }
 
 func NewScrollbar(x, y, w, h float32) *Scrollbar {
@@ -1165,7 +1240,7 @@ func (scrollBar *Scrollbar) Draw() {
 		scrollBox.Y = scrollBar.Rect.Y + scrollBar.Rect.Height - scrollBox.Height
 	}
 
-	if MouseDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), scrollBar.Rect) {
+	if MouseDown(rl.MouseLeftButton) && rl.CheckCollisionPointRec(GetMousePosition(), scrollBar.Rect) && !scrollBar.Locked {
 		scrollBar.TargetScroll = ease.Linear(
 			GetMousePosition().Y-scrollBar.Rect.Y-(scrollBox.Height/2),
 			0,

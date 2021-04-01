@@ -232,7 +232,7 @@ func NewProject() *Project {
 		LoadRecentDropdown:   NewDropdown(0, 0, 0, 0, "Load Recent..."), // Position and size is set below in the context menu handling
 		UndoFade:             gween.NewSequence(gween.New(0, 192, 0.25, ease.InOutExpo), gween.New(192, 0, 0.25, ease.InOutExpo)),
 
-		PopupPanel:    NewPanel(0, 0, 500, 320),
+		PopupPanel:    NewPanel(0, 0, 800, 640),
 		SettingsPanel: NewPanel(0, 0, 930, 530),
 		TaskEditPanel: NewPanel(63, 64, 960/4*3, 560/4*3),
 
@@ -301,6 +301,8 @@ func NewProject() *Project {
 		GrabClient:                grab.NewClient(),
 		LogOn:                     true,
 	}
+
+	project.PopupPanel.Resizeable = false
 
 	project.AutomaticBackupInterval.Textbox.SpecialZero = "Off"
 	project.MaxUndoSteps.Textbox.SpecialZero = "Unlimited"
