@@ -771,24 +771,24 @@ func (board *Board) PasteContent() {
 			lines := []string{}
 			linesOut := []string{}
 
-			for i, line := range clipboardLines {
+			for i, clipLine := range clipboardLines {
 
-				if len(line) == 0 {
+				if len(clipLine) == 0 {
 					continue
 				}
 
-				if len(lines) == 0 || line[0] != '[' {
+				if len(lines) == 0 || clipLine[0] != '[' {
 
-					lines = append(lines, line)
+					lines = append(lines, clipLine)
 
 				} else {
 
 					linesOut = append(linesOut, strings.Join(lines, "\n"))
 
-					lines = []string{line}
+					lines = []string{clipLine}
 
 					if i == len(clipboardLines)-1 {
-						linesOut = append(linesOut, line)
+						linesOut = append(linesOut, clipLine)
 					}
 
 				}
