@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -279,43 +280,53 @@ func (board *Board) HandleDroppedFiles() {
 
 		fileCount := int32(0)
 
-		for _, filepath := range rl.GetDroppedFiles(&fileCount) {
+		for _, droppedPath := range rl.GetDroppedFiles(&fileCount) {
 
 			board.Project.LogOn = false
 
-			if guess := board.GuessTaskTypeFromText(filepath); guess >= 0 {
+			if strings.Contains(filepath.Ext(droppedPath), ".plan") {
 
-				task := board.CreateNewTask()
+				// Attempt to load it, prompting first
+				board.Project.PopupAction = ActionLoadProject
+				board.Project.PopupArgument = droppedPath
 
-				board.Project.LogOn = true
+			} else {
 
-				// Attempt to load the resource
-				task.TaskType.CurrentChoice = guess
+				if guess := board.GuessTaskTypeFromText(droppedPath); guess >= 0 {
 
-				if guess == TASK_TYPE_IMAGE {
+					task := board.CreateNewTask()
 
-					task.FilePathTextbox.SetText(filepath)
-					task.SetContents()
-					task.Contents.(*ImageContents).ResetSize = true
+					board.Project.LogOn = true
 
-				} else if guess == TASK_TYPE_SOUND {
+					// Attempt to load the resource
+					task.TaskType.CurrentChoice = guess
 
-					task.FilePathTextbox.SetText(filepath)
+					if guess == TASK_TYPE_IMAGE {
 
-				} else {
+						task.FilePathTextbox.SetText(droppedPath)
+						task.SetContents()
+						task.Contents.(*ImageContents).ResetSize = true
 
-					text, err := ioutil.ReadFile(filepath)
-					if err == nil {
-						task.Description.SetText(string(text))
+					} else if guess == TASK_TYPE_SOUND {
+
+						task.FilePathTextbox.SetText(droppedPath)
+
 					} else {
-						board.Project.Log("Could not read file: %s", filepath)
+
+						text, err := ioutil.ReadFile(droppedPath)
+						if err == nil {
+							task.Description.SetText(string(text))
+						} else {
+							board.Project.Log("Could not read file: %s", droppedPath)
+						}
+
 					}
 
+					task.ReceiveMessage(MessageTaskRestore, nil)
+
+					board.Project.Log("Created new %s Task from dropped file content.", task.TaskType.ChoiceAsString())
+
 				}
-
-				task.ReceiveMessage(MessageTaskRestore, nil)
-
-				board.Project.Log("Created new %s Task from dropped file content.", task.TaskType.ChoiceAsString())
 
 			}
 

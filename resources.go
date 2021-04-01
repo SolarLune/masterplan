@@ -154,6 +154,7 @@ func (res *Resource) ParseData() error {
 			res.Data = res.MimeData.String() // We don't actually have any data to store for audio, as Sound Tasks simply create their own streams
 		} else {
 			err = errors.New("unrecognized resource type")
+			delete(res.Project.Resources, res.ResourcePath) // Delete the resource if it isn't recognized, as it shouldn't be used anyway (hopefully this is OK?)
 		}
 
 	}
