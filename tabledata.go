@@ -435,13 +435,29 @@ func (tb *TableData) Update() {
 
 					if rows {
 						tb.Rows = append(tb.Rows[:i], tb.Rows[i+1:]...)
-						tb.Rows[i-1].Textbox.SetFocused(true)
-						tb.Rows[i-1].Textbox.SelectAllText()
+
+						var row *tableElement
+						if i > 0 {
+							row = tb.Rows[i-1]
+						} else {
+							row = tb.Rows[0]
+						}
+
+						row.Textbox.SetFocused(true)
+						row.Textbox.SelectAllText()
 						tb.Task.Board.Project.TaskEditPanel.FocusedElement = -1
 					} else {
 						tb.Columns = append(tb.Columns[:i], tb.Columns[i+1:]...)
-						tb.Columns[i-1].Textbox.SetFocused(true)
-						tb.Columns[i-1].Textbox.SelectAllText()
+
+						var column *tableElement
+						if i > 0 {
+							column = tb.Columns[i-1]
+						} else {
+							column = tb.Columns[0]
+						}
+
+						column.Textbox.SetFocused(true)
+						column.Textbox.SelectAllText()
 						tb.Task.Board.Project.TaskEditPanel.FocusedElement = -1
 					}
 

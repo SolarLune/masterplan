@@ -387,7 +387,7 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBWindowSizeSmall, rl.KeyF2)
 	kb.Define(KBWindowSizeNormal, rl.KeyF3)
 	kb.Define(KBToggleFullscreen, rl.KeyF4)
-	kb.Define(KBTakeScreenshot, rl.KeyF10)
+	kb.Define(KBTakeScreenshot, rl.KeyF11)
 
 	kb.Define(KBFasterPan, rl.KeyLeftShift).triggerMode = TriggerModeHold
 	kb.Define(KBPanUp, rl.KeyW).triggerMode = TriggerModeHold

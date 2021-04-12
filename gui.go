@@ -1123,7 +1123,7 @@ func (panel *Panel) Update() {
 				prevFocusable.SetFocused(false)
 			}
 
-			// No focus is already set (blue rectangle around an object)
+			// No focus is already set (rectangle around an object)
 			if panel.FocusedElement < 0 {
 
 				// Set the focus to be whichever item is focused (if there is one)
@@ -1140,6 +1140,12 @@ func (panel *Panel) Update() {
 				}
 
 			} else {
+
+				for _, element := range activeFocusables {
+					focusObject := interface{}(element.Element).(FocusableGUIElement)
+					focusObject.SetFocused(false)
+				}
+
 				panel.FocusedElement += tabFocus
 			}
 
@@ -1149,12 +1155,12 @@ func (panel *Panel) Update() {
 				panel.FocusedElement = 0
 			}
 
-			nextFocusable := interface{}(activeFocusables[panel.FocusedElement].Element).(FocusableGUIElement)
-			nextFocusable.SetFocused(true)
-
 		}
 
 		if panel.FocusedElement >= 0 {
+
+			focusable := interface{}(activeFocusables[panel.FocusedElement].Element).(FocusableGUIElement)
+			focusable.SetFocused(true)
 
 			if panel.FocusedElement >= len(activeFocusables)-1 {
 				panel.FocusedElement = len(activeFocusables) - 1
