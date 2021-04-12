@@ -157,7 +157,6 @@ func main() {
 		splashColor.A = 0
 	}
 
-	screenshotIndex := 0
 	fpsDisplayValue := float32(0)
 	fpsDisplayAccumulator := float32(0)
 	fpsDisplayTimer := time.Now()
@@ -341,8 +340,8 @@ func main() {
 			}
 
 			if takeScreenshot {
-				screenshotIndex++
-				screenshotFileName := fmt.Sprintf("screenshot%d.png", screenshotIndex)
+				// Use the current time for screenshot names; ".00" adds the fractional second
+				screenshotFileName := fmt.Sprintf("screenshot_%s_.png", time.Now().Format(FileTimeFormat+".00"))
 				screenshotPath := LocalPath(screenshotFileName)
 				if projectScreenshotsPath := currentProject.ScreenshotsPath.Text(); projectScreenshotsPath != "" {
 					if _, err := os.Stat(projectScreenshotsPath); err == nil {
