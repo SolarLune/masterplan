@@ -4,9 +4,9 @@
   "BoardIndex": 0,
   "BoardCount": 1,
   "AutoSave": false,
-  "Pan.X": -250,
-  "Pan.Y": -144,
-  "ZoomLevel": 5,
+  "Pan.X": -1198.5,
+  "Pan.Y": 41,
+  "ZoomLevel": 4,
   "TaskTransparency": 5,
   "OutlineTasks": true,
   "BracketSubtasks": true,
@@ -1489,12 +1489,12 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": -32,
+      "Position.Y": -80,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
       "Description": "Low-priority Todo",
-      "Selected": false,
+      "Selected": true,
       "TaskType.CurrentChoice": 2,
       "CreationTime": "Apr 1 2021 11:29:34"
     }, 
@@ -1525,8 +1525,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
-      "Position.Y": 144,
+      "Position.X": 1024,
+      "Position.Y": -32,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1585,8 +1585,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
-      "Position.Y": 112,
+      "Position.X": 1024,
+      "Position.Y": -64,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1597,8 +1597,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 48,
-      "Position.Y": 128,
+      "Position.X": 1056,
+      "Position.Y": -48,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1609,7 +1609,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 1264,
+      "Position.X": 1024,
       "Position.Y": -16,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1621,7 +1621,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 1264,
+      "Position.X": 1024,
       "Position.Y": 0,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1706,14 +1706,15 @@
     {
       "BoardIndex": 0,
       "Position.X": 16,
-      "Position.Y": 160,
-      "Checkbox.Checked": false,
+      "Position.Y": 112,
+      "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Lock camera to pixels for exactness",
+      "Description": "FIX: Lock camera to pixels for exactness",
       "Selected": false,
       "TaskType.CurrentChoice": 0,
-      "CreationTime": "Apr 10 2021 21:05:00"
+      "CreationTime": "Apr 10 2021 21:05:00",
+      "CompletionTime": "Apr 11 2021 20:53:08"
     }, 
     {
       "BoardIndex": 0,

@@ -1165,11 +1165,12 @@ func (project *Project) HandleCamera() {
 		smoothing = project.AdjustedFrameTime() * 12
 	}
 
-	project.CameraOffset.X += float32(project.CameraPan.X-project.CameraOffset.X) * smoothing
-	project.CameraOffset.Y += float32(project.CameraPan.Y-project.CameraOffset.Y) * smoothing
+	// Locking camera to pixels, per "@尺ﾑﾘᄃﾑ丂ｲ ｷﾑﾘｲ乇" on Discord~
+	project.CameraOffset.X += float32(math.Round(float64((project.CameraPan.X - project.CameraOffset.X) * smoothing)))
+	project.CameraOffset.Y += float32(math.Round(float64((project.CameraPan.Y - project.CameraOffset.Y) * smoothing)))
 
-	camera.Target.X = float32(-project.CameraOffset.X)
-	camera.Target.Y = float32(-project.CameraOffset.Y)
+	camera.Target.X = float32(math.Round(float64(-project.CameraOffset.X)))
+	camera.Target.Y = float32(math.Round(float64(-project.CameraOffset.Y)))
 
 	camera.Offset.X = float32(rl.GetScreenWidth() / 2)
 	camera.Offset.Y = float32(rl.GetScreenHeight() / 2)
