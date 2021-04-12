@@ -1,5 +1,65 @@
 -------
 
+v0.7.2
+
+-------
+
+Panels are now resizeable.
+Added tab focusing (pressing tab focuses on different, consecutive elements in a panel).
+Multiple log files are now created for each time you run the program; a maximum of 20 is maintained.
+Screenshorts are now named by date-time, not just numerically, allowing for multiple sets of screenshots across multiple sessions of MasterPlan.
+FIX: Paste Content crashes sometimes depending on text in clipboard
+FIX: Checkbox button now properly matches the Task's position.
+FIX: The Project's modified state (the *, for example, in the title bar of MasterPlan) is no longer incorrectly set directly after loading a project.
+FIX: URL buttons are no longer misaligned.
+FIX: The camera is now locked to pixels for exactness.
+
+-------
+
+v0.7.1
+
+-------
+
+- Audio samplerate no longer defaults to 22050 hz on Mac OS.
+- Adding ability to click on Checkbox Tasks to check them off.
+- Adding ability to drag and drop .plan files onto MasterPlan to load them.
+- Backup filename format has been tweaked (for example, from "test.plan_bak_3.1.21.15.04" > "test.plan_bak_03_01_21_15_04").
+- Adding customizeable audio sample buffer size. A sample buffer size of 2048 seems to be a good default that should resolve crackly sound for most users. If the sound is crackly, try raising it.
+- Adding ability to copy Tasks into the system clipboard to paste as text, with a corresponding option in Settings to disable as desired.
+- Adding ability to paste text content list that starts with "[ ]", "[x]", or "[o]" as Checkbox Tasks. Copy text that starts with "[ ]" to copy it in as an incomplete Checkbox; text that starts with "[x]" or "[o]" get copied in as complete.
+- Removing Square and Star numbering sequences for now, to try to move over to pure letters / unicode characters for text-related rendering to make spacing simpler, rather than having icons in there, too (or, this could be, ideally, revisited again with better-looking icons).
+- Settings > Global menu is now categorized to make things a bit easier to find.
+- Added shortcuts to add or delete columns and rows. Shift+Enter goes to the previous column or row, Enter goes to the next one. If the last column or row is highlighted, Enter will create a new one. Pressing backspace when a column or row's name is empty will delete it.
+- Warning messages that appear at the top-left are now yellow.
+- Adding double-clicking sensitivity option in Settings.
+- Underlined text in panels are now a bit visually nicer, being slightly thicker, wider, and fading out on the edges.
+- Other minor visual fixes.
+- FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now; previously, only the first character was entered.
+- FIX: Sound streams are properly resampled now when changing project sampler settings.
+- CHANGE: Audio settings (sample rate and volume) are now global, not per-Project, and are available in the Global section of the settings menu. The Audio section is now removed.
+- FIX: Saving no longer stutters slightly, making Project Auto-save usable again.
+- FIX: MasterPlan warns you when you haven't saved the project and have Auto-Save enabled.
+- FIX: MasterPlan warns you when you try to exit or load a new project, and Auto-Save isn't working (for the above reason).
+- FIX: Stopwatches are now able to be started again; previously, they couldn't be started under certain circumstances.
+- FIX: Stopwatches can now be reset again.
+- FIX: Files with upper-case extensions (i.e. JPG instead of jpg) weren't visible on Linux when attempting to load images or sounds from disk.
+- FIX: Textboxes now update if the font changes.
+- FIX: Checkbox / Progression / Note / Sound / Timer Tasks now properly recalculate their size when the font or font size changes.
+- FIX: Task-specific shortcuts should now only work when the project is in a neutral state (search textbox not focused, task isn't being edited, etc). This means it's not possible to, say, complete a Checkbox while a Panel is open.
+- FIX: URL buttons appear when the project is in neutral state only.
+- FIX: Textboxes are now more properly aligned horizontally.
+- FIX: Lines from Line tasks now always display, not just if both the base and the end are visible.
+- FIX: Overdue Tasks no longer skip a day around Daylight Savings Time starting.
+- FIX: Time until Daily Timer goes off is no longer incorrect around DST: https://github.com/SolarLune/masterplan/issues/50
+- FIX: Messages that are spawned by processes that take some time (i.e. when using Save Project As...) now properly show up. Internally, this is because messages now fade out over by ideal delta frame-time, rather than fading by the system clock.
+- FIX: Text pasted into MasterPlan on Windows no longer adds an underscore on every line.
+- FIX: It's not longer possible to paste a Line base that has been deleted after copying. (This created an orphaned base.)
+- FIX: Pasting a Line ending that was deleted after copying now no longer creates an orphaned arrow.
+- FIX: Double-clicking no longer triggers if the two clicks are on different objects. For example, clicking once on a Task and then on the background no longer registers as a double-click on the background.
+- FIX: Double-clicking is now slightly easier by default (0.33 seconds > 0.5 seconds).
+
+-------
+
 v0.7.0-1
 
 -------
@@ -22,7 +82,7 @@ Also, there were some changes to keyboard shortcuts. Please check them after loa
 [*] Tasks now open, move, and expand more smoothly.
 [*] Completely reworked the Undo system; should be slightly more optimized (and is simpler in the code-base, as well).
 [*] Completely rewrote a large portion of the Task update and drawing system; may be more optimized, but it is now primarily simpler in the code-base.
-[*] Tables have been added. A Table is a grid of checkboxes you can click to toggle them, with customizeable hide-able headers on the left and top or bottom and right indicating names.
+[*] Tables have been added. A Table is a grid of checkboxes you can click to toggle them, with customizeable, reorderable headers on the left and top indicating names.
 [*] Downloading images / sounds are now multithreaded.
 [*] Modifiers (left ctrl, right ctrl) are now left / right agnostic.
 [*] Now ONLY Check-box Tasks display Sub-Tasks as contributing to their own completion, not any other completable Tasks.
@@ -30,7 +90,7 @@ Also, there were some changes to keyboard shortcuts. Please check them after loa
 [*] Added a Date mode for Timers (so a Timer can trigger on a specific date).
 [*] Added a Stopwatch mode for Timers.
 [*] Added a repeatable option for certain Timer types.
-[*] Timers now can trigger neighbor Tasks when they run out. The effect of the trigger differs depending on the Task type - Completable Tasks change their completion level, while [*] Whiteboard Tasks change their colors. Timers start or stop when triggered, naturally.
+[*] Timers now can trigger neighbor Tasks when they run out. The effect of the trigger differs depending on the Task type - Completable Tasks change their completion level, while Whiteboard Tasks change their colors. Timers start or stop when triggered, naturally.
 [*] Timers who are neighbors to Lines can now trigger the Tasks those Lines are pointing to, and so on.
 [*] Added a Rectangle tool for Map Tasks.
 [*] Themes are now global instead of per-Project.
@@ -41,46 +101,45 @@ Also, there were some changes to keyboard shortcuts. Please check them after loa
 [*] Added shadows for UI elements.
 [*] Map Task type background has been slightly improved, is now a bit transparent.
 [*] Various minor visual tweaks and smaller bug-fixes.
-[*] FIX: Drawing on Whiteboards is no longer chunkier than intended (the resolution has been increased).
 [*] Added shortcuts to teleport the camera to each end of a line, in sequence.
 [*] The splash screen no longer takes nearly as long as it previously did to disappear. (~2.5 seconds -> ~0.75 seconds)
 [*] Adding shortcuts for incrementing and decrementing Progression Tasks.
 [*] Triggering Checkbox Tasks that have SubTasks will now trigger those SubTasks.
-[*] FIX?: Incrementing a Progression Task's current value no longer increases the maximum if they're the same.
 [*] Timers no longer pause when adjusting their values.
 [*] Count-down timers can't be started if their value is 0.
-[*] FIX: It's no longer possible to undo a project that has just been loaded.
 [*] The grid dot background is now slightly transparent.
 [*] Added rebindable shortcuts for previously hardcoded window-related functions (window size setting, fullscreen, showing FPS, taking a screenshot).
-[*] Added rebindable Shortcuts for making specific Task types.
-[*] FIX: Textboxes now don't take key input immediately after they're visible. This means you can now assign individual keys to shortcuts effectively (i.e. I to create an Image Task, and not type I immediately when the Task Edit dialog appears).
+[*] Added rebindable Shortcuts for creating specific Task types.
 [*] The "first / main" editable element in the Task Edit Panel for each Task type is now Focused by default.
-[*] Fixed task swapping not undoing properly (an UndoState needs to be generated for all Tasks affected by the swap)
 [*] Project Volume spinner now goes from 0 to 100, rather than 0 to 10. The volume is also now more naturally distributed audibly.
-[*] FIX: Adding a new task or deleting Tasks now properly moves the entire stack below it. This works if Tasks are selected across multiple stacks.
-[*] FIX: Shortcuts that are one key and create Tasks no longer immediately also enters the key of the shortcut into a textbox, if it's there and focused.
-[*] You can now hold Shift to select all Tasks between the currently selected one and the top or bottom of the stack.
+[*] You can now hold Shift to select all Tasks between the currently selected one and the top or bottom of the stack with the corresponding shortcuts.
 [*] Messages that display at the top-left last for a much shorter period of time (7 > 3 seconds).
 [*] Timer triggering defaults to off now.
-[*] FIX: You can no longer paste characters into Textboxes that don't allow those characters.
-[*] Images now load in at their original aspect ratio, but the size depends on the zoom level of the camera. This means that images and GIFs should generally always be wholly visible onscreen when loaded.
+[*] Images now load in at their original aspect ratio, but the size depends on the zoom level. This means that images and GIFs should generally always be wholly visible onscreen when loaded.
 [*] The option to reset images now is in the Task Edit panel.
-[*] FIX: GIF Animation has been reviewed and fixed up. Animation frames should now be displayed more accurately (though not perfect in all cases, yet). The timing has also been tweaked to properly display GIFs that lack timing information and rely on default timings.
-[*] Errors in the message log at the top-left now show up as red in MasterPlan.
+[*] Errors in the message log at the top-left now show up as red.
 [*] When Project resource auto-reloading is on, MasterPlan will now reload a file if the size OR modified time differs from what is cached in the project. (Previously, this was just based on the file being modified after the time when the resource was loaded.)
 [*] Fixed up image and sound auto-reloading. It's no longer experimental, though it's still defaulted to being off.
-[*] Optimized general rendering of Tasks.
-[*] FIX: Newlines sometimes being overwritten in Textboxes.
-[*] FIX: Slight basic improvements with regards to textbox usability.
-[*] OPTIMIZATION: Cut down VRAM usage for Task editing considerably. This number can account for roughly 80% of the VRAM used for Tasks. (In testing, a plan that previously had 284 Tasks, most of which were Checkbox Tasks, used 1084mb of VRAM. Now it uses 204mb).
-[*] OPTIMIZATION: Text rendering for Notes is now rendered to a texture, which is then rendered to the screen. This increases VRAM usage for Notes specifically, but is faster than rendering text directly to the screen. Work still remains to be done in this area, as there are still VRAM leaks in this regard.
 [*] Sound Tasks now show the length of the sound and the current position of the playhead.
 [*] Subtask bracketing tweaked to use different colors and is now slightly thicker.
-[*] FIX: Whether timers are playing is now properly saved in the project plan.
 [*] Adding some basic logging to the project loading process to help diagnose any issues with it.
 [*] Map icon changed from a map to a thumbtack pin.
 [*] Cloudy theme outline darkened to increase readability.
 [*] Removing option to save sounds playing in the project settings; feels like a setting there wasn't really a use case for.
+[*] FIX: Drawing on Whiteboards is no longer chunkier than intended (the resolution has been increased).
+[*] FIX?: Incrementing a Progression Task's current value no longer increases the maximum if they're the same.
+[*] FIX: It's no longer possible to undo a project that has just been loaded.
+[*] FIX: Textboxes now don't take key input immediately after they're visible. This means you can now assign individual keys to shortcuts effectively (i.e. I to create an Image Task, and not type I immediately when the Task Edit dialog appears).
+[*] FIX: Task swapping now is undo-able properly.
+[*] FIX: Adding a new task or deleting Tasks now properly moves the entire stack below it. This works if Tasks are selected across multiple stacks.
+[*] FIX: You can no longer paste characters into Textboxes that don't allow those characters.
+[*] FIX: GIF Animation has been reviewed and fixed up. Animation frames should now be displayed more accurately (though not perfect in all cases, yet). The timing has also been tweaked to properly display GIFs that lack timing information and rely on default timings.
+[*] FIX: Newlines are no longer sometimes overwritten in Textboxes.
+[*] FIX: Slight basic improvements with regards to textbox usability.
+[*] FIX: Whether timers are playing is now properly saved in the project plan.
+[*] OPTIMIZATION: General rendering of Tasks.
+[*] OPTIMIZATION: Cut down VRAM usage for Task editing considerably. This number can account for roughly 80% of the VRAM used for Tasks. (In testing, a plan that previously had 284 Tasks, most of which were Checkbox Tasks, used 1084mb of VRAM. Now it uses 204mb).
+[*] OPTIMIZATION: Text rendering for Notes is now rendered to a texture, which is then rendered to the screen. This increases VRAM usage for Notes specifically, but is faster than rendering text directly to the screen. Work still remains to be done in this area, as there are still VRAM leaks in this regard.
 
 -------
 
