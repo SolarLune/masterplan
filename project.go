@@ -2075,11 +2075,6 @@ func (project *Project) GUI() {
 
 		}
 
-		if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
-			accept = true
-			label.Text = ""
-		}
-
 		label.Text = ""
 
 		if project.PopupAction == ActionRenameBoard {
@@ -3094,6 +3089,9 @@ func (project *Project) OpenSettings() {
 
 func (project *Project) PromptQuit() {
 	project.PopupAction = ActionQuit
+	if project.PopupPanel.FocusedElement == -1 {
+		project.PopupPanel.FocusedElement = 0
+	}
 }
 
 // IsInNeutralState returns true if the Project is in a neutral state (no Tasks open, settings not open, searchbar not focused, etc)
