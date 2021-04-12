@@ -341,7 +341,7 @@ func main() {
 
 			if takeScreenshot {
 				// Use the current time for screenshot names; ".00" adds the fractional second
-				screenshotFileName := fmt.Sprintf("screenshot_%s_.png", time.Now().Format(FileTimeFormat+".00"))
+				screenshotFileName := fmt.Sprintf("screenshot_%s.png", time.Now().Format(FileTimeFormat+".00"))
 				screenshotPath := LocalPath(screenshotFileName)
 				if projectScreenshotsPath := currentProject.ScreenshotsPath.Text(); projectScreenshotsPath != "" {
 					if _, err := os.Stat(projectScreenshotsPath); err == nil {
