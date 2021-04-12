@@ -209,6 +209,9 @@ const (
 	KBCopyText                = "Textbox: Copy Text"
 	KBPasteText               = "Textbox: Paste Text"
 	KBCutText                 = "Textbox: Cut Text"
+	KBTabFocusNext            = "GUI: Tab Focus Next"
+	KBTabFocusPrev            = "GUI: Tab Focus Prev"
+	KBOpenSettings            = "Open Settings"
 )
 
 const (
@@ -375,13 +378,16 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBZoomLevel400, rl.KeyFive)
 	kb.Define(KBZoomLevel1000, rl.KeySix)
 
+	settings := kb.Define(KBOpenSettings, rl.KeyF1)
+	settings.canClash = false
+
 	kb.Define(KBZoomIn, rl.KeyEqual).triggerMode = TriggerModeRepeating
 	kb.Define(KBZoomOut, rl.KeyMinus).triggerMode = TriggerModeRepeating
-	kb.Define(KBShowFPS, rl.KeyF1)
+	kb.Define(KBShowFPS, rl.KeyF12)
 	kb.Define(KBWindowSizeSmall, rl.KeyF2)
 	kb.Define(KBWindowSizeNormal, rl.KeyF3)
 	kb.Define(KBToggleFullscreen, rl.KeyF4)
-	kb.Define(KBTakeScreenshot, rl.KeyF11)
+	kb.Define(KBTakeScreenshot, rl.KeyF10)
 
 	kb.Define(KBFasterPan, rl.KeyLeftShift).triggerMode = TriggerModeHold
 	kb.Define(KBPanUp, rl.KeyW).triggerMode = TriggerModeHold
@@ -463,6 +469,14 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBStartTimer, rl.KeyC)
 	kb.Define(KBSelectPrevLineEnding, rl.KeyX).triggerMode = TriggerModeRepeating
 	kb.Define(KBSelectNextLineEnding, rl.KeyC).triggerMode = TriggerModeRepeating
+
+	guiFocus := kb.Define(KBTabFocusNext, rl.KeyTab)
+	guiFocus.triggerMode = TriggerModeRepeating
+	guiFocus.canClash = false
+
+	guiFocus = kb.Define(KBTabFocusPrev, rl.KeyTab, rl.KeyLeftShift)
+	guiFocus.triggerMode = TriggerModeRepeating
+	guiFocus.canClash = false
 
 	// Textbox shortcuts all have the same triggerMode and rule, so it makes sense to put them in a
 	// for loop

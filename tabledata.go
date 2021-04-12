@@ -51,7 +51,7 @@ func NewTableData(task *Task) *TableData {
 	tbd.AddColumn()
 
 	tbd.AddRow()
-	tbd.Rows[0].Textbox.Focused = false
+	tbd.Rows[0].Textbox.SetFocused(false)
 
 	tbd.Update()
 
@@ -65,7 +65,7 @@ func (tb *TableData) Copy(other *TableData) {
 	for _, otherElement := range other.Rows {
 		element := tb.AddRow()
 		element.Textbox.SetText(otherElement.Textbox.Text())
-		element.Textbox.Focused = false
+		element.Textbox.SetFocused(false)
 	}
 
 	tb.Columns = []*tableElement{}
@@ -73,7 +73,7 @@ func (tb *TableData) Copy(other *TableData) {
 	for _, otherElement := range other.Columns {
 		element := tb.AddColumn()
 		element.Textbox.SetText(otherElement.Textbox.Text())
-		element.Textbox.Focused = false
+		element.Textbox.SetFocused(false)
 	}
 
 	tb.Completions = [][]int{}
@@ -265,7 +265,7 @@ func (tb *TableData) AddRow() *tableElement {
 	te.Draggable = NewDraggableElement(te.Textbox)
 	te.Draggable.OnDrag = tb.onRowDrag
 	te.Delete = NewButton(0, 0, 96, 32, "Delete", false)
-	te.Textbox.Focused = true
+	te.Textbox.SetFocused(true)
 
 	tb.Rows = append(tb.Rows, te)
 	tb.SetPanel()
@@ -283,7 +283,7 @@ func (tb *TableData) AddColumn() *tableElement {
 	te.Draggable = NewDraggableElement(te.Textbox)
 	te.Delete = NewButton(0, 0, 96, 32, "Delete", false)
 	te.Draggable.OnDrag = tb.onColumnDrag
-	te.Textbox.Focused = true
+	te.Textbox.SetFocused(true)
 
 	tb.Columns = append(tb.Columns, te)
 	tb.SetPanel()
@@ -329,13 +329,13 @@ func (tb *TableData) Deserialize(data string) {
 	for _, name := range gjson.Get(data, `Columns`).Array() {
 		element := tb.AddColumn()
 		element.Textbox.SetText(name.String())
-		element.Textbox.Focused = false
+		element.Textbox.SetFocused(false)
 	}
 
 	for _, name := range gjson.Get(data, `Rows`).Array() {
 		element := tb.AddRow()
 		element.Textbox.SetText(name.String())
-		element.Textbox.Focused = false
+		element.Textbox.SetFocused(false)
 	}
 
 }
@@ -382,7 +382,7 @@ func (tb *TableData) Update() {
 
 			for i, element := range data {
 
-				if !focused && element.Textbox.Focused {
+				if !focused && element.Textbox.Focused() {
 
 					if enter {
 
@@ -392,8 +392,8 @@ func (tb *TableData) Update() {
 
 							if i > 0 {
 
-								element.Textbox.Focused = false
-								data[i-1].Textbox.Focused = true
+								element.Textbox.SetFocused(false)
+								data[i-1].Textbox.SetFocused(true)
 								data[i-1].Textbox.SelectAllText()
 
 							}
@@ -401,25 +401,28 @@ func (tb *TableData) Update() {
 						} else {
 
 							if i == len(data)-1 {
-								element.Textbox.Focused = false
+								element.Textbox.SetFocused(false)
 								if rows {
 									tb.AddRow()
 								} else {
 									tb.AddColumn()
 								}
 							} else {
-								element.Textbox.Focused = false
-								data[i+1].Textbox.Focused = true
+								element.Textbox.SetFocused(false)
+								data[i+1].Textbox.SetFocused(true)
 								data[i+1].Textbox.SelectAllText()
 							}
 
 						}
 
+						tb.Task.Board.Project.TaskEditPanel.FocusedElement = -1
+
 					} else if rl.IsKeyPressed(rl.KeyBackspace) {
 
 						if i > 0 && element.Textbox.Text() == "" {
 							focused = true
-							element.Textbox.Focused = false
+							element.Textbox.SetFocused(false)
+							tb.Task.Board.Project.TaskEditPanel.FocusedElement = -1
 							element.Delete.Clicked = true
 							data[i-1].Textbox.OpenTime = tb.Task.Board.Project.Time
 						}
@@ -432,12 +435,14 @@ func (tb *TableData) Update() {
 
 					if rows {
 						tb.Rows = append(tb.Rows[:i], tb.Rows[i+1:]...)
-						tb.Rows[i-1].Textbox.Focused = true
+						tb.Rows[i-1].Textbox.SetFocused(true)
 						tb.Rows[i-1].Textbox.SelectAllText()
+						tb.Task.Board.Project.TaskEditPanel.FocusedElement = -1
 					} else {
 						tb.Columns = append(tb.Columns[:i], tb.Columns[i+1:]...)
-						tb.Columns[i-1].Textbox.Focused = true
+						tb.Columns[i-1].Textbox.SetFocused(true)
 						tb.Columns[i-1].Textbox.SelectAllText()
+						tb.Task.Board.Project.TaskEditPanel.FocusedElement = -1
 					}
 
 					tb.UpdateCompletionsData(i, -1, rows)

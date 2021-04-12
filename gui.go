@@ -316,6 +316,7 @@ type Button struct {
 	Text         string
 	Disabled     bool
 	Clicked      bool
+	focused      bool
 }
 
 func NewButton(x, y, w, h float32, text string, disabled bool) *Button {
@@ -328,10 +329,29 @@ func NewButton(x, y, w, h float32, text string, disabled bool) *Button {
 	}
 }
 
-func (button *Button) Update() {}
+func (button *Button) Focused() bool {
+	return button.focused
+}
+
+func (button *Button) SetFocused(focused bool) {
+	button.focused = focused
+}
+
+func (button *Button) Update() {
+
+	if prioritizedGUIElement == nil && MousePressed(rl.MouseLeftButton) {
+		button.focused = rl.CheckCollisionPointRec(GetMousePosition(), button.Rect)
+	}
+
+}
 
 func (button *Button) Draw() {
 	button.Clicked = ImmediateIconButton(button.Rect, button.IconSrcRect, button.IconRotation, button.Text, button.Disabled)
+
+	if button.focused && !button.Disabled && (rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) || rl.IsKeyPressed(rl.KeySpace)) {
+		button.Clicked = true
+	}
+
 }
 
 func (button *Button) Depth() int32 {
@@ -357,12 +377,16 @@ type ButtonGroup struct {
 	RowCount      int
 	CurrentChoice int
 	Changed       bool
+	focused       bool
 }
 
 // NewButtonGroup creates a button group. The X and Y is the position of the group, while the width is how wide the group is. Height is how tall the group is,
 // but also specifies the height of the buttons. RowCount indicates the number of rows to spread the buttons across. Finally, one button will be created for each
 // option in the options variable string.
 func NewButtonGroup(x, y, w, h float32, rowCount int, options ...string) *ButtonGroup {
+	if rowCount < 1 {
+		rowCount = 1
+	}
 	return &ButtonGroup{
 		Rect:     rl.Rectangle{x, y, w, h * float32(rowCount)},
 		Options:  options,
@@ -370,14 +394,65 @@ func NewButtonGroup(x, y, w, h float32, rowCount int, options ...string) *Button
 	}
 }
 
-func (bg *ButtonGroup) Update() {}
+func (bg *ButtonGroup) Focused() bool {
+	return bg.focused
+}
 
-func (bg *ButtonGroup) Draw() {
+func (bg *ButtonGroup) SetFocused(focused bool) {
+	bg.focused = focused
+}
+
+func (bg *ButtonGroup) Update() {
 
 	bg.Changed = false
 
+	if MousePressed(rl.MouseLeftButton) {
+		bg.focused = rl.CheckCollisionPointRec(GetMousePosition(), bg.Rect)
+	}
+
+	if bg.focused {
+
+		if rl.IsKeyPressed(rl.KeyRight) {
+			bg.CurrentChoice++
+			bg.Changed = true
+		} else if rl.IsKeyPressed(rl.KeyLeft) {
+			bg.CurrentChoice--
+			bg.Changed = true
+		} else if rl.IsKeyPressed(rl.KeyUp) && bg.RowCount > 1 {
+			perRow := int(math.Ceil(float64(len(bg.Options)) / float64(bg.RowCount)))
+			if bg.CurrentChoice == 0 {
+				bg.CurrentChoice = -1
+			} else if bg.CurrentChoice < perRow-1 {
+				bg.CurrentChoice = 0
+			} else {
+				bg.CurrentChoice -= perRow
+			}
+		} else if rl.IsKeyPressed(rl.KeyDown) && bg.RowCount > 1 {
+			perRow := int(math.Ceil(float64(len(bg.Options)) / float64(bg.RowCount)))
+			if bg.CurrentChoice == len(bg.Options)-1 {
+				bg.CurrentChoice++
+			} else if bg.CurrentChoice > len(bg.Options)-perRow-1 {
+				bg.CurrentChoice = len(bg.Options) - 1
+			} else {
+				bg.CurrentChoice += perRow
+			}
+		}
+
+		if bg.CurrentChoice >= len(bg.Options) {
+			bg.CurrentChoice = 0
+		} else if bg.CurrentChoice < 0 {
+			bg.CurrentChoice = len(bg.Options) - 1
+		}
+
+	}
+
+}
+
+func (bg *ButtonGroup) Draw() {
+
 	r := bg.Rect
-	r.Width /= float32(len(bg.Options) / bg.RowCount)
+	perRow := math.Ceil(float64(len(bg.Options)) / float64(bg.RowCount))
+	r.Width /= float32(perRow)
 	r.Height /= float32(bg.RowCount)
 
 	startingX := r.X
@@ -438,6 +513,8 @@ type MultiButtonGroup struct {
 	CurrentChoices      int
 	Changed             bool
 	MinimumEnabledCount int
+	focused             bool
+	focusedIndex        int
 }
 
 // NewButtonGroup creates a button group. The X and Y is the position of the group, while the width is how wide the group is. Height is how tall the group is,
@@ -496,6 +573,51 @@ func (bg *MultiButtonGroup) Draw() {
 
 	}
 
+	if bg.focused {
+
+		if rl.IsKeyPressed(rl.KeyRight) {
+			bg.focusedIndex++
+		} else if rl.IsKeyPressed(rl.KeyLeft) {
+			bg.focusedIndex--
+		}
+
+		if bg.focusedIndex < 0 {
+			bg.focusedIndex = len(bg.Options) - 1
+		} else if bg.focusedIndex > len(bg.Options)-1 {
+			bg.focusedIndex = 0
+		}
+
+		if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) || rl.IsKeyPressed(rl.KeySpace) {
+
+			bitVal := 1 << bg.focusedIndex
+			alreadyClicked := bg.CurrentChoices&bitVal != 0
+
+			if alreadyClicked && bg.EnabledOptionCount() > bg.MinimumEnabledCount {
+				bg.CurrentChoices = bg.CurrentChoices &^ bitVal
+				bg.Changed = true
+			} else {
+				bg.CurrentChoices = bg.CurrentChoices | bitVal
+				bg.Changed = true
+			}
+
+		}
+
+		rect := bg.Rect
+		rect.Width /= float32(len(bg.Options) / bg.RowCount)
+		rect.Height /= float32(bg.RowCount)
+		rect.X += rect.Width * float32(bg.focusedIndex)
+		rl.DrawRectangleLinesEx(rect, 4, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+
+	}
+
+}
+
+func (bg *MultiButtonGroup) Focused() bool {
+	return bg.focused
+}
+
+func (bg *MultiButtonGroup) SetFocused(focused bool) {
+	bg.focused = focused
 }
 
 func (bg *MultiButtonGroup) Depth() int32 { return 0 }
@@ -665,6 +787,7 @@ type Panel struct {
 	ResizeDragStart rl.Vector2
 	PrevWindowSize  rl.Vector2
 	JustOpened      bool
+	FocusedElement  int
 }
 
 func NewPanel(x, y, w, h float32) *Panel {
@@ -680,6 +803,7 @@ func NewPanel(x, y, w, h float32) *Panel {
 		EnableScrolling: true,
 		DragStart:       rl.Vector2{-1, -1},
 		Resizeable:      true,
+		FocusedElement:  -1,
 	}
 
 	panel.ViewPosition = rl.Vector2{0, 0}
@@ -822,6 +946,9 @@ func (panel *Panel) Update() {
 		} else if rl.IsKeyPressed(rl.KeyPageUp) {
 			mouseWheel = -4
 		}
+		if mouseWheel != 0 {
+			panel.FocusedElement = -1
+		}
 
 		panel.Scrollbar.Scroll(mouseWheel * chunk * float32(programSettings.ScrollwheelSensitivity))
 		scroll = panel.Scrollbar.ScrollAmount * totalScroll
@@ -829,6 +956,8 @@ func (panel *Panel) Update() {
 	}
 
 	quitButton := false
+
+	activeItems := []*PanelItem{}
 
 	if len(panel.Columns) > 0 {
 
@@ -843,29 +972,30 @@ func (panel *Panel) Update() {
 		globalMouseOffset.Y = panel.Rect.Y - scroll
 
 		activeRowCount := 0
-		sorted := []*PanelItem{}
 
 		// We just want the active items
 		for _, column := range panel.Columns {
 			for _, row := range column.Rows {
-				activeItems := row.ActiveItems()
-				if len(activeItems) > 0 {
+				actives := row.ActiveItems()
+				if len(actives) > 0 {
 					activeRowCount++
 				}
-				sorted = append(sorted, activeItems...)
+				activeItems = append(activeItems, actives...)
 			}
 		}
 
-		sort.Slice(sorted, func(i, j int) bool {
+		sort.Slice(activeItems, func(i, j int) bool {
 
-			if sorted[i].Element == nil {
+			if activeItems[i].Element == nil {
 				return false
-			} else if sorted[j].Element == nil {
+			} else if activeItems[j].Element == nil {
 				return true
 			}
 
-			return sorted[i].Element.Depth() > sorted[j].Element.Depth()
+			return activeItems[i].Element.Depth() > activeItems[j].Element.Depth()
 		})
+
+		topMargin := 32 + topBar.Height
 
 		x := float32(0)
 
@@ -875,7 +1005,7 @@ func (panel *Panel) Update() {
 			columnX := horizontalMargin/2 + (columnWidth * float32(i))
 
 			x = columnX
-			y = 32 + topBar.Height
+			y = topMargin
 
 			for _, row := range column.Rows {
 
@@ -950,7 +1080,7 @@ func (panel *Panel) Update() {
 
 		}
 
-		for _, item := range sorted {
+		for _, item := range activeItems {
 			// Update the elements
 			if !panel.JustOpened {
 				item.Element.Update()
@@ -960,9 +1090,97 @@ func (panel *Panel) Update() {
 		rl.BeginTextureMode(panel.RenderTexture)
 		rl.ClearBackground(getThemeColor(GUI_INSIDE))
 
-		for _, item := range sorted {
+		for _, item := range activeItems {
 			// Draw the elements
 			item.Element.Draw()
+		}
+
+		// Tab focusing
+
+		tabFocus := 0
+
+		if programSettings.Keybindings.On(KBTabFocusNext) {
+			tabFocus = 1
+		}
+
+		if programSettings.Keybindings.On(KBTabFocusPrev) {
+			tabFocus = -1
+		}
+
+		activeFocusables := []*PanelItem{}
+
+		for _, element := range activeItems {
+			mid := interface{}(element.Element)
+			if _, is := mid.(FocusableGUIElement); is {
+				activeFocusables = append(activeFocusables, element)
+			}
+		}
+
+		if tabFocus != 0 {
+
+			if panel.FocusedElement >= 0 {
+				prevFocusable := interface{}(activeFocusables[panel.FocusedElement].Element).(FocusableGUIElement)
+				prevFocusable.SetFocused(false)
+			}
+
+			// No focus is already set (blue rectangle around an object)
+			if panel.FocusedElement < 0 {
+
+				// Set the focus to be whichever item is focused (if there is one)
+				for i := range activeFocusables {
+					focusObject := interface{}(activeFocusables[i].Element).(FocusableGUIElement)
+					if focusObject.Focused() {
+						panel.FocusedElement = i
+						break
+					}
+				}
+
+				if panel.FocusedElement < 0 {
+					panel.FocusedElement = 0
+				}
+
+			} else {
+				panel.FocusedElement += tabFocus
+			}
+
+			if panel.FocusedElement < 0 {
+				panel.FocusedElement = len(activeFocusables) - 1
+			} else if panel.FocusedElement > len(activeFocusables)-1 {
+				panel.FocusedElement = 0
+			}
+
+			nextFocusable := interface{}(activeFocusables[panel.FocusedElement].Element).(FocusableGUIElement)
+			nextFocusable.SetFocused(true)
+
+		}
+
+		if panel.FocusedElement >= 0 {
+
+			if panel.FocusedElement >= len(activeFocusables)-1 {
+				panel.FocusedElement = len(activeFocusables) - 1
+			}
+
+			rect := activeFocusables[panel.FocusedElement].Element.Rectangle()
+
+			panel.Scrollbar.TargetScroll = (rect.Y - topBar.Height*4) / (panel.Rect.Height - topBar.Height*8)
+			// panel.Scrollbar.ScrollAmount = panel.Scrollbar.TargetScroll
+
+			activeItem := activeFocusables[panel.FocusedElement]
+			rect = activeItem.Element.Rectangle()
+
+			spacing := int32(8)
+
+			rect.X -= float32(spacing)
+			rect.Y -= float32(spacing)
+			rect.Width += float32(spacing) * 2
+			rect.Height += float32(spacing) * 2
+
+			rl.DrawRectangleLinesEx(rect, 4, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
+
+			if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+				panel.FocusedElement = -1
+			}
+
 		}
 
 		rl.EndTextureMode()
@@ -1282,6 +1500,11 @@ type GUIElement interface {
 	SetRectangle(rl.Rectangle)
 }
 
+type FocusableGUIElement interface {
+	Focused() bool
+	SetFocused(bool)
+}
+
 type DraggableElement struct {
 	Element   GUIElement
 	Dragging  bool
@@ -1295,6 +1518,23 @@ func NewDraggableElement(element GUIElement) *DraggableElement {
 		Element: element,
 	}
 
+}
+
+func (drag *DraggableElement) Focused() bool {
+	if drag.Element != nil {
+		if focus, focusable := drag.Element.(FocusableGUIElement); focusable {
+			return focus.Focused()
+		}
+	}
+	return false
+}
+
+func (drag *DraggableElement) SetFocused(focused bool) {
+	if drag.Element != nil {
+		if focus, focusable := drag.Element.(FocusableGUIElement); focusable {
+			focus.SetFocused(focused)
+		}
+	}
 }
 
 func (drag *DraggableElement) Update() {
@@ -1506,6 +1746,7 @@ type Checkbox struct {
 	Rect    rl.Rectangle
 	Checked bool
 	Changed bool
+	focused bool
 }
 
 func NewCheckbox(x, y, w, h float32) *Checkbox {
@@ -1513,7 +1754,30 @@ func NewCheckbox(x, y, w, h float32) *Checkbox {
 	return checkbox
 }
 
-func (checkbox *Checkbox) Update() {}
+func (checkbox *Checkbox) Focused() bool {
+	return checkbox.focused
+}
+
+func (checkbox *Checkbox) SetFocused(focused bool) {
+	checkbox.focused = focused
+}
+
+func (checkbox *Checkbox) Update() {
+
+	if prioritizedGUIElement == nil {
+
+		if MousePressed(rl.MouseLeftButton) {
+			checkbox.focused = rl.CheckCollisionPointRec(GetMousePosition(), checkbox.Rect)
+		}
+
+		if checkbox.focused && (rl.IsKeyPressed(rl.KeySpace) || rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)) {
+			checkbox.Checked = !checkbox.Checked
+			checkbox.Changed = true
+		}
+
+	}
+
+}
 
 func (checkbox *Checkbox) Draw() {
 
@@ -1574,6 +1838,7 @@ type Spinner struct {
 	Expanded          bool
 	ExpandUpwards     bool
 	ExpandMaxRowCount int
+	focused           bool
 }
 
 func NewSpinner(x, y, w, h float32, options ...string) *Spinner {
@@ -1581,11 +1846,43 @@ func NewSpinner(x, y, w, h float32, options ...string) *Spinner {
 	return spinner
 }
 
-func (spinner *Spinner) Update() {}
+func (spinner *Spinner) Focused() bool {
+	return spinner.focused
+}
 
-func (spinner *Spinner) Draw() {
+func (spinner *Spinner) SetFocused(focused bool) {
+	spinner.focused = focused
+}
+
+func (spinner *Spinner) Update() {
 
 	spinner.Changed = false
+
+	if MousePressed(rl.MouseLeftButton) {
+		spinner.focused = rl.CheckCollisionPointRec(GetMousePosition(), spinner.Rect)
+	}
+
+	if spinner.focused {
+
+		if rl.IsKeyPressed(rl.KeyRight) {
+			spinner.CurrentChoice++
+			spinner.Changed = true
+		} else if rl.IsKeyPressed(rl.KeyLeft) {
+			spinner.CurrentChoice--
+			spinner.Changed = true
+		}
+
+		if spinner.CurrentChoice >= len(spinner.Options) {
+			spinner.CurrentChoice = 0
+		} else if spinner.CurrentChoice < 0 {
+			spinner.CurrentChoice = len(spinner.Options) - 1
+		}
+
+	}
+
+}
+
+func (spinner *Spinner) Draw() {
 
 	// This kind of works, but not really, because you can click on an item in the menu, but then
 	// you also click on the item underneath the menu. :(
@@ -1593,11 +1890,13 @@ func (spinner *Spinner) Draw() {
 	if ImmediateButton(rl.Rectangle{spinner.Rect.X, spinner.Rect.Y, spinner.Rect.Height, spinner.Rect.Height}, "<", false) {
 		spinner.CurrentChoice--
 		spinner.Changed = true
+		spinner.focused = true
 	}
 
 	if ImmediateButton(rl.Rectangle{spinner.Rect.X + spinner.Rect.Width - spinner.Rect.Height, spinner.Rect.Y, spinner.Rect.Height, spinner.Rect.Height}, ">", false) {
 		spinner.CurrentChoice++
 		spinner.Changed = true
+		spinner.focused = true
 	}
 
 	if spinner.CurrentChoice < 0 {
@@ -1616,6 +1915,7 @@ func (spinner *Spinner) Draw() {
 		ConsumeMouseInput(rl.MouseLeftButton)
 		spinner.Expanded = !spinner.Expanded
 		clickedSpinner = true
+		spinner.focused = true
 	}
 
 	if rl.IsKeyPressed(rl.KeyEscape) {
@@ -1741,7 +2041,26 @@ func NewNumberSpinner(x, y, w, h float32) *NumberSpinner {
 	return numberSpinner
 }
 
+func (numberSpinner *NumberSpinner) Focused() bool {
+	return numberSpinner.Textbox.Focused()
+}
+
+func (numberSpinner *NumberSpinner) SetFocused(focused bool) {
+	numberSpinner.Textbox.SetFocused(focused)
+}
+
 func (numberSpinner *NumberSpinner) Update() {
+
+	if prioritizedGUIElement == nil && numberSpinner.Focused() {
+
+		if rl.IsKeyPressed(rl.KeyRight) && numberSpinner.Textbox.CaretPos >= len(numberSpinner.Textbox.Text()) {
+			numberSpinner.Increment()
+		} else if rl.IsKeyPressed(rl.KeyLeft) && numberSpinner.Textbox.CaretPos <= 0 {
+			numberSpinner.Decrement()
+		}
+
+	}
+
 	numberSpinner.Textbox.Update()
 }
 
@@ -1763,41 +2082,55 @@ func (numberSpinner *NumberSpinner) Draw() {
 		numberSpinner.Changed = false
 	}
 
-	if !numberSpinner.Textbox.Focused {
+	if !numberSpinner.Textbox.Focused() {
 
 		if numberSpinner.Textbox.Text() == "" {
 			numberSpinner.Textbox.SetText("0")
 		}
 
-		num := numberSpinner.Number()
-
 		if minusButton {
-			num -= numberSpinner.Step
-			numberSpinner.Changed = true
+			numberSpinner.Decrement()
 		}
 
 		if plusButton {
-			num += numberSpinner.Step
-			numberSpinner.Changed = true
+			numberSpinner.Increment()
 		}
-
-		if num < numberSpinner.Minimum {
-			if numberSpinner.Loop {
-				num = numberSpinner.Maximum
-			} else {
-				num = numberSpinner.Minimum
-			}
-		} else if num > numberSpinner.Maximum && numberSpinner.Maximum > -1 {
-			if numberSpinner.Loop {
-				num = numberSpinner.Minimum
-			} else {
-				num = numberSpinner.Maximum
-			}
-		}
-
-		numberSpinner.Textbox.SetText(strconv.Itoa(num))
 
 	}
+
+}
+
+func (numberSpinner *NumberSpinner) Decrement() {
+	num := numberSpinner.Number() - numberSpinner.Step
+	numberSpinner.SetValue(num)
+	numberSpinner.SetFocused(true)
+}
+
+func (numberSpinner *NumberSpinner) Increment() {
+	num := numberSpinner.Number() + numberSpinner.Step
+	numberSpinner.SetValue(num)
+	numberSpinner.SetFocused(true)
+}
+
+func (numberSpinner *NumberSpinner) SetValue(value int) {
+
+	numberSpinner.Changed = true
+
+	if value < numberSpinner.Minimum {
+		if numberSpinner.Loop {
+			value = numberSpinner.Maximum
+		} else {
+			value = numberSpinner.Minimum
+		}
+	} else if value > numberSpinner.Maximum && numberSpinner.Maximum > -1 {
+		if numberSpinner.Loop {
+			value = numberSpinner.Minimum
+		} else {
+			value = numberSpinner.Maximum
+		}
+	}
+
+	numberSpinner.Textbox.SetText(strconv.Itoa(value))
 
 }
 
@@ -1847,7 +2180,7 @@ var allTextboxes = []*Textbox{}
 type Textbox struct {
 	// Used to be a string, but now is a []rune so it can deal with UTF8 characters like À properly, HOPEFULLY
 	text                  []rune
-	Focused               bool
+	focused               bool
 	Rect                  rl.Rectangle
 	Visible               bool
 	AllowNewlines         bool
@@ -1905,6 +2238,14 @@ func (textbox *Textbox) Clone() *Textbox {
 	newTextbox.forceBufferRecreation = true
 	newTextbox.triggerTextRedraw = true
 	return &newTextbox
+}
+
+func (textbox *Textbox) Focused() bool {
+	return textbox.focused
+}
+
+func (textbox *Textbox) SetFocused(focused bool) {
+	textbox.focused = focused
 }
 
 func (textbox *Textbox) IsEmpty() bool {
@@ -2112,9 +2453,9 @@ func (textbox *Textbox) Update() {
 
 	if MousePressed(rl.MouseLeftButton) {
 		if rl.CheckCollisionPointRec(mousePos, textbox.Rect) && prioritizedGUIElement == nil {
-			textbox.Focused = true
+			textbox.focused = true
 		} else {
-			textbox.Focused = false
+			textbox.focused = false
 			textbox.ClickedAway = true
 		}
 	}
@@ -2124,12 +2465,12 @@ func (textbox *Textbox) Update() {
 	mousePos.X -= alignmentOffset.X
 	mousePos.Y -= alignmentOffset.Y
 
-	if textbox.Focused {
+	if textbox.focused {
 
 		prevCaretPos := textbox.CaretPos
 
 		if rl.IsKeyPressed(rl.KeyEscape) {
-			textbox.Focused = false
+			textbox.focused = false
 		}
 
 		if textbox.AllowNewlines && nowTime-textbox.OpenTime > 0.1 && (rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)) {
@@ -2489,7 +2830,7 @@ func (textbox *Textbox) Draw() {
 
 	rl.DrawRectangleRec(shadowRect, shadowColor)
 
-	if textbox.Focused {
+	if textbox.focused {
 
 		rl.DrawRectangleRec(textbox.Rect, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
 		DrawRectExpanded(textbox.Rect, -1, getThemeColor(GUI_INSIDE_HIGHLIGHTED))
@@ -2557,7 +2898,7 @@ func (textbox *Textbox) Draw() {
 
 	}
 
-	if textbox.Focused {
+	if textbox.focused {
 
 		blink := time.Since(textbox.CaretBlinkTime).Seconds()
 
@@ -2724,7 +3065,7 @@ func (textbox *Textbox) Text() string {
 }
 
 func (textbox *Textbox) RangeSelected() bool {
-	return textbox.Focused && textbox.SelectedRange[0] >= 0 && textbox.SelectedRange[1] >= 0 && textbox.SelectedRange[0] != textbox.SelectedRange[1]
+	return textbox.focused && textbox.SelectedRange[0] >= 0 && textbox.SelectedRange[1] >= 0 && textbox.SelectedRange[0] != textbox.SelectedRange[1]
 }
 
 func (textbox *Textbox) ClearSelection() {

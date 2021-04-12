@@ -1536,7 +1536,7 @@ func (project *Project) Shortcuts() {
 
 		if !project.TaskOpen {
 
-			if !project.Searchbar.Focused {
+			if !project.Searchbar.Focused() {
 
 				panSpeed := float32(16 / camera.Zoom)
 				selectedTasks := project.CurrentBoard().SelectedTasks(false)
@@ -2025,7 +2025,7 @@ func (project *Project) Shortcuts() {
 
 				if keybindings.On(KBFindNextTask) || keybindings.On(KBFindPreviousTask) {
 					project.SearchForTasks()
-					project.Searchbar.Focused = true
+					project.Searchbar.SetFocused(true)
 				}
 
 			} else {
@@ -2090,7 +2090,7 @@ func (project *Project) GUI() {
 			if project.PopupArgument != "" {
 				textbox.SetText(project.PopupArgument)
 				project.PopupArgument = ""
-				textbox.Focused = true
+				textbox.SetFocused(true)
 				textbox.SelectAllText()
 			}
 
@@ -2566,12 +2566,12 @@ func (project *Project) GUI() {
 
 			clickedOnSearchbar := false
 
-			searchbarWasFocused := project.Searchbar.Focused
+			searchbarWasFocused := project.Searchbar.Focused()
 
 			project.Searchbar.Update()
 			project.Searchbar.Draw()
 
-			if project.Searchbar.Focused && !searchbarWasFocused {
+			if project.Searchbar.Focused() && !searchbarWasFocused {
 				clickedOnSearchbar = true
 			}
 
@@ -3097,7 +3097,7 @@ func (project *Project) PromptQuit() {
 
 // IsInNeutralState returns true if the Project is in a neutral state (no Tasks open, settings not open, searchbar not focused, etc)
 func (project *Project) IsInNeutralState() bool {
-	return !project.TaskOpen && !project.ProjectSettingsOpen && project.PopupAction == "" && !project.Searchbar.Focused
+	return !project.TaskOpen && !project.ProjectSettingsOpen && project.PopupAction == "" && !project.Searchbar.Focused()
 }
 
 func (project *Project) AutoSaveInvalid() bool {

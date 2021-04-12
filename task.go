@@ -267,7 +267,7 @@ func (task *Task) SetPanel() {
 		TASK_TYPE_PROGRESSION,
 		TASK_TYPE_NOTE)
 
-	task.Description.Focused = true
+	task.Description.SetFocused(true)
 
 	row = column.Row()
 	row.Item(NewLabel("Timer Name:"), TASK_TYPE_TIMER)
@@ -275,7 +275,7 @@ func (task *Task) SetPanel() {
 	row = column.Row()
 	row.Item(task.TimerName, TASK_TYPE_TIMER)
 
-	task.TimerName.Focused = true
+	task.TimerName.SetFocused(true)
 
 	row = column.Row()
 	row.Item(NewLabel("Filepath:"), TASK_TYPE_IMAGE, TASK_TYPE_SOUND)
@@ -287,7 +287,7 @@ func (task *Task) SetPanel() {
 	row = column.Row()
 	row.Item(task.ResetImageSizeButton, TASK_TYPE_IMAGE)
 
-	task.FilePathTextbox.Focused = true
+	task.FilePathTextbox.SetFocused(true)
 
 	row = column.Row()
 	row.Item(NewLabel("Completed:"), TASK_TYPE_BOOLEAN, TASK_TYPE_PROGRESSION)

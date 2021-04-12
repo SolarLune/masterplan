@@ -2,47 +2,6 @@ For the below list, INTERNAL indicates things I do for internal / non-public-fac
 
 -- Rough Changelog --
 
-FINISHED
-
-- Adding ability to click on Checkbox Tasks to check them off.
-- Adding ability to drag and drop .plan files onto MasterPlan to load them.
-- Backup filename format has been tweaked (for example, from "test.plan_bak_3.1.21.15.04" > "test.plan_bak_03_01_21_15_04").
-- Adding customizeable audio sample buffer size. A sample buffer size of 2048 seems to be a good default. If the sound is crackly, try raising it.
-- Adding ability to copy Tasks into the system clipboard to paste as text, with a corresponding option in Settings to disable as desired.
-- Adding ability to paste text that starts with "[ ]", "[x]", or "[o]" as Checkbox Tasks.
-- Removing Square and Star numbering sequences for now, to try to move over to pure letters / unicode characters for text-related rendering to make spacing simpler, rather than having icons in there, too (or, this could be, ideally, revisited again with better-looking icons).
-- Settings > Global menu is now categorized to make things a bit easier to find.
-- Added shortcuts to add or delete columns and rows. Shift+Enter goes to the previous column or row, Enter goes to the next one. If the last column or row is highlighted, Enter will create a new one. Pressing backspace when a column or row's name is empty will delete it.
-- Adding shortcuts for text manipulation within Textboxes.
-- Warning messages that appear at the top-left are now yellow.
-- Underlined text in panels are now a bit visually nicer, being slightly thicker, wider, and fading out on the edges.
-- Adding double-clicking sensitivity option in Settings.
-- Other minor visual fixes.
-- FIX: Multi-character entry with IMEs (like typing multiple characters / kanji in Japanese) should work correctly now; previously, only the first character was entered.
-- FIX: Sound streams are properly resampled now when changing project sampler settings. This should fix sounds being crackly when played back.
-- CHANGE: Audio settings (sample rate and volume) are now global, not per-Project, and are available in the Global section of the settings menu. The Audio section is now removed.
-- FIX: Saving no longer stutters slightly, making Project Auto-save usable.
-- FIX: MasterPlan warns you when you haven't saved the project and have Auto-Save enabled.
-- FIX: MasterPlan warns you when you try to exit or load a new project, and Auto-Save isn't working (for the above reason).
-- FIX: Stopwatch can't be started sometimes.
-- FIX: Can't reset Stopwatch.
-- FIX: Loading files (images, sounds) isn't case-sensitive anymore (specifically, this was for Linux).
-- FIX: Textboxes don't update their fonts when the font changes.
-- FIX: Task-specific shortcuts should now only work when the project is in a neutral state (search textbox not focused, task isn't being edited, etc). This means it's not possible to, say, complete a Checkbox while a Panel is open.
-- FIX: Checkbox / Progression / Note / Sound / Timer Tasks now properly recalculate their size when the font or font size changes.
-- FIX: URL buttons appear when the project is in neutral state only.
-- FIX: Textboxes are now more properly aligned horizontally.
-- FIX: Lines now always display, not just if both the base and the end are visible.
-- FIX: Overdue Tasks no longer skip a day around Daylight Savings Time starting.
-- FIX: Time until Daily Timer goes off is no longer incorrect around DST: https://github.com/SolarLune/masterplan/issues/50
-- FIX: Messages that are spawned by processes that take some time (i.e. when using Save Project As...) now properly show up. Internally, this is because messages now fade out over by ideal delta frame-time, rather than fading by the system clock.
-- FIX: Text pasted into MasterPlan on Windows no longer adds an underscore on every line.
-- FIX: Files with upper-case extensions (i.e. JPG instead of jpg) weren't visible on Linux when attempting to load images or sounds from disk.
-- FIX: It's not longer possible to paste a Line base that has been deleted after copying. (This created an orphaned base.)
-- FIX: Pasting a Line ending that was deleted after copying now no longer creates an orphaned arrow.
-- FIX: Double-clicking no longer triggers if the two clicks are on different objects. For example, clicking once on a Task and then on the background no longer registers as a double-click.
-- FIX: Double-clicking is now slightly easier by default (0.33 seconds > 0.5 seconds).
-
 RESOLVED
 
 - FIX?: MasterPlan no longer crashes when typing End and Delete in a Textbox? Specifically the backup one. - This doesn't seem to happen anymore.
@@ -50,119 +9,116 @@ RESOLVED
 
 TODO
 
-- Transparency and outlines don't mix
-- Drag and drop .plan files to open them as a project.
-- Replace MapImage.Data's [][]int32 with [][]bool
-- Shifting drawings messes them up? 
-- Define UTI for Mac OS .plan files - seems like it should work if properly done? : https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/understanding_utis/understand_utis_declare/understand_utis_declare.html#//apple_ref/doc/uid/TP40001319-CH204-SW1
-
-- Autosave should only happen when an UndoState is generated (possibly also when undoing / redoing); that's how we can know something happened.
-- Add audio buffer size
-- Add button on the Task itself to check off Checkbox Tasks
-- Crash when pressing Reset Image Size on an unloaded image? : https://steamcommunity.com/app/1269310/discussions/1/3105766884450239608/
-- Make backup timer textbox move in steps of 5 minutes.
-- Project.Modified is set directly after loading a project for some reason
-- Lines shouldn't have to point in a specific direction / shouldn't point towards each other if possible
-- Add option to change double-click speed
-- Change durations to be more descriptive / simpler (a duration of "1 day" could mean "1 day 23 hours")
-- Dedicated media folder (drag and dropped files get automatically copied to a customizeable location): https://itch.io/t/1275925/option-to-copy-dragged-and-dropped-images-into-a-specific-folder-inside-masterplans-directory?before=3#post-2901238
-- Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
-- Similarly, extend parsing to parse text to become clickable links to be able to open files or directories
-- Implement text displaying better for fonts of different size; seems like they rarely line up properly 
-- Re-implement progress bar behind timer
-- Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
-- Can't make shortcut on Mac?
-- Building MasterPlan doesn't work sometimes?: https://github.com/SolarLune/masterplan/issues/39
-- See about implementing a backend system, switching from Raylib to SDL for (HOPEFULLY!) more up-to-date fundamentals (render-to-texture, texture unloading, better font support, better IME support).
-- Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
-
-- Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines. Also, Zones could be collapsible, allowing you to hide Zones for simplicity and readability.
-- Calendar Task, allowing you to put Tasks on specific days (see TreeSheets: http://strlen.com/treesheets/docs/screenshots.html)
-  - This will probably necessitate a Calendar UI element as well.
-    - Maybe just a Calendar mode for the Table? That would basically turn it into a Table that has slots for each day in the month, and you could cycle through it using < and > buttons. It would have a max of 31 slots so the size is consistent, and the column headers would just be the day of the month. 
-    - This should be more "in line with the design philosophy of MasterPlan", though; simply making it a Calendar works OK, but you can't put things into a Table. Maybe you should be able to? Maybe Note Tasks could be placed in there??? Maybe you could just put Zones into Tasks.
-- High-res fonts that are rendered to an image (for Notes, for example) is low-res
-- Optimize text rendering (just load at least the number of characters that we need?)
-    - If I could reload fonts during run without crashing, that would be great
-    - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
-- Remove Project.RetrieveResource()?
-- IMPLEMENT RL.UNLOADTEXTURE(), BECAUSE THIS VRAM MEMORY LEAK IS ANNOYING AS H*CK
-- Implement button to return all settings to default
-- Note renderering could use a grayscale texture for limited VRAM usage, as it's not necessary for Notes to be colored (for now)
-- Make a video talking a bit about what MasterPlan is and why it's useful. It helps you think, it helps you create links between tasks, it allows you to complete things that need to be done, and it helps you to say no. This video could be accessible from the Steam forums, or from the MasterPlan Settings (?) menu.
-- Note: If you save a project in a newer version of MasterPlan, loading it in an older version should say something like "Are you sure? It might not work correctly."
-- Optimize map image serialization by using bitwise operations and storing the array as a bitwise number
-- Add image filtering option, as you may not want it to be pixelly
-- Label each quadrant of a board?
-- Note color change
-- Show Map or Whiteboard size somewhere
-- List Tasks completed from those selected
-- Hide grid at far zoom levels
-- Textbox dies when there's a ton of text.
-- Add fill tool to Map Task.
-- Add diagonal corners to Map Task.
-- Make some kind of indication (maybe a little chain link icon) indicating a Task is linked to another, like a Timer or by a Line?
-- Logs should be created on each successful start, rather than putting them all into log.txt
-- Add option for log display time - this and the volume could be a new Slider GUI element.
-- Task Neighbors could contain loops sometimes; this should be resolved when establishing the neighbors.
-- Consolidate the Tasks that consist of Contents and Data Structures (somehow)
-- Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
-- Lines are drawing underneath Tasks (this could be configurable)
-- Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
-- Draw text to a buffer, draw the buffer to the screen; might be considerably faster than drawing text constantly. Seems like 72% of non-sleep execution time might be spent drawing.
-- Tweakable zoom levels, rather than being hard-coded?
-- Use Lines to connect Tasks for SubTask counting
-- Fullscreen acts weird if the window isn't maximized first, so that might be a good thing to try to do? Set the window size and then fullscreen it?
-- Investigate pasting images from the clipboard?
-- Panels should be resizeable
-- MP4 video support?
-- A mobile version of MasterPlan, where you can take pictures or record video and have it copy over to your plan somehow (gasp!).
-- Re-make Dino Riki? Aw Nuts!? 7DRL on 3/4/21?!?!?!
-
-- Time estimations per Task - these can be set as a project-level default (i.e. something like 30 minutes per-Task), and then further specified (maybe specifying something like 3 hours for a specific Task, as an example).
-- Add manual typing entry for month / day / year for deadlines / Timer Dates
-    - Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
-- Optimize Table text size checks
-- Table: Option to make coumn and row names invisible (so that you could for example put images there).
-- Table: Add button to turn a column into a row, or vice-versa
-- Add tags of some description
-- Add icons for task types in Task Edit Panel
-- Fix up horizontal alignments in Panels - rather than doing this via RowItem.Weight or HorizontalAlignment, it would be good to have a manual spacing value that indicates how far out from an item another is (how much space is between one item and the following one)
-- Changing font size shouldn't take so long - This could be simplified by making a selection for how many glyphs to load
-- Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
-- Downloading images / sounds should be able to be saved to a local directory per-project (?)
-- Tab focusing (pressing tab focuses on different, consecutive elements in a panel)
-- Deadline write-up by BiRD: https://discordapp.com/channels/339550825154347008/758009278756946040/810779087449751593
-    The summary is:
-        - Use timers for timing and calendars for deadlines. Calendars are:
-            - Visually focused (no extraneous information)
-            - Intuitive (click a day = set the day)
-            - Efficient (fewer actions to do the same thing)
-            - Improvable (as a result of more available screen space)
-            - Reusable (calendars can be used for more than just setting deadlines)
-            - Fun (not sure what to write for this one)
-- Icon beside board name when due, deadlined, or late
-- Timers should be able to retroactively trigger if a set time was passed (somehow)
-- Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
-- Mini-map of some description?
-- Clickable images - when you click them, they go to a location.
-- Replace Board.UndoHistory with a project-level one
-- Go over the tutorial to explain things a bit more; right click to open the menu should be mentioned right at launch
-- Undo + Redo for textboxes
-- Add ability to delete shortcuts?
-- Vertical alignment isn't really centered for textboxes?
-- Hide status bar elements except for the search bar if there isn't enough room horizontally
-- Moveable status bar
-- Searchable shortcuts
-- Consolidate image and sounds into one task type?
-- Review libraries to see if the licenses are compatible with my own chosen license
-
-- Graph view that allows you to see your plan as a visual "node graph"? 
+[ ] Lists to copy into MasterPlan can start with "-"
+[ ] Tab focusing (pressing tab focuses on different, consecutive elements in a panel)
+[ ] Downloading images / sounds should be able to be saved to a local directory per-project (?)
+[ ] Project.Modified is set directly after loading a project for some reason
+[ ] Multiple log files for each time you run the program?
+[ ] Pasting large text files don't work (because it's rendering it to a texture; that might be too slow / run out of texture space)
+[ ] Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
+[ ] Similarly, extend parsing to parse text to become clickable links to be able to open files or directories
+[ ] Transparency and outlines don't mix
+[ ] IME entry is still jank?
+[ ] Paste Content crashes sometimes depending on text in clipboard?
+[ ] Time for Timer > Date Mode
+[ ] Dedicated media folder (drag and dropped files get automatically copied to a customizeable location): https://itch.io/t/1275925/option-to-copy-dragged-and-dropped-images-into-a-specific-folder-inside-masterplans-directory?before=3#post-2901238
+[ ] Replace MapImage.Data's [][]int32 with [][]bool
+[ ] Shifting drawings messes them up? 
+[ ] Define UTI for Mac OS .plan files - seems like it should work if properly done? : https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/understanding_utis/understand_utis_declare/understand_utis_declare.html#//apple_ref/doc/uid/TP40001319-CH204-SW1
+[ ] Autosave should only happen when an UndoState is generated (possibly also when undoing / redoing); that's how we can know something happened.
+[ ] Crash when pressing Reset Image Size on an unloaded image? : https://steamcommunity.com/app/1269310/discussions/1/3105766884450239608/
+[ ] Make backup timer textbox move in steps of 5 minutes.
+[ ] Lines shouldn't have to point in a specific direction / shouldn't point towards each other if possible
+[ ] Implement text displaying better for fonts of different size; seems like they rarely line up properly 
+[ ] Re-implement progress bar behind timer
+[ ] Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
+[ ] Can't make shortcut on Mac?
+[ ] Building MasterPlan doesn't work sometimes?: https://github.com/SolarLune/masterplan/issues/39
+[ ] See about implementing a backend system, switching from Raylib to SDL for (HOPEFULLY!) more up-to-date fundamentals (render-to-texture, texture unloading, better font support, better IME support).
+[ ] Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
+[ ] Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines. Also, Zones could be collapsible, allowing you to hide Zones for simplicity and readability.
+[ ] Calendar Task, allowing you to put Tasks on specific days (see TreeSheets: http://strlen.com/treesheets/docs/screenshots.html)
+    - This will probably necessitate a Calendar UI element as well.
+      - Maybe just a Calendar mode for the Table? That would basically turn it into a Table that has slots for each day in the month, and you could cycle through it using < and > buttons. It would have a max of 31 slots so the size is consistent, and the column headers would just be the day of the month. 
+      - This should be more "in line with the design philosophy of MasterPlan", though; simply making it a Calendar works OK, but you can't put things into a Table. Maybe you should be able to? Maybe Note Tasks could be placed in there??? Maybe you could just put Zones into Tasks.
+[ ] High-res fonts that are rendered to an image (for Notes, for example) is low-res
+[ ] Optimize text rendering (just load at least the number of characters that we need?)
+     - If I could reload fonts during run without crashing, that would be great
+     - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
+[ ] Remove Project.RetrieveResource()?
+[ ] IMPLEMENT RL.UNLOADTEXTURE(), BECAUSE THIS VRAM MEMORY LEAK IS ANNOYING AS H*CK
+[ ] Implement button to return all settings to default
+[ ] Note renderering could use a grayscale texture for limited VRAM usage, as it's not necessary for Notes to be colored (for now)
+[ ] Make a video talking a bit about what MasterPlan is and why it's useful. It helps you think, it helps you create links between tasks, it allows you to complete things that need to be done, and it helps you to say no. This video could be accessible from the Steam forums, or from the MasterPlan Settings (?) menu.
+[ ] Note: If you save a project in a newer version of MasterPlan, loading it in an older version should say something like "Are you sure? It might not work correctly."
+[ ] Optimize map image serialization by using bitwise operations and storing the array as a bitwise number
+[ ] Add image filtering option, as you may not want it to be pixelly
+[ ] Label each quadrant of a board?
+[ ] Note color change
+[ ] Show Map or Whiteboard size somewhere
+[ ] List Tasks completed from those selected
+[ ] Hide grid at far zoom levels
+[ ] Textbox dies when there's a ton of text.
+[ ] Add fill tool to Map Task.
+[ ] Add diagonal corners to Map Task.
+[ ] Make some kind of indication (maybe a little chain link icon) indicating a Task is linked to another, like a Timer or by a Line?
+[ ] Logs should be created on each successful start, rather than putting them all into log.txt
+[ ] Add option for log display time - this and the volume could be a new Slider GUI element.
+[ ] Task Neighbors could contain loops sometimes; this should be resolved when establishing the neighbors.
+[ ] Consolidate the Tasks that consist of Contents and Data Structures (somehow)
+[ ] Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
+[ ] Lines are drawing underneath Tasks (this could be configurable)
+[ ] Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
+[ ] Draw text to a buffer, draw the buffer to the screen; might be considerably faster than drawing text constantly. Seems like 72% of non-sleep execution time might be spent drawing.
+[ ] Tweakable zoom levels, rather than being hard-coded?
+[ ] Use Lines to connect Tasks for SubTask counting
+[ ] Fullscreen acts weird if the window isn't maximized first, so that might be a good thing to try to do? Set the window size and then fullscreen it?
+[ ] Investigate pasting images from the clipboard?
+[ ] Panels should be resizeable
+[ ] MP4 video support?
+[ ] A mobile version of MasterPlan, where you can take pictures or record video and have it copy over to your plan somehow (gasp!).
+[ ] Re-make Dino Riki? Aw Nuts!? 7DRL on 3/4/21?!?!?!
+[ ] Time estimations per Task - these can be set as a project-level default (i.e. something like 30 minutes per-Task), and then further specified (maybe specifying something like 3 hours for a specific Task, as an example).
+[ ] Add manual typing entry for month / day / year for deadlines / Timer Dates
+    Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
+[ ] Optimize Table text size checks
+[ ] Table: Option to make coumn and row names invisible (so that you could for example put images there).
+[ ] Table: Add button to turn a column into a row, or vice-versa
+[ ] Add tags of some description
+[ ] Add icons for task types in Task Edit Panel
+[ ] Fix up horizontal alignments in Panels - rather than doing this via RowItem.Weight or HorizontalAlignment, it would be good to have a manual spacing value that indicates how far out from an item another is (how much space is between one item and the following one)
+[ ] Changing font size shouldn't take so long - This could be simplified by making a selection for how many glyphs to load
+[ ] Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
+[ ] Deadline write-up by BiRD: https://discordapp.com/channels/339550825154347008/758009278756946040/810779087449751593
+The summary is:
+    - Use timers for timing and calendars for deadlines. Calendars are:
+        - Visually focused (no extraneous information)
+        - Intuitive (click a day = set the day)
+        - Efficient (fewer actions to do the same thing)
+        - Improvable (as a result of more available screen space)
+        - Reusable (calendars can be used for more than just setting deadlines)
+        - Fun (not sure what to write for this one)
+[ ] Icon beside board name when due, deadlined, or late
+[ ] Timers should be able to retroactively trigger if a set time was passed (somehow)
+[ ] Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
+[ ] Mini-map of some description?
+[ ] Clickable images - when you click them, they go to a location.
+[ ] Replace Board.UndoHistory with a project-level one
+[ ] Go over the tutorial to explain things a bit more; right click to open the menu should be mentioned right at launch
+[ ] Undo + Redo for textboxes
+[ ] Add ability to delete shortcuts?
+[ ] Vertical alignment isn't really centered for textboxes?
+[ ] Hide status bar elements except for the search bar if there isn't enough room horizontally
+[ ] Moveable status bar
+[ ] Searchable shortcuts
+[ ] Consolidate image and sounds into one task type?
+[ ] Review libraries to see if the licenses are compatible with my own chosen license
+[ ] Graph view that allows you to see your plan as a visual "node graph"? 
     See Nuclino: https://www.nuclino.com - It says it allows you to work in Boards and Graphs, 
     so maybe the Nodes on the Graphs should be clickable to reveal more information / reveal 
     the Task on the Board
-- Smooth out panel scrolling according to texture coords?       
-- Consolidate logging messages so messages that are the same get "compounded". For example:
+[ ] Smooth out panel scrolling according to texture coords?       
+[ ] Consolidate logging messages so messages that are the same get "compounded". For example:
 
 00:00:00: "Selected 1 Tasks."
 00:00:00: "Selected 1 Tasks."
@@ -171,30 +127,30 @@ becomes
 
 00:00:00: "Selected 2 Tasks."
 
-- Improve search functionalities - present a list of Tasks that fulfill a set of 
-- Add image backgrounds instead of the grid.
-- Add other unicode characters to default font (←№⎢¡°ᚃ√⇒∄±∑∌≠αβχδεφγηιϑΧΔΦΓ)
-- Whiteboard resolution could be increased
-- Replace Board-level Undo with Project-level Undo, focus on Tasks when undoing or redoing
-- Clicking in the window when the window wasn't focused should be discarded
-- Display size for Tasks should be dependant on maximum theoretical feasible size (for example, a Progression Task should have a maximum size that 
-includes a current number and maximum number of 999 each, so that they don't change size when incrementing or decrementing)
-- Password protection
-- Copying tasks between Projects
-- Rotating and mirroring images
-- Optional compression of project JSON (it doesn't need to be readable if compressed) - a quick idea while still keeping it in plain text JSON format is to reduce the length of the strings I use to refer to Task elements, and turn off pretty printing before serialization to remove excess tab and return characters.
-- GIF Playback speed should be customizeable?
-- GIF step next frame / prev. frame
-- Make it so that it's easier to insert Tasks (i.e. dragging tasks into a list of them will automatically space them to make room)
-- Review ImmediateButton; lots of functions for what is effectively just one "thing".
-- Custom Justification for Task text
-- Custom prefix
-- Custom numbering system enabling for tasks
-- Option to indent Text with icons off
-- Resizeable Notes / Collapsible Notes
-- Background hint text for text entry (i.e. "Enter date in MM/DD/YYYY Format" behind something that allows you to enter a date)
-- Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
-- Hover over Tasks to display more information about them (full task, creation date, completion date, etc).
+[ ] Improve search functionalities - present a list of Tasks that fulfill a set of 
+[ ] Add image backgrounds instead of the grid.
+[ ] Add other unicode characters to default font (←№⎢¡°ᚃ√⇒∄±∑∌≠αβχδεφγηιϑΧΔΦΓ)
+[ ] Whiteboard resolution could be increased
+[ ] Replace Board-level Undo with Project-level Undo, focus on Tasks when undoing or redoing
+[ ] Clicking in the window when the window wasn't focused should be discarded
+[ ] Display size for Tasks should be dependant on maximum theoretical feasible size (for example, a Progression Task should have a maximum size that 
+  includes a current number and maximum number of 999 each, so that they don't change size when incrementing or decrementing)
+[ ] Password protection
+[ ] Copying tasks between Projects
+[ ] Rotating and mirroring images
+[ ] Optional compression of project JSON (it doesn't need to be readable if compressed) - a quick idea while still keeping it in plain text JSON format is to reduce the length of the strings I use to refer to Task elements, and turn off pretty printing before serialization to remove excess tab and return characters.
+[ ] GIF Playback speed should be customizeable?
+[ ] GIF step next frame / prev. frame
+[ ] Make it so that it's easier to insert Tasks (i.e. dragging tasks into a list of them will automatically space them to make room)
+[ ] Review ImmediateButton; lots of functions for what is effectively just one "thing".
+[ ] Custom Justification for Task text
+[ ] Custom prefix
+[ ] Custom numbering system enabling for tasks
+[ ] Option to indent Text with icons off
+[ ] Resizeable Notes / Collapsible Notes
+[ ] Background hint text for text entry (i.e. "Enter date in MM/DD/YYYY Format" behind something that allows you to enter a date)
+[ ] Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
+[ ] Hover over Tasks to display more information about them (full task, creation date, completion date, etc).
 
 Long-term Goals
 
