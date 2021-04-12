@@ -330,6 +330,11 @@ func (c *CheckboxContents) Draw() {
 
 	DrawText(cp, txt)
 
+	if c.Task.PrefixText != "" {
+		prefixSize, _ := TextSize(c.Task.PrefixText+" ", false)
+		cp.X += prefixSize.X + 2
+	}
+
 	c.URLButtons.Draw(cp)
 
 	if txt != c.DisplayedText {
@@ -510,6 +515,11 @@ func (c *ProgressionContents) Draw() {
 	}
 
 	DrawText(cp, txt)
+
+	if c.Task.PrefixText != "" {
+		prefixSize, _ := TextSize(c.Task.PrefixText+" ", false)
+		cp.X += prefixSize.X + 2
+	}
 
 	c.URLButtons.Draw(cp)
 

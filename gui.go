@@ -2163,7 +2163,18 @@ func (numberSpinner *NumberSpinner) Number() int {
 }
 
 func (numberSpinner *NumberSpinner) SetNumber(number int) {
-	numberSpinner.Textbox.SetText(strconv.Itoa(number))
+
+	if number < numberSpinner.Minimum {
+		number = numberSpinner.Minimum
+	}
+
+	if number > numberSpinner.Maximum {
+		number = numberSpinner.Maximum
+	}
+
+	num := strconv.Itoa(number)
+
+	numberSpinner.Textbox.SetText(num)
 }
 
 func (numberSpinner *NumberSpinner) Clone() *NumberSpinner {
