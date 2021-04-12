@@ -145,6 +145,7 @@ type Project struct {
 	AutoReloadResources       *Checkbox
 	CustomFontPath            *Textbox
 	FontSize                  *NumberSpinner
+	FontBaseline              *NumberSpinner
 	GUIFontSizeMultiplier     *ButtonGroup
 	DisableAboutDialogOnStart *Checkbox
 	DownloadTimeout           *NumberSpinner
@@ -269,6 +270,7 @@ func NewProject() *Project {
 		CustomFontPath:              NewTextbox(0, 0, 400, 32),
 		CustomFontPathBrowseButton:  NewButton(0, 0, 128, 24, "Browse", false),
 		FontSize:                    NewNumberSpinner(0, 0, 128, 40),
+		FontBaseline:                NewNumberSpinner(0, 0, 128, 40),
 		GUIFontSizeMultiplier:       NewButtonGroup(0, 0, 850, 32, 1, GUI_FONT_SIZE_100, GUI_FONT_SIZE_150, GUI_FONT_SIZE_200, GUI_FONT_SIZE_250, GUI_FONT_SIZE_300, GUI_FONT_SIZE_350, GUI_FONT_SIZE_400),
 		TableColumnsRotatedVertical: NewCheckbox(0, 0, 32, 32),
 		TableColumnVerticalSpacing:  NewNumberSpinner(0, 0, 128, 40),
@@ -596,6 +598,10 @@ func NewProject() *Project {
 	row = column.Row()
 	row.Item(NewLabel("Text size: "), SETTINGS_GLOBAL)
 	row.Item(project.FontSize, SETTINGS_GLOBAL)
+
+	row = column.Row()
+	row.Item(NewLabel("Font Baseline: "), SETTINGS_GLOBAL)
+	row.Item(project.FontBaseline, SETTINGS_GLOBAL)
 
 	row = column.Row()
 	row.Item(NewLabel("GUI text size multiplier percentage: "), SETTINGS_GLOBAL)
@@ -2406,12 +2412,14 @@ func (project *Project) GUI() {
 			if project.DefaultFontButton.Clicked {
 				project.CustomFontPath.SetText("")
 				project.FontSize.SetNumber(15)
+				project.FontBaseline.SetNumber(0)
 				project.GUIFontSizeMultiplier.SetChoice(GUI_FONT_SIZE_200)
 			}
 
 			programSettings.ScrollwheelSensitivity = project.ScrollwheelSensitivity.Number()
 			programSettings.SmoothPanning = project.SmoothPanning.Checked
 			programSettings.FontSize = project.FontSize.Number()
+			programSettings.FontBaseline = project.FontBaseline.Number()
 			programSettings.GUIFontSizeMultiplier = project.GUIFontSizeMultiplier.ChoiceAsString()
 			programSettings.DrawWindowBorder = project.DrawWindowBorder.Checked
 			programSettings.CustomFontPath = project.CustomFontPath.Text()
@@ -2490,7 +2498,7 @@ func (project *Project) GUI() {
 				ReloadFonts()
 			}
 
-			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed || project.ColorThemeSpinner.Changed || project.DefaultFontButton.Clicked {
+			if project.GUIFontSizeMultiplier.Changed || project.FontSize.Changed || project.CustomFontPath.Changed || project.ColorThemeSpinner.Changed || project.DefaultFontButton.Clicked || project.FontBaseline.Changed {
 
 				project.CurrentBoard().SendMessage(MessageSettingsChange, nil)
 
@@ -3075,6 +3083,7 @@ func (project *Project) OpenSettings() {
 	project.TransparentBackground.Checked = programSettings.TransparentBackground
 	project.CustomFontPath.SetText(programSettings.CustomFontPath)
 	project.FontSize.SetNumber(programSettings.FontSize)
+	project.FontBaseline.SetNumber(programSettings.FontBaseline)
 	project.GUIFontSizeMultiplier.SetChoice(programSettings.GUIFontSizeMultiplier)
 	project.ColorThemeSpinner.SetChoice(programSettings.Theme)
 	project.DrawWindowBorder.Checked = programSettings.DrawWindowBorder

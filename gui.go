@@ -3175,7 +3175,7 @@ func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bo
 
 	height, lineCount := TextHeight(text, guiMode)
 
-	pos.Y += fontBaseline
+	pos.Y -= float32(programSettings.FontBaseline)
 
 	// This is done to make the text not draw "weird" and corrupted if drawn to a texture; not really sure why it works.
 	pos.X += 0.1

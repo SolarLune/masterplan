@@ -35,6 +35,7 @@ type ProgramSettings struct {
 	SmoothPanning             bool
 	CustomFontPath            string
 	FontSize                  int
+	FontBaseline              int
 	GUIFontSizeMultiplier     string
 	Keybindings               *Keybindings
 	Theme                     string

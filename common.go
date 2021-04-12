@@ -221,7 +221,6 @@ func GUIFontSize() float32 {
 
 var font rl.Font
 var loadedFontPath = ""
-var fontBaseline = float32(0)
 var spacing = float32(1)
 var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
 
@@ -246,36 +245,10 @@ func ReloadFonts() {
 		loadedFontPath = fontPath
 
 		// It should be possible to get the baseline of a font from the font data in the font struct returned by rl.LoadFontEx(), but from my investigation, this either isn't provided or it's not correct with the current incarnation
-		// of raylib-go. So, my hacky workaround is to render a symbol that should definitely be on the baseline (a ".") to an image, see how far down into the image that is, and use that for the baseline calculation.
+		// of raylib-go. So, my hacky workaround WAS to render a symbol that should definitely be on the baseline (a ".") to an image, see how far down into the image that is, and use that for the baseline calculation.
 		// Yes, this is ridiculous, but fortunately this should add very little to the wait time.
 
-		img := rl.GenImageColor(32, 32, rl.Color{0, 0, 0, 0})
-		pos := rl.Vector2{}
-		rl.ImageDrawTextEx(img, pos, font, ".", 30, spacing, rl.Black)
-		// rl.ExportImage(*img, "testimg.png") // Just for debugging and ensuring the offset found is accurate.
-
-		x, y := img.Width, img.Height
-
-		imageData := rl.GetImageData(img)
-
-		for i := len(imageData) - 1; i > 0; i-- {
-
-			if x < 0 {
-				x += img.Width
-				y--
-			}
-
-			if imageData[i].A >= 255 {
-				break
-			}
-
-			x--
-
-		}
-
-		fontBaseline = float32(24-y) - 2
-
-		rl.UnloadImage(img)
+		// I no longer do this because it seems like it's easier and simpler for the user to specify baseline offsets.
 
 	}
 
