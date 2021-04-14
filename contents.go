@@ -64,8 +64,7 @@ func (tbg *taskBGProgress) Draw() {
 
 func applyGlow(task *Task, color rl.Color) rl.Color {
 
-	// if (task.Completable() && ((task.Complete() && task.Board.Project.CompleteTasksGlow.Checked) || (!task.Complete() && task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
-	if (task.IsCompletable() && ((task.Board.Project.CompleteTasksGlow.Checked) || (task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
+	if (task.Completable() && ((task.IsComplete() && task.Board.Project.CompleteTasksGlow.Checked) || (!task.IsComplete() && task.Board.Project.IncompleteTasksGlow.Checked))) || (task.Selected && task.Board.Project.SelectedTasksGlow.Checked) {
 
 		glowVariance := float64(20)
 		if task.Selected {
