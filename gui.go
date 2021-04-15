@@ -3161,6 +3161,30 @@ func TextSize(text string, guiText bool) (rl.Vector2, int) {
 
 }
 
+func DrawTextColoredScale(pos rl.Vector2, fontColor rl.Color, text string, scale float32, variables ...interface{}) {
+
+	if len(variables) > 0 {
+		text = fmt.Sprintf(text, variables...)
+	}
+
+	height, lineCount := TextHeight(text, false)
+
+	height *= scale
+
+	pos.Y -= float32(programSettings.FontBaseline) * scale
+
+	// This is done to make the text not draw "weird" and corrupted if drawn to a texture; not really sure why it works.
+	// pos.X += 0.1
+	// pos.Y += 0.1
+
+	// There's a huge spacing between lines sometimes, so we manually render the lines ourselves.
+	for _, line := range strings.Split(text, "\n") {
+		rl.DrawTextEx(font, line, pos, float32(programSettings.FontSize)*scale, spacing, fontColor)
+		pos.Y += float32(int32(height / float32(lineCount)))
+	}
+
+}
+
 func DrawTextColored(pos rl.Vector2, fontColor rl.Color, text string, guiMode bool, variables ...interface{}) {
 
 	if len(variables) > 0 {
@@ -3207,6 +3231,7 @@ type TextRenderer struct {
 	RenderTexture rl.RenderTexture2D
 	Size          rl.Vector2
 	Valid         bool
+	Upscale       float32
 }
 
 func NewTextRenderer() *TextRenderer {
@@ -3214,7 +3239,8 @@ func NewTextRenderer() *TextRenderer {
 	return &TextRenderer{
 		// 256x256 seems like a sensible default
 		// RenderTexture: rl.LoadRenderTexture(128, 128),
-		Valid: true,
+		Valid:   true,
+		Upscale: 2,
 	}
 
 }
@@ -3235,8 +3261,8 @@ func (tr *TextRenderer) RecreateTexture() {
 
 	tr.Size, _ = TextSize(tr.text, false)
 
-	tx := int32(ClosestPowerOfTwo(tr.Size.X))
-	ty := int32(ClosestPowerOfTwo(tr.Size.Y))
+	tx := int32(ClosestPowerOfTwo(tr.Size.X * tr.Upscale))
+	ty := int32(ClosestPowerOfTwo(tr.Size.Y * tr.Upscale))
 
 	if tr.RenderTexture.Texture.Width < tx || tr.RenderTexture.Texture.Height < ty {
 		tr.RenderTexture = rl.LoadRenderTexture(tx, ty)
@@ -3248,7 +3274,7 @@ func (tr *TextRenderer) RecreateTexture() {
 
 	rl.ClearBackground(rl.Color{})
 
-	DrawTextColored(rl.Vector2{}, rl.White, tr.text, false)
+	DrawTextColoredScale(rl.Vector2{}, rl.White, tr.text, tr.Upscale)
 
 	rl.EndTextureMode()
 
@@ -3264,6 +3290,8 @@ func (tr *TextRenderer) Draw(pos rl.Vector2) {
 		dst := src
 		dst.X = pos.X
 		dst.Y = pos.Y
+		dst.Width /= tr.Upscale
+		dst.Height /= tr.Upscale
 		src.Height *= -1
 
 		rl.DrawTexturePro(tr.RenderTexture.Texture, src, dst, rl.Vector2{}, 0, getThemeColor(GUI_FONT_COLOR))

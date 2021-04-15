@@ -240,6 +240,8 @@ func ReloadFonts() {
 
 		// The Basic Multilingual Plane, or BMP, contains characters for almost all modern languages, and consistutes the first 65,472 code points of the first 163 Unicode blocks.
 		// See: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
+
+		// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
 		font = rl.LoadFontEx(fontPath, int32(30), nil, 65472)
 
 		loadedFontPath = fontPath
