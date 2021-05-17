@@ -9,11 +9,57 @@ RESOLVED
 
 TODO
 
-[ ] Lists to copy into MasterPlan can start with "-"
+[ ] v0.8 Refactor
+  - Rounded, cleaner, more visually appealing and bright, energetic design. No outlines (maybe even no anti-aliasing?)
+  - Cards
+    - Cards serve the same purpose as Tasks, but are slightly more advanced (and "Cards" as a name are more interesting and correct when compared to "Tasks", considering not every Task is completable)
+    - Cards can be attached to other Cards visually, as well as by "pinning" them, making it possible to move a Card by moving its parent
+    - Cards can be freely resized
+      - Resized cards should go at a minimum size to comfortably house all non-customizeable elements on the Card
+    - Cards can be edited largely right from the overview screen, without needing to open a separate Panel.
+      - The maximum value for Progression Cards can be modified by simply double-clicking on the relevant text box.
+    - Cards can be linked to show relationships by holding a key (Alt, for example), and clicking between Cards. These are explicit links; implicit links are still created by means of neighboring, as in MasterPlan v0.7.2.
+      - These lines should be "bendable" in a customizeable way.
+    - Any text on Cards fade out if the Card isn't large enough to display the text element (a title, for example) fully
+    - Text is parsed for URLs or program / OS file or program links
+    - Cards are now at least 32x32 (test with higher-resolution fonts; if this isn't enough, then bump it up)
+  - Completable Tasks can have time estimations tied to them.
+  - Note Cards
+    - Note Cards can contain stacks of information in a single Note.
+  - Sound Cards
+    - Add Seek bar
+  - Image / GIF Cards
+    - Freely rotatable by clicking and dragging outside of the corners
+  - Line Tasks no longer exist (for now)
+  - Copying Cards should now be global, rather than being localized to a single Project; maybe even better, it copies Cards straight to the OS buffer, which can be doubly-used for serialization and allows us to easily copy Cards between Projects, even with two Projects open at the same time
+  - Top menu, for file / project settings, task editing, project information
+    - Project information: Number of Tasks, number completed,
+  - Boards no longer exist; they are superceded by a Folder / Window / Board Card, which allows you to tie existing Cards to some mental and spatial context (a location on your project, as an example).
+  - Custom shortcuts to, say, focus on a specific Card?
+  - Paste images?
+  - Themes - Maybe just straight-up replace them with images? It'd be kind of insane and futuristic to simply make it so that you can edit Themes by literally editing images so you can actually see what they look like?
+  - Add ability to rebind selection + panning from being hard-coded to left and right-click, respectively.
+  - Table Cards
+    - Click on a + to add a new Row or Column,
+    - Drag a row or column to reorder. Drag away from a Table to destroy that Row or Column.
+    - Add numbers (?) for tables to allow for adding together the sums for comparison purposes - maybe an ability to switch it from Checkbox to Numbered Tables.
+  - Sort Cards alphabetically? (somehow)
+  - More zoom gradation? Might be doable if the cards are rendered at a high-enough resolution.
+
+TTF font loading efficiently : foreign characters shouldn’t “cost” extra
+Font base size “knowledge”
+Text drawing efficiently
+IME support (entry of foreign characters)
+Ideally, different locale support (detection of the name of a key from a different locale, so the Q key becomes the A key on a FR keyboard locale)
+
+Dialog editor of some description??? Seems like it could be sick to have some kind of system that would allow you to 
+
+[ ] Flow-charts?
+[ ] Graphs?
+[ ] Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
 [ ] Tab focusing (pressing tab focuses on different, consecutive elements in a panel)
 [ ] Downloading images / sounds should be able to be saved to a local directory per-project (?)
 [ ] Project.Modified is set directly after loading a project for some reason
-[ ] Multiple log files for each time you run the program?
 [ ] Pasting large text files don't work (because it's rendering it to a texture; that might be too slow / run out of texture space)
 [ ] Use URL Parsing to allow parsing text to point to other Tasks / Boards (boards are just Tasks on other Boards), or Projects so you can jump there with a click
 [ ] Similarly, extend parsing to parse text to become clickable links to be able to open files or directories
@@ -35,7 +81,6 @@ TODO
 [ ] Can't make shortcut on Mac?
 [ ] Building MasterPlan doesn't work sometimes?: https://github.com/SolarLune/masterplan/issues/39
 [ ] See about implementing a backend system, switching from Raylib to SDL for (HOPEFULLY!) more up-to-date fundamentals (render-to-texture, texture unloading, better font support, better IME support).
-[ ] Move Board.CopyBuffer outside to a global variable so that it's possible to copy and paste between projects
 [ ] Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines. Also, Zones could be collapsible, allowing you to hide Zones for simplicity and readability.
 [ ] Calendar Task, allowing you to put Tasks on specific days (see TreeSheets: http://strlen.com/treesheets/docs/screenshots.html)
     - This will probably necessitate a Calendar UI element as well.

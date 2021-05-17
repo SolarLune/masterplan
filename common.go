@@ -5,66 +5,79 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
-	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/veandco/go-sdl2/img"
+	"github.com/veandco/go-sdl2/sdl"
+	"github.com/veandco/go-sdl2/ttf"
 )
 
-// We have a global mouse offset specifically for panels that render GUI elements
-// to a texture and then draw the texture elsewhere.
-var globalMouseOffset = rl.Vector2{}
+// import (
+// 	"math"
+// 	"os"
+// 	"path/filepath"
+// 	"sort"
+// 	"strconv"
+// 	"strings"
+// 	"time"
 
-func GetMousePosition() rl.Vector2 {
+// 	rl "github.com/gen2brain/raylib-go/raylib"
+// )
 
-	pos := rl.GetMousePosition()
+// // We have a global mouse offset specifically for panels that render GUI elements
+// // to a texture and then draw the texture elsewhere.
+// var globalMouseOffset = rl.Vector2{}
 
-	pos.X = float32(math.Round(float64(pos.X)))
-	pos.Y = float32(math.Round(float64(pos.Y)))
+// func GetMousePosition() rl.Vector2 {
 
-	pos = rl.Vector2Subtract(pos, globalMouseOffset)
+// 	pos := rl.GetMousePosition()
 
-	return pos
+// 	pos.X = float32(math.Round(float64(pos.X)))
+// 	pos.Y = float32(math.Round(float64(pos.Y)))
 
-}
+// 	pos = rl.Vector2Subtract(pos, globalMouseOffset)
 
-func GetWorldMousePosition() rl.Vector2 {
+// 	return pos
 
-	pos := camera.Target
+// }
 
-	mousePos := GetMousePosition()
-	// mousePos.X -= screenWidth / 2
-	// mousePos.Y -= screenHeight / 2
+// func GetWorldMousePosition() rl.Vector2 {
 
-	mousePos.X -= float32(rl.GetScreenWidth() / 2)
-	mousePos.Y -= float32(rl.GetScreenHeight() / 2)
+// 	pos := camera.Target
 
-	mousePos.X /= camera.Zoom
-	mousePos.Y /= camera.Zoom
+// 	mousePos := GetMousePosition()
+// 	// mousePos.X -= screenWidth / 2
+// 	// mousePos.Y -= screenHeight / 2
 
-	pos.X += mousePos.X
-	pos.Y += mousePos.Y
+// 	mousePos.X -= float32(rl.GetScreenWidth() / 2)
+// 	mousePos.Y -= float32(rl.GetScreenHeight() / 2)
 
-	return pos
+// 	mousePos.X /= camera.Zoom
+// 	mousePos.Y /= camera.Zoom
 
-}
+// 	pos.X += mousePos.X
+// 	pos.Y += mousePos.Y
 
-var PrevMousePosition rl.Vector2 = rl.Vector2{}
+// 	return pos
 
-func GetMouseDelta() rl.Vector2 {
-	vec := rl.Vector2Subtract(GetMousePosition(), PrevMousePosition)
-	vec = rl.Vector2Scale(vec, 1/camera.Zoom)
-	return vec
-}
+// }
 
-func LocalPath(folders ...string) string {
+// var PrevMousePosition rl.Vector2 = rl.Vector2{}
+
+// func GetMouseDelta() rl.Vector2 {
+// 	vec := rl.Vector2Subtract(GetMousePosition(), PrevMousePosition)
+// 	vec = rl.Vector2Scale(vec, 1/camera.Zoom)
+// 	return vec
+// }
+
+func LocalPath(localPath string) string {
 
 	// Running apps from Finder in MacOS makes the working directory the home directory, which is nice, because
 	// now I have to make this function to do what should be done anyway and give me a relative path starting from
 	// the executable so that I can load assets from the assets directory. :,)
 
-	return filepath.Join(WorkingDirectory(), filepath.Join(folders...))
+	return filepath.Join(WorkingDirectory(), filepath.FromSlash(localPath))
 
 }
 
@@ -91,192 +104,224 @@ func FileExists(filepath string) bool {
 	return true
 }
 
-var mouseInputs = map[int32]int{}
-var hiddenMouseInputs = map[int32]bool{}
+type Point struct {
+	X, Y float32
+}
 
-func handleMouseInputs() {
+func (point Point) Inside(rect *sdl.FRect) bool {
+	return point.X >= float32(rect.X) && point.X <= float32(rect.X+rect.W) && point.Y >= float32(rect.Y) && point.Y <= float32(rect.Y+rect.H)
+}
 
-	inputs := []int32{
-		rl.MouseLeftButton,
-		rl.MouseMiddleButton,
-		rl.MouseRightButton,
+func (point Point) Sub(other Point) Point {
+	return Point{point.X - other.X, point.Y - other.Y}
+}
+
+func (point Point) Add(other Point) Point {
+	return Point{point.X + other.X, point.Y + other.Y}
+}
+
+func (point Point) Mult(factor float32) Point {
+	return Point{point.X * factor, point.Y * factor}
+}
+
+func (point Point) Equals(other Point) bool {
+	return math.Abs(float64(point.X-other.X)) < 0.1 && math.Abs(float64(point.Y-other.Y)) < 0.1
+}
+
+func ClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
+	if worldSpace {
+		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.WorldPosition().Inside(rect)
+	}
+	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.Position.Inside(rect)
+}
+
+func ClickedOutRect(rect *sdl.FRect, worldSpace bool) bool {
+	if worldSpace {
+		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.WorldPosition().Inside(rect)
+	}
+	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.Position.Inside(rect)
+}
+
+type Image struct {
+	Size    Point
+	Texture *sdl.Texture
+}
+
+func TileTexture(srcTexture Image, srcRect *sdl.Rect, w, h int32) *Image {
+
+	newTex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, w, h)
+
+	newTex.SetBlendMode(sdl.BLENDMODE_BLEND)
+	gridColor := getThemeColor(GUIGridColor)
+	newTex.SetColorMod(gridColor.R, gridColor.G, gridColor.B)
+	newTex.SetAlphaMod(gridColor.A)
+
+	if err != nil {
+		panic(err)
 	}
 
-	for _, button := range inputs {
+	prevTarget := globals.Renderer.GetRenderTarget()
 
-		v, exists := mouseInputs[button]
-		if !exists {
-			v = 0
+	globals.Renderer.SetRenderTarget(newTex)
+
+	dst := &sdl.Rect{0, 0, srcRect.W, srcRect.H}
+
+	for y := int32(0); y < h; y += srcRect.H {
+		for x := int32(0); x < w; x += srcRect.W {
+			dst.X = x
+			dst.Y = y
+			globals.Renderer.Copy(srcTexture.Texture, srcRect, dst)
 		}
+	}
 
-		if rl.IsMouseButtonPressed(button) && v == 0 {
-			mouseInputs[button] = 1
-		}
+	globals.Renderer.SetRenderTarget(prevTarget)
 
-		if rl.IsMouseButtonDown(button) && v == 1 {
-			mouseInputs[button] = 2
-		}
-
-		if rl.IsMouseButtonReleased(button) && v == 2 {
-			mouseInputs[button] = 3
-		} else if !rl.IsMouseButtonDown(button) {
-			mouseInputs[button] = 0
-		}
-
+	return &Image{
+		Size:    Point{float32(w), float32(h)},
+		Texture: newTex,
 	}
 
 }
 
-func MousePressed(button int32) bool {
-	if hiddenMouseInputs[button] {
-		return false
-	}
-	return mouseInputs[button] == 1
-}
+// func IsColorLight(color rl.Color) bool {
+// 	return color.R > 128 || color.G > 128 || color.B > 128
+// }
 
-func MouseDown(button int32) bool {
-	if hiddenMouseInputs[button] {
-		return false
-	}
-	return mouseInputs[button] == 2
-}
+// func ColorAdd(color rl.Color, value int32) rl.Color {
 
-func MouseReleased(button int32) bool {
-	if hiddenMouseInputs[button] {
-		return false
-	}
-	return mouseInputs[button] == 3
-}
+// 	v := uint8(math.Abs(float64(value)))
 
-func ConsumeMouseInput(button int32) {
-	mouseInputs[button] = 0
-}
+// 	if value > 0 {
 
-func HideMouseInput(button int32) {
-	hiddenMouseInputs[button] = true
-}
+// 		if color.R < 255-v {
+// 			color.R += v
+// 		} else {
+// 			color.R = 255
+// 		}
 
-func UnhideMouseInput(button int32) {
-	hiddenMouseInputs[button] = false
-}
+// 		if color.G < 255-v {
+// 			color.G += v
+// 		} else {
+// 			color.G = 255
+// 		}
 
-func IsColorLight(color rl.Color) bool {
-	return color.R > 128 || color.G > 128 || color.B > 128
-}
+// 		if color.B < 255-v {
+// 			color.B += v
+// 		} else {
+// 			color.B = 255
+// 		}
 
-func ColorAdd(color rl.Color, value int32) rl.Color {
+// 	} else {
 
-	v := uint8(math.Abs(float64(value)))
+// 		if color.R > v {
+// 			color.R -= v
+// 		} else {
+// 			color.R = 0
+// 		}
 
-	if value > 0 {
+// 		if color.G > v {
+// 			color.G -= v
+// 		} else {
+// 			color.G = 0
+// 		}
 
-		if color.R < 255-v {
-			color.R += v
-		} else {
-			color.R = 255
-		}
+// 		if color.B > v {
+// 			color.B -= v
+// 		} else {
+// 			color.B = 0
+// 		}
 
-		if color.G < 255-v {
-			color.G += v
-		} else {
-			color.G = 255
-		}
+// 	}
 
-		if color.B < 255-v {
-			color.B += v
-		} else {
-			color.B = 255
-		}
+// 	return color
+// }
 
-	} else {
-
-		if color.R > v {
-			color.R -= v
-		} else {
-			color.R = 0
-		}
-
-		if color.G > v {
-			color.G -= v
-		} else {
-			color.G = 0
-		}
-
-		if color.B > v {
-			color.B -= v
-		} else {
-			color.B = 0
-		}
-
-	}
-
-	return color
-}
-
-func GUIFontSize() float32 {
-	guiFontSizeString := strings.Split(programSettings.GUIFontSizeMultiplier, "%")[0]
-	i, _ := strconv.Atoi(guiFontSizeString)
-	return float32(programSettings.FontSize) * (float32(i) / 100)
-}
-
-var font rl.Font
-var loadedFontPath = ""
-var spacing = float32(1)
-var lineSpacing = float32(1) // This is assuming font size is the height, which it is for my font
+// func GUIFontSize() float32 {
+// 	guiFontSizeString := strings.Split(programSettings.GUIFontSizeMultiplier, "%")[0]
+// 	i, _ := strconv.Atoi(guiFontSizeString)
+// 	return float32(programSettings.FontSize) * (float32(i) / 100)
+// }
 
 func ReloadFonts() {
 
-	fontPath := LocalPath("assets", "excel.ttf")
+	fontPath := LocalPath("assets/excel.ttf")
 
-	if programSettings.CustomFontPath != "" && FileExists(programSettings.CustomFontPath) {
-		fontPath = programSettings.CustomFontPath
+	if globals.ProgramSettings.CustomFontPath != "" && FileExists(globals.ProgramSettings.CustomFontPath) {
+		fontPath = globals.ProgramSettings.CustomFontPath
 	}
 
-	if loadedFontPath != fontPath {
-
-		if font.BaseSize > 0 {
-			rl.UnloadFont(font)
-		}
+	if globals.LoadedFontPath != fontPath {
 
 		// The Basic Multilingual Plane, or BMP, contains characters for almost all modern languages, and consistutes the first 65,472 code points of the first 163 Unicode blocks.
 		// See: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
 
 		// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
-		font = rl.LoadFontEx(fontPath, int32(30), nil, 65472)
 
-		loadedFontPath = fontPath
+		loadedFont, err := ttf.OpenFont(fontPath, globals.ProgramSettings.FontSize)
 
-		// It should be possible to get the baseline of a font from the font data in the font struct returned by rl.LoadFontEx(), but from my investigation, this either isn't provided or it's not correct with the current incarnation
-		// of raylib-go. So, my hacky workaround WAS to render a symbol that should definitely be on the baseline (a ".") to an image, see how far down into the image that is, and use that for the baseline calculation.
-		// Yes, this is ridiculous, but fortunately this should add very little to the wait time.
+		if err != nil {
+			panic(err)
+		}
 
-		// I no longer do this because it seems like it's easier and simpler for the user to specify baseline offsets.
+		globals.Font = loadedFont
+
+		globals.LoadedFontPath = fontPath
 
 	}
 
 }
 
-func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {
+func LoadCursors() {
 
-	r.X -= thickness
-	r.Y -= thickness
-	r.Width += thickness * 2
-	r.Height += thickness * 2
-	rl.DrawRectangleRec(r, color)
+	createCursor := func(srcX, srcY int32) *sdl.Cursor {
 
-}
+		cursorImg, err := img.Load(LocalPath("assets/gui.png"))
+		if err != nil {
+			panic(err)
+		}
 
-func ClosestPowerOfTwo(number float32) int32 {
+		cursorSurf, err := sdl.CreateRGBSurfaceWithFormat(0, 32, 32, 32, sdl.PIXELFORMAT_RGBA8888)
+		if err != nil {
+			panic(err)
+		}
 
-	o := int32(2)
+		cursorImg.SetBlendMode(sdl.BLENDMODE_BLEND)
+		cursorSurf.SetBlendMode(sdl.BLENDMODE_BLEND)
+		cursorImg.Blit(&sdl.Rect{srcX, srcY, 32, 32}, cursorSurf, nil)
 
-	for o < int32(number) {
-		o *= 2
+		return sdl.CreateColorCursor(cursorSurf, 0, 0)
+
 	}
 
-	return o
+	globals.Mouse.Cursors["normal"] = createCursor(448, 0)
+	globals.Mouse.Cursors["resize"] = createCursor(448, 32)
+	globals.Mouse.Cursors["text caret"] = createCursor(448, 64)
+
+	globals.Mouse.SetCursor("normal")
 
 }
+
+// func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {
+
+// 	r.X -= thickness
+// 	r.Y -= thickness
+// 	r.Width += thickness * 2
+// 	r.Height += thickness * 2
+// 	rl.DrawRectangleRec(r, color)
+
+// }
+
+// func ClosestPowerOfTwo(number float32) int32 {
+
+// 	o := int32(2)
+
+// 	for o < int32(number) {
+// 		o *= 2
+// 	}
+
+// 	return o
+
+// }
 
 // PermutateCaseForString returns a list of strings in which the case is fully permutated for each rune in each string (i.e. passing a text of "ttf" returns []string{"TTF", "TTf", "TtF", "Ttf", "tTF", "tTf", "ttF", "ttf"}).
 // The prefix string will be appended to the beginning of each string.
@@ -288,7 +333,7 @@ func PermutateCaseForString(text string, prefix string) []string {
 
 		i := 0
 
-		for true {
+		for {
 
 			iter := ""
 

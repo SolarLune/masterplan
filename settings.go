@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/adrg/xdg"
-	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/tidwall/gjson"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -17,6 +17,8 @@ const (
 
 type ProgramSettings struct {
 	RecentPlanList            []string
+	Theme                     string
+	GridVisible               *Checkbox
 	TargetFPS                 int
 	UnfocusedFPS              int
 	ScreenshotsPath           string
@@ -29,7 +31,7 @@ type ProgramSettings struct {
 	TransparentBackground     bool
 	BorderlessWindow          bool
 	PanToFocusOnZoom          bool
-	WindowPosition            rl.Rectangle
+	WindowPosition            sdl.Rect
 	SaveWindowPosition        bool
 	ScrollwheelSensitivity    int
 	SmoothPanning             bool
@@ -38,7 +40,6 @@ type ProgramSettings struct {
 	FontBaseline              int
 	GUIFontSizeMultiplier     string
 	Keybindings               *Keybindings
-	Theme                     string
 	DrawWindowBorder          bool
 	DownloadTimeout           int
 	AudioVolume               int
@@ -51,18 +52,19 @@ type ProgramSettings struct {
 func NewProgramSettings() ProgramSettings {
 
 	ps := ProgramSettings{
-		RecentPlanList:         []string{},
-		TargetFPS:              60,
-		UnfocusedFPS:           60,
-		WindowPosition:         rl.NewRectangle(-1, -1, 0, 0),
+		RecentPlanList: []string{},
+		TargetFPS:      60,
+		UnfocusedFPS:   60,
+		WindowPosition: sdl.Rect{-1, -1, 0, 0},
+		// GridVisible:            NewGUICheckbox(),
 		SaveWindowPosition:     true,
 		SmoothPanning:          true,
 		PanToFocusOnZoom:       true,
 		Keybindings:            NewKeybindings(),
-		FontSize:               15,
-		GUIFontSizeMultiplier:  GUI_FONT_SIZE_200,
+		FontSize:               30,
+		GUIFontSizeMultiplier:  GUIFontSize100,
 		ScrollwheelSensitivity: 1,
-		Theme:                  "Sunlight", // Default theme
+		Theme:                  "Sunshine", // Default theme
 		DownloadTimeout:        4,
 		AudioVolume:            80,
 		AudioSampleRate:        44100,
@@ -114,4 +116,20 @@ func (ps *ProgramSettings) Load() bool {
 
 }
 
-var programSettings = NewProgramSettings()
+type ProjectSettings struct {
+	// NumberToplevelTasks *Checkbox
+}
+
+func NewProjectSettings() *ProjectSettings {
+	return &ProjectSettings{
+		// NumberToplevelTasks: NewCheckbox(),
+	}
+}
+
+func (ps *ProjectSettings) Update() {
+	// ps.NumberToplevelTasks.Update()
+}
+
+func (ps *ProjectSettings) Draw() {
+	// ps.NumberToplevelTasks.Draw()
+}

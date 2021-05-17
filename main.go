@@ -5,26 +5,25 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/pprof"
-	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/blang/semver"
-	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/veandco/go-sdl2/img"
+	"github.com/veandco/go-sdl2/sdl"
+	"github.com/veandco/go-sdl2/ttf"
 )
 
 // Build-time variable
 var releaseMode = "false"
 var demoMode = "" // If set to something other than "", it's a demo
 
-var camera = rl.NewCamera2D(rl.Vector2{480, 270}, rl.Vector2{}, 0, 1)
-var currentProject *Project
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.7.2")
+var softwareVersion, _ = semver.Make("0.8.0")
 var takeScreenshot = false
 
 var windowTitle = "MasterPlan"
@@ -110,49 +109,99 @@ func main() {
 		}
 	}()
 
-	rl.SetTraceLog(rl.LogError)
+	globals.ProgramSettings = NewProgramSettings()
 
-	settingsLoaded := programSettings.Load()
+	// settingsLoaded := globals.ProgramSettings.Load()
 
-	windowFlags := byte(rl.FlagWindowResizable)
+	settingsLoaded := true
 
-	if programSettings.BorderlessWindow {
-		windowFlags += rl.FlagWindowUndecorated
-	}
-
-	if programSettings.TransparentBackground {
-		windowFlags += rl.FlagWindowTransparent
-	}
+	loadThemes()
 
 	if demoMode != "" {
 		demoMode = " " + demoMode
 	}
 
-	rl.SetConfigFlags(windowFlags)
+	// windowFlags := byte(rl.FlagWindowResizable)
 
-	// We initialize the window using just "MasterPlan" as the title because WM_CLASS is set from this on Linux
-	rl.InitWindow(960, 540, "MasterPlan")
+	// if programSettings.BorderlessWindow {
+	// 	windowFlags += rl.FlagWindowUndecorated
+	// }
 
-	rl.SetWindowIcon(*rl.LoadImage(LocalPath("assets", "window_icon.png")))
+	// if programSettings.TransparentBackground {
+	// 	windowFlags += rl.FlagWindowTransparent
+	// }
 
-	if programSettings.SaveWindowPosition && programSettings.WindowPosition.Width > 0 && programSettings.WindowPosition.Height > 0 {
-		rl.SetWindowPosition(int(programSettings.WindowPosition.X), int(programSettings.WindowPosition.Y))
-		rl.SetWindowSize(int(programSettings.WindowPosition.Width), int(programSettings.WindowPosition.Height))
+	// rl.SetConfigFlags(windowFlags)
+
+	// // We initialize the window using just "MasterPlan" as the title because WM_CLASS is set from this on Linux
+	// rl.InitWindow(960, 540, "MasterPlan")
+
+	// rl.SetWindowIcon(*rl.LoadImage(LocalPath("assets", "window_icon.png")))
+
+	// if programSettings.SaveWindowPosition && programSettings.WindowPosition.Width > 0 && programSettings.WindowPosition.Height > 0 {
+	// 	rl.SetWindowPosition(int(programSettings.WindowPosition.X), int(programSettings.WindowPosition.Y))
+	// 	rl.SetWindowSize(int(programSettings.WindowPosition.Width), int(programSettings.WindowPosition.Height))
+	// }
+
+	windowFlags := uint32(sdl.WINDOW_RESIZABLE)
+
+	x := int32(sdl.WINDOWPOS_UNDEFINED)
+	y := int32(sdl.WINDOWPOS_UNDEFINED)
+	w := int32(960)
+	h := int32(540)
+
+	if globals.ProgramSettings.BorderlessWindow {
+		windowFlags |= sdl.WINDOW_BORDERLESS
 	}
 
+	if err := ttf.Init(); err != nil {
+		panic(err)
+	}
+
+	// window, renderer, err := sdl.CreateWindowAndRenderer(w, h, windowFlags)
+	window, err := sdl.CreateWindow("MasterPlan", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, w, h, windowFlags)
+	if err != nil {
+		panic(err)
+	}
+
+	// Should default to hardware accelerators, if available
+	renderer, err := sdl.CreateRenderer(window, 0, 0)
+	if err != nil {
+		panic(err)
+	}
+
+	if globals.ProgramSettings.SaveWindowPosition && globals.ProgramSettings.WindowPosition.W > 0 && globals.ProgramSettings.WindowPosition.H > 0 {
+		x = int32(globals.ProgramSettings.WindowPosition.X)
+		y = int32(globals.ProgramSettings.WindowPosition.Y)
+		w = int32(globals.ProgramSettings.WindowPosition.W)
+		h = int32(globals.ProgramSettings.WindowPosition.H)
+	}
+
+	LoadCursors()
+
+	icon, err := img.Load(LocalPath("assets/window_icon.png"))
+	if err != nil {
+		panic(err)
+	}
+	window.SetIcon(icon)
+	window.SetPosition(x, y)
+
+	globals.Window = window
+	globals.Renderer = renderer
 	ReloadFonts()
+	globals.TextRenderer = NewTextRenderer()
 
-	currentProject = NewProject()
+	globals.Project = NewProject()
 
-	rl.SetExitKey(0) /// We don't want Escape to close the program.
+	// renderer.SetLogicalSize(960, 540)
 
 	attemptAutoload := 5
-	showedAboutDialog := false
+	// showedAboutDialog := false
 	splashScreenTime := float32(0)
-	splashScreen := rl.LoadTexture(LocalPath("assets", "splashscreen.png"))
-	splashColor := rl.White
+	// splashScreen := rl.LoadTexture(LocalPath("assets", "splashscreen.png"))
+	splashColor := sdl.Color{255, 255, 255, 255}
 
-	if programSettings.DisableSplashscreen {
+	if globals.ProgramSettings.DisableSplashscreen {
 		splashScreenTime = 100
 		splashColor.A = 0
 	}
@@ -165,37 +214,63 @@ func main() {
 
 	log.Println("MasterPlan initialized successfully.")
 
+	go func() {
+
+		for {
+			fmt.Println(fpsDisplayValue)
+			time.Sleep(time.Second)
+		}
+
+	}()
+
 	for !quit {
+
+		screenWidth, screenHeight, err := globals.Renderer.GetOutputSize()
+
+		if err != nil {
+			panic(err)
+		}
+
+		globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
+
+		globals.Time += 1.0 / 60.0
+
+		if globals.Frame == math.MaxInt64 {
+			globals.Frame = 0
+		}
+		globals.Frame++
 
 		currentTime := time.Now()
 
-		handleMouseInputs()
+		// handleMouseInputs()
 
-		if programSettings.Keybindings.On(KBShowFPS) {
-			drawFPS = !drawFPS
+		if globals.ProgramSettings.Keybindings.On(KBDebugRestart) {
+			fmt.Println("restart")
+			globals.Project = NewProject()
 		}
 
-		if programSettings.Keybindings.On(KBWindowSizeSmall) {
-			rl.SetWindowSize(960, 540)
-		}
+		// if globals.ProgramSettings.Keybindings.On(KBShowFPS) {
+		// 	drawFPS = !drawFPS
+		// }
 
-		if programSettings.Keybindings.On(KBWindowSizeNormal) {
-			rl.SetWindowSize(1920, 1080)
-		}
+		// if globals.ProgramSettings.Keybindings.On(KBWindowSizeSmall) {
+		// 	window.SetSize(960, 540)
+		// }
 
-		if programSettings.Keybindings.On(KBToggleFullscreen) {
-			rl.ToggleFullscreen()
-		}
+		// if globals.ProgramSettings.Keybindings.On(KBWindowSizeNormal) {
+		// 	window.SetSize(1920, 1080)
+		// }
 
-		clearColor := getThemeColor(GUI_INSIDE_DISABLED)
+		// if globals.ProgramSettings.Keybindings.On(KBToggleFullscreen) {
+		// 	window.SetFullscreen(sdl.WINDOW_FULLSCREEN_DESKTOP)
+		// }
 
-		if windowFlags&byte(rl.FlagWindowTransparent) > 0 {
-			clearColor = rl.Color{}
-		}
-
-		rl.ClearBackground(clearColor)
-
-		rl.BeginDrawing()
+		// if windowFlags&byte(rl.FlagWindowTransparent) > 0 {
+		// 	clearColor = rl.Color{}
+		// }
+		clearColor := getThemeColor(GUIBGColor)
+		renderer.SetDrawColor(clearColor.R, clearColor.G, clearColor.B, clearColor.A)
+		renderer.Clear()
 
 		if attemptAutoload > 0 {
 
@@ -206,25 +281,25 @@ func main() {
 				// If the settings aren't successfully loaded, it's safe to assume it's because they don't exist, because the program is first loading.
 				if !settingsLoaded {
 
-					if loaded := LoadProject(LocalPath("assets", "help_manual.plan")); loaded != nil {
-						currentProject = loaded
-					}
+					// if loaded := LoadProject(LocalPath("assets", "help_manual.plan")); loaded != nil {
+					// 	currentProject = loaded
+					// }
 
 				} else {
 
 					//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
 
-					var loaded *Project
+					// var loaded *Project
 
-					if len(os.Args) > 1 {
-						loaded = LoadProject(os.Args[1])
-					} else if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
-						loaded = LoadProject(programSettings.RecentPlanList[0])
-					}
+					// if len(os.Args) > 1 {
+					// 	loaded = LoadProject(os.Args[1])
+					// } else if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
+					// 	loaded = LoadProject(programSettings.RecentPlanList[0])
+					// }
 
-					if loaded != nil {
-						currentProject = loaded
-					}
+					// if loaded != nil {
+					// 	currentProject = loaded
+					// }
 
 				}
 
@@ -232,132 +307,133 @@ func main() {
 
 		} else {
 
+			handleEvents()
+
 			// if rl.IsKeyPressed(rl.KeyF5) {
 			// 	profileCPU()
 			// }
 
-			if rl.WindowShouldClose() {
-				currentProject.PromptQuit()
-			}
+			// if rl.WindowShouldClose() {
+			// 	currentProject.PromptQuit()
+			// }
 
-			if !showedAboutDialog {
-				showedAboutDialog = true
-				if !programSettings.DisableAboutDialogOnStart {
-					currentProject.OpenSettings()
-					currentProject.SettingsSection.CurrentChoice = len(currentProject.SettingsSection.Options) - 1 // Set the settings section to "ABOUT" (the last option)
-				}
-			}
+			// if !showedAboutDialog {
+			// 	showedAboutDialog = true
+			// 	if !programSettings.DisableAboutDialogOnStart {
+			// 		currentProject.OpenSettings()
+			// 		currentProject.SettingsSection.CurrentChoice = len(currentProject.SettingsSection.Options) - 1 // Set the settings section to "ABOUT" (the last option)
+			// 	}
+			// }
 
-			rl.BeginMode2D(camera)
+			globals.Project.Update()
 
-			currentProject.Update()
+			globals.Project.Draw()
 
-			rl.EndMode2D()
+			// rl.EndMode2D()
 
-			color := getThemeColor(GUI_FONT_COLOR)
-			color.A = 128
+			// color := getThemeColor(GUI_FONT_COLOR)
+			// color.A = 128
 
-			x := float32(rl.GetScreenWidth() - 8)
-			v := ""
+			// x := float32(0)
+			// // x := float32(rl.GetScreenWidth() - 8)
+			// v := ""
 
-			if currentProject.LockProject.Checked {
-				if currentProject.Locked {
-					v += "Project Lock Engaged"
-				} else {
-					v += "Project Lock Present"
-				}
-			} else if currentProject.AutoSave.Checked {
-				if currentProject.FilePath == "" {
-					v += "Please Manually Save Project"
-					color.R = 255
-				} else {
-					v += "Autosave On"
-				}
-			} else if currentProject.Modified {
-				v += "Modified"
-			}
+			// if currentProject.LockProject.Checked {
+			// 	if currentProject.Locked {
+			// 		v += "Project Lock Engaged"
+			// 	} else {
+			// 		v += "Project Lock Present"
+			// 	}
+			// } else if currentProject.AutoSave.Checked {
+			// 	if currentProject.FilePath == "" {
+			// 		v += "Please Manually Save Project"
+			// 		color.R = 255
+			// 	} else {
+			// 		v += "Autosave On"
+			// 	}
+			// } else if currentProject.Modified {
+			// 	v += "Modified"
+			// }
 
-			if len(v) > 0 {
-				size, _ := TextSize(v, true)
-				x -= size.X
-				DrawGUITextColored(rl.Vector2{x, 8}, color, v)
-			}
+			// if len(v) > 0 {
+			// 	size, _ := TextSize(v, true)
+			// 	x -= size.X
+			// 	// DrawGUITextColored(rl.Vector2{x, 8}, color, v)
+			// }
 
-			color = rl.White
-			bgColor := rl.Black
+			// color = rl.White
+			// bgColor := rl.Black
 
-			y := float32(24)
+			// y := float32(24)
 
-			if !programSettings.DisableMessageLog {
+			// if !programSettings.DisableMessageLog {
 
-				for i := 0; i < len(eventLogBuffer); i++ {
+			// 	for i := 0; i < len(eventLogBuffer); i++ {
 
-					msg := eventLogBuffer[i]
+			// 		msg := eventLogBuffer[i]
 
-					text := "- " + msg.Time.Format("15:04:05") + " : " + msg.Text
-					text = strings.ReplaceAll(text, "\n", "\n                    ")
+			// 		text := "- " + msg.Time.Format("15:04:05") + " : " + msg.Text
+			// 		text = strings.ReplaceAll(text, "\n", "\n                    ")
 
-					alpha, done := msg.Tween.Update(1 / float32(programSettings.TargetFPS))
+			// 		alpha, done := msg.Tween.Update(1 / float32(programSettings.TargetFPS))
 
-					if strings.HasPrefix(msg.Text, "ERROR") {
-						color = rl.Red
-					} else if strings.HasPrefix(msg.Text, "WARNING") {
-						color = rl.Yellow
-					} else {
-						color = rl.White
-					}
+			// 		if strings.HasPrefix(msg.Text, "ERROR") {
+			// 			color = rl.Red
+			// 		} else if strings.HasPrefix(msg.Text, "WARNING") {
+			// 			color = rl.Yellow
+			// 		} else {
+			// 			color = rl.White
+			// 		}
 
-					color.A = uint8(alpha)
-					bgColor.A = color.A
+			// 		color.A = uint8(alpha)
+			// 		bgColor.A = color.A
 
-					textSize := rl.MeasureTextEx(font, text, float32(GUIFontSize()), 1)
-					lineHeight, _ := TextHeight(text, true)
-					textPos := rl.Vector2{8, y}
-					rectPos := textPos
+			// 		textSize := rl.MeasureTextEx(font, text, float32(GUIFontSize()), 1)
+			// 		lineHeight, _ := TextHeight(text, true)
+			// 		textPos := rl.Vector2{8, y}
+			// 		rectPos := textPos
 
-					rectPos.X--
-					rectPos.Y--
-					textSize.X += 2
-					textSize.Y = lineHeight
+			// 		rectPos.X--
+			// 		rectPos.Y--
+			// 		textSize.X += 2
+			// 		textSize.Y = lineHeight
 
-					rl.DrawRectangleV(textPos, textSize, bgColor)
-					DrawGUITextColored(textPos, color, text)
+			// 		rl.DrawRectangleV(textPos, textSize, bgColor)
+			// 		DrawGUITextColored(textPos, color, text)
 
-					if done {
-						eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
-						i--
-					}
+			// 		if done {
+			// 			eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
+			// 			i--
+			// 		}
 
-					y += lineHeight
+			// 		y += lineHeight
 
-				}
+			// 	}
 
-			}
+			// }
 
-			if programSettings.Keybindings.On(KBTakeScreenshot) {
-				// This is here because you can trigger a screenshot from the context menu as well.
-				takeScreenshot = true
-			}
+			// if globals.ProgramSettings.Keybindings.On(KBTakeScreenshot) {
+			// 	// This is here because you can trigger a screenshot from the context menu as well.
+			// 	takeScreenshot = true
+			// }
 
-			if takeScreenshot {
-				// Use the current time for screenshot names; ".00" adds the fractional second
-				screenshotFileName := fmt.Sprintf("screenshot_%s.png", time.Now().Format(FileTimeFormat+".00"))
-				screenshotPath := LocalPath(screenshotFileName)
-				if projectScreenshotsPath := currentProject.ScreenshotsPath.Text(); projectScreenshotsPath != "" {
-					if _, err := os.Stat(projectScreenshotsPath); err == nil {
-						screenshotPath = filepath.Join(projectScreenshotsPath, screenshotFileName)
-					}
-				}
-				rl.TakeScreenshot(screenshotPath)
-				currentProject.Log("Screenshot saved successfully to %s.", screenshotPath)
-				takeScreenshot = false
-			}
+			// if takeScreenshot {
+			// 	// Use the current time for screenshot names; ".00" adds the fractional second
+			// 	screenshotFileName := fmt.Sprintf("screenshot_%s.png", time.Now().Format(FileTimeFormat+".00"))
+			// 	screenshotPath := LocalPath(screenshotFileName)
+			// 	if projectScreenshotsPath := currentProject.ScreenshotsPath.Text(); projectScreenshotsPath != "" {
+			// 		if _, err := os.Stat(projectScreenshotsPath); err == nil {
+			// 			screenshotPath = filepath.Join(projectScreenshotsPath, screenshotFileName)
+			// 		}
+			// 	}
+			// 	rl.TakeScreenshot(screenshotPath)
+			// 	currentProject.Log("Screenshot saved successfully to %s.", screenshotPath)
+			// 	takeScreenshot = false
+			// }
 
-			currentProject.GUI()
-
-			if drawFPS {
-				rl.DrawTextEx(font, fmt.Sprintf("%.2f", fpsDisplayValue), rl.Vector2{0, 0}, 60, spacing, rl.Red)
-			}
+			// if drawFPS {
+			// 	rl.DrawTextEx(font, fmt.Sprintf("%.2f", fpsDisplayValue), rl.Vector2{0, 0}, 60, spacing, rl.Red)
+			// }
 
 		}
 
@@ -372,34 +448,36 @@ func main() {
 			}
 		}
 
-		if splashColor.A > 0 {
-			src := rl.Rectangle{0, 0, float32(splashScreen.Width), float32(splashScreen.Height)}
-			dst := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
-			rl.DrawTexturePro(splashScreen, src, dst, rl.Vector2{}, 0, splashColor)
-		}
+		// if splashColor.A > 0 {
+		// 	src := rl.Rectangle{0, 0, float32(splashScreen.Width), float32(splashScreen.Height)}
+		// 	dst := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
+		// 	rl.DrawTexturePro(splashScreen, src, dst, rl.Vector2{}, 0, splashColor)
+		// }
 
-		rl.EndDrawing()
+		renderer.Present()
 
 		title := "MasterPlan v" + softwareVersion.String() + demoMode
 
-		if currentProject.FilePath != "" {
-			_, fileName := filepath.Split(currentProject.FilePath)
-			title += fmt.Sprintf(" - %s", fileName)
-		}
+		// if currentProject.FilePath != "" {
+		// 	_, fileName := filepath.Split(currentProject.FilePath)
+		// 	title += fmt.Sprintf(" - %s", fileName)
+		// }
 
-		if currentProject.Modified {
-			title += " *"
-		}
+		// if currentProject.Modified {
+		// 	title += " *"
+		// }
 
 		if windowTitle != title {
-			rl.SetWindowTitle(title)
+			window.SetTitle(title)
 			windowTitle = title
 		}
 
-		targetFPS = programSettings.TargetFPS
+		targetFPS = globals.ProgramSettings.TargetFPS
 
-		if !rl.IsWindowFocused() || rl.IsWindowHidden() || rl.IsWindowMinimized() {
-			targetFPS = programSettings.UnfocusedFPS
+		// if !rl.IsWindowFocused() || rl.IsWindowHidden() || rl.IsWindowMinimized() {
+		windowFlags := window.GetFlags()
+		if windowFlags&sdl.WINDOW_MOUSE_FOCUS > 0 || windowFlags&sdl.WINDOW_MINIMIZED > 0 || windowFlags&sdl.WINDOW_HIDDEN > 0 {
+			targetFPS = globals.ProgramSettings.UnfocusedFPS
 		}
 
 		elapsed += time.Since(currentTime)
@@ -427,35 +505,35 @@ func main() {
 
 	}
 
-	if programSettings.SaveWindowPosition {
+	if globals.ProgramSettings.SaveWindowPosition {
 		// This is outside the main loop because we can save the window properties just before quitting
-		wp := rl.GetWindowPosition()
-		wr := rl.Rectangle{wp.X, wp.Y, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
-		programSettings.WindowPosition = wr
-		programSettings.Save()
+		wX, wY := window.GetPosition()
+		wW, wH := window.GetSize()
+		globals.ProgramSettings.WindowPosition = sdl.Rect{wX, wY, wW, wH}
+		// globals.ProgramSettings.Save()
 	}
 
 	log.Println("MasterPlan exited successfully.")
 
-	currentProject.Destroy()
+	globals.Project.Destroy()
 
 }
 
-func profileCPU() {
+// func profileCPU() {
 
-	// rInt, _ := rand.Int(rand.Reader, big.NewInt(400))
-	// cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rInt))
-	cpuProfFile, err := os.Create("cpu.pprof")
-	if err != nil {
-		log.Fatal("Could not create CPU Profile: ", err)
-	}
-	pprof.StartCPUProfile(cpuProfFile)
-	currentProject.Log("CPU Profiling begun...")
+// 	// rInt, _ := rand.Int(rand.Reader, big.NewInt(400))
+// 	// cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rInt))
+// 	cpuProfFile, err := os.Create("cpu.pprof")
+// 	if err != nil {
+// 		log.Fatal("Could not create CPU Profile: ", err)
+// 	}
+// 	pprof.StartCPUProfile(cpuProfFile)
+// 	currentProject.Log("CPU Profiling begun...")
 
-	time.AfterFunc(time.Second*10, func() {
-		cpuProfileStart = time.Time{}
-		pprof.StopCPUProfile()
-		currentProject.Log("CPU Profiling finished!")
-	})
+// 	time.AfterFunc(time.Second*10, func() {
+// 		cpuProfileStart = time.Time{}
+// 		pprof.StopCPUProfile()
+// 		currentProject.Log("CPU Profiling finished!")
+// 	})
 
-}
+// }
