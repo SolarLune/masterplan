@@ -124,7 +124,13 @@ func (project *Project) Update() {
 
 	project.Camera.Update()
 
-	for _, task := range project.Cards {
+	reversed := append([]*Card{}, project.Cards...)
+
+	sort.Slice(reversed, func(i, j int) bool {
+		return j < i
+	})
+
+	for _, task := range reversed {
 		task.Update()
 	}
 
@@ -203,9 +209,9 @@ func (project *Project) MouseActions() {
 	if project.State == StateNeutral {
 
 		if globals.Mouse.Wheel > 0 {
-			project.Camera.ZoomIn(0.25)
+			project.Camera.TargetZoom += 0.25
 		} else if globals.Mouse.Wheel < 0 {
-			project.Camera.ZoomIn(-0.25)
+			project.Camera.TargetZoom -= 0.25
 		}
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).DoubleClicked() {
@@ -255,25 +261,54 @@ func (project *Project) GlobalShortcuts() {
 
 		dx := float32(0)
 		dy := float32(0)
+		panSpeed := float32(8)
 
 		if globals.ProgramSettings.Keybindings.On(KBPanRight) {
-			dx++
+			dx = panSpeed
 		}
 		if globals.ProgramSettings.Keybindings.On(KBPanLeft) {
-			dx--
+			dx = -panSpeed
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBPanUp) {
-			dy--
+			dy = -panSpeed
 		}
 		if globals.ProgramSettings.Keybindings.On(KBPanDown) {
-			dy++
+			dy = panSpeed
+		}
+
+		if globals.ProgramSettings.Keybindings.On(KBFastPanRight) {
+			dx = panSpeed * 2
+		}
+		if globals.ProgramSettings.Keybindings.On(KBFastPanLeft) {
+			dx = -panSpeed * 2
+		}
+
+		if globals.ProgramSettings.Keybindings.On(KBFastPanUp) {
+			dy = -panSpeed * 2
+		}
+		if globals.ProgramSettings.Keybindings.On(KBFastPanDown) {
+			dy = panSpeed * 2
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBZoomIn) {
-			project.Camera.Zoom++
+			project.Camera.TargetZoom++
 		} else if globals.ProgramSettings.Keybindings.On(KBZoomOut) {
-			project.Camera.Zoom--
+			project.Camera.TargetZoom--
+		}
+
+		if globals.ProgramSettings.Keybindings.On(KBZoomLevel25) {
+			project.Camera.TargetZoom = 0.25
+		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel50) {
+			project.Camera.TargetZoom = 0.5
+		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel100) {
+			project.Camera.TargetZoom = 1.0
+		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel200) {
+			project.Camera.TargetZoom = 2.0
+		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel400) {
+			project.Camera.TargetZoom = 4.0
+		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel1000) {
+			project.Camera.TargetZoom = 10.0
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBNewCheckboxCard) {
@@ -282,16 +317,8 @@ func (project *Project) GlobalShortcuts() {
 			project.CreateNewCard().SetContents(ContentTypeNote)
 		}
 
-		panSpeed := float32(8)
-
-		if globals.ProgramSettings.Keybindings.On(KBFasterPan) {
-			panSpeed *= 2
-		}
-
-		project.Camera.TargetPosition.X += dx * panSpeed * project.Camera.Zoom
-		project.Camera.TargetPosition.Y += dy * panSpeed * project.Camera.Zoom
-
-		// project.Camera.Move()
+		project.Camera.TargetPosition.X += dx * project.Camera.Zoom
+		project.Camera.TargetPosition.Y += dy * project.Camera.Zoom
 
 	}
 

@@ -35,8 +35,8 @@ func (menu *Menu) Update() {
 func (menu *Menu) Draw() {
 
 	color := getThemeColor(GUIMenuColor)
-	menu.Project.GUITexture.SetColorMod(color.R, color.G, color.B)
-	menu.Project.GUITexture.SetAlphaMod(color.A)
+	menu.Project.GUITexture.SetColorMod(color.RGB())
+	menu.Project.GUITexture.SetAlphaMod(color[3])
 	rect := *menu.Rect
 	rect.W -= 16
 	globals.Renderer.CopyF(menu.Project.GUITexture, &sdl.Rect{16, 16, 16, 16}, &rect)

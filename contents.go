@@ -13,7 +13,7 @@ type Contents interface {
 	Update()
 	Draw()
 	ReceiveMessage(*Message)
-	Color() sdl.Color
+	Color() Color
 	MinimumSize() Point
 }
 
@@ -40,9 +40,7 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 func (cc *CheckboxContents) Update() {
 
 	if cc.Card.Selected {
-
 		cc.Check.Update()
-
 	}
 
 	cc.Label.SetRectangle(&sdl.FRect{cc.Card.DisplayRect.X + 32, cc.Card.DisplayRect.Y, cc.Card.Rect.W - 32, cc.Card.Rect.H})
@@ -63,8 +61,12 @@ func (cc *CheckboxContents) Draw() {
 
 func (cc *CheckboxContents) ReceiveMessage(msg *Message) {}
 
-func (cc *CheckboxContents) Color() sdl.Color {
-	return getThemeColor(GUICheckboxColor)
+func (cc *CheckboxContents) Color() Color {
+	color := getThemeColor(GUICheckboxColor)
+	if cc.Label.Editing {
+		color.Sub(20)
+	}
+	return color
 }
 
 func (cc *CheckboxContents) MinimumSize() Point {
@@ -102,7 +104,7 @@ func (nc *NoteContents) Draw() {
 	tp.H = 32
 	src := &sdl.Rect{80, 0, 32, 32}
 	color := getThemeColor(GUIFontColor)
-	nc.Card.Project.GUITexture.SetColorMod(color.R, color.G, color.B)
+	nc.Card.Project.GUITexture.SetColorMod(color.RGB())
 	globals.Renderer.CopyF(nc.Card.Project.GUITexture, src, tp)
 
 	nc.Label.Draw()
@@ -111,7 +113,7 @@ func (nc *NoteContents) Draw() {
 
 func (nc *NoteContents) ReceiveMessage(msg *Message) {}
 
-func (nc *NoteContents) Color() sdl.Color { return getThemeColor(GUINoteColor) }
+func (nc *NoteContents) Color() Color { return getThemeColor(GUINoteColor) }
 
 func (nc *NoteContents) MinimumSize() Point { return Point{globals.GridSize * 6, globals.GridSize * 4} }
 

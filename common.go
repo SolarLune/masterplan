@@ -153,8 +153,8 @@ func TileTexture(srcTexture Image, srcRect *sdl.Rect, w, h int32) *Image {
 
 	newTex.SetBlendMode(sdl.BLENDMODE_BLEND)
 	gridColor := getThemeColor(GUIGridColor)
-	newTex.SetColorMod(gridColor.R, gridColor.G, gridColor.B)
-	newTex.SetAlphaMod(gridColor.A)
+	newTex.SetColorMod(gridColor.RGB())
+	newTex.SetAlphaMod(gridColor[3])
 
 	if err != nil {
 		panic(err)
@@ -298,6 +298,70 @@ func LoadCursors() {
 	globals.Mouse.Cursors["text caret"] = createCursor(448, 64)
 
 	globals.Mouse.SetCursor("normal")
+
+}
+
+type Color []uint8
+
+func NewColor() Color {
+	return Color{0, 0, 0, 0}
+}
+
+func (color Color) RGBA() (uint8, uint8, uint8, uint8) {
+	return color[0], color[1], color[2], color[3]
+}
+
+func (color Color) RGB() (uint8, uint8, uint8) {
+	return color[0], color[1], color[2]
+}
+
+func (color Color) Add(value uint8) {
+
+	for i, c := range color[:3] {
+
+		if value > 0 {
+
+			if c > 255-value {
+				color[i] = 255
+			} else {
+				color[i] += value
+			}
+
+		} else {
+
+			if c < value {
+				color[i] = 0
+			} else {
+				color[i] -= value
+			}
+
+		}
+	}
+
+}
+
+func (color Color) Sub(value uint8) {
+
+	for i, c := range color[:3] {
+
+		if value > 0 {
+
+			if c > 255-value {
+				color[i] = 255
+			} else {
+				color[i] += value
+			}
+
+		} else {
+
+			if c < value {
+				color[i] = 0
+			} else {
+				color[i] -= value
+			}
+
+		}
+	}
 
 }
 

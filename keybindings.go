@@ -10,20 +10,25 @@ import (
 
 const (
 	// Keyboard Constants
-	// KBZoomLevel10             = "Zoom Level 10%"
-	// KBZoomLevel25             = "Zoom Level 25%"
-	// KBZoomLevel50             = "Zoom Level 50%"
-	// KBZoomLevel100            = "Zoom Level 100%"
-	// KBZoomLevel200            = "Zoom Level 200%"
-	// KBZoomLevel400            = "Zoom Level 400%"
-	// KBZoomLevel1000           = "Zoom Level 1000%"
-	KBZoomIn          = "Zoom In"
-	KBZoomOut         = "Zoom Out"
-	KBFasterPan       = "Faster Pan"
-	KBPanUp           = "Pan Up"
-	KBPanDown         = "Pan Down"
-	KBPanRight        = "Pan Right"
-	KBPanLeft         = "Pan Left"
+	KBZoomLevel25   = "Zoom Level 25%"
+	KBZoomLevel50   = "Zoom Level 50%"
+	KBZoomLevel100  = "Zoom Level 100%"
+	KBZoomLevel200  = "Zoom Level 200%"
+	KBZoomLevel400  = "Zoom Level 400%"
+	KBZoomLevel1000 = "Zoom Level 1000%"
+	KBZoomIn        = "Zoom In"
+	KBZoomOut       = "Zoom Out"
+
+	KBPanUp    = "Pan Up"
+	KBPanDown  = "Pan Down"
+	KBPanRight = "Pan Right"
+	KBPanLeft  = "Pan Left"
+
+	KBFastPanUp    = "Fast Pan Up"
+	KBFastPanDown  = "Fast Pan Down"
+	KBFastPanRight = "Fast Pan Right"
+	KBFastPanLeft  = "Fast Pan Left"
+
 	KBNewCheckboxCard = "New Checkbox Card"
 	KBNewNoteCard     = "New Note Card"
 	KBDebugRestart    = "DEBUG: RESTART"
@@ -99,7 +104,6 @@ const (
 const (
 	TriggerModePress = iota
 	TriggerModeHold
-	TriggerModeRepeating
 )
 
 type Shortcut struct {
@@ -202,8 +206,8 @@ func NewKeybindings() *Keybindings {
 	return kb
 }
 
-func (kb *Keybindings) Define(bindingName string, keyCode sdl.Keycode, modifiers sdl.Keymod) *Shortcut {
-	sc := NewShortcut(bindingName, keyCode, modifiers)
+func (kb *Keybindings) Define(bindingName string, keyCode sdl.Keycode, mod sdl.Keymod) *Shortcut {
+	sc := NewShortcut(bindingName, keyCode, mod)
 	kb.Shortcuts[bindingName] = sc
 	kb.creationOrder = append(kb.creationOrder, bindingName)
 	return sc
@@ -212,35 +216,40 @@ func (kb *Keybindings) Define(bindingName string, keyCode sdl.Keycode, modifiers
 // Default keybinding definitions
 func (kb *Keybindings) Default() {
 
-	// kb.Define(KBZoomLevel10, sdl.K_0)
-	// kb.Define(KBZoomLevel25, sdl.K_1)
-	// kb.Define(KBZoomLevel50, sdl.K_2)
-	// kb.Define(KBZoomLevel100, sdl.K_3)
-	// kb.Define(KBZoomLevel200, sdl.K_4)
-	// kb.Define(KBZoomLevel400, sdl.K_5)
-	// kb.Define(KBZoomLevel1000, sdl.K_6)
+	kb.Define(KBZoomLevel25, sdl.K_1, sdl.KMOD_NONE)
+	kb.Define(KBZoomLevel50, sdl.K_2, sdl.KMOD_NONE)
+	kb.Define(KBZoomLevel100, sdl.K_3, sdl.KMOD_NONE)
+	kb.Define(KBZoomLevel200, sdl.K_4, sdl.KMOD_NONE)
+	kb.Define(KBZoomLevel400, sdl.K_5, sdl.KMOD_NONE)
+	kb.Define(KBZoomLevel1000, sdl.K_6, sdl.KMOD_NONE)
 
 	// settings := kb.Define(KBOpenSettings, sdl.K_F1)
 	// settings.canClash = false
 
-	kb.Define(KBDebugRestart, sdl.K_r, 0)
+	kb.Define(KBDebugRestart, sdl.K_r, sdl.KMOD_NONE)
 
-	kb.Define(KBZoomIn, sdl.K_EQUALS, 0).triggerMode = TriggerModeRepeating
-	kb.Define(KBZoomOut, sdl.K_MINUS, 0).triggerMode = TriggerModeRepeating
+	kb.Define(KBZoomIn, sdl.K_EQUALS, sdl.KMOD_NONE).triggerMode = TriggerModePress
+	kb.Define(KBZoomOut, sdl.K_MINUS, sdl.KMOD_NONE).triggerMode = TriggerModePress
 	// kb.Define(KBShowFPS, sdl.K_F12)
 	// kb.Define(KBWindowSizeSmall, sdl.K_F2)
 	// kb.Define(KBWindowSizeNormal, sdl.K_F3)
 	// kb.Define(KBToggleFullscreen, sdl.K_F4)
 	// kb.Define(KBTakeScreenshot, sdl.K_F11)
 
-	kb.Define(KBFasterPan, sdl.K_LSHIFT, 0).triggerMode = TriggerModeHold
-	kb.Define(KBPanUp, sdl.K_w, 0).triggerMode = TriggerModeHold
-	kb.Define(KBPanLeft, sdl.K_a, 0).triggerMode = TriggerModeHold
-	kb.Define(KBPanDown, sdl.K_s, 0).triggerMode = TriggerModeHold
-	kb.Define(KBPanRight, sdl.K_d, 0).triggerMode = TriggerModeHold
+	kb.Define(KBPanUp, sdl.K_w, sdl.KMOD_NONE).triggerMode = TriggerModeHold
+	kb.Define(KBPanLeft, sdl.K_a, sdl.KMOD_NONE).triggerMode = TriggerModeHold
+	kb.Define(KBPanDown, sdl.K_s, sdl.KMOD_NONE).triggerMode = TriggerModeHold
+	kb.Define(KBPanRight, sdl.K_d, sdl.KMOD_NONE).triggerMode = TriggerModeHold
+
+	kb.Define(KBFastPanUp, sdl.K_w, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
+	kb.Define(KBFastPanLeft, sdl.K_a, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
+	kb.Define(KBFastPanDown, sdl.K_s, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
+	kb.Define(KBFastPanRight, sdl.K_d, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
 
 	kb.Define(KBNewCheckboxCard, sdl.K_1, sdl.KMOD_SHIFT).triggerMode = TriggerModePress
+
 	kb.Define(KBNewNoteCard, sdl.K_2, sdl.KMOD_SHIFT).triggerMode = TriggerModePress
+
 	// kb.Define(KBCenterView, sdl.K_BACKSPACE)
 	// kb.Define(KBURLButton, sdl.K_LCTRL).triggerMode = TriggerModeHold
 
@@ -385,7 +394,9 @@ func (kb *Keybindings) On(bindingName string) bool {
 		return false
 	}
 
-	modsOn := sc.Modifiers == sdl.KMOD_NONE || globals.Keyboard.Key(sc.Key).Mods&sc.Modifiers > 0
+	scMod := sc.Modifiers &^ sdl.KMOD_CAPS &^ sdl.KMOD_NUM &^ sdl.KMOD_ALT
+	keyMod := globals.Keyboard.Key(sc.Key).Mods &^ sdl.KMOD_CAPS &^ sdl.KMOD_NUM
+	modsOn := (keyMod == 0 && scMod == 0) || keyMod&scMod > 0
 
 	if sc.triggerMode == TriggerModeHold {
 		return globals.Keyboard.Key(sc.Key).Held() && modsOn
@@ -393,81 +404,7 @@ func (kb *Keybindings) On(bindingName string) bool {
 		return globals.Keyboard.Key(sc.Key).Pressed() && modsOn
 	}
 
-	// 	out = checkKey(sc.Key, rl.IsKeyDown)
-
-	// } else if sc.triggerMode == TriggerModeRepeating {
-
-	// 	out = false
-
-	// 	if checkKey(sc.Key, rl.IsKeyPressed) {
-	// 		sc.Hold = time.Now()
-	// 		out = true
-	// 	} else if checkKey(sc.Key, rl.IsKeyDown) && time.Since(sc.Hold).Seconds() >= 0.2 {
-	// 		if time.Since(sc.Repeat).Seconds() >= 0.025 {
-	// 			kb.ResetTimingOnShortcut(sc)
-	// 			out = true
-	// 		}
-	// 	}
-
-	// } else {
-	// 	out = checkKey(sc.Key, rl.IsKeyPressed)
-	// }
-
 	return false
-
-}
-
-func (kb *Keybindings) GetClashes() []*Shortcut {
-
-	// usedKeys := []int32{}
-
-	// hasBeenUsed := func(keys ...int32) bool {
-	// 	for _, k1 := range keys {
-	// 		for _, k2 := range usedKeys {
-	// 			if k1 == k2 {
-	// 				return true
-	// 			}
-	// 		}
-	// 	}
-	// 	return false
-	// }
-
-	clashes := []*Shortcut{}
-
-	// for i := len(kb.ShortcutsByLevel) - 1; i >= 0; i-- {
-
-	// 	for _, shortcut := range kb.ShortcutsByLevel[i] {
-
-	// 		keysAreDown := true
-
-	// 		for _, key := range shortcut.UsedKeys() {
-	// 			if !rl.IsKeyDown(key) {
-	// 				keysAreDown = false
-	// 				break
-	// 			}
-	// 		}
-
-	// 		if keysAreDown && shortcut.canClash {
-
-	// 			if i > 0 {
-
-	// 				if hasBeenUsed(shortcut.UsedKeys()...) {
-	// 					clashes = append(clashes, shortcut)
-	// 				} else {
-	// 					usedKeys = append(usedKeys, shortcut.UsedKeys()...)
-	// 				}
-
-	// 			} else if hasBeenUsed(shortcut.UsedKeys()...) {
-	// 				clashes = append(clashes, shortcut)
-	// 			}
-
-	// 		}
-
-	// 	}
-
-	// }
-
-	return clashes
 
 }
 

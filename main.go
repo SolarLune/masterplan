@@ -206,7 +206,7 @@ func main() {
 		splashColor.A = 0
 	}
 
-	fpsDisplayValue := float32(0)
+	// fpsDisplayValue := float32(0)
 	fpsDisplayAccumulator := float32(0)
 	fpsDisplayTimer := time.Now()
 
@@ -214,14 +214,14 @@ func main() {
 
 	log.Println("MasterPlan initialized successfully.")
 
-	go func() {
+	// go func() {
 
-		for {
-			fmt.Println(fpsDisplayValue)
-			time.Sleep(time.Second)
-		}
+	// 	for {
+	// 		fmt.Println(fpsDisplayValue)
+	// 		time.Sleep(time.Second)
+	// 	}
 
-	}()
+	// }()
 
 	for !quit {
 
@@ -269,7 +269,7 @@ func main() {
 		// 	clearColor = rl.Color{}
 		// }
 		clearColor := getThemeColor(GUIBGColor)
-		renderer.SetDrawColor(clearColor.R, clearColor.G, clearColor.B, clearColor.A)
+		renderer.SetDrawColor(clearColor.RGBA())
 		renderer.Clear()
 
 		if attemptAutoload > 0 {
@@ -496,7 +496,7 @@ func main() {
 
 		if time.Since(fpsDisplayTimer).Seconds() >= 1 {
 			fpsDisplayTimer = time.Now()
-			fpsDisplayValue = fpsDisplayAccumulator * float32(targetFPS)
+			// fpsDisplayValue = fpsDisplayAccumulator * float32(targetFPS)
 			fpsDisplayAccumulator = 0
 		}
 		fpsDisplayAccumulator += 1.0 / float32(targetFPS)

@@ -209,8 +209,8 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 		src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
 
 		color := card.Contents.Color()
-		card.Project.GUITexture.SetColorMod(color.R, color.G, color.B)
-		card.Project.GUITexture.SetAlphaMod(color.A)
+		card.Project.GUITexture.SetColorMod(color.RGB())
+		card.Project.GUITexture.SetAlphaMod(color[3])
 
 		for _, patch := range patches {
 
@@ -269,7 +269,7 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewNoteContents(card)
 		}
 
-		card.Recreate(128, 32)
+		card.Recreate(192, 32)
 
 		card.Contents.Update()
 

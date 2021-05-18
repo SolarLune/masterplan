@@ -22,21 +22,15 @@ func (camera *Camera) Update() {
 
 	globals.Renderer.SetScale(camera.Zoom, camera.Zoom)
 
+	if camera.TargetZoom <= 0.25 {
+		camera.TargetZoom = 0.25
+	} else if camera.TargetZoom >= 10 {
+		camera.TargetZoom = 10
+	}
+
 	softness := float32(0.2)
 	camera.Zoom += (camera.TargetZoom - camera.Zoom) * softness
 	camera.Position = camera.Position.Add(camera.TargetPosition.Sub(camera.Position).Mult(softness))
-
-}
-
-func (camera *Camera) ZoomIn(zoomLevel float32) {
-
-	camera.TargetZoom += zoomLevel
-
-	if camera.TargetZoom <= 0.25 {
-		camera.TargetZoom = 0.25
-	} else if camera.Zoom >= 10 {
-		camera.TargetZoom = 10
-	}
 
 }
 

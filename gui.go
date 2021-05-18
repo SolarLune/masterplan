@@ -40,9 +40,9 @@ const (
 	GUITimerColor    = "Timer Color"
 )
 
-var guiColors map[string]map[string]sdl.Color
+var guiColors map[string]map[string]Color
 
-func getThemeColor(colorConstant string) sdl.Color {
+func getThemeColor(colorConstant string) Color {
 	color, exists := guiColors[globals.ProgramSettings.Theme][colorConstant]
 	if !exists {
 		log.Println("ERROR: Color doesn't exist for the current theme: ", colorConstant)
@@ -52,7 +52,7 @@ func getThemeColor(colorConstant string) sdl.Color {
 
 func loadThemes() {
 
-	newGUIColors := map[string]map[string]sdl.Color{}
+	newGUIColors := map[string]map[string]Color{}
 
 	filepath.Walk(LocalPath("assets/themes"), func(fp string, info os.FileInfo, err error) error {
 
@@ -81,11 +81,11 @@ func loadThemes() {
 				// A length of 0 means JSON couldn't properly unmarshal the data, so it was mangled somehow.
 				if len(jsonData) > 0 {
 
-					newGUIColors[themeName] = map[string]sdl.Color{}
+					newGUIColors[themeName] = map[string]Color{}
 
 					for key, value := range jsonData {
 						if !strings.Contains(key, "//") { // Strings that begin with "//" are ignored
-							newGUIColors[themeName][key] = sdl.Color{value[0], value[1], value[2], value[3]}
+							newGUIColors[themeName][key] = Color{value[0], value[1], value[2], value[3]}
 						}
 					}
 
@@ -1488,13 +1488,14 @@ func (checkbox *Checkbox) Draw() {
 
 	transformed := globals.Project.Camera.Translate(dst)
 
+	color := getThemeColor(GUIFontColor)
+	globals.Project.GUITexture.SetColorMod(color.RGB())
+	globals.Renderer.CopyF(globals.Project.GUITexture, src, transformed)
+
 	if checkbox.Checked {
 		src.Y += 32
+		globals.Renderer.CopyF(globals.Project.GUITexture, src, transformed)
 	}
-
-	color := getThemeColor(GUIFontColor)
-	globals.Project.GUITexture.SetColorMod(color.R, color.G, color.B)
-	globals.Renderer.CopyF(globals.Project.GUITexture, src, transformed)
 }
 
 type Label struct {
@@ -1672,7 +1673,7 @@ func (label *Label) Draw() {
 		src := &sdl.Rect{0, 0, w, h}
 		newRect := &sdl.FRect{label.Rect.X, label.Rect.Y, float32(w), float32(h)}
 
-		newRect.Y -= baseline // Center it
+		// newRect.Y -= baseline // Center it
 
 		if label.WorldSpace {
 			newRect = globals.Project.Camera.Translate(newRect)
@@ -1689,8 +1690,8 @@ func (label *Label) Draw() {
 		cp.X -= 2
 
 		color := getThemeColor(GUIFontColor)
-		globals.Renderer.SetDrawColor(color.R, color.G, color.B, color.A)
-		globals.Renderer.DrawLineF(cp.X, cp.Y, cp.X, cp.Y+float32(globals.Font.Ascent()))
+		globals.Renderer.SetDrawColor(color.RGBA())
+		globals.Renderer.DrawLineF(cp.X, cp.Y, cp.X, cp.Y+float32(globals.GridSize))
 
 		if globals.Mouse.WorldPosition().Inside(label.Rect) {
 			globals.Mouse.SetCursor("text caret")
@@ -1734,9 +1735,9 @@ func (label *Label) CaretPosition() Point {
 
 			if char == '\n' {
 				point.X = label.Rect.X
-				point.Y += float32(globals.Font.Ascent())
+				point.Y += globals.GridSize
 			} else {
-				point.X += globals.TextRenderer.Glyph(char).Image.Size.X
+				point.X += float32(globals.TextRenderer.Glyph(char).Width())
 			}
 			index--
 
@@ -1748,7 +1749,7 @@ func (label *Label) CaretPosition() Point {
 
 		if !strings.ContainsRune(string(line), '\n') {
 			point.X = label.Rect.X
-			point.Y += float32(globals.Font.Ascent())
+			point.Y += globals.GridSize
 		}
 
 	}

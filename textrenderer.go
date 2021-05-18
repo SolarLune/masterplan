@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"strings"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -18,7 +19,7 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 		return glyph.Image.Texture
 	}
 
-	surf, err := globals.Font.RenderUTF8Blended(string(glyph.Rune), sdl.Color{255, 255, 255, 0})
+	surf, err := globals.Font.RenderUTF8Solid(string(glyph.Rune), sdl.Color{255, 255, 255, 0})
 
 	if err != nil {
 		log.Println(string(glyph.Rune), glyph.Rune, err)
@@ -36,6 +37,15 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 
 	return texture
 
+}
+
+func (glyph *Glyph) Width() int32 {
+	asr := float64(glyph.Image.Size.X / glyph.Image.Size.Y)
+	return int32(math.Ceil(float64(glyph.Height()) * asr))
+}
+
+func (glyph *Glyph) Height() int32 {
+	return int32(globals.GridSize)
 }
 
 type TextRendererResult struct {
@@ -72,11 +82,21 @@ func (tr *TextRenderer) Glyph(char rune) *Glyph {
 
 }
 
-func (tr *TextRenderer) RenderText(text string, color sdl.Color, wordWrapMax Point) *TextRendererResult {
+func (tr *TextRenderer) GlyphsForWord(word []rune) []*Glyph {
+	glyphs := []*Glyph{}
+	for _, char := range word {
+		if glyph := tr.Glyph(char); glyph != nil {
+			glyphs = append(glyphs, glyph)
+		}
+	}
+	return glyphs
+}
+
+func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point) *TextRendererResult {
 
 	// wrappedText := ""
 
-	lineskip := globals.Font.Ascent()
+	lineskip := int(globals.GridSize)
 
 	textLines := [][]rune{{}}
 
@@ -90,6 +110,8 @@ func (tr *TextRenderer) RenderText(text string, color sdl.Color, wordWrapMax Poi
 		h = int32(wordWrapMax.Y)
 	} else {
 
+		// This doesn't work if we're upscaling the font (rendering the glyphs at high res, then scaling them down
+		// as necessary to fit in the areas we need them to fit in)
 		for _, line := range perLine {
 			width, _, _ := globals.Font.SizeUTF8(line)
 			if w < int32(width) {
@@ -129,49 +151,56 @@ func (tr *TextRenderer) RenderText(text string, color sdl.Color, wordWrapMax Poi
 			x = 0
 			y += int32(lineskip)
 			continue
-		}
+		} else {
 
-		// Wordwrapping
-		if wordWrapMax.X >= 0 && wordWrapMax.Y >= 0 {
+			// Wordwrapping
+			if wordWrapMax.X >= 0 && wordWrapMax.Y >= 0 {
 
-			if c != '\n' && (c == ' ' || x+int32(glyph.Image.Size.X) >= int32(wordWrapMax.X)) {
+				if c == ' ' {
 
-				end := strings.Index(text[i+1:], " ")
-				if end < 0 {
-					end = strings.Index(text[i+1:], "\n")
-				}
-				if end < 0 {
-					end = len(text) - i
-				}
+					end := strings.Index(text[i+1:], " ")
+					if end < 0 {
+						end = strings.Index(text[i+1:], "\n")
+					}
+					if end < 0 {
+						end = len(text) - i
+					}
 
-				nextStart := i
-				nextEnd := nextStart + end
+					nextStart := i
+					nextEnd := nextStart + end + 1
 
-				if nextStart > len(text) {
-					nextStart = len(text)
-				}
+					if nextStart > len(text) {
+						nextStart = len(text)
+					}
 
-				if nextEnd > len(text) {
-					nextEnd = len(text)
-				}
+					if nextEnd > len(text) {
+						nextEnd = len(text)
+					}
 
-				nextWord := text[nextStart:nextEnd]
+					nextWord := text[nextStart:nextEnd]
 
-				w, _, _ := globals.Font.SizeUTF8(nextWord)
+					wordWidth := int32(0)
+					for _, g := range tr.GlyphsForWord([]rune(nextWord)) {
+						wordWidth += g.Width()
+					}
 
-				if float32(x+int32(w)) > wordWrapMax.X {
+					if float32(x+wordWidth) > wordWrapMax.X {
+						x = 0
+						y += int32(lineskip)
 
-					x = 0
-					y += int32(lineskip)
-
-					if c == ' ' {
 						// Spaces become effectively newline enders
 						textLines[len(textLines)-1] = append(textLines[len(textLines)-1], '\n')
 						textLines = append(textLines, []rune{})
 						continue
-					} else {
-						textLines = append(textLines, []rune{})
+
 					}
+
+				} else if x+glyph.Width() >= int32(wordWrapMax.X) {
+
+					x = 0
+					y += int32(lineskip)
+
+					textLines = append(textLines, []rune{})
 
 				}
 
@@ -179,9 +208,11 @@ func (tr *TextRenderer) RenderText(text string, color sdl.Color, wordWrapMax Poi
 
 		}
 
-		dst := &sdl.Rect{x, y, int32(glyph.Image.Size.X), int32(glyph.Image.Size.Y)}
+		dst := &sdl.Rect{x, y, glyph.Width(), glyph.Height()}
+		glyph.Texture().SetColorMod(getThemeColor(GUIFontColor).RGB())
+		glyph.Texture().SetAlphaMod(getThemeColor(GUIFontColor)[3])
 		globals.Renderer.Copy(glyph.Texture(), nil, dst)
-		x += int32(glyph.Image.Size.X)
+		x += glyph.Width()
 		textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
 
 	}

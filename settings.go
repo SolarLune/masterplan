@@ -64,7 +64,7 @@ func NewProgramSettings() ProgramSettings {
 		FontSize:               30,
 		GUIFontSizeMultiplier:  GUIFontSize100,
 		ScrollwheelSensitivity: 1,
-		Theme:                  "Sunshine", // Default theme
+		Theme:                  "Moonlight", // Default theme
 		DownloadTimeout:        4,
 		AudioVolume:            80,
 		AudioSampleRate:        44100,
