@@ -90,6 +90,7 @@ type Mouse struct {
 	Cursors          map[string]*sdl.Cursor
 	ButtonState      map[uint8]*InputState
 	Position         Point
+	RelativeMovement Point
 	Wheel            int32
 	CurrentCursor    string
 	NextCursor       string
@@ -155,6 +156,7 @@ func (mouse *Mouse) ApplyCursor() {
 func handleEvents() {
 
 	globals.Mouse.Wheel = 0
+	globals.Mouse.RelativeMovement = Point{}
 
 	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 
@@ -182,6 +184,8 @@ func handleEvents() {
 			mouseEvent := event.(*sdl.MouseMotionEvent)
 			globals.Mouse.Position.X = float32(mouseEvent.X) * globals.Project.Camera.Zoom
 			globals.Mouse.Position.Y = float32(mouseEvent.Y) * globals.Project.Camera.Zoom
+			globals.Mouse.RelativeMovement.X = float32(mouseEvent.XRel)
+			globals.Mouse.RelativeMovement.Y = float32(mouseEvent.YRel)
 
 		case *sdl.MouseButtonEvent:
 

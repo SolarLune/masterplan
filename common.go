@@ -124,6 +124,10 @@ func (point Point) Mult(factor float32) Point {
 	return Point{point.X * factor, point.Y * factor}
 }
 
+func (point Point) Div(factor float32) Point {
+	return Point{point.X / factor, point.Y / factor}
+}
+
 func (point Point) Equals(other Point) bool {
 	return math.Abs(float64(point.X-other.X)) < 0.1 && math.Abs(float64(point.Y-other.Y)) < 0.1
 }
@@ -244,7 +248,7 @@ func TileTexture(srcTexture Image, srcRect *sdl.Rect, w, h int32) *Image {
 
 func ReloadFonts() {
 
-	fontPath := LocalPath("assets/excel.ttf")
+	fontPath := LocalPath("assets/quicksand.otf")
 
 	if globals.ProgramSettings.CustomFontPath != "" && FileExists(globals.ProgramSettings.CustomFontPath) {
 		fontPath = globals.ProgramSettings.CustomFontPath

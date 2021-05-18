@@ -214,6 +214,10 @@ func (project *Project) MouseActions() {
 			project.Camera.TargetZoom -= 0.25
 		}
 
+		if globals.Mouse.Button(sdl.BUTTON_MIDDLE).Held() {
+			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement.Mult(8))
+		}
+
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).DoubleClicked() {
 
 			card := project.CreateNewCard()

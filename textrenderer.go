@@ -19,7 +19,7 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 		return glyph.Image.Texture
 	}
 
-	surf, err := globals.Font.RenderUTF8Solid(string(glyph.Rune), sdl.Color{255, 255, 255, 0})
+	surf, err := globals.Font.RenderUTF8Blended(string(glyph.Rune), sdl.Color{255, 255, 255, 0})
 
 	if err != nil {
 		log.Println(string(glyph.Rune), glyph.Rune, err)
