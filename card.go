@@ -2,12 +2,13 @@ package main
 
 import (
 	"math"
+	"math/rand"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 type Card struct {
-	Project         *Project
+	Board           *Page
 	Rect            *sdl.FRect
 	DisplayRect     *sdl.FRect
 	Contents        Contents
@@ -19,16 +20,25 @@ type Card struct {
 	DragStartOffset Point
 	Resizing        bool
 	Depth           int32
+	Occupying       []Point
+	ID              int64
+	RandomValue     float32
 }
 
-func NewCard(project *Project) *Card {
+var cardID = int64(0)
+
+func NewCard(board *Page) *Card {
 
 	card := &Card{
 		Rect:            &sdl.FRect{},
 		DisplayRect:     &sdl.FRect{},
-		Project:         project,
+		Board:           board,
 		ContentsLibrary: map[string]Contents{},
+		ID:              cardID,
+		RandomValue:     rand.Float32(),
 	}
+
+	cardID++
 
 	card.SetContents(ContentTypeCheckbox)
 
@@ -41,72 +51,105 @@ func (card *Card) Update() {
 	if card.Dragging {
 		card.Rect.X = -card.DragStartOffset.X + globals.Mouse.WorldPosition().X
 		card.Rect.Y = -card.DragStartOffset.Y + globals.Mouse.WorldPosition().Y
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
+			card.StopDragging()
+		}
 	}
 
 	if card.Resizing {
 		globals.Mouse.SetCursor("resize")
-		card.Rect.W = globals.Mouse.WorldPosition().X - card.Rect.X
-		card.Rect.H = globals.Mouse.WorldPosition().Y - card.Rect.Y
-		card.Recreate(card.Rect.W, card.Rect.H)
+		card.Recreate(globals.Mouse.WorldPosition().X-card.Rect.X, globals.Mouse.WorldPosition().Y-card.Rect.Y)
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
+			card.StopResizing()
+		}
 	}
 
 	softness := float32(0.4)
 
 	card.DisplayRect.X += float32(card.Rect.X-card.DisplayRect.X) * softness
 	card.DisplayRect.Y += float32(card.Rect.Y-card.DisplayRect.Y) * softness
-	card.DisplayRect.W += float32(card.Rect.W-card.DisplayRect.W) * softness
-	card.DisplayRect.H += float32(card.Rect.H-card.DisplayRect.H) * softness
+	card.DisplayRect.W += float32(card.Rect.W-card.DisplayRect.W+1) * softness
+	card.DisplayRect.H += float32(card.Rect.H-card.DisplayRect.H+1) * softness
+
+	if card.Contents != nil {
+		card.Contents.Update()
+	}
 
 	resizeRect := &sdl.FRect{card.Rect.X + card.Rect.W - 16, card.Rect.Y + card.Rect.H - 16, 16, 16}
 
 	if globals.Mouse.WorldPosition().Inside(resizeRect) {
 		globals.Mouse.SetCursor("resize")
 
-		if ClickedInRect(resizeRect, true) {
-			card.Project.SendMessage(NewMessage(MessageSelect, card, nil))
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
 			card.StartResizing()
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
+			// card.Project.Selection.Add(card)
+			// for _, card := range card.Project.Selection.Cards {
+			// 	card.StartResizing()
+			// }
 		}
 
-	}
+	} else if ClickedInRect(card.Rect, true) {
 
-	if card.Contents != nil {
-		card.Contents.Update()
-	}
+		selection := card.Board.Selection
 
-	if !globals.Mouse.WorldPosition().Inside(resizeRect) && ClickedInRect(card.Rect, true) {
+		if globals.ProgramSettings.Keybindings.On(KBRemoveFromSelection) {
 
-		card.Project.SendMessage(NewMessage(MessageSelect, card, nil))
-		card.StartDragging()
+			if card.Selected {
+				card.Deselect()
+				selection.Remove(card)
+			}
 
-	}
+		} else {
 
-	if ClickedOutRect(card.Rect, true) {
-		card.Selected = false
-	}
+			if !card.Selected && !globals.ProgramSettings.Keybindings.On(KBAddToSelection) {
 
-	if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
-		card.StopResizing()
-		card.StopDragging()
+				for _, card := range selection.Cards {
+					card.Deselect()
+				}
+
+				selection.Clear()
+			}
+
+			selection.Add(card)
+			card.Select()
+
+			for _, card := range selection.Cards {
+				card.StartDragging()
+			}
+
+		}
+
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
 	}
 
 }
 
 func (card *Card) DrawCard() {
 
-	tp := card.Project.Camera.Translate(card.DisplayRect)
+	tp := card.Board.Project.Camera.Translate(card.DisplayRect)
+
+	if card.Contents != nil {
+		color := card.Contents.Color()
+		card.Result.SetColorMod(color.RGB())
+		card.Result.SetAlphaMod(color[3])
+	}
+	// color := getThemeColor(GUI)
 
 	globals.Renderer.CopyF(card.Result, nil, tp)
 
 	if card.Selected {
 
-		t := uint8(math.Sin(globals.Time*math.Pi*2)*16 + 16)
-
-		card.Result.SetColorMod(t, t, t)
-
+		color := NewColor(30, 30, 30, 255)
+		color = color.Add(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
+		card.Result.SetColorMod(color.RGB())
 		card.Result.SetBlendMode(sdl.BLENDMODE_ADD)
 		globals.Renderer.CopyF(card.Result, nil, tp)
 		card.Result.SetBlendMode(sdl.BLENDMODE_BLEND)
 		card.Result.SetColorMod(255, 255, 255)
+
 	}
 
 }
@@ -119,11 +162,19 @@ func (card *Card) DrawContents() {
 
 }
 
+func (card *Card) Select() {
+	card.Selected = true
+}
+
+func (card *Card) Deselect() {
+	card.Selected = false
+}
+
 func (card *Card) StartDragging() {
 	card.DragStart = globals.Mouse.WorldPosition()
 	card.DragStartOffset = card.DragStart.Sub(Point{card.Rect.X, card.Rect.Y})
 	card.Dragging = true
-	card.Project.Raise(card)
+	card.Board.Raise(card)
 }
 
 func (card *Card) StopDragging() {
@@ -134,7 +185,7 @@ func (card *Card) StopDragging() {
 
 func (card *Card) StartResizing() {
 	card.Resizing = true
-	card.Project.Raise(card)
+	card.Board.Raise(card)
 }
 
 func (card *Card) StopResizing() {
@@ -143,6 +194,7 @@ func (card *Card) StopResizing() {
 	card.Rect.Y = float32(math.Round(float64(card.Rect.Y/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.W = float32(math.Round(float64(card.Rect.W/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.H = float32(math.Round(float64(card.Rect.H/globals.GridSize)) * float64(globals.GridSize))
+
 	card.ReceiveMessage(NewMessage(MessageResizeCompleted, card, nil))
 }
 
@@ -208,27 +260,43 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 		src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
 
-		color := card.Contents.Color()
-		card.Project.GUITexture.SetColorMod(color.RGB())
-		card.Project.GUITexture.SetAlphaMod(color[3])
+		drawPatches := func() {
 
-		for _, patch := range patches {
+			for _, patch := range patches {
 
-			if patch.W > 0 && patch.H > 0 {
-				globals.Renderer.CopyF(globals.Project.GUITexture, src, patch)
-			}
+				if patch.W > 0 && patch.H > 0 {
+					globals.Renderer.CopyF(globals.Project.GUITexture, src, patch)
+				}
 
-			src.X += src.W
+				src.X += src.W
 
-			if src.X > int32(cornerSize)*2 {
-				src.X = 0
-				src.Y += int32(cornerSize)
+				if src.X > int32(cornerSize)*2 {
+					src.X = 0
+					src.Y += int32(cornerSize)
+				}
+
 			}
 
 		}
 
-		card.Project.GUITexture.SetColorMod(255, 255, 255)
-		card.Project.GUITexture.SetAlphaMod(255)
+		rand.Seed(card.ID)
+
+		f := uint8(rand.Float32() * 16)
+		globals.Project.GUITexture.SetColorMod(255-f, 255-f, 255-f)
+		globals.Project.GUITexture.SetAlphaMod(255)
+
+		drawPatches()
+
+		src.X = 0
+		src.Y = 48
+
+		// Drawing outlines
+		globals.Project.GUITexture.SetColorMod(0, 0, 0)
+
+		drawPatches()
+
+		card.Board.Project.GUITexture.SetColorMod(255, 255, 255)
+		card.Board.Project.GUITexture.SetAlphaMod(255)
 
 		globals.Renderer.SetRenderTarget(screen)
 
@@ -237,18 +305,6 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 }
 
 func (card *Card) ReceiveMessage(message *Message) {
-
-	if message.Type == MessageSelect {
-
-		globals.Mouse.Button(sdl.BUTTON_LEFT).ConsumePress()
-
-		if message.ID == card {
-			card.Selected = true
-		} else {
-			card.Selected = false
-		}
-
-	}
 
 	if card.Contents != nil {
 		card.Contents.ReceiveMessage(message)

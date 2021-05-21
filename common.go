@@ -128,6 +128,10 @@ func (point Point) Div(factor float32) Point {
 	return Point{point.X / factor, point.Y / factor}
 }
 
+func (point Point) DistanceSquared(other Point) float32 {
+	return float32(math.Pow(float64(other.X-point.X), 2) + math.Pow(float64(other.Y-point.Y), 2))
+}
+
 func (point Point) Equals(other Point) bool {
 	return math.Abs(float64(point.X-other.X)) < 0.1 && math.Abs(float64(point.Y-other.Y)) < 0.1
 }
@@ -144,6 +148,38 @@ func ClickedOutRect(rect *sdl.FRect, worldSpace bool) bool {
 		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.WorldPosition().Inside(rect)
 	}
 	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.Position.Inside(rect)
+}
+
+type CorrectingRect struct {
+	X1, Y1, X2, Y2 float32
+}
+
+func NewCorrectingRect(x1, y1, x2, y2 float32) CorrectingRect {
+	return CorrectingRect{x1, y1, x2, y2}
+}
+
+func (cr CorrectingRect) SDLRect() *sdl.FRect {
+
+	rect := &sdl.FRect{}
+
+	if cr.X1 < cr.X2 {
+		rect.X = cr.X1
+		rect.W = cr.X2 - cr.X1
+	} else {
+		rect.X = cr.X2
+		rect.W = cr.X1 - cr.X2
+	}
+
+	if cr.Y1 < cr.Y2 {
+		rect.Y = cr.Y1
+		rect.H = cr.Y2 - cr.Y1
+	} else {
+		rect.Y = cr.Y2
+		rect.H = cr.Y1 - cr.Y2
+	}
+
+	return rect
+
 }
 
 type Image struct {
@@ -263,6 +299,8 @@ func ReloadFonts() {
 
 		loadedFont, err := ttf.OpenFont(fontPath, globals.ProgramSettings.FontSize)
 
+		loadedFont.SetHinting(ttf.HINTING_MONO)
+
 		if err != nil {
 			panic(err)
 		}
@@ -284,22 +322,22 @@ func LoadCursors() {
 			panic(err)
 		}
 
-		cursorSurf, err := sdl.CreateRGBSurfaceWithFormat(0, 32, 32, 32, sdl.PIXELFORMAT_RGBA8888)
+		cursorSurf, err := sdl.CreateRGBSurfaceWithFormat(0, 48, 48, 32, sdl.PIXELFORMAT_RGBA8888)
 		if err != nil {
 			panic(err)
 		}
 
 		cursorImg.SetBlendMode(sdl.BLENDMODE_BLEND)
 		cursorSurf.SetBlendMode(sdl.BLENDMODE_BLEND)
-		cursorImg.Blit(&sdl.Rect{srcX, srcY, 32, 32}, cursorSurf, nil)
+		cursorImg.Blit(&sdl.Rect{srcX, srcY, 48, 48}, cursorSurf, nil)
 
-		return sdl.CreateColorCursor(cursorSurf, 0, 0)
+		return sdl.CreateColorCursor(cursorSurf, 24, 24)
 
 	}
 
-	globals.Mouse.Cursors["normal"] = createCursor(448, 0)
-	globals.Mouse.Cursors["resize"] = createCursor(448, 32)
-	globals.Mouse.Cursors["text caret"] = createCursor(448, 64)
+	globals.Mouse.Cursors["normal"] = createCursor(432, 0)
+	globals.Mouse.Cursors["resize"] = createCursor(432, 48)
+	globals.Mouse.Cursors["text caret"] = createCursor(432, 96)
 
 	globals.Mouse.SetCursor("normal")
 
@@ -307,8 +345,8 @@ func LoadCursors() {
 
 type Color []uint8
 
-func NewColor() Color {
-	return Color{0, 0, 0, 0}
+func NewColor(r, g, b, a uint8) Color {
+	return Color{r, g, b, a}
 }
 
 func (color Color) RGBA() (uint8, uint8, uint8, uint8) {
@@ -319,54 +357,43 @@ func (color Color) RGB() (uint8, uint8, uint8) {
 	return color[0], color[1], color[2]
 }
 
-func (color Color) Add(value uint8) {
+func (color Color) Add(value uint8) Color {
 
-	for i, c := range color[:3] {
+	newColor := NewColor(color.RGBA())
 
-		if value > 0 {
+	for i, c := range newColor[:3] {
 
-			if c > 255-value {
-				color[i] = 255
-			} else {
-				color[i] += value
-			}
-
+		if c > 255-value {
+			newColor[i] = 255
 		} else {
-
-			if c < value {
-				color[i] = 0
-			} else {
-				color[i] -= value
-			}
-
+			newColor[i] += value
 		}
+
 	}
+
+	return newColor
 
 }
 
-func (color Color) Sub(value uint8) {
+func (color Color) Sub(value uint8) Color {
 
-	for i, c := range color[:3] {
+	newColor := NewColor(color.RGBA())
 
-		if value > 0 {
+	for i, c := range newColor[:3] {
 
-			if c > 255-value {
-				color[i] = 255
-			} else {
-				color[i] += value
-			}
-
+		if c < value {
+			newColor[i] = 0
 		} else {
-
-			if c < value {
-				color[i] = 0
-			} else {
-				color[i] -= value
-			}
-
+			newColor[i] -= value
 		}
+
 	}
 
+	return newColor
+
+}
+func (color Color) Clone() Color {
+	return NewColor(color.RGBA())
 }
 
 // func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {

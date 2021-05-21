@@ -32,6 +32,11 @@ const (
 	KBNewCheckboxCard = "New Checkbox Card"
 	KBNewNoteCard     = "New Note Card"
 	KBDebugRestart    = "DEBUG: RESTART"
+
+	KBAddToSelection      = "Add to Selection Modifier"
+	KBRemoveFromSelection = "Remove From Selection Modifier"
+	KBDeleteCards         = "Delete Selected Cards"
+	KBSelectAllCards      = "Select All Cards"
 	// KBCenterView              = "Center View to Origin"
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -67,8 +72,6 @@ const (
 	// KBSelectTopTaskInStack    = "Select Top Task in Stack"
 	// KBSelectBottomTaskInStack = "Select Bottom Task in Stack"
 	// KBSlideTask               = "Slide Task Modifier"
-	// KBAddToSelection          = "Add to Selection Modifier"
-	// KBRemoveFromSelection     = "Remove From Selection Modifier"
 	// KBUndo                    = "Undo"
 	// KBRedo                    = "Redo"
 	// KBSaveAs                  = "Save Project As..."
@@ -194,10 +197,7 @@ func (shortcut *Shortcut) ResetToDefault() {
 }
 
 type Keybindings struct {
-	creationOrder            []string
-	Shortcuts                map[string]*Shortcut
-	ShortcutsByLevel         map[int][]*Shortcut
-	ResetDurationOnShortcuts []*Shortcut
+	Shortcuts map[string]*Shortcut
 }
 
 func NewKeybindings() *Keybindings {
@@ -209,7 +209,6 @@ func NewKeybindings() *Keybindings {
 func (kb *Keybindings) Define(bindingName string, keyCode sdl.Keycode, mod sdl.Keymod) *Shortcut {
 	sc := NewShortcut(bindingName, keyCode, mod)
 	kb.Shortcuts[bindingName] = sc
-	kb.creationOrder = append(kb.creationOrder, bindingName)
 	return sc
 }
 
@@ -249,6 +248,11 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBNewCheckboxCard, sdl.K_1, sdl.KMOD_SHIFT).triggerMode = TriggerModePress
 
 	kb.Define(KBNewNoteCard, sdl.K_2, sdl.KMOD_SHIFT).triggerMode = TriggerModePress
+
+	kb.Define(KBAddToSelection, sdl.K_LSHIFT, sdl.KMOD_NONE).triggerMode = TriggerModeHold
+	kb.Define(KBRemoveFromSelection, sdl.K_LALT, sdl.KMOD_NONE).triggerMode = TriggerModeHold
+	kb.Define(KBDeleteCards, sdl.K_DELETE, sdl.KMOD_NONE)
+	kb.Define(KBSelectAllCards, sdl.K_a, sdl.KMOD_CTRL)
 
 	// kb.Define(KBCenterView, sdl.K_BACKSPACE)
 	// kb.Define(KBURLButton, sdl.K_LCTRL).triggerMode = TriggerModeHold
@@ -348,19 +352,19 @@ func (kb *Keybindings) Default() {
 	// 	shortcut.canClash = false
 	// }
 
-	kb.ShortcutsByLevel = map[int][]*Shortcut{}
+	// kb.ShortcutsByLevel = map[int][]*Shortcut{}
 
-	for _, shortcut := range kb.Shortcuts {
+	// for _, shortcut := range kb.Shortcuts {
 
-		_, exists := kb.ShortcutsByLevel[shortcut.KeyCount()-1]
+	// 	_, exists := kb.ShortcutsByLevel[shortcut.KeyCount()-1]
 
-		if !exists {
-			kb.ShortcutsByLevel[shortcut.KeyCount()-1] = []*Shortcut{}
-		}
+	// 	if !exists {
+	// 		kb.ShortcutsByLevel[shortcut.KeyCount()-1] = []*Shortcut{}
+	// 	}
 
-		kb.ShortcutsByLevel[shortcut.KeyCount()-1] = append(kb.ShortcutsByLevel[shortcut.KeyCount()-1], shortcut)
+	// 	kb.ShortcutsByLevel[shortcut.KeyCount()-1] = append(kb.ShortcutsByLevel[shortcut.KeyCount()-1], shortcut)
 
-	}
+	// }
 
 }
 
@@ -368,22 +372,6 @@ func (kb *Keybindings) ReenableAllShortcuts() {
 	for _, shortcut := range kb.Shortcuts {
 		shortcut.Enabled = true
 	}
-}
-
-func (kb *Keybindings) ResetTimingOnShortcut(sc *Shortcut) {
-	for _, existing := range kb.ResetDurationOnShortcuts {
-		if existing == sc {
-			return
-		}
-	}
-	kb.ResetDurationOnShortcuts = append(kb.ResetDurationOnShortcuts, sc)
-}
-
-func (kb *Keybindings) HandleResettingShortcuts() {
-	for _, sc := range kb.ResetDurationOnShortcuts {
-		sc.Repeat = time.Now()
-	}
-	kb.ResetDurationOnShortcuts = []*Shortcut{}
 }
 
 func (kb *Keybindings) On(bindingName string) bool {
@@ -397,6 +385,22 @@ func (kb *Keybindings) On(bindingName string) bool {
 	scMod := sc.Modifiers &^ sdl.KMOD_CAPS &^ sdl.KMOD_NUM &^ sdl.KMOD_ALT
 	keyMod := globals.Keyboard.Key(sc.Key).Mods &^ sdl.KMOD_CAPS &^ sdl.KMOD_NUM
 	modsOn := (keyMod == 0 && scMod == 0) || keyMod&scMod > 0
+
+	modKeys := []sdl.Keycode{
+		sdl.K_LSHIFT,
+		sdl.K_RSHIFT,
+		sdl.K_LALT,
+		sdl.K_RALT,
+		sdl.K_LCTRL,
+		sdl.K_RCTRL,
+		sdl.K_MODE,
+	}
+
+	for _, key := range modKeys {
+		if sc.Key == key {
+			modsOn = true
+		}
+	}
 
 	if sc.triggerMode == TriggerModeHold {
 		return globals.Keyboard.Key(sc.Key).Held() && modsOn

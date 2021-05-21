@@ -244,11 +244,6 @@ func main() {
 
 		// handleMouseInputs()
 
-		if globals.ProgramSettings.Keybindings.On(KBDebugRestart) {
-			fmt.Println("restart")
-			globals.Project = NewProject()
-		}
-
 		// if globals.ProgramSettings.Keybindings.On(KBShowFPS) {
 		// 	drawFPS = !drawFPS
 		// }
@@ -308,6 +303,11 @@ func main() {
 		} else {
 
 			handleEvents()
+
+			if globals.ProgramSettings.Keybindings.On(KBDebugRestart) {
+				fmt.Println("restart")
+				globals.Project = NewProject()
+			}
 
 			// if rl.IsKeyPressed(rl.KeyF5) {
 			// 	profileCPU()

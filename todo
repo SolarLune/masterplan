@@ -1,6 +1,32 @@
-For the below list, INTERNAL indicates things I do for internal / non-public-facing changes to MasterPlan; this might be API changes or new features added to new features that didn't exist previously, as an example.
+
+Next Stream:
+
+Select text
+Copy + Paste Cards
+Copy + Paste text?
+Copy + Paste Cards as text?
+Image Cards?
+
+Cycle through selected Cards with Ctrl + Scroll wheel or menu?
+
+Context Menu
+
+-- Rough Improvements --
+
+Sound Cards?
+Cards are freely resizeable
+You can now type directly onto Cards
+The UI has gotten a facelift, making it appear more attractive, less pixelated.
+Words now auto-wrap when typing into editable Labels.
 
 -- Rough Changelog --
+
+File Menu
+Settings
+Context Menu
+Glyphs should be scaled within each zone symmetrically, rather than scaling vertically and horizontally on different axes / ratios
+
+Instead of the current Board tab system, it would be better to implement a hierarchical view, allowing you to create and reposition folders and pages. Boards would now be Pages, allowing you to rearrange pages of information to be correlated, while also remaining easy to reach at a moment's notice.
 
 RESOLVED
 
@@ -51,6 +77,7 @@ Font base size “knowledge”
 Text drawing efficiently
 IME support (entry of foreign characters)
 Ideally, different locale support (detection of the name of a key from a different locale, so the Q key becomes the A key on a FR keyboard locale)
+GUI scaling (so buttons can become bigger, as an example, for higher-resolution screens / people with visibility issues)
 
 Dialog editor of some description??? Seems like it could be sick to have some kind of system that would allow you to 
 

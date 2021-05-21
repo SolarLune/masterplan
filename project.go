@@ -2,7 +2,6 @@ package main
 
 import (
 	"path/filepath"
-	"sort"
 
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
@@ -36,6 +35,7 @@ const (
 	// Project actions
 
 	StateNeutral     = "project state neutral"
+	StateEditing     = "project state editing"
 	StateTextEditing = "project state text editing"
 
 	ActionNewProject    = "new"
@@ -49,15 +49,17 @@ const (
 )
 
 type Project struct {
-	GUITexture      *sdl.Texture
-	ProjectSettings *ProjectSettings
-	Cards           []*Card
-	Camera          *Camera
-	GridTexture     *Image
-	Resources       map[string]*Resource
-	ShadowTexture   *Image
-	State           string
-	Menu            *Menu
+	GUITexture       *sdl.Texture
+	ProjectSettings  *ProjectSettings
+	Pages            []*Page
+	CurrentPageIndex int
+	GridSpace        *Grid
+	Camera           *Camera
+	GridTexture      *Image
+	Resources        map[string]*Resource
+	ShadowTexture    *Image
+	State            string
+	Menu             *Menu
 }
 
 func NewProject() *Project {
@@ -65,10 +67,12 @@ func NewProject() *Project {
 	project := &Project{
 		ProjectSettings: NewProjectSettings(),
 		Camera:          NewCamera(),
-		Cards:           []*Card{},
 		Resources:       map[string]*Resource{},
 		State:           StateNeutral,
+		Pages:           []*Page{},
 	}
+
+	project.Pages = append(project.Pages, NewPage(project))
 
 	project.Menu = NewMenu(project, &sdl.FRect{0, 0, 512, 32})
 
@@ -98,8 +102,6 @@ func (project *Project) Update() {
 
 	project.Menu.Update()
 
-	project.State = StateNeutral
-
 	globals.Mouse.ApplyCursor()
 
 	globals.Mouse.SetCursor("normal")
@@ -107,6 +109,10 @@ func (project *Project) Update() {
 	if project.ShadowTexture == nil || project.ShadowTexture.Size != globals.ScreenSize {
 
 		shadowTex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y))
+
+		if project.ShadowTexture != nil && project.ShadowTexture.Texture != nil {
+			project.ShadowTexture.Texture.Destroy()
+		}
 		// fmt.Println(globals.ScreenSize.X, globals.ScreenSize.Y)
 		// shadowTex.SetColorMod(64, 64, 64)
 		shadowTex.SetColorMod(0, 0, 0)
@@ -124,14 +130,8 @@ func (project *Project) Update() {
 
 	project.Camera.Update()
 
-	reversed := append([]*Card{}, project.Cards...)
-
-	sort.Slice(reversed, func(i, j int) bool {
-		return j < i
-	})
-
-	for _, task := range reversed {
-		task.Update()
+	for _, page := range project.Pages {
+		page.Update()
 	}
 
 	project.GlobalShortcuts()
@@ -177,24 +177,7 @@ func (project *Project) Draw() {
 	// 	}
 	// }
 
-	screen := globals.Renderer.GetRenderTarget()
-
-	globals.Renderer.SetRenderTarget(project.ShadowTexture.Texture)
-	globals.Renderer.SetDrawColor(255, 255, 255, 0)
-	globals.Renderer.Clear()
-
-	for _, card := range project.Cards {
-		card.DrawCard()
-	}
-
-	globals.Renderer.SetRenderTarget(screen)
-
-	globals.Renderer.Copy(project.ShadowTexture.Texture, nil, &sdl.Rect{12, 12, int32(project.ShadowTexture.Size.X), int32(project.ShadowTexture.Size.Y)})
-
-	for _, card := range project.Cards {
-		card.DrawCard()
-		card.DrawContents()
-	}
+	project.CurrentPage().Draw()
 
 	project.Menu.Draw()
 
@@ -208,20 +191,10 @@ func (project *Project) MouseActions() {
 
 	if project.State == StateNeutral {
 
-		if globals.Mouse.Wheel > 0 {
-			project.Camera.TargetZoom += 0.25
-		} else if globals.Mouse.Wheel < 0 {
-			project.Camera.TargetZoom -= 0.25
-		}
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 
-		if globals.Mouse.Button(sdl.BUTTON_MIDDLE).Held() {
-			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement.Mult(8))
-		}
-
-		if globals.Mouse.Button(sdl.BUTTON_LEFT).DoubleClicked() {
-
-			card := project.CreateNewCard()
-
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+			card := project.CurrentPage().CreateNewCard()
 			card.Rect.X = globals.Mouse.WorldPosition().X - (card.Rect.W / 2)
 			card.Rect.Y = globals.Mouse.WorldPosition().Y - (card.Rect.H / 2)
 
@@ -229,21 +202,15 @@ func (project *Project) MouseActions() {
 
 	}
 
-}
-
-func (project *Project) Raise(card *Card) {
-
-	card.Depth = -100
-	for _, other := range project.Cards {
-		if other == card {
-			continue
-		}
-		other.Depth = 0
+	if globals.Mouse.Wheel > 0 {
+		project.Camera.TargetZoom += 0.25
+	} else if globals.Mouse.Wheel < 0 {
+		project.Camera.TargetZoom -= 0.25
 	}
 
-	sort.Slice(project.Cards, func(i, j int) bool {
-		return project.Cards[i].Depth > project.Cards[j].Depth
-	})
+	if globals.Mouse.Button(sdl.BUTTON_MIDDLE).Held() {
+		project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement.Mult(8))
+	}
 
 }
 
@@ -253,8 +220,8 @@ func (project *Project) SendMessage(msg *Message) {
 		panic("ERROR: Message has no type.")
 	}
 
-	for _, card := range project.Cards {
-		card.ReceiveMessage(msg)
+	for _, page := range project.Pages {
+		page.SendMessage(msg)
 	}
 
 }
@@ -316,23 +283,29 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBNewCheckboxCard) {
-			project.CreateNewCard()
+			project.CurrentPage().CreateNewCard()
 		} else if globals.ProgramSettings.Keybindings.On(KBNewNoteCard) {
-			project.CreateNewCard().SetContents(ContentTypeNote)
+			project.CurrentPage().CreateNewCard().SetContents(ContentTypeNote)
+		}
+
+		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {
+			for _, card := range project.CurrentPage().Selection.Cards {
+				project.CurrentPage().DeleteCard(card)
+			}
+		}
+
+		if globals.ProgramSettings.Keybindings.On(KBSelectAllCards) {
+			for _, card := range project.CurrentPage().Cards {
+				// card.Select()
+				project.CurrentPage().Selection.Add(card)
+			}
+
 		}
 
 		project.Camera.TargetPosition.X += dx * project.Camera.Zoom
 		project.Camera.TargetPosition.Y += dy * project.Camera.Zoom
 
 	}
-
-}
-
-func (project *Project) CreateNewCard() *Card {
-
-	newCard := NewCard(project)
-	project.Cards = append(project.Cards, newCard)
-	return newCard
 
 }
 
@@ -377,4 +350,8 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 
 	return resource
 
+}
+
+func (project *Project) CurrentPage() *Page {
+	return project.Pages[project.CurrentPageIndex]
 }

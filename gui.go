@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,14 +31,16 @@ import (
 // )
 
 const (
-	GUIBGColor       = "Background Color"
-	GUIGridColor     = "Grid Color"
-	GUIFontColor     = "Font Color"
-	GUIMenuColor     = "Menu Color"
-	GUICheckboxColor = "Checkbox Color"
-	GUINoteColor     = "Note Color"
-	GUIMusicColor    = "Music Color"
-	GUITimerColor    = "Timer Color"
+	GUIBGColor         = "Background Color"
+	GUIGridColor       = "Grid Color"
+	GUIFontColor       = "Font Color"
+	GUIMenuColor       = "Menu Color"
+	GUICheckboxColor   = "Checkbox Color"
+	GUICompletedColor  = "Completed Color"
+	GUINoteColor       = "Note Color"
+	GUIMusicColor      = "Music Color"
+	GUITimerColor      = "Timer Color"
+	GUIBlankImageColor = "Blank Image Color"
 )
 
 var guiColors map[string]map[string]Color
@@ -1475,7 +1478,7 @@ func (checkbox *Checkbox) Update() {
 	dst := &sdl.FRect{checkbox.Position.X, checkbox.Position.Y, 32, 32}
 
 	if ClickedInRect(dst, true) {
-		globals.Mouse.Button(sdl.BUTTON_LEFT).ConsumePress()
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		checkbox.Checked = !checkbox.Checked
 	}
 
@@ -1557,25 +1560,25 @@ func (label *Label) TextAsString() string {
 
 func (label *Label) Update() {
 
-	activeRect := label.Rect
+	activeRect := &sdl.FRect{label.Rect.X, label.Rect.Y, label.Rect.W, label.Rect.H}
 	activeRect.W = label.RendererResult.Image.Size.X
 	activeRect.H = label.RendererResult.Image.Size.Y
 
 	if label.Editable {
 
-		if ClickedInRect(activeRect, label.WorldSpace) && globals.Mouse.Button(sdl.BUTTON_LEFT).DoubleClicked() {
+		if ClickedInRect(activeRect, label.WorldSpace) && globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 			label.Editing = true
-			globals.Mouse.Button(sdl.BUTTON_LEFT).ConsumePress()
-		} else if ClickedOutRect(activeRect, label.WorldSpace) && label.Editing {
-			label.Editing = false
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
 		}
 
 		if label.Editing {
 
 			globals.Project.State = StateTextEditing
 
-			if globals.Keyboard.Key(sdl.K_ESCAPE).Pressed() {
+			if ClickedOutRect(activeRect, label.WorldSpace) || globals.Keyboard.Key(sdl.K_ESCAPE).Pressed() {
 				label.Editing = false
+				globals.Project.State = StateNeutral
 			}
 
 			if globals.Keyboard.Key(sdl.K_RIGHT).Pressed() {
@@ -1611,6 +1614,54 @@ func (label *Label) Update() {
 				} else {
 					label.CaretPos = len(label.Text)
 				}
+
+			}
+
+			if ClickedInRect(label.Rect, true) {
+
+				pos := Point{label.Rect.X, label.Rect.Y + globals.GridSize/2}
+				cIndex := 0
+				dist := float32(-1)
+				closestIndex := 0
+
+				mousePos := globals.Mouse.WorldPosition()
+
+				for lineIndex, line := range label.RendererResult.TextLines {
+
+					lineText := append([]rune{}, line...)
+					if lineIndex == len(label.RendererResult.TextLines)-1 {
+						lineText = append(lineText, ' ') // We add a space so you can position the click at the end
+					}
+
+					for _, c := range lineText {
+
+						diff := pos.DistanceSquared(mousePos)
+						if dist < 0 || diff < dist {
+							if float32(math.Abs(float64(pos.Y-mousePos.Y))) < globals.GridSize/2 {
+								closestIndex = cIndex
+								dist = diff
+							}
+						}
+
+						cIndex++
+						pos.X += float32(globals.TextRenderer.Glyph(c).Width())
+
+					}
+
+					pos.X = label.Rect.X
+					pos.Y += float32(globals.GridSize)
+
+				}
+
+				if mousePos.Y > pos.Y {
+					closestIndex = len(label.Text)
+				} else if mousePos.Y < label.Rect.Y {
+					closestIndex = 0
+				}
+
+				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
+				label.CaretPos = closestIndex
 
 			}
 

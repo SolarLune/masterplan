@@ -61,7 +61,7 @@ func NewProgramSettings() ProgramSettings {
 		SmoothPanning:          true,
 		PanToFocusOnZoom:       true,
 		Keybindings:            NewKeybindings(),
-		FontSize:               30,
+		FontSize:               60,
 		GUIFontSizeMultiplier:  GUIFontSize100,
 		ScrollwheelSensitivity: 1,
 		Theme:                  "Moonlight", // Default theme

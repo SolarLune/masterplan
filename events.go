@@ -5,65 +5,62 @@ import (
 )
 
 type InputState struct {
-	Down        bool
-	ChangeFrame int64
-	hidden      bool
-	Mods        sdl.Keymod
-	ClickCount  uint8 // Only applies to mouse buttons; otherwise, it's 0.
+	Down         bool
+	Mods         sdl.Keymod
+	downTime     float64
+	upTime       float64
+	triggerCount int
+	consumed     bool
 }
 
 func (is *InputState) SetState(down bool) {
+
+	is.consumed = false
 	is.Down = down
-	is.ChangeFrame = globals.Frame
+
+	if down {
+
+		if globals.Time-is.downTime < 0.25 {
+			is.triggerCount++
+		} else {
+			is.triggerCount = 1
+		}
+
+		is.downTime = globals.Time
+
+	} else {
+		is.upTime = globals.Time
+	}
+
 }
 
 func (is *InputState) Held() bool {
-	if is.hidden {
+	if is.consumed {
 		return false
 	}
 	return is.Down
 }
 
 func (is *InputState) Pressed() bool {
-	if is.hidden {
+	if is.consumed {
 		return false
 	}
-	return is.Down && is.ChangeFrame == globals.Frame
+	return is.Down && is.downTime == globals.Time
 }
 
-// DoubleClicked returns true if you double-clicked; only works for mouse inputs.
-func (is *InputState) DoubleClicked() bool {
-	return is.Pressed() && is.ClickCount == 2
+func (is *InputState) PressedTimes(times int) bool {
+	return is.Pressed() && is.triggerCount == times
 }
 
 func (is *InputState) Released() bool {
-	if is.hidden {
+	if is.consumed {
 		return false
 	}
-	return !is.Down && is.ChangeFrame == globals.Frame
+	return !is.Down && is.upTime == globals.Time
 }
 
-func (is *InputState) State() int {
-	if is.Pressed() {
-		return 1
-	} else if is.Held() {
-		return 2
-	} else if is.Released() {
-		return 3
-	}
-	return 0
-}
-
-func (is *InputState) Hide() {
-	is.hidden = true
-}
-
-func (is *InputState) Unhide() {
-	is.hidden = false
-}
-
-func (is *InputState) ConsumePress() {
-	is.ChangeFrame = globals.Frame - 1
+func (is *InputState) Consume() {
+	is.consumed = true
 }
 
 type Keyboard struct {
@@ -195,8 +192,6 @@ func handleEvents() {
 
 			if mouseEvent.State == sdl.PRESSED {
 				mouseButton.SetState(true)
-				mouseButton.ClickCount = mouseEvent.Clicks
-				globals.Mouse.DoubleClickTimer = globals.Time
 			} else {
 				mouseButton.SetState(false)
 			}

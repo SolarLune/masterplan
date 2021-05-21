@@ -1,5 +1,125 @@
 package main
 
+import (
+	"sort"
+
+	"github.com/veandco/go-sdl2/sdl"
+)
+
+type Page struct {
+	Project   *Project
+	Grid      *Grid
+	Cards     []*Card
+	ToDelete  []*Card
+	Selection *Selection
+}
+
+func NewPage(project *Project) *Page {
+
+	page := &Page{
+		Project: project,
+		Grid:    NewGrid(),
+		Cards:   []*Card{},
+	}
+
+	page.Selection = NewSelection(page)
+
+	return page
+
+}
+
+func (page *Page) Update() {
+
+	reversed := append([]*Card{}, page.Cards...)
+
+	sort.SliceStable(reversed, func(i, j int) bool {
+		return j < i
+	})
+
+	for _, task := range reversed {
+		task.Update()
+	}
+
+	for _, toDelete := range page.ToDelete {
+		for index, card := range page.Cards {
+			if card == toDelete {
+				page.Cards[index] = nil
+				page.Cards = append(page.Cards[:index], page.Cards[index+1:]...)
+				break
+			}
+		}
+	}
+
+	page.ToDelete = []*Card{}
+
+	page.Selection.Update()
+
+}
+
+func (page *Page) Draw() {
+
+	screen := globals.Renderer.GetRenderTarget()
+
+	globals.Renderer.SetRenderTarget(page.Project.ShadowTexture.Texture)
+	globals.Renderer.SetDrawColor(255, 255, 255, 0)
+	globals.Renderer.Clear()
+
+	for _, card := range page.Cards {
+		card.DrawCard()
+	}
+
+	globals.Renderer.SetRenderTarget(screen)
+
+	globals.Renderer.Copy(page.Project.ShadowTexture.Texture, nil, &sdl.Rect{12, 12, int32(page.Project.ShadowTexture.Size.X), int32(page.Project.ShadowTexture.Size.Y)})
+
+	for _, card := range page.Cards {
+		card.DrawCard()
+		card.DrawContents()
+	}
+
+	page.Selection.Draw()
+
+}
+
+func (page *Page) CreateNewCard() *Card {
+
+	newCard := NewCard(page)
+	page.Cards = append(page.Cards, newCard)
+	return newCard
+
+}
+
+func (page *Page) DeleteCard(card *Card) {
+	page.ToDelete = append(page.ToDelete, card)
+}
+
+func (page *Page) Raise(card *Card) {
+
+	if len(page.Cards) <= 1 {
+		return
+	}
+
+	for index, other := range page.Cards {
+
+		if other == card {
+
+			page.Cards = append(page.Cards[:index], append(page.Cards[index+1:], card)...)
+			return
+
+		}
+
+	}
+
+}
+
+func (page *Page) SendMessage(msg *Message) {
+
+	for _, card := range page.Cards {
+		card.ReceiveMessage(msg)
+	}
+
+}
+
 // import (
 // 	"fmt"
 // 	"io/ioutil"

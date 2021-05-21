@@ -19,7 +19,8 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 		return glyph.Image.Texture
 	}
 
-	surf, err := globals.Font.RenderUTF8Blended(string(glyph.Rune), sdl.Color{255, 255, 255, 0})
+	surf, err := globals.Font.RenderUTF8Blended(string(glyph.Rune), sdl.Color{255, 255, 255, 255})
+	// surf, err := globals.Font.RenderUTF8Solid(string(glyph.Rune), sdl.Color{255, 255, 255, 255})
 
 	if err != nil {
 		log.Println(string(glyph.Rune), glyph.Rune, err)
@@ -27,6 +28,7 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 	}
 
 	texture, err := globals.Renderer.CreateTextureFromSurface(surf)
+	// sdl.ComposeCustomBlendMode()
 	if err != nil {
 		panic(err)
 	}
@@ -42,10 +44,12 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 func (glyph *Glyph) Width() int32 {
 	asr := float64(glyph.Image.Size.X / glyph.Image.Size.Y)
 	return int32(math.Ceil(float64(glyph.Height()) * asr))
+	// return int32(glyph.Image.Size.X)
 }
 
 func (glyph *Glyph) Height() int32 {
 	return int32(globals.GridSize)
+	// return int32(glyph.Image.Size.Y)
 }
 
 type TextRendererResult struct {

@@ -62,10 +62,13 @@ func (cc *CheckboxContents) Draw() {
 func (cc *CheckboxContents) ReceiveMessage(msg *Message) {}
 
 func (cc *CheckboxContents) Color() Color {
+
 	color := getThemeColor(GUICheckboxColor)
-	if cc.Label.Editing {
-		color.Sub(20)
+
+	if cc.Check.Checked {
+		color = getThemeColor(GUICompletedColor)
 	}
+
 	return color
 }
 
@@ -99,13 +102,13 @@ func (nc *NoteContents) Update() {
 
 func (nc *NoteContents) Draw() {
 
-	tp := nc.Card.Project.Camera.Translate(nc.Card.DisplayRect)
+	tp := nc.Card.Board.Project.Camera.Translate(nc.Card.DisplayRect)
 	tp.W = 32
 	tp.H = 32
 	src := &sdl.Rect{80, 0, 32, 32}
 	color := getThemeColor(GUIFontColor)
-	nc.Card.Project.GUITexture.SetColorMod(color.RGB())
-	globals.Renderer.CopyF(nc.Card.Project.GUITexture, src, tp)
+	nc.Card.Board.Project.GUITexture.SetColorMod(color.RGB())
+	globals.Renderer.CopyF(nc.Card.Board.Project.GUITexture, src, tp)
 
 	nc.Label.Draw()
 
@@ -116,6 +119,28 @@ func (nc *NoteContents) ReceiveMessage(msg *Message) {}
 func (nc *NoteContents) Color() Color { return getThemeColor(GUINoteColor) }
 
 func (nc *NoteContents) MinimumSize() Point { return Point{globals.GridSize * 6, globals.GridSize * 4} }
+
+type ImageContents struct {
+	Card  *Card
+	Image Image
+}
+
+func NewImageContents(card *Card) *ImageContents {
+	imageContents := &ImageContents{
+		Card: card,
+	}
+	return imageContents
+}
+
+func (ic *ImageContents) Update() {}
+
+func (ic *ImageContents) Draw() {}
+
+func (ic *ImageContents) ReceiveMessage(msg *Message) {}
+
+func (ic *ImageContents) Color() Color { return getThemeColor(GUIBlankImageColor) }
+
+func (ic *ImageContents) MinimumSize() Point { return Point{globals.GridSize, globals.GridSize} }
 
 // type taskBGProgress struct {
 // 	Current, Max int
