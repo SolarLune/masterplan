@@ -37,6 +37,11 @@ const (
 	KBRemoveFromSelection = "Remove From Selection Modifier"
 	KBDeleteCards         = "Delete Selected Cards"
 	KBSelectAllCards      = "Select All Cards"
+	KBSaveProject         = "Save Project"
+	KBSaveProjectAs       = "Save Project As"
+	KBOpenProject         = "Open Project"
+	KBCopyCards           = "Copy Selected Cards"
+	KBPasteCards          = "Paste Selected Cards"
 	// KBCenterView              = "Center View to Origin"
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -227,8 +232,8 @@ func (kb *Keybindings) Default() {
 
 	kb.Define(KBDebugRestart, sdl.K_r, sdl.KMOD_NONE)
 
-	kb.Define(KBZoomIn, sdl.K_EQUALS, sdl.KMOD_NONE).triggerMode = TriggerModePress
-	kb.Define(KBZoomOut, sdl.K_MINUS, sdl.KMOD_NONE).triggerMode = TriggerModePress
+	kb.Define(KBZoomIn, sdl.K_EQUALS, sdl.KMOD_NONE)
+	kb.Define(KBZoomOut, sdl.K_MINUS, sdl.KMOD_NONE)
 	// kb.Define(KBShowFPS, sdl.K_F12)
 	// kb.Define(KBWindowSizeSmall, sdl.K_F2)
 	// kb.Define(KBWindowSizeNormal, sdl.K_F3)
@@ -245,14 +250,21 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBFastPanDown, sdl.K_s, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
 	kb.Define(KBFastPanRight, sdl.K_d, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
 
-	kb.Define(KBNewCheckboxCard, sdl.K_1, sdl.KMOD_SHIFT).triggerMode = TriggerModePress
+	kb.Define(KBNewCheckboxCard, sdl.K_1, sdl.KMOD_SHIFT)
 
-	kb.Define(KBNewNoteCard, sdl.K_2, sdl.KMOD_SHIFT).triggerMode = TriggerModePress
+	kb.Define(KBNewNoteCard, sdl.K_2, sdl.KMOD_SHIFT)
 
 	kb.Define(KBAddToSelection, sdl.K_LSHIFT, sdl.KMOD_NONE).triggerMode = TriggerModeHold
 	kb.Define(KBRemoveFromSelection, sdl.K_LALT, sdl.KMOD_NONE).triggerMode = TriggerModeHold
 	kb.Define(KBDeleteCards, sdl.K_DELETE, sdl.KMOD_NONE)
 	kb.Define(KBSelectAllCards, sdl.K_a, sdl.KMOD_CTRL)
+
+	kb.Define(KBSaveProject, sdl.K_s, sdl.KMOD_CTRL)
+	kb.Define(KBSaveProjectAs, sdl.K_s, sdl.KMOD_CTRL|sdl.KMOD_SHIFT)
+	kb.Define(KBOpenProject, sdl.K_o, sdl.KMOD_CTRL)
+
+	kb.Define(KBCopyCards, sdl.K_c, sdl.KMOD_CTRL)
+	kb.Define(KBPasteCards, sdl.K_v, sdl.KMOD_CTRL)
 
 	// kb.Define(KBCenterView, sdl.K_BACKSPACE)
 	// kb.Define(KBURLButton, sdl.K_LCTRL).triggerMode = TriggerModeHold

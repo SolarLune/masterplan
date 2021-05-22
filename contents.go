@@ -27,8 +27,8 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 	checkboxContents := &CheckboxContents{
 		Card:  card,
-		Label: NewLabel("New Checkbox", &sdl.FRect{}, true),
-		Check: NewGUICheckbox(true),
+		Label: card.Properties.Request(PropertyTypeLabel).AsLabel(),
+		Check: card.Properties.Request(PropertyTypeCheckbox).AsCheckbox(),
 	}
 
 	checkboxContents.Label.Editable = true
@@ -83,8 +83,9 @@ type NoteContents struct {
 
 func NewNoteContents(card *Card) *NoteContents {
 	noteContents := &NoteContents{
-		Card:  card,
-		Label: NewLabel("New Notes", &sdl.FRect{0, 0, 32, 32}, true),
+		Card: card,
+		// Label: NewLabel("New Notes", &sdl.FRect{0, 0, 32, 32}, true),
+		Label: card.Properties.Request("editable label").AsLabel(),
 	}
 
 	noteContents.Label.Editable = true
@@ -102,13 +103,13 @@ func (nc *NoteContents) Update() {
 
 func (nc *NoteContents) Draw() {
 
-	tp := nc.Card.Board.Project.Camera.Translate(nc.Card.DisplayRect)
+	tp := nc.Card.Page.Project.Camera.Translate(nc.Card.DisplayRect)
 	tp.W = 32
 	tp.H = 32
 	src := &sdl.Rect{80, 0, 32, 32}
 	color := getThemeColor(GUIFontColor)
-	nc.Card.Board.Project.GUITexture.SetColorMod(color.RGB())
-	globals.Renderer.CopyF(nc.Card.Board.Project.GUITexture, src, tp)
+	nc.Card.Page.Project.GUITexture.SetColorMod(color.RGB())
+	globals.Renderer.CopyF(nc.Card.Page.Project.GUITexture, src, tp)
 
 	nc.Label.Draw()
 

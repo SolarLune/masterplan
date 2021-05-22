@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 
+	"github.com/ncruces/zenity"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -60,6 +62,7 @@ type Project struct {
 	ShadowTexture    *Image
 	State            string
 	Menu             *Menu
+	Filepath         string
 }
 
 func NewProject() *Project {
@@ -183,6 +186,38 @@ func (project *Project) Draw() {
 
 }
 
+func (project *Project) Save() {
+
+	data := ""
+
+	for _, page := range project.Pages {
+		data += page.Serialize()
+	}
+
+	fmt.Println(data)
+
+}
+
+func (project *Project) SaveAs() {
+
+	if filename, err := zenity.SelectFileSave(zenity.Title("Save MasterPlan Project"), zenity.Filename("master.plan"), zenity.ConfirmOverwrite()); err == nil {
+
+		if filepath.Ext(filename) != ".plan" {
+			filename += ".plan"
+		}
+
+		project.Filepath = filename
+
+		project.Save()
+
+	} else if err != zenity.ErrCanceled {
+		panic(err)
+	}
+
+}
+
+func (project *Project) Open() {}
+
 func (project *Project) Destroy() {
 
 }
@@ -289,9 +324,7 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {
-			for _, card := range project.CurrentPage().Selection.Cards {
-				project.CurrentPage().DeleteCard(card)
-			}
+			project.CurrentPage().DeleteCard(project.CurrentPage().Selection.AsSlice()...)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBSelectAllCards) {
@@ -300,6 +333,36 @@ func (project *Project) GlobalShortcuts() {
 				project.CurrentPage().Selection.Add(card)
 			}
 
+		}
+
+		if globals.ProgramSettings.Keybindings.On(KBCopyCards) {
+			globals.CopyBuffer = []string{}
+			for card := range project.CurrentPage().Selection.Cards {
+				globals.CopyBuffer = append(globals.CopyBuffer, card.Serialize())
+			}
+		}
+
+		if globals.ProgramSettings.Keybindings.On(KBPasteCards) {
+
+			for _, cardData := range globals.CopyBuffer {
+				newCard := project.CurrentPage().CreateNewCard()
+				newCard.Deserialize(cardData)
+			}
+
+		}
+
+		if globals.ProgramSettings.Keybindings.On(KBSaveProject) {
+
+			if project.Filepath != "" {
+				project.Save()
+			} else {
+				project.SaveAs()
+			}
+
+		} else if globals.ProgramSettings.Keybindings.On(KBSaveProjectAs) {
+			project.SaveAs()
+		} else if globals.ProgramSettings.Keybindings.On(KBOpenProject) {
+			project.Open()
 		}
 
 		project.Camera.TargetPosition.X += dx * project.Camera.Zoom

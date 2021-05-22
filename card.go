@@ -4,15 +4,19 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 type Card struct {
-	Board           *Page
+	Page            *Page
 	Rect            *sdl.FRect
 	DisplayRect     *sdl.FRect
 	Contents        Contents
+	ContentType     string
 	ContentsLibrary map[string]Contents
+	Properties      *Properties
 	Selected        bool
 	Result          *sdl.Texture
 	Dragging        bool
@@ -27,16 +31,18 @@ type Card struct {
 
 var cardID = int64(0)
 
-func NewCard(board *Page) *Card {
+func NewCard(page *Page) *Card {
 
 	card := &Card{
 		Rect:            &sdl.FRect{},
 		DisplayRect:     &sdl.FRect{},
-		Board:           board,
+		Page:            page,
 		ContentsLibrary: map[string]Contents{},
 		ID:              cardID,
 		RandomValue:     rand.Float32(),
 	}
+
+	card.Properties = NewProperties(card)
 
 	cardID++
 
@@ -44,6 +50,10 @@ func NewCard(board *Page) *Card {
 
 	return card
 
+}
+
+func (card *Card) Clone() *Card {
+	return NewCard(card.Page)
 }
 
 func (card *Card) Update() {
@@ -83,16 +93,11 @@ func (card *Card) Update() {
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
 			card.StartResizing()
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-
-			// card.Project.Selection.Add(card)
-			// for _, card := range card.Project.Selection.Cards {
-			// 	card.StartResizing()
-			// }
 		}
 
 	} else if ClickedInRect(card.Rect, true) {
 
-		selection := card.Board.Selection
+		selection := card.Page.Selection
 
 		if globals.ProgramSettings.Keybindings.On(KBRemoveFromSelection) {
 
@@ -105,7 +110,7 @@ func (card *Card) Update() {
 
 			if !card.Selected && !globals.ProgramSettings.Keybindings.On(KBAddToSelection) {
 
-				for _, card := range selection.Cards {
+				for card := range selection.Cards {
 					card.Deselect()
 				}
 
@@ -115,7 +120,7 @@ func (card *Card) Update() {
 			selection.Add(card)
 			card.Select()
 
-			for _, card := range selection.Cards {
+			for card := range selection.Cards {
 				card.StartDragging()
 			}
 
@@ -129,7 +134,7 @@ func (card *Card) Update() {
 
 func (card *Card) DrawCard() {
 
-	tp := card.Board.Project.Camera.Translate(card.DisplayRect)
+	tp := card.Page.Project.Camera.Translate(card.DisplayRect)
 
 	if card.Contents != nil {
 		color := card.Contents.Color()
@@ -162,6 +167,32 @@ func (card *Card) DrawContents() {
 
 }
 
+func (card *Card) Serialize() string {
+
+	data := ""
+
+	data, _ = sjson.Set(data, "rect", card.Rect)
+	data, _ = sjson.Set(data, "content type", card.ContentType)
+	data, _ = sjson.SetRaw(data, "properties", card.Properties.Serialize())
+
+	return data
+
+}
+
+func (card *Card) Deserialize(data string) {
+
+	rect := gjson.Get(data, "rect")
+	card.Rect.X = float32(rect.Get("X").Float())
+	card.Rect.Y = float32(rect.Get("Y").Float())
+
+	card.SetContents(gjson.Get(data, "content type").String())
+
+	card.Properties.Deserialize(gjson.Get(data, "properties").Raw)
+
+	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
+
+}
+
 func (card *Card) Select() {
 	card.Selected = true
 }
@@ -174,7 +205,7 @@ func (card *Card) StartDragging() {
 	card.DragStart = globals.Mouse.WorldPosition()
 	card.DragStartOffset = card.DragStart.Sub(Point{card.Rect.X, card.Rect.Y})
 	card.Dragging = true
-	card.Board.Raise(card)
+	card.Page.Raise(card)
 }
 
 func (card *Card) StopDragging() {
@@ -185,7 +216,7 @@ func (card *Card) StopDragging() {
 
 func (card *Card) StartResizing() {
 	card.Resizing = true
-	card.Board.Raise(card)
+	card.Page.Raise(card)
 }
 
 func (card *Card) StopResizing() {
@@ -295,8 +326,8 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 		drawPatches()
 
-		card.Board.Project.GUITexture.SetColorMod(255, 255, 255)
-		card.Board.Project.GUITexture.SetAlphaMod(255)
+		card.Page.Project.GUITexture.SetColorMod(255, 255, 255)
+		card.Page.Project.GUITexture.SetAlphaMod(255)
 
 		globals.Renderer.SetRenderTarget(screen)
 
@@ -318,6 +349,10 @@ func (card *Card) SetContents(contentType string) {
 		card.Contents = existingContents
 	} else {
 
+		for _, prop := range card.Properties.Data {
+			prop.InUse = false
+		}
+
 		switch contentType {
 		case ContentTypeCheckbox:
 			card.Contents = NewCheckboxContents(card)
@@ -332,6 +367,8 @@ func (card *Card) SetContents(contentType string) {
 		card.ContentsLibrary[contentType] = card.Contents
 
 	}
+
+	card.ContentType = contentType
 
 }
 

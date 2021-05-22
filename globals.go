@@ -20,7 +20,7 @@ type Globals struct {
 	Frame           int64
 	GridSize        float32
 	ScreenSize      Point
-	CopyBuffer      []*Card
+	CopyBuffer      []string
 }
 
 var globals = &Globals{
@@ -28,5 +28,5 @@ var globals = &Globals{
 	Mouse:      NewMouse(),
 	GridSize:   32,
 	InputText:  []rune{},
-	CopyBuffer: []*Card{},
+	CopyBuffer: []string{},
 }

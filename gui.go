@@ -1554,9 +1554,7 @@ func (label *Label) RecreateTexture() {
 
 }
 
-func (label *Label) TextAsString() string {
-	return string(label.Text)
-}
+func (label *Label) TextAsString() string { return string(label.Text) }
 
 func (label *Label) Update() {
 

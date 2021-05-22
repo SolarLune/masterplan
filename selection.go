@@ -6,13 +6,13 @@ import (
 
 type Selection struct {
 	Board        *Page
-	Cards        []*Card
+	Cards        map[*Card]bool
 	BoxSelecting bool
 	BoxStart     Point
 }
 
 func NewSelection(board *Page) *Selection {
-	return &Selection{Board: board}
+	return &Selection{Board: board, Cards: map[*Card]bool{}}
 }
 
 func (selection *Selection) Update() {
@@ -60,24 +60,27 @@ func (selection *Selection) Update() {
 
 func (selection *Selection) Add(card *Card) {
 	card.Select()
-	selection.Cards = append(selection.Cards, card)
+	selection.Cards[card] = true
 }
 
 func (selection *Selection) Remove(card *Card) {
-	for index, cc := range selection.Cards {
-		if cc == card {
-			card.Deselect()
-			selection.Cards = append(selection.Cards[:index], selection.Cards[index+1:]...)
-			return
-		}
+	card.Deselect()
+	delete(selection.Cards, card)
+}
+
+func (selection *Selection) AsSlice() []*Card {
+	cards := []*Card{}
+	for card := range selection.Cards {
+		cards = append(cards, card)
 	}
+	return cards
 }
 
 func (selection *Selection) Clear() {
-	for _, card := range selection.Cards {
+	for card := range selection.Cards {
 		card.Deselect()
 	}
-	selection.Cards = []*Card{}
+	selection.Cards = map[*Card]bool{}
 }
 
 func (selection *Selection) Draw() {

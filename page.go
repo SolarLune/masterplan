@@ -81,6 +81,18 @@ func (page *Page) Draw() {
 
 }
 
+func (page *Page) Serialize() string {
+
+	data := ""
+
+	for _, card := range page.Cards {
+		data += card.Serialize()
+	}
+
+	return data
+
+}
+
 func (page *Page) CreateNewCard() *Card {
 
 	newCard := NewCard(page)
@@ -89,8 +101,8 @@ func (page *Page) CreateNewCard() *Card {
 
 }
 
-func (page *Page) DeleteCard(card *Card) {
-	page.ToDelete = append(page.ToDelete, card)
+func (page *Page) DeleteCard(cards ...*Card) {
+	page.ToDelete = append(page.ToDelete, cards...)
 }
 
 func (page *Page) Raise(card *Card) {
