@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"time"
 
 	"github.com/tidwall/gjson"
@@ -24,10 +25,12 @@ const (
 	KBPanRight = "Pan Right"
 	KBPanLeft  = "Pan Left"
 
-	KBFastPanUp    = "Fast Pan Up"
-	KBFastPanDown  = "Fast Pan Down"
-	KBFastPanRight = "Fast Pan Right"
-	KBFastPanLeft  = "Fast Pan Left"
+	KBFastPan = "Fast Pan"
+
+	// KBFastPanUp    = "Fast Pan Up"
+	// KBFastPanDown  = "Fast Pan Down"
+	// KBFastPanRight = "Fast Pan Right"
+	// KBFastPanLeft  = "Fast Pan Left"
 
 	KBNewCheckboxCard = "New Checkbox Card"
 	KBNewNoteCard     = "New Note Card"
@@ -42,7 +45,7 @@ const (
 	KBOpenProject         = "Open Project"
 	KBCopyCards           = "Copy Selected Cards"
 	KBPasteCards          = "Paste Selected Cards"
-	// KBCenterView              = "Center View to Origin"
+	KBReturnToOrigin      = "Center View to Origin"
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
 	// KBCopyTasks               = "Copy Tasks"
@@ -119,24 +122,22 @@ type Shortcut struct {
 	Enabled          bool
 	Key              sdl.Keycode
 	DefaultKey       sdl.Keycode
-	Modifiers        sdl.Keymod
-	DefaultModifiers sdl.Keymod
+	Modifiers        []sdl.Keycode
+	DefaultModifiers []sdl.Keycode
 	Hold             time.Time
 	Repeat           time.Time
 	triggerMode      int
-	canClash         bool
 }
 
-func NewShortcut(name string, keycode sdl.Keycode, modifiers sdl.Keymod) *Shortcut {
+func NewShortcut(name string, keycode sdl.Keycode, modifiers ...sdl.Keycode) *Shortcut {
 
 	shortcut := &Shortcut{
 		Name:             name,
 		Enabled:          true,
 		Key:              keycode,
 		DefaultKey:       keycode,
-		Modifiers:        modifiers,
-		DefaultModifiers: modifiers,
-		canClash:         true,
+		Modifiers:        append([]sdl.Keycode{}, modifiers...),
+		DefaultModifiers: append([]sdl.Keycode{}, modifiers...),
 	}
 
 	return shortcut
@@ -156,20 +157,17 @@ func NewShortcut(name string, keycode sdl.Keycode, modifiers sdl.Keymod) *Shortc
 // 	return name
 // }
 
-func (shortcut *Shortcut) KeyCount() int {
-	// return len(shortcut.Modifiers) + 1
-	return 1
+func (shortcut *Shortcut) Keys() []sdl.Keycode {
+	keys := append([]sdl.Keycode{}, shortcut.Modifiers...)
+	keys = append(keys, shortcut.Key)
+	return keys
 }
-
-// func (shortcut *Shortcut) UsedKeys() []int32 {
-// 	return append([]int32{shortcut.Key}, shortcut.Modifiers...)
-// }
 
 func (shortcut *Shortcut) MarshalJSON() ([]byte, error) {
 
 	data := ""
 	data, _ = sjson.Set(data, "Key", shortcut.Key)
-	if shortcut.Modifiers != sdl.KMOD_NONE {
+	if len(shortcut.Modifiers) > 0 {
 		data, _ = sjson.Set(data, "Modifiers", shortcut.Modifiers)
 	}
 	return []byte(data), nil
@@ -182,16 +180,28 @@ func (shortcut *Shortcut) UnmarshalJSON(data []byte) error {
 
 	shortcut.Key = sdl.Keycode(gjson.Get(jsonStr, "Key").Int())
 
-	shortcut.Modifiers = sdl.KMOD_NONE
+	shortcut.Modifiers = []sdl.Keycode{}
 	if mods := gjson.Get(jsonStr, "Modifiers"); mods.Exists() {
-		shortcut.Modifiers = sdl.Keymod(mods.Uint())
+		for _, mod := range mods.Array() {
+			shortcut.Modifiers = append(shortcut.Modifiers, sdl.Keycode(mod.Int()))
+		}
 	}
 
 	return nil
 }
 
 func (shortcut *Shortcut) IsDefault() bool {
-	return shortcut.Key == shortcut.DefaultKey && shortcut.Modifiers == shortcut.DefaultModifiers
+	if shortcut.Key != shortcut.DefaultKey {
+		return false
+	}
+	for _, mod := range shortcut.Modifiers {
+		for _, other := range shortcut.DefaultModifiers {
+			if mod != other {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (shortcut *Shortcut) ResetToDefault() {
@@ -201,70 +211,91 @@ func (shortcut *Shortcut) ResetToDefault() {
 
 }
 
+func (shortcut *Shortcut) String() string {
+	keys := ""
+	for i, key := range shortcut.Keys() {
+		keys += sdl.GetKeyName(key)
+		if i < len(shortcut.Keys())-1 {
+			keys += ", "
+		}
+	}
+	return "{" + shortcut.Name + " : " + keys + "}"
+}
+
 type Keybindings struct {
-	Shortcuts map[string]*Shortcut
+	Shortcuts         map[string]*Shortcut
+	ShortcutsByFamily map[sdl.Keycode][]*Shortcut
 }
 
 func NewKeybindings() *Keybindings {
-	kb := &Keybindings{Shortcuts: map[string]*Shortcut{}}
+	kb := &Keybindings{
+		Shortcuts:         map[string]*Shortcut{},
+		ShortcutsByFamily: map[sdl.Keycode][]*Shortcut{},
+	}
 	kb.Default()
+	kb.SetupShortcutFamilies()
 	return kb
 }
 
-func (kb *Keybindings) Define(bindingName string, keyCode sdl.Keycode, mod sdl.Keymod) *Shortcut {
-	sc := NewShortcut(bindingName, keyCode, mod)
+func (kb *Keybindings) Define(bindingName string, keyCode sdl.Keycode, mods ...sdl.Keycode) *Shortcut {
+	sc := NewShortcut(bindingName, keyCode, mods...)
 	kb.Shortcuts[bindingName] = sc
+
 	return sc
 }
 
 // Default keybinding definitions
 func (kb *Keybindings) Default() {
 
-	kb.Define(KBZoomLevel25, sdl.K_1, sdl.KMOD_NONE)
-	kb.Define(KBZoomLevel50, sdl.K_2, sdl.KMOD_NONE)
-	kb.Define(KBZoomLevel100, sdl.K_3, sdl.KMOD_NONE)
-	kb.Define(KBZoomLevel200, sdl.K_4, sdl.KMOD_NONE)
-	kb.Define(KBZoomLevel400, sdl.K_5, sdl.KMOD_NONE)
-	kb.Define(KBZoomLevel1000, sdl.K_6, sdl.KMOD_NONE)
+	kb.Define(KBZoomLevel25, sdl.K_1)
+	kb.Define(KBZoomLevel50, sdl.K_2)
+	kb.Define(KBZoomLevel100, sdl.K_3)
+	kb.Define(KBZoomLevel200, sdl.K_4)
+	kb.Define(KBZoomLevel400, sdl.K_5)
+	kb.Define(KBZoomLevel1000, sdl.K_6)
 
 	// settings := kb.Define(KBOpenSettings, sdl.K_F1)
 	// settings.canClash = false
 
-	kb.Define(KBDebugRestart, sdl.K_r, sdl.KMOD_NONE)
+	kb.Define(KBDebugRestart, sdl.K_r)
 
-	kb.Define(KBZoomIn, sdl.K_EQUALS, sdl.KMOD_NONE)
-	kb.Define(KBZoomOut, sdl.K_MINUS, sdl.KMOD_NONE)
+	kb.Define(KBZoomIn, sdl.K_EQUALS)
+	kb.Define(KBZoomOut, sdl.K_MINUS)
 	// kb.Define(KBShowFPS, sdl.K_F12)
 	// kb.Define(KBWindowSizeSmall, sdl.K_F2)
 	// kb.Define(KBWindowSizeNormal, sdl.K_F3)
 	// kb.Define(KBToggleFullscreen, sdl.K_F4)
 	// kb.Define(KBTakeScreenshot, sdl.K_F11)
 
-	kb.Define(KBPanUp, sdl.K_w, sdl.KMOD_NONE).triggerMode = TriggerModeHold
-	kb.Define(KBPanLeft, sdl.K_a, sdl.KMOD_NONE).triggerMode = TriggerModeHold
-	kb.Define(KBPanDown, sdl.K_s, sdl.KMOD_NONE).triggerMode = TriggerModeHold
-	kb.Define(KBPanRight, sdl.K_d, sdl.KMOD_NONE).triggerMode = TriggerModeHold
+	kb.Define(KBPanUp, sdl.K_w).triggerMode = TriggerModeHold
+	kb.Define(KBPanLeft, sdl.K_a).triggerMode = TriggerModeHold
+	kb.Define(KBPanRight, sdl.K_d).triggerMode = TriggerModeHold
+	kb.Define(KBPanDown, sdl.K_s).triggerMode = TriggerModeHold
 
-	kb.Define(KBFastPanUp, sdl.K_w, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
-	kb.Define(KBFastPanLeft, sdl.K_a, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
-	kb.Define(KBFastPanDown, sdl.K_s, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
-	kb.Define(KBFastPanRight, sdl.K_d, sdl.KMOD_SHIFT).triggerMode = TriggerModeHold
+	kb.Define(KBFastPan, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
-	kb.Define(KBNewCheckboxCard, sdl.K_1, sdl.KMOD_SHIFT)
+	// kb.Define(KBFastPanUp, sdl.K_w, sdl.K_LSHIFT).triggerMode = TriggerModeHold
+	// kb.Define(KBFastPanLeft, sdl.K_a, sdl.K_LSHIFT).triggerMode = TriggerModeHold
+	// kb.Define(KBFastPanDown, sdl.K_s, sdl.K_LSHIFT).triggerMode = TriggerModeHold
+	// kb.Define(KBFastPanRight, sdl.K_d, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
-	kb.Define(KBNewNoteCard, sdl.K_2, sdl.KMOD_SHIFT)
+	kb.Define(KBNewCheckboxCard, sdl.K_1, sdl.K_LSHIFT)
 
-	kb.Define(KBAddToSelection, sdl.K_LSHIFT, sdl.KMOD_NONE).triggerMode = TriggerModeHold
-	kb.Define(KBRemoveFromSelection, sdl.K_LALT, sdl.KMOD_NONE).triggerMode = TriggerModeHold
-	kb.Define(KBDeleteCards, sdl.K_DELETE, sdl.KMOD_NONE)
-	kb.Define(KBSelectAllCards, sdl.K_a, sdl.KMOD_CTRL)
+	kb.Define(KBNewNoteCard, sdl.K_2, sdl.K_LSHIFT)
 
-	kb.Define(KBSaveProject, sdl.K_s, sdl.KMOD_CTRL)
-	kb.Define(KBSaveProjectAs, sdl.K_s, sdl.KMOD_CTRL|sdl.KMOD_SHIFT)
-	kb.Define(KBOpenProject, sdl.K_o, sdl.KMOD_CTRL)
+	kb.Define(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
+	kb.Define(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
+	kb.Define(KBDeleteCards, sdl.K_DELETE)
+	kb.Define(KBSelectAllCards, sdl.K_a, sdl.K_LCTRL)
 
-	kb.Define(KBCopyCards, sdl.K_c, sdl.KMOD_CTRL)
-	kb.Define(KBPasteCards, sdl.K_v, sdl.KMOD_CTRL)
+	kb.Define(KBSaveProject, sdl.K_s, sdl.K_LCTRL)
+	kb.Define(KBSaveProjectAs, sdl.K_s, sdl.K_LCTRL, sdl.K_LSHIFT)
+	kb.Define(KBOpenProject, sdl.K_o, sdl.K_LCTRL)
+
+	kb.Define(KBCopyCards, sdl.K_c, sdl.K_LCTRL)
+	kb.Define(KBPasteCards, sdl.K_v, sdl.K_LCTRL)
+
+	kb.Define(KBReturnToOrigin, sdl.K_BACKSPACE)
 
 	// kb.Define(KBCenterView, sdl.K_BACKSPACE)
 	// kb.Define(KBURLButton, sdl.K_LCTRL).triggerMode = TriggerModeHold
@@ -380,10 +411,28 @@ func (kb *Keybindings) Default() {
 
 }
 
-func (kb *Keybindings) ReenableAllShortcuts() {
+// This organizes shortcuts by families (which key they end with).
+func (kb *Keybindings) SetupShortcutFamilies() {
+
+	kb.ShortcutsByFamily = map[sdl.Keycode][]*Shortcut{}
+
 	for _, shortcut := range kb.Shortcuts {
-		shortcut.Enabled = true
+
+		if _, exists := kb.ShortcutsByFamily[shortcut.Key]; !exists {
+			kb.ShortcutsByFamily[shortcut.Key] = []*Shortcut{}
+		}
+
+		kb.ShortcutsByFamily[shortcut.Key] = append(kb.ShortcutsByFamily[shortcut.Key], shortcut)
 	}
+
+	for _, family := range kb.ShortcutsByFamily {
+
+		sort.Slice(family, func(i, j int) bool {
+			return len(family[i].Keys()) > len(family[j].Keys())
+		})
+
+	}
+
 }
 
 func (kb *Keybindings) On(bindingName string) bool {
@@ -394,30 +443,29 @@ func (kb *Keybindings) On(bindingName string) bool {
 		return false
 	}
 
-	scMod := sc.Modifiers &^ sdl.KMOD_CAPS &^ sdl.KMOD_NUM &^ sdl.KMOD_ALT
-	keyMod := globals.Keyboard.Key(sc.Key).Mods &^ sdl.KMOD_CAPS &^ sdl.KMOD_NUM
-	modsOn := (keyMod == 0 && scMod == 0) || keyMod&scMod > 0
-
-	modKeys := []sdl.Keycode{
-		sdl.K_LSHIFT,
-		sdl.K_RSHIFT,
-		sdl.K_LALT,
-		sdl.K_RALT,
-		sdl.K_LCTRL,
-		sdl.K_RCTRL,
-		sdl.K_MODE,
-	}
-
-	for _, key := range modKeys {
-		if sc.Key == key {
-			modsOn = true
+	for _, familyShortcut := range kb.ShortcutsByFamily[sc.Key] {
+		if familyShortcut == sc {
+			break
+		} else if kb.On(familyShortcut.Name) {
+			return false
 		}
 	}
 
-	if sc.triggerMode == TriggerModeHold {
-		return globals.Keyboard.Key(sc.Key).Held() && modsOn
-	} else if sc.triggerMode == TriggerModePress {
-		return globals.Keyboard.Key(sc.Key).Pressed() && modsOn
+	for i, key := range sc.Keys() {
+
+		if i < len(sc.Keys())-1 {
+			// The modifier keys have to be held; otherwise, it doesn't work.
+			if !globals.Keyboard.Key(key).Held() {
+				return false
+			}
+		} else {
+			if sc.triggerMode == TriggerModeHold {
+				return globals.Keyboard.Key(key).Held()
+			} else if sc.triggerMode == TriggerModePress {
+				return globals.Keyboard.Key(key).Pressed()
+			}
+		}
+
 	}
 
 	return false

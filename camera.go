@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -46,6 +48,9 @@ func (camera *Camera) Offset() Point {
 func (camera *Camera) Translate(rect *sdl.FRect) *sdl.FRect {
 
 	offset := camera.Offset()
+
+	offset.X = float32(math.Floor(float64(offset.X)))
+	offset.Y = float32(math.Floor(float64(offset.Y)))
 
 	return &sdl.FRect{
 		X: rect.X - offset.X,

@@ -1,10 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
 	"path/filepath"
 
 	"github.com/ncruces/zenity"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -55,7 +58,6 @@ type Project struct {
 	ProjectSettings  *ProjectSettings
 	Pages            []*Page
 	CurrentPageIndex int
-	GridSpace        *Grid
 	Camera           *Camera
 	GridTexture      *Image
 	Resources        map[string]*Resource
@@ -63,6 +65,7 @@ type Project struct {
 	State            string
 	Menu             *Menu
 	Filepath         string
+	LoadingProject   *Project // A reference to the "next" Project when opening another one
 }
 
 func NewProject() *Project {
@@ -151,12 +154,16 @@ func (project *Project) Draw() {
 		globals.Renderer.CopyF(project.GridTexture.Texture, nil, &sdl.FRect{x, y, project.GridTexture.Size.X, project.GridTexture.Size.Y})
 	}
 
-	extent := float32(10)
-	for y := -extent; y < extent; y++ {
-		for x := -extent; x < extent; x++ {
-			translated := project.Camera.Translate(&sdl.FRect{x * project.GridTexture.Size.X, y * project.GridTexture.Size.Y, 0, 0})
-			drawGridPiece(translated.X, translated.Y)
+	if project.Camera.TargetZoom > 0.5 {
+
+		extent := float32(10)
+		for y := -extent; y < extent; y++ {
+			for x := -extent; x < extent; x++ {
+				translated := project.Camera.Translate(&sdl.FRect{x * project.GridTexture.Size.X, y * project.GridTexture.Size.Y, 0, 0})
+				drawGridPiece(translated.X, translated.Y)
+			}
 		}
+
 	}
 
 	// gridPieceToScreenW := globals.ScreenSize.X / project.GridTexture.Size.X / project.Camera.TargetZoom
@@ -188,19 +195,26 @@ func (project *Project) Draw() {
 
 func (project *Project) Save() {
 
-	data := ""
+	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
 
 	for _, page := range project.Pages {
-		data += page.Serialize()
+		saveData, _ = sjson.SetRaw(saveData, "pages.-1", page.Serialize())
 	}
 
-	fmt.Println(data)
+	saveData = gjson.Get(saveData, "@pretty").String()
+
+	if file, err := os.Create(project.Filepath); err != nil {
+		log.Println(err)
+	} else {
+		file.Write([]byte(saveData))
+		file.Close()
+	}
 
 }
 
 func (project *Project) SaveAs() {
 
-	if filename, err := zenity.SelectFileSave(zenity.Title("Save MasterPlan Project"), zenity.Filename("master.plan"), zenity.ConfirmOverwrite()); err == nil {
+	if filename, err := zenity.SelectFileSave(zenity.Title("Save MasterPlan Project..."), zenity.ConfirmOverwrite(), zenity.FileFilter{Name: "Project File (*.plan)", Patterns: []string{"*.plan"}}); err == nil {
 
 		if filepath.Ext(filename) != ".plan" {
 			filename += ".plan"
@@ -216,7 +230,35 @@ func (project *Project) SaveAs() {
 
 }
 
-func (project *Project) Open() {}
+func (project *Project) Open() {
+
+	if filename, err := zenity.SelectFile(zenity.Title("Select MasterPlan Project to Open..."), zenity.FileFilter{Name: "Project File (*.plan)", Patterns: []string{"*.plan"}}); err == nil {
+
+		jsonData, err := os.ReadFile(filename)
+		if err != nil {
+			panic(err)
+		}
+
+		newProject := NewProject()
+
+		for i, page := range gjson.Get(string(jsonData), "pages").Array() {
+			var newPage *Page
+			if i == 0 {
+				newPage = newProject.Pages[0]
+			} else {
+				newPage = NewPage(newProject)
+				newProject.Pages = append(newProject.Pages, newPage)
+			}
+			newPage.Deserialize(page.Raw)
+		}
+
+		project.LoadingProject = newProject
+
+	} else if err != zenity.ErrCanceled {
+		panic(err)
+	}
+
+}
 
 func (project *Project) Destroy() {
 
@@ -232,6 +274,8 @@ func (project *Project) MouseActions() {
 			card := project.CurrentPage().CreateNewCard()
 			card.Rect.X = globals.Mouse.WorldPosition().X - (card.Rect.W / 2)
 			card.Rect.Y = globals.Mouse.WorldPosition().Y - (card.Rect.H / 2)
+
+			card.LockPosition()
 
 		}
 
@@ -283,18 +327,9 @@ func (project *Project) GlobalShortcuts() {
 			dy = panSpeed
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBFastPanRight) {
-			dx = panSpeed * 2
-		}
-		if globals.ProgramSettings.Keybindings.On(KBFastPanLeft) {
-			dx = -panSpeed * 2
-		}
-
-		if globals.ProgramSettings.Keybindings.On(KBFastPanUp) {
-			dy = -panSpeed * 2
-		}
-		if globals.ProgramSettings.Keybindings.On(KBFastPanDown) {
-			dy = panSpeed * 2
+		if globals.ProgramSettings.Keybindings.On(KBFastPan) {
+			dx *= 2
+			dy *= 2
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBZoomIn) {
@@ -315,6 +350,10 @@ func (project *Project) GlobalShortcuts() {
 			project.Camera.TargetZoom = 4.0
 		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel1000) {
 			project.Camera.TargetZoom = 10.0
+		}
+
+		if globals.ProgramSettings.Keybindings.On(KBReturnToOrigin) {
+			project.Camera.TargetPosition = Point{}
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBNewCheckboxCard) {
@@ -344,9 +383,29 @@ func (project *Project) GlobalShortcuts() {
 
 		if globals.ProgramSettings.Keybindings.On(KBPasteCards) {
 
+			newCards := []*Card{}
+
 			for _, cardData := range globals.CopyBuffer {
 				newCard := project.CurrentPage().CreateNewCard()
 				newCard.Deserialize(cardData)
+				newCards = append(newCards, newCard)
+				project.CurrentPage().Selection.Add(newCard)
+			}
+
+			offset := Point{}
+
+			for _, card := range newCards {
+				offset = offset.Add(Point{card.Rect.X + (card.Rect.W / 2), card.Rect.Y + (card.Rect.H / 2)})
+			}
+
+			offset = offset.Div(float32(len(newCards)))
+
+			offset = globals.Mouse.WorldPosition().Sub(offset)
+
+			for _, card := range newCards {
+				card.Rect.X += offset.X
+				card.Rect.Y += offset.Y
+				card.LockPosition()
 			}
 
 		}

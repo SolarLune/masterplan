@@ -42,23 +42,19 @@ func (prop *Property) IsLabel() bool {
 
 func (prop *Property) AsLabel() *Label {
 	if prop.Data == nil {
-		prop.Data = NewLabel("Label", &sdl.FRect{}, true)
+		prop.Data = NewLabel("", &sdl.FRect{}, true)
 	}
 	return prop.Data.(*Label)
 }
 
 func (prop *Property) Serialize() string {
 
-	data := ""
+	data := "{}"
 
 	if prop.IsLabel() {
-
 		data, _ = sjson.Set(data, "label", prop.AsLabel().TextAsString())
-
 	} else if prop.IsCheckbox() {
-
 		data, _ = sjson.Set(data, "checked", prop.AsCheckbox().Checked)
-
 	}
 
 	return data
@@ -80,27 +76,27 @@ func (prop *Property) Deserialize(data string) {
 // Contains properties for a Card.
 type Properties struct {
 	Card            *Card
-	Data            map[string]*Property
+	Props           map[string]*Property
 	DefinitionOrder []string
 }
 
 func NewProperties(card *Card) *Properties {
 	return &Properties{
 		Card:            card,
-		Data:            map[string]*Property{},
+		Props:           map[string]*Property{},
 		DefinitionOrder: []string{},
 	}
 }
 
 func (properties *Properties) Request(name string) *Property {
 
-	if _, exists := properties.Data[name]; !exists {
-		properties.Data[name] = NewProperty(name)
+	if _, exists := properties.Props[name]; !exists {
+		properties.Props[name] = NewProperty(name)
 	}
 
 	properties.DefinitionOrder = append(properties.DefinitionOrder, name)
 
-	prop := properties.Data[name]
+	prop := properties.Props[name]
 	prop.InUse = true
 	return prop
 
@@ -108,17 +104,12 @@ func (properties *Properties) Request(name string) *Property {
 
 func (properties *Properties) Serialize() string {
 
-	data := ""
+	data := "{}"
 
 	for _, name := range properties.DefinitionOrder {
-
-		property := properties.Data[name]
-
-		if !property.InUse {
-			continue
+		if properties.Props[name].InUse {
+			data, _ = sjson.SetRaw(data, name, properties.Props[name].Serialize())
 		}
-
-		data, _ = sjson.SetRaw(data, name, property.Serialize())
 	}
 
 	return data

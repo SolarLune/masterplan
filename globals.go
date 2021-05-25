@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/blang/semver"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
@@ -21,9 +22,11 @@ type Globals struct {
 	GridSize        float32
 	ScreenSize      Point
 	CopyBuffer      []string
+	Version         semver.Version
 }
 
 var globals = &Globals{
+	Version:    semver.MustParse("0.8.0"),
 	Keyboard:   NewKeyboard(),
 	Mouse:      NewMouse(),
 	GridSize:   32,

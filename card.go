@@ -169,12 +169,10 @@ func (card *Card) DrawContents() {
 
 func (card *Card) Serialize() string {
 
-	data := ""
-
+	data := "{}"
 	data, _ = sjson.Set(data, "rect", card.Rect)
-	data, _ = sjson.Set(data, "content type", card.ContentType)
+	data, _ = sjson.Set(data, "contents", card.ContentType)
 	data, _ = sjson.SetRaw(data, "properties", card.Properties.Serialize())
-
 	return data
 
 }
@@ -185,7 +183,7 @@ func (card *Card) Deserialize(data string) {
 	card.Rect.X = float32(rect.Get("X").Float())
 	card.Rect.Y = float32(rect.Get("Y").Float())
 
-	card.SetContents(gjson.Get(data, "content type").String())
+	card.SetContents(gjson.Get(data, "contents").String())
 
 	card.Properties.Deserialize(gjson.Get(data, "properties").Raw)
 
@@ -210,8 +208,7 @@ func (card *Card) StartDragging() {
 
 func (card *Card) StopDragging() {
 	card.Dragging = false
-	card.Rect.X = float32(math.Round(float64(card.Rect.X/globals.GridSize)) * float64(globals.GridSize))
-	card.Rect.Y = float32(math.Round(float64(card.Rect.Y/globals.GridSize)) * float64(globals.GridSize))
+	card.LockPosition()
 }
 
 func (card *Card) StartResizing() {
@@ -221,12 +218,15 @@ func (card *Card) StartResizing() {
 
 func (card *Card) StopResizing() {
 	card.Resizing = false
+	card.LockPosition()
+	card.ReceiveMessage(NewMessage(MessageResizeCompleted, card, nil))
+}
+
+func (card *Card) LockPosition() {
 	card.Rect.X = float32(math.Round(float64(card.Rect.X/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.Y = float32(math.Round(float64(card.Rect.Y/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.W = float32(math.Round(float64(card.Rect.W/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.H = float32(math.Round(float64(card.Rect.H/globals.GridSize)) * float64(globals.GridSize))
-
-	card.ReceiveMessage(NewMessage(MessageResizeCompleted, card, nil))
 }
 
 func (card *Card) Recreate(newWidth, newHeight float32) {
@@ -349,7 +349,7 @@ func (card *Card) SetContents(contentType string) {
 		card.Contents = existingContents
 	} else {
 
-		for _, prop := range card.Properties.Data {
+		for _, prop := range card.Properties.Props {
 			prop.InUse = false
 		}
 

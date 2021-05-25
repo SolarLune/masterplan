@@ -12,6 +12,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kvartborg/vector v0.0.0-20210122071920-91df40ba4054 // indirect
 	github.com/mholt/archiver v3.1.1+incompatible
+	github.com/ncruces/zenity v0.7.4 // indirect
 	github.com/nwaples/rardecode v1.0.0 // indirect
 	github.com/otiai10/copy v1.2.0
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect

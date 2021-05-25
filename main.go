@@ -304,7 +304,7 @@ func main() {
 
 			handleEvents()
 
-			if globals.ProgramSettings.Keybindings.On(KBDebugRestart) {
+			if globals.Project.State == StateNeutral && globals.ProgramSettings.Keybindings.On(KBDebugRestart) {
 				fmt.Println("restart")
 				globals.Project = NewProject()
 			}
@@ -328,6 +328,12 @@ func main() {
 			globals.Project.Update()
 
 			globals.Project.Draw()
+
+			if globals.Project.LoadingProject != nil {
+				original := globals.Project
+				globals.Project = globals.Project.LoadingProject
+				original.Destroy()
+			}
 
 			// rl.EndMode2D()
 

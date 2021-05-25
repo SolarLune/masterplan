@@ -3,6 +3,8 @@ package main
 import (
 	"sort"
 
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -83,19 +85,41 @@ func (page *Page) Draw() {
 
 func (page *Page) Serialize() string {
 
-	data := ""
+	pageData := "{}"
 
-	for _, card := range page.Cards {
-		data += card.Serialize()
+	// Sort the cards by their position so the serialization is more stable. (Otherwise, clicking on
+	// a Card adjusts the sort order, and therefore the order in which Cards are serialized.)
+	cards := append([]*Card{}, page.Cards...)
+
+	sort.Slice(cards, func(i, j int) bool {
+		return cards[i].Rect.Y < cards[j].Rect.Y || (cards[i].Rect.Y == cards[j].Rect.Y && cards[i].Rect.X < cards[j].Rect.X)
+	})
+
+	for _, card := range cards {
+		pageData, _ = sjson.SetRaw(pageData, "cards.-1", card.Serialize())
 	}
 
-	return data
+	return pageData
+
+}
+
+func (page *Page) Deserialize(data string) {
+
+	for _, cardData := range gjson.Get(data, "cards").Array() {
+
+		newCard := page.CreateNewCard()
+		newCard.Deserialize(cardData.Raw)
+
+	}
 
 }
 
 func (page *Page) CreateNewCard() *Card {
 
 	newCard := NewCard(page)
+	newCard.Rect.X = globals.Mouse.WorldPosition().X - (newCard.Rect.W / 2)
+	newCard.Rect.Y = globals.Mouse.WorldPosition().Y - (newCard.Rect.H / 2)
+	newCard.LockPosition()
 	page.Cards = append(page.Cards, newCard)
 	return newCard
 

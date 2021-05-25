@@ -31,6 +31,10 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 		Check: card.Properties.Request(PropertyTypeCheckbox).AsCheckbox(),
 	}
 
+	if len(checkboxContents.Label.Text) == 0 {
+		checkboxContents.Label.SetText([]rune("New Checkbox"))
+	}
+
 	checkboxContents.Label.Editable = true
 
 	return checkboxContents
@@ -83,9 +87,12 @@ type NoteContents struct {
 
 func NewNoteContents(card *Card) *NoteContents {
 	noteContents := &NoteContents{
-		Card: card,
-		// Label: NewLabel("New Notes", &sdl.FRect{0, 0, 32, 32}, true),
-		Label: card.Properties.Request("editable label").AsLabel(),
+		Card:  card,
+		Label: card.Properties.Request(PropertyTypeLabel).AsLabel(),
+	}
+
+	if len(noteContents.Label.Text) == 0 {
+		noteContents.Label.SetText([]rune("New Note"))
 	}
 
 	noteContents.Label.Editable = true
@@ -119,7 +126,7 @@ func (nc *NoteContents) ReceiveMessage(msg *Message) {}
 
 func (nc *NoteContents) Color() Color { return getThemeColor(GUINoteColor) }
 
-func (nc *NoteContents) MinimumSize() Point { return Point{globals.GridSize * 6, globals.GridSize * 4} }
+func (nc *NoteContents) MinimumSize() Point { return Point{globals.GridSize, globals.GridSize} }
 
 type ImageContents struct {
 	Card  *Card
