@@ -12,21 +12,21 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-const (
-	SequenceNumber = iota
-	SequenceNumberDash
-	SequenceRoman
-	SequenceBullet
-	SequenceOff
-)
+// const (
+// 	SequenceNumber = iota
+// 	SequenceNumberDash
+// 	SequenceRoman
+// 	SequenceBullet
+// 	SequenceOff
+// )
 
-const (
-	SettingsGeneral = iota
-	SettingsTasks
-	SettingsGlobal
-	SettingsKeyboard
-	SettingsAbout
-)
+// const (
+// 	SettingsGeneral = iota
+// 	SettingsTasks
+// 	SettingsGlobal
+// 	SettingsKeyboard
+// 	SettingsAbout
+// )
 
 const (
 	GUIFontSize100 = "100%"
@@ -38,10 +38,6 @@ const (
 	GUIFontSize400 = "400%"
 
 	// Project actions
-
-	StateNeutral     = "project state neutral"
-	StateEditing     = "project state editing"
-	StateTextEditing = "project state text editing"
 
 	ActionNewProject    = "new"
 	ActionLoadProject   = "load"
@@ -62,8 +58,6 @@ type Project struct {
 	GridTexture      *Image
 	Resources        map[string]*Resource
 	ShadowTexture    *Image
-	State            string
-	Menu             *Menu
 	Filepath         string
 	LoadingProject   *Project // A reference to the "next" Project when opening another one
 }
@@ -74,15 +68,10 @@ func NewProject() *Project {
 		ProjectSettings: NewProjectSettings(),
 		Camera:          NewCamera(),
 		Resources:       map[string]*Resource{},
-		State:           StateNeutral,
 		Pages:           []*Page{},
 	}
 
 	project.Pages = append(project.Pages, NewPage(project))
-
-	project.Menu = NewMenu(project, &sdl.FRect{0, 0, 512, 32})
-
-	project.Menu.AddElement(NewLabel("Test", &sdl.FRect{0, 0, 128, 32}, false))
 
 	project.GridTexture = TileTexture(project.LoadResource("assets/gui.png").AsTexturePair(), &sdl.Rect{480, 0, 32, 32}, 512, 512)
 
@@ -105,8 +94,6 @@ func NewProject() *Project {
 }
 
 func (project *Project) Update() {
-
-	project.Menu.Update()
 
 	globals.Mouse.ApplyCursor()
 
@@ -189,8 +176,6 @@ func (project *Project) Draw() {
 
 	project.CurrentPage().Draw()
 
-	project.Menu.Draw()
-
 }
 
 func (project *Project) Save() {
@@ -266,7 +251,7 @@ func (project *Project) Destroy() {
 
 func (project *Project) MouseActions() {
 
-	if project.State == StateNeutral {
+	if globals.State == StateNeutral {
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 
@@ -279,16 +264,27 @@ func (project *Project) MouseActions() {
 
 		}
 
+		if globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
+			globals.State = StateContextMenu
+			globals.ContextMenu.Rect.X = globals.Mouse.Position.X
+			globals.ContextMenu.Rect.Y = globals.Mouse.Position.Y
+			globals.ContextMenu.Open()
+		}
+
 	}
 
-	if globals.Mouse.Wheel > 0 {
-		project.Camera.TargetZoom += 0.25
-	} else if globals.Mouse.Wheel < 0 {
-		project.Camera.TargetZoom -= 0.25
-	}
+	if globals.State != StateContextMenu {
 
-	if globals.Mouse.Button(sdl.BUTTON_MIDDLE).Held() {
-		project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement.Mult(8))
+		if globals.Mouse.Wheel > 0 {
+			project.Camera.TargetZoom += 0.25
+		} else if globals.Mouse.Wheel < 0 {
+			project.Camera.TargetZoom -= 0.25
+		}
+
+		if globals.Mouse.Button(sdl.BUTTON_MIDDLE).Held() {
+			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement.Mult(8))
+		}
+
 	}
 
 }
@@ -307,7 +303,7 @@ func (project *Project) SendMessage(msg *Message) {
 
 func (project *Project) GlobalShortcuts() {
 
-	if project.State == StateNeutral {
+	if globals.State == StateNeutral {
 
 		dx := float32(0)
 		dy := float32(0)
@@ -363,7 +359,7 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {
-			project.CurrentPage().DeleteCard(project.CurrentPage().Selection.AsSlice()...)
+			project.CurrentPage().DeleteCards(project.CurrentPage().Selection.AsSlice()...)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBSelectAllCards) {
@@ -375,38 +371,12 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBCopyCards) {
-			globals.CopyBuffer = []string{}
-			for card := range project.CurrentPage().Selection.Cards {
-				globals.CopyBuffer = append(globals.CopyBuffer, card.Serialize())
-			}
+			project.CurrentPage().CopySelectedCards()
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBPasteCards) {
 
-			newCards := []*Card{}
-
-			for _, cardData := range globals.CopyBuffer {
-				newCard := project.CurrentPage().CreateNewCard()
-				newCard.Deserialize(cardData)
-				newCards = append(newCards, newCard)
-				project.CurrentPage().Selection.Add(newCard)
-			}
-
-			offset := Point{}
-
-			for _, card := range newCards {
-				offset = offset.Add(Point{card.Rect.X + (card.Rect.W / 2), card.Rect.Y + (card.Rect.H / 2)})
-			}
-
-			offset = offset.Div(float32(len(newCards)))
-
-			offset = globals.Mouse.WorldPosition().Sub(offset)
-
-			for _, card := range newCards {
-				card.Rect.X += offset.X
-				card.Rect.Y += offset.Y
-				card.LockPosition()
-			}
+			project.CurrentPage().PasteCards()
 
 		}
 

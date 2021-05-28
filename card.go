@@ -87,46 +87,50 @@ func (card *Card) Update() {
 
 	resizeRect := &sdl.FRect{card.Rect.X + card.Rect.W - 16, card.Rect.Y + card.Rect.H - 16, 16, 16}
 
-	if globals.Mouse.WorldPosition().Inside(resizeRect) {
-		globals.Mouse.SetCursor("resize")
+	if globals.State == StateNeutral {
 
-		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
-			card.StartResizing()
-			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-		}
+		if globals.Mouse.WorldPosition().Inside(resizeRect) {
+			globals.Mouse.SetCursor("resize")
 
-	} else if ClickedInRect(card.Rect, true) {
-
-		selection := card.Page.Selection
-
-		if globals.ProgramSettings.Keybindings.On(KBRemoveFromSelection) {
-
-			if card.Selected {
-				card.Deselect()
-				selection.Remove(card)
+			if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+				card.StartResizing()
+				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			}
 
-		} else {
+		} else if ClickedInRect(card.Rect, true) {
 
-			if !card.Selected && !globals.ProgramSettings.Keybindings.On(KBAddToSelection) {
+			selection := card.Page.Selection
 
-				for card := range selection.Cards {
+			if globals.ProgramSettings.Keybindings.On(KBRemoveFromSelection) {
+
+				if card.Selected {
 					card.Deselect()
+					selection.Remove(card)
 				}
 
-				selection.Clear()
+			} else {
+
+				if !card.Selected && !globals.ProgramSettings.Keybindings.On(KBAddToSelection) {
+
+					for card := range selection.Cards {
+						card.Deselect()
+					}
+
+					selection.Clear()
+				}
+
+				selection.Add(card)
+				card.Select()
+
+				for card := range selection.Cards {
+					card.StartDragging()
+				}
+
 			}
 
-			selection.Add(card)
-			card.Select()
-
-			for card := range selection.Cards {
-				card.StartDragging()
-			}
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
 		}
-
-		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
 	}
 
@@ -322,7 +326,7 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 		src.Y = 48
 
 		// Drawing outlines
-		globals.Project.GUITexture.SetColorMod(0, 0, 0)
+		globals.Project.GUITexture.SetColorMod(191, 191, 191)
 
 		drawPatches()
 

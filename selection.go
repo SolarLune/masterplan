@@ -17,7 +17,7 @@ func NewSelection(board *Page) *Selection {
 
 func (selection *Selection) Update() {
 
-	if selection.Board.Project.State == StateNeutral {
+	if globals.State == StateNeutral {
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
 			selection.BoxSelecting = true

@@ -121,8 +121,8 @@ func (mouse Mouse) WorldPosition() Point {
 
 	zoom := globals.Project.Camera.Zoom
 
-	wx := mouse.Position.X/float32(width)/zoom - 0.5
-	wy := mouse.Position.Y/float32(height)/zoom - 0.5
+	wx := mouse.Position.X/float32(width) - 0.5
+	wy := mouse.Position.Y/float32(height) - 0.5
 
 	viewArea := globals.Project.Camera.ViewArea()
 
@@ -179,8 +179,8 @@ func handleEvents() {
 		case *sdl.MouseMotionEvent:
 
 			mouseEvent := event.(*sdl.MouseMotionEvent)
-			globals.Mouse.Position.X = float32(mouseEvent.X) * globals.Project.Camera.Zoom
-			globals.Mouse.Position.Y = float32(mouseEvent.Y) * globals.Project.Camera.Zoom
+			globals.Mouse.Position.X = float32(mouseEvent.X)
+			globals.Mouse.Position.Y = float32(mouseEvent.Y)
 			globals.Mouse.RelativeMovement.X = float32(mouseEvent.XRel)
 			globals.Mouse.RelativeMovement.Y = float32(mouseEvent.YRel)
 

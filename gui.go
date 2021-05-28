@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -120,1347 +121,70 @@ type FocusableMenuElement interface {
 	SetFocused(bool)
 }
 
-// type ButtonStyle struct {
-// 	OutlineColor sdl.Color
-// 	FillColor    sdl.Color
+type Button struct {
+	Label     *Label
+	Rect      *sdl.FRect
+	Pressed   func()
+	LineWidth float32
+	Disabled  bool
+}
 
-// 	PressedOutlineColor sdl.Color
-// 	PressedFillColor    sdl.Color
+func NewButton(labelText string, rect *sdl.FRect, pressedFunc func()) *Button {
+	button := &Button{
+		Label:   NewLabel(labelText, rect, false, AlignCenter),
+		Rect:    rect,
+		Pressed: pressedFunc,
+	}
+	return button
+}
 
-// 	HoverOutlineColor sdl.Color
-// 	HoverFillColor    sdl.Color
+func (button *Button) Update() {
 
-// 	IconSrcRec   sdl.Rect
-// 	IconRotation float32
-// 	IconColor    sdl.Color
+	if globals.Mouse.Position.Inside(button.Rect) {
+		button.Label.Alpha = 255
+		button.LineWidth += (1 - button.LineWidth) * 0.2
 
-// 	ShadowOn bool
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+			if button.Pressed != nil {
+				button.Pressed()
+			}
+		}
 
-// 	IconOriginalScale bool
+	} else {
+		button.Label.Alpha = 127
+		button.LineWidth += (0 - button.LineWidth) * 0.2
+	}
 
-// 	FontColor sdl.Color
+	button.Label.Update()
 
-// 	RightClick bool
-// }
+}
 
-// func NewButtonStyle() ButtonStyle {
+func (button *Button) Draw() {
 
-// 	style := ButtonStyle{
+	button.Label.Draw()
 
-// 		OutlineColor: getThemeColor(GUIOutline),
-// 		FillColor:    getThemeColor(GUIInside),
+	if button.LineWidth > 0.05 {
 
-// 		HoverOutlineColor: getThemeColor(GUIOutlineHighlighted),
-// 		HoverFillColor:    getThemeColor(GUIInsideHighlighted),
+		w := button.Label.Rect.W * button.LineWidth
+		centerX := button.Label.Rect.X + (button.Label.Rect.W / 2)
+		r, g, b, a := getThemeColor(GUIFontColor).RGBA()
+		gfx.ThickLineRGBA(globals.Renderer, int32(centerX-w/2), int32(button.Label.Rect.Y+button.Label.Rect.H), int32(centerX+w/2), int32(button.Label.Rect.Y+button.Label.Rect.H), 2, r, g, b, a)
 
-// 		PressedOutlineColor: getThemeColor(GUIOutlineDisabled),
-// 		PressedFillColor:    getThemeColor(GUIInsideDisabled),
+	}
 
-// 		IconColor: getThemeColor(GUIFontColor),
+	// globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
 
-// 		IconOriginalScale: false,
+	// globals.Renderer.FillRectF(button.Rect)
 
-// 		FontColor: getThemeColor(GUIFontColor),
+	// globals.Renderer.SetDrawColor(getThemeColor(GUIFontColor).RGBA())
 
-// 		ShadowOn: true,
-// 	}
+	// globals.Renderer.DrawRectF(button.Rect)
 
-// 	return style
+}
 
-// }
+func (button *Button) Rectangle() *sdl.FRect { return button.Rect }
 
-// func imButton(rect rl.Rectangle, text string, style ButtonStyle) bool {
-
-// 	clicked := false
-
-// 	pos := rl.Vector2{}
-// 	if worldGUI {
-// 		pos = GetWorldMousePosition()
-// 	} else {
-// 		pos = GetMousePosition()
-// 	}
-
-// 	clicked = rl.CheckCollisionPointRec(pos, rect) && MousePressed(rl.MouseLeftButton)
-
-// 	if !clicked && style.RightClick {
-// 		clicked = rl.CheckCollisionPointRec(pos, rect) && MousePressed(rl.MouseRightButton)
-// 	}
-
-// 	outlineColor := style.OutlineColor
-// 	fillColor := style.FillColor
-
-// 	if rl.CheckCollisionPointRec(pos, rect) {
-// 		outlineColor = style.HoverOutlineColor
-// 		fillColor = style.HoverFillColor
-// 		if MouseDown(rl.MouseLeftButton) {
-// 			outlineColor = style.PressedOutlineColor
-// 			fillColor = style.PressedFillColor
-// 		}
-// 	}
-
-// 	if style.ShadowOn {
-
-// 		rect.X = float32(int32(rect.X) + 4)
-// 		rect.Y = float32(int32(rect.Y) + 4)
-// 		rect.Width = float32(int32(rect.Width))
-// 		rect.Height = float32(int32(rect.Height))
-
-// 		shadowColor := rl.Black
-// 		shadowColor.A = 128
-// 		rl.DrawRectangleRec(rect, shadowColor)
-
-// 		rect.X -= 4
-// 		rect.Y -= 4
-
-// 	}
-
-// 	rl.DrawRectangleRec(rect, outlineColor)
-// 	DrawRectExpanded(rect, -1, fillColor)
-
-// 	iconDstRec := rl.NewRectangle(0, 0, 0, 0)
-
-// 	if style.IconSrcRec.Width != 0 && style.IconSrcRec.Height != 0 {
-
-// 		if text != "" {
-
-// 			margin := float32(4)
-
-// 			iconDstRec.Width = rect.Height - margin
-// 			iconDstRec.Height = rect.Height - margin
-
-// 			iconDstRec.X = rect.X + iconDstRec.Width/2 + (margin / 2)
-// 			iconDstRec.Y = rect.Y + iconDstRec.Height/2 + (margin / 2)
-
-// 		} else {
-
-// 			iconDstRec = rect
-
-// 			if style.IconOriginalScale {
-// 				iconDstRec.Width = style.IconSrcRec.Width
-// 				iconDstRec.Height = style.IconSrcRec.Height
-// 			}
-
-// 			iconDstRec.X += iconDstRec.Width / 2
-// 			iconDstRec.Y += iconDstRec.Height / 2
-
-// 		}
-
-// 	}
-
-// 	textWidth := rl.MeasureTextEx(font, text, GUIFontSize(), spacing)
-// 	if worldGUI {
-// 		textWidth = rl.MeasureTextEx(font, text, float32(programSettings.FontSize), spacing)
-// 	}
-// 	pos = rl.Vector2{rect.X + (rect.Width / 2) - textWidth.X/2 + (iconDstRec.Width / 4), rect.Y + (rect.Height / 2) - textWidth.Y/2}
-// 	pos.X = float32(math.Round(float64(pos.X)))
-// 	pos.Y = float32(math.Round(float64(pos.Y)))
-
-// 	rl.DrawTexturePro(
-// 		currentProject.GUI_Icons,
-// 		style.IconSrcRec,
-// 		iconDstRec,
-// 		rl.Vector2{iconDstRec.Width / 2, iconDstRec.Height / 2},
-// 		style.IconRotation,
-// 		style.IconColor)
-
-// 	if worldGUI {
-// 		DrawTextColored(pos, style.FontColor, text, false)
-// 	} else {
-// 		DrawTextColored(pos, style.FontColor, text, true)
-// 	}
-
-// 	if clicked && prioritizedGUIElement != nil {
-// 		clicked = false
-// 	}
-
-// 	return clicked
-// }
-
-// func MultiImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, pressed bool) bool {
-
-// 	style := NewButtonStyle()
-
-// 	style.IconSrcRec = iconSrcRec
-// 	style.IconRotation = iconRotation
-
-// 	if pressed {
-// 		style.OutlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-// 		style.FillColor = getThemeColor(GUI_INSIDE_DISABLED)
-// 	}
-
-// 	button := imButton(rect, text, style)
-
-// 	return button
-// }
-
-// func ImmediateIconButton(rect, iconSrcRec rl.Rectangle, iconRotation float32, text string, disabled bool) bool {
-
-// 	style := NewButtonStyle()
-// 	style.IconSrcRec = iconSrcRec
-// 	style.IconRotation = iconRotation
-
-// 	if disabled {
-
-// 		style.OutlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-// 		style.HoverOutlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-// 		style.PressedOutlineColor = getThemeColor(GUI_OUTLINE_DISABLED)
-
-// 		style.FillColor = getThemeColor(GUI_INSIDE_DISABLED)
-// 		style.HoverFillColor = getThemeColor(GUI_INSIDE_DISABLED)
-// 		style.PressedFillColor = getThemeColor(GUI_INSIDE_DISABLED)
-
-// 	}
-
-// 	button := imButton(rect, text, style)
-
-// 	if disabled {
-// 		return false
-// 	}
-
-// 	return button
-// }
-
-// func ImmediateButton(rect rl.Rectangle, text string, disabled bool) bool {
-// 	return ImmediateIconButton(rect, rl.Rectangle{}, 0, text, disabled)
-// }
-
-// type Button struct {
-// 	Rect         rl.Rectangle
-// 	IconSrcRect  rl.Rectangle
-// 	IconRotation float32
-// 	Text         string
-// 	Disabled     bool
-// 	Clicked      bool
-// 	focused      bool
-// }
-
-// func NewButton(x, y, w, h float32, text string, disabled bool) *Button {
-// 	return &Button{
-// 		Rect:         rl.Rectangle{x, y, w, h},
-// 		IconSrcRect:  rl.Rectangle{},
-// 		IconRotation: 0,
-// 		Text:         text,
-// 		Disabled:     disabled,
-// 	}
-// }
-
-// func (button *Button) Focused() bool {
-// 	return button.focused
-// }
-
-// func (button *Button) SetFocused(focused bool) {
-// 	button.focused = focused
-// }
-
-// func (button *Button) Update() {
-
-// 	if prioritizedGUIElement == nil && MousePressed(rl.MouseLeftButton) {
-// 		button.focused = rl.CheckCollisionPointRec(GetMousePosition(), button.Rect)
-// 	}
-
-// }
-
-// func (button *Button) Draw() {
-// 	button.Clicked = ImmediateIconButton(button.Rect, button.IconSrcRect, button.IconRotation, button.Text, button.Disabled)
-
-// 	if button.focused && !button.Disabled && (rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) || rl.IsKeyPressed(rl.KeySpace)) {
-// 		button.Clicked = true
-// 	}
-
-// }
-
-// func (button *Button) Depth() int32 {
-// 	return 0
-// }
-
-// func (button *Button) Rectangle() rl.Rectangle {
-// 	return button.Rect
-// }
-
-// func (button *Button) SetRectangle(rect rl.Rectangle) {
-// 	button.Rect = rect
-// }
-
-// func (button *Button) Clone() *Button {
-// 	newButton := *button
-// 	return &newButton
-// }
-
-// type ButtonGroup struct {
-// 	Rect          rl.Rectangle
-// 	Options       []string
-// 	RowCount      int
-// 	CurrentChoice int
-// 	Changed       bool
-// 	focused       bool
-// }
-
-// // NewButtonGroup creates a button group. The X and Y is the position of the group, while the width is how wide the group is. Height is how tall the group is,
-// // but also specifies the height of the buttons. RowCount indicates the number of rows to spread the buttons across. Finally, one button will be created for each
-// // option in the options variable string.
-// func NewButtonGroup(x, y, w, h float32, rowCount int, options ...string) *ButtonGroup {
-// 	if rowCount < 1 {
-// 		rowCount = 1
-// 	}
-// 	return &ButtonGroup{
-// 		Rect:     rl.Rectangle{x, y, w, h * float32(rowCount)},
-// 		Options:  options,
-// 		RowCount: rowCount,
-// 	}
-// }
-
-// func (bg *ButtonGroup) Focused() bool {
-// 	return bg.focused
-// }
-
-// func (bg *ButtonGroup) SetFocused(focused bool) {
-// 	bg.focused = focused
-// }
-
-// func (bg *ButtonGroup) Update() {
-
-// 	bg.Changed = false
-
-// 	if MousePressed(rl.MouseLeftButton) {
-// 		bg.focused = rl.CheckCollisionPointRec(GetMousePosition(), bg.Rect)
-// 	}
-
-// 	if bg.focused {
-
-// 		if rl.IsKeyPressed(rl.KeyRight) {
-// 			bg.CurrentChoice++
-// 			bg.Changed = true
-// 		} else if rl.IsKeyPressed(rl.KeyLeft) {
-// 			bg.CurrentChoice--
-// 			bg.Changed = true
-// 		} else if rl.IsKeyPressed(rl.KeyUp) && bg.RowCount > 1 {
-// 			perRow := int(math.Ceil(float64(len(bg.Options)) / float64(bg.RowCount)))
-// 			if bg.CurrentChoice == 0 {
-// 				bg.CurrentChoice = -1
-// 			} else if bg.CurrentChoice < perRow-1 {
-// 				bg.CurrentChoice = 0
-// 			} else {
-// 				bg.CurrentChoice -= perRow
-// 			}
-// 		} else if rl.IsKeyPressed(rl.KeyDown) && bg.RowCount > 1 {
-// 			perRow := int(math.Ceil(float64(len(bg.Options)) / float64(bg.RowCount)))
-// 			if bg.CurrentChoice == len(bg.Options)-1 {
-// 				bg.CurrentChoice++
-// 			} else if bg.CurrentChoice > len(bg.Options)-perRow-1 {
-// 				bg.CurrentChoice = len(bg.Options) - 1
-// 			} else {
-// 				bg.CurrentChoice += perRow
-// 			}
-// 		}
-
-// 		if bg.CurrentChoice >= len(bg.Options) {
-// 			bg.CurrentChoice = 0
-// 		} else if bg.CurrentChoice < 0 {
-// 			bg.CurrentChoice = len(bg.Options) - 1
-// 		}
-
-// 	}
-
-// }
-
-// func (bg *ButtonGroup) Draw() {
-
-// 	r := bg.Rect
-// 	perRow := math.Ceil(float64(len(bg.Options)) / float64(bg.RowCount))
-// 	r.Width /= float32(perRow)
-// 	r.Height /= float32(bg.RowCount)
-
-// 	startingX := r.X
-
-// 	for i, option := range bg.Options {
-
-// 		if ImmediateButton(r, option, i == bg.CurrentChoice) {
-// 			if bg.CurrentChoice != i {
-// 				bg.Changed = true
-// 			}
-// 			bg.CurrentChoice = i
-// 		}
-
-// 		r.X += r.Width
-
-// 		if r.X >= bg.Rect.X+bg.Rect.Width {
-// 			r.X = startingX
-// 			r.Y += r.Height
-// 		}
-
-// 	}
-
-// }
-
-// func (bg *ButtonGroup) Depth() int32 { return 0 }
-
-// func (bg *ButtonGroup) Rectangle() rl.Rectangle {
-// 	return bg.Rect
-// }
-
-// func (bg *ButtonGroup) SetRectangle(rect rl.Rectangle) {
-// 	bg.Rect = rect
-// }
-
-// func (bg *ButtonGroup) ChoiceAsString() string {
-// 	return bg.Options[bg.CurrentChoice]
-// }
-
-// func (bg *ButtonGroup) SetChoice(choice string) {
-// 	for i, option := range bg.Options {
-// 		if option == choice {
-// 			bg.CurrentChoice = i
-// 			return
-// 		}
-// 	}
-// }
-
-// func (bg *ButtonGroup) Clone() *ButtonGroup {
-// 	newBG := *bg
-// 	newBG.Options = append([]string{}, bg.Options...)
-// 	return &newBG
-// }
-
-// type MultiButtonGroup struct {
-// 	Rect                rl.Rectangle
-// 	Options             []string
-// 	RowCount            int
-// 	CurrentChoices      int
-// 	Changed             bool
-// 	MinimumEnabledCount int
-// 	focused             bool
-// 	focusedIndex        int
-// }
-
-// // NewButtonGroup creates a button group. The X and Y is the position of the group, while the width is how wide the group is. Height is how tall the group is,
-// // but also specifies the height of the buttons. RowCount indicates the number of rows to spread the buttons across. Finally, one button will be created for each
-// // option in the options variable string.
-// func NewMultiButtonGroup(x, y, w, h float32, rowCount int, options ...string) *MultiButtonGroup {
-// 	return &MultiButtonGroup{
-// 		Rect:                rl.Rectangle{x, y, w, h * float32(rowCount)},
-// 		Options:             options,
-// 		RowCount:            rowCount,
-// 		MinimumEnabledCount: 1,
-// 	}
-// }
-
-// func (bg *MultiButtonGroup) Update() {}
-
-// func (bg *MultiButtonGroup) Draw() {
-
-// 	bg.Changed = false
-
-// 	r := bg.Rect
-// 	r.Width /= float32(len(bg.Options) / bg.RowCount)
-// 	r.Height /= float32(bg.RowCount)
-
-// 	startingX := r.X
-
-// 	for i, option := range bg.Options {
-
-// 		bitVal := 1 << i
-// 		alreadyClicked := bg.CurrentChoices&bitVal != 0
-
-// 		src := rl.Rectangle{208, 32, 16, 16}
-// 		if alreadyClicked {
-// 			src.X += 16
-// 		}
-// 		if MultiImmediateIconButton(r, src, 0, option, alreadyClicked) {
-
-// 			if alreadyClicked && bg.EnabledOptionCount() > bg.MinimumEnabledCount {
-// 				// Set / Add to existing bit variable
-// 				bg.CurrentChoices = bg.CurrentChoices &^ bitVal
-// 				bg.Changed = true
-// 			} else {
-// 				// Remove / clear from existing bit variable
-// 				bg.CurrentChoices = bg.CurrentChoices | bitVal
-// 				bg.Changed = true
-// 			}
-
-// 		}
-
-// 		r.X += r.Width
-
-// 		if r.X >= bg.Rect.X+bg.Rect.Width {
-// 			r.X = startingX
-// 			r.Y += r.Height
-// 		}
-
-// 	}
-
-// 	if bg.focused {
-
-// 		if rl.IsKeyPressed(rl.KeyRight) {
-// 			bg.focusedIndex++
-// 		} else if rl.IsKeyPressed(rl.KeyLeft) {
-// 			bg.focusedIndex--
-// 		}
-
-// 		if bg.focusedIndex < 0 {
-// 			bg.focusedIndex = len(bg.Options) - 1
-// 		} else if bg.focusedIndex > len(bg.Options)-1 {
-// 			bg.focusedIndex = 0
-// 		}
-
-// 		if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) || rl.IsKeyPressed(rl.KeySpace) {
-
-// 			bitVal := 1 << bg.focusedIndex
-// 			alreadyClicked := bg.CurrentChoices&bitVal != 0
-
-// 			if alreadyClicked && bg.EnabledOptionCount() > bg.MinimumEnabledCount {
-// 				bg.CurrentChoices = bg.CurrentChoices &^ bitVal
-// 				bg.Changed = true
-// 			} else {
-// 				bg.CurrentChoices = bg.CurrentChoices | bitVal
-// 				bg.Changed = true
-// 			}
-
-// 		}
-
-// 		rect := bg.Rect
-// 		rect.Width /= float32(len(bg.Options) / bg.RowCount)
-// 		rect.Height /= float32(bg.RowCount)
-// 		rect.X += rect.Width * float32(bg.focusedIndex)
-// 		rl.DrawRectangleLinesEx(rect, 4, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
-
-// 	}
-
-// }
-
-// func (bg *MultiButtonGroup) Focused() bool {
-// 	return bg.focused
-// }
-
-// func (bg *MultiButtonGroup) SetFocused(focused bool) {
-// 	bg.focused = focused
-// }
-
-// func (bg *MultiButtonGroup) Depth() int32 { return 0 }
-
-// func (bg *MultiButtonGroup) Rectangle() rl.Rectangle {
-// 	return bg.Rect
-// }
-
-// func (bg *MultiButtonGroup) SetRectangle(rect rl.Rectangle) {
-// 	bg.Rect = rect
-// }
-
-// func (bg *MultiButtonGroup) OptionEnabled(choice string) bool {
-
-// 	for i, option := range bg.Options {
-// 		if option == choice {
-// 			return bg.CurrentChoices&(1<<i) != 0
-// 		}
-// 	}
-// 	return false
-
-// }
-// func (bg *MultiButtonGroup) EnableOption(choice string) {
-// 	for i, option := range bg.Options {
-// 		if option == choice {
-// 			bg.CurrentChoices = bg.CurrentChoices | (1 << i)
-// 			return
-// 		}
-// 	}
-// }
-
-// func (bg *MultiButtonGroup) EnabledOptionsAsArray() []bool {
-
-// 	enabledOptions := []bool{}
-
-// 	for i := 0; i < len(bg.Options); i++ {
-// 		enabledOptions = append(enabledOptions, bg.CurrentChoices&(1<<i) != 0)
-// 	}
-
-// 	return enabledOptions
-
-// }
-
-// func (bg *MultiButtonGroup) EnabledOptionCount() int {
-// 	count := 0
-// 	for _, option := range bg.EnabledOptionsAsArray() {
-// 		if option == true {
-// 			count++
-// 		}
-// 	}
-// 	return count
-// }
-
-// func (bg *MultiButtonGroup) Clone() *MultiButtonGroup {
-// 	newMBG := *bg
-// 	newMBG.Options = append([]string{}, bg.Options...)
-// 	return &newMBG
-// }
-
-// type PanelItem struct {
-// 	Element             GUIElement
-// 	On                  bool
-// 	HorizontalAlignment int
-// 	Modes               []int
-// 	Name                string
-// 	Weight              float32
-// }
-
-// func NewPanelItem(element GUIElement, modes ...int) *PanelItem {
-
-// 	if len(modes) == 0 {
-// 		modes = append(modes, -1)
-// 	}
-
-// 	return &PanelItem{Element: element, HorizontalAlignment: ALIGN_CENTER, Modes: modes, On: true}
-// }
-
-// func (pi *PanelItem) InMode(mode int) bool {
-
-// 	for _, m := range pi.Modes {
-
-// 		if m == -1 || m == mode { // -1 is a stand-in for all tasks
-// 			return true
-// 		}
-
-// 	}
-
-// 	return false
-
-// }
-
-// type PanelRow struct {
-// 	Column          *PanelColumn
-// 	Items           []*PanelItem
-// 	VerticalSpacing int32
-// }
-
-// func NewPanelRow(column *PanelColumn) *PanelRow {
-// 	return &PanelRow{Column: column, Items: []*PanelItem{}}
-// }
-
-// func (row *PanelRow) Item(element GUIElement, modes ...int) *PanelItem {
-// 	item := NewPanelItem(element, modes...)
-// 	row.Items = append(row.Items, item)
-// 	return item
-// }
-
-// func (row *PanelRow) ActiveItems() []*PanelItem {
-
-// 	activeItems := []*PanelItem{}
-
-// 	for _, item := range row.Items {
-
-// 		if !item.InMode(row.Column.Mode) || !item.On {
-// 			continue
-// 		}
-
-// 		activeItems = append(activeItems, item)
-
-// 	}
-
-// 	return activeItems
-
-// }
-
-// type PanelColumn struct {
-// 	Rows                   []*PanelRow
-// 	Mode                   int
-// 	DefaultVerticalSpacing int32
-// }
-
-// func NewPanelColumn() *PanelColumn {
-// 	return &PanelColumn{
-// 		Rows:                   []*PanelRow{},
-// 		Mode:                   0,
-// 		DefaultVerticalSpacing: -1,
-// 	}
-// }
-
-// func (column *PanelColumn) Row() *PanelRow {
-// 	row := NewPanelRow(column)
-// 	row.VerticalSpacing = column.DefaultVerticalSpacing
-// 	column.Rows = append(column.Rows, row)
-// 	return row
-// }
-
-// func (column *PanelColumn) Clear() {
-// 	column.Rows = []*PanelRow{}
-// }
-
-// type Panel struct {
-// 	Renderer          *sdl.Renderer
-// 	Rect              sdl.Rect
-// 	OriginalWidth     int32
-// 	OriginalHeight    int32
-// 	MinimumWidth      int32
-// 	MinimumHeight     int32
-// 	ViewPosition      Point
-// 	Columns           []*PanelColumn
-// 	Exited            bool
-// 	RenderTexture     *sdl.Texture
-// 	RenderTextureSize Point
-// 	Scrollbar         *Scrollbar
-// 	AutoExpand        bool
-// 	EnableScrolling   bool
-// 	DragStart         Point
-// 	Resizeable        bool
-// 	Resizing          bool
-// 	ResizeDragStart   Point
-// 	PrevWindowSize    Point
-// 	JustOpened        bool
-// 	FocusedElement    int
-// }
-
-// func NewPanel(x, y, w, h int32, renderer *sdl.Renderer) *Panel {
-
-// 	panel := &Panel{
-// 		Rect:            sdl.Rect{x, y, w, h},
-// 		Renderer:        renderer,
-// 		OriginalWidth:   w,
-// 		OriginalHeight:  h,
-// 		MinimumWidth:    w,
-// 		MinimumHeight:   h,
-// 		AutoExpand:      true,
-// 		Scrollbar:       NewScrollbar(0, 0, 16, h-80),
-// 		EnableScrolling: true,
-// 		DragStart:       Point{-1, -1},
-// 		Resizeable:      true,
-// 		FocusedElement:  -1,
-// 	}
-
-// 	panel.recreateRenderTexture()
-
-// 	return panel
-
-// }
-
-// func (panel *Panel) Update(window *sdl.Window, renderer *sdl.Renderer) {
-
-// 	dst := &sdl.Rect{panel.Rect.X, panel.Rect.Y, panel.OriginalWidth, panel.OriginalHeight}
-// 	ww, wh := window.GetSize()
-// 	winSize := Point{ww, wh}
-// 	exitButtonSize := int32(32)
-// 	panel.Exited = false
-
-// 	// Resizing
-
-// 	resizeCorner := sdl.Rect{0, 0, 12, 12}
-// 	resizeCorner.X = panel.Rect.X + panel.OriginalWidth - resizeCorner.W
-// 	resizeCorner.Y = panel.Rect.Y + panel.OriginalHeight - resizeCorner.H
-
-// 	if panel.Resizeable && ClickedInRect(resizeCorner) {
-// 		panel.Resizing = true
-// 		panel.ResizeDragStart.X = mousePosition.X - panel.Rect.X
-// 		panel.ResizeDragStart.Y = mousePosition.Y - panel.Rect.Y
-// 	}
-
-// 	panel.Scrollbar.Locked = panel.Resizing
-
-// 	if panel.Resizing {
-
-// 		end := mousePosition.Sub(Point{panel.Rect.X, panel.Rect.Y})
-
-// 		// endX := mousePosition.X - panel.Rect.X
-// 		// endY := mousePosition.Y - panel.Rect.Y
-
-// 		panel.OriginalWidth = end.X
-// 		panel.OriginalHeight = end.Y
-
-// 		if panel.OriginalWidth < panel.MinimumWidth {
-// 			panel.OriginalWidth = panel.MinimumWidth
-// 		} else if panel.Rect.X+panel.OriginalWidth > winSize.X {
-// 			panel.OriginalWidth = winSize.X - panel.Rect.X
-// 		}
-
-// 		if panel.OriginalHeight < panel.MinimumHeight {
-// 			panel.OriginalHeight = panel.MinimumHeight
-// 		} else if panel.Rect.Y+panel.OriginalHeight > winSize.Y {
-// 			panel.OriginalHeight = winSize.Y - panel.Rect.Y
-// 		}
-
-// 	}
-
-// 	if prioritizedGUIElement == nil && ClickedOutRect(*dst) || Key(sdl.K_ESCAPE).Pressed() {
-// 		panel.Exited = true
-// 		MouseButton(sdl.BUTTON_LEFT).ConsumePress()
-// 	}
-
-// 	// Draggable Panel
-
-// 	topBar := dst
-// 	topBar.H = exitButtonSize / 2
-// 	topBar.W -= exitButtonSize
-
-// 	if ClickedInRect(*topBar) {
-// 		// panel.DragStart = rl.Vector2Subtract(GetMousePosition(), rl.Vector2{panel.Rect.X, panel.Rect.Y})
-// 		panel.DragStart.X = mousePosition.X - panel.Rect.X
-// 		panel.DragStart.Y = mousePosition.Y - panel.Rect.Y
-// 	}
-
-// 	if (panel.DragStart.X >= 0 && panel.DragStart.Y >= 0) || panel.PrevWindowSize != winSize {
-
-// 		// Dragging
-
-// 		if panel.DragStart.X >= 0 && panel.DragStart.Y >= 0 {
-// 			panel.Rect.X = mousePosition.X - panel.DragStart.X
-// 			panel.Rect.Y = mousePosition.Y - panel.DragStart.Y
-// 			MouseButton(sdl.BUTTON_LEFT).Hide()
-// 		}
-
-// 		if panel.OriginalWidth > winSize.X {
-// 			panel.OriginalWidth = winSize.X
-// 		}
-// 		if panel.OriginalHeight > winSize.Y {
-// 			panel.OriginalHeight = winSize.Y
-// 		}
-
-// 		if panel.Rect.X < 0 {
-// 			panel.Rect.X = 0
-// 		}
-// 		if panel.Rect.X+panel.OriginalWidth > winSize.X {
-// 			panel.Rect.X = winSize.X - panel.OriginalWidth
-// 		}
-
-// 		if panel.Rect.Y < 0 {
-// 			panel.Rect.Y = 0
-// 		}
-// 		if panel.Rect.Y+panel.OriginalHeight > winSize.Y {
-// 			panel.Rect.Y = winSize.Y - panel.OriginalHeight
-// 		}
-
-// 		dst.X = panel.Rect.X
-// 		dst.Y = panel.Rect.Y
-// 		topBar.X = panel.Rect.X
-// 		topBar.Y = panel.Rect.Y
-
-// 	}
-
-// 	// Scrollbar
-
-// 	if panel.Scrollbar.Horizontal {
-
-// 	} else {
-// 		panel.Scrollbar.Rect.X = dst.X + dst.W - panel.Scrollbar.Rect.W
-// 		panel.Scrollbar.Rect.Y = dst.Y + 48
-// 		panel.Scrollbar.Rect.H = panel.OriginalHeight - 80
-// 	}
-
-// 	shadowRect := dst
-// 	shadowRect.X += 4
-// 	shadowRect.Y += 4
-// 	shadowColor := sdl.Color{0, 0, 0, 255}
-// 	shadowColor.A = 128
-// 	// rl.DrawRectangleRec(shadowRect, shadowColor)
-
-// 	renderer.SetDrawColor(shadowColor.R, shadowColor.G, shadowColor.B, shadowColor.A)
-// 	renderer.FillRect(shadowRect)
-
-// 	scrollbarVisible := panel.OriginalHeight < panel.Rect.H-topBar.H && panel.EnableScrolling
-
-// 	scroll := int32(0)
-
-// 	if scrollbarVisible {
-
-// 		totalScroll := float32(panel.RenderTextureSize.Y - panel.OriginalHeight)
-// 		chunk := float32(0)
-// 		if totalScroll > 0 {
-// 			chunk = 128.0 / totalScroll
-// 		}
-
-// 		wheel := float32(mouseWheel)
-
-// 		if Key(sdl.K_PAGEDOWN).Pressed() {
-// 			wheel = 4
-// 		} else if Key(sdl.K_PAGEUP).Pressed() {
-// 			wheel = -4
-// 		}
-// 		if wheel != 0 {
-// 			panel.FocusedElement = -1
-// 		}
-
-// 		panel.Scrollbar.Scroll(wheel * chunk * float32(programSettings.ScrollwheelSensitivity))
-// 		scroll = int32(panel.Scrollbar.ScrollAmount * totalScroll)
-
-// 	}
-
-// 	quitButton := false
-
-// 	activeItems := []*PanelItem{}
-
-// 	if len(panel.Columns) > 0 {
-
-// 		horizontalMargin := int32(64)
-
-// 		y := int32(0)
-// 		lowestY := int32(0)
-
-// 		// dx := (panel.OriginalWidth - panel.RenderTextureSize.X) / 2
-
-// 		// globalMouseOffset.X = panel.Rect.X + dx
-// 		// globalMouseOffset.Y = panel.Rect.Y - scroll
-
-// 		activeRowCount := int32(0)
-
-// 		// We just want the active items
-// 		for _, column := range panel.Columns {
-// 			for _, row := range column.Rows {
-// 				actives := row.ActiveItems()
-// 				if len(actives) > 0 {
-// 					activeRowCount++
-// 				}
-// 				activeItems = append(activeItems, actives...)
-// 			}
-// 		}
-
-// 		sort.Slice(activeItems, func(i, j int) bool {
-
-// 			if activeItems[i].Element == nil {
-// 				return false
-// 			} else if activeItems[j].Element == nil {
-// 				return true
-// 			}
-
-// 			return activeItems[i].Element.Depth() > activeItems[j].Element.Depth()
-// 		})
-
-// 		topMargin := 32 + topBar.H
-
-// 		x := int32(0)
-
-// 		for i, column := range panel.Columns {
-
-// 			columnWidth := int32(int(panel.Rect.W-horizontalMargin) / len(panel.Columns))
-// 			columnX := horizontalMargin/2 + (columnWidth * int32(i))
-
-// 			x = columnX
-// 			y = topMargin
-
-// 			for _, row := range column.Rows {
-
-// 				activeItems := row.ActiveItems()
-
-// 				w := columnWidth / int32(len(activeItems))
-
-// 				lastHeight := int32(0)
-
-// 				for _, item := range activeItems {
-
-// 					width := w
-
-// 					if item.Weight > 0 {
-// 						width = int32(float32(columnWidth) * item.Weight)
-// 					}
-
-// 					rect := item.Element.Rectangle()
-
-// 					rect.X = x + (width / 2) - (rect.W / 2)
-
-// 					if item.HorizontalAlignment == ALIGN_LEFT {
-// 						rect.X -= w/2 - rect.W/2
-// 					} else if item.HorizontalAlignment == ALIGN_RIGHT {
-// 						rect.X += w/2 - rect.W/2
-// 					}
-
-// 					// _, isTextbox := item.Element.(*Textbox)
-// 					// if isTextbox {
-// 					// 	h, _ := TextHeight("A", true)
-// 					// 	rect.Y = y - (h / 2)
-// 					// } else {
-// 					// 	rect.Y = y - (rect.Height / 2)
-// 					// }
-
-// 					// if spinner, isSpinner := item.Element.(*Spinner); isSpinner && spinner.Expanded && !spinner.ExpandUpwards {
-// 					// 	ly := spinner.Rect.Y + spinner.ExpandedHeight()
-// 					// 	if ly > lowestY {
-// 					// 		lowestY = ly
-// 					// 	}
-// 					// }
-
-// 					item.Element.SetRectangle(rect)
-
-// 					x += width
-
-// 					lastHeight = rect.H
-
-// 				}
-
-// 				if len(activeItems) > 0 {
-
-// 					if row.VerticalSpacing >= 0 {
-// 						y += lastHeight + row.VerticalSpacing
-// 					} else {
-// 						spacing := int32(panel.OriginalHeight-32-topBar.H) / activeRowCount
-// 						if spacing <= lastHeight {
-// 							spacing = lastHeight
-// 						}
-// 						y += spacing // Automatic spacing
-// 					}
-
-// 				}
-
-// 				if y > lowestY {
-// 					lowestY = y
-// 				}
-
-// 				x = columnX
-
-// 			}
-
-// 		}
-
-// 		for _, item := range activeItems {
-// 			// Update the elements
-// 			if !panel.JustOpened {
-// 				item.Element.Update()
-// 			}
-// 		}
-
-// 		// rl.BeginTextureMode(panel.RenderTexture)
-// 		// rl.ClearBackground(getThemeColor(GUI_INSIDE))
-
-// 		// for _, item := range activeItems {
-// 		// 	// Draw the elements
-// 		// 	item.Element.Draw()
-// 		// }
-
-// 		// Tab focusing
-
-// 		tabFocus := 0
-
-// 		if programSettings.Keybindings.On(KBTabFocusNext) {
-// 			tabFocus = 1
-// 		}
-
-// 		if programSettings.Keybindings.On(KBTabFocusPrev) {
-// 			tabFocus = -1
-// 		}
-
-// 		activeFocusables := []*PanelItem{}
-
-// 		for _, element := range activeItems {
-// 			mid := interface{}(element.Element)
-// 			if _, is := mid.(FocusableGUIElement); is {
-// 				activeFocusables = append(activeFocusables, element)
-// 			}
-// 		}
-
-// 		if tabFocus != 0 {
-
-// 			if panel.FocusedElement >= 0 {
-// 				prevFocusable := interface{}(activeFocusables[panel.FocusedElement].Element).(FocusableGUIElement)
-// 				prevFocusable.SetFocused(false)
-// 			}
-
-// 			// No focus is already set (rectangle around an object)
-// 			if panel.FocusedElement < 0 {
-
-// 				// Set the focus to be whichever item is focused (if there is one)
-// 				for i := range activeFocusables {
-// 					focusObject := interface{}(activeFocusables[i].Element).(FocusableGUIElement)
-// 					if focusObject.Focused() {
-// 						panel.FocusedElement = i
-// 						break
-// 					}
-// 				}
-
-// 				if panel.FocusedElement < 0 {
-// 					panel.FocusedElement = 0
-// 				}
-
-// 			} else {
-
-// 				for _, element := range activeFocusables {
-// 					focusObject := interface{}(element.Element).(FocusableGUIElement)
-// 					focusObject.SetFocused(false)
-// 				}
-
-// 				panel.FocusedElement += tabFocus
-// 			}
-
-// 			if panel.FocusedElement < 0 {
-// 				panel.FocusedElement = len(activeFocusables) - 1
-// 			} else if panel.FocusedElement > len(activeFocusables)-1 {
-// 				panel.FocusedElement = 0
-// 			}
-
-// 		}
-
-// 		if panel.FocusedElement >= 0 {
-
-// 			focusable := interface{}(activeFocusables[panel.FocusedElement].Element).(FocusableGUIElement)
-// 			focusable.SetFocused(true)
-
-// 			if panel.FocusedElement >= len(activeFocusables)-1 {
-// 				panel.FocusedElement = len(activeFocusables) - 1
-// 			}
-
-// 			rect := activeFocusables[panel.FocusedElement].Element.Rectangle()
-
-// 			panel.Scrollbar.TargetScroll = (rect.Y - topBar.Height*4) / (panel.Rect.Height - topBar.Height*8)
-// 			// panel.Scrollbar.ScrollAmount = panel.Scrollbar.TargetScroll
-
-// 			activeItem := activeFocusables[panel.FocusedElement]
-// 			rect = activeItem.Element.Rectangle()
-
-// 			spacing := int32(8)
-
-// 			rect.X -= spacing
-// 			rect.Y -= spacing
-// 			rect.W += spacing * 2
-// 			rect.H += spacing * 2
-
-// 			// rl.DrawRectangleLinesEx(rect, 4, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
-
-// 			// if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
-// 			// 	panel.FocusedElement = -1
-// 			// }
-
-// 		}
-
-// 		// rl.EndTextureMode()
-
-// 		// globalMouseOffset.X = 0
-// 		// globalMouseOffset.Y = 0
-
-// 		src := sdl.Rect{panel.ViewPosition.X, panel.ViewPosition.Y, panel.OriginalWidth, panel.OriginalHeight}
-
-// 		if src.W > panel.RenderTextureSize.X {
-// 			src.W = panel.RenderTextureSize.X
-// 		}
-
-// 		if src.H > panel.RenderTextureSize.Y {
-// 			src.H = panel.RenderTextureSize.Y
-// 		}
-
-// 		src.H *= -1
-// 		src.Y -= panel.RenderTextureSize.Y - src.H + scroll
-
-// 		dst.W = src.W
-// 		dst.H = -src.H
-
-// 		if dst.W < panel.OriginalWidth {
-// 			dst.X += (panel.OriginalWidth - dst.W) / 2
-// 		}
-
-// 		// rl.DrawTexturePro(panel.RenderTexture.Texture,
-// 		// 	src,
-// 		// 	dst,
-// 		// 	rl.Vector2{}, 0, rl.White)
-
-// 		if panel.AutoExpand && panel.EnableScrolling {
-
-// 			newHeight := lowestY
-
-// 			if newHeight < panel.OriginalHeight {
-// 				newHeight = panel.OriginalHeight
-// 			}
-
-// 			panel.Rect.H = newHeight
-
-// 			panel.recreateRenderTexture()
-
-// 		}
-
-// 		if scrollbarVisible {
-// 			panel.Scrollbar.Update()
-// 			panel.Scrollbar.Draw(panel.Renderer)
-// 		} else {
-// 			panel.Scrollbar.ScrollAmount = 0 // Reset the scrollbar to the top
-// 			panel.Scrollbar.TargetScroll = 0 // Reset the scrollbar to the top
-// 		}
-
-// 	}
-
-// 	// quitButton = ImmediateButton(rl.Rectangle{float32(int32(panel.Rect.X + panel.OriginalWidth - exitButtonSize)), panel.Rect.Y, exitButtonSize, exitButtonSize}, "X", false)
-
-// 	// if quitButton {
-// 	// 	panel.Exited = true
-// 	// 	ConsumeMouseInput(rl.MouseLeftButton)
-// 	// }
-
-// 	// if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-// 	// 	panel.DragStart = rl.Vector2{-1, -1}
-// 	// 	panel.Resizing = false
-// 	// 	UnhideMouseInput(rl.MouseLeftButton)
-// 	// }
-
-// 	// rl.DrawRectangleRec(topBar, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
-
-// 	// rl.DrawRectangleLinesEx(rl.Rectangle{panel.Rect.X, panel.Rect.Y, panel.OriginalWidth, panel.OriginalHeight}, 1, getThemeColor(GUI_OUTLINE))
-
-// 	panel.PrevWindowSize = winSize
-
-// 	// if panel.Resizeable {
-// 	// 	rl.DrawRectangleRec(resizeCorner, getThemeColor(GUI_OUTLINE_HIGHLIGHTED))
-// 	// }
-
-// 	panel.JustOpened = false
-
-// 	if panel.Exited {
-// 		panel.JustOpened = true
-// 	}
-
-// }
-
-// func (panel *Panel) Depth() int32 {
-// 	return 0
-// }
-
-// // Centers the panel on the screen, using the alignment values (0 - 1 being the left to right or top to bottom edges; 0.5, 0.5 would be dead center)
-// func (panel *Panel) Center(xAlign, yAlign float32) {
-// 	panel.Rect.X = (panel.Window.Width - panel.OriginalWidth) * xAlign
-// 	panel.Rect.Y = (float32(rl.GetScreenHeight()) - panel.OriginalHeight) * yAlign
-// }
-
-// func (panel *Panel) AddColumn() *PanelColumn {
-// 	newColumn := NewPanelColumn()
-// 	panel.Columns = append(panel.Columns, newColumn)
-// 	return newColumn
-// }
-
-// func (panel *Panel) recreateRenderTexture() {
-
-// 	if panel.RenderTexture == nil || (panel.RenderTextureSize.X != panel.Rect.W || panel.RenderTextureSize.Y != panel.Rect.H) {
-
-// 		if panel.RenderTexture != nil {
-// 			panel.RenderTexture.Destroy()
-// 		}
-
-// 		renderTexture, err := panel.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA4444, sdl.TEXTUREACCESS_TARGET, panel.Rect.W, panel.Rect.H)
-
-// 		if err != nil {
-// 			panic(err)
-// 		}
-
-// 		panel.RenderTexture = renderTexture
-
-// 	}
-// }
-
-// func (panel *Panel) FindItems(name string) []*PanelItem {
-
-// 	items := []*PanelItem{}
-
-// 	for _, column := range panel.Columns {
-// 		for _, row := range column.Rows {
-// 			for _, item := range row.Items {
-// 				if item.Name == name {
-// 					items = append(items, item)
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	return items
-// }
-
-// type Label struct {
-// 	Position            Point
-// 	Text                string
-// 	Underline           bool
-// 	HorizontalAlignment int
-// 	RenderedOutput      *sdl.Texture
-// }
-
-// func NewLabel(text string) *Label {
-// 	return &Label{Text: text, HorizontalAlignment: ALIGN_CENTER}
-// }
-
-// func (label *Label) SetText(text string) {
-
-// 	if label.Text != text {
-// 		label.Text = text
-// 	}
-
-// }
-
-// func (label *Label) Update() {}
-
-// func (label *Label) Draw() {
-
-// 	if label.HorizontalAlignment != ALIGN_LEFT && strings.Count(label.Text, "\n") > 0 {
-
-// 		rectSize := label.Rectangle()
-
-// 		pos := label.Position
-
-// 		for _, line := range strings.Split(label.Text, "\n") {
-
-// 			textSize, _ := TextSize(line, true)
-
-// 			if label.HorizontalAlignment == ALIGN_CENTER {
-// 				pos.X = label.Position.X + (rectSize.Width-textSize.X)/2
-// 			} else if label.HorizontalAlignment == ALIGN_RIGHT {
-// 				pos.X = label.Position.X + rectSize.Width - textSize.X
-// 			}
-
-// 			DrawGUIText(pos, line)
-
-// 			height, _ := TextHeight(line, true)
-// 			if line == "" {
-// 				height, _ = TextHeight("A", true)
-// 			}
-
-// 			pos.Y += height
-
-// 		}
-
-// 	} else {
-// 		pos := label.Position
-// 		pos.X = float32(math.Round(float64(pos.X)))
-// 		pos.Y = float32(math.Round(float64(pos.Y)))
-// 		DrawGUIText(pos, label.Text)
-// 	}
-
-// 	if label.Underline {
-
-// 		color := getThemeColor(GUI_FONT_COLOR)
-
-// 		rect := label.Rectangle()
-// 		start := rl.Vector2{rect.X - 8, rect.Y + rect.Height + 2}
-// 		end := rl.Vector2{rect.X + rect.Width + 8, rect.Y + rect.Height + 2}
-
-// 		rl.DrawLineEx(start, end, 2, color)
-
-// 		src := rl.Rectangle{224, 16, 5, 1}
-// 		dst := src
-// 		dst.Height = 2
-
-// 		dst.X = end.X
-// 		dst.Y = end.Y - 1
-
-// 		rl.DrawTexturePro(currentProject.GUI_Icons, src, dst, rl.Vector2{}, 0, color)
-
-// 		dst.X = start.X - dst.Width
-// 		src.Width *= -1
-
-// 		rl.DrawTexturePro(currentProject.GUI_Icons, src, dst, rl.Vector2{}, 0, color)
-
-// 	}
-
-// }
-
-// func (label *Label) Depth() int32 {
-// 	return 0
-// }
-
-// func (label *Label) Rectangle() rl.Rectangle {
-
-// 	width := float32(0)
-
-// 	for _, line := range strings.Split(label.Text, "\n") {
-// 		size, _ := TextSize(line, true)
-// 		if size.X > width {
-// 			width = size.X
-// 		}
-// 	}
-
-// 	height, _ := TextHeight(label.Text, true)
-
-// 	return rl.Rectangle{label.Position.X, label.Position.Y, width, height}
-
-// }
-
-// func (label *Label) SetRectangle(rect rl.Rectangle) {
-// 	label.Position.X = rect.X
-// 	label.Position.Y = rect.Y
-// }
+func (button *Button) SetRectangle(rect *sdl.FRect) { button.Rect = rect }
 
 type Checkbox struct {
 	Position Point
@@ -1501,6 +225,15 @@ func (checkbox *Checkbox) Draw() {
 	}
 }
 
+const (
+	AlignLeft   = "align left"
+	AlignCenter = "align center"
+	AlignRight  = "align right"
+
+	// AlignTop = "align top"
+	// AlignBottom = "align bottom"
+)
+
 type Label struct {
 	Rect           *sdl.FRect
 	Text           []rune
@@ -1513,14 +246,19 @@ type Label struct {
 
 	Scrollable   bool
 	ScrollAmount float32
+
+	HorizontalAlignment string
+	Alpha               uint8
 }
 
-func NewLabel(text string, rect *sdl.FRect, worldSpace bool) *Label {
+func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment string) *Label {
 
 	label := &Label{
-		Text:       []rune{}, // This is empty by default by design, as we call Label.SetText() below
-		Rect:       rect,
-		WorldSpace: worldSpace,
+		Text:                []rune{}, // This is empty by default by design, as we call Label.SetText() below
+		Rect:                rect,
+		WorldSpace:          worldSpace,
+		HorizontalAlignment: horizontalAlignment,
+		Alpha:               255,
 	}
 
 	label.SetText([]rune(text))
@@ -1535,10 +273,6 @@ func (label *Label) SetText(text []rune) {
 
 		label.Text = append([]rune{}, text...)
 
-		if label.RendererResult != nil && label.RendererResult.Image != nil {
-			label.RendererResult.Image.Texture.Destroy()
-		}
-
 		label.RecreateTexture()
 
 	}
@@ -1548,8 +282,12 @@ func (label *Label) SetText(text []rune) {
 func (label *Label) RecreateTexture() {
 
 	if len(label.Text) > 0 {
-		// label.Texture = RenderText(string(label.Text), getThemeColor(GUIFontColor))
-		label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), getThemeColor(GUIFontColor), Point{label.Rect.W, label.Rect.H})
+
+		if label.RendererResult != nil && label.RendererResult.Image != nil {
+			label.RendererResult.Image.Texture.Destroy()
+		}
+
+		label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), getThemeColor(GUIFontColor), Point{label.Rect.W, label.Rect.H}, label.HorizontalAlignment)
 	}
 
 }
@@ -1572,11 +310,11 @@ func (label *Label) Update() {
 
 		if label.Editing {
 
-			globals.Project.State = StateTextEditing
+			globals.State = StateTextEditing
 
 			if ClickedOutRect(activeRect, label.WorldSpace) || globals.Keyboard.Key(sdl.K_ESCAPE).Pressed() {
 				label.Editing = false
-				globals.Project.State = StateNeutral
+				globals.State = StateNeutral
 			}
 
 			if globals.Keyboard.Key(sdl.K_RIGHT).Pressed() {
@@ -1727,6 +465,8 @@ func (label *Label) Draw() {
 		if label.WorldSpace {
 			newRect = globals.Project.Camera.Translate(newRect)
 		}
+
+		label.RendererResult.Image.Texture.SetAlphaMod(label.Alpha)
 
 		globals.Renderer.CopyF(label.RendererResult.Image.Texture, src, newRect)
 

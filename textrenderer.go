@@ -19,8 +19,11 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 		return glyph.Image.Texture
 	}
 
+	// surf, err := globals.Font.RenderUTF8Shaded(string(glyph.Rune), sdl.Color{255, 255, 255, 255}, sdl.Color{127, 127, 127, 255})
+	// surf, err := globals.Font.RenderUTF8Shaded(string(glyph.Rune), sdl.Color{0, 0, 0, 255}, sdl.Color{255, 255, 255, 255})
+	// surf.SetColorKey(true, sdl.MapRGB(surf.Format, 127, 127, 127))
+
 	surf, err := globals.Font.RenderUTF8Blended(string(glyph.Rune), sdl.Color{255, 255, 255, 255})
-	// surf, err := globals.Font.RenderUTF8Solid(string(glyph.Rune), sdl.Color{255, 255, 255, 255})
 
 	if err != nil {
 		log.Println(string(glyph.Rune), glyph.Rune, err)
@@ -32,6 +35,8 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 	if err != nil {
 		panic(err)
 	}
+
+	// texture.SetBlendMode(sdl.ComposeCustomBlendMode(sdl.BLENDFACTOR_ONE, sdl.BLENDFACTOR_DST_COLOR, sdl.BLENDOPERATION_ADD, sdl.BLENDFACTOR_SRC_ALPHA, sdl.BLENDFACTOR_SRC_ALPHA, sdl.BLENDOPERATION_ADD))
 
 	glyph.Image.Texture = texture
 	glyph.Image.Size.X = float32(surf.W)
@@ -86,7 +91,7 @@ func (tr *TextRenderer) Glyph(char rune) *Glyph {
 
 }
 
-func (tr *TextRenderer) GlyphsForWord(word []rune) []*Glyph {
+func (tr *TextRenderer) GlyphsForRunes(word []rune) []*Glyph {
 	glyphs := []*Glyph{}
 	for _, char := range word {
 		if glyph := tr.Glyph(char); glyph != nil {
@@ -96,7 +101,23 @@ func (tr *TextRenderer) GlyphsForWord(word []rune) []*Glyph {
 	return glyphs
 }
 
-func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point) *TextRendererResult {
+func (tr *TextRenderer) SizeForRunes(word []rune) Point {
+
+	size := Point{}
+
+	lineCount := strings.Count(string(word), "\n") + 1
+
+	size.Y = float32(lineCount * int(globals.GridSize))
+
+	for _, glyph := range tr.GlyphsForRunes(word) {
+		size.X += float32(glyph.Width())
+	}
+
+	return size
+
+}
+
+func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, horizontalAlignment string) *TextRendererResult {
 
 	// wrappedText := ""
 
@@ -141,13 +162,15 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point) 
 
 	x, y := int32(0), int32(0)
 
+	if horizontalAlignment == AlignCenter {
+		x = w/2 - int32(tr.SizeForRunes([]rune(text)).X)/2
+	} else if horizontalAlignment == AlignRight {
+		x = w
+	}
+
 	for i, c := range text {
 
 		glyph := tr.Glyph(c)
-
-		if glyph == nil {
-			continue
-		}
 
 		if c == '\n' {
 			textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
@@ -155,58 +178,55 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point) 
 			x = 0
 			y += int32(lineskip)
 			continue
-		} else {
+		} else if glyph == nil {
+			continue
+		}
 
-			// Wordwrapping
-			if wordWrapMax.X >= 0 && wordWrapMax.Y >= 0 {
+		// Wordwrapping
+		if wordWrapMax.X >= 0 && wordWrapMax.Y >= 0 {
 
-				if c == ' ' {
+			if c == ' ' {
 
-					end := strings.Index(text[i+1:], " ")
-					if end < 0 {
-						end = strings.Index(text[i+1:], "\n")
-					}
-					if end < 0 {
-						end = len(text) - i
-					}
+				end := strings.Index(text[i+1:], " ")
+				if end < 0 {
+					end = strings.Index(text[i+1:], "\n")
+				}
+				if end < 0 {
+					end = len(text) - i
+				}
 
-					nextStart := i
-					nextEnd := nextStart + end + 1
+				nextStart := i
+				nextEnd := nextStart + end + 1
 
-					if nextStart > len(text) {
-						nextStart = len(text)
-					}
+				if nextStart > len(text) {
+					nextStart = len(text)
+				}
 
-					if nextEnd > len(text) {
-						nextEnd = len(text)
-					}
+				if nextEnd > len(text) {
+					nextEnd = len(text)
+				}
 
-					nextWord := text[nextStart:nextEnd]
+				nextWord := text[nextStart:nextEnd]
 
-					wordWidth := int32(0)
-					for _, g := range tr.GlyphsForWord([]rune(nextWord)) {
-						wordWidth += g.Width()
-					}
+				wordWidth := int32(tr.SizeForRunes([]rune(nextWord)).X)
 
-					if float32(x+wordWidth) > wordWrapMax.X {
-						x = 0
-						y += int32(lineskip)
-
-						// Spaces become effectively newline enders
-						textLines[len(textLines)-1] = append(textLines[len(textLines)-1], '\n')
-						textLines = append(textLines, []rune{})
-						continue
-
-					}
-
-				} else if x+glyph.Width() >= int32(wordWrapMax.X) {
-
+				if float32(x+wordWidth) > wordWrapMax.X {
 					x = 0
 					y += int32(lineskip)
 
+					// Spaces become effectively newline enders
+					textLines[len(textLines)-1] = append(textLines[len(textLines)-1], '\n')
 					textLines = append(textLines, []rune{})
+					continue
 
 				}
+
+			} else if x+glyph.Width() >= int32(wordWrapMax.X) {
+
+				x = 0
+				y += int32(lineskip)
+
+				textLines = append(textLines, []rune{})
 
 			}
 

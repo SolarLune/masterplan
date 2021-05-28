@@ -42,7 +42,7 @@ func (prop *Property) IsLabel() bool {
 
 func (prop *Property) AsLabel() *Label {
 	if prop.Data == nil {
-		prop.Data = NewLabel("", &sdl.FRect{}, true)
+		prop.Data = NewLabel("", &sdl.FRect{}, true, AlignLeft)
 	}
 	return prop.Data.(*Label)
 }

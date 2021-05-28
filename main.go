@@ -193,6 +193,43 @@ func main() {
 
 	globals.Project = NewProject()
 
+	timeLabel := NewLabel(time.Now().Format("Mon Jan 2 2006"), &sdl.FRect{0, 0, 256, 32}, false, AlignCenter)
+
+	globals.MainMenu = NewMenu(&sdl.FRect{0, 0, 800, 48}, false).AddElements(
+		// NewMenu(&sdl.FRect{0, 0, 128, 512}, true),
+		NewButton("File", &sdl.FRect{0, 0, 96, 32}, func() {}),
+		timeLabel,
+		NewButton("File", &sdl.FRect{0, 0, 96, 32}, func() {}),
+	)
+
+	globals.ContextMenu = NewMenu(&sdl.FRect{0, 0, 256, 256}, true).AddElements(
+
+		NewButton("Create Card", &sdl.FRect{0, 0, 192, 32}, func() {
+			globals.Project.CurrentPage().CreateNewCard()
+			globals.ContextMenu.Close()
+		}),
+
+		NewButton("Delete Cards", &sdl.FRect{0, 0, 192, 32}, func() {
+			page := globals.Project.CurrentPage()
+			page.DeleteCards(page.Selection.AsSlice()...)
+			globals.ContextMenu.Close()
+		}),
+
+		NewButton("Copy Cards", &sdl.FRect{0, 0, 192, 32}, func() {
+			page := globals.Project.CurrentPage()
+			page.CopySelectedCards()
+			globals.ContextMenu.Close()
+		}),
+
+		NewButton("Paste Cards", &sdl.FRect{0, 0, 192, 32}, func() {
+			page := globals.Project.CurrentPage()
+			page.PasteCards()
+			globals.ContextMenu.Close()
+		}),
+	)
+
+	globals.MainMenu.Spacing = MenuSpacingSpread
+
 	// renderer.SetLogicalSize(960, 540)
 
 	attemptAutoload := 5
@@ -224,6 +261,8 @@ func main() {
 	// }()
 
 	for !quit {
+
+		timeLabel.SetText([]rune(time.Now().Format("Mon Jan 2 2006")))
 
 		screenWidth, screenHeight, err := globals.Renderer.GetOutputSize()
 
@@ -304,7 +343,7 @@ func main() {
 
 			handleEvents()
 
-			if globals.Project.State == StateNeutral && globals.ProgramSettings.Keybindings.On(KBDebugRestart) {
+			if globals.State == StateNeutral && globals.ProgramSettings.Keybindings.On(KBDebugRestart) {
 				fmt.Println("restart")
 				globals.Project = NewProject()
 			}
@@ -327,7 +366,24 @@ func main() {
 
 			globals.Project.Update()
 
+			globals.MainMenu.Update()
+
+			if globals.State == StateContextMenu {
+				globals.ContextMenu.Update()
+			}
+
 			globals.Project.Draw()
+
+			globals.Renderer.SetScale(1, 1)
+
+			globals.MainMenu.Draw()
+
+			if globals.State == StateContextMenu {
+				globals.ContextMenu.Draw()
+				if !globals.ContextMenu.opened {
+					globals.State = StateNeutral
+				}
+			}
 
 			if globals.Project.LoadingProject != nil {
 				original := globals.Project

@@ -6,11 +6,19 @@ import (
 	"github.com/veandco/go-sdl2/ttf"
 )
 
+const (
+	StateNeutral     = "project state neutral"
+	StateEditing     = "project state editing"
+	StateTextEditing = "project state text editing"
+	StateContextMenu = "project state context menu open"
+)
+
 type Globals struct {
 	Project         *Project
 	Window          *sdl.Window
 	Renderer        *sdl.Renderer
 	Font            *ttf.Font
+	BoldFont        *ttf.Font
 	TextRenderer    *TextRenderer
 	LoadedFontPath  string
 	ProgramSettings ProgramSettings
@@ -23,6 +31,9 @@ type Globals struct {
 	ScreenSize      Point
 	CopyBuffer      []string
 	Version         semver.Version
+	MainMenu        *Menu
+	ContextMenu     *Menu
+	State           string
 }
 
 var globals = &Globals{
@@ -32,4 +43,5 @@ var globals = &Globals{
 	GridSize:   32,
 	InputText:  []rune{},
 	CopyBuffer: []string{},
+	State:      StateNeutral,
 }

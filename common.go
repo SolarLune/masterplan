@@ -284,7 +284,8 @@ func TileTexture(srcTexture Image, srcRect *sdl.Rect, w, h int32) *Image {
 
 func ReloadFonts() {
 
-	fontPath := LocalPath("assets/quicksand.otf")
+	fontPath := LocalPath("assets/quicksand-bold.otf")
+	// fontPath := LocalPath("assets/m5x7.ttf")
 
 	if globals.ProgramSettings.CustomFontPath != "" && FileExists(globals.ProgramSettings.CustomFontPath) {
 		fontPath = globals.ProgramSettings.CustomFontPath

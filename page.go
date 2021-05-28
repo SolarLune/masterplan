@@ -43,6 +43,7 @@ func (page *Page) Update() {
 	}
 
 	for _, toDelete := range page.ToDelete {
+		page.Selection.Remove(toDelete)
 		for index, card := range page.Cards {
 			if card == toDelete {
 				page.Cards[index] = nil
@@ -125,8 +126,46 @@ func (page *Page) CreateNewCard() *Card {
 
 }
 
-func (page *Page) DeleteCard(cards ...*Card) {
+func (page *Page) DeleteCards(cards ...*Card) {
 	page.ToDelete = append(page.ToDelete, cards...)
+}
+
+func (page *Page) CopySelectedCards() {
+	globals.CopyBuffer = []string{}
+	for card := range page.Selection.Cards {
+		globals.CopyBuffer = append(globals.CopyBuffer, card.Serialize())
+	}
+}
+
+func (page *Page) PasteCards() {
+
+	newCards := []*Card{}
+
+	page.Selection.Clear()
+
+	for _, cardData := range globals.CopyBuffer {
+		newCard := page.CreateNewCard()
+		newCard.Deserialize(cardData)
+		newCards = append(newCards, newCard)
+		page.Selection.Add(newCard)
+	}
+
+	offset := Point{}
+
+	for _, card := range newCards {
+		offset = offset.Add(Point{card.Rect.X + (card.Rect.W / 2), card.Rect.Y + (card.Rect.H / 2)})
+	}
+
+	offset = offset.Div(float32(len(newCards)))
+
+	offset = globals.Mouse.WorldPosition().Sub(offset)
+
+	for _, card := range newCards {
+		card.Rect.X += offset.X
+		card.Rect.Y += offset.Y
+		card.LockPosition()
+	}
+
 }
 
 func (page *Page) Raise(card *Card) {
