@@ -256,7 +256,7 @@ func (project *Project) MouseActions() {
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-			card := project.CurrentPage().CreateNewCard()
+			card := project.CurrentPage().CreateNewCard(ContentTypeCheckbox)
 			card.Rect.X = globals.Mouse.WorldPosition().X - (card.Rect.W / 2)
 			card.Rect.Y = globals.Mouse.WorldPosition().Y - (card.Rect.H / 2)
 
@@ -353,9 +353,9 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBNewCheckboxCard) {
-			project.CurrentPage().CreateNewCard()
+			project.CurrentPage().CreateNewCard(ContentTypeCheckbox)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewNoteCard) {
-			project.CurrentPage().CreateNewCard().SetContents(ContentTypeNote)
+			project.CurrentPage().CreateNewCard(ContentTypeNote)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {

@@ -205,7 +205,7 @@ func main() {
 	globals.ContextMenu = NewMenu(&sdl.FRect{0, 0, 256, 256}, true).AddElements(
 
 		NewButton("Create Card", &sdl.FRect{0, 0, 192, 32}, func() {
-			globals.Project.CurrentPage().CreateNewCard()
+			globals.Project.CurrentPage().CreateNewCard(ContentTypeCheckbox)
 			globals.ContextMenu.Close()
 		}),
 

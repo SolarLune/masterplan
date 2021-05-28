@@ -31,7 +31,7 @@ type Card struct {
 
 var cardID = int64(0)
 
-func NewCard(page *Page) *Card {
+func NewCard(page *Page, contentType string) *Card {
 
 	card := &Card{
 		Rect:            &sdl.FRect{},
@@ -46,14 +46,14 @@ func NewCard(page *Page) *Card {
 
 	cardID++
 
-	card.SetContents(ContentTypeCheckbox)
+	card.SetContents(contentType)
 
 	return card
 
 }
 
 func (card *Card) Clone() *Card {
-	return NewCard(card.Page)
+	return NewCard(card.Page, card.ContentType)
 }
 
 func (card *Card) Update() {

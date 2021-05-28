@@ -108,16 +108,16 @@ func (page *Page) Deserialize(data string) {
 
 	for _, cardData := range gjson.Get(data, "cards").Array() {
 
-		newCard := page.CreateNewCard()
+		newCard := page.CreateNewCard(ContentTypeCheckbox)
 		newCard.Deserialize(cardData.Raw)
 
 	}
 
 }
 
-func (page *Page) CreateNewCard() *Card {
+func (page *Page) CreateNewCard(contentType string) *Card {
 
-	newCard := NewCard(page)
+	newCard := NewCard(page, contentType)
 	newCard.Rect.X = globals.Mouse.WorldPosition().X - (newCard.Rect.W / 2)
 	newCard.Rect.Y = globals.Mouse.WorldPosition().Y - (newCard.Rect.H / 2)
 	newCard.LockPosition()
@@ -144,7 +144,7 @@ func (page *Page) PasteCards() {
 	page.Selection.Clear()
 
 	for _, cardData := range globals.CopyBuffer {
-		newCard := page.CreateNewCard()
+		newCard := page.CreateNewCard(ContentTypeCheckbox)
 		newCard.Deserialize(cardData)
 		newCards = append(newCards, newCard)
 		page.Selection.Add(newCard)
