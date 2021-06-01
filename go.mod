@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/adrg/xdg v0.2.3
+	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/chonla/roman-number-go v0.0.0-20181101035413-6768129de021 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect

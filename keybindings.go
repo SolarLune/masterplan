@@ -46,6 +46,11 @@ const (
 	KBCopyCards           = "Copy Selected Cards"
 	KBPasteCards          = "Paste Selected Cards"
 	KBReturnToOrigin      = "Center View to Origin"
+
+	KBCopyText      = "Textbox: Copy Selected Text"
+	KBCutText       = "Textbox: Cut Selected Text"
+	KBPasteText     = "Textbox: Paste Copied Text"
+	KBSelectAllText = "Textbox: Select All Text"
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
 	// KBCopyTasks               = "Copy Tasks"
@@ -297,6 +302,11 @@ func (kb *Keybindings) Default() {
 
 	kb.Define(KBReturnToOrigin, sdl.K_BACKSPACE)
 
+	kb.Define(KBCopyText, sdl.K_c, sdl.K_LCTRL)
+	kb.Define(KBCutText, sdl.K_x, sdl.K_LCTRL)
+	kb.Define(KBPasteText, sdl.K_v, sdl.K_LCTRL)
+	kb.Define(KBSelectAllText, sdl.K_a, sdl.K_LCTRL)
+
 	// kb.Define(KBCenterView, sdl.K_BACKSPACE)
 	// kb.Define(KBURLButton, sdl.K_LCTRL).triggerMode = TriggerModeHold
 
@@ -446,7 +456,7 @@ func (kb *Keybindings) On(bindingName string) bool {
 	for _, familyShortcut := range kb.ShortcutsByFamily[sc.Key] {
 		if familyShortcut == sc {
 			break
-		} else if kb.On(familyShortcut.Name) {
+		} else if len(familyShortcut.Keys()) > len(sc.Keys()) && kb.On(familyShortcut.Name) {
 			return false
 		}
 	}

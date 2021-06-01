@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -234,6 +235,56 @@ const (
 	// AlignBottom = "align bottom"
 )
 
+type TextSelection struct {
+	Label    *Label
+	Start    int
+	End      int
+	CaretPos int
+}
+
+func NewTextSelection(label *Label) *TextSelection {
+	return &TextSelection{Label: label}
+}
+
+func (ts *TextSelection) Select(start, end int) {
+
+	ts.Start = start
+	ts.End = end
+
+	if ts.Start < 0 {
+		ts.Start = 0
+	} else if ts.Start >= len(ts.Label.Text) {
+		ts.Start = len(ts.Label.Text)
+	}
+
+	if ts.End < 0 {
+		ts.End = 0
+	} else if ts.End >= len(ts.Label.Text) {
+		ts.End = len(ts.Label.Text)
+	}
+
+	ts.CaretPos = ts.End
+
+}
+
+func (ts *TextSelection) Length() int {
+	start, end := ts.ContiguousRange()
+	return end - start
+}
+
+func (ts *TextSelection) ContiguousRange() (int, int) {
+	start := ts.Start
+	end := ts.End
+	if start > end {
+		return end, start
+	}
+	return start, end
+}
+
+func (ts *TextSelection) AdvanceCaret(increment int) {
+	ts.Select(ts.CaretPos+increment, ts.CaretPos+increment)
+}
+
 type Label struct {
 	Rect           *sdl.FRect
 	Text           []rune
@@ -242,7 +293,8 @@ type Label struct {
 
 	Editable bool
 	Editing  bool
-	CaretPos int
+
+	Selection *TextSelection
 
 	Scrollable   bool
 	ScrollAmount float32
@@ -262,6 +314,8 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 	}
 
 	label.SetText([]rune(text))
+
+	label.Selection = NewTextSelection(label)
 
 	return label
 
@@ -318,117 +372,235 @@ func (label *Label) Update() {
 			}
 
 			if globals.Keyboard.Key(sdl.K_RIGHT).Pressed() {
-				label.CaretPos++
+
+				advance := 1
+
+				if globals.Keyboard.Key(sdl.K_LCTRL).Held() {
+
+					start := label.Selection.CaretPos
+					offset := 0
+
+					if start+1 <= len(label.Text) && label.Text[start] == ' ' {
+						start++
+						offset = 1
+					}
+
+					next := strings.Index(string(label.Text[start:]), " ")
+
+					if next < 0 {
+						next = strings.Index(string(label.Text[start:]), "\n")
+					}
+					if next < 0 {
+						next = len(label.Text) - label.Selection.CaretPos
+					}
+
+					advance = next + offset
+				}
+
+				if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+					label.Selection.Select(label.Selection.Start, label.Selection.End+advance)
+				} else {
+					label.Selection.AdvanceCaret(advance)
+				}
 			}
 
 			if globals.Keyboard.Key(sdl.K_LEFT).Pressed() {
-				label.CaretPos--
+
+				advance := -1
+
+				if globals.Keyboard.Key(sdl.K_LCTRL).Held() {
+
+					start := label.Selection.CaretPos
+					offset := 0
+
+					if start > 0 && label.Text[start-1] == ' ' {
+						start--
+						offset = 1
+					}
+
+					next := strings.LastIndex(string(label.Text[:start]), " ")
+
+					if next < 0 {
+						next = strings.LastIndex(string(label.Text[:start]), "\n")
+					}
+					if next < 0 {
+						next = -label.Selection.CaretPos
+					}
+
+					if next > 0 {
+						next++
+					}
+
+					advance = -(start - next + offset)
+				}
+
+				if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+					label.Selection.Select(label.Selection.Start, label.Selection.End+advance)
+				} else {
+					label.Selection.AdvanceCaret(advance)
+				}
 			}
 
 			if globals.Keyboard.Key(sdl.K_UP).Pressed() {
 
-				caretLineNum := label.LineNumber(label.CaretPos)
+				caretLineNum := label.LineNumber(label.Selection.CaretPos)
 
-				if caretLineNum > 0 && label.CaretIndexInLine() >= len(label.RendererResult.TextLines[caretLineNum-1]) {
-					label.CaretPos -= label.CaretIndexInLine() + 1
+				if caretLineNum > 0 && label.IndexInLine(label.Selection.CaretPos) >= len(label.RendererResult.TextLines[caretLineNum-1]) {
+					prev := label.Selection.CaretPos - (label.IndexInLine(label.Selection.CaretPos) + 1)
+					label.Selection.Select(prev, prev)
 				} else if caretLineNum > 0 {
-					label.CaretPos -= len(label.RendererResult.TextLines[caretLineNum-1])
+					prev := label.Selection.CaretPos - len(label.RendererResult.TextLines[caretLineNum-1])
+					label.Selection.Select(prev, prev)
 				} else {
-					label.CaretPos = 0
+					label.Selection.Select(0, 0)
 				}
 
 			}
 
 			if globals.Keyboard.Key(sdl.K_DOWN).Pressed() {
 
-				caretLineNum := label.LineNumber(label.CaretPos)
+				caretLineNum := label.LineNumber(label.Selection.CaretPos)
 
-				if caretLineNum < len(label.RendererResult.TextLines)-1 && label.CaretIndexInLine() >= len(label.RendererResult.TextLines[caretLineNum+1]) {
-					label.CaretPos += len(label.RendererResult.TextLines[caretLineNum]) - label.CaretIndexInLine() + len(label.RendererResult.TextLines[caretLineNum+1])
+				if caretLineNum < len(label.RendererResult.TextLines)-1 && label.IndexInLine(label.Selection.CaretPos) >= len(label.RendererResult.TextLines[caretLineNum+1]) {
+					next := label.Selection.CaretPos + len(label.RendererResult.TextLines[caretLineNum]) - label.IndexInLine(label.Selection.CaretPos) + len(label.RendererResult.TextLines[caretLineNum+1])
+					label.Selection.Select(next, next)
 				} else if caretLineNum < len(label.RendererResult.TextLines)-1 {
-					label.CaretPos += len(label.RendererResult.TextLines[caretLineNum])
+					next := label.Selection.CaretPos + len(label.RendererResult.TextLines[caretLineNum])
+					label.Selection.Select(next, next)
 				} else {
-					label.CaretPos = len(label.Text)
+					label.Selection.Select(len(label.Text), len(label.Text))
 				}
 
 			}
 
-			if ClickedInRect(label.Rect, true) {
+			if globals.Mouse.WorldPosition().Inside(label.Rect) {
 
-				pos := Point{label.Rect.X, label.Rect.Y + globals.GridSize/2}
-				cIndex := 0
-				dist := float32(-1)
-				closestIndex := 0
+				button := globals.Mouse.Button(sdl.BUTTON_LEFT)
 
-				mousePos := globals.Mouse.WorldPosition()
+				closestIndex := -1
 
-				for lineIndex, line := range label.RendererResult.TextLines {
+				if button.Pressed() || button.Held() || button.Released() {
 
-					lineText := append([]rune{}, line...)
-					if lineIndex == len(label.RendererResult.TextLines)-1 {
-						lineText = append(lineText, ' ') // We add a space so you can position the click at the end
-					}
+					pos := Point{label.Rect.X, label.Rect.Y + globals.GridSize/2}
+					cIndex := 0
+					dist := float32(-1)
 
-					for _, c := range lineText {
+					mousePos := globals.Mouse.WorldPosition()
 
-						diff := pos.DistanceSquared(mousePos)
-						if dist < 0 || diff < dist {
-							if float32(math.Abs(float64(pos.Y-mousePos.Y))) < globals.GridSize/2 {
-								closestIndex = cIndex
-								dist = diff
-							}
+					for lineIndex, line := range label.RendererResult.TextLines {
+
+						lineText := append([]rune{}, line...)
+						if lineIndex == len(label.RendererResult.TextLines)-1 {
+							lineText = append(lineText, ' ') // We add a space so you can position the click at the end
 						}
 
-						cIndex++
-						pos.X += float32(globals.TextRenderer.Glyph(c).Width())
+						for _, c := range lineText {
+
+							diff := pos.DistanceSquared(mousePos)
+							if dist < 0 || diff < dist {
+								if float32(math.Abs(float64(pos.Y-mousePos.Y))) < globals.GridSize/2 {
+									closestIndex = cIndex
+									dist = diff
+								}
+							}
+
+							cIndex++
+							pos.X += float32(globals.TextRenderer.Glyph(c).Width())
+
+						}
+
+						pos.X = label.Rect.X
+						pos.Y += float32(globals.GridSize)
 
 					}
 
-					pos.X = label.Rect.X
-					pos.Y += float32(globals.GridSize)
+					if mousePos.Y > pos.Y {
+						closestIndex = len(label.Text)
+					} else if mousePos.Y < label.Rect.Y {
+						closestIndex = 0
+					}
 
 				}
 
-				if mousePos.Y > pos.Y {
-					closestIndex = len(label.Text)
-				} else if mousePos.Y < label.Rect.Y {
-					closestIndex = 0
+				if closestIndex != -1 {
+					if button.Pressed() {
+						label.Selection.Select(closestIndex, closestIndex)
+					} else if button.Held() {
+						label.Selection.Select(label.Selection.Start, closestIndex)
+					}
 				}
 
-				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+			}
 
-				label.CaretPos = closestIndex
+			if globals.Keyboard.Key(sdl.K_BACKSPACE).Pressed() {
+
+				if label.Selection.Length() == 0 {
+					prev := label.Selection.Start - 1
+					label.DeleteChars(prev, prev+1)
+					label.Selection.Select(prev, prev)
+				} else {
+					label.DeleteSelectedChars()
+				}
 
 			}
 
-			if label.CaretPos < 0 {
-				label.CaretPos = 0
-			} else if label.CaretPos > len(label.Text) {
-				label.CaretPos = len(label.Text)
+			if globals.Keyboard.Key(sdl.K_DELETE).Pressed() {
+
+				if label.Selection.Length() == 0 {
+					next := label.Selection.Start
+					label.DeleteChars(next, next+1)
+					label.Selection.Select(next, next)
+				} else {
+					label.DeleteSelectedChars()
+				}
+
 			}
 
-			if globals.Keyboard.Key(sdl.K_BACKSPACE).Pressed() && label.CaretPos > 0 {
+			if globals.ProgramSettings.Keybindings.On(KBCopyText) {
+				start, end := label.Selection.ContiguousRange()
+				text := label.Text[start:end]
+				if err := clipboard.WriteAll(string(text)); err != nil {
+					panic(err)
+				}
+			}
 
-				text := append([]rune{}, label.Text[:label.CaretPos-1]...)
-				text = append(text, label.Text[label.CaretPos:]...)
+			if globals.ProgramSettings.Keybindings.On(KBPasteText) {
+				if text, err := clipboard.ReadAll(); err != nil {
+					panic(err)
+				} else {
+					label.DeleteSelectedChars()
+					start, _ := label.Selection.ContiguousRange()
+					label.InsertRunesAtIndex([]rune(text), start)
+					label.Selection.AdvanceCaret(len(text))
+				}
+			}
 
-				label.CaretPos--
-				label.SetText(text)
+			if globals.ProgramSettings.Keybindings.On(KBCutText) && label.Selection.Length() > 0 {
+				start, end := label.Selection.ContiguousRange()
+				text := label.Text[start:end]
+				if err := clipboard.WriteAll(string(text)); err != nil {
+					panic(err)
+				}
+				label.DeleteSelectedChars()
+				label.Selection.Select(start, start)
+			}
 
+			if globals.ProgramSettings.Keybindings.On(KBSelectAllText) {
+				label.Selection.Select(0, len(label.Text))
 			}
 
 			enter := globals.Keyboard.Key(sdl.K_KP_ENTER).Pressed() || globals.Keyboard.Key(sdl.K_RETURN).Pressed() || globals.Keyboard.Key(sdl.K_RETURN2).Pressed()
 			if enter {
-				label.InsertRunesAtCaret([]rune{'\n'})
+				label.DeleteSelectedChars()
+				label.InsertRunesAtIndex([]rune{'\n'}, label.Selection.CaretPos)
+				label.Selection.AdvanceCaret(1)
 			}
 
-			if globals.Keyboard.Key(sdl.K_DELETE).Pressed() && label.CaretPos < len(label.Text) {
-				t := append(append([]rune{}, label.Text[:label.CaretPos]...), label.Text[label.CaretPos+1:]...)
-				label.SetText(t)
-			}
-
+			// Typing
 			if len(globals.InputText) > 0 {
-				label.InsertRunesAtCaret(globals.InputText)
+				label.DeleteSelectedChars()
+				label.InsertRunesAtIndex(globals.InputText, label.Selection.CaretPos)
+				label.Selection.AdvanceCaret(len(globals.InputText))
 			}
 
 		}
@@ -437,7 +609,68 @@ func (label *Label) Update() {
 
 }
 
+func (label *Label) DeleteSelectedChars() {
+	start, end := label.Selection.ContiguousRange()
+	label.DeleteChars(start, end)
+	label.Selection.Select(start, start)
+}
+
+func (label *Label) DeleteChars(start, end int) {
+
+	if start < 0 {
+		start = 0
+	} else if start >= len(label.Text) {
+		start = len(label.Text)
+	}
+
+	if end < 0 {
+		end = 0
+	} else if end >= len(label.Text) {
+		end = len(label.Text)
+	}
+
+	t := append(append([]rune{}, label.Text[:start]...), label.Text[end:]...)
+	label.SetText(t)
+}
+
 func (label *Label) Draw() {
+
+	if label.Editing {
+
+		if label.Selection.Length() > 0 {
+
+			start, end := label.Selection.ContiguousRange()
+
+			for i := start; i < end; i++ {
+
+				pos := label.IndexToWorld(i)
+				glyph := globals.TextRenderer.Glyph(label.Text[i])
+				if glyph == nil {
+					continue
+				}
+
+				tp := globals.Project.Camera.Translate(&sdl.FRect{pos.X, pos.Y, float32(glyph.Width()), float32(glyph.Height())})
+
+				globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
+				globals.Renderer.FillRectF(tp)
+
+			}
+
+		}
+
+		cp := globals.Project.Camera.TranslatePoint(label.IndexToWorld(label.Selection.CaretPos))
+
+		cp.X -= 2
+
+		color := getThemeColor(GUIFontColor)
+		globals.Renderer.SetDrawColor(color.RGBA())
+		globals.Renderer.DrawLineF(cp.X, cp.Y, cp.X, cp.Y+float32(globals.GridSize))
+
+		if globals.Mouse.WorldPosition().Inside(label.Rect) {
+			globals.Mouse.SetCursor("text caret")
+		}
+
+	}
 
 	if label.RendererResult != nil && len(label.Text) > 0 {
 
@@ -472,22 +705,6 @@ func (label *Label) Draw() {
 
 	}
 
-	if label.Editing {
-
-		cp := globals.Project.Camera.TranslatePoint(label.CaretPosition())
-
-		cp.X -= 2
-
-		color := getThemeColor(GUIFontColor)
-		globals.Renderer.SetDrawColor(color.RGBA())
-		globals.Renderer.DrawLineF(cp.X, cp.Y, cp.X, cp.Y+float32(globals.GridSize))
-
-		if globals.Mouse.WorldPosition().Inside(label.Rect) {
-			globals.Mouse.SetCursor("text caret")
-		}
-
-	}
-
 	// if label.Editing {
 	// 	color := getThemeColor(GUIFontColor)
 	// 	globals.Renderer.SetDrawColor(color.R, color.G, color.B, color.A)
@@ -497,20 +714,17 @@ func (label *Label) Draw() {
 
 }
 
-func (label *Label) InsertRunesAtCaret(text []rune) {
+func (label *Label) InsertRunesAtIndex(text []rune, index int) {
 
-	newText := append([]rune{}, label.Text[:label.CaretPos]...)
+	newText := append([]rune{}, label.Text[:index]...)
 	newText = append(newText, text...)
-	newText = append(newText, label.Text[label.CaretPos:]...)
+	newText = append(newText, label.Text[index:]...)
 
-	label.CaretPos += len(text)
 	label.SetText(newText)
 
 }
 
-func (label *Label) CaretPosition() Point {
-
-	index := label.CaretPos
+func (label *Label) IndexToWorld(index int) Point {
 
 	point := Point{label.Rect.X, label.Rect.Y}
 
@@ -547,8 +761,8 @@ func (label *Label) CaretPosition() Point {
 
 }
 
-func (label *Label) CaretIndexInLine() int {
-	cp := label.CaretPos
+func (label *Label) IndexInLine(index int) int {
+	cp := index
 	for _, line := range label.RendererResult.TextLines {
 		if cp <= len(line) {
 			return cp
