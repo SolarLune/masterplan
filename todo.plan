@@ -1,11 +1,11 @@
 {
-  "Version": "0.7.1",
+  "Version": "0.7.2",
   "LockProject": false,
   "BoardIndex": 0,
   "BoardCount": 1,
   "AutoSave": false,
-  "Pan.X": -1446.786376953125,
-  "Pan.Y": -111.26097869873047,
+  "Pan.X": -216,
+  "Pan.Y": -40,
   "ZoomLevel": 4,
   "TaskTransparency": 5,
   "OutlineTasks": true,
@@ -34,7 +34,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 112,
+      "Position.Y": 128,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -45,7 +45,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
+      "Position.X": -1008,
       "Position.Y": 80,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
@@ -58,7 +58,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 128,
+      "Position.Y": 144,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -69,7 +69,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
+      "Position.X": -1008,
       "Position.Y": 32,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
@@ -82,7 +82,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
+      "Position.X": -1008,
       "Position.Y": 48,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
@@ -96,7 +96,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 144,
+      "Position.Y": 160,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -108,7 +108,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 160,
+      "Position.Y": 176,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -120,19 +120,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 176,
-      "Checkbox.Checked": false,
-      "Progression.Current": 0,
-      "Progression.Max": 0,
-      "Description": "Similarly, extend parsing to parse text to become clickable links to be able to open files or directories",
-      "Selected": false,
-      "TaskType.CurrentChoice": 0,
-      "CreationTime": "Apr 1 2021 11:21:46"
-    }, 
-    {
-      "BoardIndex": 0,
-      "Position.X": 1024,
-      "Position.Y": 192,
+      "Position.Y": 208,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -144,7 +132,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 208,
+      "Position.Y": 224,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -155,7 +143,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
+      "Position.X": -1008,
       "Position.Y": 0,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
@@ -169,7 +157,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 224,
+      "Position.Y": 240,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -181,7 +169,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 240,
+      "Position.Y": 256,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -193,7 +181,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 256,
+      "Position.Y": 272,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -205,7 +193,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 64,
+      "Position.Y": 80,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -217,7 +205,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 272,
+      "Position.Y": 288,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -229,7 +217,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 288,
+      "Position.Y": 304,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -241,7 +229,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 304,
+      "Position.Y": 320,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -253,7 +241,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 320,
+      "Position.Y": 336,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -265,7 +253,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 336,
+      "Position.Y": 352,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -276,20 +264,21 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 1024,
-      "Position.Y": 352,
-      "Checkbox.Checked": false,
+      "Position.X": 16,
+      "Position.Y": 16,
+      "Checkbox.Checked": true,
       "Progression.Current": 0,
       "Progression.Max": 0,
-      "Description": "Implement text displaying better for fonts of different size; seems like they rarely line up properly",
+      "Description": "FIX: Font baselines need to be customizeable",
       "Selected": false,
       "TaskType.CurrentChoice": 0,
-      "CreationTime": "Apr 1 2021 11:21:46"
+      "CreationTime": "Apr 1 2021 11:21:46",
+      "CompletionTime": "Apr 12 2021 12:57:01"
     }, 
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 368,
+      "Position.Y": 384,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -301,7 +290,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 384,
+      "Position.Y": 400,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -313,7 +302,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 400,
+      "Position.Y": 416,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -325,7 +314,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 416,
+      "Position.Y": 432,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -337,7 +326,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 432,
+      "Position.Y": 448,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -349,7 +338,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 448,
+      "Position.Y": 464,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -361,7 +350,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 464,
+      "Position.Y": 480,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -373,7 +362,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 480,
+      "Position.Y": 496,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -385,7 +374,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 496,
+      "Position.Y": 512,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -397,7 +386,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 512,
+      "Position.Y": 528,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -409,7 +398,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 528,
+      "Position.Y": 544,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -421,7 +410,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 544,
+      "Position.Y": 560,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -433,7 +422,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 560,
+      "Position.Y": 576,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -445,7 +434,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 576,
+      "Position.Y": 592,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -457,7 +446,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 592,
+      "Position.Y": 608,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -469,7 +458,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 608,
+      "Position.Y": 624,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -481,7 +470,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 624,
+      "Position.Y": 640,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -493,7 +482,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 640,
+      "Position.Y": 656,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -505,7 +494,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 656,
+      "Position.Y": 672,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -517,7 +506,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 672,
+      "Position.Y": 688,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -529,7 +518,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 688,
+      "Position.Y": 704,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -541,7 +530,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 704,
+      "Position.Y": 720,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -553,7 +542,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 720,
+      "Position.Y": 736,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -564,8 +553,8 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 1024,
-      "Position.Y": 736,
+      "Position.X": 16,
+      "Position.Y": 208,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -577,7 +566,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 752,
+      "Position.Y": 768,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -589,7 +578,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 768,
+      "Position.Y": 784,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -601,7 +590,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 784,
+      "Position.Y": 800,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -613,7 +602,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 800,
+      "Position.Y": 816,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -625,7 +614,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 816,
+      "Position.Y": 832,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -637,7 +626,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 832,
+      "Position.Y": 848,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -649,7 +638,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 848,
+      "Position.Y": 864,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -661,7 +650,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 864,
+      "Position.Y": 880,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -673,7 +662,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 880,
+      "Position.Y": 896,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -685,7 +674,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 896,
+      "Position.Y": 912,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -697,7 +686,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 912,
+      "Position.Y": 928,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -709,7 +698,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 928,
+      "Position.Y": 944,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -721,7 +710,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 944,
+      "Position.Y": 960,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -733,7 +722,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 960,
+      "Position.Y": 976,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -745,7 +734,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 976,
+      "Position.Y": 992,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -756,7 +745,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
+      "Position.X": -1008,
       "Position.Y": 64,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
@@ -770,7 +759,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 992,
+      "Position.Y": 1008,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -782,7 +771,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 1008,
+      "Position.Y": 1024,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -794,7 +783,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 1024,
+      "Position.Y": 1040,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -806,7 +795,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 1040,
+      "Position.Y": 1056,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -818,7 +807,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 1056,
+      "Position.Y": 1072,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -830,7 +819,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 1072,
+      "Position.Y": 1088,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -842,7 +831,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 1088,
+      "Position.Y": 1104,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -854,7 +843,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 1104,
+      "Position.Y": 1120,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -866,7 +855,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 1120,
+      "Position.Y": 0,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1454,7 +1443,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 96,
+      "Position.Y": 112,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1477,7 +1466,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 96,
+      "Position.X": 160,
       "Position.Y": -32,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
@@ -1490,7 +1479,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": -96,
+      "Position.Y": -160,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1502,7 +1491,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 80,
+      "Position.Y": 96,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1513,7 +1502,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
+      "Position.X": -1008,
       "Position.Y": 16,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
@@ -1539,7 +1528,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 48,
+      "Position.Y": 64,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1551,7 +1540,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 32,
+      "Position.Y": 48,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1563,7 +1552,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 16,
+      "Position.Y": 32,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1623,7 +1612,7 @@
     {
       "BoardIndex": 0,
       "Position.X": 1024,
-      "Position.Y": 0,
+      "Position.Y": 16,
       "Checkbox.Checked": false,
       "Progression.Current": 0,
       "Progression.Max": 0,
@@ -1706,7 +1695,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
+      "Position.X": -1008,
       "Position.Y": 112,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
@@ -1719,19 +1708,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": -144,
-      "Position.Y": 128,
-      "Checkbox.Checked": false,
-      "Progression.Current": 0,
-      "Progression.Max": 0,
-      "Description": "",
-      "Selected": false,
-      "TaskType.CurrentChoice": 0,
-      "CreationTime": "Apr 11 2021 12:35:13"
-    }, 
-    {
-      "BoardIndex": 0,
-      "Position.X": 16,
+      "Position.X": -1008,
       "Position.Y": 96,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
@@ -1743,7 +1720,7 @@
     }, 
     {
       "BoardIndex": 0,
-      "Position.X": 16,
+      "Position.X": -1008,
       "Position.Y": 128,
       "Checkbox.Checked": true,
       "Progression.Current": 0,
@@ -1832,6 +1809,198 @@
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", 
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
       ]
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 1216,
+      "Position.Y": 0,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Maybe a small ribbon that can be colored to indicate Tasks \"of note\"?",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Apr 12 2021 09:37:59"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": -832,
+      "Position.Y": -32,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Finished Todo",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Apr 12 2021 09:38:09"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 80,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "GUI Scaling",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 11:29:09"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 0,
+      "Checkbox.Checked": true,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "FIX: Note Tasks look like trash",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 11:41:32"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 48,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "FIX: When notes are created from large files, the note appears blank.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 11:43:50"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 32,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Move to SDL - better font-handling / text-handling / IME support",
+      "Selected": true,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 11:46:30"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 64,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Can't load certain fonts (Quicksand-Bold, as an example)",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 11:47:41"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 160,
+      "Position.Y": 272,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Test Japanese: 何かをテストする",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Apr 12 2021 12:17:25"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 96,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Use Lines to link Tasks' responsibility (so a Task linked to another via a Line becomes its Sub-Task)",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 19:17:59"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 112,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Hold Alt and select two Tasks to create Lines between them",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 19:18:18"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 128,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Different colors for different Zones / areas for Maps.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 19:19:04"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 144,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Selecting Line (bases, usually) that are over existing Tasks doesn't work very well.",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 19:19:19"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 160,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "More tools for whiteboards (different pen colors, flood fill).",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 12 2021 19:24:26"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 176,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Opening a .plan on WIndows causes a Catastrophic Failure, apparently?",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 13 2021 22:06:55"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 448,
+      "Position.Y": 176,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "See: https://discord.com/channels/339550825154347008/758009278756946040/831586316075401227",
+      "Selected": false,
+      "TaskType.CurrentChoice": 2,
+      "CreationTime": "Apr 13 2021 22:07:25"
+    }, 
+    {
+      "BoardIndex": 0,
+      "Position.X": 16,
+      "Position.Y": 192,
+      "Checkbox.Checked": false,
+      "Progression.Current": 0,
+      "Progression.Max": 0,
+      "Description": "Linking to positions on the Board / Tasks / Files",
+      "Selected": false,
+      "TaskType.CurrentChoice": 0,
+      "CreationTime": "Apr 15 2021 10:28:27"
     }
   ]
 }

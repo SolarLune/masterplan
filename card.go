@@ -364,7 +364,15 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewNoteContents(card)
 		}
 
-		card.Recreate(192, 32)
+		w := card.Rect.W
+		if w <= 0 {
+			w = 192
+		}
+		h := card.Rect.H
+		if h <= 0 {
+			h = 64
+		}
+		card.Recreate(w, h)
 
 		card.Contents.Update()
 

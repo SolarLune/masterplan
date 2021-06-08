@@ -215,6 +215,7 @@ func (project *Project) SaveAs() {
 
 }
 
+// Open a project to load
 func (project *Project) Open() {
 
 	if filename, err := zenity.SelectFile(zenity.Title("Select MasterPlan Project to Open..."), zenity.FileFilter{Name: "Project File (*.plan)", Patterns: []string{"*.plan"}}); err == nil {

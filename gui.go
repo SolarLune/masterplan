@@ -125,6 +125,7 @@ type FocusableMenuElement interface {
 type Button struct {
 	Label     *Label
 	Rect      *sdl.FRect
+	SrcRect   *sdl.Rect
 	Pressed   func()
 	LineWidth float32
 	Disabled  bool
@@ -148,6 +149,7 @@ func (button *Button) Update() {
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
 			if button.Pressed != nil {
 				button.Pressed()
+				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			}
 		}
 
@@ -156,30 +158,43 @@ func (button *Button) Update() {
 		button.LineWidth += (0 - button.LineWidth) * 0.2
 	}
 
-	button.Label.Update()
+	if len(button.Label.Text) > 0 {
+		button.Label.Update()
+	}
 
 }
 
 func (button *Button) Draw() {
 
-	button.Label.Draw()
+	fontColor := getThemeColor(GUIFontColor)
+	lineWidth := float32(0)
+
+	if len(button.Label.Text) > 0 {
+		button.Label.Draw()
+		lineWidth = button.Label.Rect.W
+	}
+
+	if button.SrcRect != nil {
+		lineWidth += float32(button.SrcRect.W) / 2
+	}
+
+	centerX := button.Label.Rect.X + lineWidth/2
 
 	if button.LineWidth > 0.05 {
 
-		w := button.Label.Rect.W * button.LineWidth
-		centerX := button.Label.Rect.X + (button.Label.Rect.W / 2)
-		r, g, b, a := getThemeColor(GUIFontColor).RGBA()
+		w := lineWidth * button.LineWidth
+		r, g, b, a := fontColor.RGBA()
 		gfx.ThickLineRGBA(globals.Renderer, int32(centerX-w/2), int32(button.Label.Rect.Y+button.Label.Rect.H), int32(centerX+w/2), int32(button.Label.Rect.Y+button.Label.Rect.H), 2, r, g, b, a)
 
 	}
 
-	// globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
-
-	// globals.Renderer.FillRectF(button.Rect)
-
-	// globals.Renderer.SetDrawColor(getThemeColor(GUIFontColor).RGBA())
-
-	// globals.Renderer.DrawRectF(button.Rect)
+	if button.SrcRect != nil {
+		globals.Project.GUITexture.SetAlphaMod(button.Label.Alpha)
+		globals.Project.GUITexture.SetColorMod(fontColor.RGB())
+		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, float32(button.SrcRect.W), float32(button.SrcRect.H)}
+		dst.X -= dst.W / 4
+		globals.Renderer.CopyF(globals.Project.GUITexture, button.SrcRect, dst)
+	}
 
 }
 
@@ -218,6 +233,7 @@ func (checkbox *Checkbox) Draw() {
 
 	color := getThemeColor(GUIFontColor)
 	globals.Project.GUITexture.SetColorMod(color.RGB())
+	globals.Project.GUITexture.SetAlphaMod(color[3])
 	globals.Renderer.CopyF(globals.Project.GUITexture, src, transformed)
 
 	if checkbox.Checked {
@@ -225,6 +241,19 @@ func (checkbox *Checkbox) Draw() {
 		globals.Renderer.CopyF(globals.Project.GUITexture, src, transformed)
 	}
 }
+
+type Spacer struct {
+	Rect *sdl.FRect
+}
+
+func NewSpacer(rect *sdl.FRect) *Spacer {
+	return &Spacer{Rect: rect}
+}
+
+func (spacer *Spacer) Update()                      {}
+func (spacer *Spacer) Draw()                        {}
+func (spacer *Spacer) Rectangle() *sdl.FRect        { return spacer.Rect }
+func (spacer *Spacer) SetRectangle(rect *sdl.FRect) { spacer.Rect = rect }
 
 const (
 	AlignLeft   = "align left"

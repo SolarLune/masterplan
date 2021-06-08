@@ -31,9 +31,12 @@ type Globals struct {
 	ScreenSize      Point
 	CopyBuffer      []string
 	Version         semver.Version
-	MainMenu        *Menu
-	ContextMenu     *Menu
 	State           string
+
+	MainMenu    *Menu
+	FileMenu    *Menu
+	ContextMenu *Menu
+	EditMenu    *Menu
 }
 
 var globals = &Globals{

@@ -116,6 +116,7 @@ func (nc *NoteContents) Draw() {
 	src := &sdl.Rect{80, 0, 32, 32}
 	color := getThemeColor(GUIFontColor)
 	nc.Card.Page.Project.GUITexture.SetColorMod(color.RGB())
+	nc.Card.Page.Project.GUITexture.SetAlphaMod(color[3])
 	globals.Renderer.CopyF(nc.Card.Page.Project.GUITexture, src, tp)
 
 	nc.Label.Draw()

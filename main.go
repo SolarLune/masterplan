@@ -193,42 +193,10 @@ func main() {
 
 	globals.Project = NewProject()
 
-	timeLabel := NewLabel(time.Now().Format("Mon Jan 2 2006"), &sdl.FRect{0, 0, 256, 32}, false, AlignCenter)
+	screenWidth, screenHeight, _ := globals.Renderer.GetOutputSize()
+	globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
 
-	globals.MainMenu = NewMenu(&sdl.FRect{0, 0, 800, 48}, false).AddElements(
-		// NewMenu(&sdl.FRect{0, 0, 128, 512}, true),
-		NewButton("File", &sdl.FRect{0, 0, 96, 32}, func() {}),
-		timeLabel,
-		NewButton("File", &sdl.FRect{0, 0, 96, 32}, func() {}),
-	)
-
-	globals.ContextMenu = NewMenu(&sdl.FRect{0, 0, 256, 256}, true).AddElements(
-
-		NewButton("Create Card", &sdl.FRect{0, 0, 192, 32}, func() {
-			globals.Project.CurrentPage().CreateNewCard(ContentTypeCheckbox)
-			globals.ContextMenu.Close()
-		}),
-
-		NewButton("Delete Cards", &sdl.FRect{0, 0, 192, 32}, func() {
-			page := globals.Project.CurrentPage()
-			page.DeleteCards(page.Selection.AsSlice()...)
-			globals.ContextMenu.Close()
-		}),
-
-		NewButton("Copy Cards", &sdl.FRect{0, 0, 192, 32}, func() {
-			page := globals.Project.CurrentPage()
-			page.CopySelectedCards()
-			globals.ContextMenu.Close()
-		}),
-
-		NewButton("Paste Cards", &sdl.FRect{0, 0, 192, 32}, func() {
-			page := globals.Project.CurrentPage()
-			page.PasteCards()
-			globals.ContextMenu.Close()
-		}),
-	)
-
-	globals.MainMenu.Spacing = MenuSpacingSpread
+	ConstructMenus()
 
 	// renderer.SetLogicalSize(960, 540)
 
@@ -262,7 +230,7 @@ func main() {
 
 	for !quit {
 
-		timeLabel.SetText([]rune(time.Now().Format("Mon Jan 2 2006")))
+		globals.MainMenu.Pages["root"].Elements["time label"].(*Label).SetText([]rune(time.Now().Format("Mon Jan 2 2006")))
 
 		screenWidth, screenHeight, err := globals.Renderer.GetOutputSize()
 
@@ -364,19 +332,23 @@ func main() {
 			// 	}
 			// }
 
-			globals.Project.Update()
-
 			globals.MainMenu.Update()
+			globals.FileMenu.Update()
+			globals.EditMenu.Update()
 
 			if globals.State == StateContextMenu {
 				globals.ContextMenu.Update()
 			}
+
+			globals.Project.Update()
 
 			globals.Project.Draw()
 
 			globals.Renderer.SetScale(1, 1)
 
 			globals.MainMenu.Draw()
+			globals.FileMenu.Draw()
+			globals.EditMenu.Draw()
 
 			if globals.State == StateContextMenu {
 				globals.ContextMenu.Draw()
@@ -578,6 +550,99 @@ func main() {
 	log.Println("MasterPlan exited successfully.")
 
 	globals.Project.Destroy()
+
+}
+
+func ConstructMenus() {
+
+	globals.MainMenu = NewMenu(&sdl.FRect{0, 0, 800, 48}, false)
+	// globals.MainMenu.Spacing = MenuSpacingSpread
+	root := globals.MainMenu.Pages["root"]
+
+	button := NewButton("File", &sdl.FRect{0, 0, 96, 32}, func() {
+		globals.FileMenu.Open()
+	})
+	button.SrcRect = &sdl.Rect{144, 0, 32, 32}
+	root.Add("file menu", button)
+
+	button = NewButton("Edit", &sdl.FRect{0, 0, 96, 32}, func() {
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+		globals.EditMenu.Open()
+	})
+	root.Add("edit menu", button)
+
+	root.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 256, 32}))
+	root.Add("time label", NewLabel(time.Now().Format("Mon Jan 2 2006"), &sdl.FRect{0, 0, 256, 32}, false, AlignCenter))
+
+	// File Menu
+
+	globals.FileMenu = NewMenu(&sdl.FRect{0, 48, 300, 200}, true)
+	fileRoot := globals.FileMenu.Pages["root"]
+	fileRoot.Add("New Project", NewButton("New Project", &sdl.FRect{0, 0, 256, 32}, func() { globals.Project.LoadingProject = NewProject() }))
+	fileRoot.Add("Load Project", NewButton("Load Project", &sdl.FRect{0, 0, 256, 32}, func() { globals.Project.Open() }))
+	fileRoot.Add("Save Project", NewButton("Save Project", &sdl.FRect{0, 0, 256, 32}, func() {
+		if globals.Project.Filepath != "" {
+			globals.Project.Save()
+		} else {
+			globals.Project.SaveAs()
+		}
+	}))
+	fileRoot.Add("Save Project As...", NewButton("Save Project As...", &sdl.FRect{0, 0, 256, 32}, func() { globals.Project.SaveAs() }))
+
+	// Edit Menu
+
+	globals.EditMenu = NewMenu(&sdl.FRect{globals.ScreenSize.X / 2, globals.ScreenSize.Y / 2, 300, 200}, true)
+	globals.EditMenu.Draggable = true
+	globals.EditMenu.Resizeable = true
+	globals.EditMenu.CloseButtonEnabled = true
+	globals.EditMenu.Orientation = MenuOrientationVertical
+
+	globals.EditMenu.Pages["root"].Add("edit label", NewLabel("-Edit-", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
+	globals.EditMenu.Pages["root"].Add("set type", NewButton("Set Type", &sdl.FRect{0, 0, 128, 32}, func() {
+		globals.EditMenu.SetPage("set type")
+	}))
+
+	setType := globals.EditMenu.AddPage("set type")
+	setType.Add("label", NewLabel("Set Type:", &sdl.FRect{0, 0, 192, 32}, false, AlignCenter))
+	setType.Add("set checkbox content type", NewButton("Checkbox", &sdl.FRect{0, 0, 192, 32}, func() {
+		for _, card := range globals.Project.CurrentPage().Selection.AsSlice() {
+			card.SetContents(ContentTypeCheckbox)
+		}
+	}))
+
+	setType.Add("set note content type", NewButton("Note", &sdl.FRect{0, 0, 192, 32}, func() {
+		for _, card := range globals.Project.CurrentPage().Selection.AsSlice() {
+			card.SetContents(ContentTypeNote)
+		}
+	}))
+
+	// Context Menu
+
+	globals.ContextMenu = NewMenu(&sdl.FRect{0, 0, 256, 256}, true)
+	root = globals.ContextMenu.Pages["root"]
+
+	root.Add("create card", NewButton("Create Card", &sdl.FRect{0, 0, 192, 32}, func() {
+		globals.Project.CurrentPage().CreateNewCard(ContentTypeCheckbox)
+		globals.ContextMenu.Close()
+	}))
+
+	root.Add("delete cards", NewButton("Delete Cards", &sdl.FRect{0, 0, 192, 32}, func() {
+		page := globals.Project.CurrentPage()
+		page.DeleteCards(page.Selection.AsSlice()...)
+		globals.ContextMenu.Close()
+	}))
+
+	root.Add("copy cards", NewButton("Copy Cards", &sdl.FRect{0, 0, 192, 32}, func() {
+		page := globals.Project.CurrentPage()
+		page.CopySelectedCards()
+		globals.ContextMenu.Close()
+	}))
+
+	root.Add("paste cards", NewButton("Paste Cards", &sdl.FRect{0, 0, 192, 32}, func() {
+		page := globals.Project.CurrentPage()
+		page.PasteCards()
+		globals.ContextMenu.Close()
+	}))
 
 }
 
