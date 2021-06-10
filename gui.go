@@ -192,7 +192,13 @@ func (button *Button) Draw() {
 
 		w := lineWidth * button.LineWidth
 		r, g, b, a := fontColor.RGBA()
-		gfx.ThickLineRGBA(globals.Renderer, int32(centerX-w/2), int32(button.Label.Rect.Y+button.Label.Rect.H), int32(centerX+w/2), int32(button.Label.Rect.Y+button.Label.Rect.H), 2, r, g, b, a)
+		y := int32(button.Label.Rect.Y + button.Label.Rect.H)
+		if button.WorldSpace {
+			translatedPoint := globals.Project.Camera.TranslatePoint(Point{centerX, float32(y)})
+			centerX = translatedPoint.X
+			y = int32(translatedPoint.Y)
+		}
+		gfx.ThickLineRGBA(globals.Renderer, int32(centerX-w/2), y, int32(centerX+w/2), y, 2, r, g, b, a)
 
 	}
 
@@ -884,7 +890,11 @@ func (row *ContainerRow) Update() {
 		usedWidth = row.Container.Rect.W
 	}
 
-	x += (maxWidth - usedWidth) / 2
+	diff := (maxWidth - usedWidth)
+	if diff < 0 {
+		diff = 0
+	}
+	x += diff / 2
 
 	for _, element := range row.Elements {
 		rect := element.Rectangle()
@@ -932,9 +942,30 @@ func (row *ContainerRow) Update() {
 }
 
 func (row *ContainerRow) Draw() {
+
+	screen := globals.Renderer.GetRenderTarget()
+
+	globals.Renderer.SetRenderTarget(row.Container.Texture)
+
 	for _, element := range row.Elements {
+
+		rect := element.Rectangle()
+
+		prevX := rect.X
+		prevY := rect.Y
+
+		rect.X -= row.Container.Rect.X
+		rect.Y -= row.Container.Rect.Y
+
+		element.SetRectangle(rect)
+
 		element.Draw()
+
+		rect.X = prevX
+		rect.Y = prevY
 	}
+
+	globals.Renderer.SetRenderTarget(screen)
 }
 
 func (row *ContainerRow) Add(elements ...MenuElement) {
@@ -943,22 +974,49 @@ func (row *ContainerRow) Add(elements ...MenuElement) {
 }
 
 type Container struct {
-	Rect *sdl.FRect
-	Rows []*ContainerRow
+	Rect       *sdl.FRect
+	Rows       []*ContainerRow
+	WorldSpace bool
+	Texture    *sdl.Texture
 }
 
-func NewContainer(rect *sdl.FRect) *Container {
+func NewContainer(rect *sdl.FRect, worldSpace bool) *Container {
 	container := &Container{
-		Rect: rect,
-		Rows: []*ContainerRow{},
+		Rows:       []*ContainerRow{},
+		WorldSpace: worldSpace,
 	}
+
+	container.SetRectangle(rect)
+
 	return container
 }
 
 func (container *Container) Update() {
 
+	// This is a hack, but it should work:
+
+	prevPos := globals.Mouse.Position
+
+	leftButton := globals.Mouse.Button(sdl.BUTTON_LEFT)
+
+	if container.WorldSpace {
+		globals.Mouse.Position = globals.Mouse.WorldPosition()
+
+		if leftButton.Down && !globals.Mouse.Position.Inside(container.Rect) {
+			leftButton.Hide()
+		}
+	}
+
 	for _, row := range container.Rows {
 		row.Update()
+	}
+
+	if container.WorldSpace {
+		globals.Mouse.Position = prevPos
+
+		if leftButton.Down && !globals.Mouse.Position.Inside(container.Rect) {
+			leftButton.Unhide()
+		}
 	}
 
 }
@@ -968,6 +1026,12 @@ func (container *Container) Draw() {
 	for _, row := range container.Rows {
 		row.Draw()
 	}
+
+	rect := container.Rect
+	if container.WorldSpace {
+		rect = globals.Project.Camera.Translate(rect)
+	}
+	globals.Renderer.CopyF(container.Texture, nil, rect)
 
 }
 
@@ -983,7 +1047,35 @@ func (container *Container) AddRow() *ContainerRow {
 
 func (container *Container) Rectangle() *sdl.FRect { return container.Rect }
 
-func (container *Container) SetRectangle(rect *sdl.FRect) { container.Rect = rect }
+func (container *Container) SetRectangle(rect *sdl.FRect) {
+	container.Rect = rect
+	container.RecreateTexture()
+}
+
+func (container *Container) RecreateTexture() {
+
+	if container.Texture != nil {
+		container.Texture.Destroy()
+	}
+
+	w := container.Rect.W
+	if w <= 2 {
+		w = 2
+	}
+
+	h := container.Rect.H
+	if h <= 2 {
+		h = 2
+	}
+
+	texture, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(w), int32(h))
+	if err != nil {
+		panic(err)
+	}
+	texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+
+	container.Texture = texture
+}
 
 type Icon struct {
 	Rect       *sdl.FRect

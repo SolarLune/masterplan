@@ -154,12 +154,11 @@ type SoundContents struct {
 func NewSoundContents(card *Card) *SoundContents {
 
 	soundContents := &SoundContents{
-		Card: card,
-		// Label: NewLabel("Sound Card", &sdl.FRect{0, 0, 128, 64}, true, AlignLeft),
-		SoundNameLabel: NewLabel("No Sound Loaded", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft),
-		Container:      NewContainer(&sdl.FRect{}),
+		Card:           card,
+		Container:      NewContainer(&sdl.FRect{0, 0, 32, 32}, true),
 		SoundFilepath:  card.Properties.Request("filepath"),
-		SeekBar:        NewScrollbar(&sdl.FRect{0, 0, 128, 32}, true),
+		SoundNameLabel: NewLabel("No Sound Loaded", &sdl.FRect{0, 0, -1, -1}, false, AlignLeft),
+		SeekBar:        NewScrollbar(&sdl.FRect{0, 0, 128, 32}, false),
 	}
 
 	soundContents.SeekBar.ValueSet = func() {
@@ -169,11 +168,11 @@ func NewSoundContents(card *Card) *SoundContents {
 	}
 
 	soundContents.Container.AddRow().Add(
-		NewIcon(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{80, 32, 32, 32}, true),
+		NewIcon(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{80, 32, 32, 32}, false),
 		soundContents.SoundNameLabel,
 	)
 
-	soundContents.PlayButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, nil, true)
+	soundContents.PlayButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, nil, false)
 	soundContents.PlayButton.SrcRect = &sdl.Rect{112, 32, 32, 32}
 	soundContents.PlayButton.Pressed = func() {
 
@@ -195,7 +194,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 	}
 
-	repeatButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, nil, true)
+	repeatButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, nil, false)
 	repeatButton.SrcRect = &sdl.Rect{176, 32, 32, 32}
 	repeatButton.Pressed = func() {
 
@@ -207,7 +206,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 	}
 
-	soundContents.PlaybackLabel = NewLabel("888:88 / 888:88", &sdl.FRect{0, 0, -1, -1}, true, AlignCenter)
+	soundContents.PlaybackLabel = NewLabel("888:88 / 888:88", &sdl.FRect{0, 0, -1, -1}, false, AlignCenter)
 
 	soundContents.Container.AddRow().Add(
 		soundContents.PlaybackLabel,
@@ -231,7 +230,7 @@ func (sc *SoundContents) Update() {
 	sc.Container.Update()
 
 	leftMouse := globals.Mouse.Button(sdl.BUTTON_LEFT)
-	if leftMouse.PressedTimes(2) {
+	if globals.Mouse.WorldPosition().Inside(sc.Card.Rect) && leftMouse.PressedTimes(2) {
 		leftMouse.Consume()
 		filepath, err := zenity.SelectFile(zenity.Title("Select audio file..."), zenity.FileFilters{{Name: "Audio files", Patterns: []string{"*.wav", "*.ogg", "*.oga", "*.mp3", "*.flac"}}})
 		if err != nil {
@@ -299,7 +298,7 @@ func (sc *SoundContents) ReceiveMessage(msg *Message) {
 func (sc *SoundContents) Color() Color { return getThemeColor(GUISoundColor) }
 
 func (sc *SoundContents) MinimumSize() Point {
-	return Point{globals.GridSize * 4, globals.GridSize * 3}
+	return Point{globals.GridSize * 4, globals.GridSize}
 }
 
 type ImageContents struct {

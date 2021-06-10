@@ -11,11 +11,13 @@ type InputState struct {
 	upTime       float64
 	triggerCount int
 	consumed     bool
+	hidden       bool
 }
 
 func (is *InputState) SetState(down bool) {
 
 	is.consumed = false
+	is.hidden = false
 	is.Down = down
 
 	if down {
@@ -35,14 +37,14 @@ func (is *InputState) SetState(down bool) {
 }
 
 func (is *InputState) Held() bool {
-	if is.consumed {
+	if is.consumed || is.hidden {
 		return false
 	}
 	return is.Down
 }
 
 func (is *InputState) Pressed() bool {
-	if is.consumed {
+	if is.consumed || is.hidden {
 		return false
 	}
 	return is.Down && is.downTime == globals.Time
@@ -53,7 +55,7 @@ func (is *InputState) PressedTimes(times int) bool {
 }
 
 func (is *InputState) Released() bool {
-	if is.consumed {
+	if is.consumed || is.hidden {
 		return false
 	}
 	return !is.Down && is.upTime == globals.Time
@@ -61,6 +63,14 @@ func (is *InputState) Released() bool {
 
 func (is *InputState) Consume() {
 	is.consumed = true
+}
+
+func (is *InputState) Hide() {
+	is.hidden = true
+}
+
+func (is *InputState) Unhide() {
+	is.hidden = false
 }
 
 type Keyboard struct {

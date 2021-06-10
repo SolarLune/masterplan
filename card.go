@@ -27,6 +27,9 @@ type Card struct {
 	Occupying       []Point
 	ID              int64
 	RandomValue     float32
+
+	Collapsed         bool
+	UncollapsedHeight float32
 }
 
 var cardID = int64(0)
@@ -62,9 +65,11 @@ func (card *Card) Update() {
 		}
 	}
 
+	resizeRect := &sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + card.Rect.H, 16, 16}
+
 	if card.Resizing {
 		globals.Mouse.SetCursor("resize")
-		card.Recreate(globals.Mouse.WorldPosition().X-card.Rect.X, globals.Mouse.WorldPosition().Y-card.Rect.Y)
+		card.Recreate(globals.Mouse.WorldPosition().X-card.Rect.X-resizeRect.W, globals.Mouse.WorldPosition().Y-card.Rect.Y-resizeRect.H)
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
 			card.StopResizing()
 		}
@@ -81,9 +86,15 @@ func (card *Card) Update() {
 		card.Contents.Update()
 	}
 
-	resizeRect := &sdl.FRect{card.Rect.X + card.Rect.W - 16, card.Rect.Y + card.Rect.H - 16, 16, 16}
-
 	if globals.State == StateNeutral {
+
+		if card.Selected && globals.ProgramSettings.Keybindings.On(KBCollapseCard) {
+			if card.Collapsed {
+				card.Uncollapse()
+			} else {
+				card.Collapse()
+			}
+		}
 
 		if globals.Mouse.WorldPosition().Inside(resizeRect) {
 			globals.Mouse.SetCursor("resize")
@@ -248,6 +259,10 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 		card.Rect.W = newWidth
 		card.Rect.H = newHeight
 
+		if newHeight > globals.GridSize {
+			card.Collapsed = false
+		}
+
 		result, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(card.Rect.W), int32(card.Rect.H))
 
 		if err != nil {
@@ -384,6 +399,21 @@ func (card *Card) SetContents(contentType string) {
 
 	card.ContentType = contentType
 
+}
+
+func (card *Card) Collapse() {
+	if !card.Collapsed {
+		card.UncollapsedHeight = card.Rect.H
+		card.Collapsed = true
+		card.Recreate(card.Rect.W, globals.GridSize)
+	}
+}
+
+func (card *Card) Uncollapse() {
+	if card.Collapsed {
+		card.Collapsed = false
+		card.Recreate(card.Rect.W, card.UncollapsedHeight)
+	}
 }
 
 // import (
