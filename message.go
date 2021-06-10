@@ -4,6 +4,8 @@ const (
 	MessageSelect          = "MessageSelect"
 	MessageResizeCompleted = "MessageResizeCompleted"
 	MessageDragCompleted   = "MessageDragCompleted"
+	MessageCardDeleted     = "MessageCardDeleted"
+	MessageContentSwitched = "MessageContentSwitched"
 )
 
 type Message struct {

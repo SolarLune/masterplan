@@ -137,10 +137,15 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 
 		// This doesn't work if we're upscaling the font (rendering the glyphs at high res, then scaling them down
 		// as necessary to fit in the areas we need them to fit in)
+
 		for _, line := range perLine {
-			width, _, _ := globals.Font.SizeUTF8(line)
-			if w < int32(width) {
-				w = int32(width)
+
+			lineWidth := int32(0)
+			for _, glyph := range tr.GlyphsForRunes([]rune(line)) {
+				lineWidth += glyph.Width()
+			}
+			if w < lineWidth {
+				w = int32(lineWidth)
 			}
 		}
 

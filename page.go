@@ -43,6 +43,7 @@ func (page *Page) Update() {
 	}
 
 	for _, toDelete := range page.ToDelete {
+		toDelete.ReceiveMessage(NewMessage(MessageCardDeleted, toDelete, nil))
 		page.Selection.Remove(toDelete)
 		for index, card := range page.Cards {
 			if card == toDelete {

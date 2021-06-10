@@ -34,6 +34,7 @@ const (
 
 	KBNewCheckboxCard = "New Checkbox Card"
 	KBNewNoteCard     = "New Note Card"
+	KBNewSoundCard    = "New Sound Card"
 	KBDebugRestart    = "DEBUG: RESTART"
 
 	KBAddToSelection      = "Add to Selection Modifier"
@@ -287,6 +288,7 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBNewCheckboxCard, sdl.K_1, sdl.K_LSHIFT)
 
 	kb.Define(KBNewNoteCard, sdl.K_2, sdl.K_LSHIFT)
+	kb.Define(KBNewSoundCard, sdl.K_3, sdl.K_LSHIFT)
 
 	kb.Define(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.Define(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold

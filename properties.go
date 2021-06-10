@@ -9,6 +9,7 @@ import (
 const (
 	PropertyTypeCheckbox = "checkbox property"
 	PropertyTypeLabel    = "label property"
+	PropertyTypeString   = "string property"
 )
 
 type Property struct {
@@ -47,6 +48,22 @@ func (prop *Property) AsLabel() *Label {
 	return prop.Data.(*Label)
 }
 
+func (prop *Property) IsString() bool {
+	_, isOK := prop.Data.(string)
+	return isOK
+}
+
+func (prop *Property) AsString() string {
+	if prop.Data == nil {
+		prop.Data = ""
+	}
+	return prop.Data.(string)
+}
+
+func (prop *Property) SetValue(value interface{}) {
+	prop.Data = value
+}
+
 func (prop *Property) Serialize() string {
 
 	data := "{}"
@@ -55,6 +72,8 @@ func (prop *Property) Serialize() string {
 		data, _ = sjson.Set(data, "label", prop.AsLabel().TextAsString())
 	} else if prop.IsCheckbox() {
 		data, _ = sjson.Set(data, "checked", prop.AsCheckbox().Checked)
+	} else if prop.IsString() {
+		data, _ = sjson.Set(data, "string", prop.AsString())
 	}
 
 	return data
@@ -69,6 +88,8 @@ func (prop *Property) Deserialize(data string) {
 		prop.AsLabel().SetText([]rune(parsed.Get("label").String()))
 	} else if parsed.Get("checked").Exists() {
 		prop.AsCheckbox().Checked = parsed.Get("checked").Bool()
+	} else if parsed.Get("string").Exists() {
+		prop.SetValue(parsed.Get("string").String())
 	}
 
 }

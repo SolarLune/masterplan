@@ -13,6 +13,8 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/blang/semver"
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/speaker"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -155,6 +157,10 @@ func main() {
 	}
 
 	if err := ttf.Init(); err != nil {
+		panic(err)
+	}
+
+	if err := speaker.Init(beep.SampleRate(44100), 512); err != nil {
 		panic(err)
 	}
 
@@ -363,6 +369,15 @@ func main() {
 				original.Destroy()
 			}
 
+			// y := int32(0)
+
+			// for _, event := range eventLogBuffer {
+			// 	src := &sdl.Rect{0, 0, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
+			// 	dst := &sdl.Rect{0, y, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
+			// 	globals.Renderer.Copy(event.Texture.Image.Texture, src, dst)
+			// 	y += src.H
+			// }
+
 			// rl.EndMode2D()
 
 			// color := getThemeColor(GUI_FONT_COLOR)
@@ -561,14 +576,14 @@ func ConstructMenus() {
 
 	button := NewButton("File", &sdl.FRect{0, 0, 96, 32}, func() {
 		globals.FileMenu.Open()
-	})
+	}, false)
 	button.SrcRect = &sdl.Rect{144, 0, 32, 32}
 	root.Add("file menu", button)
 
 	button = NewButton("Edit", &sdl.FRect{0, 0, 96, 32}, func() {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		globals.EditMenu.Open()
-	})
+	}, false)
 	root.Add("edit menu", button)
 
 	root.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 256, 32}))
@@ -578,16 +593,16 @@ func ConstructMenus() {
 
 	globals.FileMenu = NewMenu(&sdl.FRect{0, 48, 300, 200}, true)
 	fileRoot := globals.FileMenu.Pages["root"]
-	fileRoot.Add("New Project", NewButton("New Project", &sdl.FRect{0, 0, 256, 32}, func() { globals.Project.LoadingProject = NewProject() }))
-	fileRoot.Add("Load Project", NewButton("Load Project", &sdl.FRect{0, 0, 256, 32}, func() { globals.Project.Open() }))
+	fileRoot.Add("New Project", NewButton("New Project", &sdl.FRect{0, 0, 256, 32}, func() { globals.Project.LoadingProject = NewProject() }, false))
+	fileRoot.Add("Load Project", NewButton("Load Project", &sdl.FRect{0, 0, 256, 32}, func() { globals.Project.Open() }, false))
 	fileRoot.Add("Save Project", NewButton("Save Project", &sdl.FRect{0, 0, 256, 32}, func() {
 		if globals.Project.Filepath != "" {
 			globals.Project.Save()
 		} else {
 			globals.Project.SaveAs()
 		}
-	}))
-	fileRoot.Add("Save Project As...", NewButton("Save Project As...", &sdl.FRect{0, 0, 256, 32}, func() { globals.Project.SaveAs() }))
+	}, false))
+	fileRoot.Add("Save Project As...", NewButton("Save Project As...", &sdl.FRect{0, 0, 256, 32}, func() { globals.Project.SaveAs() }, false))
 
 	// Edit Menu
 
@@ -600,7 +615,7 @@ func ConstructMenus() {
 	globals.EditMenu.Pages["root"].Add("edit label", NewLabel("-Edit-", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
 	globals.EditMenu.Pages["root"].Add("set type", NewButton("Set Type", &sdl.FRect{0, 0, 128, 32}, func() {
 		globals.EditMenu.SetPage("set type")
-	}))
+	}, false))
 
 	setType := globals.EditMenu.AddPage("set type")
 	setType.Add("label", NewLabel("Set Type:", &sdl.FRect{0, 0, 192, 32}, false, AlignCenter))
@@ -608,13 +623,19 @@ func ConstructMenus() {
 		for _, card := range globals.Project.CurrentPage().Selection.AsSlice() {
 			card.SetContents(ContentTypeCheckbox)
 		}
-	}))
+	}, false))
 
 	setType.Add("set note content type", NewButton("Note", &sdl.FRect{0, 0, 192, 32}, func() {
 		for _, card := range globals.Project.CurrentPage().Selection.AsSlice() {
 			card.SetContents(ContentTypeNote)
 		}
-	}))
+	}, false))
+
+	setType.Add("set sound content type", NewButton("Sound", &sdl.FRect{0, 0, 192, 32}, func() {
+		for _, card := range globals.Project.CurrentPage().Selection.AsSlice() {
+			card.SetContents(ContentTypeSound)
+		}
+	}, false))
 
 	// Context Menu
 
@@ -624,25 +645,25 @@ func ConstructMenus() {
 	root.Add("create card", NewButton("Create Card", &sdl.FRect{0, 0, 192, 32}, func() {
 		globals.Project.CurrentPage().CreateNewCard(ContentTypeCheckbox)
 		globals.ContextMenu.Close()
-	}))
+	}, false))
 
 	root.Add("delete cards", NewButton("Delete Cards", &sdl.FRect{0, 0, 192, 32}, func() {
 		page := globals.Project.CurrentPage()
 		page.DeleteCards(page.Selection.AsSlice()...)
 		globals.ContextMenu.Close()
-	}))
+	}, false))
 
 	root.Add("copy cards", NewButton("Copy Cards", &sdl.FRect{0, 0, 192, 32}, func() {
 		page := globals.Project.CurrentPage()
 		page.CopySelectedCards()
 		globals.ContextMenu.Close()
-	}))
+	}, false))
 
 	root.Add("paste cards", NewButton("Paste Cards", &sdl.FRect{0, 0, 192, 32}, func() {
 		page := globals.Project.CurrentPage()
 		page.PasteCards()
 		globals.ContextMenu.Close()
-	}))
+	}, false))
 
 }
 

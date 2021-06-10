@@ -1,11 +1,36 @@
 package main
 
+import (
+	"path"
+
+	"github.com/gabriel-vasile/mimetype"
+)
+
 type Resource struct {
-	Data interface{}
+	Filepath string
+	Filename string
+	Data     interface{}
+	MimeData *mimetype.MIME
+}
+
+func NewResource(filepath string) *Resource {
+	_, filename := path.Split(filepath)
+
+	mimeInfo, _ := mimetype.DetectFile(filepath)
+
+	return &Resource{
+		Filepath: filepath,
+		Filename: filename,
+		MimeData: mimeInfo,
+	}
 }
 
 func (resource *Resource) AsTexturePair() Image {
 	return resource.Data.(Image)
+}
+
+func (resource *Resource) AsSound() *Sound {
+	return resource.Data.(*Sound)
 }
 
 // import (

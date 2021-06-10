@@ -5,6 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/flac"
+	"github.com/faiface/beep/mp3"
+	"github.com/faiface/beep/vorbis"
+	"github.com/faiface/beep/wav"
 	"github.com/ncruces/zenity"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -357,6 +362,8 @@ func (project *Project) GlobalShortcuts() {
 			project.CurrentPage().CreateNewCard(ContentTypeCheckbox)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewNoteCard) {
 			project.CurrentPage().CreateNewCard(ContentTypeNote)
+		} else if globals.ProgramSettings.Keybindings.On(KBNewSoundCard) {
+			project.CurrentPage().CreateNewCard(ContentTypeSound)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {
@@ -407,11 +414,13 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 	resource, exists := project.Resources[resourcePath]
 
 	if !exists {
-		resource = &Resource{}
+		resource = NewResource(resourcePath)
 		project.Resources[resourcePath] = resource
 	}
 
-	switch filepath.Ext(resourcePath) {
+	fileExt := filepath.Ext(resourcePath)
+
+	switch fileExt {
 
 	case ".png":
 		fallthrough
@@ -439,6 +448,41 @@ func (project *Project) LoadResource(resourcePath string) *Resource {
 			Size:    Point{float32(surface.W), float32(surface.H)},
 			Texture: texture,
 		}
+
+	case ".mp3":
+		fallthrough
+	case ".wav":
+		fallthrough
+	case ".ogg":
+		fallthrough
+	case ".oga":
+		fallthrough
+	case ".flac":
+
+		originalFile, err := os.Open(resourcePath)
+		if err != nil {
+			// panic(err)
+		}
+
+		var originalStream beep.StreamSeekCloser
+		var format beep.Format
+
+		if fileExt == ".mp3" {
+			originalStream, format, err = mp3.Decode(originalFile)
+		} else if fileExt == ".wav" {
+			originalStream, format, err = wav.Decode(originalFile)
+		} else if fileExt == ".flac" {
+			originalStream, format, err = flac.Decode(originalFile)
+		} else if fileExt == ".ogg" {
+			originalStream, format, err = vorbis.Decode(originalFile)
+		}
+
+		if err != nil {
+			// panic(err)
+		}
+
+		resource.Data = NewSound(originalStream, format)
+
 	}
 
 	return resource

@@ -69,11 +69,11 @@ func NewMenu(rect *sdl.FRect, openable bool) *Menu {
 		Draggable: false,
 	}
 
-	closeButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, func() { menu.Close() })
+	closeButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, func() { menu.Close() }, false)
 	closeButton.SrcRect = &sdl.Rect{176, 0, 32, 32}
 	menu.closeButtonButton = closeButton
 
-	backButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, func() { menu.SetPrevPage() })
+	backButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, func() { menu.SetPrevPage() }, false)
 	backButton.SrcRect = &sdl.Rect{208, 0, 32, 32}
 	menu.BackButton = backButton
 

@@ -40,7 +40,7 @@ const (
 	GUICheckboxColor   = "Checkbox Color"
 	GUICompletedColor  = "Completed Color"
 	GUINoteColor       = "Note Color"
-	GUIMusicColor      = "Music Color"
+	GUISoundColor      = "Sound Color"
 	GUITimerColor      = "Timer Color"
 	GUIBlankImageColor = "Blank Image Color"
 )
@@ -123,26 +123,34 @@ type FocusableMenuElement interface {
 }
 
 type Button struct {
-	Label     *Label
-	Rect      *sdl.FRect
-	SrcRect   *sdl.Rect
-	Pressed   func()
-	LineWidth float32
-	Disabled  bool
+	Label      *Label
+	Rect       *sdl.FRect
+	SrcRect    *sdl.Rect
+	Pressed    func()
+	LineWidth  float32
+	Disabled   bool
+	WorldSpace bool
 }
 
-func NewButton(labelText string, rect *sdl.FRect, pressedFunc func()) *Button {
+func NewButton(labelText string, rect *sdl.FRect, pressedFunc func(), worldSpace bool) *Button {
 	button := &Button{
-		Label:   NewLabel(labelText, rect, false, AlignCenter),
-		Rect:    rect,
-		Pressed: pressedFunc,
+		Label:      NewLabel(labelText, rect, worldSpace, AlignCenter),
+		Rect:       rect,
+		Pressed:    pressedFunc,
+		WorldSpace: worldSpace,
 	}
 	return button
 }
 
 func (button *Button) Update() {
 
-	if globals.Mouse.Position.Inside(button.Rect) {
+	mousePos := globals.Mouse.Position
+
+	if button.WorldSpace {
+		mousePos = globals.Mouse.WorldPosition()
+	}
+
+	if mousePos.Inside(button.Rect) {
 		button.Label.Alpha = 255
 		button.LineWidth += (1 - button.LineWidth) * 0.2
 
@@ -193,6 +201,10 @@ func (button *Button) Draw() {
 		globals.Project.GUITexture.SetColorMod(fontColor.RGB())
 		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, float32(button.SrcRect.W), float32(button.SrcRect.H)}
 		dst.X -= dst.W / 4
+
+		if button.WorldSpace {
+			dst = globals.Project.Camera.Translate(dst)
+		}
 		globals.Renderer.CopyF(globals.Project.GUITexture, button.SrcRect, dst)
 	}
 
@@ -371,6 +383,11 @@ func (label *Label) RecreateTexture() {
 		}
 
 		label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), getThemeColor(GUIFontColor), Point{label.Rect.W, label.Rect.H}, label.HorizontalAlignment)
+
+		if label.Rect.W < 0 || label.Rect.H < 0 {
+			label.Rect.W = label.RendererResult.Image.Size.X
+			label.Rect.H = label.RendererResult.Image.Size.Y
+		}
 	}
 
 }
@@ -832,13 +849,232 @@ func (label *Label) Rectangle() *sdl.FRect {
 	return label.Rect
 }
 
-type Scrollbar struct {
-	Rect *sdl.FRect
+type ContainerRow struct {
+	Container *Container
+	Elements  []MenuElement
+	Index     int
+	// InterElementSpacing int32
 }
 
-func NewScrollbar() *Scrollbar {
-	return &Scrollbar{}
+func NewContainerRow(container *Container, index int) *ContainerRow {
+	row := &ContainerRow{
+		Container: container,
+		Elements:  []MenuElement{},
+		Index:     index,
+		// InterElementSpacing: -1,
+	}
+	return row
 }
+
+func (row *ContainerRow) Update() {
+
+	padding := float32(8)
+
+	x := row.Container.Rect.X + padding
+	y := row.Container.Rect.Y + float32(row.Index*int(globals.GridSize))
+
+	usedWidth := float32(0)
+	maxWidth := row.Container.Rect.W - padding*2
+
+	for _, element := range row.Elements {
+		usedWidth += element.Rectangle().W
+	}
+
+	if usedWidth > row.Container.Rect.W {
+		usedWidth = row.Container.Rect.W
+	}
+
+	x += (maxWidth - usedWidth) / 2
+
+	for _, element := range row.Elements {
+		rect := element.Rectangle()
+
+		rect.X = x
+		rect.Y = y
+
+		element.SetRectangle(rect)
+		element.Update()
+
+		x += rect.W + 8
+	}
+
+	// // Automatic spacing
+
+	// spacing := float32(0)
+
+	// // percent := x / row.Container.Rect.W
+	// // // rect.X -= (rect.W) * percent
+	// // x += spacing
+
+	// if len(row.Elements) == 1 {
+	// 	x += row.Container.Rect.W / 2
+	// } else if len(row.Elements) == 2 {
+	// 	spacing = 1.0
+	// } else {
+	// 	spacing = 1.0 / float32(len(row.Elements)-1)
+	// }
+
+	// // y += w / float32(len(row.Elements))
+
+	// for _, element := range row.Elements {
+	// 	rect := element.Rectangle()
+
+	// 	percent := (x - row.Container.Rect.X) / row.Container.Rect.W
+	// 	rect.X = x - (element.Rectangle().W * percent)
+	// 	rect.Y = y
+	// 	// percent := (x - row.Container.Rect.X) / row.Container.Rect.W
+	// 	// rect.X = x - (element.Rectangle().W * percent)
+	// 	// rect.Y = y
+	// 	element.SetRectangle(rect)
+	// 	element.Update()
+	// 	x += spacing * row.Container.Rect.W
+	// }
+}
+
+func (row *ContainerRow) Draw() {
+	for _, element := range row.Elements {
+		element.Draw()
+	}
+}
+
+func (row *ContainerRow) Add(elements ...MenuElement) {
+	row.Elements = append(row.Elements, elements...)
+	// return row
+}
+
+type Container struct {
+	Rect *sdl.FRect
+	Rows []*ContainerRow
+}
+
+func NewContainer(rect *sdl.FRect) *Container {
+	container := &Container{
+		Rect: rect,
+		Rows: []*ContainerRow{},
+	}
+	return container
+}
+
+func (container *Container) Update() {
+
+	for _, row := range container.Rows {
+		row.Update()
+	}
+
+}
+
+func (container *Container) Draw() {
+
+	for _, row := range container.Rows {
+		row.Draw()
+	}
+
+}
+
+func (container *Container) AddRow() *ContainerRow {
+	newRow := NewContainerRow(container, len(container.Rows))
+	container.Rows = append(container.Rows, newRow)
+	return newRow
+}
+
+// func (container *Container) Add(element MenuElement) {
+// 	container.Elements = append(container.Elements, element)
+// }
+
+func (container *Container) Rectangle() *sdl.FRect { return container.Rect }
+
+func (container *Container) SetRectangle(rect *sdl.FRect) { container.Rect = rect }
+
+type Icon struct {
+	Rect       *sdl.FRect
+	SrcRect    *sdl.Rect
+	WorldSpace bool
+}
+
+func NewIcon(rect *sdl.FRect, srcRect *sdl.Rect, worldSpace bool) *Icon {
+	return &Icon{Rect: rect, SrcRect: srcRect, WorldSpace: worldSpace}
+}
+
+func (icon *Icon) Update() {}
+func (icon *Icon) Draw() {
+	color := getThemeColor(GUIFontColor)
+	globals.Project.GUITexture.SetColorMod(color.RGB())
+	globals.Project.GUITexture.SetAlphaMod(color[3])
+
+	rect := icon.Rect
+
+	if icon.WorldSpace {
+		rect = globals.Project.Camera.Translate(rect)
+	}
+
+	globals.Renderer.CopyF(globals.Project.GUITexture, icon.SrcRect, rect)
+
+}
+func (icon *Icon) Rectangle() *sdl.FRect        { return icon.Rect }
+func (icon *Icon) SetRectangle(rect *sdl.FRect) { icon.Rect = rect }
+
+type Scrollbar struct {
+	Rect       *sdl.FRect
+	Value      float32
+	WorldSpace bool
+	ValueSet   func()
+}
+
+func NewScrollbar(rect *sdl.FRect, worldSpace bool) *Scrollbar {
+	return &Scrollbar{
+		Rect:       rect,
+		WorldSpace: worldSpace,
+	}
+}
+
+func (scrollbar *Scrollbar) Update() {
+
+	pos := globals.Mouse.Position
+	if scrollbar.WorldSpace {
+		pos = globals.Mouse.WorldPosition()
+	}
+
+	if pos.Inside(scrollbar.Rect) {
+
+		// globals.Mouse.SetCursor("normal")
+
+		button := globals.Mouse.Button(sdl.BUTTON_LEFT)
+		if button.Pressed() {
+			button.Consume()
+			scrollbar.Value = (pos.X - scrollbar.Rect.X) / scrollbar.Rect.W
+			if scrollbar.ValueSet != nil {
+				scrollbar.ValueSet()
+			}
+		}
+
+	}
+
+}
+
+func (scrollbar *Scrollbar) Draw() {
+
+	globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
+
+	sr := *scrollbar.Rect
+	rect := &sr
+	rect.H = 8
+	rect.Y += (scrollbar.Rect.H - rect.H) / 2
+	if scrollbar.WorldSpace {
+		rect = globals.Project.Camera.Translate(rect)
+	}
+
+	globals.Renderer.FillRectF(rect)
+
+	globals.Renderer.SetDrawColor(getThemeColor(GUIFontColor).RGBA())
+	pointRect := &sdl.FRect{rect.X, rect.Y, rect.H, rect.H}
+	pointRect.X += scrollbar.Rect.W*scrollbar.Value - (pointRect.W * scrollbar.Value)
+	globals.Renderer.FillRectF(pointRect)
+
+}
+
+func (scrollbar *Scrollbar) Rectangle() *sdl.FRect { return scrollbar.Rect }
+
+func (scrollbar *Scrollbar) SetRectangle(rect *sdl.FRect) { scrollbar.Rect = rect }
 
 // type Scrollbar struct {
 // 	Rect         *sdl.Rect

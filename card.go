@@ -52,10 +52,6 @@ func NewCard(page *Page, contentType string) *Card {
 
 }
 
-func (card *Card) Clone() *Card {
-	return NewCard(card.Page, card.ContentType)
-}
-
 func (card *Card) Update() {
 
 	if card.Dragging {
@@ -187,9 +183,9 @@ func (card *Card) Deserialize(data string) {
 	card.Rect.X = float32(rect.Get("X").Float())
 	card.Rect.Y = float32(rect.Get("Y").Float())
 
-	card.SetContents(gjson.Get(data, "contents").String())
-
 	card.Properties.Deserialize(gjson.Get(data, "properties").Raw)
+
+	card.SetContents(gjson.Get(data, "contents").String())
 
 	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
 
@@ -362,6 +358,10 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewCheckboxContents(card)
 		case ContentTypeNote:
 			card.Contents = NewNoteContents(card)
+		case ContentTypeSound:
+			card.Contents = NewSoundContents(card)
+		default:
+			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}
 
 		w := card.Rect.W
@@ -379,6 +379,8 @@ func (card *Card) SetContents(contentType string) {
 		card.ContentsLibrary[contentType] = card.Contents
 
 	}
+
+	card.Contents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
 
 	card.ContentType = contentType
 

@@ -8,8 +8,11 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/chonla/roman-number-go v0.0.0-20181101035413-6768129de021 // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
+	github.com/faiface/beep v1.0.2 // indirect
+	github.com/gabriel-vasile/mimetype v1.3.0 // indirect
 	github.com/gen2brain/raylib-go v0.0.0-20200528082952-e0f56b22753f
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kvartborg/vector v0.0.0-20210122071920-91df40ba4054 // indirect
 	github.com/mholt/archiver v3.1.1+incompatible

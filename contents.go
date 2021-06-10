@@ -1,12 +1,21 @@
 package main
 
 import (
+	"fmt"
+	"time"
+
+	"github.com/ncruces/zenity"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
-	ContentTypeCheckbox = "Checkbox"
-	ContentTypeNote     = "Note"
+	ContentTypeCheckbox    = "Checkbox"
+	ContentTypeNote        = "Note"
+	ContentTypeSound       = "Sound"
+	ContentTypeProgression = "Progression"
+	ContentTypeImage       = "Image"
+	ContentTypeTimer       = "Timer"
+	ContentTypeMap         = "Map"
 )
 
 type Contents interface {
@@ -128,6 +137,170 @@ func (nc *NoteContents) ReceiveMessage(msg *Message) {}
 func (nc *NoteContents) Color() Color { return getThemeColor(GUINoteColor) }
 
 func (nc *NoteContents) MinimumSize() Point { return Point{globals.GridSize, globals.GridSize} }
+
+type SoundContents struct {
+	Card           *Card
+	Container      *Container
+	Playing        bool
+	SoundNameLabel *Label
+	PlaybackLabel  *Label
+	SoundFilepath  *Property
+	PlayButton     *Button
+
+	Sound   *Sound
+	SeekBar *Scrollbar
+}
+
+func NewSoundContents(card *Card) *SoundContents {
+
+	soundContents := &SoundContents{
+		Card: card,
+		// Label: NewLabel("Sound Card", &sdl.FRect{0, 0, 128, 64}, true, AlignLeft),
+		SoundNameLabel: NewLabel("No Sound Loaded", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft),
+		Container:      NewContainer(&sdl.FRect{}),
+		SoundFilepath:  card.Properties.Request("filepath"),
+		SeekBar:        NewScrollbar(&sdl.FRect{0, 0, 128, 32}, true),
+	}
+
+	soundContents.SeekBar.ValueSet = func() {
+		if soundContents.Sound != nil {
+			soundContents.Sound.SeekPercentage(soundContents.SeekBar.Value)
+		}
+	}
+
+	soundContents.Container.AddRow().Add(
+		NewIcon(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{80, 32, 32, 32}, true),
+		soundContents.SoundNameLabel,
+	)
+
+	soundContents.PlayButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, nil, true)
+	soundContents.PlayButton.SrcRect = &sdl.Rect{112, 32, 32, 32}
+	soundContents.PlayButton.Pressed = func() {
+
+		if soundContents.Sound == nil {
+			return
+		}
+
+		if soundContents.Sound.IsPaused() {
+			soundContents.Sound.Play()
+		} else {
+			soundContents.Sound.Pause()
+		}
+
+		if !soundContents.Sound.IsPaused() {
+			soundContents.PlayButton.SrcRect = &sdl.Rect{144, 32, 32, 32}
+		} else {
+			soundContents.PlayButton.SrcRect = &sdl.Rect{112, 32, 32, 32}
+		}
+
+	}
+
+	repeatButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, nil, true)
+	repeatButton.SrcRect = &sdl.Rect{176, 32, 32, 32}
+	repeatButton.Pressed = func() {
+
+		if soundContents.Sound == nil {
+			return
+		}
+
+		soundContents.Sound.SeekPercentage(0)
+
+	}
+
+	soundContents.PlaybackLabel = NewLabel("888:88 / 888:88", &sdl.FRect{0, 0, -1, -1}, true, AlignCenter)
+
+	soundContents.Container.AddRow().Add(
+		soundContents.PlaybackLabel,
+		soundContents.PlayButton,
+		repeatButton,
+	)
+
+	soundContents.Container.AddRow().Add(soundContents.SeekBar)
+
+	if soundContents.SoundFilepath.AsString() != "" {
+		soundContents.LoadFile()
+	}
+
+	return soundContents
+}
+
+func (sc *SoundContents) Update() {
+	sc.SeekBar.Rect.W = sc.Card.DisplayRect.W - 64
+
+	sc.Container.SetRectangle(sc.Card.DisplayRect)
+	sc.Container.Update()
+
+	leftMouse := globals.Mouse.Button(sdl.BUTTON_LEFT)
+	if leftMouse.PressedTimes(2) {
+		leftMouse.Consume()
+		filepath, err := zenity.SelectFile(zenity.Title("Select audio file..."), zenity.FileFilters{{Name: "Audio files", Patterns: []string{"*.wav", "*.ogg", "*.oga", "*.mp3", "*.flac"}}})
+		if err != nil {
+			// panic(err)
+			// Print message
+		} else {
+			sc.SoundFilepath.SetValue(filepath)
+			sc.LoadFile()
+		}
+	}
+
+	if sc.Sound != nil {
+
+		sc.SeekBar.Value = float32(sc.Sound.Position().Seconds() / sc.Sound.Length().Seconds())
+
+		// lengthMinutes := fmt.Sprintf("%02d", int(sc.Sound.Length().Truncate(time.Second).Seconds()))
+
+		formatTime := func(t time.Duration) string {
+
+			minutes := int(t.Seconds()) / 60
+			seconds := int(t.Seconds()) - (minutes * 60)
+			return fmt.Sprintf("%02d:%02d", minutes, seconds)
+
+		}
+
+		sc.PlaybackLabel.SetText([]rune(formatTime(sc.Sound.Position()) + " / " + formatTime(sc.Sound.Length())))
+	} else {
+		sc.PlaybackLabel.SetText([]rune("--:-- / --:--"))
+		sc.SeekBar.Value = 0
+	}
+
+}
+
+func (sc *SoundContents) LoadFile() {
+	if sc.Sound != nil {
+		sc.Sound.Pause()
+	}
+	resource := globals.Project.LoadResource(sc.SoundFilepath.AsString())
+	sc.Sound = resource.AsSound()
+	sc.SoundNameLabel.SetText([]rune(resource.Filename))
+}
+
+func (sc *SoundContents) Draw() {
+
+	// tp := sc.Card.Page.Project.Camera.Translate(sc.Card.DisplayRect)
+	// tp.W = 32
+	// tp.H = 32
+	// src := &sdl.Rect{80, 32, 32, 32}
+	// color := getThemeColor(GUIFontColor)
+	// sc.Card.Page.Project.GUITexture.SetColorMod(color.RGB())
+	// sc.Card.Page.Project.GUITexture.SetAlphaMod(color[3])
+	// globals.Renderer.CopyF(sc.Card.Page.Project.GUITexture, src, tp)
+
+	sc.Container.Draw()
+
+	// sc.Label.Draw()
+
+}
+func (sc *SoundContents) ReceiveMessage(msg *Message) {
+	if (msg.Type == MessageCardDeleted || (msg.Type == MessageContentSwitched && sc.Card.Contents != sc)) && msg.ID == sc.Card && sc.Sound != nil {
+		sc.Sound.Pause()
+	}
+}
+
+func (sc *SoundContents) Color() Color { return getThemeColor(GUISoundColor) }
+
+func (sc *SoundContents) MinimumSize() Point {
+	return Point{globals.GridSize * 4, globals.GridSize * 3}
+}
 
 type ImageContents struct {
 	Card  *Card
