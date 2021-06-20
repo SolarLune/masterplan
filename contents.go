@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"path"
+	"strconv"
 	"time"
 
 	"github.com/ncruces/zenity"
@@ -16,6 +18,7 @@ const (
 	ContentTypeImage       = "Image"
 	ContentTypeTimer       = "Timer"
 	ContentTypeMap         = "Map"
+	ContentTypeTable       = "Table"
 )
 
 type Contents interface {
@@ -23,52 +26,112 @@ type Contents interface {
 	Draw()
 	ReceiveMessage(*Message)
 	Color() Color
-	MinimumSize() Point
+	DefaultSize() Point
+}
+
+type DefaultContents struct {
+	Card      *Card
+	Container *Container
+}
+
+func newDefaultContents(card *Card) DefaultContents {
+	return DefaultContents{
+		Card:      card,
+		Container: NewContainer(&sdl.FRect{0, 0, 0, 0}),
+	}
+}
+
+func (dc *DefaultContents) Update() {
+	rect := dc.Card.DisplayRect
+	dc.Container.SetRectangle(rect)
+	dc.Container.Update()
+}
+
+func (dc *DefaultContents) Draw() {
+	dc.Container.Draw()
 }
 
 type CheckboxContents struct {
-	Card  *Card
-	Label *Label
-	Check *Checkbox
+	DefaultContents
+	Label    *Label
+	Checkbox *Button
+	Checked  bool
 }
 
 func NewCheckboxContents(card *Card) *CheckboxContents {
 
-	checkboxContents := &CheckboxContents{
-		Card:  card,
-		Label: card.Properties.Request(PropertyTypeLabel).AsLabel(),
-		Check: card.Properties.Request(PropertyTypeCheckbox).AsCheckbox(),
+	cc := &CheckboxContents{
+		DefaultContents: newDefaultContents(card),
 	}
 
-	if len(checkboxContents.Label.Text) == 0 {
-		checkboxContents.Label.SetText([]rune("New Checkbox"))
+	cc.Checkbox = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{48, 0, 32, 32}, cc.Trigger, true)
+	cc.Checkbox.FadeOnInactive = false
+
+	cc.Label = NewLabel("New Checkbox", nil, true, AlignLeft)
+	cc.Label.Editable = true
+
+	cc.Label.OnChange = func() {
+		cc.Card.Properties.Get("description").Set(cc.Label.TextAsString())
+
+		lineCount := float32(cc.Label.LineCount())
+		if lineCount*globals.GridSize > cc.Card.Rect.H {
+			cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
+		}
 	}
 
-	checkboxContents.Label.Editable = true
+	description := cc.Card.Properties.Get("description")
+	if description.AsString() != "" {
+		cc.Label.SetText([]rune(description.AsString()))
+	} else {
+		description.Set(cc.Label.TextAsString())
+	}
 
-	return checkboxContents
+	row := cc.Container.AddRow()
+	row.Add("checkbox", cc.Checkbox)
+	row.Add("label", cc.Label)
+
+	return cc
 
 }
 
 func (cc *CheckboxContents) Update() {
 
+	cc.DefaultContents.Update()
+
 	if cc.Card.Selected {
-		cc.Check.Update()
+
+		description := cc.Card.Properties.Get("description")
+		if cc.Label.Editing {
+			description.Set(cc.Label.TextAsString())
+		} else {
+			cc.Label.SetText([]rune(description.AsString()))
+		}
+
+		cc.Checked = cc.Card.Properties.Get("checked").AsBool()
 	}
 
-	cc.Label.SetRectangle(&sdl.FRect{cc.Card.DisplayRect.X + 32, cc.Card.DisplayRect.Y, cc.Card.Rect.W - 32, cc.Card.Rect.H})
+	rect := cc.Label.Rectangle()
+	rect.W = cc.Container.Rect.W - rect.X + cc.Container.Rect.X
+	rect.H = cc.Container.Rect.H - rect.Y + cc.Container.Rect.Y
+	cc.Label.SetRectangle(rect)
 
-	cc.Label.Update()
+	if cc.Checked {
+		cc.Checkbox.IconSrc.Y = 32
+	} else {
+		cc.Checkbox.IconSrc.Y = 0
+	}
 
 }
 
 func (cc *CheckboxContents) Draw() {
+	cc.DefaultContents.Draw()
+}
 
-	cc.Label.Draw()
+func (cc *CheckboxContents) Trigger() {
 
-	cc.Check.Position.X = cc.Card.DisplayRect.X
-	cc.Check.Position.Y = cc.Card.DisplayRect.Y
-	cc.Check.Draw()
+	cc.Checked = !cc.Checked
+
+	cc.Card.Properties.Get("checked").Set(cc.Checked)
 
 }
 
@@ -78,145 +141,194 @@ func (cc *CheckboxContents) Color() Color {
 
 	color := getThemeColor(GUICheckboxColor)
 
-	if cc.Check.Checked {
+	if cc.Checked {
 		color = getThemeColor(GUICompletedColor)
 	}
 
 	return color
 }
 
-func (cc *CheckboxContents) MinimumSize() Point {
-	return Point{globals.GridSize, globals.GridSize}
+func (cc *CheckboxContents) DefaultSize() Point {
+	return Point{globals.GridSize * 9, globals.GridSize}
 }
 
 type NoteContents struct {
-	Card  *Card
+	DefaultContents
 	Label *Label
 }
 
 func NewNoteContents(card *Card) *NoteContents {
-	noteContents := &NoteContents{
-		Card:  card,
-		Label: card.Properties.Request(PropertyTypeLabel).AsLabel(),
+
+	nc := &NoteContents{
+		DefaultContents: newDefaultContents(card),
 	}
 
-	if len(noteContents.Label.Text) == 0 {
-		noteContents.Label.SetText([]rune("New Note"))
+	nc.Label = NewLabel("New Note", nil, true, AlignLeft)
+	nc.Label.Editable = true
+
+	nc.Label.OnChange = func() {
+		nc.Card.Properties.Get("description").Set(nc.Label.TextAsString())
+
+		lineCount := float32(nc.Label.LineCount())
+		if lineCount*globals.GridSize > nc.Card.Rect.H {
+			nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
+		}
 	}
 
-	noteContents.Label.Editable = true
+	description := nc.Card.Properties.Get("description")
+	if description.AsString() != "" {
+		nc.Label.SetText([]rune(description.AsString()))
+	} else {
+		description.Set(nc.Label.TextAsString())
+	}
 
-	return noteContents
+	row := nc.Container.AddRow()
+	row.Add("icon", NewIcon(nil, &sdl.Rect{80, 0, 32, 32}, true))
+	row.Add("label", nc.Label)
+
+	return nc
+
 }
 
 func (nc *NoteContents) Update() {
 
-	nc.Label.SetRectangle(&sdl.FRect{nc.Card.DisplayRect.X + 32, nc.Card.DisplayRect.Y, nc.Card.Rect.W - 64, nc.Card.Rect.H})
+	nc.DefaultContents.Update()
 
-	nc.Label.Update()
+	if nc.Card.Selected {
+
+		description := nc.Card.Properties.Get("description")
+		if nc.Label.Editing {
+			description.Set(nc.Label.TextAsString())
+		} else {
+			nc.Label.SetText([]rune(description.AsString()))
+		}
+
+	}
+
+	rect := nc.Label.Rectangle()
+	rect.W = nc.Container.Rect.W - rect.X + nc.Container.Rect.X
+	rect.H = nc.Container.Rect.H - rect.Y + nc.Container.Rect.Y
+	nc.Label.SetRectangle(rect)
 
 }
 
 func (nc *NoteContents) Draw() {
-
-	tp := nc.Card.Page.Project.Camera.Translate(nc.Card.DisplayRect)
-	tp.W = 32
-	tp.H = 32
-	src := &sdl.Rect{80, 0, 32, 32}
-	color := getThemeColor(GUIFontColor)
-	nc.Card.Page.Project.GUITexture.SetColorMod(color.RGB())
-	nc.Card.Page.Project.GUITexture.SetAlphaMod(color[3])
-	globals.Renderer.CopyF(nc.Card.Page.Project.GUITexture, src, tp)
-
-	nc.Label.Draw()
-
+	nc.DefaultContents.Draw()
 }
 
 func (nc *NoteContents) ReceiveMessage(msg *Message) {}
 
 func (nc *NoteContents) Color() Color { return getThemeColor(GUINoteColor) }
 
-func (nc *NoteContents) MinimumSize() Point { return Point{globals.GridSize, globals.GridSize} }
+func (nc *NoteContents) DefaultSize() Point {
+	return Point{globals.GridSize * 8, globals.GridSize * 4}
+}
 
 type SoundContents struct {
-	Card           *Card
-	Container      *Container
+	DefaultContents
 	Playing        bool
 	SoundNameLabel *Label
 	PlaybackLabel  *Label
-	SoundFilepath  *Property
 	PlayButton     *Button
 
-	Sound   *Sound
-	SeekBar *Scrollbar
+	FilepathLabel *Label
+
+	Resource *Resource
+	SeekBar  *Scrollbar
 }
 
 func NewSoundContents(card *Card) *SoundContents {
 
 	soundContents := &SoundContents{
-		Card:           card,
-		Container:      NewContainer(&sdl.FRect{0, 0, 32, 32}, true),
-		SoundFilepath:  card.Properties.Request("filepath"),
-		SoundNameLabel: NewLabel("No Sound Loaded", &sdl.FRect{0, 0, -1, -1}, false, AlignLeft),
-		SeekBar:        NewScrollbar(&sdl.FRect{0, 0, 128, 32}, false),
+		DefaultContents: newDefaultContents(card),
+		SoundNameLabel:  NewLabel("No sound loaded", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft),
+		SeekBar:         NewScrollbar(&sdl.FRect{0, 0, 128, 32}, true),
 	}
 
 	soundContents.SeekBar.ValueSet = func() {
-		if soundContents.Sound != nil {
-			soundContents.Sound.SeekPercentage(soundContents.SeekBar.Value)
+		if soundContents.Resource != nil {
+			soundContents.Resource.AsSound().SeekPercentage(soundContents.SeekBar.Value)
 		}
 	}
 
-	soundContents.Container.AddRow().Add(
-		NewIcon(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{80, 32, 32, 32}, false),
-		soundContents.SoundNameLabel,
-	)
-
-	soundContents.PlayButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, nil, false)
-	soundContents.PlayButton.SrcRect = &sdl.Rect{112, 32, 32, 32}
+	soundContents.PlayButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{112, 32, 32, 32}, nil, true)
 	soundContents.PlayButton.Pressed = func() {
 
-		if soundContents.Sound == nil {
+		if soundContents.Resource == nil {
 			return
 		}
 
-		if soundContents.Sound.IsPaused() {
-			soundContents.Sound.Play()
+		if soundContents.Resource.AsSound().IsPaused() {
+			soundContents.Resource.AsSound().Play()
 		} else {
-			soundContents.Sound.Pause()
-		}
-
-		if !soundContents.Sound.IsPaused() {
-			soundContents.PlayButton.SrcRect = &sdl.Rect{144, 32, 32, 32}
-		} else {
-			soundContents.PlayButton.SrcRect = &sdl.Rect{112, 32, 32, 32}
+			soundContents.Resource.AsSound().Pause()
 		}
 
 	}
 
-	repeatButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, nil, false)
-	repeatButton.SrcRect = &sdl.Rect{176, 32, 32, 32}
-	repeatButton.Pressed = func() {
+	repeatButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{176, 32, 32, 32}, func() {
 
-		if soundContents.Sound == nil {
+		if soundContents.Resource == nil {
 			return
 		}
 
-		soundContents.Sound.SeekPercentage(0)
+		soundContents.Resource.AsSound().SeekPercentage(0)
 
+	}, true)
+
+	soundContents.PlaybackLabel = NewLabel("", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft)
+	soundContents.PlaybackLabel.AutoExpand = true
+
+	firstRow := soundContents.Container.AddRow()
+	firstRow.Add("icon", NewIcon(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{80, 32, 32, 32}, true))
+	firstRow.Add("sound name label", soundContents.SoundNameLabel)
+
+	soundContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
+	soundContents.FilepathLabel.Editable = true
+	soundContents.FilepathLabel.AllowNewlines = false
+	soundContents.FilepathLabel.OnChange = func() {
+		filepath := soundContents.FilepathLabel.TextAsString()
+		soundContents.Card.Properties.Get("filepath").Set(filepath)
+		soundContents.FilepathLabel.SetText([]rune(filepath))
+		soundContents.LoadFile()
 	}
 
-	soundContents.PlaybackLabel = NewLabel("888:88 / 888:88", &sdl.FRect{0, 0, -1, -1}, false, AlignCenter)
+	row := soundContents.Container.AddRow()
+	row.Alignment = AlignCenter
 
-	soundContents.Container.AddRow().Add(
-		soundContents.PlaybackLabel,
-		soundContents.PlayButton,
-		repeatButton,
-	)
+	row.Add(
+		"browse button", NewButton("Browse", nil, nil, func() {
+			filepath, err := zenity.SelectFile(zenity.Title("Select audio file..."), zenity.FileFilters{{Name: "Audio files", Patterns: []string{"*.wav", "*.ogg", "*.oga", "*.mp3", "*.flac"}}})
+			if err != nil {
+				// panic(err)
+				// Print message
+			} else {
+				filepathProp := soundContents.Card.Properties.Get("filepath")
+				filepathProp.Set(filepath)
+				soundContents.LoadFile()
+			}
+		}, true))
 
-	soundContents.Container.AddRow().Add(soundContents.SeekBar)
+	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
 
-	if soundContents.SoundFilepath.AsString() != "" {
+	row.Add("edit path button", NewButton("Edit Path", nil, nil, func() {
+		globals.CommonMenu.Pages["root"].Clear()
+		globals.CommonMenu.Pages["root"].AddRow().Add("filepath", soundContents.FilepathLabel)
+		globals.CommonMenu.Open()
+	}, true))
+
+	row = soundContents.Container.AddRow()
+	row.Alignment = AlignCenter
+
+	row.Add("playback label", soundContents.PlaybackLabel)
+	row.Add("play button", soundContents.PlayButton)
+	row.Add("repeat button", repeatButton)
+
+	row = soundContents.Container.AddRow()
+	row.Add("seek bar", soundContents.SeekBar)
+	row.Alignment = AlignCenter
+
+	if card.Properties.Get("filepath").AsString() != "" {
 		soundContents.LoadFile()
 	}
 
@@ -229,48 +341,64 @@ func (sc *SoundContents) Update() {
 	sc.Container.SetRectangle(sc.Card.DisplayRect)
 	sc.Container.Update()
 
-	leftMouse := globals.Mouse.Button(sdl.BUTTON_LEFT)
-	if globals.Mouse.WorldPosition().Inside(sc.Card.Rect) && leftMouse.PressedTimes(2) {
-		leftMouse.Consume()
-		filepath, err := zenity.SelectFile(zenity.Title("Select audio file..."), zenity.FileFilters{{Name: "Audio files", Patterns: []string{"*.wav", "*.ogg", "*.oga", "*.mp3", "*.flac"}}})
-		if err != nil {
-			// panic(err)
-			// Print message
+	sc.FilepathLabel.SetRectangle(globals.CommonMenu.Pages["root"].Rectangle())
+
+	rect := sc.SoundNameLabel.Rectangle()
+	rect.W = sc.Container.Rect.W - 32
+	// sc.SoundNameLabel.SetRectangle(rect)
+
+	sc.PlayButton.IconSrc.X = 112
+
+	if sc.Resource != nil {
+
+		if sc.Resource.FinishedLoading() {
+
+			if !sc.Resource.IsSound() {
+				Log("Error: Couldn't load [%s] as sound resource", sc.Resource.Name)
+				sc.Resource.Delete()
+				sc.Resource = nil
+				return
+			}
+
+			sc.SeekBar.Value = float32(sc.Resource.AsSound().Position().Seconds() / sc.Resource.AsSound().Length().Seconds())
+
+			// lengthMinutes := fmt.Sprintf("%02d", int(sc.Sound.Length().Truncate(time.Second).Seconds()))
+
+			formatTime := func(t time.Duration) string {
+
+				minutes := int(t.Seconds()) / 60
+				seconds := int(t.Seconds()) - (minutes * 60)
+				return fmt.Sprintf("%02d:%02d", minutes, seconds)
+
+			}
+
+			_, filename := path.Split(sc.Resource.Name)
+			sc.SoundNameLabel.SetText([]rune(filename))
+			sc.PlaybackLabel.SetText([]rune(formatTime(sc.Resource.AsSound().Position()) + " / " + formatTime(sc.Resource.AsSound().Length())))
+
+			if !sc.Resource.AsSound().IsPaused() {
+				sc.PlayButton.IconSrc.X = 144
+			}
 		} else {
-			sc.SoundFilepath.SetValue(filepath)
-			sc.LoadFile()
-		}
-	}
-
-	if sc.Sound != nil {
-
-		sc.SeekBar.Value = float32(sc.Sound.Position().Seconds() / sc.Sound.Length().Seconds())
-
-		// lengthMinutes := fmt.Sprintf("%02d", int(sc.Sound.Length().Truncate(time.Second).Seconds()))
-
-		formatTime := func(t time.Duration) string {
-
-			minutes := int(t.Seconds()) / 60
-			seconds := int(t.Seconds()) - (minutes * 60)
-			return fmt.Sprintf("%02d:%02d", minutes, seconds)
-
+			sc.PlaybackLabel.SetText([]rune("Downloading : " + strconv.FormatFloat(sc.Resource.LoadingPercentage()*100, 'f', 2, 64) + "%"))
 		}
 
-		sc.PlaybackLabel.SetText([]rune(formatTime(sc.Sound.Position()) + " / " + formatTime(sc.Sound.Length())))
 	} else {
 		sc.PlaybackLabel.SetText([]rune("--:-- / --:--"))
+		sc.SoundNameLabel.SetText([]rune("No sound loaded"))
 		sc.SeekBar.Value = 0
 	}
 
 }
 
 func (sc *SoundContents) LoadFile() {
-	if sc.Sound != nil {
-		sc.Sound.Pause()
+
+	if sc.Resource != nil && sc.Resource.IsSound() {
+		sc.Resource.AsSound().Pause()
 	}
-	resource := globals.Project.LoadResource(sc.SoundFilepath.AsString())
-	sc.Sound = resource.AsSound()
-	sc.SoundNameLabel.SetText([]rune(resource.Filename))
+
+	sc.Resource = globals.Resources.Get(sc.Card.Properties.Get("filepath").AsString())
+
 }
 
 func (sc *SoundContents) Draw() {
@@ -290,38 +418,145 @@ func (sc *SoundContents) Draw() {
 
 }
 func (sc *SoundContents) ReceiveMessage(msg *Message) {
-	if (msg.Type == MessageCardDeleted || (msg.Type == MessageContentSwitched && sc.Card.Contents != sc)) && msg.ID == sc.Card && sc.Sound != nil {
-		sc.Sound.Pause()
+	if (msg.Type == MessageCardDeleted || msg.Type == MessageContentSwitched) && msg.ID == sc.Card && sc.Resource != nil {
+		sc.Resource.AsSound().Pause()
 	}
 }
 
 func (sc *SoundContents) Color() Color { return getThemeColor(GUISoundColor) }
 
-func (sc *SoundContents) MinimumSize() Point {
-	return Point{globals.GridSize * 4, globals.GridSize}
+func (sc *SoundContents) DefaultSize() Point {
+	return Point{globals.GridSize * 10, globals.GridSize * 4}
 }
 
-type ImageContents struct {
-	Card  *Card
-	Image Image
-}
+// type ImageContents struct {
+// 	Card           *Card
+// 	Image          *Resource
+// 	Container      *Container
+// 	ImageNameLabel *Label
+// 	FilepathLabel  *Label
+// 	Showing        bool
+// }
 
-func NewImageContents(card *Card) *ImageContents {
-	imageContents := &ImageContents{
-		Card: card,
-	}
-	return imageContents
-}
+// func NewImageContents(card *Card) *ImageContents {
+// 	imageContents := &ImageContents{
+// 		Card:           card,
+// 		Container:      NewContainer(&sdl.FRect{0, 0, 32, 32}),
+// 		ImageNameLabel: NewLabel("No image loaded", nil, true, AlignLeft),
+// 	}
 
-func (ic *ImageContents) Update() {}
+// 	imageContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
+// 	imageContents.FilepathLabel.Editable = true
+// 	imageContents.FilepathLabel.AllowNewlines = false
+// 	imageContents.FilepathLabel.OnChange = func() {
+// 		filepathProp := imageContents.Card.Properties.Get("filepath")
+// 		filepathProp.Set(imageContents.FilepathLabel.TextAsString())
+// 		imageContents.LoadFile()
+// 	}
 
-func (ic *ImageContents) Draw() {}
+// 	row := imageContents.Container.AddRow()
 
-func (ic *ImageContents) ReceiveMessage(msg *Message) {}
+// 	row.Add("icon", NewIcon(nil, &sdl.Rect{48, 64, 32, 32}, true))
+// 	row.Add("image label", imageContents.ImageNameLabel)
 
-func (ic *ImageContents) Color() Color { return getThemeColor(GUIBlankImageColor) }
+// 	row = imageContents.Container.AddRow()
 
-func (ic *ImageContents) MinimumSize() Point { return Point{globals.GridSize, globals.GridSize} }
+// 	row.Add(
+// 		"browse button", NewButton("Browse", nil, nil, func() {
+// 			filepath, err := zenity.SelectFile(zenity.Title("Select image file..."), zenity.FileFilters{{Name: "Image files", Patterns: []string{"*.bmp", "*.gif", "*.png", "*.jpeg", "*.jpg"}}})
+// 			if err != nil {
+// 				// panic(err)
+// 				// Print message
+// 			} else {
+// 				imageContents.Card.Properties.Get("filepath").Set(filepath)
+// 				imageContents.FilepathLabel.SetText([]rune(filepath))
+// 				imageContents.LoadFile()
+// 			}
+// 		}, true))
+
+// 	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
+
+// 	row.Add("edit path button", NewButton("Edit Path", nil, nil, func() {
+// 		globals.CommonMenu.Pages["root"].Clear()
+// 		globals.CommonMenu.Pages["root"].AddRow().Add("filepath", imageContents.FilepathLabel)
+// 		globals.CommonMenu.Open()
+// 	}, true))
+
+// 	if card.Properties.Get("filepath").AsString() != "" {
+// 		imageContents.LoadFile()
+// 	}
+
+// 	return imageContents
+// }
+
+// func (ic *ImageContents) Update() {
+
+// 	ic.Container.SetRectangle(ic.Card.DisplayRect)
+
+// 	ic.Container.Update()
+
+// 	ic.FilepathLabel.SetRectangle(globals.CommonMenu.Pages["root"].Rectangle())
+
+// 	if ic.Image != nil {
+
+// 		leftButton := globals.Mouse.Button(sdl.BUTTON_LEFT)
+// 		if leftButton.PressedTimes(2) && globals.Mouse.WorldPosition().Inside(ic.Card.Rect) {
+// 			ic.Showing = !ic.Showing
+// 		}
+
+// 		_, filename := filepath.Split(ic.Card.Properties.Get("filepath").AsString())
+
+// 		ic.ImageNameLabel.SetText([]rune(filename))
+
+// 		if !globals.ProgramSettings.Keybindings.On(KBAddToSelection) {
+// 			ic.Card.LockResizingAspectRatio = ic.Image.AsImage().Size.Y / ic.Image.AsImage().Size.X
+// 		}
+// 	}
+
+// }
+
+// func (ic *ImageContents) Draw() {
+
+// 	if ic.Image != nil && ic.Showing {
+
+// 		texture := ic.Image.AsImage().Texture
+// 		rect := ic.Card.Page.Project.Camera.Translate(ic.Card.DisplayRect)
+// 		globals.Renderer.CopyF(texture, nil, rect)
+
+// 	} else {
+// 		ic.Container.Draw()
+// 	}
+
+// }
+
+// func (ic *ImageContents) LoadFile() {
+// 	// We don't NECESSARILY destroy the image because the texture could still have multiple users
+// 	// if ic.Image != nil {
+// 	// 	ic.Image.AsTexturePair().Texture.Destroy()
+// 	// }
+
+// 	fp := ic.Card.Properties.Get("filepath").AsString()
+
+// 	newImage := globals.Resources.Get(fp)
+
+// 	if !newImage.IsTexture() {
+// 		Log("Error: Couldn't load [%s] as image resource", fp)
+// 	} else if ic.Image != newImage {
+
+// 		ic.Showing = true
+// 		asr := newImage.AsImage().Size.Y / newImage.AsImage().Size.X
+// 		ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
+// 		ic.Image = newImage
+
+// 	}
+
+// }
+
+// func (ic *ImageContents) ReceiveMessage(msg *Message) {}
+
+// func (ic *ImageContents) Color() Color { return getThemeColor(GUIBlankImageColor) }
+
+// func (ic *ImageContents) MinimumSize() Point { return Point{globals.GridSize, globals.GridSize} }
 
 // type taskBGProgress struct {
 // 	Current, Max int

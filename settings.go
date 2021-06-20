@@ -16,61 +16,64 @@ const (
 )
 
 type ProgramSettings struct {
-	RecentPlanList            []string
-	Theme                     string
-	GridVisible               *Checkbox
-	TargetFPS                 int
-	UnfocusedFPS              int
-	ScreenshotsPath           string
-	AutoloadLastPlan          bool
-	AutoReloadThemes          bool
-	DisableSplashscreen       bool
-	DisableMessageLog         bool
-	DisableAboutDialogOnStart bool
-	AutoReloadResources       bool
-	TransparentBackground     bool
-	BorderlessWindow          bool
-	PanToFocusOnZoom          bool
-	WindowPosition            sdl.Rect
-	SaveWindowPosition        bool
-	ScrollwheelSensitivity    int
-	SmoothPanning             bool
-	CustomFontPath            string
-	FontSize                  int
-	FontBaseline              int
-	GUIFontSizeMultiplier     string
-	Keybindings               *Keybindings
-	DrawWindowBorder          bool
-	DownloadTimeout           int
-	AudioVolume               int
-	AudioSampleRate           int
-	AudioSampleBuffer         int
-	CopyTasksToClipboard      bool
-	DoubleClickRate           int
+	Theme               string
+	DownloadDirectory   string
+	WindowPosition      sdl.Rect
+	SaveWindowPosition  bool
+	CustomFontPath      string
+	FontSize            int
+	Keybindings         *Keybindings
+	TargetFPS           int
+	UnfocusedFPS        int
+	DisableSplashscreen bool
+	BorderlessWindow    bool
+	RecentPlanList      []string
+
+	// // GridVisible               *Checkbox
+	// ScreenshotsPath           string
+	// AutoloadLastPlan          bool
+	// AutoReloadThemes          bool
+	// DisableMessageLog         bool
+	// DisableAboutDialogOnStart bool
+	// AutoReloadResources       bool
+	// TransparentBackground     bool
+	// PanToFocusOnZoom          bool
+	// ScrollwheelSensitivity    int
+	// SmoothPanning             bool
+	// FontBaseline              int
+	// GUIFontSizeMultiplier     string
+	// DrawWindowBorder          bool
+	// DownloadTimeout           int
+	// AudioVolume               int
+	// AudioSampleRate           int
+	// AudioSampleBuffer         int
+	// CopyTasksToClipboard      bool
+	// DoubleClickRate           int
 }
 
 func NewProgramSettings() ProgramSettings {
 
 	ps := ProgramSettings{
-		RecentPlanList: []string{},
-		TargetFPS:      60,
-		UnfocusedFPS:   60,
-		WindowPosition: sdl.Rect{-1, -1, 0, 0},
+		TargetFPS:         60,
+		UnfocusedFPS:      60,
+		WindowPosition:    sdl.Rect{-1, -1, 0, 0},
+		Theme:             "Moonlight", // Default theme
+		Keybindings:       NewKeybindings(),
+		FontSize:          30,
+		DownloadDirectory: "",
 		// GridVisible:            NewGUICheckbox(),
-		SaveWindowPosition:     true,
-		SmoothPanning:          true,
-		PanToFocusOnZoom:       true,
-		Keybindings:            NewKeybindings(),
-		FontSize:               60,
-		GUIFontSizeMultiplier:  GUIFontSize100,
-		ScrollwheelSensitivity: 1,
-		Theme:                  "Moonlight", // Default theme
-		DownloadTimeout:        4,
-		AudioVolume:            80,
-		AudioSampleRate:        44100,
-		AudioSampleBuffer:      2048,
-		CopyTasksToClipboard:   true,
-		DoubleClickRate:        500,
+		// RecentPlanList: []string{},
+		// SaveWindowPosition:     true,
+		// SmoothPanning:          true,
+		// PanToFocusOnZoom:       true,
+		// GUIFontSizeMultiplier:  GUIFontSize100,
+		// ScrollwheelSensitivity: 1,
+		// DownloadTimeout:        4,
+		// AudioVolume:            80,
+		// AudioSampleRate:        44100,
+		// AudioSampleBuffer:      2048,
+		// CopyTasksToClipboard:   true,
+		// DoubleClickRate:        500,
 	}
 
 	return ps

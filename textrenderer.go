@@ -58,8 +58,9 @@ func (glyph *Glyph) Height() int32 {
 }
 
 type TextRendererResult struct {
-	Image     *Image
-	TextLines [][]rune
+	Image           *Image
+	TextLines       [][]rune
+	AlignmentOffset Point
 }
 
 type TextRenderer struct {
@@ -135,8 +136,8 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 		h = int32(wordWrapMax.Y)
 	} else {
 
-		// This doesn't work if we're upscaling the font (rendering the glyphs at high res, then scaling them down
-		// as necessary to fit in the areas we need them to fit in)
+		// If wordwrap's X or Y value are less than 0, then there will be no wrapping, and the size of the texture will just the necessary rectangle to display the full textbox.
+		// TODO: Make this handle \n characters
 
 		for _, line := range perLine {
 
@@ -153,11 +154,24 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 
 	}
 
+	if w == 0 || h == 0 {
+		return nil
+	}
+
 	outTexture, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, w, h)
 
-	outTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
+	if err != nil {
+		panic(err)
+	}
 
-	screen := globals.Renderer.GetRenderTarget()
+	result := &TextRendererResult{
+		Image: &Image{
+			Texture: outTexture,
+			Size:    Point{X: float32(w), Y: float32(h)},
+		},
+	}
+
+	outTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 	globals.Renderer.SetRenderTarget(outTexture)
 
@@ -172,6 +186,8 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 	} else if horizontalAlignment == AlignRight {
 		x = w
 	}
+
+	result.AlignmentOffset.X = float32(x)
 
 	for i, c := range text {
 
@@ -220,13 +236,15 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 					y += int32(lineskip)
 
 					// Spaces become effectively newline enders
+					// fmt.Println("space auto-newline")
 					textLines[len(textLines)-1] = append(textLines[len(textLines)-1], '\n')
 					textLines = append(textLines, []rune{})
+					// fmt.Println(textLines)
 					continue
 
 				}
 
-			} else if x+glyph.Width() >= int32(wordWrapMax.X) {
+			} else if x+glyph.Width() > int32(wordWrapMax.X) {
 
 				x = 0
 				y += int32(lineskip)
@@ -244,19 +262,13 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 		x += glyph.Width()
 		textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
 
+		// fmt.Println(i, c, textLines)
+
 	}
 
-	globals.Renderer.SetRenderTarget(screen)
+	result.TextLines = textLines
 
-	if err != nil {
-		panic(err)
-	}
+	globals.Renderer.SetRenderTarget(nil)
 
-	return &TextRendererResult{
-		Image: &Image{
-			Texture: outTexture,
-			Size:    Point{X: float32(w), Y: float32(h)},
-		},
-		TextLines: textLines,
-	}
+	return result
 }

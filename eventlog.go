@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/tanema/gween"
@@ -24,7 +25,9 @@ func Log(text string, variables ...interface{}) {
 		output = fmt.Sprintf(text, variables...)
 	}
 
-	output = time.Now().Format("15:04:05") + output
+	log.Println(output)
+
+	output = time.Now().Format("15:04:05") + " " + output
 
 	eventLogBuffer = append(eventLogBuffer, EventLog{
 		Tween:   gween.New(1, 0, 4, ease.Linear),

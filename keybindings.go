@@ -35,7 +35,9 @@ const (
 	KBNewCheckboxCard = "New Checkbox Card"
 	KBNewNoteCard     = "New Note Card"
 	KBNewSoundCard    = "New Sound Card"
-	KBDebugRestart    = "DEBUG: RESTART"
+	KBNewImageCard    = "New Image Card"
+
+	KBDebugRestart = "DEBUG: RESTART"
 
 	KBAddToSelection      = "Add to Selection Modifier"
 	KBRemoveFromSelection = "Remove From Selection Modifier"
@@ -54,6 +56,16 @@ const (
 	KBCutText       = "Textbox: Cut Selected Text"
 	KBPasteText     = "Textbox: Paste Copied Text"
 	KBSelectAllText = "Textbox: Select All Text"
+
+	KBUndo = "Undo"
+	KBRedo = "Redo"
+
+	KBToggleFullscreen = "Toggle Fullscreen"
+	KBWindowSizeSmall  = "Set Window Size to 960x540"
+	KBWindowSizeNormal = "Set Window Size to 1920x1080"
+
+	KBUnlockImageASR = "Image: Unlock Resizing From Aspect Ratio"
+
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
 	// KBCopyTasks               = "Copy Tasks"
@@ -88,13 +100,10 @@ const (
 	// KBSelectTopTaskInStack    = "Select Top Task in Stack"
 	// KBSelectBottomTaskInStack = "Select Bottom Task in Stack"
 	// KBSlideTask               = "Slide Task Modifier"
-	// KBUndo                    = "Undo"
-	// KBRedo                    = "Redo"
 	// KBSaveAs                  = "Save Project As..."
 	// KBSave                    = "Save Project"
 	// KBLoad                    = "Load Project"
 	// KBQuit                    = "Quit MasterPlan"
-	// KBUnlockImageASR          = "Unlock Image to Aspect Ratio Modifier"
 	// KBUnlockImageGrid         = "Unlock Image to Grid Modifier"
 	// KBCheckboxToggle          = "Checkbox: Toggle Completion"
 	// KBProgressUp              = "Progression: Increment Completion"
@@ -107,9 +116,7 @@ const (
 	// KBStartTimer              = "Timer: Start / Pause Timer"
 	// KBChangePencilToolSize    = "Whiteboard: Change Pencil Tool Size"
 	// KBShowFPS                 = "Show FPS"
-	// KBWindowSizeSmall         = "Set Window Size to 960x540"
-	// KBWindowSizeNormal        = "Set Window Size to 1920x1080"
-	// KBToggleFullscreen        = "Toggle Fullscreen"
+
 	// KBTakeScreenshot          = "Take Screenshot"
 	// KBSelectAllText           = "Textbox: Select All Text"
 	// KBCopyText                = "Textbox: Copy Text"
@@ -270,8 +277,6 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBZoomIn, sdl.K_EQUALS)
 	kb.Define(KBZoomOut, sdl.K_MINUS)
 	// kb.Define(KBShowFPS, sdl.K_F12)
-	// kb.Define(KBWindowSizeSmall, sdl.K_F2)
-	// kb.Define(KBWindowSizeNormal, sdl.K_F3)
 	// kb.Define(KBToggleFullscreen, sdl.K_F4)
 	// kb.Define(KBTakeScreenshot, sdl.K_F11)
 
@@ -288,9 +293,9 @@ func (kb *Keybindings) Default() {
 	// kb.Define(KBFastPanRight, sdl.K_d, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
 	kb.Define(KBNewCheckboxCard, sdl.K_1, sdl.K_LSHIFT)
-
 	kb.Define(KBNewNoteCard, sdl.K_2, sdl.K_LSHIFT)
 	kb.Define(KBNewSoundCard, sdl.K_3, sdl.K_LSHIFT)
+	kb.Define(KBNewImageCard, sdl.K_4, sdl.K_LSHIFT)
 
 	kb.Define(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.Define(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
@@ -312,6 +317,14 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBSelectAllText, sdl.K_a, sdl.K_LCTRL)
 
 	kb.Define(KBCollapseCard, sdl.K_c, sdl.K_LSHIFT)
+
+	kb.Define(KBUndo, sdl.K_z, sdl.K_LCTRL)
+	kb.Define(KBRedo, sdl.K_z, sdl.K_LCTRL, sdl.K_LSHIFT)
+
+	kb.Define(KBWindowSizeSmall, sdl.K_F2)
+	kb.Define(KBWindowSizeNormal, sdl.K_F3)
+	kb.Define(KBToggleFullscreen, sdl.K_F11)
+	kb.Define(KBUnlockImageASR, sdl.K_LSHIFT)
 
 	// kb.Define(KBCenterView, sdl.K_BACKSPACE)
 	// kb.Define(KBURLButton, sdl.K_LCTRL).triggerMode = TriggerModeHold

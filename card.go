@@ -9,27 +9,35 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-type Card struct {
-	Page            *Page
-	Rect            *sdl.FRect
-	DisplayRect     *sdl.FRect
-	Contents        Contents
-	ContentType     string
-	ContentsLibrary map[string]Contents
-	Properties      *Properties
-	Selected        bool
-	Result          *sdl.Texture
-	Dragging        bool
-	DragStart       Point
-	DragStartOffset Point
-	Resizing        bool
-	Depth           int32
-	Occupying       []Point
-	ID              int64
-	RandomValue     float32
+const (
+	CollapsedNone  = "CollapsedNone"
+	CollapsedShade = "CollapsedShade"
+)
 
-	Collapsed         bool
-	UncollapsedHeight float32
+type Card struct {
+	Page                    *Page
+	Rect                    *sdl.FRect
+	DisplayRect             *sdl.FRect
+	Contents                Contents
+	ContentType             string
+	ContentsLibrary         map[string]Contents
+	Properties              *Properties
+	Selected                bool
+	Result                  *sdl.Texture
+	Dragging                bool
+	DragStart               Point
+	DragStartOffset         Point
+	Depth                   int32
+	Occupying               []Point
+	ID                      int64
+	RandomValue             float32
+	Resizing                bool
+	LockResizingAspectRatio float32
+
+	Collapsed       string
+	UncollapsedSize Point
+
+	Highlighter *Highlighter
 }
 
 var cardID = int64(0)
@@ -43,6 +51,8 @@ func NewCard(page *Page, contentType string) *Card {
 		ContentsLibrary: map[string]Contents{},
 		ID:              cardID,
 		RandomValue:     rand.Float32(),
+		Highlighter:     NewHighlighter(&sdl.FRect{0, 0, 32, 32}, true),
+		Collapsed:       CollapsedNone,
 	}
 
 	card.Properties = NewProperties(card)
@@ -69,7 +79,12 @@ func (card *Card) Update() {
 
 	if card.Resizing {
 		globals.Mouse.SetCursor("resize")
-		card.Recreate(globals.Mouse.WorldPosition().X-card.Rect.X-resizeRect.W, globals.Mouse.WorldPosition().Y-card.Rect.Y-resizeRect.H)
+		w := globals.Mouse.WorldPosition().X - card.Rect.X - resizeRect.W
+		h := globals.Mouse.WorldPosition().Y - card.Rect.Y - resizeRect.H
+		if card.LockResizingAspectRatio > 0 {
+			h = w * card.LockResizingAspectRatio
+		}
+		card.Recreate(w, h)
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
 			card.StopResizing()
 		}
@@ -77,10 +92,14 @@ func (card *Card) Update() {
 
 	softness := float32(0.4)
 
-	card.DisplayRect.X += float32(card.Rect.X-card.DisplayRect.X) * softness
-	card.DisplayRect.Y += float32(card.Rect.Y-card.DisplayRect.Y) * softness
-	card.DisplayRect.W += float32(card.Rect.W-card.DisplayRect.W+1) * softness
-	card.DisplayRect.H += float32(card.Rect.H-card.DisplayRect.H+1) * softness
+	card.DisplayRect.X += SmoothLerpTowards(card.Rect.X, card.DisplayRect.X, softness)
+	card.DisplayRect.Y += SmoothLerpTowards(card.Rect.Y, card.DisplayRect.Y, softness)
+	card.DisplayRect.W += SmoothLerpTowards(card.Rect.W, card.DisplayRect.W, softness)
+	card.DisplayRect.H += SmoothLerpTowards(card.Rect.H, card.DisplayRect.H, softness)
+
+	card.Highlighter.SetRect(card.DisplayRect)
+
+	card.LockResizingAspectRatio = 0
 
 	if card.Contents != nil {
 		card.Contents.Update()
@@ -89,11 +108,7 @@ func (card *Card) Update() {
 	if globals.State == StateNeutral {
 
 		if card.Selected && globals.ProgramSettings.Keybindings.On(KBCollapseCard) {
-			if card.Collapsed {
-				card.Uncollapse()
-			} else {
-				card.Collapse()
-			}
+			card.Collapse()
 		}
 
 		if globals.Mouse.WorldPosition().Inside(resizeRect) {
@@ -176,6 +191,10 @@ func (card *Card) DrawContents() {
 		card.Contents.Draw()
 	}
 
+	card.Highlighter.Highlighting = card.Selected
+
+	card.Highlighter.Draw()
+
 }
 
 func (card *Card) Serialize() string {
@@ -220,6 +239,9 @@ func (card *Card) StartDragging() {
 func (card *Card) StopDragging() {
 	card.Dragging = false
 	card.LockPosition()
+
+	newState := NewUndoState(card)
+	card.Page.Project.UndoHistory.Capture(newState, false)
 }
 
 func (card *Card) StartResizing() {
@@ -231,6 +253,15 @@ func (card *Card) StopResizing() {
 	card.Resizing = false
 	card.LockPosition()
 	card.ReceiveMessage(NewMessage(MessageResizeCompleted, card, nil))
+
+	if card.Rect.H > globals.GridSize {
+		card.Collapsed = CollapsedNone
+		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
+	} else {
+		card.Collapsed = CollapsedShade
+		card.UncollapsedSize = Point{card.Rect.W, card.UncollapsedSize.Y}
+	}
+
 }
 
 func (card *Card) LockPosition() {
@@ -238,6 +269,7 @@ func (card *Card) LockPosition() {
 	card.Rect.Y = float32(math.Round(float64(card.Rect.Y/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.W = float32(math.Round(float64(card.Rect.W/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.H = float32(math.Round(float64(card.Rect.H/globals.GridSize)) * float64(globals.GridSize))
+
 }
 
 func (card *Card) Recreate(newWidth, newHeight float32) {
@@ -246,22 +278,19 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 	newHeight = float32(math.Ceil(float64(newHeight/globals.GridSize))) * globals.GridSize
 
 	// Let's just say this is the smallest size
-	if newWidth < card.Contents.MinimumSize().X {
-		newWidth = card.Contents.MinimumSize().X
+	gs := globals.GridSize
+	if newWidth < gs {
+		newWidth = gs
 	}
 
-	if newHeight < card.Contents.MinimumSize().Y {
-		newHeight = card.Contents.MinimumSize().Y
+	if newHeight < gs {
+		newHeight = gs
 	}
 
 	if card.Rect.W != newWidth || card.Rect.H != newHeight {
 
 		card.Rect.W = newWidth
 		card.Rect.H = newHeight
-
-		if newHeight > globals.GridSize {
-			card.Collapsed = false
-		}
 
 		result, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(card.Rect.W), int32(card.Rect.H))
 
@@ -276,8 +305,6 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 		card.Result = result
 
 		result.SetBlendMode(sdl.BLENDMODE_BLEND)
-
-		screen := globals.Renderer.GetRenderTarget()
 
 		globals.Renderer.SetRenderTarget(card.Result)
 
@@ -306,12 +333,14 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 		src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
 
+		guiTexture := globals.Resources.Get("assets/gui.png").AsImage().Texture
+
 		drawPatches := func() {
 
 			for _, patch := range patches {
 
 				if patch.W > 0 && patch.H > 0 {
-					globals.Renderer.CopyF(globals.Project.GUITexture, src, patch)
+					globals.Renderer.CopyF(guiTexture, src, patch)
 				}
 
 				src.X += src.W
@@ -327,9 +356,9 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 		rand.Seed(card.ID)
 
-		f := uint8(rand.Float32() * 16)
-		globals.Project.GUITexture.SetColorMod(255-f, 255-f, 255-f)
-		globals.Project.GUITexture.SetAlphaMod(255)
+		f := uint8(rand.Float32() * 32)
+		guiTexture.SetColorMod(255, 255-f/2, 255-f)
+		guiTexture.SetAlphaMod(255)
 
 		drawPatches()
 
@@ -337,14 +366,14 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 		src.Y = 48
 
 		// Drawing outlines
-		globals.Project.GUITexture.SetColorMod(191, 191, 191)
+		guiTexture.SetColorMod(191, 191, 191)
 
 		drawPatches()
 
-		card.Page.Project.GUITexture.SetColorMod(255, 255, 255)
-		card.Page.Project.GUITexture.SetAlphaMod(255)
+		guiTexture.SetColorMod(255, 255, 255)
+		guiTexture.SetAlphaMod(255)
 
-		globals.Renderer.SetRenderTarget(screen)
+		globals.Renderer.SetRenderTarget(nil)
 
 	}
 
@@ -359,6 +388,10 @@ func (card *Card) ReceiveMessage(message *Message) {
 }
 
 func (card *Card) SetContents(contentType string) {
+
+	if card.Contents != nil && card.ContentType != contentType {
+		card.Contents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
+	}
 
 	if existingContents, exists := card.ContentsLibrary[contentType]; exists {
 		card.Contents = existingContents
@@ -375,18 +408,21 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewNoteContents(card)
 		case ContentTypeSound:
 			card.Contents = NewSoundContents(card)
+		// case ContentTypeImage:
+		// 	card.Contents = NewImageContents(card)
 		default:
 			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}
 
 		w := card.Rect.W
 		if w <= 0 {
-			w = 192
+			w = card.Contents.DefaultSize().X
 		}
 		h := card.Rect.H
 		if h <= 0 {
-			h = 64
+			h = card.Contents.DefaultSize().Y
 		}
+
 		card.Recreate(w, h)
 
 		card.Contents.Update()
@@ -402,19 +438,32 @@ func (card *Card) SetContents(contentType string) {
 }
 
 func (card *Card) Collapse() {
-	if !card.Collapsed {
-		card.UncollapsedHeight = card.Rect.H
-		card.Collapsed = true
-		card.Recreate(card.Rect.W, globals.GridSize)
+
+	if card.UncollapsedSize.X == 0 || card.UncollapsedSize.Y == 0 {
+		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
 	}
+
+	switch card.Collapsed {
+	case CollapsedNone:
+		card.Collapsed = CollapsedShade
+	case CollapsedShade:
+		card.Collapsed = CollapsedNone
+	}
+
+	if card.Collapsed == CollapsedNone {
+		card.Recreate(card.UncollapsedSize.X, card.UncollapsedSize.Y)
+	} else {
+		card.Recreate(card.UncollapsedSize.X, globals.GridSize)
+	}
+
 }
 
-func (card *Card) Uncollapse() {
-	if card.Collapsed {
-		card.Collapsed = false
-		card.Recreate(card.Rect.W, card.UncollapsedHeight)
-	}
-}
+// func (card *Card) Uncollapse() {
+// 	if card.Collapsed {
+// 		card.Collapsed = false
+// 		card.Recreate(card.Rect.W, card.UncollapsedHeight)
+// 	}
+// }
 
 // import (
 // 	"fmt"

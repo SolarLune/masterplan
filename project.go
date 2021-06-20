@@ -5,15 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/flac"
-	"github.com/faiface/beep/mp3"
-	"github.com/faiface/beep/vorbis"
-	"github.com/faiface/beep/wav"
 	"github.com/ncruces/zenity"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -55,16 +49,15 @@ const (
 )
 
 type Project struct {
-	GUITexture       *sdl.Texture
 	ProjectSettings  *ProjectSettings
 	Pages            []*Page
 	CurrentPageIndex int
 	Camera           *Camera
 	GridTexture      *Image
-	Resources        map[string]*Resource
 	ShadowTexture    *Image
 	Filepath         string
 	LoadingProject   *Project // A reference to the "next" Project when opening another one
+	UndoHistory      *UndoHistory
 }
 
 func NewProject() *Project {
@@ -72,27 +65,19 @@ func NewProject() *Project {
 	project := &Project{
 		ProjectSettings: NewProjectSettings(),
 		Camera:          NewCamera(),
-		Resources:       map[string]*Resource{},
 		Pages:           []*Page{},
+		UndoHistory:     NewUndoHistory(),
 	}
 
 	project.Pages = append(project.Pages, NewPage(project))
 
-	project.GridTexture = TileTexture(project.LoadResource("assets/gui.png").AsTexturePair(), &sdl.Rect{480, 0, 32, 32}, 512, 512)
+	guiTex := globals.Resources.Get("assets/gui.png").AsImage()
 
-	iconSurf, err := img.Load(LocalPath("assets/gui.png"))
+	gridColor := getThemeColor(GUIGridColor)
+	guiTex.Texture.SetColorMod(gridColor.RGB())
+	guiTex.Texture.SetAlphaMod(gridColor[3])
 
-	if err != nil {
-		panic(err)
-	}
-
-	guiIcons, err := globals.Renderer.CreateTextureFromSurface(iconSurf)
-
-	if err != nil {
-		panic(err)
-	}
-
-	project.GUITexture = guiIcons
+	project.GridTexture = TileTexture(guiTex, &sdl.Rect{480, 0, 32, 32}, 512, 512)
 
 	return project
 
@@ -137,6 +122,8 @@ func (project *Project) Update() {
 	project.MouseActions()
 
 	globals.InputText = []rune{}
+
+	project.UndoHistory.Update()
 
 }
 
@@ -364,6 +351,8 @@ func (project *Project) GlobalShortcuts() {
 			project.CurrentPage().CreateNewCard(ContentTypeNote)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewSoundCard) {
 			project.CurrentPage().CreateNewCard(ContentTypeSound)
+		} else if globals.ProgramSettings.Keybindings.On(KBNewImageCard) {
+			project.CurrentPage().CreateNewCard(ContentTypeImage)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {
@@ -402,90 +391,16 @@ func (project *Project) GlobalShortcuts() {
 			project.Open()
 		}
 
+		if globals.ProgramSettings.Keybindings.On(KBUndo) {
+			project.UndoHistory.Undo()
+		} else if globals.ProgramSettings.Keybindings.On(KBRedo) {
+			project.UndoHistory.Redo()
+		}
+
 		project.Camera.TargetPosition.X += dx * project.Camera.Zoom
 		project.Camera.TargetPosition.Y += dy * project.Camera.Zoom
 
 	}
-
-}
-
-func (project *Project) LoadResource(resourcePath string) *Resource {
-
-	resource, exists := project.Resources[resourcePath]
-
-	if !exists {
-		resource = NewResource(resourcePath)
-		project.Resources[resourcePath] = resource
-	}
-
-	fileExt := filepath.Ext(resourcePath)
-
-	switch fileExt {
-
-	case ".png":
-		fallthrough
-	case ".bmp":
-		fallthrough
-	case ".jpg":
-		fallthrough
-	case ".gif":
-		fallthrough
-	case ".tif":
-		fallthrough
-	case ".tiff":
-		surface, err := img.Load(resourcePath)
-		if err != nil {
-			panic(err)
-		}
-		defer surface.Free()
-
-		texture, err := globals.Renderer.CreateTextureFromSurface(surface)
-		if err != nil {
-			panic(err)
-		}
-
-		resource.Data = Image{
-			Size:    Point{float32(surface.W), float32(surface.H)},
-			Texture: texture,
-		}
-
-	case ".mp3":
-		fallthrough
-	case ".wav":
-		fallthrough
-	case ".ogg":
-		fallthrough
-	case ".oga":
-		fallthrough
-	case ".flac":
-
-		originalFile, err := os.Open(resourcePath)
-		if err != nil {
-			// panic(err)
-		}
-
-		var originalStream beep.StreamSeekCloser
-		var format beep.Format
-
-		if fileExt == ".mp3" {
-			originalStream, format, err = mp3.Decode(originalFile)
-		} else if fileExt == ".wav" {
-			originalStream, format, err = wav.Decode(originalFile)
-		} else if fileExt == ".flac" {
-			originalStream, format, err = flac.Decode(originalFile)
-		} else if fileExt == ".ogg" {
-			originalStream, format, err = vorbis.Decode(originalFile)
-		}
-
-		if err != nil {
-			// panic(err)
-		}
-
-		resource.Data = NewSound(originalStream, format)
-
-	}
-
-	return resource
 
 }
 

@@ -192,15 +192,10 @@ func TileTexture(srcTexture Image, srcRect *sdl.Rect, w, h int32) *Image {
 	newTex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, w, h)
 
 	newTex.SetBlendMode(sdl.BLENDMODE_BLEND)
-	gridColor := getThemeColor(GUIGridColor)
-	newTex.SetColorMod(gridColor.RGB())
-	newTex.SetAlphaMod(gridColor[3])
 
 	if err != nil {
 		panic(err)
 	}
-
-	prevTarget := globals.Renderer.GetRenderTarget()
 
 	globals.Renderer.SetRenderTarget(newTex)
 
@@ -214,7 +209,7 @@ func TileTexture(srcTexture Image, srcRect *sdl.Rect, w, h int32) *Image {
 		}
 	}
 
-	globals.Renderer.SetRenderTarget(prevTarget)
+	globals.Renderer.SetRenderTarget(nil)
 
 	return &Image{
 		Size:    Point{float32(w), float32(h)},
@@ -284,6 +279,7 @@ func TileTexture(srcTexture Image, srcRect *sdl.Rect, w, h int32) *Image {
 
 func ReloadFonts() {
 
+	// fontPath := LocalPath("assets/Silver.ttf")
 	fontPath := LocalPath("assets/quicksand-bold.otf")
 	// fontPath := LocalPath("assets/m5x7.ttf")
 
@@ -395,6 +391,18 @@ func (color Color) Sub(value uint8) Color {
 }
 func (color Color) Clone() Color {
 	return NewColor(color.RGBA())
+}
+
+func (color Color) SDLColor() sdl.Color {
+	return sdl.Color{color[0], color[1], color[2], color[3]}
+}
+
+func SmoothLerpTowards(target, current, softness float32) float32 {
+	diff := (target - current) * softness
+	if math.Abs(float64(diff)) < 1 {
+		diff = target - current
+	}
+	return diff
 }
 
 // func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {

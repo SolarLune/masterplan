@@ -62,8 +62,6 @@ func (page *Page) Update() {
 
 func (page *Page) Draw() {
 
-	screen := globals.Renderer.GetRenderTarget()
-
 	globals.Renderer.SetRenderTarget(page.Project.ShadowTexture.Texture)
 	globals.Renderer.SetDrawColor(255, 255, 255, 0)
 	globals.Renderer.Clear()
@@ -72,7 +70,7 @@ func (page *Page) Draw() {
 		card.DrawCard()
 	}
 
-	globals.Renderer.SetRenderTarget(screen)
+	globals.Renderer.SetRenderTarget(nil)
 
 	globals.Renderer.Copy(page.Project.ShadowTexture.Texture, nil, &sdl.Rect{12, 12, int32(page.Project.ShadowTexture.Size.X), int32(page.Project.ShadowTexture.Size.Y)})
 

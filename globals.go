@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/blang/semver"
+	"github.com/cavaliercoder/grab"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
@@ -18,7 +19,6 @@ type Globals struct {
 	Window          *sdl.Window
 	Renderer        *sdl.Renderer
 	Font            *ttf.Font
-	BoldFont        *ttf.Font
 	TextRenderer    *TextRenderer
 	LoadedFontPath  string
 	ProgramSettings ProgramSettings
@@ -32,19 +32,24 @@ type Globals struct {
 	CopyBuffer      []string
 	Version         semver.Version
 	State           string
+	Resources       ResourceBank
+	GrabClient      *grab.Client
 
 	MainMenu    *Menu
 	FileMenu    *Menu
 	ContextMenu *Menu
 	EditMenu    *Menu
+	CommonMenu  *Menu
 }
 
 var globals = &Globals{
 	Version:    semver.MustParse("0.8.0"),
 	Keyboard:   NewKeyboard(),
 	Mouse:      NewMouse(),
+	Resources:  NewResourceBank(),
 	GridSize:   32,
 	InputText:  []rune{},
 	CopyBuffer: []string{},
 	State:      StateNeutral,
+	GrabClient: grab.NewClient(),
 }

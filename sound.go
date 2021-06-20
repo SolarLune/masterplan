@@ -72,6 +72,13 @@ func (sound *Sound) Position() time.Duration {
 	return sound.Format.SampleRate.D(sound.Stream.Position())
 }
 
+func (sound *Sound) Destroy() {
+	sound.Pause()
+	sound.Stream.Close()
+	sound.volume.Streamer = nil
+	sound.control.Streamer = nil
+}
+
 // func (sound *Sound) TogglePause() {
 // 	if sound.Control.Paused {
 // 		sound.Play()

@@ -1,36 +1,232 @@
 package main
 
 import (
-	"path"
+	"log"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/cavaliercoder/grab"
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/flac"
+	"github.com/faiface/beep/mp3"
+	"github.com/faiface/beep/vorbis"
+	"github.com/faiface/beep/wav"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/veandco/go-sdl2/img"
 )
 
-type Resource struct {
-	Filepath string
-	Filename string
-	Data     interface{}
-	MimeData *mimetype.MIME
+type ResourceBank map[string]*Resource
+
+func NewResourceBank() ResourceBank {
+	return ResourceBank{}
 }
 
-func NewResource(filepath string) *Resource {
-	_, filename := path.Split(filepath)
+func (resourceBank ResourceBank) Get(resourcePath string) *Resource {
 
-	mimeInfo, _ := mimetype.DetectFile(filepath)
+	resource, exists := resourceBank[resourcePath]
 
-	return &Resource{
-		Filepath: filepath,
-		Filename: filename,
-		MimeData: mimeInfo,
+	if !exists {
+		res, err := NewResource(resourcePath)
+
+		if err != nil {
+			return nil
+		}
+
+		resource = res
+
+		resourceBank[resourcePath] = res
+
+	}
+
+	return resource
+
+}
+
+func (resourceBank ResourceBank) Delete(resource *Resource) {
+	resource.Destroy()
+	delete(resourceBank, resource.Name)
+}
+
+type Resource struct {
+	Name          string      // The ID / name identifying the Resource; for offline files, this is the same as LocalFilepath
+	LocalFilepath string      // The actual path to the file on-disk; for
+	Data          interface{} // The data the resource represents; this might be an image, a sound stream, etc.
+	MimeType      string
+	Response      *grab.Response
+	Parsed        bool
+}
+
+func NewResource(resourcePath string) (*Resource, error) {
+
+	resource := &Resource{
+		Name: resourcePath,
+	}
+
+	if _, err := os.ReadFile(resourcePath); err == nil {
+
+		resource.LocalFilepath = resourcePath
+		resource.Parse()
+
+	} else {
+
+		log.Println("possible online resource")
+
+		destDir := globals.ProgramSettings.DownloadDirectory
+		if destDir == "" {
+			destDir = filepath.Join(os.TempDir(), "masterplan")
+		}
+
+		if req, err := grab.NewRequest("", resourcePath); err != nil {
+			return nil, err
+		} else {
+			unescapedPath, _ := url.PathUnescape(req.URL().Path)
+			req.Filename = filepath.Join(destDir, filepath.FromSlash(req.URL().Hostname()+"/"+unescapedPath))
+			resource.LocalFilepath = req.Filename
+			resource.Response = globals.GrabClient.Do(req)
+		}
+
+	}
+
+	return resource, nil
+
+}
+
+func (resource *Resource) Parse() {
+
+	// If the resource has already been parsed, then we can just skip it
+	if resource.Parsed {
+		return
+	}
+
+	fileExt := filepath.Ext(resource.LocalFilepath)
+
+	switch fileExt {
+
+	case ".png":
+		fallthrough
+	case ".bmp":
+		fallthrough
+	case ".jpg":
+		fallthrough
+	case ".gif":
+		fallthrough
+	case ".tif":
+		fallthrough
+	case ".tiff":
+		surface, err := img.Load(resource.LocalFilepath)
+		if err != nil {
+			panic(err)
+		}
+		defer surface.Free()
+
+		texture, err := globals.Renderer.CreateTextureFromSurface(surface)
+		if err != nil {
+			panic(err)
+		}
+
+		resource.Data = Image{
+			Size:    Point{float32(surface.W), float32(surface.H)},
+			Texture: texture,
+		}
+
+	case ".mp3":
+		fallthrough
+	case ".wav":
+		fallthrough
+	case ".ogg":
+		fallthrough
+	case ".oga":
+		fallthrough
+	case ".flac":
+
+		originalFile, err := os.Open(resource.LocalFilepath)
+		if err != nil {
+			panic(err)
+		}
+
+		var originalStream beep.StreamSeekCloser
+		var format beep.Format
+
+		if fileExt == ".mp3" {
+			originalStream, format, err = mp3.Decode(originalFile)
+		} else if fileExt == ".wav" {
+			originalStream, format, err = wav.Decode(originalFile)
+		} else if fileExt == ".flac" {
+			originalStream, format, err = flac.Decode(originalFile)
+		} else if fileExt == ".ogg" {
+			originalStream, format, err = vorbis.Decode(originalFile)
+		}
+
+		if err != nil {
+			panic(err)
+		}
+
+		resource.Data = NewSound(originalStream, format)
+
+	}
+
+	if data, err := os.ReadFile(resource.LocalFilepath); err == nil {
+		// We use mimetype because http.DetectContentType doesn't detect mp3 as being an audio file somehow
+		resource.MimeType = mimetype.Detect(data).String()
+	}
+
+	resource.Parsed = true
+
+}
+
+func (resource *Resource) Delete() {
+	globals.Resources.Delete(resource)
+}
+
+// LoadingPercentage returns 0-1 as the Resource loads, until it's finished loading.
+func (resource *Resource) LoadingPercentage() float64 {
+	if resource.Response == nil {
+		return 1
+	} else if resource.Response.Size > 0 {
+		return resource.Response.Progress()
+	} else {
+		return -1
 	}
 }
 
-func (resource *Resource) AsTexturePair() Image {
+func (resource *Resource) FinishedLoading() bool {
+	return resource.Response == nil || resource.LoadingPercentage() >= 1
+}
+
+func (resource *Resource) IsTexture() bool {
+	if resource.FinishedLoading() {
+		resource.Parse()
+		return strings.Contains(resource.MimeType, "image")
+	}
+	return false
+}
+
+func (resource *Resource) AsImage() Image {
+	resource.Parse()
 	return resource.Data.(Image)
 }
 
+func (resource *Resource) IsSound() bool {
+	if resource.FinishedLoading() {
+		resource.Parse()
+		return strings.Contains(resource.MimeType, "audio")
+	}
+	return false
+}
+
 func (resource *Resource) AsSound() *Sound {
+	resource.Parse()
 	return resource.Data.(*Sound)
+}
+
+func (resource *Resource) Destroy() {
+	if resource.IsTexture() {
+		resource.AsImage().Texture.Destroy()
+	} else if resource.IsSound() {
+		resource.AsSound().Destroy()
+	}
 }
 
 // import (
