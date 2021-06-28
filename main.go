@@ -26,7 +26,7 @@ var releaseMode = "false"
 var demoMode = "" // If set to something other than "", it's a demo
 
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.8.0")
+var softwareVersion, _ = semver.Make("0.8.0-dev")
 var takeScreenshot = false
 
 var windowTitle = "MasterPlan"
