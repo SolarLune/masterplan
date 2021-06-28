@@ -1,3 +1,12 @@
+- Fix zooming
+- Add GIF loading
+- Add Undo system back in
+- Add Page system
+
+- When loading projects from previous versions of MasterPlan, focus on all Cards after load; otherwise, the camera pan should be saved, too.
+- Update Steam store page description / icon
+- Add "Quick Label" mode or something - something that would allow Labels to draw glyphs directly to the screen rather than to a texture first, which would be good for Labels that change often, like time indicators
+
 Short-term:
 
 - Different wording for options in context menu (Copy Cards -> Copy Card when only one is selected, Delete Cards > Delete 34 Cards when 34 are selected )
@@ -7,6 +16,7 @@ Short-term:
 - Card snapping
 - Image Cards?
 - Hover over stuff to get a hint
+- https://github.com/golang-design/clipboard - Use this clipboard package to copy and paste both text and images
 
 Can't click and drag on Checkboxes when it's just 1x1
 
@@ -22,6 +32,7 @@ Cards are freely resizeable
 You can now type directly onto Cards
 The UI has gotten a facelift, making it appear more attractive, less pixelated.
 Words now auto-wrap when typing into editable Labels.
+Can now change multiple Cards at a time.
 
 -- Rough Changelog --
 
@@ -75,6 +86,7 @@ TODO
     - Add numbers (?) for tables to allow for adding together the sums for comparison purposes - maybe an ability to switch it from Checkbox to Numbered Tables.
   - Sort Cards alphabetically? (somehow)
   - More zoom gradation? Might be doable if the cards are rendered at a high-enough resolution.
+  - Template Cards - Could be useful if you have a "template" that you want to extend, like "Character Cards" with an image, a space for a description, and a space for class and skills,
 
 TTF font loading efficiently : foreign characters shouldn’t “cost” extra
 Font base size “knowledge”

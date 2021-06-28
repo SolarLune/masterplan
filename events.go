@@ -94,53 +94,90 @@ func (keyboard Keyboard) Key(keycode sdl.Keycode) *InputState {
 }
 
 type Mouse struct {
-	Cursors          map[string]*sdl.Cursor
-	ButtonState      map[uint8]*InputState
-	Position         Point
-	RelativeMovement Point
-	Wheel            int32
-	CurrentCursor    string
-	NextCursor       string
-	DoubleClickTimer float64
+	buttonState      map[uint8]*InputState
+	wheel            int32
+	screenPosition   Point
+	relativeMovement Point
+
+	Cursors       map[string]*sdl.Cursor
+	CurrentCursor string
+	NextCursor    string
+
+	Hidden bool
+	Dummy  *Mouse
 }
 
 func NewMouse() Mouse {
+
+	// Dummy mouse
+	// nm := NewMouse()
+	// nm.screenPosition.X = -9999999999
+	// nm.screenPosition.Y = -9999999999
+
 	return Mouse{
-		ButtonState:      map[uint8]*InputState{},
-		Cursors:          map[string]*sdl.Cursor{},
-		DoubleClickTimer: -1000,
+		buttonState: map[uint8]*InputState{},
+		Cursors:     map[string]*sdl.Cursor{},
+		// Dummy:       &nm,
 	}
 }
 
 func (mouse Mouse) Button(buttonIndex uint8) *InputState {
 
-	if _, exists := mouse.ButtonState[buttonIndex]; !exists {
-		mouse.ButtonState[buttonIndex] = &InputState{}
+	if mouse.Hidden {
+		return mouse.Dummy.Button(buttonIndex)
 	}
 
-	return mouse.ButtonState[buttonIndex]
+	if _, exists := mouse.buttonState[buttonIndex]; !exists {
+		mouse.buttonState[buttonIndex] = &InputState{}
+	}
+
+	return mouse.buttonState[buttonIndex]
 
 }
 
+func (mouse Mouse) RelativeMovement() Point {
+	if mouse.Hidden {
+		return mouse.Dummy.RelativeMovement()
+	}
+	return mouse.relativeMovement
+}
+
+func (mouse Mouse) Wheel() int32 {
+	if mouse.Hidden {
+		return mouse.Dummy.Wheel()
+	}
+	return mouse.wheel
+}
+
+func (mouse Mouse) Position() Point {
+	if mouse.Hidden {
+		return mouse.Dummy.Position()
+	}
+	return mouse.screenPosition
+}
+
 func (mouse Mouse) WorldPosition() Point {
+
+	if mouse.Hidden {
+		return mouse.Dummy.WorldPosition()
+	}
+
 	width, height, err := globals.Renderer.GetOutputSize()
 
 	if err != nil {
 		panic(err)
 	}
 
-	zoom := globals.Project.Camera.Zoom
-
-	wx := mouse.Position.X/float32(width) - 0.5
-	wy := mouse.Position.Y/float32(height) - 0.5
+	wx := mouse.screenPosition.X/float32(width) - 0.5
+	wy := mouse.screenPosition.Y/float32(height) - 0.5
 
 	viewArea := globals.Project.Camera.ViewArea()
 
 	wx *= float32(viewArea.W)
 	wy *= float32(viewArea.H)
 
-	wx += globals.Project.Camera.Position.X / zoom
-	wy += globals.Project.Camera.Position.Y / zoom
+	wx += globals.Project.Camera.Position.X
+	wy += globals.Project.Camera.Position.Y
 
 	// Debug view
 	// globals.Renderer.SetDrawColor(255, 0, 0, 255)
@@ -162,8 +199,8 @@ func (mouse *Mouse) ApplyCursor() {
 
 func handleEvents() {
 
-	globals.Mouse.Wheel = 0
-	globals.Mouse.RelativeMovement = Point{}
+	globals.Mouse.wheel = 0
+	globals.Mouse.relativeMovement = Point{}
 
 	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 
@@ -189,10 +226,10 @@ func handleEvents() {
 		case *sdl.MouseMotionEvent:
 
 			mouseEvent := event.(*sdl.MouseMotionEvent)
-			globals.Mouse.Position.X = float32(mouseEvent.X)
-			globals.Mouse.Position.Y = float32(mouseEvent.Y)
-			globals.Mouse.RelativeMovement.X = float32(mouseEvent.XRel)
-			globals.Mouse.RelativeMovement.Y = float32(mouseEvent.YRel)
+			globals.Mouse.screenPosition.X = float32(mouseEvent.X)
+			globals.Mouse.screenPosition.Y = float32(mouseEvent.Y)
+			globals.Mouse.relativeMovement.X = float32(mouseEvent.XRel)
+			globals.Mouse.relativeMovement.Y = float32(mouseEvent.YRel)
 
 		case *sdl.MouseButtonEvent:
 
@@ -209,7 +246,7 @@ func handleEvents() {
 		case *sdl.MouseWheelEvent:
 
 			mouseEvent := event.(*sdl.MouseWheelEvent)
-			globals.Mouse.Wheel = mouseEvent.Y
+			globals.Mouse.wheel = mouseEvent.Y
 
 		case *sdl.TextInputEvent:
 

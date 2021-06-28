@@ -57,7 +57,7 @@ func NewProgramSettings() ProgramSettings {
 		TargetFPS:         60,
 		UnfocusedFPS:      60,
 		WindowPosition:    sdl.Rect{-1, -1, 0, 0},
-		Theme:             "Moonlight", // Default theme
+		Theme:             "Sunlight", // Default theme
 		Keybindings:       NewKeybindings(),
 		FontSize:          30,
 		DownloadDirectory: "",

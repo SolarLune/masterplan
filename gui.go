@@ -43,6 +43,7 @@ const (
 	GUISoundColor      = "Sound Color"
 	GUITimerColor      = "Timer Color"
 	GUIBlankImageColor = "Blank Image Color"
+	GUIImageBGColor    = "Image BG Color"
 )
 
 var guiColors map[string]map[string]Color
@@ -161,7 +162,7 @@ func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, pressed
 
 func (button *Button) Update() {
 
-	mousePos := globals.Mouse.Position
+	mousePos := globals.Mouse.Position()
 
 	if button.WorldSpace {
 		mousePos = globals.Mouse.WorldPosition()
@@ -225,7 +226,7 @@ func (button *Button) Draw() {
 		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, float32(button.IconSrc.W), float32(button.IconSrc.H)}
 
 		if button.WorldSpace {
-			dst = globals.Project.Camera.Translate(dst)
+			dst = globals.Project.Camera.TranslateRect(dst)
 		}
 		if len(button.Label.Text) > 0 {
 			dst.X -= float32(button.IconSrc.W)
@@ -483,15 +484,21 @@ func (label *Label) Update() {
 
 					caretLineNum := label.LineNumber(label.Selection.CaretPos)
 
+					prev := 0
+
 					if caretLineNum > 0 && label.IndexInLine(label.Selection.CaretPos) >= len(label.RendererResult.TextLines[caretLineNum-1]) {
-						prev := label.Selection.CaretPos - (label.IndexInLine(label.Selection.CaretPos) + 1)
-						label.Selection.Select(prev, prev)
+						prev = label.Selection.CaretPos - (label.IndexInLine(label.Selection.CaretPos) + 1)
 					} else if caretLineNum > 0 {
-						prev := label.Selection.CaretPos - len(label.RendererResult.TextLines[caretLineNum-1])
-						label.Selection.Select(prev, prev)
-					} else {
-						label.Selection.Select(0, 0)
+						prev = label.Selection.CaretPos - len(label.RendererResult.TextLines[caretLineNum-1])
 					}
+
+					current := prev
+
+					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+						current = label.Selection.Start
+					}
+
+					label.Selection.Select(current, prev)
 
 				}
 
@@ -499,15 +506,21 @@ func (label *Label) Update() {
 
 					caretLineNum := label.LineNumber(label.Selection.CaretPos)
 
+					next := len(label.Text)
+
 					if caretLineNum < len(label.RendererResult.TextLines)-1 && label.IndexInLine(label.Selection.CaretPos) >= len(label.RendererResult.TextLines[caretLineNum+1]) {
-						next := label.Selection.CaretPos + len(label.RendererResult.TextLines[caretLineNum]) - label.IndexInLine(label.Selection.CaretPos) + len(label.RendererResult.TextLines[caretLineNum+1])
-						label.Selection.Select(next, next)
+						next = label.Selection.CaretPos + len(label.RendererResult.TextLines[caretLineNum]) - label.IndexInLine(label.Selection.CaretPos) + len(label.RendererResult.TextLines[caretLineNum+1])
 					} else if caretLineNum < len(label.RendererResult.TextLines)-1 {
-						next := label.Selection.CaretPos + len(label.RendererResult.TextLines[caretLineNum])
-						label.Selection.Select(next, next)
-					} else {
-						label.Selection.Select(len(label.Text), len(label.Text))
+						next = label.Selection.CaretPos + len(label.RendererResult.TextLines[caretLineNum])
 					}
+
+					current := next
+
+					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+						current = label.Selection.Start
+					}
+
+					label.Selection.Select(current, next)
 
 				}
 
@@ -647,7 +660,7 @@ func (label *Label) Update() {
 				if label.WorldSpace && globals.Mouse.CurrentCursor == "normal" {
 					label.Highlighter.Highlighting = globals.Mouse.WorldPosition().Inside(label.Rect)
 				} else {
-					label.Highlighter.Highlighting = globals.Mouse.Position.Inside(label.Rect)
+					label.Highlighter.Highlighting = globals.Mouse.Position().Inside(label.Rect)
 				}
 			}
 
@@ -670,7 +683,7 @@ func (label *Label) Draw() {
 		}
 	}
 
-	mousePos := globals.Mouse.Position
+	mousePos := globals.Mouse.Position()
 
 	if label.WorldSpace {
 		mousePos = globals.Mouse.WorldPosition()
@@ -680,10 +693,16 @@ func (label *Label) Draw() {
 		label.Highlighter.Draw()
 	}
 
+	// We need this to be on if we are going to draw a blended alpha rectangle; this should be on automatically, but it seems like gfx functions may turn it off if you draw an opaque shape.
+	// See line 621 of: https://www.ferzkopp.net/Software/SDL2_gfx/Docs/html/_s_d_l2__gfx_primitives_8c_source.html
+	globals.Renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
+
 	if label.Editing {
 
 		if label.Selection.Length() > 0 {
 
+			color := getThemeColor(GUIMenuColor)
+			color[3] = 64
 			start, end := label.Selection.ContiguousRange()
 
 			for i := start; i < end; i++ {
@@ -697,11 +716,13 @@ func (label *Label) Draw() {
 				tp := &sdl.FRect{pos.X, pos.Y, float32(glyph.Width()), float32(glyph.Height())}
 
 				if label.WorldSpace {
-					tp = globals.Project.Camera.Translate(tp)
+					tp = globals.Project.Camera.TranslateRect(tp)
 				}
 
-				globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
+				globals.Renderer.SetDrawColor(color.RGBA())
 				globals.Renderer.FillRectF(tp)
+
+				// gfx.RectangleColor(globals.Renderer, int32(tp.X), int32(tp.Y), int32(tp.X+tp.W), int32(tp.Y+tp.H), color.SDLColor())
 
 			}
 
@@ -747,7 +768,7 @@ func (label *Label) Draw() {
 		// newRect.Y -= baseline // Center it
 
 		if label.WorldSpace {
-			newRect = globals.Project.Camera.Translate(newRect)
+			newRect = globals.Project.Camera.TranslateRect(newRect)
 		}
 
 		label.RendererResult.Image.Texture.SetAlphaMod(label.Alpha)
@@ -788,7 +809,7 @@ func (label *Label) SetText(text []rune) {
 func (label *Label) RecreateTexture() {
 
 	if label.RendererResult != nil && label.RendererResult.Image != nil {
-		label.RendererResult.Image.Texture.Destroy()
+		label.RendererResult.Destroy()
 	}
 
 	if label.AutoExpand {
@@ -946,12 +967,12 @@ type ContainerRow struct {
 	// InterElementSpacing int32
 }
 
-func NewContainerRow(container *Container) *ContainerRow {
+func NewContainerRow(container *Container, horizontalAlignment string) *ContainerRow {
 	row := &ContainerRow{
 		Container:    container,
 		ElementOrder: []MenuElement{},
 		Elements:     map[string]MenuElement{},
-		Alignment:    AlignLeft,
+		Alignment:    horizontalAlignment,
 		// InterElementSpacing: -1,
 	}
 	return row
@@ -964,9 +985,14 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 
 	usedWidth := float32(0)
 	maxWidth := row.Container.Rect.W
+	yHeight := globals.GridSize
 
 	for _, element := range row.Elements {
-		usedWidth += element.Rectangle().W
+		rect := element.Rectangle()
+		usedWidth += rect.W
+		if yHeight < rect.H {
+			yHeight = rect.H
+		}
 	}
 
 	if usedWidth > row.Container.Rect.W {
@@ -983,17 +1009,12 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		x += diff
 	}
 
-	yHeight := globals.GridSize
-
 	for _, element := range row.ElementOrder {
 		rect := element.Rectangle()
 
 		rect.X = x
 		rect.Y = y
-
-		if yHeight < rect.H {
-			yHeight = rect.H
-		}
+		rect.Y += (yHeight - rect.H) / 2
 
 		element.SetRectangle(rect)
 		element.Update()
@@ -1076,15 +1097,17 @@ func (row *ContainerRow) Destroy() {
 }
 
 type Container struct {
-	Rect    *sdl.FRect
-	Rows    []*ContainerRow
-	Texture *sdl.Texture
+	Rect       *sdl.FRect
+	Rows       []*ContainerRow
+	Texture    *sdl.Texture
+	WorldSpace bool
 }
 
-func NewContainer(rect *sdl.FRect) *Container {
+func NewContainer(rect *sdl.FRect, worldSpace bool) *Container {
 	container := &Container{
-		Rect: &sdl.FRect{},
-		Rows: []*ContainerRow{},
+		Rect:       &sdl.FRect{},
+		Rows:       []*ContainerRow{},
+		WorldSpace: worldSpace,
 	}
 
 	container.SetRectangle(rect)
@@ -1103,13 +1126,24 @@ func (container *Container) Update() {
 
 func (container *Container) Draw() {
 
+	rect := container.Rect
+
+	if container.WorldSpace {
+		rect = globals.Project.Camera.TranslateRect(rect)
+	}
+
+	globals.Renderer.SetClipRect(&sdl.Rect{int32(rect.X), int32(rect.Y), int32(rect.W), int32(rect.H)})
+
 	for _, row := range container.Rows {
 		row.Draw()
 	}
+
+	globals.Renderer.SetClipRect(nil)
+
 }
 
-func (container *Container) AddRow() *ContainerRow {
-	newRow := NewContainerRow(container)
+func (container *Container) AddRow(alignment string) *ContainerRow {
+	newRow := NewContainerRow(container, alignment)
 	container.Rows = append(container.Rows, newRow)
 	return newRow
 }
@@ -1202,14 +1236,21 @@ func (icon *Icon) Draw() {
 	rect := icon.Rect
 
 	if icon.WorldSpace {
-		rect = globals.Project.Camera.Translate(rect)
+		rect = globals.Project.Camera.TranslateRect(rect)
 	}
 
 	globals.Renderer.CopyF(guiTexture, icon.SrcRect, rect)
 
 }
-func (icon *Icon) Rectangle() *sdl.FRect        { return icon.Rect }
-func (icon *Icon) SetRectangle(rect *sdl.FRect) { icon.Rect = rect }
+func (icon *Icon) Rectangle() *sdl.FRect {
+	return &sdl.FRect{icon.Rect.X, icon.Rect.Y, icon.Rect.W, icon.Rect.H}
+}
+func (icon *Icon) SetRectangle(rect *sdl.FRect) {
+	icon.Rect.X = rect.X
+	icon.Rect.Y = rect.Y
+	icon.Rect.W = rect.W
+	icon.Rect.H = rect.H
+}
 
 func (icon *Icon) Destroy() {}
 
@@ -1231,7 +1272,7 @@ func NewScrollbar(rect *sdl.FRect, worldSpace bool) *Scrollbar {
 
 func (scrollbar *Scrollbar) Update() {
 
-	pos := globals.Mouse.Position
+	pos := globals.Mouse.Position()
 	if scrollbar.WorldSpace {
 		pos = globals.Mouse.WorldPosition()
 	}
@@ -1256,7 +1297,18 @@ func (scrollbar *Scrollbar) Update() {
 
 }
 
+func (scrollbar *Scrollbar) SetValue(value float32) {
+	scrollbar.Value = value
+	if scrollbar.ValueSet != nil {
+		scrollbar.ValueSet()
+	}
+}
+
 func (scrollbar *Scrollbar) Draw() {
+
+	if scrollbar.Rect.W < 0 || scrollbar.Rect.H < 0 {
+		return
+	}
 
 	globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
 
@@ -1265,7 +1317,7 @@ func (scrollbar *Scrollbar) Draw() {
 	rect.H = 8
 	rect.Y += (scrollbar.Rect.H - rect.H) / 2
 	if scrollbar.WorldSpace {
-		rect = globals.Project.Camera.Translate(rect)
+		rect = globals.Project.Camera.TranslateRect(rect)
 	}
 
 	globals.Renderer.FillRectF(rect)
@@ -1279,11 +1331,81 @@ func (scrollbar *Scrollbar) Draw() {
 
 }
 
-func (scrollbar *Scrollbar) Rectangle() *sdl.FRect { return scrollbar.Rect }
+func (scrollbar *Scrollbar) Rectangle() *sdl.FRect {
+	return &sdl.FRect{scrollbar.Rect.X, scrollbar.Rect.Y, scrollbar.Rect.W, scrollbar.Rect.H}
+}
 
-func (scrollbar *Scrollbar) SetRectangle(rect *sdl.FRect) { scrollbar.Rect = rect }
+func (scrollbar *Scrollbar) SetRectangle(rect *sdl.FRect) {
+	scrollbar.Rect.X = rect.X
+	scrollbar.Rect.Y = rect.Y
+	scrollbar.Rect.W = rect.W
+	scrollbar.Rect.H = rect.H
+}
 
 func (scrollbar *Scrollbar) Destroy() {}
+
+type Pie struct {
+	Rect         *sdl.FRect
+	FillPercent  float32
+	WorldSpace   bool
+	EdgeColor    Color
+	FillColor    Color
+	flippedColor bool
+}
+
+func NewPie(rect *sdl.FRect, edgeColor, fillColor Color, worldSpace bool) *Pie {
+	pie := &Pie{
+		Rect:        &sdl.FRect{},
+		EdgeColor:   edgeColor,
+		FillColor:   fillColor,
+		WorldSpace:  worldSpace,
+		FillPercent: 0,
+	}
+	pie.SetRectangle(rect)
+	return pie
+}
+
+func (pie *Pie) Update() {}
+
+func (pie *Pie) Draw() {
+
+	rect := pie.Rect
+	if pie.WorldSpace {
+		rect = globals.Project.Camera.TranslateRect(rect)
+	}
+
+	for pie.FillPercent > 1 {
+		pie.FillPercent -= 1
+		pie.flippedColor = !pie.flippedColor
+	}
+	for pie.FillPercent < 0 {
+		pie.FillPercent += 1
+		pie.flippedColor = !pie.flippedColor
+	}
+
+	gfx.FilledCircleColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2), pie.EdgeColor.SDLColor())
+	if pie.flippedColor {
+		gfx.FilledCircleColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2)-4, pie.EdgeColor.SDLColor())
+		// gfx.FilledPieColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2)-4, -90, int32(360*(-pie.FillPercent+1)-90), pie.FillColor.SDLColor())
+		gfx.FilledPieColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2)-4, int32(360*pie.FillPercent-90), -90, pie.FillColor.SDLColor())
+	} else {
+		gfx.FilledPieColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2)-4, -90, int32(360*pie.FillPercent-90), pie.FillColor.SDLColor())
+	}
+
+}
+
+func (pie *Pie) Rectangle() *sdl.FRect {
+	return pie.Rect
+}
+
+func (pie *Pie) SetRectangle(rect *sdl.FRect) {
+	pie.Rect.X = rect.X
+	pie.Rect.Y = rect.Y
+	pie.Rect.W = rect.W
+	pie.Rect.H = rect.H
+}
+
+func (pie *Pie) Destroy() {}
 
 const (
 	HighlightLighten = "HighlightLighten"
@@ -1316,7 +1438,7 @@ func (highlighter *Highlighter) Draw() {
 
 	rect := highlighter.Rect
 	if highlighter.WorldSpace {
-		rect = globals.Project.Camera.Translate(rect)
+		rect = globals.Project.Camera.TranslateRect(rect)
 	}
 
 	padding := float32(4)
@@ -1331,11 +1453,7 @@ func (highlighter *Highlighter) Draw() {
 	case HighlightLighten:
 
 		if highlighter.HighlightPercentage > 0.01 {
-
-			highlightColor := getThemeColor(GUIMenuColor)
-			highlightColor[3] = uint8(highlighter.HighlightPercentage * 128)
-
-			gfx.RoundedBoxColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+rect.H), 8, highlightColor.SDLColor())
+			gfx.RoundedBoxColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+rect.H), 8, sdl.Color{255, 255, 255, uint8(highlighter.HighlightPercentage * 128)})
 		}
 
 	case HighlightRing:

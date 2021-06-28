@@ -123,6 +123,10 @@ func (card *Card) Update() {
 
 			selection := card.Page.Selection
 
+			if !card.Selected {
+				card.Page.Raise(card)
+			}
+
 			if globals.ProgramSettings.Keybindings.On(KBRemoveFromSelection) {
 
 				if card.Selected {
@@ -156,32 +160,51 @@ func (card *Card) Update() {
 
 	}
 
+	// We can't do this because this makes dragging multiple Cards impossible.
+	// if globals.Mouse.WorldPosition().Inside(card.Rect) {
+	// 	globals.Mouse.Hidden = true
+	// }
+
+}
+
+func (card *Card) DrawShadow() {
+
+	tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
+
+	tp.X += 8
+	tp.Y += 8
+
+	color := NewColor(255, 255, 255, 255)
+
+	if card.Contents != nil {
+		color = card.Contents.Color()
+	}
+
+	color = color.Sub(80)
+	color[3] = 192
+
+	card.Result.SetColorMod(color.RGB())
+	card.Result.SetAlphaMod(color[3])
+	globals.Renderer.CopyF(card.Result, nil, tp)
+
 }
 
 func (card *Card) DrawCard() {
 
-	tp := card.Page.Project.Camera.Translate(card.DisplayRect)
+	tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
+
+	color := NewColor(255, 255, 255, 255)
 
 	if card.Contents != nil {
-		color := card.Contents.Color()
-		card.Result.SetColorMod(color.RGB())
-		card.Result.SetAlphaMod(color[3])
+		color = card.Contents.Color()
 	}
-	// color := getThemeColor(GUI)
-
-	globals.Renderer.CopyF(card.Result, nil, tp)
-
 	if card.Selected {
-
-		color := NewColor(30, 30, 30, 255)
-		color = color.Add(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
-		card.Result.SetColorMod(color.RGB())
-		card.Result.SetBlendMode(sdl.BLENDMODE_ADD)
-		globals.Renderer.CopyF(card.Result, nil, tp)
-		card.Result.SetBlendMode(sdl.BLENDMODE_BLEND)
-		card.Result.SetColorMod(255, 255, 255)
-
+		color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
 	}
+
+	card.Result.SetColorMod(color.RGB())
+	card.Result.SetAlphaMod(color[3])
+	globals.Renderer.CopyF(card.Result, nil, tp)
 
 }
 
@@ -233,7 +256,6 @@ func (card *Card) StartDragging() {
 	card.DragStart = globals.Mouse.WorldPosition()
 	card.DragStartOffset = card.DragStart.Sub(Point{card.Rect.X, card.Rect.Y})
 	card.Dragging = true
-	card.Page.Raise(card)
 }
 
 func (card *Card) StopDragging() {
@@ -246,7 +268,6 @@ func (card *Card) StopDragging() {
 
 func (card *Card) StartResizing() {
 	card.Resizing = true
-	card.Page.Raise(card)
 }
 
 func (card *Card) StopResizing() {
@@ -269,7 +290,6 @@ func (card *Card) LockPosition() {
 	card.Rect.Y = float32(math.Round(float64(card.Rect.Y/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.W = float32(math.Round(float64(card.Rect.W/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.H = float32(math.Round(float64(card.Rect.H/globals.GridSize)) * float64(globals.GridSize))
-
 }
 
 func (card *Card) Recreate(newWidth, newHeight float32) {
@@ -354,20 +374,21 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 		}
 
-		rand.Seed(card.ID)
+		// This slight color blending looks great on dark colors, but trash for light ones, so forget it
+		// rand.Seed(card.ID)
+		// f := uint8(rand.Float32() * 32)
+		// guiTexture.SetColorMod(255-f, 255-f, 255-f)
+		// guiTexture.SetAlphaMod(255)
 
-		f := uint8(rand.Float32() * 32)
-		guiTexture.SetColorMod(255, 255-f/2, 255-f)
+		guiTexture.SetColorMod(255, 255, 255)
 		guiTexture.SetAlphaMod(255)
 
 		drawPatches()
 
+		// Drawing outlines
 		src.X = 0
 		src.Y = 48
-
-		// Drawing outlines
-		guiTexture.SetColorMod(191, 191, 191)
-
+		guiTexture.SetColorMod(192, 192, 192)
 		drawPatches()
 
 		guiTexture.SetColorMod(255, 255, 255)
@@ -389,9 +410,7 @@ func (card *Card) ReceiveMessage(message *Message) {
 
 func (card *Card) SetContents(contentType string) {
 
-	if card.Contents != nil && card.ContentType != contentType {
-		card.Contents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
-	}
+	prevContents := card.Contents
 
 	if existingContents, exists := card.ContentsLibrary[contentType]; exists {
 		card.Contents = existingContents
@@ -408,8 +427,10 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewNoteContents(card)
 		case ContentTypeSound:
 			card.Contents = NewSoundContents(card)
-		// case ContentTypeImage:
-		// 	card.Contents = NewImageContents(card)
+		case ContentTypeImage:
+			card.Contents = NewImageContents(card)
+		case ContentTypeTimer:
+			card.Contents = NewTimerContents(card)
 		default:
 			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}
@@ -429,6 +450,10 @@ func (card *Card) SetContents(contentType string) {
 
 		card.ContentsLibrary[contentType] = card.Contents
 
+	}
+
+	if prevContents != nil && prevContents != card.Contents {
+		prevContents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
 	}
 
 	card.Contents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))

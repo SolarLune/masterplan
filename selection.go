@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -85,7 +86,16 @@ func (selection *Selection) Clear() {
 
 func (selection *Selection) Draw() {
 	if selection.BoxSelecting {
-		globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
-		globals.Renderer.DrawRectF(selection.Board.Project.Camera.Translate(NewCorrectingRect(selection.BoxStart.X, selection.BoxStart.Y, globals.Mouse.WorldPosition().X, globals.Mouse.WorldPosition().Y).SDLRect()))
+		globals.Renderer.SetScale(1, 1)
+		unprojected := selection.Board.Project.Camera.UntranslatePoint(selection.BoxStart)
+		other := globals.Mouse.Position()
+		// globals.Renderer.DrawRectF(NewCorrectingRect(unprojected.X, unprojected.Y, globals.Mouse.Position().X, globals.Mouse.Position().Y).SDLRect())
+
+		boxColor := getThemeColor(GUIMenuColor).SDLColor()
+		gfx.ThickLineColor(globals.Renderer, int32(unprojected.X), int32(unprojected.Y), int32(other.X), int32(unprojected.Y), 4, boxColor)
+		gfx.ThickLineColor(globals.Renderer, int32(unprojected.X), int32(unprojected.Y), int32(unprojected.X), int32(other.Y), 4, boxColor)
+		gfx.ThickLineColor(globals.Renderer, int32(other.X), int32(unprojected.Y), int32(other.X), int32(other.Y), 4, boxColor)
+		gfx.ThickLineColor(globals.Renderer, int32(unprojected.X), int32(other.Y), int32(other.X), int32(other.Y), 4, boxColor)
+
 	}
 }

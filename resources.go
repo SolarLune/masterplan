@@ -15,6 +15,7 @@ import (
 	"github.com/faiface/beep/wav"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/veandco/go-sdl2/img"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 type ResourceBank map[string]*Resource
@@ -44,7 +45,7 @@ func (resourceBank ResourceBank) Get(resourcePath string) *Resource {
 
 }
 
-func (resourceBank ResourceBank) Delete(resource *Resource) {
+func (resourceBank ResourceBank) Destroy(resource *Resource) {
 	resource.Destroy()
 	delete(resourceBank, resource.Name)
 }
@@ -100,21 +101,16 @@ func (resource *Resource) Parse() {
 		return
 	}
 
-	fileExt := filepath.Ext(resource.LocalFilepath)
+	mime, _ := mimetype.DetectFile(resource.LocalFilepath)
+	resource.MimeType = mime.String()
 
-	switch fileExt {
+	// if data, err := os.ReadFile(resource.LocalFilepath); err == nil {
+	// 	// We use mimetype because http.DetectContentType doesn't detect mp3 as being an audio file somehow
+	// 	resource.MimeType = mimetype.Detect(data).String()
+	// }
 
-	case ".png":
-		fallthrough
-	case ".bmp":
-		fallthrough
-	case ".jpg":
-		fallthrough
-	case ".gif":
-		fallthrough
-	case ".tif":
-		fallthrough
-	case ".tiff":
+	if strings.Contains(resource.MimeType, "image") {
+
 		surface, err := img.Load(resource.LocalFilepath)
 		if err != nil {
 			panic(err)
@@ -125,59 +121,23 @@ func (resource *Resource) Parse() {
 		if err != nil {
 			panic(err)
 		}
+		texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 		resource.Data = Image{
 			Size:    Point{float32(surface.W), float32(surface.H)},
 			Texture: texture,
 		}
 
-	case ".mp3":
-		fallthrough
-	case ".wav":
-		fallthrough
-	case ".ogg":
-		fallthrough
-	case ".oga":
-		fallthrough
-	case ".flac":
+	} else if strings.Contains(resource.MimeType, "audio") {
 
-		originalFile, err := os.Open(resource.LocalFilepath)
-		if err != nil {
-			panic(err)
-		}
+		// Sounds aren't shared, actually, so Resource.Data is nil for audio files.
 
-		var originalStream beep.StreamSeekCloser
-		var format beep.Format
-
-		if fileExt == ".mp3" {
-			originalStream, format, err = mp3.Decode(originalFile)
-		} else if fileExt == ".wav" {
-			originalStream, format, err = wav.Decode(originalFile)
-		} else if fileExt == ".flac" {
-			originalStream, format, err = flac.Decode(originalFile)
-		} else if fileExt == ".ogg" {
-			originalStream, format, err = vorbis.Decode(originalFile)
-		}
-
-		if err != nil {
-			panic(err)
-		}
-
-		resource.Data = NewSound(originalStream, format)
-
-	}
-
-	if data, err := os.ReadFile(resource.LocalFilepath); err == nil {
-		// We use mimetype because http.DetectContentType doesn't detect mp3 as being an audio file somehow
-		resource.MimeType = mimetype.Detect(data).String()
+	} else {
+		Log("Warning: could not parse resource: %s", resource.Name)
 	}
 
 	resource.Parsed = true
 
-}
-
-func (resource *Resource) Delete() {
-	globals.Resources.Delete(resource)
 }
 
 // LoadingPercentage returns 0-1 as the Resource loads, until it's finished loading.
@@ -216,16 +176,36 @@ func (resource *Resource) IsSound() bool {
 	return false
 }
 
-func (resource *Resource) AsSound() *Sound {
-	resource.Parse()
-	return resource.Data.(*Sound)
+func (resource *Resource) AsNewSound() *Sound {
+
+	originalFile, err := os.Open(resource.LocalFilepath)
+	if err != nil {
+		panic(err)
+	}
+
+	var originalStream beep.StreamSeekCloser
+	var format beep.Format
+
+	if resource.MimeType == "audio/mpeg" {
+		originalStream, format, err = mp3.Decode(originalFile)
+	} else if resource.MimeType == "audio/wav" {
+		originalStream, format, err = wav.Decode(originalFile)
+	} else if resource.MimeType == "audio/flac" {
+		originalStream, format, err = flac.Decode(originalFile)
+	} else if strings.Contains(resource.MimeType, "ogg") {
+		originalStream, format, err = vorbis.Decode(originalFile)
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
+	return NewSound(originalStream, format)
 }
 
 func (resource *Resource) Destroy() {
 	if resource.IsTexture() {
 		resource.AsImage().Texture.Destroy()
-	} else if resource.IsSound() {
-		resource.AsSound().Destroy()
 	}
 }
 

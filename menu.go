@@ -66,90 +66,10 @@ func (menu *Menu) Update() {
 
 	if !menu.Openable || menu.opened {
 
-		menu.Pages[menu.CurrentPage].Update()
-
-		if !menu.CloseButtonEnabled && menu.Openable && !globals.Mouse.Position.Inside(menu.Rect) && (globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() || globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed()) {
-			menu.Close()
-		}
-
-		button := globals.Mouse.Button(sdl.BUTTON_LEFT)
-
-		if menu.CloseButtonEnabled {
-			menu.closeButtonButton.Rect.X = menu.Rect.X + menu.Rect.W - menu.closeButtonButton.Rect.W
-			menu.closeButtonButton.Rect.Y = menu.Rect.Y
-			menu.closeButtonButton.Update()
-		}
-
-		if menu.CanGoBack() {
-			menu.BackButton.Update()
-			menu.BackButton.Rect.X = menu.Rect.X + 16
-			menu.BackButton.Rect.Y = menu.Rect.Y
-		}
-
-		if menu.Resizeable {
-
-			resizeRect := &sdl.FRect{menu.Rect.X + menu.Rect.W - 16, menu.Rect.Y + menu.Rect.H - 16, 16, 16}
-
-			if globals.Mouse.Position.Inside(resizeRect) {
-				globals.Mouse.SetCursor("resize")
-				if button.Pressed() {
-					button.Consume()
-					menu.Resizing = true
-					menu.ResizeStart = globals.Mouse.Position
-				}
-			}
-
-			if menu.Resizing {
-
-				globals.Mouse.SetCursor("resize")
-
-				w := globals.Mouse.Position.X - menu.Rect.X
-				h := globals.Mouse.Position.Y - menu.Rect.Y
-
-				if w < menu.MinSize.X {
-					w = menu.MinSize.X
-				} else if w >= globals.ScreenSize.X-32 {
-					w = globals.ScreenSize.X - 32
-				}
-
-				if h < menu.MinSize.Y {
-					h = menu.MinSize.Y
-				} else if h >= globals.ScreenSize.Y-32 {
-					h = globals.ScreenSize.Y - 32
-				}
-
-				menu.Rect.W = w
-				menu.Rect.H = h
-
-				menu.Recreate()
-
-				if button.Released() {
-					menu.Resizing = false
-				}
-
-			}
-
-		}
-
-		if menu.Draggable {
-
-			if button.Pressed() && globals.Mouse.Position.Inside(menu.Rect) {
-				button.Consume()
-				menu.Dragging = true
-				menu.DragStart = globals.Mouse.Position
-				menu.DragOffset = globals.Mouse.Position.Sub(Point{menu.Rect.X, menu.Rect.Y})
-			}
-			if button.Released() {
-				menu.Dragging = false
-			}
-
-			if menu.Dragging {
-				diff := globals.Mouse.Position.Sub(menu.DragStart)
-				menu.Rect.X = menu.DragStart.X + diff.X - menu.DragOffset.X
-				menu.Rect.Y = menu.DragStart.Y + diff.Y - menu.DragOffset.Y
-
-			}
-
+		if menu.Dragging {
+			diff := globals.Mouse.Position().Sub(menu.DragStart)
+			menu.Rect.X = menu.DragStart.X + diff.X - menu.DragOffset.X
+			menu.Rect.Y = menu.DragStart.Y + diff.Y - menu.DragOffset.Y
 		}
 
 		if menu.Rect.X < 0 {
@@ -189,6 +109,85 @@ func (menu *Menu) Update() {
 		}
 		// pageRect.H -= 32
 		menu.Pages[menu.CurrentPage].SetRectangle(&pageRect)
+
+		menu.Pages[menu.CurrentPage].Update()
+
+		if !menu.CloseButtonEnabled && menu.Openable && !globals.Mouse.Position().Inside(menu.Rect) && (globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() || globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed()) {
+			menu.Close()
+		}
+
+		button := globals.Mouse.Button(sdl.BUTTON_LEFT)
+
+		if menu.CloseButtonEnabled {
+			menu.closeButtonButton.Rect.X = menu.Rect.X + menu.Rect.W - menu.closeButtonButton.Rect.W
+			menu.closeButtonButton.Rect.Y = menu.Rect.Y
+			menu.closeButtonButton.Update()
+		}
+
+		if menu.CanGoBack() {
+			menu.BackButton.Update()
+			menu.BackButton.Rect.X = menu.Rect.X + 16
+			menu.BackButton.Rect.Y = menu.Rect.Y
+		}
+
+		if menu.Resizeable {
+
+			resizeRect := &sdl.FRect{menu.Rect.X + menu.Rect.W - 16, menu.Rect.Y + menu.Rect.H - 16, 16, 16}
+
+			if globals.Mouse.Position().Inside(resizeRect) {
+				globals.Mouse.SetCursor("resize")
+				if button.Pressed() {
+					button.Consume()
+					menu.Resizing = true
+					menu.ResizeStart = globals.Mouse.Position()
+				}
+			}
+
+			if menu.Resizing {
+
+				globals.Mouse.SetCursor("resize")
+
+				w := globals.Mouse.Position().X - menu.Rect.X
+				h := globals.Mouse.Position().Y - menu.Rect.Y
+
+				if w < menu.MinSize.X {
+					w = menu.MinSize.X
+				} else if w >= globals.ScreenSize.X-32 {
+					w = globals.ScreenSize.X - 32
+				}
+
+				if h < menu.MinSize.Y {
+					h = menu.MinSize.Y
+				} else if h >= globals.ScreenSize.Y-32 {
+					h = globals.ScreenSize.Y - 32
+				}
+
+				menu.Rect.W = w
+				menu.Rect.H = h
+
+				menu.Recreate()
+
+				if button.Released() {
+					menu.Resizing = false
+				}
+
+			}
+
+		}
+
+		if menu.Draggable {
+
+			if button.Pressed() && globals.Mouse.Position().Inside(menu.Rect) {
+				button.Consume()
+				menu.Dragging = true
+				menu.DragStart = globals.Mouse.Position()
+				menu.DragOffset = globals.Mouse.Position().Sub(Point{menu.Rect.X, menu.Rect.Y})
+			}
+			if button.Released() {
+				menu.Dragging = false
+			}
+
+		}
 
 	} else {
 		menu.Dragging = false
@@ -313,7 +312,7 @@ func (menu *Menu) Draw() {
 }
 
 func (menu *Menu) AddPage(pageName string) *Container {
-	page := NewContainer(menu.Rect)
+	page := NewContainer(menu.Rect, false)
 	menu.Pages[pageName] = page
 	return page
 }

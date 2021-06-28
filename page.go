@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 type Page struct {
@@ -62,17 +61,9 @@ func (page *Page) Update() {
 
 func (page *Page) Draw() {
 
-	globals.Renderer.SetRenderTarget(page.Project.ShadowTexture.Texture)
-	globals.Renderer.SetDrawColor(255, 255, 255, 0)
-	globals.Renderer.Clear()
-
 	for _, card := range page.Cards {
-		card.DrawCard()
+		card.DrawShadow()
 	}
-
-	globals.Renderer.SetRenderTarget(nil)
-
-	globals.Renderer.Copy(page.Project.ShadowTexture.Texture, nil, &sdl.Rect{12, 12, int32(page.Project.ShadowTexture.Size.X), int32(page.Project.ShadowTexture.Size.Y)})
 
 	for _, card := range page.Cards {
 		card.DrawCard()

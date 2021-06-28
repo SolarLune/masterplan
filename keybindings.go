@@ -36,6 +36,7 @@ const (
 	KBNewNoteCard     = "New Note Card"
 	KBNewSoundCard    = "New Sound Card"
 	KBNewImageCard    = "New Image Card"
+	KBNewTimerCard    = "New Timer Card"
 
 	KBDebugRestart = "DEBUG: RESTART"
 
@@ -274,8 +275,8 @@ func (kb *Keybindings) Default() {
 
 	kb.Define(KBDebugRestart, sdl.K_r)
 
-	kb.Define(KBZoomIn, sdl.K_EQUALS)
-	kb.Define(KBZoomOut, sdl.K_MINUS)
+	kb.Define(KBZoomIn, sdl.K_KP_PLUS)
+	kb.Define(KBZoomOut, sdl.K_KP_MINUS)
 	// kb.Define(KBShowFPS, sdl.K_F12)
 	// kb.Define(KBToggleFullscreen, sdl.K_F4)
 	// kb.Define(KBTakeScreenshot, sdl.K_F11)
@@ -296,6 +297,7 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBNewNoteCard, sdl.K_2, sdl.K_LSHIFT)
 	kb.Define(KBNewSoundCard, sdl.K_3, sdl.K_LSHIFT)
 	kb.Define(KBNewImageCard, sdl.K_4, sdl.K_LSHIFT)
+	kb.Define(KBNewTimerCard, sdl.K_5, sdl.K_LSHIFT)
 
 	kb.Define(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.Define(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold

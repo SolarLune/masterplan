@@ -54,7 +54,6 @@ type Project struct {
 	CurrentPageIndex int
 	Camera           *Camera
 	GridTexture      *Image
-	ShadowTexture    *Image
 	Filepath         string
 	LoadingProject   *Project // A reference to the "next" Project when opening another one
 	UndoHistory      *UndoHistory
@@ -85,37 +84,17 @@ func NewProject() *Project {
 
 func (project *Project) Update() {
 
+	globals.Mouse.Hidden = false
+
 	globals.Mouse.ApplyCursor()
 
 	globals.Mouse.SetCursor("normal")
 
-	if project.ShadowTexture == nil || project.ShadowTexture.Size != globals.ScreenSize {
-
-		shadowTex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y))
-
-		if project.ShadowTexture != nil && project.ShadowTexture.Texture != nil {
-			project.ShadowTexture.Texture.Destroy()
-		}
-		// fmt.Println(globals.ScreenSize.X, globals.ScreenSize.Y)
-		// shadowTex.SetColorMod(64, 64, 64)
-		shadowTex.SetColorMod(0, 0, 0)
-		shadowTex.SetAlphaMod(127)
-		shadowTex.SetBlendMode(sdl.BLENDMODE_BLEND)
-		if err != nil {
-			panic(err)
-		}
-		project.ShadowTexture = &Image{
-			Texture: shadowTex,
-			Size:    globals.ScreenSize,
-		}
-
-	}
-
-	project.Camera.Update()
-
 	for _, page := range project.Pages {
 		page.Update()
 	}
+
+	globals.Mouse.Hidden = false
 
 	project.GlobalShortcuts()
 
@@ -125,6 +104,8 @@ func (project *Project) Update() {
 
 	project.UndoHistory.Update()
 
+	project.Camera.Update()
+
 }
 
 func (project *Project) Draw() {
@@ -133,12 +114,12 @@ func (project *Project) Draw() {
 		globals.Renderer.CopyF(project.GridTexture.Texture, nil, &sdl.FRect{x, y, project.GridTexture.Size.X, project.GridTexture.Size.Y})
 	}
 
-	if project.Camera.TargetZoom > 0.5 {
+	if project.Camera.Zoom > 0.5 {
 
 		extent := float32(10)
 		for y := -extent; y < extent; y++ {
 			for x := -extent; x < extent; x++ {
-				translated := project.Camera.Translate(&sdl.FRect{x * project.GridTexture.Size.X, y * project.GridTexture.Size.Y, 0, 0})
+				translated := project.Camera.TranslateRect(&sdl.FRect{x * project.GridTexture.Size.X, y * project.GridTexture.Size.Y, 0, 0})
 				drawGridPiece(translated.X, translated.Y)
 			}
 		}
@@ -259,8 +240,8 @@ func (project *Project) MouseActions() {
 
 		if globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
 			globals.State = StateContextMenu
-			globals.ContextMenu.Rect.X = globals.Mouse.Position.X
-			globals.ContextMenu.Rect.Y = globals.Mouse.Position.Y
+			globals.ContextMenu.Rect.X = globals.Mouse.Position().X
+			globals.ContextMenu.Rect.Y = globals.Mouse.Position().Y
 			globals.ContextMenu.Open()
 		}
 
@@ -268,14 +249,14 @@ func (project *Project) MouseActions() {
 
 	if globals.State != StateContextMenu {
 
-		if globals.Mouse.Wheel > 0 {
-			project.Camera.TargetZoom += 0.25
-		} else if globals.Mouse.Wheel < 0 {
-			project.Camera.TargetZoom -= 0.25
+		if globals.Mouse.Wheel() > 0 {
+			project.Camera.AddZoom(0.25)
+		} else if globals.Mouse.Wheel() < 0 {
+			project.Camera.AddZoom(-0.25)
 		}
 
 		if globals.Mouse.Button(sdl.BUTTON_MIDDLE).Held() {
-			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement.Mult(8))
+			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement().Mult(8))
 		}
 
 	}
@@ -321,24 +302,27 @@ func (project *Project) GlobalShortcuts() {
 			dy *= 2
 		}
 
+		project.Camera.TargetPosition.X += dx / project.Camera.Zoom
+		project.Camera.TargetPosition.Y += dy / project.Camera.Zoom
+
 		if globals.ProgramSettings.Keybindings.On(KBZoomIn) {
-			project.Camera.TargetZoom++
+			project.Camera.AddZoom(1)
 		} else if globals.ProgramSettings.Keybindings.On(KBZoomOut) {
-			project.Camera.TargetZoom--
+			project.Camera.AddZoom(-1)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBZoomLevel25) {
-			project.Camera.TargetZoom = 0.25
+			project.Camera.SetZoom(0.25)
 		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel50) {
-			project.Camera.TargetZoom = 0.5
+			project.Camera.SetZoom(0.5)
 		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel100) {
-			project.Camera.TargetZoom = 1.0
+			project.Camera.SetZoom(1.0)
 		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel200) {
-			project.Camera.TargetZoom = 2.0
+			project.Camera.SetZoom(2.0)
 		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel400) {
-			project.Camera.TargetZoom = 4.0
+			project.Camera.SetZoom(4.0)
 		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel1000) {
-			project.Camera.TargetZoom = 10.0
+			project.Camera.SetZoom(10.0)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBReturnToOrigin) {
@@ -353,6 +337,8 @@ func (project *Project) GlobalShortcuts() {
 			project.CurrentPage().CreateNewCard(ContentTypeSound)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewImageCard) {
 			project.CurrentPage().CreateNewCard(ContentTypeImage)
+		} else if globals.ProgramSettings.Keybindings.On(KBNewTimerCard) {
+			project.CurrentPage().CreateNewCard(ContentTypeTimer)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {
@@ -396,9 +382,6 @@ func (project *Project) GlobalShortcuts() {
 		} else if globals.ProgramSettings.Keybindings.On(KBRedo) {
 			project.UndoHistory.Redo()
 		}
-
-		project.Camera.TargetPosition.X += dx * project.Camera.Zoom
-		project.Camera.TargetPosition.Y += dy * project.Camera.Zoom
 
 	}
 

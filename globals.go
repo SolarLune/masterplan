@@ -26,6 +26,7 @@ type Globals struct {
 	Mouse           Mouse
 	InputText       []rune
 	Time            float64
+	DeltaTime       float32
 	Frame           int64
 	GridSize        float32
 	ScreenSize      Point
@@ -42,14 +43,4 @@ type Globals struct {
 	CommonMenu  *Menu
 }
 
-var globals = &Globals{
-	Version:    semver.MustParse("0.8.0"),
-	Keyboard:   NewKeyboard(),
-	Mouse:      NewMouse(),
-	Resources:  NewResourceBank(),
-	GridSize:   32,
-	InputText:  []rune{},
-	CopyBuffer: []string{},
-	State:      StateNeutral,
-	GrabClient: grab.NewClient(),
-}
+var globals = &Globals{}

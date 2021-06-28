@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -128,6 +129,10 @@ func (point Point) Div(factor float32) Point {
 	return Point{point.X / factor, point.Y / factor}
 }
 
+func (point Point) Inverted() Point {
+	return Point{-point.X, -point.Y}
+}
+
 func (point Point) DistanceSquared(other Point) float32 {
 	return float32(math.Pow(float64(other.X-point.X), 2) + math.Pow(float64(other.Y-point.Y), 2))
 }
@@ -140,14 +145,14 @@ func ClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
 	if worldSpace {
 		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.WorldPosition().Inside(rect)
 	}
-	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.Position.Inside(rect)
+	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.Position().Inside(rect)
 }
 
 func ClickedOutRect(rect *sdl.FRect, worldSpace bool) bool {
 	if worldSpace {
 		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.WorldPosition().Inside(rect)
 	}
-	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.Position.Inside(rect)
+	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.Position().Inside(rect)
 }
 
 type CorrectingRect struct {
@@ -215,6 +220,18 @@ func TileTexture(srcTexture Image, srcRect *sdl.Rect, w, h int32) *Image {
 		Size:    Point{float32(w), float32(h)},
 		Texture: newTex,
 	}
+
+}
+
+func formatTime(t time.Duration, showMilliseconds bool) string {
+
+	minutes := int(t.Seconds()) / 60
+	seconds := int(t.Seconds()) - (minutes * 60)
+	if showMilliseconds {
+		milliseconds := (int(t.Milliseconds()) - (seconds * 1000) - (minutes * 60)) / 10
+		return fmt.Sprintf("%02d:%02d:%02d", minutes, seconds, milliseconds)
+	}
+	return fmt.Sprintf("%02d:%02d", minutes, seconds)
 
 }
 
@@ -295,6 +312,8 @@ func ReloadFonts() {
 		// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
 
 		loadedFont, err := ttf.OpenFont(fontPath, globals.ProgramSettings.FontSize)
+
+		loadedFont.SetKerning(true) // I don't think this really will do anything for us here, as we're rendering text using individual characters, not strings.
 
 		loadedFont.SetHinting(ttf.HINTING_MONO)
 

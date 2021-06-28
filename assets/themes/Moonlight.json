@@ -6,6 +6,7 @@
     "Checkbox Color": [136, 163, 188, 255],
     "Completed Color": [66, 191, 255, 255],
     "Note Color": [89, 207, 147, 255],
-    "Sound Color": [156, 139, 219, 255],
-    "Blank Image Color": [156, 139, 219, 255]
+    "Sound Color": [170, 139, 230, 255],
+    "Blank Image Color": [140, 139, 219, 255],
+    "Timer Color": [138, 161, 246, 255]
 }

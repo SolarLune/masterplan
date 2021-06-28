@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"log"
 	"math"
 	"strings"
@@ -23,19 +24,45 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 	// surf, err := globals.Font.RenderUTF8Shaded(string(glyph.Rune), sdl.Color{0, 0, 0, 255}, sdl.Color{255, 255, 255, 255})
 	// surf.SetColorKey(true, sdl.MapRGB(surf.Format, 127, 127, 127))
 
-	surf, err := globals.Font.RenderUTF8Blended(string(glyph.Rune), sdl.Color{255, 255, 255, 255})
+	// surf, err := globals.Font.RenderUTF8Blended(string(glyph.Rune), sdl.Color{255, 255, 255, 255})
+
+	surf, err := globals.Font.RenderUTF8Shaded(string(glyph.Rune), sdl.Color{255, 255, 255, 255}, sdl.Color{0, 0, 0, 255})
 
 	if err != nil {
 		log.Println(string(glyph.Rune), glyph.Rune, err)
 		return nil
 	}
 
-	texture, err := globals.Renderer.CreateTextureFromSurface(surf)
+	defer surf.Free()
+
+	newSurf, _ := surf.ConvertFormat(sdl.PIXELFORMAT_RGBA8888, 0)
+
+	defer newSurf.Free()
+
+	// Here we manually draw the glyph to set the color to white, but modulate the alpha
+	// based on the color values
+
+	pixels := newSurf.Pixels()
+
+	for y := 0; y < int(surf.H); y++ {
+		for x := 0; x < int(surf.W); x++ {
+			// c := color.RGBA{}
+			i := int32(y)*newSurf.Pitch + int32(x)*int32(newSurf.Format.BytesPerPixel)
+			// Format seems to be AGBR, not RGBA?
+
+			// This would be to get the color unmodified.
+			// return color.RGBA{pixels[i+3], pixels[i+2], pixels[i+1], pixels[i]}
+			newSurf.Set(x, y, color.RGBA{0xff, 0xff, 0xff, pixels[i+3]})
+		}
+	}
+
+	// newSurf.SetBlendMode(sdl.BLENDMODE_ADD)
+
+	texture, err := globals.Renderer.CreateTextureFromSurface(newSurf)
 	// sdl.ComposeCustomBlendMode()
 	if err != nil {
 		panic(err)
 	}
-
 	// texture.SetBlendMode(sdl.ComposeCustomBlendMode(sdl.BLENDFACTOR_ONE, sdl.BLENDFACTOR_DST_COLOR, sdl.BLENDOPERATION_ADD, sdl.BLENDFACTOR_SRC_ALPHA, sdl.BLENDFACTOR_SRC_ALPHA, sdl.BLENDOPERATION_ADD))
 
 	glyph.Image.Texture = texture
@@ -61,6 +88,10 @@ type TextRendererResult struct {
 	Image           *Image
 	TextLines       [][]rune
 	AlignmentOffset Point
+}
+
+func (trr *TextRendererResult) Destroy() {
+	trr.Image.Texture.Destroy()
 }
 
 type TextRenderer struct {
@@ -154,8 +185,11 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 
 	}
 
-	if w == 0 || h == 0 {
-		return nil
+	// Bare minimum
+	if w <= 0 {
+		w = 32
+	} else if h <= 0 {
+		h = int32(lineskip)
 	}
 
 	outTexture, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, w, h)
@@ -208,11 +242,8 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 
 			if c == ' ' {
 
-				end := strings.Index(text[i+1:], " ")
-				if end < 0 {
-					end = strings.Index(text[i+1:], "\n")
-				}
-				if end < 0 {
+				end := strings.IndexAny(text[i+1:], " \n")
+				if len(text)-i < end || end < 0 {
 					end = len(text) - i
 				}
 
@@ -232,14 +263,12 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 				wordWidth := int32(tr.SizeForRunes([]rune(nextWord)).X)
 
 				if float32(x+wordWidth) > wordWrapMax.X {
+
 					x = 0
 					y += int32(lineskip)
 
-					// Spaces become effectively newline enders
-					// fmt.Println("space auto-newline")
 					textLines[len(textLines)-1] = append(textLines[len(textLines)-1], '\n')
 					textLines = append(textLines, []rune{})
-					// fmt.Println(textLines)
 					continue
 
 				}

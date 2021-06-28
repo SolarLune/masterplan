@@ -61,20 +61,30 @@ func (sound *Sound) IsPaused() bool {
 }
 
 func (sound *Sound) SeekPercentage(percentage float32) {
+	speaker.Lock()
 	sound.Stream.Seek(int(percentage * float32(sound.Stream.Len())))
+	speaker.Unlock()
 }
 
 func (sound *Sound) Length() time.Duration {
-	return sound.Format.SampleRate.D(sound.Stream.Len())
+	speaker.Lock()
+	d := sound.Format.SampleRate.D(sound.Stream.Len())
+	speaker.Unlock()
+	return d
 }
 
 func (sound *Sound) Position() time.Duration {
-	return sound.Format.SampleRate.D(sound.Stream.Position())
+	speaker.Lock()
+	d := sound.Format.SampleRate.D(sound.Stream.Position())
+	speaker.Unlock()
+	return d
 }
 
 func (sound *Sound) Destroy() {
 	sound.Pause()
+	speaker.Lock()
 	sound.Stream.Close()
+	speaker.Unlock()
 	sound.volume.Streamer = nil
 	sound.control.Streamer = nil
 }

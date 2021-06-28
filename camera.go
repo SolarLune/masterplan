@@ -1,8 +1,8 @@
 package main
 
 import (
-	"math"
-
+	"github.com/tanema/gween"
+	"github.com/tanema/gween/ease"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -11,50 +11,66 @@ type Camera struct {
 	TargetPosition Point
 	Zoom           float32
 	TargetZoom     float32
+	ZoomTween      *gween.Tween
 }
 
 func NewCamera() *Camera {
 	return &Camera{
 		Zoom:       1,
 		TargetZoom: 1,
+		ZoomTween:  gween.New(1, 1, 1, ease.Linear),
 	}
 }
 
 func (camera *Camera) Update() {
 
-	globals.Renderer.SetScale(camera.Zoom, camera.Zoom)
+	camera.Zoom, _ = camera.ZoomTween.Update(globals.DeltaTime)
 
-	if camera.TargetZoom <= 0.25 {
-		camera.TargetZoom = 0.25
-	} else if camera.TargetZoom >= 10 {
-		camera.TargetZoom = 10
+	globals.Renderer.SetScale(camera.Zoom, camera.Zoom)
+	softness := float32(0.2)
+	camera.Position = camera.Position.Add(camera.TargetPosition.Sub(camera.Position).Mult(softness))
+}
+
+func (camera *Camera) SetZoom(targetZoom float32) {
+
+	if targetZoom < 0.25 {
+		targetZoom = 0.25
+	} else if targetZoom >= 10 {
+		targetZoom = 10
 	}
 
-	softness := float32(0.2)
-	camera.Zoom += (camera.TargetZoom - camera.Zoom) * softness
-	camera.Position = camera.Position.Add(camera.TargetPosition.Sub(camera.Position).Mult(softness))
+	camera.TargetZoom = targetZoom
 
+	camera.ZoomTween = gween.New(camera.Zoom, camera.TargetZoom, 0.5, ease.InOutCirc)
+}
+
+func (camera *Camera) AddZoom(zoomInAmount float32) {
+	camera.SetZoom(camera.TargetZoom + zoomInAmount)
 }
 
 func (camera *Camera) Offset() Point {
-	width, height, err := globals.Renderer.GetOutputSize()
-	if err != nil {
-		panic(err)
-	}
-	point := Point{(camera.Position.X - float32(width)/2) / camera.Zoom, (camera.Position.Y - float32(height)/2) / camera.Zoom}
+	// point := Point{(camera.Position.X - float32(width)/2), (camera.Position.Y - float32(height)/2)}
+	// point = Point{(camera.Position.X), (camera.Position.Y)}
+
+	width := globals.ScreenSize.X / 2 / camera.Zoom
+	height := globals.ScreenSize.Y / 2 / camera.Zoom
+
+	point := Point{(camera.Position.X - width), (camera.Position.Y - height)}
+
+	// point.X += float32(globals.ScreenSize.X/4) * camera.Zoom
+	// point.Y += float32(globals.ScreenSize.Y/4) * camera.Zoom
+
+	// point := Point{(camera.Position.X - float32(width)/2), (camera.Position.Y - float32(height)/2)}
 	return point
 }
 
-func (camera *Camera) Translate(rect *sdl.FRect) *sdl.FRect {
+func (camera *Camera) TranslateRect(rect *sdl.FRect) *sdl.FRect {
 
-	offset := camera.Offset()
-
-	offset.X = float32(math.Floor(float64(offset.X)))
-	offset.Y = float32(math.Floor(float64(offset.Y)))
+	pos := camera.TranslatePoint(Point{rect.X, rect.Y})
 
 	return &sdl.FRect{
-		X: rect.X - offset.X,
-		Y: rect.Y - offset.Y,
+		X: pos.X,
+		Y: pos.Y,
 		W: rect.W,
 		H: rect.H,
 	}
@@ -65,12 +81,17 @@ func (camera *Camera) TranslatePoint(point Point) Point {
 	return point.Sub(camera.Offset())
 }
 
+func (camera *Camera) UntranslatePoint(point Point) Point {
+	point = point.Add(camera.Offset().Inverted())
+	point.X *= camera.Zoom
+	point.Y *= camera.Zoom
+	return point
+}
+
 func (camera *Camera) ViewArea() *sdl.Rect {
 
-	width, height := globals.Window.GetSize()
-
-	width = int32(float32(width) / camera.Zoom)
-	height = int32(float32(height) / camera.Zoom)
+	width := int32(globals.ScreenSize.X / camera.Zoom)
+	height := int32(globals.ScreenSize.Y / camera.Zoom)
 
 	rect := &sdl.Rect{
 		X: int32(camera.Position.X - float32(width/2)),
