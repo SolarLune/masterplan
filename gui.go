@@ -942,9 +942,14 @@ func (label *Label) SetRectangle(rect *sdl.FRect) {
 	label.Rect.X = rect.X
 	label.Rect.Y = rect.Y
 
-	if label.Rect.W != rect.W || label.Rect.H != rect.H {
-		label.Rect.W = rect.W
-		label.Rect.H = rect.H
+	// We round off the w / h because floating-point inaccuracies can cause
+	// the Width and Height to vary
+	rw := float32(math.Round(float64(rect.W)))
+	rh := float32(math.Round(float64(rect.H)))
+
+	if label.Rect.W != rw || label.Rect.H != rh {
+		label.Rect.W = rw
+		label.Rect.H = rh
 		label.TextureDirty = true
 	}
 

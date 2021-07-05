@@ -151,8 +151,6 @@ func (tr *TextRenderer) SizeForRunes(word []rune) Point {
 
 func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, horizontalAlignment string) *TextRendererResult {
 
-	// wrappedText := ""
-
 	lineskip := int(globals.GridSize)
 
 	textLines := [][]rune{{}}

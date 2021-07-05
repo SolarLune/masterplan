@@ -297,8 +297,9 @@ func formatTime(t time.Duration, showMilliseconds bool) string {
 func ReloadFonts() {
 
 	// fontPath := LocalPath("assets/Silver.ttf")
-	fontPath := LocalPath("assets/quicksand-bold.otf")
+	// fontPath := LocalPath("assets/quicksand-bold.otf")
 	// fontPath := LocalPath("assets/m5x7.ttf")
+	fontPath := LocalPath("assets/Quicksand-Bold.ttf")
 
 	if globals.ProgramSettings.CustomFontPath != "" && FileExists(globals.ProgramSettings.CustomFontPath) {
 		fontPath = globals.ProgramSettings.CustomFontPath

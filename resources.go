@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/gif"
 	"log"
 	"net/url"
 	"os"
@@ -111,21 +112,41 @@ func (resource *Resource) Parse() {
 
 	if strings.Contains(resource.MimeType, "image") {
 
-		surface, err := img.Load(resource.LocalFilepath)
-		if err != nil {
-			panic(err)
-		}
-		defer surface.Free()
+		if strings.Contains(resource.MimeType, "gif") {
 
-		texture, err := globals.Renderer.CreateTextureFromSurface(surface)
-		if err != nil {
-			panic(err)
-		}
-		texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+			data, err := os.Open(resource.LocalFilepath)
 
-		resource.Data = Image{
-			Size:    Point{float32(surface.W), float32(surface.H)},
-			Texture: texture,
+			if err != nil {
+				panic(err)
+			}
+
+			gifAnim, err := gif.DecodeAll(data)
+
+			if err != nil {
+				panic(err)
+			}
+
+			resource.Data = NewGifAnimation(gifAnim)
+
+		} else {
+
+			surface, err := img.Load(resource.LocalFilepath)
+			if err != nil {
+				panic(err)
+			}
+			defer surface.Free()
+
+			texture, err := globals.Renderer.CreateTextureFromSurface(surface)
+			if err != nil {
+				panic(err)
+			}
+			texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+
+			resource.Data = Image{
+				Size:    Point{float32(surface.W), float32(surface.H)},
+				Texture: texture,
+			}
+
 		}
 
 	} else if strings.Contains(resource.MimeType, "audio") {
@@ -158,7 +179,7 @@ func (resource *Resource) FinishedLoading() bool {
 func (resource *Resource) IsTexture() bool {
 	if resource.FinishedLoading() {
 		resource.Parse()
-		return strings.Contains(resource.MimeType, "image")
+		return resource.MimeType != "image/gif" && strings.Contains(resource.MimeType, "image")
 	}
 	return false
 }
@@ -166,6 +187,19 @@ func (resource *Resource) IsTexture() bool {
 func (resource *Resource) AsImage() Image {
 	resource.Parse()
 	return resource.Data.(Image)
+}
+
+func (resource *Resource) IsGIF() bool {
+	if resource.FinishedLoading() {
+		resource.Parse()
+		return strings.Contains(resource.MimeType, "gif")
+	}
+	return false
+}
+
+func (resource *Resource) AsGIF() *GifAnimation {
+	resource.Parse()
+	return resource.Data.(*GifAnimation)
 }
 
 func (resource *Resource) IsSound() bool {

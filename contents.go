@@ -440,10 +440,12 @@ func (sc *SoundContents) DefaultSize() Point {
 
 type ImageContents struct {
 	DefaultContents
-	Image          *Resource
+	Resource       *Resource
+	GifPlayer      *GifPlayer
 	ImageNameLabel *Label
 	FilepathLabel  *Label
 	Showing        bool
+	LoadedImage    bool
 }
 
 func NewImageContents(card *Card) *ImageContents {
@@ -504,30 +506,71 @@ func (ic *ImageContents) Update() {
 
 	ic.FilepathLabel.SetRectangle(globals.CommonMenu.Pages["root"].Rectangle())
 
-	if ic.Image != nil {
+	if ic.Resource != nil {
+
+		if !ic.LoadedImage {
+
+			if ic.Resource.IsTexture() {
+
+				ic.Showing = true
+				asr := ic.Resource.AsImage().Size.Y / ic.Resource.AsImage().Size.X
+				ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
+				ic.LoadedImage = true
+
+			} else if ic.Resource.IsGIF() && ic.Resource.AsGIF().IsReady() {
+
+				ic.LoadedImage = true
+				ic.Showing = true
+				asr := ic.Resource.AsGIF().Height / ic.Resource.AsGIF().Width
+				ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
+				ic.GifPlayer = NewGifPlayer(ic.Resource.AsGIF())
+
+			}
+
+		}
+
+		if ic.Resource.IsGIF() && ic.Resource.AsGIF().IsReady() {
+			ic.GifPlayer.Update(globals.DeltaTime)
+		}
 
 		leftButton := globals.Mouse.Button(sdl.BUTTON_LEFT)
 		if leftButton.PressedTimes(2) && globals.Mouse.WorldPosition().Inside(ic.Card.Rect) {
 			ic.Showing = !ic.Showing
 		}
 
-		_, filename := filepath.Split(ic.Card.Properties.Get("filepath").AsString())
+		filename := ""
+
+		_, filename = filepath.Split(ic.Card.Properties.Get("filepath").AsString())
+		if ic.Resource.IsGIF() && !ic.Resource.AsGIF().IsReady() {
+			filename = fmt.Sprintf("Loading %0d%%", int(ic.Resource.AsGIF().LoadingProgress()*100))
+		}
 
 		ic.ImageNameLabel.SetText([]rune(filename))
 
 		if !globals.ProgramSettings.Keybindings.On(KBAddToSelection) {
-			ic.Card.LockResizingAspectRatio = ic.Image.AsImage().Size.Y / ic.Image.AsImage().Size.X
+			if ic.Resource.IsTexture() {
+				ic.Card.LockResizingAspectRatio = ic.Resource.AsImage().Size.Y / ic.Resource.AsImage().Size.X
+			} else if ic.Resource.IsGIF() {
+				ic.Card.LockResizingAspectRatio = ic.Resource.AsGIF().Height / ic.Resource.AsGIF().Width
+			}
 		}
+
 	}
 
 }
 
 func (ic *ImageContents) Draw() {
 
-	if ic.Image != nil {
+	var texture *sdl.Texture
 
-		texture := ic.Image.AsImage().Texture
-		rect := ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect)
+	if ic.Resource != nil {
+
+		if ic.Resource.IsTexture() {
+			texture = ic.Resource.AsImage().Texture
+		} else if ic.Resource.IsGIF() && ic.Resource.AsGIF().IsReady() {
+			texture = ic.GifPlayer.Texture()
+		}
+
 		if ic.Showing {
 			texture.SetAlphaMod(255)
 			// texture.SetColorMod(255, 255, 255)
@@ -535,11 +578,14 @@ func (ic *ImageContents) Draw() {
 			texture.SetAlphaMod(64)
 			// texture.SetColorMod(64, 64, 64)
 		}
-		globals.Renderer.CopyF(texture, nil, rect)
+
+		if texture != nil {
+			globals.Renderer.CopyF(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
+		}
 
 	}
 
-	if !ic.Showing {
+	if !ic.Showing || texture == nil {
 		ic.DefaultContents.Draw()
 	}
 
@@ -553,18 +599,38 @@ func (ic *ImageContents) LoadFile() {
 
 	fp := ic.Card.Properties.Get("filepath").AsString()
 
-	newImage := globals.Resources.Get(fp)
-
-	if newImage == nil || !newImage.IsTexture() {
-		Log("Error: Couldn't load [%s] as image resource", fp)
-	} else if ic.Image != newImage {
-
-		ic.Showing = true
-		asr := newImage.AsImage().Size.Y / newImage.AsImage().Size.X
-		ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
-		ic.Image = newImage
-
+	if newImage := globals.Resources.Get(fp); newImage.IsGIF() || newImage.IsTexture() {
+		ic.Resource = newImage
+		ic.LoadedImage = false
+	} else {
+		Log("Couldn't load [%s] as image resource", fp)
+		ic.LoadedImage = true
 	}
+
+	// newImage := globals.Resources.Get(fp)
+
+	// if newImage != ic.Resource {
+
+	// 	if newImage.IsTexture() {
+
+	// 		ic.Showing = true
+	// 		asr := newImage.AsImage().Size.Y / newImage.AsImage().Size.X
+	// 		ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
+	// 		ic.Resource = newImage
+
+	// 	} else if newImage.IsGIF() {
+
+	// 		ic.Showing = true
+	// 		asr := newImage.AsGIF().Height / newImage.AsGIF().Width
+	// 		ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
+	// 		ic.Resource = newImage
+	// 		ic.GifPlayer = NewGifPlayer(ic.Resource.AsGIF())
+
+	// 	} else {
+	// 		Log("Error: Couldn't load [%s] as image resource", fp)
+	// 	}
+
+	// }
 
 }
 
@@ -572,7 +638,7 @@ func (ic *ImageContents) ReceiveMessage(msg *Message) {}
 
 func (ic *ImageContents) Color() Color {
 	if ic.Showing {
-		return NewColor(0, 0, 0, 255)
+		return NewColor(0, 0, 0, 0)
 	} else {
 		return getThemeColor(GUIBlankImageColor)
 	}
