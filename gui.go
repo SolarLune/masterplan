@@ -174,7 +174,7 @@ func (button *Button) Update() {
 		}
 		button.LineWidth += (1 - button.LineWidth) * 0.2
 
-		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.CurrentCursor == "normal" {
 			if button.Pressed != nil {
 				button.Pressed()
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
@@ -374,7 +374,12 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 
 	label.SetText([]rune(text))
 
+	// We don't need textChanged to be true here because the text just got set
 	label.textChanged = false
+
+	if text != "" {
+		label.RecreateTexture()
+	}
 
 	label.Selection = NewTextSelection(label)
 
@@ -965,24 +970,26 @@ func (label *Label) Destroy() {
 }
 
 type ContainerRow struct {
-	Container    *Container
-	ElementOrder []MenuElement
-	Elements     map[string]MenuElement
-	Alignment    string
-	// InterElementSpacing int32
+	Container         *Container
+	ElementOrder      []MenuElement
+	Elements          map[string]MenuElement
+	Alignment         string
+	HorizontalSpacing float32
 }
 
 func NewContainerRow(container *Container, horizontalAlignment string) *ContainerRow {
 	row := &ContainerRow{
-		Container:    container,
-		ElementOrder: []MenuElement{},
-		Elements:     map[string]MenuElement{},
-		Alignment:    horizontalAlignment,
+		Container:         container,
+		ElementOrder:      []MenuElement{},
+		Elements:          map[string]MenuElement{},
+		Alignment:         horizontalAlignment,
+		HorizontalSpacing: 8,
 		// InterElementSpacing: -1,
 	}
 	return row
 }
 
+// Update takes the Y position to set the row to update and draw
 func (row *ContainerRow) Update(yPos float32) float32 {
 
 	x := row.Container.Rect.X
@@ -998,10 +1005,6 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		if yHeight < rect.H {
 			yHeight = rect.H
 		}
-	}
-
-	if usedWidth > row.Container.Rect.W {
-		usedWidth = row.Container.Rect.W
 	}
 
 	diff := (maxWidth - usedWidth)
@@ -1024,7 +1027,7 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		element.SetRectangle(rect)
 		element.Update()
 
-		x += rect.W + 8
+		x += rect.W + row.HorizontalSpacing
 	}
 
 	return yHeight
@@ -1071,19 +1074,9 @@ func (row *ContainerRow) Draw() {
 			continue
 		}
 
-		// Slice the element's rectangle to fit within the Container as necessary
-		if rect.X+rect.W > row.Container.Rect.X+row.Container.Rect.W {
-			rect.W = row.Container.Rect.X + row.Container.Rect.W - rect.X
-		}
-
-		// if rect.W > 0 {
-		// element.SetRectangle(rect)
 		element.Draw()
-		// }
 
 	}
-
-	// }
 
 }
 
@@ -1122,10 +1115,21 @@ func NewContainer(rect *sdl.FRect, worldSpace bool) *Container {
 
 func (container *Container) Update() {
 
+	pos := globals.Mouse.Position()
+	if container.WorldSpace {
+		pos = globals.Mouse.WorldPosition()
+	}
+
+	if !pos.Inside(container.Rect) {
+		globals.Mouse.HiddenPosition = true
+	}
+
 	y := float32(0)
 	for _, row := range container.Rows {
 		y += row.Update(y)
 	}
+
+	globals.Mouse.HiddenPosition = false
 
 }
 
@@ -1211,6 +1215,35 @@ func (container *Container) RecreateTexture() {
 	texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 	container.Texture = texture
+}
+
+// IdealSize returns the ideal size for the container to encompass all its GUI Elements.
+func (container *Container) IdealSize() Point {
+
+	size := Point{}
+
+	yPos := float32(0)
+
+	for _, row := range container.Rows {
+
+		yPos += row.Update(yPos)
+		x := float32(0)
+
+		for _, element := range row.Elements {
+
+			r := element.Rectangle()
+			x += r.W + row.HorizontalSpacing
+			size.Y += r.H
+		}
+
+		if size.X < x {
+			size.X = x
+		}
+
+	}
+
+	return size
+
 }
 
 type Icon struct {

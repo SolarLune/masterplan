@@ -84,7 +84,7 @@ func NewProject() *Project {
 
 func (project *Project) Update() {
 
-	globals.Mouse.Hidden = false
+	globals.Mouse.HiddenPosition = false
 
 	globals.Mouse.ApplyCursor()
 
@@ -94,7 +94,7 @@ func (project *Project) Update() {
 		page.Update()
 	}
 
-	globals.Mouse.Hidden = false
+	globals.Mouse.HiddenPosition = false
 
 	project.GlobalShortcuts()
 
@@ -239,10 +239,10 @@ func (project *Project) MouseActions() {
 		}
 
 		if globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
-			globals.State = StateContextMenu
-			globals.ContextMenu.Rect.X = globals.Mouse.Position().X
-			globals.ContextMenu.Rect.Y = globals.Mouse.Position().Y
-			globals.ContextMenu.Open()
+			contextMenu := globals.MenuSystem.Get("context")
+			contextMenu.Rect.X = globals.Mouse.Position().X
+			contextMenu.Rect.Y = globals.Mouse.Position().Y
+			contextMenu.Open()
 		}
 
 	}

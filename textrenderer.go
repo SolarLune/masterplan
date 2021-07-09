@@ -157,6 +157,24 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 
 	perLine := strings.Split(text, "\n")
 
+	lineWidths := []int32{}
+
+	if len(perLine) == 0 {
+		lineWidths = append(lineWidths, 0)
+	}
+
+	for _, line := range perLine {
+
+		lineWidth := int32(0)
+
+		for _, glyph := range tr.GlyphsForRunes([]rune(line)) {
+			lineWidth += glyph.Width()
+		}
+
+		lineWidths = append(lineWidths, lineWidth)
+
+	}
+
 	w := int32(0)
 	h := int32(0)
 
@@ -168,14 +186,9 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 		// If wordwrap's X or Y value are less than 0, then there will be no wrapping, and the size of the texture will just the necessary rectangle to display the full textbox.
 		// TODO: Make this handle \n characters
 
-		for _, line := range perLine {
-
-			lineWidth := int32(0)
-			for _, glyph := range tr.GlyphsForRunes([]rune(line)) {
-				lineWidth += glyph.Width()
-			}
-			if w < lineWidth {
-				w = int32(lineWidth)
+		for lineIndex := range perLine {
+			if w < lineWidths[lineIndex] {
+				w = lineWidths[lineIndex]
 			}
 		}
 
@@ -211,13 +224,34 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 
 	globals.Renderer.Clear()
 
-	x, y := int32(0), int32(0)
+	x, y := int32(0), int32(-lineskip)
 
-	if horizontalAlignment == AlignCenter {
-		x = w/2 - int32(tr.SizeForRunes([]rune(text)).X)/2
-	} else if horizontalAlignment == AlignRight {
-		x = w
+	internalLineIndex := -1
+
+	updateLineStartingGlyphXY := func() {
+
+		internalLineIndex++
+
+		switch horizontalAlignment {
+
+		case AlignLeft:
+			x = 0
+		case AlignCenter:
+			if internalLineIndex < len(lineWidths) {
+				x = (w / 2) - (lineWidths[internalLineIndex] / 2)
+			}
+		case AlignRight:
+			if internalLineIndex < len(lineWidths) {
+				x = w - (lineWidths[internalLineIndex])
+			}
+
+		}
+
+		y += int32(lineskip)
+
 	}
+
+	updateLineStartingGlyphXY()
 
 	result.AlignmentOffset.X = float32(x)
 
@@ -228,8 +262,7 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 		if c == '\n' {
 			textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
 			textLines = append(textLines, []rune{})
-			x = 0
-			y += int32(lineskip)
+			updateLineStartingGlyphXY()
 			continue
 		} else if glyph == nil {
 			continue
@@ -262,8 +295,7 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 
 				if float32(x+wordWidth) > wordWrapMax.X {
 
-					x = 0
-					y += int32(lineskip)
+					updateLineStartingGlyphXY()
 
 					textLines[len(textLines)-1] = append(textLines[len(textLines)-1], '\n')
 					textLines = append(textLines, []rune{})
@@ -273,8 +305,7 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 
 			} else if x+glyph.Width() > int32(wordWrapMax.X) {
 
-				x = 0
-				y += int32(lineskip)
+				updateLineStartingGlyphXY()
 
 				textLines = append(textLines, []rune{})
 

@@ -317,9 +317,10 @@ func NewSoundContents(card *Card) *SoundContents {
 	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
 
 	row.Add("edit path button", NewButton("Edit Path", nil, nil, func() {
-		globals.CommonMenu.Pages["root"].Clear()
-		globals.CommonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath", soundContents.FilepathLabel)
-		globals.CommonMenu.Open()
+		commonMenu := globals.MenuSystem.Get("common")
+		commonMenu.Pages["root"].Clear()
+		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath", soundContents.FilepathLabel)
+		commonMenu.Open()
 	}, true))
 
 	row = soundContents.Container.AddRow(AlignCenter)
@@ -343,7 +344,7 @@ func (sc *SoundContents) Update() {
 
 	sc.DefaultContents.Update()
 
-	sc.FilepathLabel.SetRectangle(globals.CommonMenu.Pages["root"].Rectangle())
+	sc.FilepathLabel.SetRectangle(globals.MenuSystem.Get("common").Pages["root"].Rectangle())
 
 	rect := sc.SoundNameLabel.Rectangle()
 	rect.W = sc.Container.Rect.W - 32
@@ -486,9 +487,10 @@ func NewImageContents(card *Card) *ImageContents {
 	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
 
 	row.Add("edit path button", NewButton("Edit Path", nil, nil, func() {
-		globals.CommonMenu.Pages["root"].Clear()
-		globals.CommonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath", imageContents.FilepathLabel)
-		globals.CommonMenu.Open()
+		commonMenu := globals.MenuSystem.Get("common")
+		commonMenu.Pages["root"].Clear()
+		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath", imageContents.FilepathLabel)
+		commonMenu.Open()
 	}, true))
 
 	if card.Properties.Get("filepath").AsString() != "" {
@@ -504,7 +506,7 @@ func (ic *ImageContents) Update() {
 		ic.DefaultContents.Update()
 	}
 
-	ic.FilepathLabel.SetRectangle(globals.CommonMenu.Pages["root"].Rectangle())
+	ic.FilepathLabel.SetRectangle(globals.MenuSystem.Get("common").Pages["root"].Rectangle())
 
 	if ic.Resource != nil {
 

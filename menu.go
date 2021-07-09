@@ -13,6 +13,53 @@ const (
 	MenuSpacingSpread = "menu spacing fill"
 )
 
+type MenuSystem struct {
+	Menus     []*Menu
+	MenuNames map[string]*Menu
+}
+
+func NewMenuSystem() *MenuSystem {
+	ms := &MenuSystem{
+		Menus:     []*Menu{},
+		MenuNames: map[string]*Menu{},
+	}
+	return ms
+}
+
+func (ms *MenuSystem) Update() {
+
+	for _, menu := range ms.Menus {
+		menu.Update()
+	}
+
+}
+
+func (ms *MenuSystem) Draw() {
+
+	for _, menu := range ms.Menus {
+		menu.Draw()
+	}
+}
+
+func (ms *MenuSystem) Add(menu *Menu, name string) *Menu {
+
+	ms.Menus = append(ms.Menus, menu)
+	ms.MenuNames[name] = menu
+	return menu
+
+}
+
+func (ms *MenuSystem) Get(name string) *Menu {
+
+	exists, ok := ms.MenuNames[name]
+	if ok {
+		return exists
+	}
+
+	return nil
+
+}
+
 type Menu struct {
 	Rect        *sdl.FRect
 	MinSize     Point
@@ -37,13 +84,16 @@ type Menu struct {
 	Resizing    bool
 	ResizeStart Point
 	PageThread  []string
+
+	OnOpen  func()
+	OnClose func()
 }
 
 func NewMenu(rect *sdl.FRect, openable bool) *Menu {
 
 	menu := &Menu{
 		Rect:      rect,
-		MinSize:   Point{rect.W, rect.H},
+		MinSize:   Point{32, 32},
 		Pages:     map[string]*Container{},
 		Openable:  openable,
 		Spacing:   MenuSpacingNone,
@@ -416,6 +466,9 @@ func (menu *Menu) Recreate() {
 func (menu *Menu) Open() {
 	if menu.Openable {
 		menu.opened = true
+		if menu.OnOpen != nil {
+			menu.OnOpen()
+		}
 	}
 }
 
@@ -424,7 +477,17 @@ func (menu *Menu) Close() {
 		menu.opened = false
 		menu.PageThread = []string{}
 		menu.SetPage("root")
+		if menu.OnClose != nil {
+			menu.OnClose()
+		}
 	}
+}
+
+func (menu *Menu) Center() {
+
+	menu.Rect.X = (globals.ScreenSize.X / 2) - (menu.Rect.W / 2)
+	menu.Rect.Y = (globals.ScreenSize.Y / 2) - (menu.Rect.H / 2)
+
 }
 
 func (menu *Menu) Rectangle() *sdl.FRect {

@@ -103,8 +103,9 @@ type Mouse struct {
 	CurrentCursor string
 	NextCursor    string
 
-	Hidden bool
-	Dummy  *Mouse
+	HiddenPosition bool
+	HiddenButtons  bool
+	Dummy          *Mouse
 }
 
 func NewMouse() Mouse {
@@ -123,7 +124,7 @@ func NewMouse() Mouse {
 
 func (mouse Mouse) Button(buttonIndex uint8) *InputState {
 
-	if mouse.Hidden {
+	if mouse.HiddenButtons {
 		return mouse.Dummy.Button(buttonIndex)
 	}
 
@@ -136,21 +137,21 @@ func (mouse Mouse) Button(buttonIndex uint8) *InputState {
 }
 
 func (mouse Mouse) RelativeMovement() Point {
-	if mouse.Hidden {
+	if mouse.HiddenPosition {
 		return mouse.Dummy.RelativeMovement()
 	}
 	return mouse.relativeMovement
 }
 
 func (mouse Mouse) Wheel() int32 {
-	if mouse.Hidden {
+	if mouse.HiddenButtons {
 		return mouse.Dummy.Wheel()
 	}
 	return mouse.wheel
 }
 
 func (mouse Mouse) Position() Point {
-	if mouse.Hidden {
+	if mouse.HiddenPosition {
 		return mouse.Dummy.Position()
 	}
 	return mouse.screenPosition
@@ -158,7 +159,7 @@ func (mouse Mouse) Position() Point {
 
 func (mouse Mouse) WorldPosition() Point {
 
-	if mouse.Hidden {
+	if mouse.HiddenPosition {
 		return mouse.Dummy.WorldPosition()
 	}
 
@@ -207,8 +208,9 @@ func handleEvents() {
 		switch event.(type) {
 
 		case *sdl.QuitEvent:
-			quit = true
-			// 	currentProject.PromptQuit()
+			confirmQuit := globals.MenuSystem.Get("confirmquit")
+			confirmQuit.Center()
+			confirmQuit.Open()
 
 		case *sdl.KeyboardEvent:
 			keyEvent := event.(*sdl.KeyboardEvent)
