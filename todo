@@ -1,7 +1,13 @@
 - Fix zooming
-- Add GIF loading
+- Multithread GIF loading (it's already running on one thread, that means it's multi-thread ready)
 - Add Undo system back in
 - Add Page system
+- Wheel scrolling should be more sensitive
+- Quit project without saving wording should be clearer
+- Two-finger slide to pan project?
+- Add option to not create new Tasks when double-clicking
+
+- Export to One-Note / to image / PDF
 
 - When loading projects from previous versions of MasterPlan, focus on all Cards after load; otherwise, the camera pan should be saved, too.
 - Update Steam store page description / icon
@@ -60,7 +66,7 @@ TODO
     - Cards can be edited largely right from the overview screen, without needing to open a separate Panel.
       - The maximum value for Progression Cards can be modified by simply double-clicking on the relevant text box.
     - Cards can be linked to show relationships by holding a key (Alt, for example), and clicking between Cards. These are explicit links; implicit links are still created by means of neighboring, as in MasterPlan v0.7.2.
-      - These lines should be "bendable" in a customizeable way.
+      - These lines should be "bendable" in a customizeable way. Arrows or dots or something should maybe stream from Card to Card through these lines, thereby showing "flow".
     - Any text on Cards fade out if the Card isn't large enough to display the text element (a title, for example) fully
     - Text is parsed for URLs or program / OS file or program links
     - Cards are now at least 32x32 (test with higher-resolution fonts; if this isn't enough, then bump it up)
