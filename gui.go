@@ -44,6 +44,7 @@ const (
 	GUITimerColor      = "Timer Color"
 	GUIBlankImageColor = "Blank Image Color"
 	GUIImageBGColor    = "Image BG Color"
+	GUIMapColor        = "Map Color"
 )
 
 var guiColors map[string]map[string]Color
@@ -124,6 +125,39 @@ type FocusableMenuElement interface {
 	SetFocused(bool)
 }
 
+func ImmediateButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool) bool {
+
+	clickInside := false
+
+	mp := globals.Mouse.Position()
+	rect := &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)}
+	if worldSpace {
+		mp = globals.Mouse.WorldPosition()
+	}
+
+	color := sdl.Color{128, 128, 128, 255}
+	if mp.Inside(rect) {
+		color.R = 255
+		color.G = 255
+		color.B = 255
+	}
+
+	guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
+	guiTex.SetColorMod(color.R, color.G, color.B)
+	guiTex.SetAlphaMod(color.A)
+
+	if ClickedInRect(rect, worldSpace) {
+		clickInside = true
+	}
+
+	if worldSpace {
+		rect = globals.Project.Camera.TranslateRect(rect)
+	}
+	globals.Renderer.CopyF(guiTex, iconSrc, rect)
+
+	return clickInside
+}
+
 type Button struct {
 	Label          *Label
 	Rect           *sdl.FRect
@@ -148,14 +182,16 @@ func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, pressed
 
 	if rect == nil {
 		button.Label.RecreateTexture()
-		rect := button.Label.Rectangle()
-		button.Rect.X = rect.X
-		button.Rect.Y = rect.Y
-		button.Rect.W = rect.W
-		button.Rect.H = rect.H
-	} else {
-		button.SetRectangle(rect)
+		rect = button.Label.Rectangle()
+
+		if iconSrcRect != nil && labelText != "" {
+			rect.W += float32(iconSrcRect.W)
+			rect.X -= float32(iconSrcRect.W) / 2
+		}
+
 	}
+
+	button.SetRectangle(rect)
 
 	return button
 }
@@ -197,8 +233,8 @@ func (button *Button) Update() {
 func (button *Button) Draw() {
 
 	color := getThemeColor(GUIFontColor)
-	lineWidth := button.Label.Rect.W
-	centerX := float32(button.Label.Rect.X + lineWidth/2)
+	lineWidth := button.Rect.W
+	centerX := float32(button.Rect.X + button.Rect.W/2)
 
 	if len(button.Label.Text) > 0 {
 		button.Label.Draw()
@@ -228,10 +264,19 @@ func (button *Button) Draw() {
 		if button.WorldSpace {
 			dst = globals.Project.Camera.TranslateRect(dst)
 		}
-		if len(button.Label.Text) > 0 {
-			dst.X -= float32(button.IconSrc.W)
-		}
+
 		globals.Renderer.CopyF(guiTexture, button.IconSrc, dst)
+
+	}
+
+	if globals.DebugMode {
+		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, lineWidth, button.Rect.H}
+		if button.WorldSpace {
+			dst = globals.Project.Camera.TranslateRect(dst)
+		}
+
+		globals.Renderer.SetDrawColor(255, 0, 0, 255)
+		globals.Renderer.FillRectF(dst)
 	}
 
 }
@@ -246,6 +291,9 @@ func (button *Button) SetRectangle(rect *sdl.FRect) {
 	button.Rect.Y = rect.Y
 	button.Rect.W = rect.W
 	button.Rect.H = rect.H
+	if button.IconSrc != nil && len(button.Label.Text) > 0 {
+		rect.X += float32(button.IconSrc.W) / 2
+	}
 	button.Label.SetRectangle(rect)
 }
 
@@ -258,7 +306,11 @@ type Spacer struct {
 }
 
 func NewSpacer(rect *sdl.FRect) *Spacer {
-	return &Spacer{Rect: rect}
+	spacer := &Spacer{Rect: rect}
+	if rect == nil {
+		spacer.Rect = &sdl.FRect{0, 0, globals.GridSize, globals.GridSize}
+	}
+	return spacer
 }
 
 func (spacer *Spacer) Update()                      {}
@@ -529,7 +581,12 @@ func (label *Label) Update() {
 
 				}
 
-				if globals.Mouse.WorldPosition().Inside(label.Rect) {
+				mousePos := globals.Mouse.Position()
+				if label.WorldSpace {
+					mousePos = globals.Mouse.WorldPosition()
+				}
+
+				if mousePos.Inside(label.Rect) {
 
 					button := globals.Mouse.Button(sdl.BUTTON_LEFT)
 
@@ -541,8 +598,6 @@ func (label *Label) Update() {
 
 						cIndex := 0
 						dist := float32(-1)
-
-						mousePos := globals.Mouse.WorldPosition()
 
 						for lineIndex, line := range label.RendererResult.TextLines {
 

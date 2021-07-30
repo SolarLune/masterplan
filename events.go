@@ -241,7 +241,7 @@ func handleEvents() {
 
 			if mouseEvent.State == sdl.PRESSED {
 				mouseButton.SetState(true)
-			} else {
+			} else if mouseEvent.State == sdl.RELEASED {
 				mouseButton.SetState(false)
 			}
 

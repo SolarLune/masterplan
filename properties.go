@@ -47,6 +47,20 @@ func (prop *Property) AsBool() bool {
 	return prop.data.(bool)
 }
 
+func (prop *Property) AsSlice() []interface{} {
+	if prop.data == nil {
+		prop.data = []interface{}{}
+	}
+	return prop.data.([]interface{})
+}
+
+func (prop *Property) AsMap() map[interface{}]interface{} {
+	if prop.data == nil {
+		prop.data = map[interface{}]interface{}{}
+	}
+	return prop.data.(map[interface{}]interface{})
+}
+
 func (prop *Property) Set(value interface{}) {
 	prop.data = value
 }

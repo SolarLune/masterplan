@@ -25,6 +25,7 @@ type Card struct {
 	Selected                bool
 	Result                  *sdl.Texture
 	Dragging                bool
+	Draggable               bool
 	DragStart               Point
 	DragStartOffset         Point
 	Depth                   int32
@@ -53,6 +54,7 @@ func NewCard(page *Page, contentType string) *Card {
 		RandomValue:     rand.Float32(),
 		Highlighter:     NewHighlighter(&sdl.FRect{0, 0, 32, 32}, true),
 		Collapsed:       CollapsedNone,
+		Draggable:       true,
 	}
 
 	card.Properties = NewProperties(card)
@@ -253,9 +255,11 @@ func (card *Card) Deselect() {
 }
 
 func (card *Card) StartDragging() {
-	card.DragStart = globals.Mouse.WorldPosition()
-	card.DragStartOffset = card.DragStart.Sub(Point{card.Rect.X, card.Rect.Y})
-	card.Dragging = true
+	if card.Draggable {
+		card.DragStart = globals.Mouse.WorldPosition()
+		card.DragStartOffset = card.DragStart.Sub(Point{card.Rect.X, card.Rect.Y})
+		card.Dragging = true
+	}
 }
 
 func (card *Card) StopDragging() {
@@ -431,6 +435,8 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewImageContents(card)
 		case ContentTypeTimer:
 			card.Contents = NewTimerContents(card)
+		case ContentTypeMap:
+			card.Contents = NewMapContents(card)
 		default:
 			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}

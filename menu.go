@@ -1,6 +1,9 @@
 package main
 
 import (
+	"math"
+	"sort"
+
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -14,21 +17,37 @@ const (
 )
 
 type MenuSystem struct {
-	Menus     []*Menu
-	MenuNames map[string]*Menu
+	Menus          []*Menu
+	MenuNames      map[string]*Menu
+	ExclusiveMenus []*Menu // If an Exclusive Menu is drawn, no other Menus will be
 }
 
 func NewMenuSystem() *MenuSystem {
 	ms := &MenuSystem{
-		Menus:     []*Menu{},
-		MenuNames: map[string]*Menu{},
+		Menus:          []*Menu{},
+		MenuNames:      map[string]*Menu{},
+		ExclusiveMenus: []*Menu{},
 	}
 	return ms
 }
 
 func (ms *MenuSystem) Update() {
 
-	for _, menu := range ms.Menus {
+	for _, menu := range ms.ExclusiveMenus {
+		if menu.opened {
+			menu.Update()
+			return
+		}
+	}
+
+	reversed := append([]*Menu{}, ms.Menus...)
+
+	sort.SliceStable(reversed, func(i, j int) bool {
+		return j < i
+	})
+
+	// Reverse so that menus on top of other ones update first
+	for _, menu := range reversed {
 		menu.Update()
 	}
 
@@ -36,14 +55,25 @@ func (ms *MenuSystem) Update() {
 
 func (ms *MenuSystem) Draw() {
 
+	for _, menu := range ms.ExclusiveMenus {
+		if menu.opened {
+			menu.Draw()
+			return
+		}
+	}
+
 	for _, menu := range ms.Menus {
 		menu.Draw()
 	}
 }
 
-func (ms *MenuSystem) Add(menu *Menu, name string) *Menu {
+func (ms *MenuSystem) Add(menu *Menu, name string, exclusive bool) *Menu {
 
-	ms.Menus = append(ms.Menus, menu)
+	if exclusive {
+		ms.ExclusiveMenus = append(ms.ExclusiveMenus, menu)
+	} else {
+		ms.Menus = append(ms.Menus, menu)
+	}
 	ms.MenuNames[name] = menu
 	return menu
 
@@ -58,6 +88,15 @@ func (ms *MenuSystem) Get(name string) *Menu {
 
 	return nil
 
+}
+
+func (ms *MenuSystem) ExclusiveMenuOpen() bool {
+	for _, menu := range ms.ExclusiveMenus {
+		if menu.opened {
+			return true
+		}
+	}
+	return false
 }
 
 type Menu struct {
@@ -92,7 +131,7 @@ type Menu struct {
 func NewMenu(rect *sdl.FRect, openable bool) *Menu {
 
 	menu := &Menu{
-		Rect:      rect,
+		Rect:      &sdl.FRect{rect.X, rect.Y, 0, 0},
 		MinSize:   Point{32, 32},
 		Pages:     map[string]*Container{},
 		Openable:  openable,
@@ -106,7 +145,7 @@ func NewMenu(rect *sdl.FRect, openable bool) *Menu {
 	menu.AddPage("root")
 	menu.SetPage("root")
 
-	menu.Recreate()
+	menu.Recreate(rect.W, rect.H)
 
 	return menu
 
@@ -138,11 +177,6 @@ func (menu *Menu) Update() {
 			menu.Rect.X = globals.ScreenSize.X - menu.Rect.W
 		}
 
-		menu.closeButtonButton.Rect.X = menu.Rect.X + menu.Rect.W - menu.closeButtonButton.Rect.W
-		menu.closeButtonButton.Rect.Y = menu.Rect.Y
-		menu.BackButton.Rect.X = menu.Rect.X
-		menu.BackButton.Rect.Y = menu.Rect.Y
-
 		padding := float32(8)
 		pageRect := *menu.Rect
 		pageRect.X += padding
@@ -169,15 +203,19 @@ func (menu *Menu) Update() {
 		button := globals.Mouse.Button(sdl.BUTTON_LEFT)
 
 		if menu.CloseButtonEnabled {
-			menu.closeButtonButton.Rect.X = menu.Rect.X + menu.Rect.W - menu.closeButtonButton.Rect.W
-			menu.closeButtonButton.Rect.Y = menu.Rect.Y
+			rect := menu.closeButtonButton.Rectangle()
+			rect.X = menu.Rect.X + menu.Rect.W - menu.closeButtonButton.Rect.W
+			rect.Y = menu.Rect.Y
+			menu.closeButtonButton.SetRectangle(rect)
 			menu.closeButtonButton.Update()
 		}
 
 		if menu.CanGoBack() {
+			rect := menu.BackButton.Rectangle()
+			rect.X = menu.Rect.X + 16
+			rect.Y = menu.Rect.Y
+			menu.BackButton.SetRectangle(rect)
 			menu.BackButton.Update()
-			menu.BackButton.Rect.X = menu.Rect.X + 16
-			menu.BackButton.Rect.Y = menu.Rect.Y
 		}
 
 		if menu.Resizeable {
@@ -212,10 +250,7 @@ func (menu *Menu) Update() {
 					h = globals.ScreenSize.Y - 32
 				}
 
-				menu.Rect.W = w
-				menu.Rect.H = h
-
-				menu.Recreate()
+				menu.Recreate(w, h)
 
 				if button.Released() {
 					menu.Resizing = false
@@ -225,7 +260,7 @@ func (menu *Menu) Update() {
 
 		}
 
-		if menu.Draggable {
+		if menu.Draggable && globals.State != StateTextEditing {
 
 			if button.Pressed() && globals.Mouse.Position().Inside(menu.Rect) {
 				button.Consume()
@@ -382,7 +417,17 @@ func (menu *Menu) SetPrevPage() {
 	}
 }
 
-func (menu *Menu) Recreate() {
+func (menu *Menu) Recreate(newW, newH float32) {
+
+	newW = float32(math.Round(float64(newW)))
+	newH = float32(math.Round(float64(newH)))
+
+	if menu.Rect.W == newW && menu.Rect.H == newH {
+		return
+	}
+
+	menu.Rect.W = newW
+	menu.Rect.H = newH
 
 	tex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(menu.Rect.W), int32(menu.Rect.H))
 

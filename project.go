@@ -49,14 +49,16 @@ const (
 )
 
 type Project struct {
-	ProjectSettings  *ProjectSettings
-	Pages            []*Page
-	CurrentPageIndex int
-	Camera           *Camera
-	GridTexture      *Image
-	Filepath         string
-	LoadingProject   *Project // A reference to the "next" Project when opening another one
-	UndoHistory      *UndoHistory
+	ProjectSettings *ProjectSettings
+	// Pages            []*Page
+	// CurrentPageIndex int
+	RootFolder     *PageFolder
+	CurrentPage    *Page
+	Camera         *Camera
+	GridTexture    *Image
+	Filepath       string
+	LoadingProject *Project // A reference to the "next" Project when opening another one
+	UndoHistory    *UndoHistory
 }
 
 func NewProject() *Project {
@@ -64,11 +66,15 @@ func NewProject() *Project {
 	project := &Project{
 		ProjectSettings: NewProjectSettings(),
 		Camera:          NewCamera(),
-		Pages:           []*Page{},
-		UndoHistory:     NewUndoHistory(),
+		// Pages:           []*Page{},
+		UndoHistory: NewUndoHistory(),
 	}
 
-	project.Pages = append(project.Pages, NewPage(project))
+	project.RootFolder = NewPageFolder(nil, project)
+	newPage := NewPage(project.RootFolder, project)
+	project.RootFolder.Add(newPage)
+
+	project.CurrentPage = newPage
 
 	guiTex := globals.Resources.Get("assets/gui.png").AsImage()
 
@@ -90,9 +96,11 @@ func (project *Project) Update() {
 
 	globals.Mouse.SetCursor("normal")
 
-	for _, page := range project.Pages {
-		page.Update()
-	}
+	project.RootFolder.Update()
+
+	// for _, page := range project.Pages {
+	// 	page.Update()
+	// }
 
 	globals.Mouse.HiddenPosition = false
 
@@ -147,7 +155,7 @@ func (project *Project) Draw() {
 	// 	}
 	// }
 
-	project.CurrentPage().Draw()
+	project.CurrentPage.Draw()
 
 }
 
@@ -155,9 +163,11 @@ func (project *Project) Save() {
 
 	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
 
-	for _, page := range project.Pages {
-		saveData, _ = sjson.SetRaw(saveData, "pages.-1", page.Serialize())
-	}
+	saveData = project.RootFolder.Serialize()
+
+	// for _, page := range project.RootFolder. {
+	// 	saveData, _ = sjson.SetRaw(saveData, "pages.-1", page.Serialize())
+	// }
 
 	saveData = gjson.Get(saveData, "@pretty").String()
 
@@ -200,16 +210,10 @@ func (project *Project) Open() {
 
 		newProject := NewProject()
 
-		for i, page := range gjson.Get(string(jsonData), "pages").Array() {
-			var newPage *Page
-			if i == 0 {
-				newPage = newProject.Pages[0]
-			} else {
-				newPage = NewPage(newProject)
-				newProject.Pages = append(newProject.Pages, newPage)
-			}
-			newPage.Deserialize(page.Raw)
-		}
+		newProject.RootFolder.Deserialize(string(jsonData))
+
+		newProject.CurrentPage = newProject.RootFolder.Pages()[1]
+		newProject.RootFolder.Remove(newProject.RootFolder.Contents[0])
 
 		project.LoadingProject = newProject
 
@@ -230,7 +234,7 @@ func (project *Project) MouseActions() {
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-			card := project.CurrentPage().CreateNewCard(ContentTypeCheckbox)
+			card := project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
 			card.Rect.X = globals.Mouse.WorldPosition().X - (card.Rect.W / 2)
 			card.Rect.Y = globals.Mouse.WorldPosition().Y - (card.Rect.H / 2)
 
@@ -269,7 +273,7 @@ func (project *Project) SendMessage(msg *Message) {
 		panic("ERROR: Message has no type.")
 	}
 
-	for _, page := range project.Pages {
+	for _, page := range project.RootFolder.Pages() {
 		page.SendMessage(msg)
 	}
 
@@ -277,7 +281,7 @@ func (project *Project) SendMessage(msg *Message) {
 
 func (project *Project) GlobalShortcuts() {
 
-	if globals.State == StateNeutral {
+	if globals.State == StateNeutral || globals.State == StateMapEditing {
 
 		dx := float32(0)
 		dy := float32(0)
@@ -330,36 +334,38 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBNewCheckboxCard) {
-			project.CurrentPage().CreateNewCard(ContentTypeCheckbox)
+			project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewNoteCard) {
-			project.CurrentPage().CreateNewCard(ContentTypeNote)
+			project.CurrentPage.CreateNewCard(ContentTypeNote)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewSoundCard) {
-			project.CurrentPage().CreateNewCard(ContentTypeSound)
+			project.CurrentPage.CreateNewCard(ContentTypeSound)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewImageCard) {
-			project.CurrentPage().CreateNewCard(ContentTypeImage)
+			project.CurrentPage.CreateNewCard(ContentTypeImage)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewTimerCard) {
-			project.CurrentPage().CreateNewCard(ContentTypeTimer)
+			project.CurrentPage.CreateNewCard(ContentTypeTimer)
+		} else if globals.ProgramSettings.Keybindings.On(KBNewMapCard) {
+			project.CurrentPage.CreateNewCard(ContentTypeMap)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {
-			project.CurrentPage().DeleteCards(project.CurrentPage().Selection.AsSlice()...)
+			project.CurrentPage.DeleteCards(project.CurrentPage.Selection.AsSlice()...)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBSelectAllCards) {
-			for _, card := range project.CurrentPage().Cards {
+			for _, card := range project.CurrentPage.Cards {
 				// card.Select()
-				project.CurrentPage().Selection.Add(card)
+				project.CurrentPage.Selection.Add(card)
 			}
 
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBCopyCards) {
-			project.CurrentPage().CopySelectedCards()
+			project.CurrentPage.CopySelectedCards()
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBPasteCards) {
 
-			project.CurrentPage().PasteCards()
+			project.CurrentPage.PasteCards()
 
 		}
 
@@ -385,8 +391,4 @@ func (project *Project) GlobalShortcuts() {
 
 	}
 
-}
-
-func (project *Project) CurrentPage() *Page {
-	return project.Pages[project.CurrentPageIndex]
 }

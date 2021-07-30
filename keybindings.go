@@ -37,8 +37,10 @@ const (
 	KBNewSoundCard    = "New Sound Card"
 	KBNewImageCard    = "New Image Card"
 	KBNewTimerCard    = "New Timer Card"
+	KBNewMapCard      = "New Map Card"
 
 	KBDebugRestart = "DEBUG: RESTART"
+	KBDebugToggle  = "DEBUG: Toggle Debug"
 
 	KBAddToSelection      = "Add to Selection Modifier"
 	KBRemoveFromSelection = "Remove From Selection Modifier"
@@ -274,6 +276,7 @@ func (kb *Keybindings) Default() {
 	// settings.canClash = false
 
 	kb.Define(KBDebugRestart, sdl.K_r)
+	kb.Define(KBDebugToggle, sdl.K_F1)
 
 	kb.Define(KBZoomIn, sdl.K_KP_PLUS)
 	kb.Define(KBZoomOut, sdl.K_KP_MINUS)
@@ -298,6 +301,7 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBNewSoundCard, sdl.K_3, sdl.K_LSHIFT)
 	kb.Define(KBNewImageCard, sdl.K_4, sdl.K_LSHIFT)
 	kb.Define(KBNewTimerCard, sdl.K_5, sdl.K_LSHIFT)
+	kb.Define(KBNewMapCard, sdl.K_6, sdl.K_LSHIFT)
 
 	kb.Define(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.Define(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold

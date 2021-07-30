@@ -8,5 +8,6 @@
     "Note Color": [248, 197, 58, 255],
     "Sound Color": [226, 114, 133, 255],
     "Blank Image Color": [226, 160, 133, 255],
-    "Timer Color": [134, 198, 154, 255]
+    "Timer Color": [134, 198, 154, 255],
+    "Map Color": [134, 198, 154, 255]
 }

@@ -1,27 +1,178 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
 
+const (
+	PageContentFolder = "PageContentFolder"
+	PageContentPage   = "PageContentPage"
+)
+
+type PageContent interface {
+	Type() string
+	Name() string
+	Depth() int
+	Update()
+	Serialize() string
+}
+
+// type PageContent struct {
+// 	Contents interface{}
+// }
+
+// func (pc *PageContent) IsPage() bool {
+// 	_, ok := pc.Contents.(*Page)
+// 	return ok
+// }
+
+// func (pc *PageContent) AsPage() *Page {
+// 	return pc.Contents.(*Page)
+// }
+
+// func (pc *PageContent) IsFolder() bool {
+// 	_, ok := pc.Contents.(*PageFolder)
+// 	return ok
+// }
+
+// func (pc *PageContent) AsFolder() *PageFolder {
+// 	return pc.Contents.(*PageFolder)
+// }
+
+type PageFolder struct {
+	Folder   *PageFolder
+	Project  *Project
+	Contents []PageContent
+	ToRemove []PageContent
+	name     string
+	depth    int
+	Expanded bool
+}
+
+func NewPageFolder(owningFolder *PageFolder, project *Project) *PageFolder {
+	pf := &PageFolder{
+		Folder:   owningFolder,
+		Project:  project,
+		Contents: []PageContent{},
+		name:     "New Folder",
+		Expanded: true,
+	}
+
+	if owningFolder != nil {
+		pf.depth = owningFolder.depth + 1
+	}
+
+	return pf
+}
+
+func (pf *PageFolder) Add(element PageContent) {
+	pf.Contents = append(pf.Contents, element)
+}
+
+func (pf *PageFolder) Remove(element PageContent) {
+	pf.ToRemove = append(pf.ToRemove, element)
+}
+
+func (pf *PageFolder) Update() {
+
+	for _, content := range pf.Contents {
+		content.Update()
+	}
+
+	for _, element := range pf.ToRemove {
+		for i, content := range pf.Contents {
+			if element == content {
+				pf.Contents[i] = nil
+				pf.Contents = append(pf.Contents[:i], pf.Contents[i+1:]...)
+				break
+			}
+		}
+	}
+	pf.ToRemove = []PageContent{}
+
+}
+
+func (pf *PageFolder) Pages() []*Page {
+	pages := []*Page{}
+	for _, content := range pf.Contents {
+		if content.Type() == PageContentPage {
+			pg := content.(*Page)
+			pages = append(pages, pg)
+		}
+	}
+	return pages
+}
+
+func (pf *PageFolder) Type() string { return PageContentFolder }
+
+func (pf *PageFolder) Depth() int { return pf.depth }
+
+func (pf *PageFolder) Name() string { return pf.name }
+
+func (pf *PageFolder) Serialize() string {
+	data := "{}"
+	data, _ = sjson.Set(data, "pagecontenttype", PageContentFolder)
+	data, _ = sjson.Set(data, "name", pf.name)
+
+	contents := "["
+	for i, element := range pf.Contents {
+		contents += element.Serialize()
+		if i < len(pf.Contents)-1 {
+			contents += ","
+		}
+	}
+	contents += "]"
+
+	data, _ = sjson.SetRaw(data, "contents", contents)
+
+	return data
+}
+
+func (pf *PageFolder) Deserialize(data string) {
+
+	pf.name = gjson.Get(data, "name").String()
+
+	for _, c := range gjson.Get(data, "contents").Array() {
+		if c.Get("pagecontenttype").String() == PageContentFolder {
+			newPF := NewPageFolder(pf, pf.Project)
+			pf.Add(newPF)
+			newPF.Deserialize(c.String())
+		} else {
+			newPage := NewPage(pf, pf.Project)
+			pf.Add(newPage)
+			newPage.Deserialize(c.String())
+		}
+	}
+
+}
+
 type Page struct {
 	Project   *Project
+	Folder    *PageFolder // The folder that "owns" the page
 	Grid      *Grid
 	Cards     []*Card
 	ToDelete  []*Card
 	Selection *Selection
+	name      string
+	depth     int
 }
 
-func NewPage(project *Project) *Page {
+func NewPage(pageFolder *PageFolder, project *Project) *Page {
 
 	page := &Page{
 		Project: project,
+		Folder:  pageFolder,
 		Grid:    NewGrid(),
 		Cards:   []*Card{},
+		name:    "New Page",
+		depth:   0,
 	}
+
+	page.depth = pageFolder.depth + 1
 
 	page.Selection = NewSelection(page)
 
@@ -55,8 +206,6 @@ func (page *Page) Update() {
 
 	page.ToDelete = []*Card{}
 
-	page.Selection.Update()
-
 }
 
 func (page *Page) Draw() {
@@ -70,6 +219,9 @@ func (page *Page) Draw() {
 		card.DrawContents()
 	}
 
+	// This needs to be later so mouse buttons can be consumed in a Card's Draw() loop, for example, before the Selection detects the mouse button press
+	page.Selection.Update()
+
 	page.Selection.Draw()
 
 }
@@ -77,6 +229,9 @@ func (page *Page) Draw() {
 func (page *Page) Serialize() string {
 
 	pageData := "{}"
+
+	pageData, _ = sjson.Set(pageData, "pagecontenttype", PageContentPage)
+	pageData, _ = sjson.Set(pageData, "name", page.name)
 
 	// Sort the cards by their position so the serialization is more stable. (Otherwise, clicking on
 	// a Card adjusts the sort order, and therefore the order in which Cards are serialized.)
@@ -96,9 +251,12 @@ func (page *Page) Serialize() string {
 
 func (page *Page) Deserialize(data string) {
 
+	page.name = gjson.Get(data, "name").String()
+
 	for _, cardData := range gjson.Get(data, "cards").Array() {
 
 		newCard := page.CreateNewCard(ContentTypeCheckbox)
+		fmt.Println("create new card")
 		newCard.Deserialize(cardData.Raw)
 
 	}
@@ -184,6 +342,14 @@ func (page *Page) SendMessage(msg *Message) {
 	}
 
 }
+
+func (page *Page) Type() string {
+	return PageContentPage
+}
+
+func (page *Page) Depth() int { return page.depth }
+
+func (page *Page) Name() string { return page.name }
 
 // import (
 // 	"fmt"

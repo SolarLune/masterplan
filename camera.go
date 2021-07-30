@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/tanema/gween"
-	"github.com/tanema/gween/ease"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -11,23 +9,22 @@ type Camera struct {
 	TargetPosition Point
 	Zoom           float32
 	TargetZoom     float32
-	ZoomTween      *gween.Tween
 }
 
 func NewCamera() *Camera {
 	return &Camera{
 		Zoom:       1,
 		TargetZoom: 1,
-		ZoomTween:  gween.New(1, 1, 1, ease.Linear),
 	}
 }
 
 func (camera *Camera) Update() {
 
-	camera.Zoom, _ = camera.ZoomTween.Update(globals.DeltaTime)
-
-	globals.Renderer.SetScale(camera.Zoom, camera.Zoom)
 	softness := float32(0.2)
+
+	camera.Zoom += (camera.TargetZoom - camera.Zoom) * softness
+	globals.Renderer.SetScale(camera.Zoom, camera.Zoom)
+
 	camera.Position = camera.Position.Add(camera.TargetPosition.Sub(camera.Position).Mult(softness))
 }
 
@@ -41,7 +38,6 @@ func (camera *Camera) SetZoom(targetZoom float32) {
 
 	camera.TargetZoom = targetZoom
 
-	camera.ZoomTween = gween.New(camera.Zoom, camera.TargetZoom, 0.5, ease.InOutCirc)
 }
 
 func (camera *Camera) AddZoom(zoomInAmount float32) {
@@ -83,8 +79,6 @@ func (camera *Camera) TranslatePoint(point Point) Point {
 
 func (camera *Camera) UntranslatePoint(point Point) Point {
 	point = point.Add(camera.Offset().Inverted())
-	point.X *= camera.Zoom
-	point.Y *= camera.Zoom
 	return point
 }
 

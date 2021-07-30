@@ -10,6 +10,7 @@ import (
 const (
 	StateNeutral     = "project state neutral"
 	StateTextEditing = "project state text editing"
+	StateMapEditing  = "project state map editing"
 	StateContextMenu = "project state context menu open"
 )
 
@@ -35,6 +36,7 @@ type Globals struct {
 	Resources       ResourceBank
 	GrabClient      *grab.Client
 	MenuSystem      *MenuSystem
+	DebugMode       bool
 }
 
 var globals = &Globals{}

@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"path"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/ncruces/zenity"
+	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -668,6 +670,15 @@ func NewTimerContents(card *Card) *TimerContents {
 		ClockLabel:      NewLabel("00:00:00", &sdl.FRect{0, 0, 128, 32}, true, AlignCenter),
 	}
 
+	tc.Name.OnChange = func() {
+		tc.Card.Properties.Get("description").Set(tc.Name.TextAsString())
+
+		lineCount := float32(tc.Name.LineCount())
+		if lineCount*globals.GridSize > tc.Card.Rect.H {
+			tc.Card.Recreate(tc.Card.Rect.W, lineCount*globals.GridSize)
+		}
+	}
+
 	tc.StartButton = NewButton("", nil, &sdl.Rect{112, 32, 32, 32}, tc.Trigger, true)
 	tc.RestartButton = NewButton("", nil, &sdl.Rect{176, 32, 32, 32}, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 }, true)
 	tc.Pie = NewPie(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color(), true)
@@ -727,7 +738,7 @@ func (tc *TimerContents) Trigger() {
 	tc.Running = !tc.Running
 }
 
-func (tc *TimerContents) Draw() { tc.DefaultContents.Draw() }
+// func (tc *TimerContents) Draw() { tc.DefaultContents.Draw() }
 
 func (tc *TimerContents) ReceiveMessage(msg *Message) {}
 
@@ -736,6 +747,303 @@ func (tc *TimerContents) Color() Color { return getThemeColor(GUITimerColor) }
 func (tc *TimerContents) DefaultSize() Point {
 	return Point{globals.GridSize * 8, globals.GridSize * 5}
 }
+
+type MapContents struct {
+	DefaultContents
+	Editing bool
+	Data    map[Point]int
+	Texture *Image
+}
+
+func NewMapContents(card *Card) *MapContents {
+
+	mc := &MapContents{
+		DefaultContents: newDefaultContents(card),
+		Data:            map[Point]int{},
+	}
+	mc.Container.AddRow(AlignLeft).Add("icon", NewIcon(nil, &sdl.Rect{112, 96, 32, 32}, true))
+	mc.RecreateTexture()
+	mc.UpdateTexture()
+	// mc.Container.AddRow(AlignLeft).Add("label", NewLabel("Something", nil, true, AlignLeft))
+	return mc
+
+}
+
+func (mc *MapContents) Update() {
+
+	mc.DefaultContents.Update()
+
+	mc.Card.Draggable = !mc.Editing
+
+	changed := false
+
+	if mc.Card.Selected {
+
+		// if ClickedInRect(mc.Card.Rect, true) && globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
+		// 	mc.Showing = !mc.Showing
+		// 	globals.State = StateNeutral
+		// }
+
+		if mc.Card.Resizing {
+			mc.RecreateTexture()
+			mc.UpdateTexture()
+			mc.Editing = false
+		} else if mc.Editing && globals.Mouse.CurrentCursor == "pencil" {
+
+			if mp := globals.Mouse.WorldPosition(); mp.Inside(mc.Card.Rect) {
+				globals.State = StateMapEditing
+			} else {
+				globals.State = StateNeutral
+			}
+
+			if globals.Mouse.Button(sdl.BUTTON_LEFT).Held() {
+				mc.Data[mc.GridCursorPosition()] = 1
+				changed = true
+			} else if globals.Mouse.Button(sdl.BUTTON_RIGHT).Held() {
+				mc.Data[mc.GridCursorPosition()] = 0
+				changed = true
+			}
+
+		}
+
+		if changed {
+			mc.UpdateTexture()
+		}
+
+	} else {
+		mc.Editing = false
+	}
+}
+
+func (mc *MapContents) Draw() {
+
+	if mc.Card.Selected {
+
+		if ImmediateButton(mc.Card.DisplayRect.X, mc.Card.DisplayRect.Y-32, &sdl.Rect{368, 0, 32, 32}, true) {
+			mc.Editing = !mc.Editing
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+		}
+
+	}
+
+	if mc.Texture != nil {
+
+		dst := &sdl.FRect{mc.Card.DisplayRect.X, mc.Card.DisplayRect.Y, mc.Card.Rect.W, mc.Card.Rect.H}
+		dst = globals.Project.Camera.TranslateRect(dst)
+		globals.Renderer.CopyF(mc.Texture.Texture, nil, dst)
+
+		if mp := globals.Mouse.WorldPosition(); mc.Editing && mp.Inside(mc.Card.Rect) {
+
+			if mc.Card.Selected && !mc.Card.Resizing {
+				globals.Mouse.SetCursor("pencil")
+			}
+
+			mp.X = float32(math.Floor(float64((mp.X)/globals.GridSize))) * globals.GridSize
+			mp.Y = float32(math.Floor(float64((mp.Y)/globals.GridSize))) * globals.GridSize
+
+			mp = globals.Project.Camera.UntranslatePoint(mp)
+
+			gfx.ThickLineRGBA(globals.Renderer, int32(mp.X), int32(mp.Y), int32(mp.X+32), int32(mp.Y), 2, 255, 255, 255, 255)
+			gfx.ThickLineRGBA(globals.Renderer, int32(mp.X+32), int32(mp.Y), int32(mp.X+32), int32(mp.Y+32), 2, 255, 255, 255, 255)
+			gfx.ThickLineRGBA(globals.Renderer, int32(mp.X+32), int32(mp.Y+32), int32(mp.X), int32(mp.Y+32), 2, 255, 255, 255, 255)
+			gfx.ThickLineRGBA(globals.Renderer, int32(mp.X), int32(mp.Y+32), int32(mp.X), int32(mp.Y), 2, 255, 255, 255, 255)
+		}
+
+	}
+
+}
+
+func (mc *MapContents) GridCursorPosition() Point {
+
+	mp := globals.Mouse.WorldPosition()
+	mp = globals.Project.Camera.UntranslatePoint(mp)
+
+	mp = mp.Sub(globals.Project.Camera.TranslatePoint(Point{mc.Card.Rect.X, mc.Card.Rect.Y}))
+
+	// cardPos := Point{mc.Card.Rect.X, mc.Card.Rect.Y}
+
+	mp.X = float32(math.Floor(float64((mp.X) / globals.GridSize)))
+	mp.Y = float32(math.Floor(float64((mp.Y) / globals.GridSize)))
+
+	if mp.X < 0 {
+		mp.X = 0
+	}
+	if mp.Y < 0 {
+		mp.Y = 0
+	}
+
+	if mp.X > mc.Card.Rect.W/globals.GridSize {
+		mp.X = mc.Card.Rect.W / globals.GridSize
+	}
+	if mp.Y > mc.Card.Rect.H/globals.GridSize {
+		mp.Y = mc.Card.Rect.H / globals.GridSize
+	}
+
+	return mp
+
+}
+
+func (mc *MapContents) UpdateTexture() {
+
+	if mc.Texture != nil {
+
+		globals.Renderer.SetRenderTarget(mc.Texture.Texture)
+
+		globals.Renderer.SetDrawColor(23, 24, 25, 255)
+		globals.Renderer.FillRect(nil)
+
+		guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
+
+		guiTex.SetColorMod(255, 255, 255)
+		guiTex.SetAlphaMod(255)
+
+		for point, value := range mc.Data {
+
+			if value != 0 {
+				src := &sdl.Rect{240, 0, 32, 32}
+				dst := &sdl.FRect{point.X * globals.GridSize, point.Y * globals.GridSize, globals.GridSize, globals.GridSize}
+				rot := float64(0)
+				right := mc.Data[point.Add(Point{1, 0})] > 0
+				left := mc.Data[point.Add(Point{-1, 0})] > 0
+				top := mc.Data[point.Add(Point{0, -1})] > 0
+				bottom := mc.Data[point.Add(Point{0, 1})] > 0
+
+				count := 0
+				if right {
+					count++
+				}
+				if left {
+					count++
+				}
+				if top {
+					count++
+				}
+				if bottom {
+					count++
+				}
+
+				if count >= 3 {
+					src.X = 336
+				} else if right && left {
+					src.X = 336
+				} else if top && bottom {
+					src.X = 336
+				} else if right && bottom {
+					src.X = 304
+				} else if bottom && left {
+					src.X = 304
+					rot = 90
+				} else if left && top {
+					src.X = 304
+					rot = 180
+				} else if top && right {
+					src.X = 304
+					rot = 270
+				} else if right {
+					src.X = 272
+				} else if left {
+					src.X = 272
+					rot = 180
+				} else if top {
+					src.X = 272
+					rot = -90
+				} else if bottom {
+					src.X = 272
+					rot = 90
+				}
+				// if top && right && bottom && left {
+				// 	src.X = 272
+				// 	src.Y = 32
+				// } else if top && right && left {
+				// 	src.X = 304
+				// 	src.Y = 32
+				// } else if top && right && bottom {
+				// 	src.X = 304
+				// 	src.Y = 32
+				// 	rot = 90
+				// } else if left && right && bottom {
+				// 	src.X = 304
+				// 	src.Y = 32
+				// 	rot = 180
+				// } else if left && top && bottom {
+				// 	src.X = 304
+				// 	src.Y = 32
+				// 	rot = 270
+				// } else if right && left {
+				// 	src.X = 304
+				// } else if top && bottom {
+				// 	src.X = 304
+				// 	rot = 90
+				// } else if left && top {
+				// 	src.X = 240
+				// 	src.Y = 32
+				// } else if right && top {
+				// 	src.X = 240
+				// 	src.Y = 32
+				// 	rot = 90
+				// } else if right && bottom {
+				// 	src.X = 240
+				// 	src.Y = 32
+				// 	rot = 180
+				// } else if bottom && left {
+				// 	src.X = 240
+				// 	src.Y = 32
+				// 	rot = 270
+				// } else if right {
+				// 	src.X = 272
+				// } else if left {
+				// 	src.X = 272
+				// 	rot = 180
+				// } else if top {
+				// 	src.X = 272
+				// 	rot = -90
+				// } else if bottom {
+				// 	src.X = 272
+				// 	rot = 90
+				// }
+
+				globals.Renderer.CopyExF(guiTex, src, dst, rot, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+			}
+
+		}
+		globals.Renderer.SetRenderTarget(nil)
+
+	}
+
+}
+
+func (mc *MapContents) RecreateTexture() {
+
+	rectSize := Point{mc.Card.Rect.W, mc.Card.Rect.H}
+
+	if rectSize.X <= 0 || rectSize.Y <= 0 {
+		rectSize = mc.DefaultSize()
+	}
+
+	if mc.Texture == nil || (mc.Texture != nil && !mc.Texture.Size.Equals(rectSize)) {
+
+		tex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(rectSize.X), int32(rectSize.Y))
+
+		if err != nil {
+			return
+		} else {
+			if mc.Texture != nil {
+				mc.Texture.Texture.Destroy()
+			}
+			mc.Texture = &Image{}
+			mc.Texture.Texture = tex
+			mc.Texture.Size = rectSize
+		}
+
+	}
+
+}
+
+func (mc *MapContents) ReceiveMessage(msg *Message) {}
+
+func (mc *MapContents) Color() Color { return getThemeColor(GUIMapColor) }
+
+func (mc *MapContents) DefaultSize() Point { return Point{globals.GridSize * 8, globals.GridSize * 8} }
 
 // type taskBGProgress struct {
 // 	Current, Max int

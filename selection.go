@@ -6,14 +6,14 @@ import (
 )
 
 type Selection struct {
-	Board        *Page
+	Page         *Page
 	Cards        map[*Card]bool
 	BoxSelecting bool
 	BoxStart     Point
 }
 
 func NewSelection(board *Page) *Selection {
-	return &Selection{Board: board, Cards: map[*Card]bool{}}
+	return &Selection{Page: board, Cards: map[*Card]bool{}}
 }
 
 func (selection *Selection) Update() {
@@ -35,7 +35,7 @@ func (selection *Selection) Update() {
 
 			if globals.ProgramSettings.Keybindings.On(KBRemoveFromSelection) {
 
-				for _, card := range selection.Board.Project.CurrentPage().Cards {
+				for _, card := range selection.Page.Cards {
 					if card.Rect.HasIntersection(selectionRect) {
 						selection.Remove(card)
 					}
@@ -43,7 +43,7 @@ func (selection *Selection) Update() {
 
 			} else {
 
-				for _, card := range selection.Board.Project.CurrentPage().Cards {
+				for _, card := range selection.Page.Cards {
 					if card.Rect.HasIntersection(selectionRect) {
 						selection.Add(card)
 					}
@@ -87,10 +87,9 @@ func (selection *Selection) Clear() {
 func (selection *Selection) Draw() {
 	if selection.BoxSelecting {
 		globals.Renderer.SetScale(1, 1)
-		unprojected := selection.Board.Project.Camera.UntranslatePoint(selection.BoxStart)
+		unprojected := selection.Page.Project.Camera.UntranslatePoint(selection.BoxStart)
+		unprojected = unprojected.Mult(globals.Project.Camera.Zoom)
 		other := globals.Mouse.Position()
-		// globals.Renderer.DrawRectF(NewCorrectingRect(unprojected.X, unprojected.Y, globals.Mouse.Position().X, globals.Mouse.Position().Y).SDLRect())
-
 		boxColor := getThemeColor(GUIMenuColor).SDLColor()
 		gfx.ThickLineColor(globals.Renderer, int32(unprojected.X), int32(unprojected.Y), int32(other.X), int32(unprojected.Y), 4, boxColor)
 		gfx.ThickLineColor(globals.Renderer, int32(unprojected.X), int32(unprojected.Y), int32(unprojected.X), int32(other.Y), 4, boxColor)

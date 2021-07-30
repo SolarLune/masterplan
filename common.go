@@ -355,6 +355,7 @@ func LoadCursors() {
 	globals.Mouse.Cursors["normal"] = createCursor(432, 0)
 	globals.Mouse.Cursors["resize"] = createCursor(432, 48)
 	globals.Mouse.Cursors["text caret"] = createCursor(432, 96)
+	globals.Mouse.Cursors["pencil"] = createCursor(432, 144)
 
 	globals.Mouse.SetCursor("normal")
 
