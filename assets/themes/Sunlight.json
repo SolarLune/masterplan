@@ -1,7 +1,7 @@
 {
-    "Background Color":[255, 255, 255, 255],
-    "Grid Color":[236, 235, 231, 255],
-    "Menu Color":[0, 0, 0, 255],
+    "Background Color":[230, 240, 250, 255],
+    "Grid Color":[210, 220, 230, 255],
+    "Menu Color":[16, 14, 12, 255],
     "Font Color":[255, 255, 255, 255],
     "Checkbox Color": [203, 198, 193, 255],
     "Completed Color": [66, 191, 255, 255],
@@ -9,5 +9,5 @@
     "Sound Color": [226, 114, 133, 255],
     "Blank Image Color": [226, 160, 133, 255],
     "Timer Color": [134, 198, 154, 255],
-    "Map Color": [134, 198, 154, 255]
+    "Map Color": [50, 55, 60, 255]
 }

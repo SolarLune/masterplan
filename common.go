@@ -137,8 +137,25 @@ func (point Point) DistanceSquared(other Point) float32 {
 	return float32(math.Pow(float64(other.X-point.X), 2) + math.Pow(float64(other.Y-point.Y), 2))
 }
 
+func (point Point) Distance(other Point) float32 {
+	return float32(math.Sqrt(float64(point.DistanceSquared(other))))
+}
+
+func (point Point) Length() float32 {
+	return point.Distance(Point{0, 0})
+}
+
 func (point Point) Equals(other Point) bool {
 	return math.Abs(float64(point.X-other.X)) < 0.1 && math.Abs(float64(point.Y-other.Y)) < 0.1
+}
+
+func (point Point) Normalized() Point {
+	dist := point.Distance(Point{0, 0})
+	return Point{point.X / dist, point.Y / dist}
+}
+
+func (point Point) Rounded() Point {
+	return Point{float32(math.Round(float64(point.X))), float32(math.Round(float64(point.Y)))}
 }
 
 func ClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
@@ -424,6 +441,12 @@ func SmoothLerpTowards(target, current, softness float32) float32 {
 		diff = target - current
 	}
 	return diff
+}
+
+func FillRect(x, y, w, h float32, color Color) {
+	globals.Renderer.SetDrawColor(color.RGBA())
+	globals.Renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
+	globals.Renderer.FillRectF(&sdl.FRect{x, y, w, h})
 }
 
 // func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {

@@ -314,8 +314,8 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 		}
 
 		dst := &sdl.Rect{x, y, glyph.Width(), glyph.Height()}
-		glyph.Texture().SetColorMod(getThemeColor(GUIFontColor).RGB())
-		glyph.Texture().SetAlphaMod(getThemeColor(GUIFontColor)[3])
+		// glyph.Texture().SetColorMod(getThemeColor(GUIFontColor).RGB())
+		// glyph.Texture().SetAlphaMod(getThemeColor(GUIFontColor)[3])
 		globals.Renderer.Copy(glyph.Texture(), nil, dst)
 		x += glyph.Width()
 		textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)

@@ -238,30 +238,30 @@ func NewUndoState(card *Card) *UndoState {
 
 func (state *UndoState) Apply() {
 	state.Card.Deserialize(state.Serialized)
-	// state.Card.UndoChange = false
-	// state.Card.UndoCreation = false
-	// state.Card.UndoDeletion = false
+	state.Card.CreateUndoState = false
+	state.Card.UndoCreation = false
+	state.Card.UndoDeletion = false
 }
 
 func (state *UndoState) Exit(direction int) {
 
-	// if direction > 0 {
-	// 	if state.Creation {
-	// 		state.Card.Board.RestoreTask(state.Card)
-	// 	} else if state.Deletion {
-	// 		state.Card.Board.DeleteTask(state.Card)
-	// 	}
-	// } else if direction < 0 {
-	// 	if state.Creation {
-	// 		state.Card.Board.DeleteTask(state.Card)
-	// 	} else if state.Deletion {
-	// 		state.Card.Board.RestoreTask(state.Card)
-	// 	}
-	// }
+	if direction > 0 {
+		if state.Creation {
+			state.Card.Page.RestoreCards(state.Card)
+		} else if state.Deletion {
+			state.Card.Page.DeleteCards(state.Card)
+		}
+	} else if direction < 0 {
+		if state.Creation {
+			state.Card.Page.DeleteCards(state.Card)
+		} else if state.Deletion {
+			state.Card.Page.RestoreCards(state.Card)
+		}
+	}
 
-	// state.Card.UndoChange = false
-	// state.Card.UndoCreation = false
-	// state.Card.UndoDeletion = false
+	state.Card.CreateUndoState = false
+	state.Card.UndoCreation = false
+	state.Card.UndoDeletion = false
 
 }
 

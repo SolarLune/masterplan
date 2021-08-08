@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/atotto/clipboard"
@@ -125,38 +127,116 @@ type FocusableMenuElement interface {
 	SetFocused(bool)
 }
 
-func ImmediateButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool) bool {
+type IconButton struct {
+	Rect       *sdl.FRect
+	IconSrc    *sdl.Rect
+	WorldSpace bool
+	OnClicked  func()
+	Tint       Color
+	BGIconSrc  *sdl.Rect
+}
 
-	clickInside := false
+func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked func()) *IconButton {
+
+	iconButton := &IconButton{
+		Rect:       &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)},
+		IconSrc:    iconSrc,
+		WorldSpace: worldSpace,
+		Tint:       NewColor(255, 255, 255, 255),
+		OnClicked:  onClicked,
+	}
+	return iconButton
+
+}
+
+func (iconButton *IconButton) Update() {
+
+	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnClicked != nil {
+		iconButton.OnClicked()
+	}
+
+}
+
+func (iconButton *IconButton) Draw() {
+
+	orig := *iconButton.Rect
+	rect := &orig
+	guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
+
+	if iconButton.WorldSpace {
+		rect = globals.Project.Camera.TranslateRect(rect)
+	}
 
 	mp := globals.Mouse.Position()
-	rect := &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)}
-	if worldSpace {
+	if iconButton.WorldSpace {
 		mp = globals.Mouse.WorldPosition()
 	}
 
-	color := sdl.Color{128, 128, 128, 255}
-	if mp.Inside(rect) {
-		color.R = 255
-		color.G = 255
-		color.B = 255
+	drawSrc := func(src *sdl.Rect, color Color) {
+
+		if !mp.Inside(iconButton.Rect) {
+			color = color.Sub(40)
+		}
+		guiTex.SetColorMod(color.RGB())
+		guiTex.SetAlphaMod(color[3])
+		globals.Renderer.CopyF(guiTex, src, rect)
+
 	}
 
-	guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
-	guiTex.SetColorMod(color.R, color.G, color.B)
-	guiTex.SetAlphaMod(color.A)
-
-	if ClickedInRect(rect, worldSpace) {
-		clickInside = true
+	if iconButton.BGIconSrc != nil {
+		drawSrc(iconButton.BGIconSrc, NewColor(255, 255, 255, 255))
 	}
 
-	if worldSpace {
-		rect = globals.Project.Camera.TranslateRect(rect)
-	}
-	globals.Renderer.CopyF(guiTex, iconSrc, rect)
+	drawSrc(iconButton.IconSrc, iconButton.Tint)
 
-	return clickInside
 }
+
+func (iconButton *IconButton) Destroy() {}
+
+func (iconButton *IconButton) Rectangle() *sdl.FRect {
+	newRect := *iconButton.Rect
+	return &newRect
+}
+
+func (iconButton *IconButton) SetRectangle(rect *sdl.FRect) {
+	iconButton.Rect.X = rect.X
+	iconButton.Rect.Y = rect.Y
+	iconButton.Rect.W = rect.W
+	iconButton.Rect.H = rect.H
+}
+
+// func ImmediateButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool) bool {
+
+// 	clickInside := false
+
+// 	mp := globals.Mouse.Position()
+// 	rect := &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)}
+// 	if worldSpace {
+// 		mp = globals.Mouse.WorldPosition()
+// 	}
+
+// 	color := sdl.Color{220, 220, 220, 255}
+// 	if mp.Inside(rect) {
+// 		color.R = 255
+// 		color.G = 255
+// 		color.B = 255
+// 	}
+
+// 	guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
+// 	guiTex.SetColorMod(color.R, color.G, color.B)
+// 	guiTex.SetAlphaMod(color.A)
+
+// 	if ClickedInRect(rect, worldSpace) {
+// 		clickInside = true
+// 	}
+
+// 	if worldSpace {
+// 		rect = globals.Project.Camera.TranslateRect(rect)
+// 	}
+// 	globals.Renderer.CopyF(guiTex, iconSrc, rect)
+
+// 	return clickInside
+// }
 
 type Button struct {
 	Label          *Label
@@ -169,7 +249,7 @@ type Button struct {
 	FadeOnInactive bool
 }
 
-func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, pressedFunc func(), worldSpace bool) *Button {
+func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, worldSpace bool, pressedFunc func()) *Button {
 
 	button := &Button{
 		Label:          NewLabel(labelText, rect, worldSpace, AlignCenter),
@@ -204,10 +284,10 @@ func (button *Button) Update() {
 		mousePos = globals.Mouse.WorldPosition()
 	}
 
+	alphaTarget := float32(0.5)
+
 	if mousePos.Inside(button.Rect) {
-		if button.FadeOnInactive {
-			button.Label.Alpha = 255
-		}
+		alphaTarget = 1
 		button.LineWidth += (1 - button.LineWidth) * 0.2
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.CurrentCursor == "normal" {
@@ -218,10 +298,11 @@ func (button *Button) Update() {
 		}
 
 	} else {
-		if button.FadeOnInactive {
-			button.Label.Alpha = 127
-		}
 		button.LineWidth += (0 - button.LineWidth) * 0.2
+	}
+
+	if button.FadeOnInactive {
+		button.Label.Alpha += ((alphaTarget - button.Label.Alpha) * 0.1)
 	}
 
 	if len(button.Label.Text) > 0 {
@@ -257,7 +338,7 @@ func (button *Button) Draw() {
 
 		guiTexture := globals.Resources.Get("assets/gui.png").AsImage().Texture
 
-		guiTexture.SetAlphaMod(button.Label.Alpha)
+		guiTexture.SetAlphaMod(uint8(button.Label.Alpha * 255))
 		guiTexture.SetColorMod(color.RGB())
 		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, float32(button.IconSrc.W), float32(button.IconSrc.H)}
 
@@ -397,7 +478,7 @@ type Label struct {
 
 	HorizontalAlignment string
 	Offset              Point
-	Alpha               uint8
+	Alpha               float32
 	OnChange            func()
 	textChanged         bool
 	Highlighter         *Highlighter
@@ -412,7 +493,7 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 		Rect:                rect,
 		WorldSpace:          worldSpace,
 		HorizontalAlignment: horizontalAlignment,
-		Alpha:               255,
+		Alpha:               1,
 		Highlighter:         NewHighlighter(&sdl.FRect{}, worldSpace),
 		AllowNewlines:       true,
 	}
@@ -736,8 +817,8 @@ func (label *Label) Draw() {
 	// doing two operations on the Label (i.e. setting the Label's Rectangle size and setting its text)
 	// don't necessitate two recreations of its underlying texture
 	if label.TextureDirty {
-
 		label.RecreateTexture()
+		// TODO: Maybe just do this when the label exits editing?
 		if label.OnChange != nil && label.textChanged {
 			label.OnChange()
 		}
@@ -831,7 +912,8 @@ func (label *Label) Draw() {
 			newRect = globals.Project.Camera.TranslateRect(newRect)
 		}
 
-		label.RendererResult.Image.Texture.SetAlphaMod(label.Alpha)
+		label.RendererResult.Image.Texture.SetColorMod(getThemeColor(GUIFontColor).RGB())
+		label.RendererResult.Image.Texture.SetAlphaMod(uint8(label.Alpha * 255))
 
 		globals.Renderer.CopyF(label.RendererResult.Image.Texture, src, newRect)
 
@@ -1125,7 +1207,7 @@ func (row *ContainerRow) Draw() {
 	for _, element := range row.Elements {
 		rect := element.Rectangle()
 
-		if rect.X < row.Container.Rect.X || rect.Y < row.Container.Rect.Y || rect.X >= row.Container.Rect.X+row.Container.Rect.W || rect.Y >= row.Container.Rect.Y+row.Container.Rect.H {
+		if rect.X+rect.H < row.Container.Rect.X || rect.Y+rect.H < row.Container.Rect.Y || rect.X >= row.Container.Rect.X+row.Container.Rect.W || rect.Y >= row.Container.Rect.Y+row.Container.Rect.H {
 			continue
 		}
 
@@ -1135,9 +1217,14 @@ func (row *ContainerRow) Draw() {
 
 }
 
-// Add a MenuElement to the ContainerRow. Note that MenuElements should NOT be world-space, as the Container handles world-space conversion if necessary
-// due to rendering elements to a texture.
+// Add a MenuElement to the ContainerRow.
 func (row *ContainerRow) Add(name string, element MenuElement) {
+	if name == "" {
+		name = strconv.Itoa(int(rand.Int63()))
+	}
+	if _, exists := row.Elements[name]; exists {
+		panic("ERROR: Cannot add GUI element by name of '" + name + "' to ContainerRow ")
+	}
 	row.Elements[name] = element
 	row.ElementOrder = append(row.ElementOrder, element)
 	// return row
@@ -1150,17 +1237,21 @@ func (row *ContainerRow) Destroy() {
 }
 
 type Container struct {
-	Rect       *sdl.FRect
-	Rows       []*ContainerRow
-	Texture    *sdl.Texture
-	WorldSpace bool
+	Rect             *sdl.FRect
+	Rows             []*ContainerRow
+	Texture          *sdl.Texture
+	WorldSpace       bool
+	Scrollbar        *Scrollbar
+	DisplayScrollbar bool
 }
 
 func NewContainer(rect *sdl.FRect, worldSpace bool) *Container {
 	container := &Container{
-		Rect:       &sdl.FRect{},
-		Rows:       []*ContainerRow{},
-		WorldSpace: worldSpace,
+		Rect:             &sdl.FRect{},
+		Rows:             []*ContainerRow{},
+		WorldSpace:       worldSpace,
+		Scrollbar:        NewScrollbar(&sdl.FRect{0, 0, 32, 32}, worldSpace),
+		DisplayScrollbar: !worldSpace,
 	}
 
 	container.SetRectangle(rect)
@@ -1179,12 +1270,33 @@ func (container *Container) Update() {
 		globals.Mouse.HiddenPosition = true
 	}
 
-	y := float32(0)
+	perc := float32(0)
+
+	if idealSize := container.IdealSize(); container.NeedScroll() && idealSize.Y > 32 {
+		perc = ((idealSize.Y - container.Rect.H) / container.Rect.H) * container.Scrollbar.Value
+	}
+
+	y := float32(-perc * container.Rect.H)
 	for _, row := range container.Rows {
 		y += row.Update(y)
 	}
 
 	globals.Mouse.HiddenPosition = false
+
+	if container.NeedScroll() && container.DisplayScrollbar {
+		container.Scrollbar.Rect.H = container.Rect.H - 32
+		container.Scrollbar.Rect.W = 16
+		container.Scrollbar.Rect.X = container.Rect.X + container.Rect.W
+		container.Scrollbar.Rect.Y = container.Rect.Y + 32
+
+		if wheel := globals.Mouse.Wheel(); wheel != 0 && pos.Inside(container.Rect) {
+			container.Scrollbar.SetValue(container.Scrollbar.Value - float32(wheel)*0.25)
+			globals.Mouse.wheel = 0 // Consume the wheel movement
+		}
+
+		container.Scrollbar.Update()
+
+	}
 
 }
 
@@ -1203,6 +1315,10 @@ func (container *Container) Draw() {
 	}
 
 	globals.Renderer.SetClipRect(nil)
+
+	if container.NeedScroll() && container.DisplayScrollbar {
+		container.Scrollbar.Draw()
+	}
 
 }
 
@@ -1272,28 +1388,34 @@ func (container *Container) RecreateTexture() {
 	container.Texture = texture
 }
 
+func (container *Container) NeedScroll() bool {
+	return container.IdealSize().Y > container.Rect.H
+}
+
 // IdealSize returns the ideal size for the container to encompass all its GUI Elements.
 func (container *Container) IdealSize() Point {
 
 	size := Point{}
 
-	yPos := float32(0)
-
 	for _, row := range container.Rows {
 
-		yPos += row.Update(yPos)
-		x := float32(0)
+		greatestW := float32(0)
+		greatestH := float32(0)
 
 		for _, element := range row.Elements {
 
 			r := element.Rectangle()
-			x += r.W + row.HorizontalSpacing
-			size.Y += r.H
+			greatestW += r.W + row.HorizontalSpacing
+			if greatestH < r.H {
+				greatestH = r.H
+			}
 		}
 
-		if size.X < x {
-			size.X = x
+		if size.X < greatestW {
+			size.X = greatestW
 		}
+
+		size.Y += greatestH
 
 	}
 
@@ -1351,8 +1473,10 @@ type Scrollbar struct {
 	Rect        *sdl.FRect
 	Value       float32
 	WorldSpace  bool
-	ValueSet    func()
+	OnValueSet  func()
+	OnRelease   func()
 	Highlighter *Highlighter
+	Dragging    bool
 }
 
 func NewScrollbar(rect *sdl.FRect, worldSpace bool) *Scrollbar {
@@ -1370,20 +1494,32 @@ func (scrollbar *Scrollbar) Update() {
 		pos = globals.Mouse.WorldPosition()
 	}
 
-	scrollbar.Highlighter.Highlighting = pos.Inside(scrollbar.Rect)
+	scrollbar.Highlighter.Highlighting = pos.Inside(scrollbar.Rect) || scrollbar.Dragging
 	scrollbar.Highlighter.SetRect(scrollbar.Rect)
+	button := globals.Mouse.Button(sdl.BUTTON_LEFT)
 
 	if pos.Inside(scrollbar.Rect) {
 
-		// globals.Mouse.SetCursor("normal")
-
-		button := globals.Mouse.Button(sdl.BUTTON_LEFT)
 		if button.Pressed() {
 			button.Consume()
-			scrollbar.Value = (pos.X - scrollbar.Rect.X) / scrollbar.Rect.W
-			if scrollbar.ValueSet != nil {
-				scrollbar.ValueSet()
-			}
+			scrollbar.Dragging = true
+		}
+
+	}
+
+	if !button.HeldRaw() {
+		if scrollbar.Dragging && scrollbar.OnRelease != nil {
+			scrollbar.OnRelease()
+		}
+		scrollbar.Dragging = false
+	}
+
+	if scrollbar.Dragging && button.HeldRaw() {
+
+		if scrollbar.Vertical() {
+			scrollbar.SetValue((pos.Y - scrollbar.Rect.Y) / scrollbar.Rect.H)
+		} else {
+			scrollbar.SetValue((pos.X - scrollbar.Rect.X) / scrollbar.Rect.W)
 		}
 
 	}
@@ -1392,8 +1528,15 @@ func (scrollbar *Scrollbar) Update() {
 
 func (scrollbar *Scrollbar) SetValue(value float32) {
 	scrollbar.Value = value
-	if scrollbar.ValueSet != nil {
-		scrollbar.ValueSet()
+
+	if scrollbar.Value < 0 {
+		scrollbar.Value = 0
+	} else if scrollbar.Value > 1 {
+		scrollbar.Value = 1
+	}
+
+	if scrollbar.OnValueSet != nil {
+		scrollbar.OnValueSet()
 	}
 }
 
@@ -1403,26 +1546,37 @@ func (scrollbar *Scrollbar) Draw() {
 		return
 	}
 
-	globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
-
 	sr := *scrollbar.Rect
 	rect := &sr
-	rect.H = 8
-	rect.Y += (scrollbar.Rect.H - rect.H) / 2
 	if scrollbar.WorldSpace {
 		rect = globals.Project.Camera.TranslateRect(rect)
 	}
 
-	globals.Renderer.FillRectF(rect)
+	//Outline
+	FillRect(rect.X+2, rect.Y+2, rect.W-4, rect.H-4, getThemeColor(GUIFontColor))
 
-	globals.Renderer.SetDrawColor(getThemeColor(GUIFontColor).RGBA())
-	pointRect := &sdl.FRect{rect.X, rect.Y, rect.H, rect.H}
-	pointRect.X += scrollbar.Rect.W*scrollbar.Value - (pointRect.W * scrollbar.Value)
-	globals.Renderer.FillRectF(pointRect)
+	//Inside
+	FillRect(rect.X+4, rect.Y+(scrollbar.Rect.H-rect.H)/2+4, rect.W-8, rect.H-8, getThemeColor(GUIMenuColor))
+
+	if scrollbar.Vertical() {
+
+		// head
+		scroll := scrollbar.Rect.H*scrollbar.Value - (8 * scrollbar.Value)
+		FillRect(rect.X+4, rect.Y+2+scroll, rect.W-8, 4, getThemeColor(GUIFontColor))
+
+	} else {
+
+		// head
+		scroll := scrollbar.Rect.W*scrollbar.Value - (8 * scrollbar.Value)
+		FillRect(rect.X+2+scroll, rect.Y+4, 4, rect.H-8, getThemeColor(GUIFontColor))
+
+	}
 
 	scrollbar.Highlighter.Draw()
 
 }
+
+func (scrollbar *Scrollbar) Vertical() bool { return scrollbar.Rect.H > scrollbar.Rect.W }
 
 func (scrollbar *Scrollbar) Rectangle() *sdl.FRect {
 	return &sdl.FRect{scrollbar.Rect.X, scrollbar.Rect.Y, scrollbar.Rect.W, scrollbar.Rect.H}

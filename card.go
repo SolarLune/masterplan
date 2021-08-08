@@ -28,12 +28,14 @@ type Card struct {
 	Draggable               bool
 	DragStart               Point
 	DragStartOffset         Point
-	Depth                   int32
 	Occupying               []Point
 	ID                      int64
 	RandomValue             float32
 	Resizing                bool
 	LockResizingAspectRatio float32
+	CreateUndoState         bool
+	UndoCreation            bool
+	UndoDeletion            bool
 
 	Collapsed       string
 	UncollapsedSize Point
@@ -58,6 +60,7 @@ func NewCard(page *Page, contentType string) *Card {
 	}
 
 	card.Properties = NewProperties(card)
+	card.Properties.OnChange = func(property *Property) { card.CreateUndoState = true }
 
 	cardID++
 
@@ -212,13 +215,23 @@ func (card *Card) DrawCard() {
 
 func (card *Card) DrawContents() {
 
+	card.Highlighter.Highlighting = card.Selected
+
+	card.Highlighter.Draw()
+
 	if card.Contents != nil {
 		card.Contents.Draw()
 	}
 
-	card.Highlighter.Highlighting = card.Selected
-
-	card.Highlighter.Draw()
+	if card.CreateUndoState {
+		newState := NewUndoState(card)
+		newState.Creation = card.UndoCreation
+		newState.Deletion = card.UndoDeletion
+		card.Page.Project.UndoHistory.Capture(newState, false)
+		card.CreateUndoState = false
+		card.UndoCreation = false
+		card.UndoDeletion = false
+	}
 
 }
 
@@ -238,11 +251,15 @@ func (card *Card) Deserialize(data string) {
 	card.Rect.X = float32(rect.Get("X").Float())
 	card.Rect.Y = float32(rect.Get("Y").Float())
 
+	// Set Rect Position and Size before deserializing properties and setting contents so the contents can know the actual correct, current size of the Card (important for Map Contents)
+	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
+
 	card.Properties.Deserialize(gjson.Get(data, "properties").Raw)
 
 	card.SetContents(gjson.Get(data, "contents").String())
 
-	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
+	// Call update on the contents and then recreate directly afterward
+	card.Contents.Update()
 
 }
 
@@ -259,6 +276,7 @@ func (card *Card) StartDragging() {
 		card.DragStart = globals.Mouse.WorldPosition()
 		card.DragStartOffset = card.DragStart.Sub(Point{card.Rect.X, card.Rect.Y})
 		card.Dragging = true
+		card.CreateUndoState = true // TODO: DON'T FORGET TO DO THIS WHEN MOVING CARDS VIA SHORTCUTS
 	}
 }
 
@@ -266,8 +284,7 @@ func (card *Card) StopDragging() {
 	card.Dragging = false
 	card.LockPosition()
 
-	newState := NewUndoState(card)
-	card.Page.Project.UndoHistory.Capture(newState, false)
+	card.CreateUndoState = true
 }
 
 func (card *Card) StartResizing() {
@@ -286,6 +303,8 @@ func (card *Card) StopResizing() {
 		card.Collapsed = CollapsedShade
 		card.UncollapsedSize = Point{card.Rect.W, card.UncollapsedSize.Y}
 	}
+
+	card.CreateUndoState = true
 
 }
 

@@ -7,6 +7,8 @@
 - Two-finger slide to pan project?
 - Add option to not create new Tasks when double-clicking
 
+- Detect when an error causes a crash within the first, say, second; if it happens then on restart, suggest that there could've been an issue and ask if the user wishes to load the settings.
+
 - Export to One-Note / to image / PDF
 
 - When loading projects from previous versions of MasterPlan, focus on all Cards after load; otherwise, the camera pan should be saved, too.
@@ -20,7 +22,6 @@ Short-term:
 - Messages when soemthing happens?
 - When zoomed out, text shouldn't draw or should be simplified
 - Card snapping
-- Image Cards?
 - Hover over stuff to get a hint
 - https://github.com/golang-design/clipboard - Use this clipboard package to copy and paste both text and images
 
@@ -80,12 +81,14 @@ TODO
   - Line Tasks no longer exist (for now)
   - Copying Cards should now be global, rather than being localized to a single Project; maybe even better, it copies Cards straight to the OS buffer, which can be doubly-used for serialization and allows us to easily copy Cards between Projects, even with two Projects open at the same time
   - Top menu, for file / project settings, task editing, project information
-    - Project information: Number of Tasks, number completed,
-  - Boards no longer exist; they are superceded by a Folder / Window / Board Card, which allows you to tie existing Cards to some mental and spatial context (a location on your project, as an example).
-  - Custom shortcuts to, say, focus on a specific Card?
+    - Project information: Number of Tasks, number completed, time estimation
+  - [x] Boards no longer exist; they are superceded by a Folder / Window / Board Card, which allows you to tie existing Cards to some mental and spatial context (a location on your project, as an example).
+  - Custom shortcuts to, say, focus on a specific Card (so you can make a shortcut to jump to a Card, for example)
   - Paste images?
   - Themes - Maybe just straight-up replace them with images? It'd be kind of insane and futuristic to simply make it so that you can edit Themes by literally editing images so you can actually see what they look like?
   - Add ability to rebind selection + panning from being hard-coded to left and right-click, respectively.
+  - Timer Cards
+    - Timers should be able to count down.
   - Table Cards
     - Click on a + to add a new Row or Column,
     - Drag a row or column to reorder. Drag away from a Table to destroy that Row or Column.
@@ -93,6 +96,12 @@ TODO
   - Sort Cards alphabetically? (somehow)
   - More zoom gradation? Might be doable if the cards are rendered at a high-enough resolution.
   - Template Cards - Could be useful if you have a "template" that you want to extend, like "Character Cards" with an image, a space for a description, and a space for class and skills,
+  - Map Cards
+    - Different colors for different zones
+    - Icons for things like elevators, bricks, save points, player start position, town, enemies, npcs, etc
+    - Legend for displaying text corresponding to icons or zones
+      - Text from the legend should display behind the colors for each zone if possible (should be hide-able, perhaps only display if the Legend is open)
+  - Calendar Card
 
 TTF font loading efficiently : foreign characters shouldn’t “cost” extra
 Font base size “knowledge”

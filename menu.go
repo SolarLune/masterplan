@@ -2,7 +2,9 @@ package main
 
 import (
 	"math"
+	"math/rand"
 	"sort"
+	"strconv"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -53,6 +55,15 @@ func (ms *MenuSystem) Update() {
 
 }
 
+func (ms *MenuSystem) Recreate() {
+	for _, menu := range ms.Menus {
+		menu.ForceRecreate()
+	}
+	for _, menu := range ms.ExclusiveMenus {
+		menu.ForceRecreate()
+	}
+}
+
 func (ms *MenuSystem) Draw() {
 
 	for _, menu := range ms.ExclusiveMenus {
@@ -68,6 +79,10 @@ func (ms *MenuSystem) Draw() {
 }
 
 func (ms *MenuSystem) Add(menu *Menu, name string, exclusive bool) *Menu {
+
+	if name == "" {
+		name = strconv.Itoa(int(rand.Int31()))
+	}
 
 	if exclusive {
 		ms.ExclusiveMenus = append(ms.ExclusiveMenus, menu)
@@ -139,8 +154,8 @@ func NewMenu(rect *sdl.FRect, openable bool) *Menu {
 		Draggable: false,
 	}
 
-	menu.closeButtonButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{176, 0, 32, 32}, func() { menu.Close() }, false)
-	menu.BackButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{208, 0, 32, 32}, func() { menu.SetPrevPage() }, false)
+	menu.closeButtonButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{176, 0, 32, 32}, false, func() { menu.Close() })
+	menu.BackButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{208, 0, 32, 32}, false, func() { menu.SetPrevPage() })
 
 	menu.AddPage("root")
 	menu.SetPage("root")
@@ -289,102 +304,7 @@ func (menu *Menu) Draw() {
 
 	globals.Renderer.CopyF(menu.BGTexture, nil, menu.Rect)
 
-	// elementRect := *menu.Rect
-
-	// spacingW := float32(0)
-	// spacingH := float32(0)
-
-	// if menu.IsHorizontal() {
-	// 	elementRect.W /= float32(len(menu.Elements))
-	// } else {
-	// 	elementRect.H /= float32(len(menu.Elements))
-	// }
-
-	// padding := float32(8)
-	// x, y := float32(padding), float32(padding)
-	// width := menu.Rect.W - (padding * 2)
-	// height := menu.Rect.H - (padding * 2)
-
-	// spacing := float32(0)
-
-	// orientation := menu.Orientation
-	// if orientation == MenuOrientationAuto {
-	// 	if menu.Rect.W > menu.Rect.H*2 {
-	// 		orientation = MenuOrientationHorizontal
-	// 	} else {
-	// 		orientation = MenuOrientationVertical
-	// 	}
-	// }
-
 	menu.Pages[menu.CurrentPage].Draw()
-
-	// if menuPage, exists := menu.Pages[menu.CurrentPage]; exists {
-
-	// 	if menu.Spacing == MenuSpacingSpread {
-
-	// 		if orientation == MenuOrientationHorizontal {
-
-	// 			if len(menuPage.Elements) == 1 {
-	// 				x = menu.Rect.W / 2
-	// 			} else if len(menuPage.Elements) == 2 {
-	// 				spacing = width
-	// 			} else {
-	// 				spacing = width / float32(len(menuPage.Elements)-1)
-	// 			}
-
-	// 		} else {
-
-	// 			if len(menuPage.Elements) == 1 {
-	// 				y = menu.Rect.H / 2
-	// 			} else if len(menuPage.Elements) == 2 {
-	// 				spacing = height
-	// 			} else {
-
-	// 				spacing = height / float32(len(menuPage.Elements)-1)
-	// 			}
-
-	// 		}
-
-	// 	}
-
-	// 	for _, element := range menuPage.ElementAddOrder {
-
-	// 		rect := element.Rectangle()
-	// 		rect.X = menu.Rect.X + x
-	// 		rect.Y = menu.Rect.Y + y
-
-	// 		if menu.Spacing == MenuSpacingSpread {
-
-	// 			if orientation == MenuOrientationHorizontal {
-	// 				percent := x / width
-	// 				rect.X -= (rect.W) * percent
-	// 				x += spacing
-	// 			} else {
-	// 				percent := y / height
-	// 				rect.Y += rect.H * percent
-	// 				y += spacing
-	// 				rect.X += (width / 2) - (rect.W / 2)
-	// 			}
-
-	// 		} else {
-	// 			if orientation == MenuOrientationHorizontal {
-	// 				x += rect.W + spacing
-	// 			} else {
-	// 				y += rect.H + spacing
-	// 				rect.X += (width / 2) - (rect.W / 2)
-	// 			}
-
-	// 		}
-
-	// 		// Might be unnecessary???
-	// 		// rect.Y += rect.H / 4
-
-	// 		element.SetRectangle(rect)
-	// 		element.Draw()
-
-	// 	}
-
-	// }
 
 	if menu.CloseButtonEnabled {
 		menu.closeButtonButton.Draw()
@@ -415,6 +335,14 @@ func (menu *Menu) SetPrevPage() {
 		menu.SetPage(menu.PageThread[len(menu.PageThread)-2])
 		menu.PageThread = menu.PageThread[:len(menu.PageThread)-2]
 	}
+}
+
+func (menu *Menu) ForceRecreate() {
+	w := menu.Rect.W
+	h := menu.Rect.H
+	menu.Rect.W = 0
+	menu.Rect.H = 0
+	menu.Recreate(w, h)
 }
 
 func (menu *Menu) Recreate(newW, newH float32) {

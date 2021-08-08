@@ -36,7 +36,8 @@ type Globals struct {
 	Resources       ResourceBank
 	GrabClient      *grab.Client
 	MenuSystem      *MenuSystem
-	DebugMode       bool
+
+	DebugMode bool
 }
 
 var globals = &Globals{}

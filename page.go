@@ -156,6 +156,7 @@ type Page struct {
 	Grid      *Grid
 	Cards     []*Card
 	ToDelete  []*Card
+	ToRestore []*Card
 	Selection *Selection
 	name      string
 	depth     int
@@ -192,20 +193,6 @@ func (page *Page) Update() {
 		task.Update()
 	}
 
-	for _, toDelete := range page.ToDelete {
-		toDelete.ReceiveMessage(NewMessage(MessageCardDeleted, toDelete, nil))
-		page.Selection.Remove(toDelete)
-		for index, card := range page.Cards {
-			if card == toDelete {
-				page.Cards[index] = nil
-				page.Cards = append(page.Cards[:index], page.Cards[index+1:]...)
-				break
-			}
-		}
-	}
-
-	page.ToDelete = []*Card{}
-
 }
 
 func (page *Page) Draw() {
@@ -219,10 +206,38 @@ func (page *Page) Draw() {
 		card.DrawContents()
 	}
 
-	// This needs to be later so mouse buttons can be consumed in a Card's Draw() loop, for example, before the Selection detects the mouse button press
+	// This needs to be later than Update() so mouse buttons can be consumed in a Card's Draw() loop, for example, before the Selection detects the mouse button press
 	page.Selection.Update()
 
 	page.Selection.Draw()
+
+	for _, toDelete := range page.ToDelete {
+		toDelete.ReceiveMessage(NewMessage(MessageCardDeleted, toDelete, nil))
+		page.Selection.Remove(toDelete)
+		for index, card := range page.Cards {
+			if card == toDelete {
+				page.Cards[index] = nil
+				page.Cards = append(page.Cards[:index], page.Cards[index+1:]...)
+				break
+			}
+		}
+	}
+
+	for _, toRestore := range page.ToRestore {
+		toRestore.ReceiveMessage(NewMessage(MessageCardDeleted, toRestore, nil))
+		page.Selection.Add(toRestore)
+		page.Cards = append(page.Cards, toRestore)
+		// for index, card := range page.Cards {
+		// 	if card == toRestore {
+		// 		page.Cards[index] = nil
+		// 		page.Cards = append(page.Cards[:index], page.Cards[index+1:]...)
+		// 		break
+		// 	}
+		// }
+	}
+
+	page.ToDelete = []*Card{}
+	page.ToRestore = []*Card{}
 
 }
 
@@ -266,6 +281,8 @@ func (page *Page) Deserialize(data string) {
 func (page *Page) CreateNewCard(contentType string) *Card {
 
 	newCard := NewCard(page, contentType)
+	newCard.CreateUndoState = true
+	newCard.UndoCreation = true
 	newCard.Rect.X = globals.Mouse.WorldPosition().X - (newCard.Rect.W / 2)
 	newCard.Rect.Y = globals.Mouse.WorldPosition().Y - (newCard.Rect.H / 2)
 	newCard.LockPosition()
@@ -275,7 +292,19 @@ func (page *Page) CreateNewCard(contentType string) *Card {
 }
 
 func (page *Page) DeleteCards(cards ...*Card) {
+	for _, card := range cards {
+		card.CreateUndoState = true
+		card.UndoDeletion = true
+	}
 	page.ToDelete = append(page.ToDelete, cards...)
+}
+
+func (page *Page) RestoreCards(cards ...*Card) {
+	for _, card := range cards {
+		card.CreateUndoState = true
+		card.UndoCreation = true
+	}
+	page.ToRestore = append(page.ToRestore, cards...)
 }
 
 func (page *Page) CopySelectedCards() {

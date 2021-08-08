@@ -343,7 +343,6 @@ func main() {
 		} else {
 
 			if globals.State == StateNeutral && globals.ProgramSettings.Keybindings.On(KBDebugRestart) {
-				fmt.Println("restart")
 				globals.Project = NewProject()
 			}
 
@@ -587,18 +586,20 @@ func main() {
 
 func ConstructMenus() {
 
+	// Main Menu
+
 	mainMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 800, 48}, false), "main", false)
 	root := mainMenu.Pages["root"]
 
 	row := root.AddRow(AlignCenter)
-	row.Add("file menu", NewButton("File", &sdl.FRect{0, 0, 96, 32}, &sdl.Rect{144, 0, 32, 32}, func() {
+	row.Add("file menu", NewButton("File", &sdl.FRect{0, 0, 96, 32}, &sdl.Rect{144, 0, 32, 32}, false, func() {
 		globals.MenuSystem.Get("file").Open()
-	}, false))
+	}))
 
-	row.Add("edit menu", NewButton("View", &sdl.FRect{0, 0, 96, 32}, nil, func() {
+	row.Add("edit menu", NewButton("View", &sdl.FRect{0, 0, 96, 32}, nil, false, func() {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		globals.MenuSystem.Get("view").Open()
-	}, false))
+	}))
 
 	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 256, 32}))
 	row.Add("time label", NewLabel(time.Now().Format("Mon Jan 2 2006"), &sdl.FRect{0, 0, 256, 32}, false, AlignCenter))
@@ -608,39 +609,45 @@ func ConstructMenus() {
 	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 200}, true), "file", false)
 	root = fileMenu.Pages["root"]
 
-	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, func() { globals.Project.LoadingProject = NewProject() }, false))
-	root.AddRow(AlignCenter).Add("Load Project", NewButton("Load Project", nil, nil, func() { globals.Project.Open() }, false))
-	root.AddRow(AlignCenter).Add("Save Project", NewButton("Save Project", nil, nil, func() {
+	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() { globals.Project.LoadingProject = NewProject() }))
+	root.AddRow(AlignCenter).Add("Load Project", NewButton("Load Project", nil, nil, false, func() { globals.Project.Open() }))
+	root.AddRow(AlignCenter).Add("Save Project", NewButton("Save Project", nil, nil, false, func() {
 		if globals.Project.Filepath != "" {
 			globals.Project.Save()
 		} else {
 			globals.Project.SaveAs()
 		}
-	}, false))
-	root.AddRow(AlignCenter).Add("Save Project As...", NewButton("Save Project As...", &sdl.FRect{0, 0, 256, 32}, nil, func() { globals.Project.SaveAs() }, false))
-	root.AddRow(AlignCenter).Add("Quit", NewButton("Quit", nil, nil, func() {
+	}))
+	root.AddRow(AlignCenter).Add("Save Project As...", NewButton("Save Project As...", &sdl.FRect{0, 0, 256, 32}, nil, false, func() { globals.Project.SaveAs() }))
+	root.AddRow(AlignCenter).Add("Quit", NewButton("Quit", nil, nil, false, func() {
 		confirmQuit := globals.MenuSystem.Get("confirmquit")
 		confirmQuit.Center()
 		confirmQuit.Open()
 		fileMenu.Close()
-	}, false))
+	}))
+	root.AddRow(AlignCenter).Add("Settings", NewButton("Settings", nil, nil, false, func() {
+		settings := globals.MenuSystem.Get("settings")
+		settings.Center()
+		settings.Open()
+		fileMenu.Close()
+	}))
 
 	// View Menu
 
 	viewMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 200}, true), "view", false)
 	root = viewMenu.Pages["root"]
 
-	root.AddRow(AlignCenter).Add("Edit Menu", NewButton("Edit Menu", nil, nil, func() {
+	root.AddRow(AlignCenter).Add("Edit Menu", NewButton("Edit Menu", nil, nil, false, func() {
 		globals.MenuSystem.Get("edit").Open()
-	}, false))
+	}))
 
-	root.AddRow(AlignCenter).Add("Board Menu", NewButton("Board Menu", nil, nil, func() {
+	root.AddRow(AlignCenter).Add("Board Menu", NewButton("Board Menu", nil, nil, false, func() {
 		boardMenu := globals.MenuSystem.Get("boards")
 		// boardMenu.Center()
 		boardMenu.Rect.X = globals.ScreenSize.X - boardMenu.Rect.W
 		boardMenu.Rect.Y = 0
 		boardMenu.Open()
-	}, false))
+	}))
 
 	// Edit Menu
 
@@ -652,48 +659,48 @@ func ConstructMenus() {
 
 	root = editMenu.Pages["root"]
 	root.AddRow(AlignCenter).Add("edit label", NewLabel("-Edit-", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
-	root.AddRow(AlignCenter).Add("set type", NewButton("Set Type", &sdl.FRect{0, 0, 128, 32}, nil, func() {
+	root.AddRow(AlignCenter).Add("set type", NewButton("Set Type", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
 		editMenu.SetPage("set type")
-	}, false))
+	}))
 
 	setType := editMenu.AddPage("set type")
 	setType.AddRow(AlignCenter).Add("label", NewLabel("Set Type:", &sdl.FRect{0, 0, 192, 32}, false, AlignCenter))
 
-	setType.AddRow(AlignCenter).Add("set checkbox content type", NewButton("Checkbox", nil, &sdl.Rect{48, 32, 32, 32}, func() {
+	setType.AddRow(AlignCenter).Add("set checkbox content type", NewButton("Checkbox", nil, &sdl.Rect{48, 32, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeCheckbox)
 		}
-	}, false))
+	}))
 
-	setType.AddRow(AlignCenter).Add("set note content type", NewButton("Note", nil, &sdl.Rect{80, 0, 32, 32}, func() {
+	setType.AddRow(AlignCenter).Add("set note content type", NewButton("Note", nil, &sdl.Rect{80, 0, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeNote)
 		}
-	}, false))
+	}))
 
-	setType.AddRow(AlignCenter).Add("set sound content type", NewButton("Sound", nil, &sdl.Rect{80, 32, 32, 32}, func() {
+	setType.AddRow(AlignCenter).Add("set sound content type", NewButton("Sound", nil, &sdl.Rect{80, 32, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeSound)
 		}
-	}, false))
+	}))
 
-	setType.AddRow(AlignCenter).Add("set image content type", NewButton("Image", nil, &sdl.Rect{48, 64, 32, 32}, func() {
+	setType.AddRow(AlignCenter).Add("set image content type", NewButton("Image", nil, &sdl.Rect{48, 64, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeImage)
 		}
-	}, false))
+	}))
 
-	setType.AddRow(AlignCenter).Add("set timer content type", NewButton("Timer", nil, &sdl.Rect{80, 64, 32, 32}, func() {
+	setType.AddRow(AlignCenter).Add("set timer content type", NewButton("Timer", nil, &sdl.Rect{80, 64, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeTimer)
 		}
-	}, false))
+	}))
 
-	setType.AddRow(AlignCenter).Add("set map content type", NewButton("Map", nil, &sdl.Rect{112, 96, 32, 32}, func() {
+	setType.AddRow(AlignCenter).Add("set map content type", NewButton("Map", nil, &sdl.Rect{112, 96, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeMap)
 		}
-	}, false))
+	}))
 
 	// Board Menu
 
@@ -710,15 +717,15 @@ func ConstructMenus() {
 
 		row := root.AddRow(AlignCenter)
 
-		row.Add("add page", NewButton("Page", nil, &sdl.Rect{48, 96, 32, 32}, func() {
+		row.Add("add page", NewButton("Page", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
 			globals.Project.RootFolder.Add(NewPage(globals.Project.RootFolder, globals.Project))
 			boardMenu.Open()
-		}, false))
+		}))
 
-		row.Add("add folder", NewButton("Folder", nil, &sdl.Rect{48, 96, 32, 32}, func() {
+		row.Add("add folder", NewButton("Folder", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
 			globals.Project.RootFolder.Add(NewPageFolder(globals.Project.RootFolder, globals.Project))
 			boardMenu.Open()
-		}, false))
+		}))
 
 		root.AddRow(AlignCenter).Add("spacer", NewSpacer(nil))
 
@@ -746,7 +753,7 @@ func ConstructMenus() {
 				icon.X = 112
 			}
 
-			root.AddRow(AlignLeft).Add(name, NewButton(name, nil, icon, func() {
+			root.AddRow(AlignLeft).Add(name, NewButton(name, nil, icon, false, func() {
 				if localElement.Type() == PageContentPage {
 					globals.Project.CurrentPage = localElement.(*Page)
 					boardMenu.Open()
@@ -755,7 +762,7 @@ func ConstructMenus() {
 					folder.Expanded = !folder.Expanded
 					boardMenu.Open()
 				}
-			}, false))
+			}))
 
 			if localElement.Type() == PageContentFolder {
 
@@ -778,7 +785,7 @@ func ConstructMenus() {
 
 	}
 	root = boardMenu.Pages["root"]
-	root.AddRow(AlignLeft).Add("0", NewButton("Page 1", nil, nil, func() {}, false))
+	root.AddRow(AlignLeft).Add("0", NewButton("Page 1", nil, nil, false, func() {}))
 
 	// Context Menu
 
@@ -787,28 +794,28 @@ func ConstructMenus() {
 	contextMenu.OnClose = func() { globals.State = StateNeutral }
 	root = contextMenu.Pages["root"]
 
-	root.AddRow(AlignCenter).Add("create card", NewButton("Create Card", &sdl.FRect{0, 0, 192, 32}, nil, func() {
+	root.AddRow(AlignCenter).Add("create card", NewButton("Create Card", &sdl.FRect{0, 0, 192, 32}, nil, false, func() {
 		globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
 		contextMenu.Close()
-	}, false))
+	}))
 
-	root.AddRow(AlignCenter).Add("delete cards", NewButton("Delete Cards", &sdl.FRect{0, 0, 192, 32}, nil, func() {
+	root.AddRow(AlignCenter).Add("delete cards", NewButton("Delete Cards", &sdl.FRect{0, 0, 192, 32}, nil, false, func() {
 		page := globals.Project.CurrentPage
 		page.DeleteCards(page.Selection.AsSlice()...)
 		contextMenu.Close()
-	}, false))
+	}))
 
-	root.AddRow(AlignCenter).Add("copy cards", NewButton("Copy Cards", &sdl.FRect{0, 0, 192, 32}, nil, func() {
+	root.AddRow(AlignCenter).Add("copy cards", NewButton("Copy Cards", &sdl.FRect{0, 0, 192, 32}, nil, false, func() {
 		page := globals.Project.CurrentPage
 		page.CopySelectedCards()
 		contextMenu.Close()
-	}, false))
+	}))
 
-	root.AddRow(AlignCenter).Add("paste cards", NewButton("Paste Cards", &sdl.FRect{0, 0, 192, 32}, nil, func() {
+	root.AddRow(AlignCenter).Add("paste cards", NewButton("Paste Cards", &sdl.FRect{0, 0, 192, 32}, nil, false, func() {
 		page := globals.Project.CurrentPage
 		page.PasteCards()
 		contextMenu.Close()
-	}, false))
+	}))
 
 	commonMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 64}, true), "common", false)
 	commonMenu.Draggable = true
@@ -823,8 +830,8 @@ func ConstructMenus() {
 	root = confirmQuit.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you\nwish to quit?", nil, false, AlignCenter))
 	row = root.AddRow(AlignCenter)
-	row.Add("yes", NewButton("Yes, Quit", &sdl.FRect{0, 0, 128, 32}, nil, func() { quit = true }, false))
-	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, func() { confirmQuit.Close() }, false))
+	row.Add("yes", NewButton("Yes, Quit", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { quit = true }))
+	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
 
 	confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y)
 
@@ -835,11 +842,32 @@ func ConstructMenus() {
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you\nwish to close this project?", nil, false, AlignCenter))
 	root.AddRow(AlignCenter).Add("label", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
 	row = root.AddRow(AlignCenter)
-	row.Add("yes", NewButton("Yes, Close", &sdl.FRect{0, 0, 128, 32}, nil, func() { quit = true }, false))
-	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, func() { confirmQuit.Close() }, false))
+	row.Add("yes", NewButton("Yes, Close", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { quit = true }))
+	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
 
 	confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y)
 
+	settings := NewMenu(&sdl.FRect{0, 0, 512, 512}, true)
+	settings.CloseButtonEnabled = true
+	settings.Draggable = true
+	globals.MenuSystem.Add(settings, "settings", true)
+	root = settings.Pages["root"]
+
+	row = root.AddRow(AlignCenter)
+	row.Add("theme label", NewLabel("Color theme:", nil, false, AlignLeft))
+	row = root.AddRow(AlignCenter)
+	row.Add("sunlight", NewButton("Sunlight", nil, nil, false, func() {
+		globals.ProgramSettings.Theme = "Sunlight"
+		globals.MenuSystem.Recreate()
+		globals.Project.CreateGridTexture()
+		globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
+	}))
+	row.Add("moonlight", NewButton("Moonlight", nil, nil, false, func() {
+		globals.ProgramSettings.Theme = "Moonlight"
+		globals.MenuSystem.Recreate()
+		globals.Project.CreateGridTexture()
+		globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
+	}))
 }
 
 // func profileCPU() {

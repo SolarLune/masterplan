@@ -12,14 +12,16 @@ const (
 )
 
 type Property struct {
-	Name  string
-	data  interface{}
-	InUse bool
+	Properties *Properties
+	Name       string
+	data       interface{}
+	InUse      bool
 }
 
-func NewProperty(name string) *Property {
+func NewProperty(name string, properties *Properties) *Property {
 	return &Property{
-		Name: name,
+		Properties: properties,
+		Name:       name,
 	}
 }
 
@@ -62,7 +64,19 @@ func (prop *Property) AsMap() map[interface{}]interface{} {
 }
 
 func (prop *Property) Set(value interface{}) {
-	prop.data = value
+	if prop.data != value {
+		if prop.Properties.OnChange != nil {
+			prop.Properties.OnChange(prop)
+		}
+		prop.data = value
+	}
+}
+
+// SetRaw sets the property, but without triggering OnChange
+func (prop *Property) SetRaw(value interface{}) {
+	if prop.data != value {
+		prop.data = value
+	}
 }
 
 // Contains serializable properties for a Card.
@@ -70,6 +84,7 @@ type Properties struct {
 	Card            *Card
 	Props           map[string]*Property
 	DefinitionOrder []string
+	OnChange        func(property *Property)
 }
 
 func NewProperties(card *Card) *Properties {
@@ -83,7 +98,7 @@ func NewProperties(card *Card) *Properties {
 func (properties *Properties) Get(name string) *Property {
 
 	if _, exists := properties.Props[name]; !exists {
-		properties.Props[name] = NewProperty(name)
+		properties.Props[name] = NewProperty(name, properties)
 	}
 
 	properties.DefinitionOrder = append(properties.DefinitionOrder, name)
@@ -113,7 +128,7 @@ func (properties *Properties) Deserialize(data string) {
 	parsed := gjson.Parse(data)
 
 	parsed.ForEach(func(key, value gjson.Result) bool {
-		properties.Get(key.String()).Set(value.Value())
+		properties.Get(key.String()).SetRaw(value.Value())
 		return true
 	})
 

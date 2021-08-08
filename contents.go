@@ -67,18 +67,19 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 		DefaultContents: newDefaultContents(card),
 	}
 
-	cc.Checkbox = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{48, 0, 32, 32}, cc.Trigger, true)
+	cc.Checkbox = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{48, 0, 32, 32}, true, cc.Trigger)
 	cc.Checkbox.FadeOnInactive = false
 
 	cc.Label = NewLabel("New Checkbox", nil, true, AlignLeft)
 	cc.Label.Editable = true
 
 	cc.Label.OnChange = func() {
-		cc.Card.Properties.Get("description").Set(cc.Label.TextAsString())
-
-		lineCount := float32(cc.Label.LineCount())
-		if lineCount*globals.GridSize > cc.Card.Rect.H {
-			cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
+		y := cc.Label.IndexToWorld(cc.Label.Selection.CaretPos).Y - cc.Card.Rect.Y
+		if y > cc.Card.Rect.H-32 {
+			lineCount := float32(cc.Label.LineCount())
+			if lineCount*globals.GridSize > cc.Card.Rect.H {
+				cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
+			}
 		}
 	}
 
@@ -101,17 +102,14 @@ func (cc *CheckboxContents) Update() {
 
 	cc.DefaultContents.Update()
 
-	if cc.Card.Selected {
-
-		description := cc.Card.Properties.Get("description")
-		if cc.Label.Editing {
-			description.Set(cc.Label.TextAsString())
-		} else {
-			cc.Label.SetText([]rune(description.AsString()))
-		}
-
-		cc.Checked = cc.Card.Properties.Get("checked").AsBool()
+	description := cc.Card.Properties.Get("description")
+	if cc.Label.Editing {
+		description.Set(cc.Label.TextAsString())
+	} else {
+		cc.Label.SetText([]rune(description.AsString()))
 	}
+
+	cc.Checked = cc.Card.Properties.Get("checked").AsBool()
 
 	rect := cc.Label.Rectangle()
 	rect.W = cc.Container.Rect.W - rect.X + cc.Container.Rect.X
@@ -124,10 +122,6 @@ func (cc *CheckboxContents) Update() {
 		cc.Checkbox.IconSrc.Y = 0
 	}
 
-}
-
-func (cc *CheckboxContents) Draw() {
-	cc.DefaultContents.Draw()
 }
 
 func (cc *CheckboxContents) Trigger() {
@@ -170,8 +164,6 @@ func NewNoteContents(card *Card) *NoteContents {
 	nc.Label.Editable = true
 
 	nc.Label.OnChange = func() {
-		nc.Card.Properties.Get("description").Set(nc.Label.TextAsString())
-
 		lineCount := float32(nc.Label.LineCount())
 		if lineCount*globals.GridSize > nc.Card.Rect.H {
 			nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
@@ -197,15 +189,11 @@ func (nc *NoteContents) Update() {
 
 	nc.DefaultContents.Update()
 
-	if nc.Card.Selected {
-
-		description := nc.Card.Properties.Get("description")
-		if nc.Label.Editing {
-			description.Set(nc.Label.TextAsString())
-		} else {
-			nc.Label.SetText([]rune(description.AsString()))
-		}
-
+	description := nc.Card.Properties.Get("description")
+	if nc.Label.Editing {
+		description.Set(nc.Label.TextAsString())
+	} else {
+		nc.Label.SetText([]rune(description.AsString()))
 	}
 
 	rect := nc.Label.Rectangle()
@@ -213,10 +201,6 @@ func (nc *NoteContents) Update() {
 	rect.H = nc.Container.Rect.H - rect.Y + nc.Container.Rect.Y
 	nc.Label.SetRectangle(rect)
 
-}
-
-func (nc *NoteContents) Draw() {
-	nc.DefaultContents.Draw()
 }
 
 func (nc *NoteContents) ReceiveMessage(msg *Message) {}
@@ -246,18 +230,18 @@ func NewSoundContents(card *Card) *SoundContents {
 	soundContents := &SoundContents{
 		DefaultContents: newDefaultContents(card),
 		SoundNameLabel:  NewLabel("No sound loaded", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft),
-		SeekBar:         NewScrollbar(&sdl.FRect{0, 0, 128, 32}, true),
+		SeekBar:         NewScrollbar(&sdl.FRect{0, 0, 128, 16}, true),
 	}
 
 	soundContents.SoundNameLabel.AutoExpand = true
 
-	soundContents.SeekBar.ValueSet = func() {
+	soundContents.SeekBar.OnRelease = func() {
 		if soundContents.Sound != nil {
 			soundContents.Sound.SeekPercentage(soundContents.SeekBar.Value)
 		}
 	}
 
-	soundContents.PlayButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{112, 32, 32, 32}, nil, true)
+	soundContents.PlayButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{112, 32, 32, 32}, true, nil)
 	soundContents.PlayButton.Pressed = func() {
 
 		if soundContents.Resource == nil {
@@ -274,7 +258,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 	}
 
-	repeatButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{176, 32, 32, 32}, func() {
+	repeatButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{176, 32, 32, 32}, true, func() {
 
 		if soundContents.Resource == nil {
 			return
@@ -282,7 +266,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 		soundContents.Sound.SeekPercentage(0)
 
-	}, true)
+	})
 
 	soundContents.PlaybackLabel = NewLabel("", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft)
 	soundContents.PlaybackLabel.AutoExpand = true
@@ -304,7 +288,7 @@ func NewSoundContents(card *Card) *SoundContents {
 	row := soundContents.Container.AddRow(AlignCenter)
 
 	row.Add(
-		"browse button", NewButton("Browse", nil, nil, func() {
+		"browse button", NewButton("Browse", nil, nil, true, func() {
 			filepath, err := zenity.SelectFile(zenity.Title("Select audio file..."), zenity.FileFilters{{Name: "Audio files", Patterns: []string{"*.wav", "*.ogg", "*.oga", "*.mp3", "*.flac"}}})
 			if err != nil {
 				// panic(err)
@@ -314,16 +298,16 @@ func NewSoundContents(card *Card) *SoundContents {
 				filepathProp.Set(filepath)
 				soundContents.LoadFile()
 			}
-		}, true))
+		}))
 
 	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
 
-	row.Add("edit path button", NewButton("Edit Path", nil, nil, func() {
+	row.Add("edit path button", NewButton("Edit Path", nil, nil, true, func() {
 		commonMenu := globals.MenuSystem.Get("common")
 		commonMenu.Pages["root"].Clear()
 		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath", soundContents.FilepathLabel)
 		commonMenu.Open()
-	}, true))
+	}))
 
 	row = soundContents.Container.AddRow(AlignCenter)
 
@@ -372,7 +356,9 @@ func (sc *SoundContents) Update() {
 
 			if sc.Sound != nil {
 
-				sc.SeekBar.Value = float32(sc.Sound.Position().Seconds() / sc.Sound.Length().Seconds())
+				if !sc.SeekBar.Dragging {
+					sc.SeekBar.Value = float32(sc.Sound.Position().Seconds() / sc.Sound.Length().Seconds())
+				}
 
 				// lengthMinutes := fmt.Sprintf("%02d", int(sc.Sound.Length().Truncate(time.Second).Seconds()))
 
@@ -474,7 +460,7 @@ func NewImageContents(card *Card) *ImageContents {
 
 	row = imageContents.Container.AddRow(AlignCenter)
 	row.Add(
-		"browse button", NewButton("Browse", nil, nil, func() {
+		"browse button", NewButton("Browse", nil, nil, true, func() {
 			filepath, err := zenity.SelectFile(zenity.Title("Select image file..."), zenity.FileFilters{{Name: "Image files", Patterns: []string{"*.bmp", "*.gif", "*.png", "*.jpeg", "*.jpg"}}})
 			if err != nil {
 				// panic(err)
@@ -484,16 +470,16 @@ func NewImageContents(card *Card) *ImageContents {
 				imageContents.FilepathLabel.SetText([]rune(filepath))
 				imageContents.LoadFile()
 			}
-		}, true))
+		}))
 
 	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
 
-	row.Add("edit path button", NewButton("Edit Path", nil, nil, func() {
+	row.Add("edit path button", NewButton("Edit Path", nil, nil, true, func() {
 		commonMenu := globals.MenuSystem.Get("common")
 		commonMenu.Pages["root"].Clear()
 		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath", imageContents.FilepathLabel)
 		commonMenu.Open()
-	}, true))
+	}))
 
 	if card.Properties.Get("filepath").AsString() != "" {
 		imageContents.LoadFile()
@@ -679,8 +665,8 @@ func NewTimerContents(card *Card) *TimerContents {
 		}
 	}
 
-	tc.StartButton = NewButton("", nil, &sdl.Rect{112, 32, 32, 32}, tc.Trigger, true)
-	tc.RestartButton = NewButton("", nil, &sdl.Rect{176, 32, 32, 32}, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 }, true)
+	tc.StartButton = NewButton("", nil, &sdl.Rect{112, 32, 32, 32}, true, tc.Trigger)
+	tc.RestartButton = NewButton("", nil, &sdl.Rect{176, 32, 32, 32}, true, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 })
 	tc.Pie = NewPie(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color(), true)
 
 	tc.Name.Editable = true
@@ -738,9 +724,12 @@ func (tc *TimerContents) Trigger() {
 	tc.Running = !tc.Running
 }
 
-// func (tc *TimerContents) Draw() { tc.DefaultContents.Draw() }
-
-func (tc *TimerContents) ReceiveMessage(msg *Message) {}
+func (tc *TimerContents) ReceiveMessage(msg *Message) {
+	if msg.Type == MessageThemeChange {
+		tc.Pie.EdgeColor = tc.Color().Sub(80)
+		tc.Pie.FillColor = tc.Color()
+	}
+}
 
 func (tc *TimerContents) Color() Color { return getThemeColor(GUITimerColor) }
 
@@ -748,20 +737,128 @@ func (tc *TimerContents) DefaultSize() Point {
 	return Point{globals.GridSize * 8, globals.GridSize * 5}
 }
 
+const (
+	MapEditToolNone = iota
+	MapEditToolPencil
+	MapEditToolEraser
+	MapEditToolBucket
+	MapEditToolLine
+	MapEditToolColors
+
+	MapPatternSolid   = 0
+	MapPatternCrossed = 16
+	MapPatternDotted  = 32
+	MapPatternChecked = 64
+)
+
 type MapContents struct {
 	DefaultContents
-	Editing bool
-	Data    map[Point]int
-	Texture *Image
+	Tool        int
+	Texture     *Image
+	Data        [][]int
+	Buttons     []*IconButton
+	LineStart   Point
+	PaletteMenu *Menu
+
+	DrawingColor  int
+	PaletteColors []Color
+	Pattern       int
 }
 
 func NewMapContents(card *Card) *MapContents {
 
 	mc := &MapContents{
 		DefaultContents: newDefaultContents(card),
-		Data:            map[Point]int{},
+		Data:            [][]int{},
+		Buttons:         []*IconButton{},
+		PaletteMenu:     NewMenu(&sdl.FRect{0, 0, 320, 320}, true),
+		DrawingColor:    1,
+		Pattern:         MapPatternSolid,
 	}
+
+	mc.PaletteMenu.CloseButtonEnabled = true
+	mc.PaletteMenu.Draggable = true
+	mc.PaletteMenu.Center()
+
+	globals.MenuSystem.Add(mc.PaletteMenu, "", false)
+
+	root := mc.PaletteMenu.Pages["root"]
+
+	root.AddRow(AlignCenter).Add("color label", NewLabel("Colors", nil, false, AlignCenter))
+
+	mc.PaletteColors = []Color{
+		NewColor(236, 235, 231, 255),
+		NewColor(166, 158, 154, 255),
+		NewColor(94, 113, 142, 255),
+		NewColor(70, 71, 98, 255),
+
+		NewColor(241, 100, 31, 255),
+		NewColor(178, 82, 102, 255),
+		NewColor(225, 191, 137, 255),
+		NewColor(89, 77, 77, 255),
+
+		NewColor(115, 239, 232, 255),
+		NewColor(39, 137, 205, 255),
+		NewColor(196, 241, 41, 255),
+		NewColor(72, 104, 89, 255),
+
+		NewColor(206, 170, 237, 255),
+		NewColor(120, 100, 198, 255),
+		NewColor(212, 128, 187, 255),
+	}
+
+	row := root.AddRow(AlignCenter)
+
+	for i, color := range mc.PaletteColors {
+
+		if i%4 == 0 && i > 0 {
+			row = root.AddRow(AlignCenter)
+		}
+		index := i
+		iconButton := NewIconButton(0, 0, &sdl.Rect{48, 128, 32, 32}, false, func() { mc.DrawingColor = index + 1 })
+		iconButton.BGIconSrc = &sdl.Rect{144, 96, 32, 32}
+		iconButton.Tint = color
+		row.Add("", iconButton)
+
+	}
+
+	root.AddRow(AlignCenter).Add("pattern label", NewLabel("Patterns", nil, false, AlignCenter))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("pattern solid", NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { mc.Pattern = MapPatternSolid }))
+	row = root.AddRow(AlignCenter)
+	row.Add("pattern hashed", NewButton("Crossed", nil, &sdl.Rect{80, 128, 32, 32}, false, func() { mc.Pattern = MapPatternCrossed }))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("pattern dotted", NewButton("Dotted", nil, &sdl.Rect{112, 128, 32, 32}, false, func() { mc.Pattern = MapPatternDotted }))
+	row = root.AddRow(AlignCenter)
+	row.Add("pattern checked", NewButton("Checked", nil, &sdl.Rect{144, 128, 32, 32}, false, func() { mc.Pattern = MapPatternChecked }))
+
+	toolButtons := []*sdl.Rect{
+		{368, 0, 32, 32},   // MapEditToolNone
+		{368, 32, 32, 32},  // MapEditToolPencil
+		{368, 64, 32, 32},  // MapEditToolEraser
+		{368, 96, 32, 32},  // MapEditToolBucket
+		{368, 128, 32, 32}, // MapEditToolLine
+		{368, 160, 32, 32}, // MapEditToolColors
+	}
+
+	for index, iconSrc := range toolButtons {
+		i := index
+		button := NewIconButton(0, 0, iconSrc, true, func() {
+			if i != MapEditToolColors {
+				mc.Tool = i
+			} else {
+				mc.PaletteMenu.Open()
+			}
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+		})
+		mc.Buttons = append(mc.Buttons, button)
+
+	}
+
 	mc.Container.AddRow(AlignLeft).Add("icon", NewIcon(nil, &sdl.Rect{112, 96, 32, 32}, true))
+
 	mc.RecreateTexture()
 	mc.UpdateTexture()
 	// mc.Container.AddRow(AlignLeft).Add("label", NewLabel("Something", nil, true, AlignLeft))
@@ -771,37 +868,146 @@ func NewMapContents(card *Card) *MapContents {
 
 func (mc *MapContents) Update() {
 
-	mc.DefaultContents.Update()
-
-	mc.Card.Draggable = !mc.Editing
+	if mc.Tool == MapEditToolNone {
+		mc.Card.Draggable = true
+	} else {
+		mc.Card.Draggable = false
+	}
 
 	changed := false
 
+	if mc.Card.Resizing {
+		mc.RecreateTexture()
+		mc.UpdateTexture()
+		mc.Tool = MapEditToolNone
+	}
+
 	if mc.Card.Selected {
 
-		// if ClickedInRect(mc.Card.Rect, true) && globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
-		// 	mc.Showing = !mc.Showing
-		// 	globals.State = StateNeutral
-		// }
+		mp := globals.Mouse.WorldPosition()
+		gp := mc.GridCursorPosition()
+		leftMB := globals.Mouse.Button(sdl.BUTTON_LEFT)
+		rightMB := globals.Mouse.Button(sdl.BUTTON_RIGHT)
 
-		if mc.Card.Resizing {
-			mc.RecreateTexture()
-			mc.UpdateTexture()
-			mc.Editing = false
-		} else if mc.Editing && globals.Mouse.CurrentCursor == "pencil" {
-
-			if mp := globals.Mouse.WorldPosition(); mp.Inside(mc.Card.Rect) {
+		if mc.Tool != MapEditToolNone {
+			if mp.Inside(mc.Card.Rect) {
 				globals.State = StateMapEditing
 			} else {
 				globals.State = StateNeutral
 			}
+		}
 
-			if globals.Mouse.Button(sdl.BUTTON_LEFT).Held() {
-				mc.Data[mc.GridCursorPosition()] = 1
-				changed = true
-			} else if globals.Mouse.Button(sdl.BUTTON_RIGHT).Held() {
-				mc.Data[mc.GridCursorPosition()] = 0
-				changed = true
+		if !mc.Card.Resizing && mp.Inside(mc.Card.Rect) {
+
+			if mc.Tool == MapEditToolPencil {
+
+				if leftMB.Held() {
+					mc.SetValueAt(int(gp.X), int(gp.Y), mc.ColorIndex())
+					changed = true
+				} else if rightMB.Held() {
+					mc.Data[int(gp.Y)][int(gp.X)] = 0
+					changed = true
+				}
+
+			} else if mc.Tool == MapEditToolEraser {
+
+				if leftMB.Held() {
+					mc.Data[int(gp.Y)][int(gp.X)] = 0
+					changed = true
+				}
+
+			} else if mc.Tool == MapEditToolBucket {
+
+				neighbors := map[Point]bool{gp: true}
+				checked := map[Point]bool{}
+
+				if leftMB.Pressed() || rightMB.Pressed() {
+
+					empty := mc.ValueAt(int(gp.X), int(gp.Y))
+
+					fill := mc.ColorIndex()
+					if rightMB.Pressed() {
+						fill = 0
+					}
+
+					if empty != fill {
+
+						addIfNotAdded := func(x, y int, value int) {
+
+							p := Point{float32(x), float32(y)}
+							if _, exist := checked[p]; !exist && mc.ValueAt(x, y) == value {
+								neighbors[p] = true
+							}
+
+						}
+
+						for len(neighbors) > 0 {
+
+							for n := range neighbors {
+
+								mc.SetValueAt(int(n.X), int(n.Y), fill)
+
+								addIfNotAdded(int(n.X-1), int(n.Y), empty)
+								addIfNotAdded(int(n.X+1), int(n.Y), empty)
+								addIfNotAdded(int(n.X), int(n.Y-1), empty)
+								addIfNotAdded(int(n.X), int(n.Y+1), empty)
+
+								delete(neighbors, n)
+
+								break
+
+							}
+
+						}
+
+						changed = true
+
+					}
+
+				}
+
+			} else if mc.Tool == MapEditToolLine {
+
+				if leftMB.Pressed() || rightMB.Pressed() {
+					mc.LineStart = gp
+				} else if leftMB.Released() || rightMB.Released() {
+
+					fill := mc.ColorIndex()
+					if rightMB.Released() {
+						fill = 0
+					}
+
+					end := gp
+					start := mc.LineStart
+
+					dir := end.Sub(start).Normalized()
+
+					mc.SetValueAt(int(start.X), int(start.Y), fill)
+
+					horizontal := true
+
+					for i := 0; i < 100000; i++ {
+
+						if horizontal {
+							start.X += dir.X / 2
+						} else {
+							start.Y += dir.Y / 2
+						}
+
+						horizontal = !horizontal
+
+						mc.SetValueAt(int(start.Rounded().X), int(start.Rounded().Y), fill)
+
+						if start.Rounded().Equals(end.Rounded()) {
+							break
+						}
+
+					}
+
+					changed = true
+
+				}
+
 			}
 
 		}
@@ -810,18 +1016,31 @@ func (mc *MapContents) Update() {
 			mc.UpdateTexture()
 		}
 
-	} else {
-		mc.Editing = false
+		for index, button := range mc.Buttons {
+			button.Rect.X = mc.Card.DisplayRect.X + (float32(index) * 32)
+			button.Rect.Y = mc.Card.DisplayRect.Y - 32
+			button.Update()
+		}
+
+	} else if mc.Tool != MapEditToolNone {
+		globals.State = StateNeutral
+		mc.Tool = MapEditToolNone
 	}
+
 }
 
 func (mc *MapContents) Draw() {
 
 	if mc.Card.Selected {
 
-		if ImmediateButton(mc.Card.DisplayRect.X, mc.Card.DisplayRect.Y-32, &sdl.Rect{368, 0, 32, 32}, true) {
-			mc.Editing = !mc.Editing
-			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+		for index, button := range mc.Buttons {
+			srcX := int32(368)
+			if mc.Tool == index {
+				srcX += 32
+			}
+			button.IconSrc.X = srcX
+
+			button.Draw()
 		}
 
 	}
@@ -832,7 +1051,7 @@ func (mc *MapContents) Draw() {
 		dst = globals.Project.Camera.TranslateRect(dst)
 		globals.Renderer.CopyF(mc.Texture.Texture, nil, dst)
 
-		if mp := globals.Mouse.WorldPosition(); mc.Editing && mp.Inside(mc.Card.Rect) {
+		if mp := globals.Mouse.WorldPosition(); mc.Tool != MapEditToolNone && mp.Inside(mc.Card.Rect) {
 
 			if mc.Card.Selected && !mc.Card.Resizing {
 				globals.Mouse.SetCursor("pencil")
@@ -851,6 +1070,27 @@ func (mc *MapContents) Draw() {
 
 	}
 
+}
+
+func (mc *MapContents) ValueAt(x, y int) int {
+	// We have to get the width and height by the texture size because the backing data grid could be bigger and we don't want to read data that lies outside the visible area
+	h := int(mc.Texture.Size.Y / globals.GridSize)
+	w := int(mc.Texture.Size.X / globals.GridSize)
+	if y < 0 || y >= h || x < 0 || x >= w {
+		return -1
+	}
+	return mc.Data[y][x]
+}
+
+func (mc *MapContents) SetValueAt(x, y, value int) {
+	if y < 0 || y >= len(mc.Data) || x < 0 || x >= len(mc.Data[y]) {
+		return
+	}
+	mc.Data[y][x] = value
+}
+
+func (mc *MapContents) ColorIndex() int {
+	return mc.DrawingColor | mc.Pattern
 }
 
 func (mc *MapContents) GridCursorPosition() Point {
@@ -872,143 +1112,14 @@ func (mc *MapContents) GridCursorPosition() Point {
 		mp.Y = 0
 	}
 
-	if mp.X > mc.Card.Rect.W/globals.GridSize {
-		mp.X = mc.Card.Rect.W / globals.GridSize
+	if mp.X > (mc.Texture.Size.X/globals.GridSize)-1 {
+		mp.X = (mc.Texture.Size.X / globals.GridSize) - 1
 	}
-	if mp.Y > mc.Card.Rect.H/globals.GridSize {
-		mp.Y = mc.Card.Rect.H / globals.GridSize
+	if mp.Y > (mc.Texture.Size.Y/globals.GridSize)-1 {
+		mp.Y = (mc.Texture.Size.Y / globals.GridSize) - 1
 	}
 
 	return mp
-
-}
-
-func (mc *MapContents) UpdateTexture() {
-
-	if mc.Texture != nil {
-
-		globals.Renderer.SetRenderTarget(mc.Texture.Texture)
-
-		globals.Renderer.SetDrawColor(23, 24, 25, 255)
-		globals.Renderer.FillRect(nil)
-
-		guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
-
-		guiTex.SetColorMod(255, 255, 255)
-		guiTex.SetAlphaMod(255)
-
-		for point, value := range mc.Data {
-
-			if value != 0 {
-				src := &sdl.Rect{240, 0, 32, 32}
-				dst := &sdl.FRect{point.X * globals.GridSize, point.Y * globals.GridSize, globals.GridSize, globals.GridSize}
-				rot := float64(0)
-				right := mc.Data[point.Add(Point{1, 0})] > 0
-				left := mc.Data[point.Add(Point{-1, 0})] > 0
-				top := mc.Data[point.Add(Point{0, -1})] > 0
-				bottom := mc.Data[point.Add(Point{0, 1})] > 0
-
-				count := 0
-				if right {
-					count++
-				}
-				if left {
-					count++
-				}
-				if top {
-					count++
-				}
-				if bottom {
-					count++
-				}
-
-				if count >= 3 {
-					src.X = 336
-				} else if right && left {
-					src.X = 336
-				} else if top && bottom {
-					src.X = 336
-				} else if right && bottom {
-					src.X = 304
-				} else if bottom && left {
-					src.X = 304
-					rot = 90
-				} else if left && top {
-					src.X = 304
-					rot = 180
-				} else if top && right {
-					src.X = 304
-					rot = 270
-				} else if right {
-					src.X = 272
-				} else if left {
-					src.X = 272
-					rot = 180
-				} else if top {
-					src.X = 272
-					rot = -90
-				} else if bottom {
-					src.X = 272
-					rot = 90
-				}
-				// if top && right && bottom && left {
-				// 	src.X = 272
-				// 	src.Y = 32
-				// } else if top && right && left {
-				// 	src.X = 304
-				// 	src.Y = 32
-				// } else if top && right && bottom {
-				// 	src.X = 304
-				// 	src.Y = 32
-				// 	rot = 90
-				// } else if left && right && bottom {
-				// 	src.X = 304
-				// 	src.Y = 32
-				// 	rot = 180
-				// } else if left && top && bottom {
-				// 	src.X = 304
-				// 	src.Y = 32
-				// 	rot = 270
-				// } else if right && left {
-				// 	src.X = 304
-				// } else if top && bottom {
-				// 	src.X = 304
-				// 	rot = 90
-				// } else if left && top {
-				// 	src.X = 240
-				// 	src.Y = 32
-				// } else if right && top {
-				// 	src.X = 240
-				// 	src.Y = 32
-				// 	rot = 90
-				// } else if right && bottom {
-				// 	src.X = 240
-				// 	src.Y = 32
-				// 	rot = 180
-				// } else if bottom && left {
-				// 	src.X = 240
-				// 	src.Y = 32
-				// 	rot = 270
-				// } else if right {
-				// 	src.X = 272
-				// } else if left {
-				// 	src.X = 272
-				// 	rot = 180
-				// } else if top {
-				// 	src.X = 272
-				// 	rot = -90
-				// } else if bottom {
-				// 	src.X = 272
-				// 	rot = 90
-				// }
-
-				globals.Renderer.CopyExF(guiTex, src, dst, rot, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
-			}
-
-		}
-		globals.Renderer.SetRenderTarget(nil)
-
-	}
 
 }
 
@@ -1037,9 +1148,191 @@ func (mc *MapContents) RecreateTexture() {
 
 	}
 
+	for y := 0; y < int(mc.Texture.Size.Y/globals.GridSize); y++ {
+
+		if y >= len(mc.Data) {
+			mc.Data = append(mc.Data, []int{})
+		}
+
+		for x := 0; x < int(mc.Texture.Size.X/globals.GridSize); x++ {
+
+			if x >= len(mc.Data[y]) {
+				mc.Data[y] = append(mc.Data[y], 0)
+			}
+
+		}
+
+	}
+
 }
 
-func (mc *MapContents) ReceiveMessage(msg *Message) {}
+func (mc *MapContents) UpdateTexture() {
+
+	if mc.Texture != nil {
+
+		globals.Renderer.SetRenderTarget(mc.Texture.Texture)
+
+		globals.Renderer.SetDrawColor(getThemeColor(GUIMapColor).RGBA())
+		globals.Renderer.FillRect(nil)
+
+		guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
+
+		guiTex.SetColorMod(255, 255, 255)
+		guiTex.SetAlphaMod(255)
+
+		// for point, value := range mc.Data {
+
+		for y := 0; y < len(mc.Data); y++ {
+
+			for x := 0; x < len(mc.Data[y]); x++ {
+
+				value := mc.Data[y][x]
+
+				src := &sdl.Rect{208, 64, 32, 32}
+				dst := &sdl.FRect{float32(x) * globals.GridSize, float32(y) * globals.GridSize, globals.GridSize, globals.GridSize}
+				rot := float64(0)
+				color := NewColor(255, 255, 255, 255)
+
+				if value == 0 {
+					color = getThemeColor(GUIMapColor)
+					color = color.Sub(20)
+				} else {
+
+					// pattern := value & MapPatternSolid
+
+					colorValue := value &^ (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
+
+					color = mc.PaletteColors[colorValue-1]
+
+					src.X = 240
+					src.Y = 0
+					if value&MapPatternCrossed > 0 {
+						src.Y = 32
+					} else if value&MapPatternDotted > 0 {
+						src.Y = 64
+					} else if value&MapPatternChecked > 0 {
+						src.Y = 96
+					}
+					right := mc.ValueAt(x+1, y) > 0
+					left := mc.ValueAt(x-1, y) > 0
+					top := mc.ValueAt(x, y-1) > 0
+					bottom := mc.ValueAt(x, y+1) > 0
+
+					count := 0
+					if right {
+						count++
+					}
+					if left {
+						count++
+					}
+					if top {
+						count++
+					}
+					if bottom {
+						count++
+					}
+
+					if count >= 3 {
+						src.X = 336
+					} else if right && left {
+						src.X = 336
+					} else if top && bottom {
+						src.X = 336
+					} else if right && bottom {
+						src.X = 304
+					} else if bottom && left {
+						src.X = 304
+						rot = 90
+					} else if left && top {
+						src.X = 304
+						rot = 180
+					} else if top && right {
+						src.X = 304
+						rot = 270
+					} else if right {
+						src.X = 272
+					} else if left {
+						src.X = 272
+						rot = 180
+					} else if top {
+						src.X = 272
+						rot = -90
+					} else if bottom {
+						src.X = 272
+						rot = 90
+					}
+					// if top && right && bottom && left {
+					// 	src.X = 272
+					// 	src.Y = 32
+					// } else if top && right && left {
+					// 	src.X = 304
+					// 	src.Y = 32
+					// } else if top && right && bottom {
+					// 	src.X = 304
+					// 	src.Y = 32
+					// 	rot = 90
+					// } else if left && right && bottom {
+					// 	src.X = 304
+					// 	src.Y = 32
+					// 	rot = 180
+					// } else if left && top && bottom {
+					// 	src.X = 304
+					// 	src.Y = 32
+					// 	rot = 270
+					// } else if right && left {
+					// 	src.X = 304
+					// } else if top && bottom {
+					// 	src.X = 304
+					// 	rot = 90
+					// } else if left && top {
+					// 	src.X = 240
+					// 	src.Y = 32
+					// } else if right && top {
+					// 	src.X = 240
+					// 	src.Y = 32
+					// 	rot = 90
+					// } else if right && bottom {
+					// 	src.X = 240
+					// 	src.Y = 32
+					// 	rot = 180
+					// } else if bottom && left {
+					// 	src.X = 240
+					// 	src.Y = 32
+					// 	rot = 270
+					// } else if right {
+					// 	src.X = 272
+					// } else if left {
+					// 	src.X = 272
+					// 	rot = 180
+					// } else if top {
+					// 	src.X = 272
+					// 	rot = -90
+					// } else if bottom {
+					// 	src.X = 272
+					// 	rot = 90
+					// }
+
+				}
+
+				guiTex.SetColorMod(color.RGB())
+				guiTex.SetAlphaMod(color[3])
+
+				globals.Renderer.CopyExF(guiTex, src, dst, rot, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+
+			}
+
+		}
+		globals.Renderer.SetRenderTarget(nil)
+
+	}
+
+}
+
+func (mc *MapContents) ReceiveMessage(msg *Message) {
+	if msg.Type == MessageThemeChange {
+		mc.UpdateTexture()
+	}
+}
 
 func (mc *MapContents) Color() Color { return getThemeColor(GUIMapColor) }
 

@@ -45,19 +45,13 @@ func (camera *Camera) AddZoom(zoomInAmount float32) {
 }
 
 func (camera *Camera) Offset() Point {
-	// point := Point{(camera.Position.X - float32(width)/2), (camera.Position.Y - float32(height)/2)}
-	// point = Point{(camera.Position.X), (camera.Position.Y)}
 
 	width := globals.ScreenSize.X / 2 / camera.Zoom
 	height := globals.ScreenSize.Y / 2 / camera.Zoom
 
 	point := Point{(camera.Position.X - width), (camera.Position.Y - height)}
-
-	// point.X += float32(globals.ScreenSize.X/4) * camera.Zoom
-	// point.Y += float32(globals.ScreenSize.Y/4) * camera.Zoom
-
-	// point := Point{(camera.Position.X - float32(width)/2), (camera.Position.Y - float32(height)/2)}
 	return point
+
 }
 
 func (camera *Camera) TranslateRect(rect *sdl.FRect) *sdl.FRect {

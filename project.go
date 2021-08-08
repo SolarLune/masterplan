@@ -76,19 +76,27 @@ func NewProject() *Project {
 
 	project.CurrentPage = newPage
 
-	guiTex := globals.Resources.Get("assets/gui.png").AsImage()
-
-	gridColor := getThemeColor(GUIGridColor)
-	guiTex.Texture.SetColorMod(gridColor.RGB())
-	guiTex.Texture.SetAlphaMod(gridColor[3])
-
-	project.GridTexture = TileTexture(guiTex, &sdl.Rect{480, 0, 32, 32}, 512, 512)
+	project.CreateGridTexture()
 
 	return project
 
 }
 
+func (project *Project) CreateGridTexture() {
+	if project.GridTexture != nil {
+		project.GridTexture.Texture.Destroy()
+	}
+	gridColor := getThemeColor(GUIGridColor)
+	guiTex := globals.Resources.Get("assets/gui.png").AsImage()
+	guiTex.Texture.SetColorMod(gridColor.RGB())
+	guiTex.Texture.SetAlphaMod(gridColor[3])
+	project.GridTexture = TileTexture(guiTex, &sdl.Rect{480, 0, 32, 32}, 512, 512)
+
+}
+
 func (project *Project) Update() {
+
+	project.Camera.Update()
 
 	globals.Mouse.HiddenPosition = false
 
@@ -106,13 +114,9 @@ func (project *Project) Update() {
 
 	project.GlobalShortcuts()
 
-	project.MouseActions()
-
 	globals.InputText = []rune{}
 
 	project.UndoHistory.Update()
-
-	project.Camera.Update()
 
 }
 
@@ -156,6 +160,8 @@ func (project *Project) Draw() {
 	// }
 
 	project.CurrentPage.Draw()
+
+	project.MouseActions()
 
 }
 
@@ -235,6 +241,8 @@ func (project *Project) MouseActions() {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			card := project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
+			project.CurrentPage.Selection.Clear()
+			project.CurrentPage.Selection.Add(card)
 			card.Rect.X = globals.Mouse.WorldPosition().X - (card.Rect.W / 2)
 			card.Rect.Y = globals.Mouse.WorldPosition().Y - (card.Rect.H / 2)
 
@@ -285,7 +293,7 @@ func (project *Project) GlobalShortcuts() {
 
 		dx := float32(0)
 		dy := float32(0)
-		panSpeed := float32(8)
+		panSpeed := float32(16)
 
 		if globals.ProgramSettings.Keybindings.On(KBPanRight) {
 			dx = panSpeed
@@ -333,18 +341,24 @@ func (project *Project) GlobalShortcuts() {
 			project.Camera.TargetPosition = Point{}
 		}
 
+		var newCard *Card
 		if globals.ProgramSettings.Keybindings.On(KBNewCheckboxCard) {
-			project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewNoteCard) {
-			project.CurrentPage.CreateNewCard(ContentTypeNote)
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeNote)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewSoundCard) {
-			project.CurrentPage.CreateNewCard(ContentTypeSound)
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeSound)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewImageCard) {
-			project.CurrentPage.CreateNewCard(ContentTypeImage)
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeImage)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewTimerCard) {
-			project.CurrentPage.CreateNewCard(ContentTypeTimer)
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeTimer)
 		} else if globals.ProgramSettings.Keybindings.On(KBNewMapCard) {
-			project.CurrentPage.CreateNewCard(ContentTypeMap)
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeMap)
+		}
+
+		if newCard != nil {
+			project.CurrentPage.Selection.Clear()
+			project.CurrentPage.Selection.Add(newCard)
 		}
 
 		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {
@@ -353,7 +367,7 @@ func (project *Project) GlobalShortcuts() {
 
 		if globals.ProgramSettings.Keybindings.On(KBSelectAllCards) {
 			for _, card := range project.CurrentPage.Cards {
-				// card.Select()
+				project.CurrentPage.Selection.Clear()
 				project.CurrentPage.Selection.Add(card)
 			}
 

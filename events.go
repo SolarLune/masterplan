@@ -43,6 +43,10 @@ func (is *InputState) Held() bool {
 	return is.Down
 }
 
+func (is *InputState) HeldRaw() bool {
+	return is.Down
+}
+
 func (is *InputState) Pressed() bool {
 	if is.consumed || is.hidden {
 		return false
@@ -209,6 +213,9 @@ func handleEvents() {
 
 		case *sdl.QuitEvent:
 			confirmQuit := globals.MenuSystem.Get("confirmquit")
+			if confirmQuit.opened {
+				quit = true
+			}
 			confirmQuit.Center()
 			confirmQuit.Open()
 
