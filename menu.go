@@ -36,7 +36,7 @@ func NewMenuSystem() *MenuSystem {
 func (ms *MenuSystem) Update() {
 
 	for _, menu := range ms.ExclusiveMenus {
-		if menu.opened {
+		if menu.Opened {
 			menu.Update()
 			return
 		}
@@ -67,7 +67,7 @@ func (ms *MenuSystem) Recreate() {
 func (ms *MenuSystem) Draw() {
 
 	for _, menu := range ms.ExclusiveMenus {
-		if menu.opened {
+		if menu.Opened {
 			menu.Draw()
 			return
 		}
@@ -107,7 +107,7 @@ func (ms *MenuSystem) Get(name string) *Menu {
 
 func (ms *MenuSystem) ExclusiveMenuOpen() bool {
 	for _, menu := range ms.ExclusiveMenus {
-		if menu.opened {
+		if menu.Opened {
 			return true
 		}
 	}
@@ -124,7 +124,7 @@ type Menu struct {
 	Spacing     string
 
 	Openable           bool
-	opened             bool
+	Opened             bool
 	CloseButtonEnabled bool
 	closeButtonButton  *Button
 	BackButton         *Button
@@ -168,7 +168,7 @@ func NewMenu(rect *sdl.FRect, openable bool) *Menu {
 
 func (menu *Menu) Update() {
 
-	if !menu.Openable || menu.opened {
+	if !menu.Openable || menu.Opened {
 
 		if menu.Dragging {
 			diff := globals.Mouse.Position().Sub(menu.DragStart)
@@ -298,7 +298,7 @@ func (menu *Menu) Update() {
 
 func (menu *Menu) Draw() {
 
-	if menu.Openable && !menu.opened {
+	if menu.Openable && !menu.Opened {
 		return
 	}
 
@@ -438,7 +438,7 @@ func (menu *Menu) Recreate(newW, newH float32) {
 
 func (menu *Menu) Open() {
 	if menu.Openable {
-		menu.opened = true
+		menu.Opened = true
 		if menu.OnOpen != nil {
 			menu.OnOpen()
 		}
@@ -447,7 +447,7 @@ func (menu *Menu) Open() {
 
 func (menu *Menu) Close() {
 	if menu.Openable {
-		menu.opened = false
+		menu.Opened = false
 		menu.PageThread = []string{}
 		menu.SetPage("root")
 		if menu.OnClose != nil {

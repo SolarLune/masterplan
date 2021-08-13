@@ -68,7 +68,14 @@ const (
 	KBWindowSizeNormal = "Set Window Size to 1920x1080"
 
 	KBUnlockImageASR = "Image: Unlock Resizing From Aspect Ratio"
-	KBPickColor      = "Map: Pick Color"
+
+	KBPickColor     = "Map: Pick Color"
+	KBMapNoTool     = "Map: Pointer Tool"
+	KBMapPencilTool = "Map: Pencil Tool"
+	KBMapEraserTool = "Map: Eraser Tool"
+	KBMapFillTool   = "Map: Fill Tool"
+	KBMapLineTool   = "Map: Line Tool"
+	KBMapPalette    = "Map: Open Palette"
 
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -332,7 +339,14 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBWindowSizeNormal, sdl.K_F3)
 	kb.Define(KBToggleFullscreen, sdl.K_F11)
 	kb.Define(KBUnlockImageASR, sdl.K_LSHIFT)
+
 	kb.Define(KBPickColor, sdl.K_LALT).triggerMode = TriggerModeHold
+	kb.Define(KBMapNoTool, sdl.K_q)
+	kb.Define(KBMapPencilTool, sdl.K_e)
+	kb.Define(KBMapEraserTool, sdl.K_r)
+	kb.Define(KBMapFillTool, sdl.K_f)
+	kb.Define(KBMapLineTool, sdl.K_v)
+	kb.Define(KBMapPalette, sdl.K_TAB)
 
 	// kb.Define(KBCenterView, sdl.K_BACKSPACE)
 	// kb.Define(KBURLButton, sdl.K_LCTRL).triggerMode = TriggerModeHold

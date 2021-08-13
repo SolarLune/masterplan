@@ -821,7 +821,7 @@ const (
 	MapEditToolNone = iota
 	MapEditToolPencil
 	MapEditToolEraser
-	MapEditToolBucket
+	MapEditToolFill
 	MapEditToolLine
 	MapEditToolColors
 
@@ -966,6 +966,24 @@ func NewMapContents(card *Card) *MapContents {
 
 func (mc *MapContents) Update() {
 
+	if globals.ProgramSettings.Keybindings.On(KBMapNoTool) {
+		mc.Tool = MapEditToolNone
+	} else if globals.ProgramSettings.Keybindings.On(KBMapPencilTool) {
+		mc.Tool = MapEditToolPencil
+	} else if globals.ProgramSettings.Keybindings.On(KBMapEraserTool) {
+		mc.Tool = MapEditToolEraser
+	} else if globals.ProgramSettings.Keybindings.On(KBMapFillTool) {
+		mc.Tool = MapEditToolFill
+	} else if globals.ProgramSettings.Keybindings.On(KBMapLineTool) {
+		mc.Tool = MapEditToolLine
+	} else if globals.ProgramSettings.Keybindings.On(KBMapPalette) {
+		if mc.PaletteMenu.Opened {
+			mc.PaletteMenu.Close()
+		} else {
+			mc.PaletteMenu.Open()
+		}
+	}
+
 	if mc.Tool == MapEditToolNone {
 		mc.Card.Draggable = true
 	} else {
@@ -1055,7 +1073,7 @@ func (mc *MapContents) Update() {
 						changed = true
 					}
 
-				} else if mc.Tool == MapEditToolBucket {
+				} else if mc.Tool == MapEditToolFill {
 
 					neighbors := map[Point]bool{gp: true}
 					checked := map[Point]bool{}
@@ -1395,6 +1413,7 @@ func (mc *MapContents) UpdateTexture() {
 }
 
 func (mc *MapContents) ReceiveMessage(msg *Message) {
+
 	if msg.Type == MessageThemeChange {
 		mc.UpdateTexture()
 	} else if msg.Type == MessageUndoRedo || msg.Type == MessageResizeCompleted {
@@ -1403,6 +1422,7 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 		mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
 		mc.UpdateTexture()
 	}
+
 }
 
 func (mc *MapContents) Color() Color { return getThemeColor(GUIMapColor) }
