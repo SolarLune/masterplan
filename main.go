@@ -215,6 +215,7 @@ func main() {
 	globals.TextRenderer = NewTextRenderer()
 	screenWidth, screenHeight, _ := globals.Renderer.GetOutputSize()
 	globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
+	globals.EventLog = NewEventLog()
 
 	ReloadFonts()
 
@@ -350,7 +351,7 @@ func main() {
 				globals.DebugMode = !globals.DebugMode
 			}
 
-			// if rl.IsKeyPressed(rl.KeyF5) {
+			// if globals.Keyboard.Key(sdl.K_F5).Pressed() {
 			// 	profileCPU()
 			// }
 
@@ -879,12 +880,12 @@ func ConstructMenus() {
 // 		log.Fatal("Could not create CPU Profile: ", err)
 // 	}
 // 	pprof.StartCPUProfile(cpuProfFile)
-// 	currentProject.Log("CPU Profiling begun...")
+// 	globals.EventLog.Log("CPU Profiling begun...")
 
 // 	time.AfterFunc(time.Second*10, func() {
 // 		cpuProfileStart = time.Time{}
 // 		pprof.StopCPUProfile()
-// 		currentProject.Log("CPU Profiling finished!")
+// 		globals.EventLog.Log("CPU Profiling finished!")
 // 	})
 
 // }

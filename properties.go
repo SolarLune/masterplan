@@ -16,6 +16,7 @@ type Property struct {
 	Name       string
 	data       interface{}
 	InUse      bool
+	OnChange   func()
 }
 
 func NewProperty(name string, properties *Properties) *Property {
@@ -37,6 +38,11 @@ func (prop *Property) AsString() string {
 	return prop.data.(string)
 }
 
+func (prop *Property) AsJSONString() string {
+	str, _ := sjson.Set("", prop.Name, prop.data)
+	return str
+}
+
 func (prop *Property) IsBool() bool {
 	_, isOK := prop.data.(bool)
 	return isOK
@@ -49,13 +55,6 @@ func (prop *Property) AsBool() bool {
 	return prop.data.(bool)
 }
 
-func (prop *Property) AsSlice() []interface{} {
-	if prop.data == nil {
-		prop.data = []interface{}{}
-	}
-	return prop.data.([]interface{})
-}
-
 func (prop *Property) AsMap() map[interface{}]interface{} {
 	if prop.data == nil {
 		prop.data = map[interface{}]interface{}{}
@@ -64,19 +63,26 @@ func (prop *Property) AsMap() map[interface{}]interface{} {
 }
 
 func (prop *Property) Set(value interface{}) {
+
 	if prop.data != value {
+
 		if prop.Properties.OnChange != nil {
 			prop.Properties.OnChange(prop)
 		}
+
+		if prop.OnChange != nil {
+			prop.OnChange()
+		}
+
 		prop.data = value
+
 	}
+
 }
 
 // SetRaw sets the property, but without triggering OnChange
 func (prop *Property) SetRaw(value interface{}) {
-	if prop.data != value {
-		prop.data = value
-	}
+	prop.data = value
 }
 
 // Contains serializable properties for a Card.

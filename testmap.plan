@@ -1,0 +1,24 @@
+{
+  "pagecontenttype": "PageContentFolder",
+  "name": "New Folder",
+  "contents": [
+    {
+      "pagecontenttype": "PageContentPage",
+      "name": "New Page",
+      "cards": [
+        {
+          "rect": {
+            "X": -224,
+            "Y": -96,
+            "W": 64,
+            "H": 64
+          },
+          "contents": "Map",
+          "properties": {
+            "contents": "{\"contents\":[[1,1],[1,0]]}"
+          }
+        }
+      ]
+    }
+  ]
+}

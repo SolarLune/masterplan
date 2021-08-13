@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/ncruces/zenity"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -242,7 +244,7 @@ func NewSoundContents(card *Card) *SoundContents {
 	}
 
 	soundContents.PlayButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{112, 32, 32, 32}, true, nil)
-	soundContents.PlayButton.Pressed = func() {
+	soundContents.PlayButton.OnPressed = func() {
 
 		if soundContents.Resource == nil {
 			return
@@ -343,7 +345,7 @@ func (sc *SoundContents) Update() {
 		if sc.Resource.FinishedLoading() {
 
 			if !sc.Resource.IsSound() {
-				Log("Error: Couldn't load [%s] as sound resource", sc.Resource.Name)
+				globals.EventLog.Log("Error: Couldn't load [%s] as sound resource", sc.Resource.Name)
 				sc.Resource = nil
 				return
 			} else if sc.Sound == nil {
@@ -593,7 +595,7 @@ func (ic *ImageContents) LoadFile() {
 		ic.Resource = newImage
 		ic.LoadedImage = false
 	} else {
-		Log("Couldn't load [%s] as image resource", fp)
+		globals.EventLog.Log("Couldn't load [%s] as image resource", fp)
 		ic.LoadedImage = true
 	}
 
@@ -737,6 +739,84 @@ func (tc *TimerContents) DefaultSize() Point {
 	return Point{globals.GridSize * 8, globals.GridSize * 5}
 }
 
+type MapData struct {
+	Data          [][]int
+	Width, Height int
+}
+
+func NewMapData() *MapData {
+	return &MapData{Data: [][]int{}}
+}
+
+func (mapData *MapData) Resize(w, h int) {
+
+	for y := 0; y < h; y++ {
+
+		if len(mapData.Data) < h {
+			mapData.Data = append(mapData.Data, []int{})
+		}
+
+		for x := 0; x < w; x++ {
+
+			if len(mapData.Data[y]) < w {
+				mapData.Data[y] = append(mapData.Data[y], 0)
+			}
+
+		}
+
+	}
+
+	mapData.Width = w
+	mapData.Height = h
+
+}
+
+func (mapData *MapData) SetI(x, y, value int) {
+	if y < 0 || x < 0 || y > mapData.Height || x > mapData.Width {
+		return
+	}
+	mapData.Data[y][x] = value
+}
+
+func (mapData *MapData) Set(point Point, value int) {
+	mapData.SetI(int(point.X), int(point.Y), value)
+}
+
+func (mapData *MapData) GetI(x, y int) int {
+	if y < 0 || x < 0 || y >= mapData.Height || x >= mapData.Width {
+		return -1
+	}
+	return mapData.Data[y][x]
+}
+
+func (mapData *MapData) Get(point Point) int {
+	return mapData.GetI(int(point.X), int(point.Y))
+}
+
+func (mapData *MapData) Serialize() string {
+	dataStr, _ := sjson.Set("{}", "contents", mapData.Data)
+	return dataStr
+}
+
+func (mapData *MapData) Deserialize(data string) {
+
+	if data != "" {
+
+		contents := gjson.Get(data, "contents")
+
+		// This was causing problems with undoing a Map after altering its size.
+		// mapData.Resize(len(contents.Array()), len(contents.Array()[0].Array()))
+
+		for y, r := range contents.Array() {
+			for x, v := range r.Array() {
+				mapData.SetI(x, y, int(v.Int()))
+			}
+		}
+
+	}
+
+}
+
 const (
 	MapEditToolNone = iota
 	MapEditToolPencil
@@ -755,25 +835,31 @@ type MapContents struct {
 	DefaultContents
 	Tool        int
 	Texture     *Image
-	Data        [][]int
 	Buttons     []*IconButton
 	LineStart   Point
 	PaletteMenu *Menu
+	MapData     *MapData
 
 	DrawingColor  int
 	PaletteColors []Color
 	Pattern       int
+
+	ColorButtons   []*IconButton
+	PatternButtons map[int]*Button
 }
 
 func NewMapContents(card *Card) *MapContents {
 
 	mc := &MapContents{
 		DefaultContents: newDefaultContents(card),
-		Data:            [][]int{},
 		Buttons:         []*IconButton{},
-		PaletteMenu:     NewMenu(&sdl.FRect{0, 0, 320, 320}, true),
+		PaletteMenu:     NewMenu(&sdl.FRect{0, 0, 320, 340}, true),
 		DrawingColor:    1,
 		Pattern:         MapPatternSolid,
+		MapData:         NewMapData(),
+
+		ColorButtons:   []*IconButton{},
+		PatternButtons: map[int]*Button{},
 	}
 
 	mc.PaletteMenu.CloseButtonEnabled = true
@@ -819,20 +905,30 @@ func NewMapContents(card *Card) *MapContents {
 		iconButton.BGIconSrc = &sdl.Rect{144, 96, 32, 32}
 		iconButton.Tint = color
 		row.Add("", iconButton)
-
+		mc.ColorButtons = append(mc.ColorButtons, iconButton)
 	}
 
 	root.AddRow(AlignCenter).Add("pattern label", NewLabel("Patterns", nil, false, AlignCenter))
 
+	button := NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { mc.Pattern = MapPatternSolid })
 	row = root.AddRow(AlignCenter)
-	row.Add("pattern solid", NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { mc.Pattern = MapPatternSolid }))
-	row = root.AddRow(AlignCenter)
-	row.Add("pattern hashed", NewButton("Crossed", nil, &sdl.Rect{80, 128, 32, 32}, false, func() { mc.Pattern = MapPatternCrossed }))
+	row.Add("pattern solid", button)
+	mc.PatternButtons[MapPatternSolid] = button
 
 	row = root.AddRow(AlignCenter)
-	row.Add("pattern dotted", NewButton("Dotted", nil, &sdl.Rect{112, 128, 32, 32}, false, func() { mc.Pattern = MapPatternDotted }))
+	button = NewButton("Crossed", nil, &sdl.Rect{80, 128, 32, 32}, false, func() { mc.Pattern = MapPatternCrossed })
+	row.Add("pattern hashed", button)
+	mc.PatternButtons[MapPatternCrossed] = button
+
+	button = NewButton("Dotted", nil, &sdl.Rect{112, 128, 32, 32}, false, func() { mc.Pattern = MapPatternDotted })
 	row = root.AddRow(AlignCenter)
-	row.Add("pattern checked", NewButton("Checked", nil, &sdl.Rect{144, 128, 32, 32}, false, func() { mc.Pattern = MapPatternChecked }))
+	row.Add("pattern dotted", button)
+	mc.PatternButtons[MapPatternDotted] = button
+
+	button = NewButton("Checked", nil, &sdl.Rect{144, 128, 32, 32}, false, func() { mc.Pattern = MapPatternChecked })
+	row = root.AddRow(AlignCenter)
+	row.Add("pattern checked", button)
+	mc.PatternButtons[MapPatternChecked] = button
 
 	toolButtons := []*sdl.Rect{
 		{368, 0, 32, 32},   // MapEditToolNone
@@ -861,7 +957,9 @@ func NewMapContents(card *Card) *MapContents {
 
 	mc.RecreateTexture()
 	mc.UpdateTexture()
-	// mc.Container.AddRow(AlignLeft).Add("label", NewLabel("Something", nil, true, AlignLeft))
+
+	mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
+
 	return mc
 
 }
@@ -876,10 +974,35 @@ func (mc *MapContents) Update() {
 
 	changed := false
 
+	for index, button := range mc.ColorButtons {
+		if mc.DrawingColor == index+1 {
+			button.IconSrc.Y = 160
+		} else {
+			button.IconSrc.Y = 128
+		}
+	}
+
+	for patternType, button := range mc.PatternButtons {
+		if mc.Pattern == patternType {
+			button.IconSrc.X = 48
+			button.IconSrc.Y = 160
+		} else {
+			if patternType == MapPatternSolid {
+				button.IconSrc.X = 48
+			} else if patternType == MapPatternCrossed {
+				button.IconSrc.X = 80
+			} else if patternType == MapPatternDotted {
+				button.IconSrc.X = 112
+			} else if patternType == MapPatternChecked {
+				button.IconSrc.X = 144
+			}
+			button.IconSrc.Y = 128
+		}
+	}
+
 	if mc.Card.Resizing {
 		mc.RecreateTexture()
 		mc.UpdateTexture()
-		mc.Tool = MapEditToolNone
 	}
 
 	if mc.Card.Selected {
@@ -899,63 +1022,122 @@ func (mc *MapContents) Update() {
 
 		if !mc.Card.Resizing && mp.Inside(mc.Card.Rect) {
 
-			if mc.Tool == MapEditToolPencil {
+			if globals.ProgramSettings.Keybindings.On(KBPickColor) {
+
+				globals.Mouse.SetCursor("eyedropper")
 
 				if leftMB.Held() {
-					mc.SetValueAt(int(gp.X), int(gp.Y), mc.ColorIndex())
-					changed = true
-				} else if rightMB.Held() {
-					mc.Data[int(gp.Y)][int(gp.X)] = 0
-					changed = true
+					value := mc.MapData.Get(gp)
+					mc.DrawingColor = mc.ColorIndexToColor(value)
+					mc.Pattern = mc.ColorIndexToPattern(value)
 				}
 
-			} else if mc.Tool == MapEditToolEraser {
+			} else {
 
-				if leftMB.Held() {
-					mc.Data[int(gp.Y)][int(gp.X)] = 0
-					changed = true
+				if mc.Tool != MapEditToolNone {
+					globals.Mouse.SetCursor("pencil")
 				}
 
-			} else if mc.Tool == MapEditToolBucket {
+				if mc.Tool == MapEditToolPencil {
 
-				neighbors := map[Point]bool{gp: true}
-				checked := map[Point]bool{}
-
-				if leftMB.Pressed() || rightMB.Pressed() {
-
-					empty := mc.ValueAt(int(gp.X), int(gp.Y))
-
-					fill := mc.ColorIndex()
-					if rightMB.Pressed() {
-						fill = 0
+					if leftMB.Held() {
+						mc.MapData.Set(gp, mc.ColorIndex())
+						changed = true
+					} else if rightMB.Held() {
+						mc.MapData.Set(gp, 0)
+						changed = true
 					}
 
-					if empty != fill {
+				} else if mc.Tool == MapEditToolEraser {
 
-						addIfNotAdded := func(x, y int, value int) {
+					if leftMB.Held() {
+						mc.MapData.Set(gp, 0)
+						changed = true
+					}
 
-							p := Point{float32(x), float32(y)}
-							if _, exist := checked[p]; !exist && mc.ValueAt(x, y) == value {
-								neighbors[p] = true
+				} else if mc.Tool == MapEditToolBucket {
+
+					neighbors := map[Point]bool{gp: true}
+					checked := map[Point]bool{}
+
+					if leftMB.Pressed() || rightMB.Pressed() {
+
+						empty := mc.MapData.Get(gp)
+
+						fill := mc.ColorIndex()
+						if rightMB.Pressed() {
+							fill = 0
+						}
+
+						if empty != fill {
+
+							addIfNotAdded := func(point Point, value int) {
+
+								if _, exist := checked[point]; !exist && mc.MapData.Get(point) == value {
+									neighbors[point] = true
+								}
+
 							}
+
+							for len(neighbors) > 0 {
+
+								for n := range neighbors {
+
+									mc.MapData.Set(n, fill)
+
+									addIfNotAdded(n.AddF(-1, 0), empty)
+									addIfNotAdded(n.AddF(1, 0), empty)
+									addIfNotAdded(n.AddF(0, -1), empty)
+									addIfNotAdded(n.AddF(0, 1), empty)
+
+									delete(neighbors, n)
+
+									break
+
+								}
+
+							}
+
+							changed = true
 
 						}
 
-						for len(neighbors) > 0 {
+					}
 
-							for n := range neighbors {
+				} else if mc.Tool == MapEditToolLine {
 
-								mc.SetValueAt(int(n.X), int(n.Y), fill)
+					if leftMB.Pressed() || rightMB.Pressed() {
+						mc.LineStart = gp
+					} else if leftMB.Released() || rightMB.Released() {
 
-								addIfNotAdded(int(n.X-1), int(n.Y), empty)
-								addIfNotAdded(int(n.X+1), int(n.Y), empty)
-								addIfNotAdded(int(n.X), int(n.Y-1), empty)
-								addIfNotAdded(int(n.X), int(n.Y+1), empty)
+						fill := mc.ColorIndex()
+						if rightMB.Released() {
+							fill = 0
+						}
 
-								delete(neighbors, n)
+						end := gp
+						start := mc.LineStart
 
+						dir := end.Sub(start).Normalized()
+
+						mc.MapData.Set(start, fill)
+
+						horizontal := true
+
+						for i := 0; i < 100000; i++ {
+
+							if horizontal {
+								start.X += dir.X / 2
+							} else {
+								start.Y += dir.Y / 2
+							}
+
+							horizontal = !horizontal
+
+							mc.MapData.Set(start.Rounded(), fill)
+
+							if start.Rounded().Equals(end.Rounded()) {
 								break
-
 							}
 
 						}
@@ -966,54 +1148,15 @@ func (mc *MapContents) Update() {
 
 				}
 
-			} else if mc.Tool == MapEditToolLine {
-
-				if leftMB.Pressed() || rightMB.Pressed() {
-					mc.LineStart = gp
-				} else if leftMB.Released() || rightMB.Released() {
-
-					fill := mc.ColorIndex()
-					if rightMB.Released() {
-						fill = 0
-					}
-
-					end := gp
-					start := mc.LineStart
-
-					dir := end.Sub(start).Normalized()
-
-					mc.SetValueAt(int(start.X), int(start.Y), fill)
-
-					horizontal := true
-
-					for i := 0; i < 100000; i++ {
-
-						if horizontal {
-							start.X += dir.X / 2
-						} else {
-							start.Y += dir.Y / 2
-						}
-
-						horizontal = !horizontal
-
-						mc.SetValueAt(int(start.Rounded().X), int(start.Rounded().Y), fill)
-
-						if start.Rounded().Equals(end.Rounded()) {
-							break
-						}
-
-					}
-
-					changed = true
-
-				}
-
 			}
 
 		}
 
 		if changed {
 			mc.UpdateTexture()
+			contents := mc.Card.Properties.Get("contents")
+			contents.SetRaw(mc.MapData.Serialize())
+			mc.Card.CreateUndoState = true // Since we're setting the property raw, we have to manually create an undo state, though
 		}
 
 		for index, button := range mc.Buttons {
@@ -1022,9 +1165,12 @@ func (mc *MapContents) Update() {
 			button.Update()
 		}
 
-	} else if mc.Tool != MapEditToolNone {
-		globals.State = StateNeutral
-		mc.Tool = MapEditToolNone
+	} else {
+		mc.PaletteMenu.Close()
+		if mc.Tool != MapEditToolNone {
+			globals.State = StateNeutral
+			mc.Tool = MapEditToolNone
+		}
 	}
 
 }
@@ -1053,10 +1199,6 @@ func (mc *MapContents) Draw() {
 
 		if mp := globals.Mouse.WorldPosition(); mc.Tool != MapEditToolNone && mp.Inside(mc.Card.Rect) {
 
-			if mc.Card.Selected && !mc.Card.Resizing {
-				globals.Mouse.SetCursor("pencil")
-			}
-
 			mp.X = float32(math.Floor(float64((mp.X)/globals.GridSize))) * globals.GridSize
 			mp.Y = float32(math.Floor(float64((mp.Y)/globals.GridSize))) * globals.GridSize
 
@@ -1072,25 +1214,16 @@ func (mc *MapContents) Draw() {
 
 }
 
-func (mc *MapContents) ValueAt(x, y int) int {
-	// We have to get the width and height by the texture size because the backing data grid could be bigger and we don't want to read data that lies outside the visible area
-	h := int(mc.Texture.Size.Y / globals.GridSize)
-	w := int(mc.Texture.Size.X / globals.GridSize)
-	if y < 0 || y >= h || x < 0 || x >= w {
-		return -1
-	}
-	return mc.Data[y][x]
-}
-
-func (mc *MapContents) SetValueAt(x, y, value int) {
-	if y < 0 || y >= len(mc.Data) || x < 0 || x >= len(mc.Data[y]) {
-		return
-	}
-	mc.Data[y][x] = value
-}
-
 func (mc *MapContents) ColorIndex() int {
 	return mc.DrawingColor | mc.Pattern
+}
+
+func (mc *MapContents) ColorIndexToPattern(index int) int {
+	return index & (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
+}
+
+func (mc *MapContents) ColorIndexToColor(index int) int {
+	return index &^ (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
 }
 
 func (mc *MapContents) GridCursorPosition() Point {
@@ -1148,21 +1281,7 @@ func (mc *MapContents) RecreateTexture() {
 
 	}
 
-	for y := 0; y < int(mc.Texture.Size.Y/globals.GridSize); y++ {
-
-		if y >= len(mc.Data) {
-			mc.Data = append(mc.Data, []int{})
-		}
-
-		for x := 0; x < int(mc.Texture.Size.X/globals.GridSize); x++ {
-
-			if x >= len(mc.Data[y]) {
-				mc.Data[y] = append(mc.Data[y], 0)
-			}
-
-		}
-
-	}
+	mc.MapData.Resize(int(mc.Texture.Size.X/globals.GridSize), int(mc.Texture.Size.Y/globals.GridSize))
 
 }
 
@@ -1180,13 +1299,11 @@ func (mc *MapContents) UpdateTexture() {
 		guiTex.SetColorMod(255, 255, 255)
 		guiTex.SetAlphaMod(255)
 
-		// for point, value := range mc.Data {
+		for y := 0; y < len(mc.MapData.Data); y++ {
 
-		for y := 0; y < len(mc.Data); y++ {
+			for x := 0; x < len(mc.MapData.Data[y]); x++ {
 
-			for x := 0; x < len(mc.Data[y]); x++ {
-
-				value := mc.Data[y][x]
+				value := mc.MapData.GetI(x, y)
 
 				src := &sdl.Rect{208, 64, 32, 32}
 				dst := &sdl.FRect{float32(x) * globals.GridSize, float32(y) * globals.GridSize, globals.GridSize, globals.GridSize}
@@ -1196,11 +1313,10 @@ func (mc *MapContents) UpdateTexture() {
 				if value == 0 {
 					color = getThemeColor(GUIMapColor)
 					color = color.Sub(20)
-				} else {
+				} else if value > 0 {
 
-					// pattern := value & MapPatternSolid
-
-					colorValue := value &^ (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
+					// Color value is the value contained in the grid without the pattern bits
+					colorValue := mc.ColorIndexToColor(value)
 
 					color = mc.PaletteColors[colorValue-1]
 
@@ -1213,10 +1329,10 @@ func (mc *MapContents) UpdateTexture() {
 					} else if value&MapPatternChecked > 0 {
 						src.Y = 96
 					}
-					right := mc.ValueAt(x+1, y) > 0
-					left := mc.ValueAt(x-1, y) > 0
-					top := mc.ValueAt(x, y-1) > 0
-					bottom := mc.ValueAt(x, y+1) > 0
+					right := mc.MapData.GetI(x+1, y) > 0
+					left := mc.MapData.GetI(x-1, y) > 0
+					top := mc.MapData.GetI(x, y-1) > 0
+					bottom := mc.MapData.GetI(x, y+1) > 0
 
 					count := 0
 					if right {
@@ -1261,56 +1377,6 @@ func (mc *MapContents) UpdateTexture() {
 						src.X = 272
 						rot = 90
 					}
-					// if top && right && bottom && left {
-					// 	src.X = 272
-					// 	src.Y = 32
-					// } else if top && right && left {
-					// 	src.X = 304
-					// 	src.Y = 32
-					// } else if top && right && bottom {
-					// 	src.X = 304
-					// 	src.Y = 32
-					// 	rot = 90
-					// } else if left && right && bottom {
-					// 	src.X = 304
-					// 	src.Y = 32
-					// 	rot = 180
-					// } else if left && top && bottom {
-					// 	src.X = 304
-					// 	src.Y = 32
-					// 	rot = 270
-					// } else if right && left {
-					// 	src.X = 304
-					// } else if top && bottom {
-					// 	src.X = 304
-					// 	rot = 90
-					// } else if left && top {
-					// 	src.X = 240
-					// 	src.Y = 32
-					// } else if right && top {
-					// 	src.X = 240
-					// 	src.Y = 32
-					// 	rot = 90
-					// } else if right && bottom {
-					// 	src.X = 240
-					// 	src.Y = 32
-					// 	rot = 180
-					// } else if bottom && left {
-					// 	src.X = 240
-					// 	src.Y = 32
-					// 	rot = 270
-					// } else if right {
-					// 	src.X = 272
-					// } else if left {
-					// 	src.X = 272
-					// 	rot = 180
-					// } else if top {
-					// 	src.X = 272
-					// 	rot = -90
-					// } else if bottom {
-					// 	src.X = 272
-					// 	rot = 90
-					// }
 
 				}
 
@@ -1330,6 +1396,11 @@ func (mc *MapContents) UpdateTexture() {
 
 func (mc *MapContents) ReceiveMessage(msg *Message) {
 	if msg.Type == MessageThemeChange {
+		mc.UpdateTexture()
+	} else if msg.Type == MessageUndoRedo || msg.Type == MessageResizeCompleted {
+		mc.MapData.Deserialize(mc.Card.Properties.Get("contents").AsString())
+		mc.RecreateTexture()
+		mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
 		mc.UpdateTexture()
 	}
 }

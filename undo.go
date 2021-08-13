@@ -241,6 +241,7 @@ func (state *UndoState) Apply() {
 	state.Card.CreateUndoState = false
 	state.Card.UndoCreation = false
 	state.Card.UndoDeletion = false
+	state.Card.ReceiveMessage(NewMessage(MessageUndoRedo, state.Card, nil))
 }
 
 func (state *UndoState) Exit(direction int) {

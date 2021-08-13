@@ -9,15 +9,21 @@ import (
 	"github.com/tanema/gween/ease"
 )
 
-type EventLog struct {
+type Event struct {
 	// Time  time.Time
 	Tween   *gween.Tween
 	Texture *TextRendererResult
 }
 
-var eventLogBuffer = []EventLog{}
+type EventLog struct {
+	Events []*Event
+}
 
-func Log(text string, variables ...interface{}) {
+func NewEventLog() *EventLog {
+	return &EventLog{Events: []*Event{}}
+}
+
+func (eventLog *EventLog) Log(text string, variables ...interface{}) {
 
 	output := text
 
@@ -29,7 +35,7 @@ func Log(text string, variables ...interface{}) {
 
 	output = time.Now().Format("15:04:05") + " " + output
 
-	eventLogBuffer = append(eventLogBuffer, EventLog{
+	eventLog.Events = append(eventLog.Events, &Event{
 		Tween:   gween.New(1, 0, 4, ease.Linear),
 		Texture: globals.TextRenderer.RenderText(output, NewColor(0, 0, 0, 255), Point{}, AlignLeft),
 	})

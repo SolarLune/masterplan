@@ -121,6 +121,10 @@ func (point Point) Add(other Point) Point {
 	return Point{point.X + other.X, point.Y + other.Y}
 }
 
+func (point Point) AddF(x, y float32) Point {
+	return Point{point.X + x, point.Y + y}
+}
+
 func (point Point) Mult(factor float32) Point {
 	return Point{point.X * factor, point.Y * factor}
 }
@@ -373,6 +377,7 @@ func LoadCursors() {
 	globals.Mouse.Cursors["resize"] = createCursor(432, 48)
 	globals.Mouse.Cursors["text caret"] = createCursor(432, 96)
 	globals.Mouse.Cursors["pencil"] = createCursor(432, 144)
+	globals.Mouse.Cursors["eyedropper"] = createCursor(432, 192)
 
 	globals.Mouse.SetCursor("normal")
 

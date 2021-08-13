@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/tidwall/gjson"
@@ -271,7 +270,6 @@ func (page *Page) Deserialize(data string) {
 	for _, cardData := range gjson.Get(data, "cards").Array() {
 
 		newCard := page.CreateNewCard(ContentTypeCheckbox)
-		fmt.Println("create new card")
 		newCard.Deserialize(cardData.Raw)
 
 	}

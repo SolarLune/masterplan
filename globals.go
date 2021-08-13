@@ -36,6 +36,7 @@ type Globals struct {
 	Resources       ResourceBank
 	GrabClient      *grab.Client
 	MenuSystem      *MenuSystem
+	EventLog        *EventLog
 
 	DebugMode bool
 }

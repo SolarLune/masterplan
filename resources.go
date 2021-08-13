@@ -154,7 +154,7 @@ func (resource *Resource) Parse() {
 		// Sounds aren't shared, actually, so Resource.Data is nil for audio files.
 
 	} else {
-		Log("Warning: could not parse resource: %s", resource.Name)
+		globals.EventLog.Log("Warning: could not parse resource: %s", resource.Name)
 	}
 
 	resource.Parsed = true

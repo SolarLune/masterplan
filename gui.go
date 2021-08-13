@@ -237,16 +237,15 @@ func (iconButton *IconButton) SetRectangle(rect *sdl.FRect) {
 
 // 	return clickInside
 // }
-
 type Button struct {
 	Label          *Label
 	Rect           *sdl.FRect
 	IconSrc        *sdl.Rect
-	Pressed        func()
 	LineWidth      float32
 	Disabled       bool
 	WorldSpace     bool
 	FadeOnInactive bool
+	OnPressed      func()
 }
 
 func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, worldSpace bool, pressedFunc func()) *Button {
@@ -255,7 +254,7 @@ func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, worldSp
 		Label:          NewLabel(labelText, rect, worldSpace, AlignCenter),
 		Rect:           &sdl.FRect{},
 		IconSrc:        iconSrcRect,
-		Pressed:        pressedFunc,
+		OnPressed:      pressedFunc,
 		WorldSpace:     worldSpace,
 		FadeOnInactive: true,
 	}
@@ -291,8 +290,8 @@ func (button *Button) Update() {
 		button.LineWidth += (1 - button.LineWidth) * 0.2
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.CurrentCursor == "normal" {
-			if button.Pressed != nil {
-				button.Pressed()
+			if button.OnPressed != nil {
+				button.OnPressed()
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			}
 		}
@@ -498,7 +497,7 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 		AllowNewlines:       true,
 	}
 
-	label.Highlighter.HighlightMode = HighlightLighten
+	label.Highlighter.HighlightMode = HighlightColor
 
 	if rect == nil {
 		// A rect width or height of -1, -1 means the Label's rect's size should expand to fill as necessary
@@ -1655,23 +1654,28 @@ func (pie *Pie) SetRectangle(rect *sdl.FRect) {
 func (pie *Pie) Destroy() {}
 
 const (
-	HighlightLighten = "HighlightLighten"
-	HighlightRing    = "HighlightRing"
+	HighlightColor      = "HighlightLighten"
+	HighlightRing       = "HighlightRing"
+	HighlightSmallArrow = "HighlightSmallArrow"
 )
 
 type Highlighter struct {
+	TargetRect          *sdl.FRect
 	Rect                *sdl.FRect
 	HighlightPercentage float32
 	Highlighting        bool
 	WorldSpace          bool
 	HighlightMode       string
+	Color               Color
 }
 
 func NewHighlighter(rect *sdl.FRect, worldSpace bool) *Highlighter {
 	return &Highlighter{
 		Rect:          &sdl.FRect{rect.X, rect.Y, rect.W, rect.H},
+		TargetRect:    &sdl.FRect{rect.X, rect.Y, rect.W, rect.H},
 		WorldSpace:    worldSpace,
 		HighlightMode: HighlightRing,
+		Color:         nil,
 	}
 }
 
@@ -1683,10 +1687,19 @@ func (highlighter *Highlighter) Draw() {
 		highlighter.HighlightPercentage += (0 - highlighter.HighlightPercentage) * 0.2
 	}
 
-	rect := highlighter.Rect
+	r := highlighter.Rect
+
+	softness := float32(0.1)
+	r.X += (highlighter.TargetRect.X - r.X) * softness
+	r.Y += (highlighter.TargetRect.Y - r.Y) * softness
+	r.W += (highlighter.TargetRect.W - r.W) * softness
+	r.H += (highlighter.TargetRect.H - r.H) * softness
+
 	if highlighter.WorldSpace {
-		rect = globals.Project.Camera.TranslateRect(rect)
+		r = globals.Project.Camera.TranslateRect(r)
 	}
+
+	rect := *r
 
 	padding := float32(4)
 
@@ -1695,17 +1708,24 @@ func (highlighter *Highlighter) Draw() {
 	rect.W += padding * 2
 	rect.H += padding * 2
 
+	var highlightColor sdl.Color
+
+	if highlighter.Color == nil {
+		highlightColor = getThemeColor(GUIMenuColor).SDLColor()
+	} else {
+		highlightColor = highlighter.Color.SDLColor()
+	}
+
 	switch highlighter.HighlightMode {
 
-	case HighlightLighten:
+	case HighlightColor:
 
 		if highlighter.HighlightPercentage > 0.01 {
-			gfx.RoundedBoxColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+rect.H), 8, sdl.Color{255, 255, 255, uint8(highlighter.HighlightPercentage * 128)})
+			highlightColor.A = uint8(highlighter.HighlightPercentage * float32(highlightColor.A))
+			gfx.RoundedBoxColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+rect.H), 8, highlightColor)
 		}
 
 	case HighlightRing:
-
-		highlightColor := getThemeColor(GUIMenuColor).SDLColor()
 
 		firstPerc := highlighter.HighlightPercentage * 2
 		if firstPerc > 1 {
@@ -1731,6 +1751,11 @@ func (highlighter *Highlighter) Draw() {
 			gfx.ThickLineColor(globals.Renderer, int32(rect.X+rect.W), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+h), 2, highlightColor)
 			gfx.ThickLineColor(globals.Renderer, int32(rect.X), int32(rect.Y+rect.H), int32(rect.X+w), int32(rect.Y+rect.H), 2, highlightColor)
 		}
+	case HighlightSmallArrow:
+		guiTex := globals.Resources.Get("assets/gui.png").AsImage()
+		guiTex.Texture.SetAlphaMod(highlightColor.A)
+		guiTex.Texture.SetColorMod(highlightColor.R, highlightColor.G, highlightColor.B)
+		globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{480, 32, 16, 16}, &rect)
 
 	}
 
@@ -1741,6 +1766,10 @@ func (highlighter *Highlighter) SetRect(rect *sdl.FRect) {
 	highlighter.Rect.Y = rect.Y
 	highlighter.Rect.W = rect.W
 	highlighter.Rect.H = rect.H
+	highlighter.TargetRect.X = rect.X
+	highlighter.TargetRect.Y = rect.Y
+	highlighter.TargetRect.W = rect.W
+	highlighter.TargetRect.H = rect.H
 }
 
 // type Scrollbar struct {
