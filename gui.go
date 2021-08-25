@@ -133,6 +133,7 @@ type IconButton struct {
 	WorldSpace bool
 	OnClicked  func()
 	Tint       Color
+	Flip       sdl.RendererFlip
 	BGIconSrc  *sdl.Rect
 }
 
@@ -172,22 +173,22 @@ func (iconButton *IconButton) Draw() {
 		mp = globals.Mouse.WorldPosition()
 	}
 
-	drawSrc := func(src *sdl.Rect, color Color) {
+	drawSrc := func(src *sdl.Rect, color Color, flip sdl.RendererFlip) {
 
 		if !mp.Inside(iconButton.Rect) {
 			color = color.Sub(40)
 		}
 		guiTex.SetColorMod(color.RGB())
 		guiTex.SetAlphaMod(color[3])
-		globals.Renderer.CopyF(guiTex, src, rect)
+		globals.Renderer.CopyExF(guiTex, src, rect, 0, nil, flip)
 
 	}
 
 	if iconButton.BGIconSrc != nil {
-		drawSrc(iconButton.BGIconSrc, NewColor(255, 255, 255, 255))
+		drawSrc(iconButton.BGIconSrc, NewColor(255, 255, 255, 255), 0)
 	}
 
-	drawSrc(iconButton.IconSrc, iconButton.Tint)
+	drawSrc(iconButton.IconSrc, iconButton.Tint, iconButton.Flip)
 
 }
 

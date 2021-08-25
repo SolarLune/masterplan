@@ -11,7 +11,6 @@ import (
 	"github.com/ncruces/zenity"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -740,12 +739,15 @@ func (tc *TimerContents) DefaultSize() Point {
 }
 
 type MapData struct {
+	Contents      *MapContents
 	Data          [][]int
 	Width, Height int
 }
 
-func NewMapData() *MapData {
-	return &MapData{Data: [][]int{}}
+func NewMapData(contents *MapContents) *MapData {
+	return &MapData{
+		Contents: contents,
+		Data:     [][]int{}}
 }
 
 func (mapData *MapData) Resize(w, h int) {
@@ -771,15 +773,61 @@ func (mapData *MapData) Resize(w, h int) {
 
 }
 
-func (mapData *MapData) SetI(x, y, value int) {
-	if y < 0 || x < 0 || y > mapData.Height || x > mapData.Width {
-		return
+func (mapData *MapData) Rotate(direction int) {
+
+	oldData := [][]int{}
+
+	for y := range mapData.Data {
+		if y >= mapData.Height {
+			break
+		}
+		oldData = append(oldData, []int{})
+		for x := range mapData.Data[y] {
+			if x >= mapData.Width {
+				break
+			}
+			oldData[y] = append(oldData[y], mapData.Data[y][x])
+		}
 	}
-	mapData.Data[y][x] = value
+
+	newWidth := float32(mapData.Height) * globals.GridSize
+	newHeight := float32(mapData.Width) * globals.GridSize
+
+	mapData.Contents.Card.Recreate(newWidth, newHeight)
+	mapData.Contents.ReceiveMessage(NewMessage(MessageResizeCompleted, nil, nil))
+
+	mapData.Data = [][]int{}
+	mapData.Resize(int(newWidth/globals.GridSize), int(newHeight/globals.GridSize))
+
+	for y := range oldData {
+		for x := range oldData[y] {
+			if direction > 0 {
+				invY := len(oldData) - 1 - y
+				mapData.Data[x][invY] = oldData[y][x]
+			} else {
+				invX := len(oldData[y]) - 1 - x
+				mapData.Data[invX][y] = oldData[y][x]
+			}
+		}
+	}
+
+	mapData.Contents.UpdateTexture()
+
+	contents := mapData.Contents.Card.Properties.Get("contents")
+	contents.SetRaw(mapData.Serialize())
+
 }
 
-func (mapData *MapData) Set(point Point, value int) {
-	mapData.SetI(int(point.X), int(point.Y), value)
+func (mapData *MapData) SetI(x, y, value int) bool {
+	if y < 0 || x < 0 || y >= mapData.Height || x >= mapData.Width {
+		return false
+	}
+	mapData.Data[y][x] = value
+	return true
+}
+
+func (mapData *MapData) Set(point Point, value int) bool {
+	return mapData.SetI(int(point.X), int(point.Y), value)
 }
 
 func (mapData *MapData) GetI(x, y int) int {
@@ -856,11 +904,12 @@ func NewMapContents(card *Card) *MapContents {
 		PaletteMenu:     NewMenu(&sdl.FRect{0, 0, 320, 340}, true),
 		DrawingColor:    1,
 		Pattern:         MapPatternSolid,
-		MapData:         NewMapData(),
 
 		ColorButtons:   []*IconButton{},
 		PatternButtons: map[int]*Button{},
 	}
+
+	mc.MapData = NewMapData(mc)
 
 	mc.PaletteMenu.CloseButtonEnabled = true
 	mc.PaletteMenu.Draggable = true
@@ -953,36 +1002,40 @@ func NewMapContents(card *Card) *MapContents {
 
 	}
 
+	// Rotation buttons
+
+	rotateRight := NewIconButton(0, 0, &sdl.Rect{400, 192, 32, 32}, true, func() {
+		mc.MapData.Rotate(1)
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	})
+	mc.Buttons = append(mc.Buttons, rotateRight)
+
+	rotateLeft := NewIconButton(0, 0, &sdl.Rect{400, 192, 32, 32}, true, func() {
+		mc.MapData.Rotate(-1)
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	})
+	rotateLeft.Flip = sdl.FLIP_HORIZONTAL
+
+	mc.Buttons = append(mc.Buttons, rotateLeft)
+
 	mc.Container.AddRow(AlignLeft).Add("icon", NewIcon(nil, &sdl.Rect{112, 96, 32, 32}, true))
+
+	mc.MapData.Resize(int(mc.Card.Rect.W/globals.GridSize), int(mc.Card.Rect.H/globals.GridSize))
+
+	if mc.Card.Properties.Get("contents").AsString() != "" {
+		mc.MapData.Deserialize(mc.Card.Properties.Get("contents").AsString())
+	} else {
+		mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
+	}
 
 	mc.RecreateTexture()
 	mc.UpdateTexture()
-
-	mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
 
 	return mc
 
 }
 
 func (mc *MapContents) Update() {
-
-	if globals.ProgramSettings.Keybindings.On(KBMapNoTool) {
-		mc.Tool = MapEditToolNone
-	} else if globals.ProgramSettings.Keybindings.On(KBMapPencilTool) {
-		mc.Tool = MapEditToolPencil
-	} else if globals.ProgramSettings.Keybindings.On(KBMapEraserTool) {
-		mc.Tool = MapEditToolEraser
-	} else if globals.ProgramSettings.Keybindings.On(KBMapFillTool) {
-		mc.Tool = MapEditToolFill
-	} else if globals.ProgramSettings.Keybindings.On(KBMapLineTool) {
-		mc.Tool = MapEditToolLine
-	} else if globals.ProgramSettings.Keybindings.On(KBMapPalette) {
-		if mc.PaletteMenu.Opened {
-			mc.PaletteMenu.Close()
-		} else {
-			mc.PaletteMenu.Open()
-		}
-	}
 
 	if mc.Tool == MapEditToolNone {
 		mc.Card.Draggable = true
@@ -1021,9 +1074,39 @@ func (mc *MapContents) Update() {
 	if mc.Card.Resizing {
 		mc.RecreateTexture()
 		mc.UpdateTexture()
+		mc.LineStart.X = -1
+		mc.LineStart.Y = -1
 	}
 
 	if mc.Card.Selected {
+
+		if globals.ProgramSettings.Keybindings.On(KBMapNoTool) {
+			mc.Tool = MapEditToolNone
+			mc.Card.Page.Selection.Clear()
+			mc.Card.Page.Selection.Add(mc.Card)
+		} else if globals.ProgramSettings.Keybindings.On(KBMapPencilTool) {
+			mc.Tool = MapEditToolPencil
+			mc.Card.Page.Selection.Clear()
+			mc.Card.Page.Selection.Add(mc.Card)
+		} else if globals.ProgramSettings.Keybindings.On(KBMapEraserTool) {
+			mc.Tool = MapEditToolEraser
+			mc.Card.Page.Selection.Clear()
+			mc.Card.Page.Selection.Add(mc.Card)
+		} else if globals.ProgramSettings.Keybindings.On(KBMapFillTool) {
+			mc.Tool = MapEditToolFill
+			mc.Card.Page.Selection.Clear()
+			mc.Card.Page.Selection.Add(mc.Card)
+		} else if globals.ProgramSettings.Keybindings.On(KBMapLineTool) {
+			mc.Tool = MapEditToolLine
+			mc.Card.Page.Selection.Clear()
+			mc.Card.Page.Selection.Add(mc.Card)
+		} else if globals.ProgramSettings.Keybindings.On(KBMapPalette) && mc.Card.Selected && len(mc.Card.Page.Selection.Cards) == 1 {
+			if mc.PaletteMenu.Opened {
+				mc.PaletteMenu.Close()
+			} else {
+				mc.PaletteMenu.Open()
+			}
+		}
 
 		mp := globals.Mouse.WorldPosition()
 		gp := mc.GridCursorPosition()
@@ -1038,10 +1121,11 @@ func (mc *MapContents) Update() {
 			}
 		}
 
-		if !mc.Card.Resizing && mp.Inside(mc.Card.Rect) {
+		if !mc.Card.Resizing {
 
 			if globals.ProgramSettings.Keybindings.On(KBPickColor) {
 
+				// Eyedropping to pick color
 				globals.Mouse.SetCursor("eyedropper")
 
 				if leftMB.Held() {
@@ -1052,11 +1136,66 @@ func (mc *MapContents) Update() {
 
 			} else {
 
-				if mc.Tool != MapEditToolNone {
-					globals.Mouse.SetCursor("pencil")
-				}
+				if mc.UsingLineTool() {
 
-				if mc.Tool == MapEditToolPencil {
+					if mp.Inside(mc.Card.Rect) {
+
+						globals.Mouse.SetCursor("pencil")
+
+						if mp.Inside(mc.Card.Rect) && (leftMB.Pressed() || rightMB.Pressed()) {
+							mc.LineStart = gp
+						}
+
+					}
+
+					if mc.LineStart.X >= 0 && mc.LineStart.Y >= 0 && (leftMB.Released() || rightMB.Released()) {
+
+						fill := mc.ColorIndex()
+						if rightMB.Released() {
+							fill = 0
+						}
+
+						end := gp
+						start := mc.LineStart
+
+						dir := end.Sub(start).Normalized()
+
+						mc.MapData.Set(start, fill)
+
+						horizontal := true
+
+						if start != end {
+
+							for i := 0; i < 100000; i++ {
+
+								if horizontal {
+									start.X += dir.X / 2
+								} else {
+									start.Y += dir.Y / 2
+								}
+
+								horizontal = !horizontal
+
+								setReturn := mc.MapData.Set(start.Rounded(), fill)
+
+								if start.Rounded().Equals(end.Rounded()) || !setReturn {
+									break
+								}
+
+							}
+
+						}
+
+						changed = true
+
+						mc.LineStart.X = -1
+						mc.LineStart.Y = -1
+
+					}
+
+				} else if mc.Tool == MapEditToolPencil && mp.Inside(mc.Card.Rect) {
+
+					globals.Mouse.SetCursor("pencil")
 
 					if leftMB.Held() {
 						mc.MapData.Set(gp, mc.ColorIndex())
@@ -1066,14 +1205,18 @@ func (mc *MapContents) Update() {
 						changed = true
 					}
 
-				} else if mc.Tool == MapEditToolEraser {
+				} else if mc.Tool == MapEditToolEraser && mp.Inside(mc.Card.Rect) {
+
+					globals.Mouse.SetCursor("eraser")
 
 					if leftMB.Held() {
 						mc.MapData.Set(gp, 0)
 						changed = true
 					}
 
-				} else if mc.Tool == MapEditToolFill {
+				} else if mc.Tool == MapEditToolFill && mp.Inside(mc.Card.Rect) {
+
+					globals.Mouse.SetCursor("bucket")
 
 					neighbors := map[Point]bool{gp: true}
 					checked := map[Point]bool{}
@@ -1122,48 +1265,6 @@ func (mc *MapContents) Update() {
 
 					}
 
-				} else if mc.Tool == MapEditToolLine {
-
-					if leftMB.Pressed() || rightMB.Pressed() {
-						mc.LineStart = gp
-					} else if leftMB.Released() || rightMB.Released() {
-
-						fill := mc.ColorIndex()
-						if rightMB.Released() {
-							fill = 0
-						}
-
-						end := gp
-						start := mc.LineStart
-
-						dir := end.Sub(start).Normalized()
-
-						mc.MapData.Set(start, fill)
-
-						horizontal := true
-
-						for i := 0; i < 100000; i++ {
-
-							if horizontal {
-								start.X += dir.X / 2
-							} else {
-								start.Y += dir.Y / 2
-							}
-
-							horizontal = !horizontal
-
-							mc.MapData.Set(start.Rounded(), fill)
-
-							if start.Rounded().Equals(end.Rounded()) {
-								break
-							}
-
-						}
-
-						changed = true
-
-					}
-
 				}
 
 			}
@@ -1189,6 +1290,8 @@ func (mc *MapContents) Update() {
 			globals.State = StateNeutral
 			mc.Tool = MapEditToolNone
 		}
+		mc.LineStart.X = -1
+		mc.LineStart.Y = -1
 	}
 
 }
@@ -1215,6 +1318,45 @@ func (mc *MapContents) Draw() {
 		dst = globals.Project.Camera.TranslateRect(dst)
 		globals.Renderer.CopyF(mc.Texture.Texture, nil, dst)
 
+		if mc.UsingLineTool() && (mc.LineStart.X >= 0 || mc.LineStart.Y >= 0) {
+
+			gp := mc.GridCursorPosition()
+			start := mc.LineStart
+			dir := gp.Sub(start).Normalized()
+
+			horizontal := true
+
+			if start != gp {
+
+				for i := 0; i < 100000; i++ {
+
+					s := start
+					s.X = float32(math.Round(float64(s.X)))*globals.GridSize + mc.Card.Rect.X
+					s.Y = float32(math.Round(float64(s.Y)))*globals.GridSize + mc.Card.Rect.Y
+
+					mp := globals.Project.Camera.UntranslatePoint(s)
+					ThickRect(int32(mp.X), int32(mp.Y), 32, 32, 2, NewColor(200, 220, 240, 255))
+
+					if start.Rounded().Equals(gp.Rounded()) {
+						break
+					}
+
+					if horizontal {
+						start.X += dir.X / 2
+					} else {
+						start.Y += dir.Y / 2
+					}
+
+					horizontal = !horizontal
+
+					// Draw square
+
+				}
+
+			}
+
+		}
+
 		if mp := globals.Mouse.WorldPosition(); mc.Tool != MapEditToolNone && mp.Inside(mc.Card.Rect) {
 
 			mp.X = float32(math.Floor(float64((mp.X)/globals.GridSize))) * globals.GridSize
@@ -1222,14 +1364,16 @@ func (mc *MapContents) Draw() {
 
 			mp = globals.Project.Camera.UntranslatePoint(mp)
 
-			gfx.ThickLineRGBA(globals.Renderer, int32(mp.X), int32(mp.Y), int32(mp.X+32), int32(mp.Y), 2, 255, 255, 255, 255)
-			gfx.ThickLineRGBA(globals.Renderer, int32(mp.X+32), int32(mp.Y), int32(mp.X+32), int32(mp.Y+32), 2, 255, 255, 255, 255)
-			gfx.ThickLineRGBA(globals.Renderer, int32(mp.X+32), int32(mp.Y+32), int32(mp.X), int32(mp.Y+32), 2, 255, 255, 255, 255)
-			gfx.ThickLineRGBA(globals.Renderer, int32(mp.X), int32(mp.Y+32), int32(mp.X), int32(mp.Y), 2, 255, 255, 255, 255)
+			ThickRect(int32(mp.X), int32(mp.Y), 32, 32, 2, NewColor(255, 255, 255, 255))
+
 		}
 
 	}
 
+}
+
+func (mc *MapContents) UsingLineTool() bool {
+	return mc.Tool == MapEditToolLine || (mc.Tool == MapEditToolPencil && globals.ProgramSettings.Keybindings.On(KBMapQuickLineTool))
 }
 
 func (mc *MapContents) ColorIndex() int {
@@ -1421,6 +1565,9 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 		mc.RecreateTexture()
 		mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
 		mc.UpdateTexture()
+	} else if msg.Type == MessageContentSwitched {
+		mc.Card.Draggable = true
+		mc.Tool = MapEditToolNone
 	}
 
 }

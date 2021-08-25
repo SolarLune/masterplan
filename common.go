@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -378,6 +379,8 @@ func LoadCursors() {
 	globals.Mouse.Cursors["text caret"] = createCursor(432, 96)
 	globals.Mouse.Cursors["pencil"] = createCursor(432, 144)
 	globals.Mouse.Cursors["eyedropper"] = createCursor(432, 192)
+	globals.Mouse.Cursors["bucket"] = createCursor(432, 240)
+	globals.Mouse.Cursors["eraser"] = createCursor(432, 272)
 
 	globals.Mouse.SetCursor("normal")
 
@@ -452,6 +455,15 @@ func FillRect(x, y, w, h float32, color Color) {
 	globals.Renderer.SetDrawColor(color.RGBA())
 	globals.Renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
 	globals.Renderer.FillRectF(&sdl.FRect{x, y, w, h})
+}
+
+func ThickRect(x, y, w, h, thickness int32, color Color) {
+
+	gfx.ThickLineRGBA(globals.Renderer, x, y, x+w, y, 2, color[0], color[1], color[2], color[3])
+	gfx.ThickLineRGBA(globals.Renderer, x+w, y, x+w, y+h, 2, color[0], color[1], color[2], color[3])
+	gfx.ThickLineRGBA(globals.Renderer, x+w, y+h, x, y+h, 2, color[0], color[1], color[2], color[3])
+	gfx.ThickLineRGBA(globals.Renderer, x, y+h, x, y, 2, color[0], color[1], color[2], color[3])
+
 }
 
 // func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {

@@ -170,6 +170,10 @@ func (menu *Menu) Update() {
 
 	if !menu.Openable || menu.Opened {
 
+		if globals.Mouse.Position().Inside(menu.Rect) {
+			globals.Mouse.SetCursor("normal")
+		}
+
 		if menu.Dragging {
 			diff := globals.Mouse.Position().Sub(menu.DragStart)
 			menu.Rect.X = menu.DragStart.X + diff.X - menu.DragOffset.X
@@ -287,6 +291,10 @@ func (menu *Menu) Update() {
 				menu.Dragging = false
 			}
 
+		}
+
+		if globals.Mouse.Position().Inside(menu.Rect) {
+			globals.Mouse.HiddenPosition = true
 		}
 
 	} else {

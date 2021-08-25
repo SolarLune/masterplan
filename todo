@@ -1,19 +1,20 @@
-- Fix zooming
-- Multithread GIF loading (it's already running on one thread, that means it's multi-thread ready)
-- Add Undo system back in
-- Add Page system
-- Wheel scrolling should be more sensitive
-- Quit project without saving wording should be clearer
-- Two-finger slide to pan project?
+- Map should be lower depth, if possible?
+- Card movement!
+- Count-down Timer
+- Double-clicking on different Card to background creates Card
+
+- Buttons for loading images, etc.
 - Add option to not create new Tasks when double-clicking
 
+- Maps should have a border to differentiate between them
+- Wheel scrolling should be more sensitive
+- Two-finger slide to pan project?
+- Different camera pan locations for different Pages; that way switching between them doesn't necessitate moving the camera all of the time.
 - Detect when an error causes a crash within the first, say, second; if it happens then on restart, suggest that there could've been an issue and ask if the user wishes to load the settings.
-
 - Export to One-Note / to image / PDF
-
 - When loading projects from previous versions of MasterPlan, focus on all Cards after load; otherwise, the camera pan should be saved, too.
-- Update Steam store page description / icon
 - Add "Quick Label" mode or something - something that would allow Labels to draw glyphs directly to the screen rather than to a texture first, which would be good for Labels that change often, like time indicators
+- 
 
 Short-term:
 
@@ -30,23 +31,6 @@ Can't click and drag on Checkboxes when it's just 1x1
 Copy + Paste Cards as text?
 
 Cycle through selected Cards with Ctrl + Scroll wheel or menu?
-
-
--- Rough Improvements --
-
-Sound Card Improvements (seek)
-Cards are freely resizeable
-You can now type directly onto Cards
-The UI has gotten a facelift, making it appear more attractive, less pixelated.
-Words now auto-wrap when typing into editable Labels.
-Can now change multiple Cards at a time.
-
--- Rough Changelog --
-
-File Menu
-Settings
-Context Menu
-Glyphs should be scaled within each zone symmetrically, rather than scaling vertically and horizontally on different axes / ratios
 
 Instead of the current Board tab system, it would be better to implement a hierarchical view, allowing you to create and reposition folders and pages. Boards would now be Pages, allowing you to rearrange pages of information to be correlated, while also remaining easy to reach at a moment's notice.
 
@@ -102,6 +86,7 @@ TODO
     - Legend for displaying text corresponding to icons or zones
       - Text from the legend should display behind the colors for each zone if possible (should be hide-able, perhaps only display if the Legend is open)
   - Calendar Card
+  - Re-implement Project Settings
 
 TTF font loading efficiently : foreign characters shouldn’t “cost” extra
 Font base size “knowledge”

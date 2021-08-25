@@ -192,7 +192,11 @@ func (mouse Mouse) WorldPosition() Point {
 }
 
 func (mouse *Mouse) SetCursor(cursorName string) {
-	mouse.NextCursor = cursorName
+	if !globals.MenuSystem.ExclusiveMenuOpen() {
+		mouse.NextCursor = cursorName
+	} else {
+		mouse.NextCursor = "normal"
+	}
 }
 
 func (mouse *Mouse) ApplyCursor() {

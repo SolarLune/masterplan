@@ -69,13 +69,14 @@ const (
 
 	KBUnlockImageASR = "Image: Unlock Resizing From Aspect Ratio"
 
-	KBPickColor     = "Map: Pick Color"
-	KBMapNoTool     = "Map: Pointer Tool"
-	KBMapPencilTool = "Map: Pencil Tool"
-	KBMapEraserTool = "Map: Eraser Tool"
-	KBMapFillTool   = "Map: Fill Tool"
-	KBMapLineTool   = "Map: Line Tool"
-	KBMapPalette    = "Map: Open Palette"
+	KBPickColor        = "Map: Pick Color"
+	KBMapNoTool        = "Map: Pointer Tool"
+	KBMapPencilTool    = "Map: Pencil Tool"
+	KBMapEraserTool    = "Map: Eraser Tool"
+	KBMapFillTool      = "Map: Fill Tool"
+	KBMapLineTool      = "Map: Line Tool"
+	KBMapQuickLineTool = "Map: Quick-line"
+	KBMapPalette       = "Map: Open Palette"
 
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -346,6 +347,7 @@ func (kb *Keybindings) Default() {
 	kb.Define(KBMapEraserTool, sdl.K_r)
 	kb.Define(KBMapFillTool, sdl.K_f)
 	kb.Define(KBMapLineTool, sdl.K_v)
+	kb.Define(KBMapQuickLineTool, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.Define(KBMapPalette, sdl.K_TAB)
 
 	// kb.Define(KBCenterView, sdl.K_BACKSPACE)
