@@ -842,7 +842,7 @@ func (label *Label) Draw() {
 
 		if label.Selection.Length() > 0 {
 
-			color := getThemeColor(GUIMenuColor)
+			color := getThemeColor(GUIFontColor)
 			color[3] = 64
 			start, end := label.Selection.ContiguousRange()
 

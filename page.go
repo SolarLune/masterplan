@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"sort"
+	"strings"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
@@ -196,11 +200,17 @@ func (page *Page) Update() {
 
 func (page *Page) Draw() {
 
-	for _, card := range page.Cards {
+	sorted := page.Cards[:]
+
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return page.Cards[i].Depth < page.Cards[j].Depth
+	})
+
+	for _, card := range sorted {
 		card.DrawShadow()
 	}
 
-	for _, card := range page.Cards {
+	for _, card := range sorted {
 		card.DrawCard()
 		card.DrawContents()
 	}
@@ -358,6 +368,37 @@ func (page *Page) Raise(card *Card) {
 
 		}
 
+	}
+
+}
+
+func (page *Page) HandleDroppedFiles(filepath string) {
+
+	mime, _ := mimetype.DetectFile(filepath)
+	mimeType := mime.String()
+
+	if strings.Contains(mimeType, "image") {
+		card := page.CreateNewCard(ContentTypeCheckbox)
+		card.Properties.Get("filepath").Set(filepath)
+		card.SetContents(ContentTypeImage)
+	} else if strings.Contains(mimeType, "audio") {
+		card := page.CreateNewCard(ContentTypeCheckbox)
+		card.Properties.Get("filepath").Set(filepath)
+		card.SetContents(ContentTypeSound)
+		contents := card.Contents.(*SoundContents)
+		defaultSize := contents.DefaultSize()
+		card.Recreate(defaultSize.X, defaultSize.Y)
+	} else {
+		text, err := os.ReadFile(filepath)
+		if err != nil {
+			globals.EventLog.Log(err.Error())
+		} else {
+			card := page.CreateNewCard(ContentTypeCheckbox)
+			card.Properties.Get("description").Set(string(text))
+			card.Recreate(globals.ScreenSize.X/2/globals.Project.Camera.Zoom, globals.ScreenSize.Y/2*globals.Project.Camera.Zoom)
+			fmt.Println(card.Rect)
+			card.SetContents(ContentTypeNote)
+		}
 	}
 
 }

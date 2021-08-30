@@ -443,6 +443,8 @@ func (color Color) SDLColor() sdl.Color {
 	return sdl.Color{color[0], color[1], color[2], color[3]}
 }
 
+var ColorTransparent = NewColor(0, 0, 0, 0)
+
 func SmoothLerpTowards(target, current, softness float32) float32 {
 	diff := (target - current) * softness
 	if math.Abs(float64(diff)) < 1 {

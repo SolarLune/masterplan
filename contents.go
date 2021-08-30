@@ -394,7 +394,9 @@ func (sc *SoundContents) Update() {
 }
 
 func (sc *SoundContents) LoadFile() {
-	sc.Resource = globals.Resources.Get(sc.Card.Properties.Get("filepath").AsString())
+	fp := sc.Card.Properties.Get("filepath").AsString()
+	sc.Resource = globals.Resources.Get(fp)
+	sc.FilepathLabel.SetText([]rune(fp))
 	if sc.Sound != nil {
 		sc.Sound.Pause()
 		sc.Sound.Destroy()
@@ -501,11 +503,12 @@ func (ic *ImageContents) Update() {
 
 		if !ic.LoadedImage {
 
+			zoom := ic.Card.Page.Project.Camera.Zoom
 			if ic.Resource.IsTexture() {
 
 				ic.Showing = true
 				asr := ic.Resource.AsImage().Size.Y / ic.Resource.AsImage().Size.X
-				ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
+				ic.Card.Recreate(globals.ScreenSize.X/2/zoom, globals.ScreenSize.X/2*asr/zoom)
 				ic.LoadedImage = true
 
 			} else if ic.Resource.IsGIF() && ic.Resource.AsGIF().IsReady() {
@@ -513,7 +516,7 @@ func (ic *ImageContents) Update() {
 				ic.LoadedImage = true
 				ic.Showing = true
 				asr := ic.Resource.AsGIF().Height / ic.Resource.AsGIF().Width
-				ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
+				ic.Card.Recreate(globals.ScreenSize.X/2/zoom, globals.ScreenSize.X/2*asr/zoom)
 				ic.GifPlayer = NewGifPlayer(ic.Resource.AsGIF())
 
 			}
@@ -564,10 +567,8 @@ func (ic *ImageContents) Draw() {
 
 		if ic.Showing {
 			texture.SetAlphaMod(255)
-			// texture.SetColorMod(255, 255, 255)
 		} else {
 			texture.SetAlphaMod(64)
-			// texture.SetColorMod(64, 64, 64)
 		}
 
 		if texture != nil {
@@ -583,10 +584,6 @@ func (ic *ImageContents) Draw() {
 }
 
 func (ic *ImageContents) LoadFile() {
-	// We don't NECESSARILY destroy the image because the texture could still have multiple users
-	// if ic.Image != nil {
-	// 	ic.Image.AsTexturePair().Texture.Destroy()
-	// }
 
 	fp := ic.Card.Properties.Get("filepath").AsString()
 
@@ -598,38 +595,13 @@ func (ic *ImageContents) LoadFile() {
 		ic.LoadedImage = true
 	}
 
-	// newImage := globals.Resources.Get(fp)
-
-	// if newImage != ic.Resource {
-
-	// 	if newImage.IsTexture() {
-
-	// 		ic.Showing = true
-	// 		asr := newImage.AsImage().Size.Y / newImage.AsImage().Size.X
-	// 		ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
-	// 		ic.Resource = newImage
-
-	// 	} else if newImage.IsGIF() {
-
-	// 		ic.Showing = true
-	// 		asr := newImage.AsGIF().Height / newImage.AsGIF().Width
-	// 		ic.Card.Recreate(globals.ScreenSize.X/2, globals.ScreenSize.X/2*asr)
-	// 		ic.Resource = newImage
-	// 		ic.GifPlayer = NewGifPlayer(ic.Resource.AsGIF())
-
-	// 	} else {
-	// 		Log("Error: Couldn't load [%s] as image resource", fp)
-	// 	}
-
-	// }
-
 }
 
 func (ic *ImageContents) ReceiveMessage(msg *Message) {}
 
 func (ic *ImageContents) Color() Color {
 	if ic.Showing {
-		return NewColor(0, 0, 0, 0)
+		return ColorTransparent
 	} else {
 		return getThemeColor(GUIBlankImageColor)
 	}
@@ -773,6 +745,24 @@ func (mapData *MapData) Resize(w, h int) {
 
 }
 
+func (mapData *MapData) Clear() {
+	for y := 0; y < mapData.Height; y++ {
+		for x := 0; x < mapData.Width; x++ {
+			mapData.Data[y][x] = 0
+		}
+	}
+}
+
+func (mapData *MapData) Clip() {
+	for y := 0; y < len(mapData.Data); y++ {
+		for x := 0; x < len(mapData.Data[y]); x++ {
+			if x >= mapData.Width || y >= mapData.Height {
+				mapData.Data[y][x] = 0
+			}
+		}
+	}
+}
+
 func (mapData *MapData) Rotate(direction int) {
 
 	oldData := [][]int{}
@@ -816,6 +806,8 @@ func (mapData *MapData) Rotate(direction int) {
 	contents := mapData.Contents.Card.Properties.Get("contents")
 	contents.SetRaw(mapData.Serialize())
 
+	mapData.Contents.Card.CreateUndoState = true
+
 }
 
 func (mapData *MapData) SetI(x, y, value int) bool {
@@ -852,8 +844,9 @@ func (mapData *MapData) Deserialize(data string) {
 
 		contents := gjson.Get(data, "contents")
 
-		// This was causing problems with undoing a Map after altering its size.
-		// mapData.Resize(len(contents.Array()), len(contents.Array()[0].Array()))
+		if len(contents.Array()) == 0 {
+			mapData.Clear()
+		}
 
 		for y, r := range contents.Array() {
 			for x, v := range r.Array() {
@@ -1039,8 +1032,11 @@ func (mc *MapContents) Update() {
 
 	if mc.Tool == MapEditToolNone {
 		mc.Card.Draggable = true
+		mc.Card.Depth = -1
+
 	} else {
 		mc.Card.Draggable = false
+		mc.Card.Depth = 1 // Depth is higher when editing the map so it's always in front
 	}
 
 	changed := false
@@ -1113,12 +1109,10 @@ func (mc *MapContents) Update() {
 		leftMB := globals.Mouse.Button(sdl.BUTTON_LEFT)
 		rightMB := globals.Mouse.Button(sdl.BUTTON_RIGHT)
 
-		if mc.Tool != MapEditToolNone {
-			if mp.Inside(mc.Card.Rect) {
-				globals.State = StateMapEditing
-			} else {
-				globals.State = StateNeutral
-			}
+		globals.State = StateNeutral
+
+		if mc.Tool != MapEditToolNone && mp.Inside(mc.Card.Rect) {
+			globals.State = StateMapEditing
 		}
 
 		if !mc.Card.Resizing {
@@ -1316,6 +1310,11 @@ func (mc *MapContents) Draw() {
 
 		dst := &sdl.FRect{mc.Card.DisplayRect.X, mc.Card.DisplayRect.Y, mc.Card.Rect.W, mc.Card.Rect.H}
 		dst = globals.Project.Camera.TranslateRect(dst)
+		alpha := uint8(255)
+		if mc.Tool != MapEditToolNone {
+			alpha = 200 // Slightly transparent to show things behind the map when it's being edited and is in front
+		}
+		mc.Texture.Texture.SetAlphaMod(alpha)
 		globals.Renderer.CopyF(mc.Texture.Texture, nil, dst)
 
 		if mc.UsingLineTool() && (mc.LineStart.X >= 0 || mc.LineStart.Y >= 0) {
@@ -1429,6 +1428,8 @@ func (mc *MapContents) RecreateTexture() {
 	if mc.Texture == nil || (mc.Texture != nil && !mc.Texture.Size.Equals(rectSize)) {
 
 		tex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(rectSize.X), int32(rectSize.Y))
+
+		tex.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 		if err != nil {
 			return
@@ -1561,8 +1562,12 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 	if msg.Type == MessageThemeChange {
 		mc.UpdateTexture()
 	} else if msg.Type == MessageUndoRedo || msg.Type == MessageResizeCompleted {
-		mc.MapData.Deserialize(mc.Card.Properties.Get("contents").AsString())
+		// Recreate texture first so the MapData has the correct size before deserialization
 		mc.RecreateTexture()
+		if msg.Type == MessageUndoRedo {
+			mc.MapData.Clip()
+		}
+		mc.MapData.Deserialize(mc.Card.Properties.Get("contents").AsString())
 		mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
 		mc.UpdateTexture()
 	} else if msg.Type == MessageContentSwitched {
@@ -1572,7 +1577,9 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 
 }
 
-func (mc *MapContents) Color() Color { return getThemeColor(GUIMapColor) }
+func (mc *MapContents) Color() Color {
+	return ColorTransparent
+}
 
 func (mc *MapContents) DefaultSize() Point { return Point{globals.GridSize * 8, globals.GridSize * 8} }
 

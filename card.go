@@ -36,6 +36,7 @@ type Card struct {
 	CreateUndoState         bool
 	UndoCreation            bool
 	UndoDeletion            bool
+	Depth                   int
 
 	Collapsed       string
 	UncollapsedSize Point
@@ -185,12 +186,16 @@ func (card *Card) DrawShadow() {
 		color = card.Contents.Color()
 	}
 
-	color = color.Sub(80)
-	color[3] = 192
+	if color[3] > 0 {
 
-	card.Result.SetColorMod(color.RGB())
-	card.Result.SetAlphaMod(color[3])
-	globals.Renderer.CopyF(card.Result, nil, tp)
+		color = color.Sub(80)
+		color[3] = 192
+
+		card.Result.SetColorMod(color.RGB())
+		card.Result.SetAlphaMod(color[3])
+		globals.Renderer.CopyF(card.Result, nil, tp)
+
+	}
 
 }
 
@@ -207,9 +212,11 @@ func (card *Card) DrawCard() {
 		color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
 	}
 
-	card.Result.SetColorMod(color.RGB())
-	card.Result.SetAlphaMod(color[3])
-	globals.Renderer.CopyF(card.Result, nil, tp)
+	if color[3] != 0 {
+		card.Result.SetColorMod(color.RGB())
+		card.Result.SetAlphaMod(color[3])
+		globals.Renderer.CopyF(card.Result, nil, tp)
+	}
 
 }
 
@@ -260,6 +267,9 @@ func (card *Card) Deserialize(data string) {
 
 	// Call update on the contents and then recreate directly afterward
 	card.Contents.Update()
+
+	// We call Recreate again afterwards because otherwise Images reform their size after copy+paste
+	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
 
 }
 

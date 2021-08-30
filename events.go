@@ -211,9 +211,14 @@ func handleEvents() {
 	globals.Mouse.wheel = 0
 	globals.Mouse.relativeMovement = Point{}
 
-	for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+	for baseEvent := sdl.PollEvent(); baseEvent != nil; baseEvent = sdl.PollEvent() {
 
-		switch event.(type) {
+		switch event := baseEvent.(type) {
+
+		case *sdl.DropEvent:
+			if event.Type == sdl.DROPFILE {
+				globals.Project.CurrentPage.HandleDroppedFiles(event.File)
+			}
 
 		case *sdl.QuitEvent:
 			confirmQuit := globals.MenuSystem.Get("confirmquit")
@@ -224,12 +229,11 @@ func handleEvents() {
 			confirmQuit.Open()
 
 		case *sdl.KeyboardEvent:
-			keyEvent := event.(*sdl.KeyboardEvent)
 
-			key := globals.Keyboard.Key(keyEvent.Keysym.Sym)
+			key := globals.Keyboard.Key(event.Keysym.Sym)
 
-			if keyEvent.State == sdl.PRESSED {
-				key.Mods = sdl.Keymod(keyEvent.Keysym.Mod)
+			if event.State == sdl.PRESSED {
+				key.Mods = sdl.Keymod(event.Keysym.Mod)
 				key.SetState(true)
 			} else {
 				key.Mods = sdl.KMOD_NONE
@@ -238,32 +242,28 @@ func handleEvents() {
 
 		case *sdl.MouseMotionEvent:
 
-			mouseEvent := event.(*sdl.MouseMotionEvent)
-			globals.Mouse.screenPosition.X = float32(mouseEvent.X)
-			globals.Mouse.screenPosition.Y = float32(mouseEvent.Y)
-			globals.Mouse.relativeMovement.X = float32(mouseEvent.XRel)
-			globals.Mouse.relativeMovement.Y = float32(mouseEvent.YRel)
+			globals.Mouse.screenPosition.X = float32(event.X)
+			globals.Mouse.screenPosition.Y = float32(event.Y)
+			globals.Mouse.relativeMovement.X = float32(event.XRel)
+			globals.Mouse.relativeMovement.Y = float32(event.YRel)
 
 		case *sdl.MouseButtonEvent:
 
-			mouseEvent := event.(*sdl.MouseButtonEvent)
+			mouseButton := globals.Mouse.Button(event.Button)
 
-			mouseButton := globals.Mouse.Button(mouseEvent.Button)
-
-			if mouseEvent.State == sdl.PRESSED {
+			if event.State == sdl.PRESSED {
 				mouseButton.SetState(true)
-			} else if mouseEvent.State == sdl.RELEASED {
+			} else if event.State == sdl.RELEASED {
 				mouseButton.SetState(false)
 			}
 
 		case *sdl.MouseWheelEvent:
 
-			mouseEvent := event.(*sdl.MouseWheelEvent)
-			globals.Mouse.wheel = mouseEvent.Y
+			globals.Mouse.wheel = event.Y
 
 		case *sdl.TextInputEvent:
 
-			globals.InputText = append(globals.InputText, []rune(event.(*sdl.TextInputEvent).GetText())...)
+			globals.InputText = append(globals.InputText, []rune(event.GetText())...)
 
 		}
 
