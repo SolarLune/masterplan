@@ -11,11 +11,54 @@ import (
 )
 
 const (
-	SETTINGS_PATH        = "MasterPlan/settings.json"
-	SETTINGS_LEGACY_PATH = "masterplan-settings.json"
+	SettingsPath                = "MasterPlan/settings.json"
+	SettingsLegacyPath          = "masterplan-settings.json"
+	SettingsTheme               = "Theme"
+	SettingsDownloadDirectory   = "DownloadDirectory"
+	SettingsWindowPosition      = "WindowPosition"
+	SettingsSaveWindowPosition  = "SaveWindowPosition"
+	SettingsCustomFontPath      = "CustomFontPath"
+	SettingsFontSize            = "FontSize"
+	SettingsKeybindings         = "Keybindings"
+	SettingsTargetFPS           = "TargetFPS"
+	SettingsUnfocusedFPS        = "UnfocusedFPS"
+	SettingsDisableSplashscreen = "DisableSplashscreen"
+	SettingsBorderlessWindow    = "BorderlessWindow"
+	SettingsRecentPlanList      = "RecentPlanList"
+	SettingsAlwaysShowNumbering = "AlwaysShowNumbering"
 )
 
-type ProgramSettings struct {
+func NewProgramSettings() *Properties {
+
+	props := NewProperties()
+	props.Get(SettingsTheme).Set("Moonlight")
+	props.Get(SettingsDownloadDirectory).Set("")
+	props.Get(SettingsTargetFPS).Set(60)
+	props.Get(SettingsUnfocusedFPS).Set(60)
+	props.Get(SettingsFontSize).Set(30)
+	props.Get(SettingsDownloadDirectory).Set("")
+
+	path, _ := xdg.ConfigFile(SettingsPath)
+
+	// Attempt to load the property here
+	props.Load(path)
+
+	props.OnChange = func(property *Property) {
+		props.Save(path)
+	}
+
+	// TargetFPS:         60,
+	// 	UnfocusedFPS:      60,
+	// 	WindowPosition:    sdl.Rect{-1, -1, 0, 0},
+	// 	Theme:             "Moonlight", // Default theme
+	// 	Keybindings:       NewKeybindings(),
+	// 	FontSize:          30,
+	// 	DownloadDirectory: "",
+
+	return props
+}
+
+type OldProgramSettings struct {
 	Theme               string
 	DownloadDirectory   string
 	WindowPosition      sdl.Rect
@@ -28,6 +71,8 @@ type ProgramSettings struct {
 	DisableSplashscreen bool
 	BorderlessWindow    bool
 	RecentPlanList      []string
+
+	AlwaysShowNumbering bool
 
 	// // GridVisible               *Checkbox
 	// ScreenshotsPath           string
@@ -51,9 +96,9 @@ type ProgramSettings struct {
 	// DoubleClickRate           int
 }
 
-func NewProgramSettings() ProgramSettings {
+func NewOldProgramSettings() OldProgramSettings {
 
-	ps := ProgramSettings{
+	ps := OldProgramSettings{
 		TargetFPS:         60,
 		UnfocusedFPS:      60,
 		WindowPosition:    sdl.Rect{-1, -1, 0, 0},
@@ -79,7 +124,7 @@ func NewProgramSettings() ProgramSettings {
 	return ps
 }
 
-func (ps *ProgramSettings) CleanUpRecentPlanList() {
+func (ps *OldProgramSettings) CleanUpRecentPlanList() {
 
 	newList := []string{}
 	for i, s := range ps.RecentPlanList {
@@ -91,8 +136,8 @@ func (ps *ProgramSettings) CleanUpRecentPlanList() {
 	ps.RecentPlanList = newList
 }
 
-func (ps *ProgramSettings) Save() {
-	path, _ := xdg.ConfigFile(SETTINGS_PATH)
+func (ps *OldProgramSettings) Save() {
+	path, _ := xdg.ConfigFile(SettingsPath)
 	f, err := os.Create(path)
 	if err == nil {
 		defer f.Close()
@@ -104,12 +149,12 @@ func (ps *ProgramSettings) Save() {
 
 // Load attempts to load the ProgramSettings from the pre-configured settings directory. If the file doesn't exist, then it will attemp to load the settings from the
 // original legacy path (the program's working directory). Load returns true when the settings were loaded without error, and false otherwise.
-func (ps *ProgramSettings) Load() bool {
-	path, _ := xdg.ConfigFile(SETTINGS_PATH)
+func (ps *OldProgramSettings) Load() bool {
+	path, _ := xdg.ConfigFile(SettingsPath)
 	settingsJSON, err := ioutil.ReadFile(path)
 	if err != nil {
 		// Trying to read legacy path.
-		settingsJSON, err = ioutil.ReadFile(LocalPath(SETTINGS_LEGACY_PATH))
+		settingsJSON, err = ioutil.ReadFile(LocalPath(SettingsLegacyPath))
 	}
 	if err == nil {
 		json.Unmarshal(settingsJSON, ps)

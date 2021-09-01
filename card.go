@@ -3,6 +3,7 @@ package main
 import (
 	"math"
 	"math/rand"
+	"strconv"
 
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -38,6 +39,10 @@ type Card struct {
 	UndoDeletion            bool
 	Depth                   int
 
+	GridExtents GridSelection
+	Stack       *Stack
+	Drawable    *Drawable
+
 	Collapsed       string
 	UncollapsedSize Point
 
@@ -60,7 +65,11 @@ func NewCard(page *Page, contentType string) *Card {
 		Draggable:       true,
 	}
 
-	card.Properties = NewProperties(card)
+	card.Drawable = NewDrawable(card.DrawNumbering)
+
+	card.Stack = NewStack(card)
+
+	card.Properties = NewProperties()
 	card.Properties.OnChange = func(property *Property) { card.CreateUndoState = true }
 
 	cardID++
@@ -113,7 +122,7 @@ func (card *Card) Update() {
 
 	if globals.State == StateNeutral {
 
-		if card.Selected && globals.ProgramSettings.Keybindings.On(KBCollapseCard) {
+		if card.Selected && globals.OldProgramSettings.Keybindings.On(KBCollapseCard) {
 			card.Collapse()
 		}
 
@@ -133,7 +142,7 @@ func (card *Card) Update() {
 				card.Page.Raise(card)
 			}
 
-			if globals.ProgramSettings.Keybindings.On(KBRemoveFromSelection) {
+			if globals.OldProgramSettings.Keybindings.On(KBRemoveFromSelection) {
 
 				if card.Selected {
 					card.Deselect()
@@ -142,7 +151,7 @@ func (card *Card) Update() {
 
 			} else {
 
-				if !card.Selected && !globals.ProgramSettings.Keybindings.On(KBAddToSelection) {
+				if !card.Selected && !globals.OldProgramSettings.Keybindings.On(KBAddToSelection) {
 
 					for card := range selection.Cards {
 						card.Deselect()
@@ -242,6 +251,105 @@ func (card *Card) DrawContents() {
 
 }
 
+func (card *Card) DrawNumbering() {
+
+	alwaysShowNumbering := globals.ProgramSettings.Get(SettingsAlwaysShowNumbering).AsBool()
+	numberableCards := card.Stack.Any(func(card *Card) bool { return card.Numberable() })
+
+	if card.Stack.Numerous() && numberableCards && (alwaysShowNumbering || card.Stack.Any(func(card *Card) bool { return card.Selected })) {
+
+		// Top card handles drawing everything
+		if card.Stack.Below != nil && card.Stack.Above == nil {
+
+			cam := card.Page.Project.Camera
+
+			leftMost := card.DisplayRect.X
+
+			for _, c := range card.Stack.All() {
+				if c.DisplayRect.X < leftMost {
+					leftMost = c.DisplayRect.X
+				}
+			}
+
+			start := cam.TranslatePoint(Point{leftMost - globals.GridSize, card.DisplayRect.Y})
+			bottom := card.Stack.Bottom()
+			end := cam.TranslatePoint(Point{leftMost - globals.GridSize, bottom.DisplayRect.Y + bottom.DisplayRect.H})
+
+			color := getThemeColor(GUIMenuColor)
+			globals.Renderer.SetDrawColor(color.RGBA())
+			// globals.Renderer.DrawLineF(start.X, start.Y, end.X, end.Y)
+
+			ThickLine(start, end, 4, color)
+
+		}
+
+		if card.Numberable() {
+
+			guiTexture := globals.Resources.Get("assets/gui.png").AsImage().Texture
+
+			menuColor := getThemeColor(GUIMenuColor)
+			guiTexture.SetColorMod(menuColor.RGB())
+
+			if card == card.Stack.Top() {
+				guiTexture.SetColorMod(255, 255, 0)
+			}
+
+			guiTexture.SetAlphaMod(menuColor[3])
+
+			number := ""
+			for i, n := range card.Stack.Number {
+				number += strconv.Itoa(n)
+				if i < len(card.Stack.Number)-1 {
+					number += "."
+				}
+			}
+
+			textSize := globals.TextRenderer.MeasureText(number, 0.5)
+			textSize.X += 16
+
+			if textSize.X < 16 {
+				textSize.X = 16
+			}
+
+			// numberingStartX := card.DisplayRect.X + card.DisplayRect.W - 16 - textSize.X
+			numberingStartX := card.DisplayRect.X + (globals.GridSize * 0.75)
+			numberingStartY := card.DisplayRect.Y - 8
+
+			guiTexture.SetColorMod(menuColor.RGB())
+			guiTexture.SetAlphaMod(menuColor[3])
+
+			src := &sdl.Rect{480, 48, 8, 24}
+			dst := &sdl.FRect{numberingStartX, numberingStartY, float32(src.W), float32(src.H)}
+			dst = card.Page.Project.Camera.TranslateRect(dst)
+			globals.Renderer.CopyF(guiTexture, src, dst)
+
+			dst.X += float32(src.W)
+			src.X += 8
+			dst.W = textSize.X - 16
+			if dst.W > 0 {
+				globals.Renderer.CopyF(guiTexture, src, dst)
+			}
+
+			dst.X += dst.W
+			src.X += 8
+			src.W = 16
+			dst.W = float32(src.W)
+			globals.Renderer.CopyF(guiTexture, src, dst)
+
+			dstPoint := card.Page.Project.Camera.TranslatePoint(Point{numberingStartX + (textSize.X / 2), numberingStartY})
+
+			globals.TextRenderer.QuickRenderText(number, dstPoint, 0.5, getThemeColor(GUIFontColor), AlignCenter)
+
+		}
+
+	}
+
+}
+
+func (card *Card) Numberable() bool {
+	return card.ContentType == ContentTypeCheckbox // Or progression or table
+}
+
 func (card *Card) Serialize() string {
 
 	data := "{}"
@@ -270,6 +378,8 @@ func (card *Card) Deserialize(data string) {
 
 	// We call Recreate again afterwards because otherwise Images reform their size after copy+paste
 	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
+
+	card.LockPosition() // We call this to lock the position of the card, but also to update the Card's position on the underlying Grid.
 
 }
 
@@ -323,7 +433,92 @@ func (card *Card) LockPosition() {
 	card.Rect.Y = float32(math.Round(float64(card.Rect.Y/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.W = float32(math.Round(float64(card.Rect.W/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.H = float32(math.Round(float64(card.Rect.H/globals.GridSize)) * float64(globals.GridSize))
+	card.Page.Grid.Put(card)
+
+	// We don't update the Card's Stack here manually because all Cards need to be in their final positions
+	// before the stacks can be accurate. This step is done in the Page later.
+	card.Page.UpdateStacks = true
+
 }
+
+// func (card *Card) SetupStack() {
+
+// 	grid := card.Page.Grid
+
+// 	lastAbove := card
+
+// 	for i := 0; i < 1000; i++ {
+
+// 		cardsAbove := grid.CardsAbove(lastAbove)
+
+// 		if len(cardsAbove) > 0 {
+// 			lastAbove = cardsAbove[0]
+// 		} else {
+// 			break
+// 		}
+
+// 	}
+
+// 	if card.Stack != card.OriginalStack {
+// 		card.Stack.Remove(card)
+// 	}
+
+// 	if lastAbove != card {
+// 		card.Stack = lastAbove.Stack
+// 		lastAbove.Stack.Add(card)
+// 	} else {
+// 		card.Stack = card.OriginalStack
+// 	}
+
+// 	// for _, next := range grid.CardsAt(grid.CardRectToGrid(card, 0, -1)...) {
+
+// 	// 	if next != card {
+// 	// 		above = next
+// 	// 		break
+// 	// 	}
+
+// 	// }
+
+// 	// if above != nil {
+
+// 	// }
+
+// 	// if card.Stack != card.OriginalStack {
+// 	// 	card.Stack.Remove(card)
+// 	// }
+
+// 	// grid := card.Page.Grid
+
+// 	// var neighbor *Card
+
+// 	// for _, next := range grid.CardsAt(grid.CardRectToGrid(card, 0, -1)...) {
+// 	// 	if next != card {
+// 	// 		neighbor = next
+// 	// 		break
+// 	// 	}
+// 	// }
+
+// 	// // if neighbor == nil {
+
+// 	// // 	for _, next := range grid.CardsAt(grid.CardRectToGrid(card, 0, 1)...) {
+// 	// // 		if next != card {
+// 	// // 			neighbor = next
+// 	// // 			break
+// 	// // 		}
+// 	// // 	}
+
+// 	// // }
+
+// 	// if neighbor != nil {
+// 	// 	card.Stack = neighbor.Stack
+// 	// 	card.Stack.Add(card)
+// 	// } else {
+// 	// 	card.Stack = card.OriginalStack
+// 	// }
+
+// 	// card.Stack.Reorder()
+
+// }
 
 func (card *Card) Recreate(newWidth, newHeight float32) {
 
@@ -439,6 +634,10 @@ func (card *Card) ReceiveMessage(message *Message) {
 		card.Contents.ReceiveMessage(message)
 	}
 
+	if message.Type == MessageCardDeleted {
+		card.Page.RemoveDrawable(card.Drawable)
+	}
+
 }
 
 func (card *Card) SetContents(contentType string) {
@@ -494,6 +693,13 @@ func (card *Card) SetContents(contentType string) {
 	card.Contents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
 
 	card.ContentType = contentType
+
+	// All Cards should have the drawable because they could theoretically be part of a stack.
+	// if card.Numberable() {
+	card.Page.AddDrawable(card.Drawable)
+	// } else {
+	// 	card.Page.RemoveDrawable(card.Drawable)
+	// }
 
 }
 

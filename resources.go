@@ -75,7 +75,7 @@ func NewResource(resourcePath string) (*Resource, error) {
 
 		log.Println("possible online resource")
 
-		destDir := globals.ProgramSettings.DownloadDirectory
+		destDir := globals.OldProgramSettings.DownloadDirectory
 		if destDir == "" {
 			destDir = filepath.Join(os.TempDir(), "masterplan")
 		}

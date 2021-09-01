@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
@@ -66,15 +69,15 @@ func (prop *Property) Set(value interface{}) {
 
 	if prop.data != value {
 
-		if prop.Properties.OnChange != nil {
-			prop.Properties.OnChange(prop)
-		}
+		prop.data = value
 
 		if prop.OnChange != nil {
 			prop.OnChange()
 		}
 
-		prop.data = value
+		if prop.Properties.OnChange != nil {
+			prop.Properties.OnChange(prop)
+		}
 
 	}
 
@@ -87,15 +90,13 @@ func (prop *Property) SetRaw(value interface{}) {
 
 // Contains serializable properties for a Card.
 type Properties struct {
-	Card            *Card
 	Props           map[string]*Property
 	DefinitionOrder []string
 	OnChange        func(property *Property)
 }
 
-func NewProperties(card *Card) *Properties {
+func NewProperties() *Properties {
 	return &Properties{
-		Card:            card,
 		Props:           map[string]*Property{},
 		DefinitionOrder: []string{},
 	}
@@ -131,11 +132,43 @@ func (properties *Properties) Serialize() string {
 
 func (properties *Properties) Deserialize(data string) {
 
+	// All Properties contained within this object should probably be cleared before parsing...?
+
 	parsed := gjson.Parse(data)
 
 	parsed.ForEach(func(key, value gjson.Result) bool {
 		properties.Get(key.String()).SetRaw(value.Value())
 		return true
 	})
+
+}
+
+func (properties *Properties) Save(filepath string) {
+
+	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
+
+	saveData, _ = sjson.SetRaw(saveData, "properties", properties.Serialize())
+
+	saveData = gjson.Get(saveData, "@pretty").String()
+
+	if file, err := os.Create(filepath); err != nil {
+		log.Println(err)
+	} else {
+		file.Write([]byte(saveData))
+		file.Close()
+	}
+
+}
+
+func (properties *Properties) Load(filepath string) {
+
+	jsonData, err := os.ReadFile(filepath)
+	if err != nil {
+		panic(err)
+	}
+
+	data := gjson.Get(string(jsonData), "properties").String()
+
+	properties.Deserialize(data)
 
 }

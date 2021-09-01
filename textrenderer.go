@@ -20,12 +20,6 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 		return glyph.Image.Texture
 	}
 
-	// surf, err := globals.Font.RenderUTF8Shaded(string(glyph.Rune), sdl.Color{255, 255, 255, 255}, sdl.Color{127, 127, 127, 255})
-	// surf, err := globals.Font.RenderUTF8Shaded(string(glyph.Rune), sdl.Color{0, 0, 0, 255}, sdl.Color{255, 255, 255, 255})
-	// surf.SetColorKey(true, sdl.MapRGB(surf.Format, 127, 127, 127))
-
-	// surf, err := globals.Font.RenderUTF8Blended(string(glyph.Rune), sdl.Color{255, 255, 255, 255})
-
 	surf, err := globals.Font.RenderUTF8Shaded(string(glyph.Rune), sdl.Color{255, 255, 255, 255}, sdl.Color{0, 0, 0, 255})
 
 	if err != nil {
@@ -149,7 +143,7 @@ func (tr *TextRenderer) SizeForRunes(word []rune) Point {
 
 }
 
-func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, horizontalAlignment string) *TextRendererResult {
+func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAlignment string) *TextRendererResult {
 
 	lineskip := int(globals.GridSize)
 
@@ -314,13 +308,15 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 		}
 
 		dst := &sdl.Rect{x, y, glyph.Width(), glyph.Height()}
-		// glyph.Texture().SetColorMod(getThemeColor(GUIFontColor).RGB())
-		// glyph.Texture().SetAlphaMod(getThemeColor(GUIFontColor)[3])
-		globals.Renderer.Copy(glyph.Texture(), nil, dst)
+
+		// We do this because QuickRenderText() uses the same glyphs, so we have to set the color and alpha mod values again.
+		tex := glyph.Texture()
+		tex.SetColorMod(ColorWhite.RGB())
+		tex.SetAlphaMod(ColorWhite[3])
+		globals.Renderer.Copy(tex, nil, dst)
+
 		x += glyph.Width()
 		textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
-
-		// fmt.Println(i, c, textLines)
 
 	}
 
@@ -329,4 +325,55 @@ func (tr *TextRenderer) RenderText(text string, color Color, wordWrapMax Point, 
 	globals.Renderer.SetRenderTarget(nil)
 
 	return result
+}
+
+func (tr *TextRenderer) MeasureText(text string, sizeMultiplier float32) Point {
+
+	lineWidth := float32(0)
+
+	for _, glyph := range tr.GlyphsForRunes([]rune(text)) {
+		lineWidth += float32(glyph.Width()) * sizeMultiplier
+	}
+
+	return Point{lineWidth, globals.GridSize}
+
+}
+
+func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier float32, color Color, alignment string) {
+
+	textSize := tr.MeasureText(text, sizeMultiplier)
+
+	switch alignment {
+	case AlignCenter:
+		pos.X -= textSize.X / 2
+	case AlignRight:
+		pos.X -= textSize.X
+	}
+
+	startX := pos.X
+
+	for _, c := range text {
+
+		glyph := tr.Glyph(c)
+
+		if c == '\n' {
+			pos.X = startX
+			pos.Y += globals.GridSize
+			continue
+		} else if glyph == nil {
+			continue
+		}
+
+		dst := &sdl.FRect{pos.X, pos.Y, float32(glyph.Width()) * sizeMultiplier, float32(glyph.Height()) * sizeMultiplier}
+
+		tex := glyph.Texture()
+		tex.SetColorMod(color.RGB())
+		tex.SetAlphaMod(color[3])
+		tex.SetBlendMode(sdl.BLENDMODE_BLEND) // We set the blend mode here as well
+
+		globals.Renderer.CopyF(tex, nil, dst)
+		pos.X += float32(glyph.Width()) * sizeMultiplier
+
+	}
+
 }

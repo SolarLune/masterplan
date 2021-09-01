@@ -323,8 +323,8 @@ func ReloadFonts() {
 	// fontPath := LocalPath("assets/m5x7.ttf")
 	fontPath := LocalPath("assets/Quicksand-Bold.ttf")
 
-	if globals.ProgramSettings.CustomFontPath != "" && FileExists(globals.ProgramSettings.CustomFontPath) {
-		fontPath = globals.ProgramSettings.CustomFontPath
+	if globals.OldProgramSettings.CustomFontPath != "" && FileExists(globals.OldProgramSettings.CustomFontPath) {
+		fontPath = globals.OldProgramSettings.CustomFontPath
 	}
 
 	if globals.LoadedFontPath != fontPath {
@@ -334,7 +334,7 @@ func ReloadFonts() {
 
 		// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
 
-		loadedFont, err := ttf.OpenFont(fontPath, globals.ProgramSettings.FontSize)
+		loadedFont, err := ttf.OpenFont(fontPath, globals.OldProgramSettings.FontSize)
 
 		loadedFont.SetKerning(true) // I don't think this really will do anything for us here, as we're rendering text using individual characters, not strings.
 
@@ -384,6 +384,14 @@ func LoadCursors() {
 
 	globals.Mouse.SetCursor("normal")
 
+}
+
+type Drawable struct {
+	Draw func()
+}
+
+func NewDrawable(drawFunc func()) *Drawable {
+	return &Drawable{Draw: drawFunc}
 }
 
 type Color []uint8
@@ -444,6 +452,8 @@ func (color Color) SDLColor() sdl.Color {
 }
 
 var ColorTransparent = NewColor(0, 0, 0, 0)
+var ColorWhite = NewColor(255, 255, 255, 255)
+var ColorBlack = NewColor(0, 0, 0, 255)
 
 func SmoothLerpTowards(target, current, softness float32) float32 {
 	diff := (target - current) * softness
@@ -466,6 +476,10 @@ func ThickRect(x, y, w, h, thickness int32, color Color) {
 	gfx.ThickLineRGBA(globals.Renderer, x+w, y+h, x, y+h, 2, color[0], color[1], color[2], color[3])
 	gfx.ThickLineRGBA(globals.Renderer, x, y+h, x, y, 2, color[0], color[1], color[2], color[3])
 
+}
+
+func ThickLine(start, end Point, thickness int32, color Color) {
+	gfx.ThickLineRGBA(globals.Renderer, int32(start.X), int32(start.Y), int32(end.X), int32(end.Y), thickness, color[0], color[1], color[2], color[3])
 }
 
 // func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {

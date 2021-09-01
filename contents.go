@@ -75,13 +75,17 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 	cc.Label.Editable = true
 
 	cc.Label.OnChange = func() {
-		y := cc.Label.IndexToWorld(cc.Label.Selection.CaretPos).Y - cc.Card.Rect.Y
-		if y > cc.Card.Rect.H-32 {
-			lineCount := float32(cc.Label.LineCount())
-			if lineCount*globals.GridSize > cc.Card.Rect.H {
-				cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
+		if cc.Label.Editing {
+
+			y := cc.Label.IndexToWorld(cc.Label.Selection.CaretPos).Y - cc.Card.Rect.Y
+			if y > cc.Card.Rect.H-32 {
+				lineCount := float32(cc.Label.LineCount())
+				if lineCount*globals.GridSize > cc.Card.Rect.H {
+					cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
+				}
 			}
 		}
+
 	}
 
 	description := cc.Card.Properties.Get("description")
@@ -165,9 +169,11 @@ func NewNoteContents(card *Card) *NoteContents {
 	nc.Label.Editable = true
 
 	nc.Label.OnChange = func() {
-		lineCount := float32(nc.Label.LineCount())
-		if lineCount*globals.GridSize > nc.Card.Rect.H {
-			nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
+		if nc.Label.Editing {
+			lineCount := float32(nc.Label.LineCount())
+			if lineCount*globals.GridSize > nc.Card.Rect.H {
+				nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
+			}
 		}
 	}
 
@@ -541,7 +547,7 @@ func (ic *ImageContents) Update() {
 
 		ic.ImageNameLabel.SetText([]rune(filename))
 
-		if !globals.ProgramSettings.Keybindings.On(KBAddToSelection) {
+		if !globals.OldProgramSettings.Keybindings.On(KBAddToSelection) {
 			if ic.Resource.IsTexture() {
 				ic.Card.LockResizingAspectRatio = ic.Resource.AsImage().Size.Y / ic.Resource.AsImage().Size.X
 			} else if ic.Resource.IsGIF() {
@@ -1076,27 +1082,27 @@ func (mc *MapContents) Update() {
 
 	if mc.Card.Selected {
 
-		if globals.ProgramSettings.Keybindings.On(KBMapNoTool) {
+		if globals.OldProgramSettings.Keybindings.On(KBMapNoTool) {
 			mc.Tool = MapEditToolNone
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.ProgramSettings.Keybindings.On(KBMapPencilTool) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBMapPencilTool) {
 			mc.Tool = MapEditToolPencil
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.ProgramSettings.Keybindings.On(KBMapEraserTool) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBMapEraserTool) {
 			mc.Tool = MapEditToolEraser
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.ProgramSettings.Keybindings.On(KBMapFillTool) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBMapFillTool) {
 			mc.Tool = MapEditToolFill
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.ProgramSettings.Keybindings.On(KBMapLineTool) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBMapLineTool) {
 			mc.Tool = MapEditToolLine
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.ProgramSettings.Keybindings.On(KBMapPalette) && mc.Card.Selected && len(mc.Card.Page.Selection.Cards) == 1 {
+		} else if globals.OldProgramSettings.Keybindings.On(KBMapPalette) && mc.Card.Selected && len(mc.Card.Page.Selection.Cards) == 1 {
 			if mc.PaletteMenu.Opened {
 				mc.PaletteMenu.Close()
 			} else {
@@ -1117,7 +1123,7 @@ func (mc *MapContents) Update() {
 
 		if !mc.Card.Resizing {
 
-			if globals.ProgramSettings.Keybindings.On(KBPickColor) {
+			if globals.OldProgramSettings.Keybindings.On(KBPickColor) {
 
 				// Eyedropping to pick color
 				globals.Mouse.SetCursor("eyedropper")
@@ -1372,7 +1378,7 @@ func (mc *MapContents) Draw() {
 }
 
 func (mc *MapContents) UsingLineTool() bool {
-	return mc.Tool == MapEditToolLine || (mc.Tool == MapEditToolPencil && globals.ProgramSettings.Keybindings.On(KBMapQuickLineTool))
+	return mc.Tool == MapEditToolLine || (mc.Tool == MapEditToolPencil && globals.OldProgramSettings.Keybindings.On(KBMapQuickLineTool))
 }
 
 func (mc *MapContents) ColorIndex() int {

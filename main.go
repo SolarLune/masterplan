@@ -85,6 +85,7 @@ func init() {
 	globals.State = StateNeutral
 	globals.GrabClient = grab.NewClient()
 	globals.MenuSystem = NewMenuSystem()
+	globals.ProgramSettings = NewProgramSettings()
 
 }
 
@@ -127,7 +128,7 @@ func main() {
 		}
 	}()
 
-	globals.ProgramSettings = NewProgramSettings()
+	globals.OldProgramSettings = NewOldProgramSettings()
 
 	// settingsLoaded := globals.ProgramSettings.Load()
 
@@ -168,7 +169,7 @@ func main() {
 	w := int32(960)
 	h := int32(540)
 
-	if globals.ProgramSettings.BorderlessWindow {
+	if globals.OldProgramSettings.BorderlessWindow {
 		windowFlags |= sdl.WINDOW_BORDERLESS
 	}
 
@@ -192,11 +193,11 @@ func main() {
 		panic(err)
 	}
 
-	if globals.ProgramSettings.SaveWindowPosition && globals.ProgramSettings.WindowPosition.W > 0 && globals.ProgramSettings.WindowPosition.H > 0 {
-		x = int32(globals.ProgramSettings.WindowPosition.X)
-		y = int32(globals.ProgramSettings.WindowPosition.Y)
-		w = int32(globals.ProgramSettings.WindowPosition.W)
-		h = int32(globals.ProgramSettings.WindowPosition.H)
+	if globals.OldProgramSettings.SaveWindowPosition && globals.OldProgramSettings.WindowPosition.W > 0 && globals.OldProgramSettings.WindowPosition.H > 0 {
+		x = int32(globals.OldProgramSettings.WindowPosition.X)
+		y = int32(globals.OldProgramSettings.WindowPosition.Y)
+		w = int32(globals.OldProgramSettings.WindowPosition.W)
+		h = int32(globals.OldProgramSettings.WindowPosition.H)
 	}
 
 	LoadCursors()
@@ -231,7 +232,7 @@ func main() {
 	// splashScreen := rl.LoadTexture(LocalPath("assets", "splashscreen.png"))
 	splashColor := sdl.Color{255, 255, 255, 255}
 
-	if globals.ProgramSettings.DisableSplashscreen {
+	if globals.OldProgramSettings.DisableSplashscreen {
 		splashScreenTime = 100
 		splashColor.A = 0
 	}
@@ -284,15 +285,15 @@ func main() {
 		// 	drawFPS = !drawFPS
 		// }
 
-		if globals.ProgramSettings.Keybindings.On(KBWindowSizeSmall) {
+		if globals.OldProgramSettings.Keybindings.On(KBWindowSizeSmall) {
 			window.SetSize(960, 540)
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBWindowSizeNormal) {
+		if globals.OldProgramSettings.Keybindings.On(KBWindowSizeNormal) {
 			window.SetSize(1920, 1080)
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBToggleFullscreen) {
+		if globals.OldProgramSettings.Keybindings.On(KBToggleFullscreen) {
 			fullscreen = !fullscreen
 			if fullscreen {
 				window.SetFullscreen(sdl.WINDOW_FULLSCREEN_DESKTOP)
@@ -343,11 +344,11 @@ func main() {
 
 		} else {
 
-			if globals.State == StateNeutral && globals.ProgramSettings.Keybindings.On(KBDebugRestart) {
+			if globals.State == StateNeutral && globals.OldProgramSettings.Keybindings.On(KBDebugRestart) {
 				globals.Project = NewProject()
 			}
 
-			if globals.ProgramSettings.Keybindings.On(KBDebugToggle) {
+			if globals.OldProgramSettings.Keybindings.On(KBDebugToggle) {
 				globals.DebugMode = !globals.DebugMode
 			}
 
@@ -536,12 +537,12 @@ func main() {
 			windowTitle = title
 		}
 
-		targetFPS = globals.ProgramSettings.TargetFPS
+		targetFPS = globals.OldProgramSettings.TargetFPS
 
 		// if !rl.IsWindowFocused() || rl.IsWindowHidden() || rl.IsWindowMinimized() {
 		windowFlags := window.GetFlags()
 		if windowFlags&sdl.WINDOW_MOUSE_FOCUS > 0 || windowFlags&sdl.WINDOW_MINIMIZED > 0 || windowFlags&sdl.WINDOW_HIDDEN > 0 {
-			targetFPS = globals.ProgramSettings.UnfocusedFPS
+			targetFPS = globals.OldProgramSettings.UnfocusedFPS
 		}
 
 		elapsed += time.Since(currentTime)
@@ -569,11 +570,11 @@ func main() {
 
 	}
 
-	if globals.ProgramSettings.SaveWindowPosition {
+	if globals.OldProgramSettings.SaveWindowPosition {
 		// This is outside the main loop because we can save the window properties just before quitting
 		wX, wY := window.GetPosition()
 		wW, wH := window.GetSize()
-		globals.ProgramSettings.WindowPosition = sdl.Rect{wX, wY, wW, wH}
+		globals.OldProgramSettings.WindowPosition = sdl.Rect{wX, wY, wW, wH}
 		// globals.ProgramSettings.Save()
 	}
 
@@ -607,7 +608,7 @@ func ConstructMenus() {
 
 	// File Menu
 
-	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 200}, true), "file", false)
+	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 300}, true), "file", false)
 	root = fileMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() { globals.Project.LoadingProject = NewProject() }))
@@ -620,16 +621,16 @@ func ConstructMenus() {
 		}
 	}))
 	root.AddRow(AlignCenter).Add("Save Project As...", NewButton("Save Project As...", &sdl.FRect{0, 0, 256, 32}, nil, false, func() { globals.Project.SaveAs() }))
-	root.AddRow(AlignCenter).Add("Quit", NewButton("Quit", nil, nil, false, func() {
-		confirmQuit := globals.MenuSystem.Get("confirmquit")
-		confirmQuit.Center()
-		confirmQuit.Open()
-		fileMenu.Close()
-	}))
 	root.AddRow(AlignCenter).Add("Settings", NewButton("Settings", nil, nil, false, func() {
 		settings := globals.MenuSystem.Get("settings")
 		settings.Center()
 		settings.Open()
+		fileMenu.Close()
+	}))
+	root.AddRow(AlignCenter).Add("Quit", NewButton("Quit", nil, nil, false, func() {
+		confirmQuit := globals.MenuSystem.Get("confirmquit")
+		confirmQuit.Center()
+		confirmQuit.Open()
 		fileMenu.Close()
 	}))
 
@@ -858,17 +859,22 @@ func ConstructMenus() {
 	row.Add("theme label", NewLabel("Color theme:", nil, false, AlignLeft))
 	row = root.AddRow(AlignCenter)
 	row.Add("sunlight", NewButton("Sunlight", nil, nil, false, func() {
-		globals.ProgramSettings.Theme = "Sunlight"
+		globals.ProgramSettings.Get(SettingsTheme).Set("Sunlight")
 		globals.MenuSystem.Recreate()
 		globals.Project.CreateGridTexture()
 		globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
+
 	}))
 	row.Add("moonlight", NewButton("Moonlight", nil, nil, false, func() {
-		globals.ProgramSettings.Theme = "Moonlight"
+		globals.ProgramSettings.Get(SettingsTheme).Set("Moonlight")
 		globals.MenuSystem.Recreate()
 		globals.Project.CreateGridTexture()
 		globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
 	}))
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewLabel("Always Show List Numbering:", nil, false, AlignLeft))
+
+	row.Add("", NewCheckbox(0, 0, false, globals.ProgramSettings.Get(SettingsAlwaysShowNumbering)))
 }
 
 // func profileCPU() {

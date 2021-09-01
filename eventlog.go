@@ -37,7 +37,7 @@ func (eventLog *EventLog) Log(text string, variables ...interface{}) {
 
 	eventLog.Events = append(eventLog.Events, &Event{
 		Tween:   gween.New(1, 0, 4, ease.Linear),
-		Texture: globals.TextRenderer.RenderText(output, NewColor(0, 0, 0, 255), Point{}, AlignLeft),
+		Texture: globals.TextRenderer.RenderText(output, Point{}, AlignLeft),
 	})
 
 }

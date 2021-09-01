@@ -52,7 +52,7 @@ const (
 var guiColors map[string]map[string]Color
 
 func getThemeColor(colorConstant string) Color {
-	color, exists := guiColors[globals.ProgramSettings.Theme][colorConstant]
+	color, exists := guiColors[globals.ProgramSettings.Get(SettingsTheme).AsString()][colorConstant]
 	if !exists {
 		log.Println("ERROR: Color doesn't exist for the current theme: ", colorConstant)
 	}
@@ -204,6 +204,43 @@ func (iconButton *IconButton) SetRectangle(rect *sdl.FRect) {
 	iconButton.Rect.Y = rect.Y
 	iconButton.Rect.W = rect.W
 	iconButton.Rect.H = rect.H
+}
+
+type Checkbox struct {
+	IconButton
+	// Checked bool
+	Property *Property
+}
+
+func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
+	checkbox := &Checkbox{
+		IconButton: *NewIconButton(x, y, &sdl.Rect{48, 160, 32, 32}, worldSpace, nil),
+	}
+
+	checkbox.Property = property
+
+	checkbox.OnClicked = func() {
+
+		if checkbox.Property != nil {
+			checkbox.Property.Set(!checkbox.Property.AsBool())
+		}
+
+	}
+
+	return checkbox
+}
+
+func (checkbox *Checkbox) Update() {
+
+	checkbox.Tint = getThemeColor(GUIFontColor)
+
+	checkbox.IconButton.Update()
+
+	if checkbox.Property != nil && checkbox.Property.AsBool() {
+		checkbox.IconSrc.X = 48
+	} else {
+		checkbox.IconSrc.X = 80
+	}
 }
 
 // func ImmediateButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool) bool {
@@ -749,7 +786,7 @@ func (label *Label) Update() {
 
 				}
 
-				if globals.ProgramSettings.Keybindings.On(KBCopyText) {
+				if globals.OldProgramSettings.Keybindings.On(KBCopyText) {
 					start, end := label.Selection.ContiguousRange()
 					text := label.Text[start:end]
 					if err := clipboard.WriteAll(string(text)); err != nil {
@@ -757,7 +794,7 @@ func (label *Label) Update() {
 					}
 				}
 
-				if globals.ProgramSettings.Keybindings.On(KBPasteText) {
+				if globals.OldProgramSettings.Keybindings.On(KBPasteText) {
 					if text, err := clipboard.ReadAll(); err != nil {
 						panic(err)
 					} else {
@@ -768,7 +805,7 @@ func (label *Label) Update() {
 					}
 				}
 
-				if globals.ProgramSettings.Keybindings.On(KBCutText) && label.Selection.Length() > 0 {
+				if globals.OldProgramSettings.Keybindings.On(KBCutText) && label.Selection.Length() > 0 {
 					start, end := label.Selection.ContiguousRange()
 					text := label.Text[start:end]
 					if err := clipboard.WriteAll(string(text)); err != nil {
@@ -778,7 +815,7 @@ func (label *Label) Update() {
 					label.Selection.Select(start, start)
 				}
 
-				if globals.ProgramSettings.Keybindings.On(KBSelectAllText) {
+				if globals.OldProgramSettings.Keybindings.On(KBSelectAllText) {
 					label.Selection.Select(0, len(label.Text))
 				}
 
@@ -959,7 +996,7 @@ func (label *Label) RecreateTexture() {
 		label.Rect.H = -1
 	}
 
-	label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), getThemeColor(GUIFontColor), Point{label.Rect.W, label.Rect.H}, label.HorizontalAlignment)
+	label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), Point{label.Rect.W, label.Rect.H}, label.HorizontalAlignment)
 
 	if label.Rect.W < 0 || label.Rect.H < 0 {
 		label.Rect.W = label.RendererResult.Image.Size.X
@@ -1713,6 +1750,7 @@ func (highlighter *Highlighter) Draw() {
 
 	if highlighter.Color == nil {
 		highlightColor = getThemeColor(GUIMenuColor).SDLColor()
+		highlightColor.A = 192
 	} else {
 		highlightColor = highlighter.Color.SDLColor()
 	}

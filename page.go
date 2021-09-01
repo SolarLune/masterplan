@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"sort"
 	"strings"
@@ -23,28 +22,6 @@ type PageContent interface {
 	Update()
 	Serialize() string
 }
-
-// type PageContent struct {
-// 	Contents interface{}
-// }
-
-// func (pc *PageContent) IsPage() bool {
-// 	_, ok := pc.Contents.(*Page)
-// 	return ok
-// }
-
-// func (pc *PageContent) AsPage() *Page {
-// 	return pc.Contents.(*Page)
-// }
-
-// func (pc *PageContent) IsFolder() bool {
-// 	_, ok := pc.Contents.(*PageFolder)
-// 	return ok
-// }
-
-// func (pc *PageContent) AsFolder() *PageFolder {
-// 	return pc.Contents.(*PageFolder)
-// }
 
 type PageFolder struct {
 	Folder   *PageFolder
@@ -154,26 +131,29 @@ func (pf *PageFolder) Deserialize(data string) {
 }
 
 type Page struct {
-	Project   *Project
-	Folder    *PageFolder // The folder that "owns" the page
-	Grid      *Grid
-	Cards     []*Card
-	ToDelete  []*Card
-	ToRestore []*Card
-	Selection *Selection
-	name      string
-	depth     int
+	Project      *Project
+	Folder       *PageFolder // The folder that "owns" the page
+	Grid         *Grid
+	Cards        []*Card
+	ToDelete     []*Card
+	ToRestore    []*Card
+	Selection    *Selection
+	name         string
+	depth        int
+	UpdateStacks bool
+	Drawables    []*Drawable
 }
 
 func NewPage(pageFolder *PageFolder, project *Project) *Page {
 
 	page := &Page{
-		Project: project,
-		Folder:  pageFolder,
-		Grid:    NewGrid(),
-		Cards:   []*Card{},
-		name:    "New Page",
-		depth:   0,
+		Project:   project,
+		Folder:    pageFolder,
+		Grid:      NewGrid(),
+		Cards:     []*Card{},
+		name:      "New Page",
+		depth:     0,
+		Drawables: []*Drawable{},
 	}
 
 	page.depth = pageFolder.depth + 1
@@ -192,8 +172,23 @@ func (page *Page) Update() {
 		return j < i
 	})
 
-	for _, task := range reversed {
-		task.Update()
+	for _, card := range reversed {
+		card.Update()
+	}
+
+	if page.UpdateStacks {
+
+		// In this loop, the Stacks are subject to change.
+		for _, card := range page.Cards {
+			card.Stack.Update()
+		}
+
+		// From this point, the Stacks should be accurate and usable again.
+		for _, card := range page.Cards {
+			card.Stack.PostUpdate()
+		}
+
+		page.UpdateStacks = false
 	}
 
 }
@@ -213,6 +208,12 @@ func (page *Page) Draw() {
 	for _, card := range sorted {
 		card.DrawCard()
 		card.DrawContents()
+	}
+
+	for _, draw := range page.Drawables {
+		if draw.Draw != nil {
+			draw.Draw()
+		}
 	}
 
 	// This needs to be later than Update() so mouse buttons can be consumed in a Card's Draw() loop, for example, before the Selection detects the mouse button press
@@ -248,6 +249,20 @@ func (page *Page) Draw() {
 	page.ToDelete = []*Card{}
 	page.ToRestore = []*Card{}
 
+}
+
+func (page *Page) AddDrawable(drawable *Drawable) {
+	page.Drawables = append(page.Drawables, drawable)
+}
+
+func (page *Page) RemoveDrawable(drawable *Drawable) {
+	for i, d := range page.Drawables {
+		if d == drawable {
+			page.Drawables[i] = nil
+			page.Drawables = append(page.Drawables[:i], page.Drawables[i+1:]...)
+			return
+		}
+	}
 }
 
 func (page *Page) Serialize() string {
@@ -396,7 +411,6 @@ func (page *Page) HandleDroppedFiles(filepath string) {
 			card := page.CreateNewCard(ContentTypeCheckbox)
 			card.Properties.Get("description").Set(string(text))
 			card.Recreate(globals.ScreenSize.X/2/globals.Project.Camera.Zoom, globals.ScreenSize.Y/2*globals.Project.Camera.Zoom)
-			fmt.Println(card.Rect)
 			card.SetContents(ContentTypeNote)
 		}
 	}

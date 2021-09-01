@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -23,6 +25,11 @@ func (camera *Camera) Update() {
 	softness := float32(0.2)
 
 	camera.Zoom += (camera.TargetZoom - camera.Zoom) * softness
+
+	if math.Abs(float64(camera.TargetZoom-camera.Zoom)) < 0.01 {
+		camera.Zoom = camera.TargetZoom
+	}
+
 	globals.Renderer.SetScale(camera.Zoom, camera.Zoom)
 
 	camera.Position = camera.Position.Add(camera.TargetPosition.Sub(camera.Position).Mult(softness))

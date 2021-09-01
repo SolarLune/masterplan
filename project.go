@@ -169,7 +169,7 @@ func (project *Project) Save() {
 
 	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
 
-	saveData = project.RootFolder.Serialize()
+	saveData, _ = sjson.SetRaw(saveData, "root", project.RootFolder.Serialize())
 
 	// for _, page := range project.RootFolder. {
 	// 	saveData, _ = sjson.SetRaw(saveData, "pages.-1", page.Serialize())
@@ -216,7 +216,11 @@ func (project *Project) Open() {
 
 		newProject := NewProject()
 
-		newProject.RootFolder.Deserialize(string(jsonData))
+		newProject.Filepath = filename
+
+		data := gjson.Get(string(jsonData), "root").String()
+
+		newProject.RootFolder.Deserialize(data)
 
 		newProject.CurrentPage = newProject.RootFolder.Pages()[1]
 		newProject.RootFolder.Remove(newProject.RootFolder.Contents[0])
@@ -295,21 +299,21 @@ func (project *Project) GlobalShortcuts() {
 		dy := float32(0)
 		panSpeed := float32(16)
 
-		if globals.ProgramSettings.Keybindings.On(KBPanRight) {
+		if globals.OldProgramSettings.Keybindings.On(KBPanRight) {
 			dx = panSpeed
 		}
-		if globals.ProgramSettings.Keybindings.On(KBPanLeft) {
+		if globals.OldProgramSettings.Keybindings.On(KBPanLeft) {
 			dx = -panSpeed
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBPanUp) {
+		if globals.OldProgramSettings.Keybindings.On(KBPanUp) {
 			dy = -panSpeed
 		}
-		if globals.ProgramSettings.Keybindings.On(KBPanDown) {
+		if globals.OldProgramSettings.Keybindings.On(KBPanDown) {
 			dy = panSpeed
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBFastPan) {
+		if globals.OldProgramSettings.Keybindings.On(KBFastPan) {
 			dx *= 2
 			dy *= 2
 		}
@@ -317,42 +321,42 @@ func (project *Project) GlobalShortcuts() {
 		project.Camera.TargetPosition.X += dx / project.Camera.Zoom
 		project.Camera.TargetPosition.Y += dy / project.Camera.Zoom
 
-		if globals.ProgramSettings.Keybindings.On(KBZoomIn) {
+		if globals.OldProgramSettings.Keybindings.On(KBZoomIn) {
 			project.Camera.AddZoom(1)
-		} else if globals.ProgramSettings.Keybindings.On(KBZoomOut) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBZoomOut) {
 			project.Camera.AddZoom(-1)
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBZoomLevel25) {
+		if globals.OldProgramSettings.Keybindings.On(KBZoomLevel25) {
 			project.Camera.SetZoom(0.25)
-		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel50) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBZoomLevel50) {
 			project.Camera.SetZoom(0.5)
-		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel100) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBZoomLevel100) {
 			project.Camera.SetZoom(1.0)
-		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel200) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBZoomLevel200) {
 			project.Camera.SetZoom(2.0)
-		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel400) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBZoomLevel400) {
 			project.Camera.SetZoom(4.0)
-		} else if globals.ProgramSettings.Keybindings.On(KBZoomLevel1000) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBZoomLevel1000) {
 			project.Camera.SetZoom(10.0)
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBReturnToOrigin) {
+		if globals.OldProgramSettings.Keybindings.On(KBReturnToOrigin) {
 			project.Camera.TargetPosition = Point{}
 		}
 
 		var newCard *Card
-		if globals.ProgramSettings.Keybindings.On(KBNewCheckboxCard) {
+		if globals.OldProgramSettings.Keybindings.On(KBNewCheckboxCard) {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
-		} else if globals.ProgramSettings.Keybindings.On(KBNewNoteCard) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBNewNoteCard) {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeNote)
-		} else if globals.ProgramSettings.Keybindings.On(KBNewSoundCard) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBNewSoundCard) {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeSound)
-		} else if globals.ProgramSettings.Keybindings.On(KBNewImageCard) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBNewImageCard) {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeImage)
-		} else if globals.ProgramSettings.Keybindings.On(KBNewTimerCard) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBNewTimerCard) {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeTimer)
-		} else if globals.ProgramSettings.Keybindings.On(KBNewMapCard) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBNewMapCard) {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeMap)
 		}
 
@@ -361,11 +365,11 @@ func (project *Project) GlobalShortcuts() {
 			project.CurrentPage.Selection.Add(newCard)
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBDeleteCards) {
+		if globals.OldProgramSettings.Keybindings.On(KBDeleteCards) {
 			project.CurrentPage.DeleteCards(project.CurrentPage.Selection.AsSlice()...)
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBSelectAllCards) {
+		if globals.OldProgramSettings.Keybindings.On(KBSelectAllCards) {
 			for _, card := range project.CurrentPage.Cards {
 				project.CurrentPage.Selection.Clear()
 				project.CurrentPage.Selection.Add(card)
@@ -373,17 +377,17 @@ func (project *Project) GlobalShortcuts() {
 
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBCopyCards) {
+		if globals.OldProgramSettings.Keybindings.On(KBCopyCards) {
 			project.CurrentPage.CopySelectedCards()
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBPasteCards) {
+		if globals.OldProgramSettings.Keybindings.On(KBPasteCards) {
 
 			project.CurrentPage.PasteCards()
 
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBSaveProject) {
+		if globals.OldProgramSettings.Keybindings.On(KBSaveProject) {
 
 			if project.Filepath != "" {
 				project.Save()
@@ -391,15 +395,15 @@ func (project *Project) GlobalShortcuts() {
 				project.SaveAs()
 			}
 
-		} else if globals.ProgramSettings.Keybindings.On(KBSaveProjectAs) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBSaveProjectAs) {
 			project.SaveAs()
-		} else if globals.ProgramSettings.Keybindings.On(KBOpenProject) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBOpenProject) {
 			project.Open()
 		}
 
-		if globals.ProgramSettings.Keybindings.On(KBUndo) {
+		if globals.OldProgramSettings.Keybindings.On(KBUndo) {
 			project.UndoHistory.Undo()
-		} else if globals.ProgramSettings.Keybindings.On(KBRedo) {
+		} else if globals.OldProgramSettings.Keybindings.On(KBRedo) {
 			project.UndoHistory.Redo()
 		}
 

@@ -1,7 +1,19 @@
 
-- Card movement!
+- [ ] Can't double-click to select a word anymore?
+- [x] Need to be able to delete Drawables
+- [ ] Add recent paths list
+- [x] Filepath needs to be set when saving projects
+- [x] Saving seems to not save rects properly anymore?
+- [ ] Confirm when loading project
+- [ ] Drag and drop plan to load project
+- [ ] Close menu when loading project
+
+- [ ] Card movement!
+
 - Count-down Timer
+- Progression Task
 - Pasting Images
+- Create a roadmap; post on itch and Steam.
 
 - Double-clicking on different Card to background creates Card
 - Project setting for importing images at their original size
@@ -59,7 +71,8 @@ TODO
     - Any text on Cards fade out if the Card isn't large enough to display the text element (a title, for example) fully
     - Text is parsed for URLs or program / OS file or program links
     - Cards are now at least 32x32 (test with higher-resolution fonts; if this isn't enough, then bump it up)
-  - Completable Tasks can have time estimations tied to them.
+  - Re-implement Progression Cards
+  [ ] Completable Tasks can have time estimations tied to them in some way.
   [x] Note Cards
     - Note Cards can contain stacks of information in a single Note.
   [x] Sound Cards
@@ -92,6 +105,7 @@ TODO
       - Text from the legend should display behind the colors for each zone if possible (should be hide-able, perhaps only display if the Legend is open)
   - Calendar Card
   - Re-implement Project Settings
+  - Re-implement copying and pasting text to and from MasterPlan to represent Card types.
   - Card Text cannot exceed 32768x32768; this can happen if the text or file is generally long. Some alternative to rendering the full text needs to be implemented. 
     - A possible solution could be to render the text from a file to a surface, which then gets clipped when rendering to a texture?
 
