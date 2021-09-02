@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -387,32 +388,40 @@ func (page *Page) Raise(card *Card) {
 
 }
 
-func (page *Page) HandleDroppedFiles(filepath string) {
+func (page *Page) HandleDroppedFiles(filePath string) {
 
-	mime, _ := mimetype.DetectFile(filepath)
+	mime, _ := mimetype.DetectFile(filePath)
 	mimeType := mime.String()
 
 	if strings.Contains(mimeType, "image") {
 		card := page.CreateNewCard(ContentTypeCheckbox)
-		card.Properties.Get("filepath").Set(filepath)
+		card.Properties.Get("filepath").Set(filePath)
 		card.SetContents(ContentTypeImage)
 	} else if strings.Contains(mimeType, "audio") {
 		card := page.CreateNewCard(ContentTypeCheckbox)
-		card.Properties.Get("filepath").Set(filepath)
+		card.Properties.Get("filepath").Set(filePath)
 		card.SetContents(ContentTypeSound)
 		contents := card.Contents.(*SoundContents)
 		defaultSize := contents.DefaultSize()
 		card.Recreate(defaultSize.X, defaultSize.Y)
 	} else {
-		text, err := os.ReadFile(filepath)
-		if err != nil {
-			globals.EventLog.Log(err.Error())
+
+		if filepath.Ext(filePath) == ".plan" {
+			page.Project.OpenFrom(filePath)
 		} else {
-			card := page.CreateNewCard(ContentTypeCheckbox)
-			card.Properties.Get("description").Set(string(text))
-			card.Recreate(globals.ScreenSize.X/2/globals.Project.Camera.Zoom, globals.ScreenSize.Y/2*globals.Project.Camera.Zoom)
-			card.SetContents(ContentTypeNote)
+
+			text, err := os.ReadFile(filePath)
+			if err != nil {
+				globals.EventLog.Log(err.Error())
+			} else {
+				card := page.CreateNewCard(ContentTypeCheckbox)
+				card.Properties.Get("description").Set(string(text))
+				card.Recreate(globals.ScreenSize.X/2/globals.Project.Camera.Zoom, globals.ScreenSize.Y/2*globals.Project.Camera.Zoom)
+				card.SetContents(ContentTypeNote)
+			}
+
 		}
+
 	}
 
 }

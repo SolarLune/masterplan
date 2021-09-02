@@ -122,7 +122,7 @@ func (card *Card) Update() {
 
 	if globals.State == StateNeutral {
 
-		if card.Selected && globals.OldProgramSettings.Keybindings.On(KBCollapseCard) {
+		if card.Selected && globals.Keybindings.On(KBCollapseCard) {
 			card.Collapse()
 		}
 
@@ -142,7 +142,7 @@ func (card *Card) Update() {
 				card.Page.Raise(card)
 			}
 
-			if globals.OldProgramSettings.Keybindings.On(KBRemoveFromSelection) {
+			if globals.Keybindings.On(KBRemoveFromSelection) {
 
 				if card.Selected {
 					card.Deselect()
@@ -151,7 +151,7 @@ func (card *Card) Update() {
 
 			} else {
 
-				if !card.Selected && !globals.OldProgramSettings.Keybindings.On(KBAddToSelection) {
+				if !card.Selected && !globals.Keybindings.On(KBAddToSelection) {
 
 					for card := range selection.Cards {
 						card.Deselect()
@@ -253,7 +253,7 @@ func (card *Card) DrawContents() {
 
 func (card *Card) DrawNumbering() {
 
-	alwaysShowNumbering := globals.ProgramSettings.Get(SettingsAlwaysShowNumbering).AsBool()
+	alwaysShowNumbering := globals.Settings.Get(SettingsAlwaysShowNumbering).AsBool()
 	numberableCards := card.Stack.Any(func(card *Card) bool { return card.Numberable() })
 
 	if card.Stack.Numerous() && numberableCards && (alwaysShowNumbering || card.Stack.Any(func(card *Card) bool { return card.Selected })) {
@@ -636,6 +636,8 @@ func (card *Card) ReceiveMessage(message *Message) {
 
 	if message.Type == MessageCardDeleted {
 		card.Page.RemoveDrawable(card.Drawable)
+		card.Page.Grid.Remove(card)
+		card.Page.UpdateStacks = true
 	}
 
 }

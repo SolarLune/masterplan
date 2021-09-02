@@ -52,7 +52,7 @@ const (
 var guiColors map[string]map[string]Color
 
 func getThemeColor(colorConstant string) Color {
-	color, exists := guiColors[globals.ProgramSettings.Get(SettingsTheme).AsString()][colorConstant]
+	color, exists := guiColors[globals.Settings.Get(SettingsTheme).AsString()][colorConstant]
 	if !exists {
 		log.Println("ERROR: Color doesn't exist for the current theme: ", colorConstant)
 	}
@@ -786,7 +786,7 @@ func (label *Label) Update() {
 
 				}
 
-				if globals.OldProgramSettings.Keybindings.On(KBCopyText) {
+				if globals.Keybindings.On(KBCopyText) {
 					start, end := label.Selection.ContiguousRange()
 					text := label.Text[start:end]
 					if err := clipboard.WriteAll(string(text)); err != nil {
@@ -794,7 +794,7 @@ func (label *Label) Update() {
 					}
 				}
 
-				if globals.OldProgramSettings.Keybindings.On(KBPasteText) {
+				if globals.Keybindings.On(KBPasteText) {
 					if text, err := clipboard.ReadAll(); err != nil {
 						panic(err)
 					} else {
@@ -805,7 +805,7 @@ func (label *Label) Update() {
 					}
 				}
 
-				if globals.OldProgramSettings.Keybindings.On(KBCutText) && label.Selection.Length() > 0 {
+				if globals.Keybindings.On(KBCutText) && label.Selection.Length() > 0 {
 					start, end := label.Selection.ContiguousRange()
 					text := label.Text[start:end]
 					if err := clipboard.WriteAll(string(text)); err != nil {
@@ -815,7 +815,7 @@ func (label *Label) Update() {
 					label.Selection.Select(start, start)
 				}
 
-				if globals.OldProgramSettings.Keybindings.On(KBSelectAllText) {
+				if globals.Keybindings.On(KBSelectAllText) {
 					label.Selection.Select(0, len(label.Text))
 				}
 

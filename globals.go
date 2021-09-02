@@ -15,29 +15,30 @@ const (
 )
 
 type Globals struct {
-	Project            *Project
-	Window             *sdl.Window
-	Renderer           *sdl.Renderer
-	Font               *ttf.Font
-	TextRenderer       *TextRenderer
-	LoadedFontPath     string
-	OldProgramSettings OldProgramSettings
-	Keyboard           Keyboard
-	Mouse              Mouse
-	InputText          []rune
-	Time               float64
-	DeltaTime          float32
-	Frame              int64
-	GridSize           float32
-	ScreenSize         Point
-	CopyBuffer         []string
-	Version            semver.Version
-	State              string
-	Resources          ResourceBank
-	GrabClient         *grab.Client
-	MenuSystem         *MenuSystem
-	EventLog           *EventLog
-	ProgramSettings    *Properties
+	Project        *Project
+	Window         *sdl.Window
+	Renderer       *sdl.Renderer
+	Font           *ttf.Font
+	TextRenderer   *TextRenderer
+	LoadedFontPath string
+	Keyboard       Keyboard
+	Mouse          Mouse
+	InputText      []rune
+	Time           float64
+	DeltaTime      float32
+	Frame          int64
+	GridSize       float32
+	ScreenSize     Point
+	CopyBuffer     []string
+	Version        semver.Version
+	State          string
+	Resources      ResourceBank
+	GrabClient     *grab.Client
+	MenuSystem     *MenuSystem
+	EventLog       *EventLog
+
+	Settings    *Properties
+	Keybindings *Keybindings
 
 	DebugMode bool
 }

@@ -190,25 +190,26 @@ func (shortcut *Shortcut) Keys() []sdl.Keycode {
 	return keys
 }
 
-func (shortcut *Shortcut) MarshalJSON() ([]byte, error) {
+func (shortcut *Shortcut) Serialize() string {
 
 	data := ""
+
 	data, _ = sjson.Set(data, "Key", shortcut.Key)
+
 	if len(shortcut.Modifiers) > 0 {
 		data, _ = sjson.Set(data, "Modifiers", shortcut.Modifiers)
 	}
-	return []byte(data), nil
+
+	return data
 
 }
 
-func (shortcut *Shortcut) UnmarshalJSON(data []byte) error {
+func (shortcut *Shortcut) Deserialize(data string) error {
 
-	jsonStr := string(data)
-
-	shortcut.Key = sdl.Keycode(gjson.Get(jsonStr, "Key").Int())
+	shortcut.Key = sdl.Keycode(gjson.Get(data, "Key").Int())
 
 	shortcut.Modifiers = []sdl.Keycode{}
-	if mods := gjson.Get(jsonStr, "Modifiers"); mods.Exists() {
+	if mods := gjson.Get(data, "Modifiers"); mods.Exists() {
 		for _, mod := range mods.Array() {
 			shortcut.Modifiers = append(shortcut.Modifiers, sdl.Keycode(mod.Int()))
 		}
@@ -525,29 +526,27 @@ func (kb *Keybindings) On(bindingName string) bool {
 
 }
 
-func (kb *Keybindings) MarshalJSON() ([]byte, error) {
+func (kb *Keybindings) Serialize() string {
 
 	serialized, _ := sjson.Set("", "Keybindings", kb.Shortcuts)
 
-	serialized = gjson.Get(serialized, "Keybindings").String()
-
-	return []byte(serialized), nil
+	return serialized
 
 }
 
-func (kb *Keybindings) UnmarshalJSON(data []byte) error {
+func (kb *Keybindings) Deserialize(data string) error {
 
 	// The google json marshal / unmarshal system adds an additional layer, so we remove it above
 	// jsonData := `{ "Keybindings": ` + string(data) + `}`
 
-	// for shortcutName, shortcutData := range gjson.Get(jsonData, "Keybindings").Map() {
+	for shortcutName, shortcutData := range gjson.Get(data, "Keybindings").Map() {
 
-	// 	shortcut, exists := kb.Shortcuts[shortcutName]
-	// 	if exists {
-	// 		shortcut.UnmarshalJSON([]byte(shortcutData.String()))
-	// 	}
+		shortcut, exists := kb.Shortcuts[shortcutName]
+		if exists {
+			shortcut.Deserialize(shortcutData.String())
+		}
 
-	// }
+	}
 
 	return nil
 

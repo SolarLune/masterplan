@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -85,7 +86,8 @@ func init() {
 	globals.State = StateNeutral
 	globals.GrabClient = grab.NewClient()
 	globals.MenuSystem = NewMenuSystem()
-	globals.ProgramSettings = NewProgramSettings()
+	globals.Settings = NewProgramSettings()
+	globals.Keybindings = NewKeybindings()
 
 }
 
@@ -128,8 +130,6 @@ func main() {
 		}
 	}()
 
-	globals.OldProgramSettings = NewOldProgramSettings()
-
 	// settingsLoaded := globals.ProgramSettings.Load()
 
 	settingsLoaded := true
@@ -169,7 +169,7 @@ func main() {
 	w := int32(960)
 	h := int32(540)
 
-	if globals.OldProgramSettings.BorderlessWindow {
+	if globals.Settings.Get(SettingsBorderlessWindow).AsBool() {
 		windowFlags |= sdl.WINDOW_BORDERLESS
 	}
 
@@ -193,12 +193,12 @@ func main() {
 		panic(err)
 	}
 
-	if globals.OldProgramSettings.SaveWindowPosition && globals.OldProgramSettings.WindowPosition.W > 0 && globals.OldProgramSettings.WindowPosition.H > 0 {
-		x = int32(globals.OldProgramSettings.WindowPosition.X)
-		y = int32(globals.OldProgramSettings.WindowPosition.Y)
-		w = int32(globals.OldProgramSettings.WindowPosition.W)
-		h = int32(globals.OldProgramSettings.WindowPosition.H)
-	}
+	// if globals.ProgramSettings.Get(SettingsSaveWindowPosition).AsBool() && globals.OldProgramSettings.WindowPosition.W > 0 && globals.OldProgramSettings.WindowPosition.H > 0 {
+	// 	x = int32(globals.OldProgramSettings.WindowPosition.X)
+	// 	y = int32(globals.OldProgramSettings.WindowPosition.Y)
+	// 	w = int32(globals.OldProgramSettings.WindowPosition.W)
+	// 	h = int32(globals.OldProgramSettings.WindowPosition.H)
+	// }
 
 	LoadCursors()
 
@@ -232,7 +232,7 @@ func main() {
 	// splashScreen := rl.LoadTexture(LocalPath("assets", "splashscreen.png"))
 	splashColor := sdl.Color{255, 255, 255, 255}
 
-	if globals.OldProgramSettings.DisableSplashscreen {
+	if globals.Settings.Get(SettingsDisableSplashscreen).AsBool() {
 		splashScreenTime = 100
 		splashColor.A = 0
 	}
@@ -285,15 +285,15 @@ func main() {
 		// 	drawFPS = !drawFPS
 		// }
 
-		if globals.OldProgramSettings.Keybindings.On(KBWindowSizeSmall) {
+		if globals.Keybindings.On(KBWindowSizeSmall) {
 			window.SetSize(960, 540)
 		}
 
-		if globals.OldProgramSettings.Keybindings.On(KBWindowSizeNormal) {
+		if globals.Keybindings.On(KBWindowSizeNormal) {
 			window.SetSize(1920, 1080)
 		}
 
-		if globals.OldProgramSettings.Keybindings.On(KBToggleFullscreen) {
+		if globals.Keybindings.On(KBToggleFullscreen) {
 			fullscreen = !fullscreen
 			if fullscreen {
 				window.SetFullscreen(sdl.WINDOW_FULLSCREEN_DESKTOP)
@@ -344,17 +344,17 @@ func main() {
 
 		} else {
 
-			if globals.State == StateNeutral && globals.OldProgramSettings.Keybindings.On(KBDebugRestart) {
+			if globals.State == StateNeutral && globals.Keybindings.On(KBDebugRestart) {
 				globals.Project = NewProject()
 			}
 
-			if globals.OldProgramSettings.Keybindings.On(KBDebugToggle) {
+			if globals.Keybindings.On(KBDebugToggle) {
 				globals.DebugMode = !globals.DebugMode
 			}
 
-			// if globals.Keyboard.Key(sdl.K_F5).Pressed() {
-			// 	profileCPU()
-			// }
+			if globals.Keyboard.Key(sdl.K_F5).Pressed() {
+				profileCPU()
+			}
 
 			// if rl.WindowShouldClose() {
 			// 	currentProject.PromptQuit()
@@ -537,12 +537,12 @@ func main() {
 			windowTitle = title
 		}
 
-		targetFPS = globals.OldProgramSettings.TargetFPS
+		targetFPS = int(globals.Settings.Get(SettingsTargetFPS).AsNumber())
 
 		// if !rl.IsWindowFocused() || rl.IsWindowHidden() || rl.IsWindowMinimized() {
 		windowFlags := window.GetFlags()
 		if windowFlags&sdl.WINDOW_MOUSE_FOCUS > 0 || windowFlags&sdl.WINDOW_MINIMIZED > 0 || windowFlags&sdl.WINDOW_HIDDEN > 0 {
-			targetFPS = globals.OldProgramSettings.UnfocusedFPS
+			targetFPS = int(globals.Settings.Get(SettingsUnfocusedFPS).AsNumber())
 		}
 
 		elapsed += time.Since(currentTime)
@@ -570,12 +570,11 @@ func main() {
 
 	}
 
-	if globals.OldProgramSettings.SaveWindowPosition {
+	if globals.Settings.Get(SettingsSaveWindowPosition).AsBool() {
 		// This is outside the main loop because we can save the window properties just before quitting
 		wX, wY := window.GetPosition()
 		wW, wH := window.GetSize()
-		globals.OldProgramSettings.WindowPosition = sdl.Rect{wX, wY, wW, wH}
-		// globals.ProgramSettings.Save()
+		globals.Settings.Get(SettingsWindowPosition).Set(sdl.Rect{wX, wY, wW, wH})
 	}
 
 	log.Println("MasterPlan exited successfully.")
@@ -830,24 +829,27 @@ func ConstructMenus() {
 	confirmQuit.Draggable = true
 
 	root = confirmQuit.Pages["root"]
-	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you\nwish to quit?", nil, false, AlignCenter))
+	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to quit?", nil, false, AlignCenter))
+	root.AddRow(AlignCenter).Add("label", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
 	row = root.AddRow(AlignCenter)
 	row.Add("yes", NewButton("Yes, Quit", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { quit = true }))
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
 
-	confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y)
+	confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
 
-	confirmClose := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirmclose", true)
-	confirmClose.Draggable = true
+	// // Confirm Load Menu - do this after Project.Modified works again.
 
-	root = confirmClose.Pages["root"]
-	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you\nwish to close this project?", nil, false, AlignCenter))
-	root.AddRow(AlignCenter).Add("label", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
-	row = root.AddRow(AlignCenter)
-	row.Add("yes", NewButton("Yes, Close", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { quit = true }))
-	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
+	// confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirmquit", true)
+	// confirmQuit.Draggable = true
 
-	confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y)
+	// root = confirmQuit.Pages["root"]
+	// root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you\nwish to quit?", nil, false, AlignCenter))
+	// root.AddRow(AlignCenter).Add("label", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
+	// row = root.AddRow(AlignCenter)
+	// row.Add("yes", NewButton("Yes, Quit", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { quit = true }))
+	// row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
+
+	// confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y)
 
 	settings := NewMenu(&sdl.FRect{0, 0, 512, 512}, true)
 	settings.CloseButtonEnabled = true
@@ -859,14 +861,14 @@ func ConstructMenus() {
 	row.Add("theme label", NewLabel("Color theme:", nil, false, AlignLeft))
 	row = root.AddRow(AlignCenter)
 	row.Add("sunlight", NewButton("Sunlight", nil, nil, false, func() {
-		globals.ProgramSettings.Get(SettingsTheme).Set("Sunlight")
+		globals.Settings.Get(SettingsTheme).Set("Sunlight")
 		globals.MenuSystem.Recreate()
 		globals.Project.CreateGridTexture()
 		globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
 
 	}))
 	row.Add("moonlight", NewButton("Moonlight", nil, nil, false, func() {
-		globals.ProgramSettings.Get(SettingsTheme).Set("Moonlight")
+		globals.Settings.Get(SettingsTheme).Set("Moonlight")
 		globals.MenuSystem.Recreate()
 		globals.Project.CreateGridTexture()
 		globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
@@ -874,24 +876,24 @@ func ConstructMenus() {
 	row = root.AddRow(AlignCenter)
 	row.Add("", NewLabel("Always Show List Numbering:", nil, false, AlignLeft))
 
-	row.Add("", NewCheckbox(0, 0, false, globals.ProgramSettings.Get(SettingsAlwaysShowNumbering)))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAlwaysShowNumbering)))
 }
 
-// func profileCPU() {
+func profileCPU() {
 
-// 	// rInt, _ := rand.Int(rand.Reader, big.NewInt(400))
-// 	// cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rInt))
-// 	cpuProfFile, err := os.Create("cpu.pprof")
-// 	if err != nil {
-// 		log.Fatal("Could not create CPU Profile: ", err)
-// 	}
-// 	pprof.StartCPUProfile(cpuProfFile)
-// 	globals.EventLog.Log("CPU Profiling begun...")
+	// rInt, _ := rand.Int(rand.Reader, big.NewInt(400))
+	// cpuProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rInt))
+	cpuProfFile, err := os.Create("cpu.pprof")
+	if err != nil {
+		log.Fatal("Could not create CPU Profile: ", err)
+	}
+	pprof.StartCPUProfile(cpuProfFile)
+	globals.EventLog.Log("CPU Profiling begun...")
 
-// 	time.AfterFunc(time.Second*10, func() {
-// 		cpuProfileStart = time.Time{}
-// 		pprof.StopCPUProfile()
-// 		globals.EventLog.Log("CPU Profiling finished!")
-// 	})
+	time.AfterFunc(time.Second*10, func() {
+		cpuProfileStart = time.Time{}
+		pprof.StopCPUProfile()
+		globals.EventLog.Log("CPU Profiling finished!")
+	})
 
-// }
+}

@@ -323,8 +323,9 @@ func ReloadFonts() {
 	// fontPath := LocalPath("assets/m5x7.ttf")
 	fontPath := LocalPath("assets/Quicksand-Bold.ttf")
 
-	if globals.OldProgramSettings.CustomFontPath != "" && FileExists(globals.OldProgramSettings.CustomFontPath) {
-		fontPath = globals.OldProgramSettings.CustomFontPath
+	customFontPath := globals.Settings.Get(SettingsCustomFontPath).AsString()
+	if customFontPath != "" && FileExists(customFontPath) {
+		fontPath = customFontPath
 	}
 
 	if globals.LoadedFontPath != fontPath {
@@ -334,7 +335,7 @@ func ReloadFonts() {
 
 		// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
 
-		loadedFont, err := ttf.OpenFont(fontPath, globals.OldProgramSettings.FontSize)
+		loadedFont, err := ttf.OpenFont(fontPath, int(globals.Settings.Get(SettingsFontSize).AsNumber()))
 
 		loadedFont.SetKerning(true) // I don't think this really will do anything for us here, as we're rendering text using individual characters, not strings.
 

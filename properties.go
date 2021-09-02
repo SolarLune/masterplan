@@ -58,12 +58,24 @@ func (prop *Property) AsBool() bool {
 	return prop.data.(bool)
 }
 
-func (prop *Property) AsMap() map[interface{}]interface{} {
-	if prop.data == nil {
-		prop.data = map[interface{}]interface{}{}
-	}
-	return prop.data.(map[interface{}]interface{})
+func (prop *Property) IsNumber() bool {
+	_, isOK := prop.data.(float64)
+	return isOK
 }
+
+func (prop *Property) AsNumber() float64 {
+	if prop.data == nil {
+		prop.data = 0.0
+	}
+	return prop.data.(float64)
+}
+
+// func (prop *Property) AsMap() map[interface{}]interface{} {
+// 	if prop.data == nil {
+// 		prop.data = map[interface{}]interface{}{}
+// 	}
+// 	return prop.data.(map[interface{}]interface{})
+// }
 
 func (prop *Property) Set(value interface{}) {
 
@@ -106,9 +118,8 @@ func (properties *Properties) Get(name string) *Property {
 
 	if _, exists := properties.Props[name]; !exists {
 		properties.Props[name] = NewProperty(name, properties)
+		properties.DefinitionOrder = append(properties.DefinitionOrder, name)
 	}
-
-	properties.DefinitionOrder = append(properties.DefinitionOrder, name)
 
 	prop := properties.Props[name]
 	prop.InUse = true

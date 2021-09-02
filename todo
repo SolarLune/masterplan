@@ -1,11 +1,15 @@
-
+- [x] Drag and drop plan to load project
+- Reimplement Project.Modified / Confirmation before loading project
+- [ ] Fix being able to undo project loading
+- [ ] Map buttons can be hidden by Cards above
+- [x] Migrate the rest of program settings over
+- [ ] Allow keybinding editing / saving and loading
 - [ ] Can't double-click to select a word anymore?
 - [x] Need to be able to delete Drawables
-- [ ] Add recent paths list
+- [ ] Re-implement recent paths list / project autoloading / review main.go
 - [x] Filepath needs to be set when saving projects
 - [x] Saving seems to not save rects properly anymore?
 - [ ] Confirm when loading project
-- [ ] Drag and drop plan to load project
 - [ ] Close menu when loading project
 
 - [ ] Card movement!

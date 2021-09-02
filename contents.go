@@ -547,7 +547,7 @@ func (ic *ImageContents) Update() {
 
 		ic.ImageNameLabel.SetText([]rune(filename))
 
-		if !globals.OldProgramSettings.Keybindings.On(KBAddToSelection) {
+		if !globals.Keybindings.On(KBAddToSelection) {
 			if ic.Resource.IsTexture() {
 				ic.Card.LockResizingAspectRatio = ic.Resource.AsImage().Size.Y / ic.Resource.AsImage().Size.X
 			} else if ic.Resource.IsGIF() {
@@ -1082,27 +1082,27 @@ func (mc *MapContents) Update() {
 
 	if mc.Card.Selected {
 
-		if globals.OldProgramSettings.Keybindings.On(KBMapNoTool) {
+		if globals.Keybindings.On(KBMapNoTool) {
 			mc.Tool = MapEditToolNone
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.OldProgramSettings.Keybindings.On(KBMapPencilTool) {
+		} else if globals.Keybindings.On(KBMapPencilTool) {
 			mc.Tool = MapEditToolPencil
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.OldProgramSettings.Keybindings.On(KBMapEraserTool) {
+		} else if globals.Keybindings.On(KBMapEraserTool) {
 			mc.Tool = MapEditToolEraser
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.OldProgramSettings.Keybindings.On(KBMapFillTool) {
+		} else if globals.Keybindings.On(KBMapFillTool) {
 			mc.Tool = MapEditToolFill
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.OldProgramSettings.Keybindings.On(KBMapLineTool) {
+		} else if globals.Keybindings.On(KBMapLineTool) {
 			mc.Tool = MapEditToolLine
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.OldProgramSettings.Keybindings.On(KBMapPalette) && mc.Card.Selected && len(mc.Card.Page.Selection.Cards) == 1 {
+		} else if globals.Keybindings.On(KBMapPalette) && mc.Card.Selected && len(mc.Card.Page.Selection.Cards) == 1 {
 			if mc.PaletteMenu.Opened {
 				mc.PaletteMenu.Close()
 			} else {
@@ -1123,7 +1123,7 @@ func (mc *MapContents) Update() {
 
 		if !mc.Card.Resizing {
 
-			if globals.OldProgramSettings.Keybindings.On(KBPickColor) {
+			if globals.Keybindings.On(KBPickColor) {
 
 				// Eyedropping to pick color
 				globals.Mouse.SetCursor("eyedropper")
@@ -1378,7 +1378,7 @@ func (mc *MapContents) Draw() {
 }
 
 func (mc *MapContents) UsingLineTool() bool {
-	return mc.Tool == MapEditToolLine || (mc.Tool == MapEditToolPencil && globals.OldProgramSettings.Keybindings.On(KBMapQuickLineTool))
+	return mc.Tool == MapEditToolLine || (mc.Tool == MapEditToolPencil && globals.Keybindings.On(KBMapQuickLineTool))
 }
 
 func (mc *MapContents) ColorIndex() int {

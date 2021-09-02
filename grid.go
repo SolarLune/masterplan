@@ -150,14 +150,20 @@ func (grid *Grid) Resize(w, h int) {
 
 func (grid *Grid) Put(card *Card) {
 
-	// Remove the extents from the previous position if it were specified
-	if card.GridExtents.Valid() {
-		card.GridExtents.Remove(card)
-	}
+	grid.Remove(card)
 
 	card.GridExtents = grid.Select(card.Rect)
 
 	card.GridExtents.Add(card)
+
+}
+
+func (grid *Grid) Remove(card *Card) {
+
+	// Remove the extents from the previous position if it were specified
+	if card.GridExtents.Valid() {
+		card.GridExtents.Remove(card)
+	}
 
 }
 
