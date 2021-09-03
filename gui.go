@@ -567,7 +567,7 @@ func (label *Label) Update() {
 
 		if label.Editable {
 
-			if ClickedInRect(activeRect, label.WorldSpace) && globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
+			if !label.Editing && ClickedInRect(activeRect, label.WorldSpace) && globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 				label.Editing = true
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 				label.Selection.Select(0, len(label.Text))
@@ -599,13 +599,12 @@ func (label *Label) Update() {
 							offset = 1
 						}
 
-						next := strings.Index(string(label.Text[start:]), " ")
+						next := strings.IndexAny(string(label.Text[start:]), " \n")
 
 						if next < 0 {
-							next = strings.Index(string(label.Text[start:]), "\n")
-						}
-						if next < 0 {
 							next = len(label.Text) - label.Selection.CaretPos
+						} else if next == 0 {
+							next++
 						}
 
 						advance = next + offset
@@ -627,16 +626,13 @@ func (label *Label) Update() {
 						start := label.Selection.CaretPos
 						offset := 0
 
-						if start > 0 && label.Text[start-1] == ' ' {
+						if start > 0 && label.Text[start-1] == ' ' || label.Text[start-1] == '\n' {
 							start--
 							offset = 1
 						}
 
-						next := strings.LastIndex(string(label.Text[:start]), " ")
+						next := strings.LastIndexAny(string(label.Text[:start]), " \n")
 
-						if next < 0 {
-							next = strings.LastIndex(string(label.Text[:start]), "\n")
-						}
 						if next < 0 {
 							next = -label.Selection.CaretPos
 						}
@@ -655,47 +651,70 @@ func (label *Label) Update() {
 					}
 				}
 
+				caretLineNum := label.LineNumber(label.Selection.CaretPos)
+				caretPos := label.IndexInLine(label.Selection.CaretPos)
+
 				if globals.Keyboard.Key(sdl.K_UP).Pressed() {
 
-					caretLineNum := label.LineNumber(label.Selection.CaretPos)
+					prevLineLength := 0
+
+					if caretLineNum > 0 {
+						prevLineLength = len(label.RendererResult.TextLines[caretLineNum-1]) - 1
+					}
 
 					prev := 0
 
-					if caretLineNum > 0 && label.IndexInLine(label.Selection.CaretPos) >= len(label.RendererResult.TextLines[caretLineNum-1]) {
-						prev = label.Selection.CaretPos - (label.IndexInLine(label.Selection.CaretPos) + 1)
-					} else if caretLineNum > 0 {
-						prev = label.Selection.CaretPos - len(label.RendererResult.TextLines[caretLineNum-1])
+					if caretLineNum > 0 {
+						maxMove := prevLineLength + 1
+						if caretPos > prevLineLength {
+							maxMove = caretPos + 1
+						}
+						prev = label.Selection.CaretPos - maxMove
 					}
 
-					current := prev
+					start := prev
 
 					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
-						current = label.Selection.Start
+						start = label.Selection.Start
 					}
 
-					label.Selection.Select(current, prev)
+					label.Selection.Select(start, prev)
 
 				}
 
 				if globals.Keyboard.Key(sdl.K_DOWN).Pressed() {
 
 					caretLineNum := label.LineNumber(label.Selection.CaretPos)
+					caretPos := label.IndexInLine(label.Selection.CaretPos)
+					lineCount := len(label.RendererResult.TextLines)
+
+					lineLength := len(label.RendererResult.TextLines[caretLineNum])
+					nextLineLength := 0
+
+					if caretLineNum < lineCount-1 {
+						nextLineLength = len(label.RendererResult.TextLines[caretLineNum+1])
+						if caretLineNum < lineCount-2 {
+							nextLineLength--
+						}
+					}
 
 					next := len(label.Text)
 
-					if caretLineNum < len(label.RendererResult.TextLines)-1 && label.IndexInLine(label.Selection.CaretPos) >= len(label.RendererResult.TextLines[caretLineNum+1]) {
-						next = label.Selection.CaretPos + len(label.RendererResult.TextLines[caretLineNum]) - label.IndexInLine(label.Selection.CaretPos) + len(label.RendererResult.TextLines[caretLineNum+1])
-					} else if caretLineNum < len(label.RendererResult.TextLines)-1 {
-						next = label.Selection.CaretPos + len(label.RendererResult.TextLines[caretLineNum])
+					if caretLineNum < lineCount-1 {
+						maxMove := lineLength
+						if caretPos > nextLineLength {
+							maxMove = lineLength - (caretPos - nextLineLength)
+						}
+						next = label.Selection.CaretPos + maxMove
 					}
 
-					current := next
+					start := next
 
 					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
-						current = label.Selection.Start
+						start = label.Selection.Start
 					}
 
-					label.Selection.Select(current, next)
+					label.Selection.Select(start, next)
 
 				}
 
@@ -755,9 +774,51 @@ func (label *Label) Update() {
 					if closestIndex != -1 {
 						if button.Pressed() {
 							label.Selection.Select(closestIndex, closestIndex)
-						} else if button.Held() {
+						} else if button.Held() && globals.Mouse.Moving() {
 							label.Selection.Select(label.Selection.Start, closestIndex)
 						}
+					}
+
+					if label.Editing {
+
+						if button.PressedTimes(2) {
+
+							startOfWord := -1
+							endOfWord := -1
+
+							if next := strings.IndexAny(label.TextAsString()[label.Selection.CaretPos:], " \n"); next >= 0 {
+								endOfWord = label.Selection.CaretPos + next
+							} else {
+								endOfWord = len(label.Text)
+							}
+
+							if prev := strings.LastIndexAny(label.TextAsString()[:label.Selection.CaretPos], " \n"); prev >= 0 {
+								startOfWord = prev + 1
+							} else {
+								startOfWord = 0
+							}
+
+							label.Selection.Select(startOfWord, endOfWord)
+
+						} else if button.PressedTimes(3) {
+							// label.Selection.Select(0, len(label.Text))
+
+							start := 0
+							if prevBreak := label.PrevAutobreak(label.Selection.CaretPos); prevBreak >= 0 {
+								start = prevBreak
+							}
+
+							end := len(label.Text)
+							if nextBreak := label.NextAutobreak(label.Selection.CaretPos); nextBreak >= 0 {
+								end = nextBreak
+							}
+
+							label.Selection.Select(start, end)
+
+						} else if button.PressedTimes(4) {
+							label.Selection.Select(0, len(label.Text))
+						}
+
 					}
 
 				}
@@ -985,6 +1046,50 @@ func (label *Label) SetText(text []rune) {
 
 }
 
+func (label *Label) NextAutobreak(startPoint int) int {
+
+	i := 0
+	breaks := []int{}
+	currentLine := -1
+
+	for lineIndex, line := range label.RendererResult.TextLines {
+		i += len(line)
+		if currentLine < 0 && i > label.Selection.CaretPos {
+			currentLine = lineIndex
+		}
+		breaks = append(breaks, i)
+	}
+
+	if currentLine >= 0 {
+		return breaks[currentLine]
+	}
+
+	return -1
+
+}
+
+func (label *Label) PrevAutobreak(startPoint int) int {
+
+	i := 0
+	breaks := []int{}
+	currentLine := -1
+
+	for lineIndex, line := range label.RendererResult.TextLines {
+		i += len(line)
+		if currentLine < 0 && i > label.Selection.CaretPos {
+			currentLine = lineIndex
+		}
+		breaks = append(breaks, i)
+	}
+
+	if currentLine > 0 {
+		return breaks[currentLine-1]
+	}
+
+	return -1
+
+}
+
 func (label *Label) RecreateTexture() {
 
 	if label.RendererResult != nil && label.RendererResult.Image != nil {
@@ -1090,12 +1195,12 @@ func (label *Label) IndexToWorld(index int) Point {
 func (label *Label) IndexInLine(index int) int {
 	cp := index
 	for _, line := range label.RendererResult.TextLines {
-		if cp <= len(line) {
+		if cp <= len(line)-1 {
 			return cp
 		}
 		cp -= len(line)
 	}
-	return 0
+	return len(label.RendererResult.TextLines[len(label.RendererResult.TextLines)-1])
 }
 
 func (label *Label) LineNumber(textIndex int) int {

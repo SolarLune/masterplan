@@ -206,6 +206,13 @@ func (mouse *Mouse) ApplyCursor() {
 	}
 }
 
+func (mouse *Mouse) Moving() bool {
+	if mouse.HiddenPosition {
+		return false
+	}
+	return globals.Mouse.relativeMovement.Length() > 0
+}
+
 func handleEvents() {
 
 	globals.Mouse.wheel = 0
