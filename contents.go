@@ -1386,11 +1386,19 @@ func (mc *MapContents) ColorIndex() int {
 }
 
 func (mc *MapContents) ColorIndexToPattern(index int) int {
-	return index & (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
+	c := index & (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
+	if c < 0 {
+		c = 0
+	}
+	return c
 }
 
 func (mc *MapContents) ColorIndexToColor(index int) int {
-	return index &^ (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
+	c := index &^ (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
+	if c < 0 {
+		c = 0
+	}
+	return c
 }
 
 func (mc *MapContents) GridCursorPosition() Point {

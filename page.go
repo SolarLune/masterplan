@@ -143,6 +143,9 @@ type Page struct {
 	depth        int
 	UpdateStacks bool
 	Drawables    []*Drawable
+
+	Linking              *Card
+	DeserializationLinks []int64
 }
 
 func NewPage(pageFolder *PageFolder, project *Project) *Page {
@@ -208,7 +211,6 @@ func (page *Page) Draw() {
 
 	for _, card := range sorted {
 		card.DrawCard()
-		card.DrawContents()
 	}
 
 	for _, draw := range page.Drawables {
@@ -227,6 +229,7 @@ func (page *Page) Draw() {
 		page.Selection.Remove(toDelete)
 		for index, card := range page.Cards {
 			if card == toDelete {
+				card.Valid = false
 				page.Cards[index] = nil
 				page.Cards = append(page.Cards[:index], page.Cards[index+1:]...)
 				break
@@ -238,32 +241,14 @@ func (page *Page) Draw() {
 		toRestore.ReceiveMessage(NewMessage(MessageCardDeleted, toRestore, nil))
 		page.Selection.Add(toRestore)
 		page.Cards = append(page.Cards, toRestore)
-		// for index, card := range page.Cards {
-		// 	if card == toRestore {
-		// 		page.Cards[index] = nil
-		// 		page.Cards = append(page.Cards[:index], page.Cards[index+1:]...)
-		// 		break
-		// 	}
-		// }
+		toRestore.Valid = true
 	}
 
 	page.ToDelete = []*Card{}
 	page.ToRestore = []*Card{}
 
-}
+	page.UpdateLinks()
 
-func (page *Page) AddDrawable(drawable *Drawable) {
-	page.Drawables = append(page.Drawables, drawable)
-}
-
-func (page *Page) RemoveDrawable(drawable *Drawable) {
-	for i, d := range page.Drawables {
-		if d == drawable {
-			page.Drawables[i] = nil
-			page.Drawables = append(page.Drawables[:i], page.Drawables[i+1:]...)
-			return
-		}
-	}
 }
 
 func (page *Page) Serialize() string {
@@ -300,6 +285,79 @@ func (page *Page) Deserialize(data string) {
 
 	}
 
+	// if page.Project.Loading {
+
+	// 	for i := 0; i < len(page.DeserializationLinks); i += 2 {
+
+	// 		for _, card := range page.Cards {
+	// 			linked := false
+	// 			if card.ID == page.DeserializationLinks[i] {
+	// 				for _, other := range page.Cards {
+	// 					if other.ID == page.DeserializationLinks[i+1] {
+	// 						card.Link(other)
+	// 						linked = true
+	// 						continue
+	// 					}
+	// 				}
+	// 			}
+	// 			if linked {
+	// 				continue
+	// 			}
+	// 		}
+
+	// 	}
+
+	// 	page.DeserializationLinks = []int64{}
+
+	// }
+
+}
+
+func (page *Page) AddDrawable(drawable *Drawable) {
+	page.Drawables = append(page.Drawables, drawable)
+}
+
+func (page *Page) RemoveDrawable(drawable *Drawable) {
+	for i, d := range page.Drawables {
+		if d == drawable {
+			page.Drawables[i] = nil
+			page.Drawables = append(page.Drawables[:i], page.Drawables[i+1:]...)
+			return
+		}
+	}
+}
+
+func (page *Page) UpdateLinks() {
+
+	for i := 0; i < len(page.DeserializationLinks); i += 2 {
+
+		start := page.CardByID(page.DeserializationLinks[i])
+		end := page.CardByID(page.DeserializationLinks[i+1])
+
+		if start != nil && end != nil {
+			start.Link(end)
+		}
+
+		// for _, card := range page.Cards {
+		// 	linked := false
+		// 	if card.ID == page.DeserializationLinks[i] {
+		// 		for _, other := range page.Cards {
+		// 			if other.ID == page.DeserializationLinks[i+1] {
+		// 				card.Link(other)
+		// 				linked = true
+		// 				continue
+		// 			}
+		// 		}
+		// 	}
+		// 	if linked {
+		// 		continue
+		// 	}
+		// }
+
+	}
+
+	page.DeserializationLinks = []int64{}
+
 }
 
 func (page *Page) CreateNewCard(contentType string) *Card {
@@ -311,8 +369,18 @@ func (page *Page) CreateNewCard(contentType string) *Card {
 	newCard.Rect.Y = globals.Mouse.WorldPosition().Y - (newCard.Rect.H / 2)
 	newCard.LockPosition()
 	page.Cards = append(page.Cards, newCard)
+	newCard.Valid = true
 	return newCard
 
+}
+
+func (page *Page) CardByID(id int64) *Card {
+	for _, card := range page.Cards {
+		if card.ID == id {
+			return card
+		}
+	}
+	return nil
 }
 
 func (page *Page) DeleteCards(cards ...*Card) {

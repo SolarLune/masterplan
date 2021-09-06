@@ -54,6 +54,7 @@ const (
 	KBReturnToOrigin      = "Center View to Origin"
 
 	KBCollapseCard = "Card: Collapse"
+	KBLinkCard     = "Card: Link Several Cards"
 
 	KBCopyText      = "Textbox: Copy Selected Text"
 	KBCutText       = "Textbox: Cut Selected Text"
@@ -190,6 +191,12 @@ func (shortcut *Shortcut) Keys() []sdl.Keycode {
 	return keys
 }
 
+func (shortcut *Shortcut) ConsumeKeys() {
+	for _, key := range shortcut.Keys() {
+		globals.Keyboard.Key(key).Consume()
+	}
+}
+
 func (shortcut *Shortcut) Serialize() string {
 
 	data := ""
@@ -315,6 +322,7 @@ func (kb *Keybindings) Default() {
 
 	kb.Define(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.Define(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
+	kb.Define(KBLinkCard, sdl.K_z).triggerMode = TriggerModeHold
 	kb.Define(KBDeleteCards, sdl.K_DELETE)
 	kb.Define(KBSelectAllCards, sdl.K_a, sdl.K_LCTRL)
 

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -41,9 +42,11 @@ func (prop *Property) AsString() string {
 	return prop.data.(string)
 }
 
-func (prop *Property) AsJSONString() string {
-	str, _ := sjson.Set("", prop.Name, prop.data)
-	return str
+func (prop *Property) AsJSON() gjson.Result {
+	if prop.data == nil {
+		prop.data = "{}"
+	}
+	return gjson.Parse(prop.data.(string))
 }
 
 func (prop *Property) IsBool() bool {
@@ -94,6 +97,47 @@ func (prop *Property) Set(value interface{}) {
 	}
 
 }
+
+func (prop *Property) AsArrayOfInts() []int64 {
+
+	if !prop.IsString() {
+		prop.data = "{}"
+	}
+
+	out := []int64{}
+
+	for _, value := range prop.AsJSON().Array() {
+		out = append(out, value.Int())
+	}
+
+	return out
+
+}
+
+func (prop *Property) SetInts(values ...int64) {
+
+	jsonStr := "["
+
+	for _, v := range values {
+		jsonStr += strconv.Itoa(int(v))
+	}
+
+	jsonStr += "]"
+
+	prop.Set(jsonStr)
+}
+
+// func (prop *Property) SetAfterParse(value interface{}) {
+
+// 	current := prop.AsJSON()
+
+// 	parsed, err := sjson.Set(current.String(), "#0", value)
+
+// 	prop.Set(parsed)
+
+// 	fmt.Println(parsed, err)
+
+// }
 
 // SetRaw sets the property, but without triggering OnChange
 func (prop *Property) SetRaw(value interface{}) {

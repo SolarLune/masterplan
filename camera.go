@@ -56,7 +56,7 @@ func (camera *Camera) Offset() Point {
 	width := globals.ScreenSize.X / 2 / camera.Zoom
 	height := globals.ScreenSize.Y / 2 / camera.Zoom
 
-	point := Point{(camera.Position.X - width), (camera.Position.Y - height)}
+	point := Point{(camera.Position.X - width), (camera.Position.Y - height)}.Rounded()
 	return point
 
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"math"
 	"math/rand"
+	"sort"
 	"strconv"
 
 	"github.com/tidwall/gjson"
@@ -14,6 +15,11 @@ const (
 	CollapsedNone  = "CollapsedNone"
 	CollapsedShade = "CollapsedShade"
 )
+
+type LinkEnding struct {
+	Start *Card
+	End   *Card
+}
 
 type Card struct {
 	Page                    *Page
@@ -38,6 +44,7 @@ type Card struct {
 	UndoCreation            bool
 	UndoDeletion            bool
 	Depth                   int
+	Valid                   bool
 
 	GridExtents GridSelection
 	Stack       *Stack
@@ -47,6 +54,9 @@ type Card struct {
 	UncollapsedSize Point
 
 	Highlighter *Highlighter
+
+	Links              []LinkEnding
+	LinkRectPercentage float32
 }
 
 var cardID = int64(0)
@@ -63,9 +73,10 @@ func NewCard(page *Page, contentType string) *Card {
 		Highlighter:     NewHighlighter(&sdl.FRect{0, 0, 32, 32}, true),
 		Collapsed:       CollapsedNone,
 		Draggable:       true,
+		Links:           []LinkEnding{},
 	}
 
-	card.Drawable = NewDrawable(card.DrawNumbering)
+	card.Drawable = NewDrawable(card.PostDraw)
 
 	card.Stack = NewStack(card)
 
@@ -81,6 +92,11 @@ func NewCard(page *Page, contentType string) *Card {
 }
 
 func (card *Card) Update() {
+
+	card.LinkRectPercentage += globals.DeltaTime
+	for card.LinkRectPercentage >= 1 {
+		card.LinkRectPercentage--
+	}
 
 	if card.Dragging {
 		card.Rect.X = -card.DragStartOffset.X + globals.Mouse.WorldPosition().X
@@ -120,56 +136,113 @@ func (card *Card) Update() {
 		card.Contents.Update()
 	}
 
-	if globals.State == StateNeutral {
+	if globals.Keybindings.On(KBLinkCard) {
 
-		if card.Selected && globals.Keybindings.On(KBCollapseCard) {
-			card.Collapse()
+		globals.State = StateCardLinking
+		globals.Mouse.SetCursor("link")
+
+		if ClickedInRect(card.Rect, true) && card.Page.Linking == nil {
+			card.Page.Linking = card
+			// We create an undo state before having created the link so we can undo to before it, natch
+			card.CreateUndoState = true
 		}
 
-		if globals.Mouse.WorldPosition().Inside(resizeRect) {
-			globals.Mouse.SetCursor("resize")
+		if card.Page.Linking == card {
 
-			if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
-				card.StartResizing()
-				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-			}
+			released := globals.Mouse.Button(sdl.BUTTON_LEFT).Released()
 
-		} else if ClickedInRect(card.Rect, true) {
+			reversed := append([]*Card{}, card.Page.Cards...)
 
-			selection := card.Page.Selection
+			sort.SliceStable(reversed, func(i, j int) bool {
+				return j < i
+			})
+			for _, possibleCard := range reversed {
 
-			if !card.Selected {
-				card.Page.Raise(card)
-			}
-
-			if globals.Keybindings.On(KBRemoveFromSelection) {
-
-				if card.Selected {
-					card.Deselect()
-					selection.Remove(card)
+				if possibleCard == card {
+					continue
 				}
 
-			} else {
+				if globals.Mouse.WorldPosition().Inside(possibleCard.Rect) && released {
 
-				if !card.Selected && !globals.Keybindings.On(KBAddToSelection) {
-
-					for card := range selection.Cards {
-						card.Deselect()
+					if possibleCard.IsLinkedTo(possibleCard.Page.Linking) {
+						card.Unlink(possibleCard)
+					} else {
+						card.Link(possibleCard)
 					}
 
-					selection.Clear()
-				}
+					card.CreateUndoState = true
+					possibleCard.CreateUndoState = true
+					break
 
-				selection.Add(card)
-				card.Select()
-
-				for card := range selection.Cards {
-					card.StartDragging()
 				}
 
 			}
 
-			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+			if released {
+				card.Page.Linking = nil
+			}
+
+		}
+
+	} else {
+
+		if globals.State == StateCardLinking {
+			globals.State = StateNeutral
+			card.Page.Linking = nil
+		}
+
+		if globals.State == StateNeutral {
+
+			if card.Selected && globals.Keybindings.On(KBCollapseCard) {
+				card.Collapse()
+			}
+
+			if globals.Mouse.WorldPosition().Inside(resizeRect) {
+				globals.Mouse.SetCursor("resize")
+
+				if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+					card.StartResizing()
+					globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+				}
+
+			} else if ClickedInRect(card.Rect, true) {
+
+				selection := card.Page.Selection
+
+				if !card.Selected {
+					card.Page.Raise(card)
+				}
+
+				if globals.Keybindings.On(KBRemoveFromSelection) {
+
+					if card.Selected {
+						card.Deselect()
+						selection.Remove(card)
+					}
+
+				} else {
+
+					if !card.Selected && !globals.Keybindings.On(KBAddToSelection) {
+
+						for card := range selection.Cards {
+							card.Deselect()
+						}
+
+						selection.Clear()
+					}
+
+					selection.Add(card)
+					card.Select()
+
+					for card := range selection.Cards {
+						card.StartDragging()
+					}
+
+				}
+
+				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
+			}
 
 		}
 
@@ -180,6 +253,64 @@ func (card *Card) Update() {
 	// 	globals.Mouse.Hidden = true
 	// }
 
+}
+
+func (card *Card) IsLinkedTo(other *Card) bool {
+	for _, link := range card.Links {
+		if link.End == other || link.Start == other {
+			return true
+		}
+	}
+	return false
+}
+
+func (card *Card) Link(other *Card) {
+
+	if other == card {
+		return
+	}
+
+	for _, link := range card.Links {
+		if (link.Start == card && link.End == other) || (link.Start == other && link.End == card) {
+			return
+		}
+	}
+
+	ending := LinkEnding{
+		Start: card,
+		End:   other,
+	}
+
+	card.Links = append(card.Links, ending)
+	other.Links = append(other.Links, ending)
+
+}
+
+func (card *Card) Unlink(other *Card) {
+	if other == card {
+		return
+	}
+	for i, link := range card.Links {
+		if link.End == other || link.Start == other {
+			card.Links = append(card.Links[:i], card.Links[i+1:]...)
+			break
+		}
+	}
+
+	for i, link := range other.Links {
+		if link.End == card || link.Start == card {
+			other.Links = append(other.Links[:i], other.Links[i+1:]...)
+			break
+		}
+	}
+
+}
+
+func (card *Card) UnlinkAll() {
+	for _, link := range card.Links {
+		card.Unlink(link.Start)
+		card.Unlink(link.End)
+	}
 }
 
 func (card *Card) DrawShadow() {
@@ -208,6 +339,60 @@ func (card *Card) DrawShadow() {
 
 }
 
+func (card *Card) DrawLines() {
+
+	// color = getThemeColor(GUIMenuColor)
+	color := card.Contents.Color()
+
+	if color[3] <= 0 {
+		color = getThemeColor(GUIMenuColor)
+	}
+
+	outlineColor := getThemeColor(GUIFontColor)
+
+	translatedStart := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)})
+
+	thickness := int32(2)
+
+	for _, link := range card.Links {
+
+		if link.Start == card && link.End.Valid {
+
+			translatedStart = card.Page.Project.Camera.TranslatePoint(card.Center())
+
+			camera := card.Page.Project.Camera
+			end := camera.TranslatePoint(link.End.Center())
+
+			ThickLine(translatedStart, end, thickness+2, outlineColor)
+			ThickLine(translatedStart, end, thickness, color)
+
+			halfThickness := float32(thickness / 2)
+
+			globals.Renderer.SetDrawColor(outlineColor.RGBA())
+
+			dirCount := float32(8)
+
+			dir := link.End.Center().Sub(link.Start.Center())
+
+			step := dir.Mult(1 / (dirCount + 1))
+
+			translatedStart = translatedStart.Add(step.Mult(card.LinkRectPercentage))
+
+			for i := 0; i < int(dirCount); i++ {
+
+				translatedStart = translatedStart.Add(step)
+
+				rect := &sdl.FRect{translatedStart.X - halfThickness, translatedStart.Y - halfThickness, float32(thickness), float32(thickness)}
+
+				globals.Renderer.FillRectF(rect)
+			}
+
+		}
+
+	}
+
+}
+
 func (card *Card) DrawCard() {
 
 	tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
@@ -226,6 +411,10 @@ func (card *Card) DrawCard() {
 		card.Result.SetAlphaMod(color[3])
 		globals.Renderer.CopyF(card.Result, nil, tp)
 	}
+
+	card.DrawLines()
+
+	card.DrawContents()
 
 }
 
@@ -251,7 +440,27 @@ func (card *Card) DrawContents() {
 
 }
 
-func (card *Card) DrawNumbering() {
+func (card *Card) PostDraw() {
+
+	if card.Page.Linking == card {
+
+		translatedStart := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)})
+		color := card.Contents.Color()
+
+		if color[3] <= 0 {
+			color = getThemeColor(GUIMenuColor)
+		}
+
+		outlineColor := getThemeColor(GUIFontColor)
+
+		thickness := int32(4)
+
+		// end := card.Page.Project.Camera.TranslatePoint(globals.Mouse.Position())
+		end := globals.Mouse.Position().Div(card.Page.Project.Camera.Zoom)
+		ThickLine(translatedStart, end, thickness+2, outlineColor)
+		ThickLine(translatedStart, end, thickness, color)
+
+	}
 
 	alwaysShowNumbering := globals.Settings.Get(SettingsAlwaysShowNumbering).AsBool()
 	numberableCards := card.Stack.Any(func(card *Card) bool { return card.Numberable() })
@@ -353,9 +562,26 @@ func (card *Card) Numberable() bool {
 func (card *Card) Serialize() string {
 
 	data := "{}"
+	data, _ = sjson.Set(data, "id", card.ID)
+
 	data, _ = sjson.Set(data, "rect", card.Rect)
 	data, _ = sjson.Set(data, "contents", card.ContentType)
 	data, _ = sjson.SetRaw(data, "properties", card.Properties.Serialize())
+
+	if len(card.Links) > 0 {
+
+		existingLinks := []int64{}
+
+		for _, link := range card.Links {
+			if link.End.Valid {
+				existingLinks = append(existingLinks, link.Start.ID, link.End.ID)
+			}
+		}
+
+		data, _ = sjson.Set(data, "links", existingLinks)
+
+	}
+
 	return data
 
 }
@@ -365,6 +591,43 @@ func (card *Card) Deserialize(data string) {
 	rect := gjson.Get(data, "rect")
 	card.Rect.X = float32(rect.Get("X").Float())
 	card.Rect.Y = float32(rect.Get("Y").Float())
+
+	if gjson.Get(data, "id").Exists() {
+		card.ID = gjson.Get(data, "id").Int()
+		if card.ID+1 > cardID {
+			cardID = card.ID + 1
+		}
+	}
+
+	card.UnlinkAll()
+
+	if gjson.Get(data, "links").Exists() {
+
+		links := []int64{}
+
+		for _, linkEnd := range gjson.Get(data, "links").Array() {
+			links = append(links, linkEnd.Int())
+		}
+
+		card.Page.DeserializationLinks = append(card.Page.DeserializationLinks, links...)
+
+		// if card.Page.Project.Loading {
+		// 	card.Page.DeserializationLinks = append(card.Page.DeserializationLinks, links...)
+		// } else {
+
+		// 	for i := 0; i < len(links); i += 2 {
+
+		// 		if startCard := card.Page.CardByID(links[i]); startCard != nil {
+		// 			if endCard := card.Page.CardByID(links[i+1]); endCard != nil {
+		// 				startCard.Link(endCard)
+		// 			}
+		// 		}
+
+		// 	}
+
+		// }
+
+	}
 
 	// Set Rect Position and Size before deserializing properties and setting contents so the contents can know the actual correct, current size of the Card (important for Map Contents)
 	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
@@ -433,6 +696,23 @@ func (card *Card) LockPosition() {
 	card.Rect.Y = float32(math.Round(float64(card.Rect.Y/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.W = float32(math.Round(float64(card.Rect.W/globals.GridSize)) * float64(globals.GridSize))
 	card.Rect.H = float32(math.Round(float64(card.Rect.H/globals.GridSize)) * float64(globals.GridSize))
+
+	if card.Rect.X == -0 {
+		card.Rect.X = 0
+	}
+
+	if card.Rect.Y == -0 {
+		card.Rect.Y = 0
+	}
+
+	if card.Rect.W == -0 {
+		card.Rect.W = 0
+	}
+
+	if card.Rect.H == -0 {
+		card.Rect.H = 0
+	}
+
 	card.Page.Grid.Put(card)
 
 	// We don't update the Card's Stack here manually because all Cards need to be in their final positions
@@ -724,6 +1004,10 @@ func (card *Card) Collapse() {
 		card.Recreate(card.UncollapsedSize.X, globals.GridSize)
 	}
 
+}
+
+func (card *Card) Center() Point {
+	return Point{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)}
 }
 
 // func (card *Card) Uncollapse() {

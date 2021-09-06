@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -211,6 +212,41 @@ func (mouse *Mouse) Moving() bool {
 		return false
 	}
 	return globals.Mouse.relativeMovement.Length() > 0
+}
+
+func LoadCursors() {
+
+	createCursor := func(srcX, srcY int32) *sdl.Cursor {
+
+		cursorImg, err := img.Load(LocalPath("assets/gui.png"))
+		if err != nil {
+			panic(err)
+		}
+
+		cursorSurf, err := sdl.CreateRGBSurfaceWithFormat(0, 48, 48, 32, sdl.PIXELFORMAT_RGBA8888)
+		if err != nil {
+			panic(err)
+		}
+
+		cursorImg.SetBlendMode(sdl.BLENDMODE_BLEND)
+		cursorSurf.SetBlendMode(sdl.BLENDMODE_BLEND)
+		cursorImg.Blit(&sdl.Rect{srcX, srcY, 48, 48}, cursorSurf, nil)
+
+		return sdl.CreateColorCursor(cursorSurf, 24, 24)
+
+	}
+
+	globals.Mouse.Cursors["normal"] = createCursor(432, 0)
+	globals.Mouse.Cursors["resize"] = createCursor(432, 48)
+	globals.Mouse.Cursors["text caret"] = createCursor(432, 96)
+	globals.Mouse.Cursors["pencil"] = createCursor(432, 144)
+	globals.Mouse.Cursors["eyedropper"] = createCursor(432, 192)
+	globals.Mouse.Cursors["bucket"] = createCursor(432, 240)
+	globals.Mouse.Cursors["eraser"] = createCursor(432, 272)
+	globals.Mouse.Cursors["link"] = createCursor(432, 320)
+
+	globals.Mouse.SetCursor("normal")
+
 }
 
 func handleEvents() {

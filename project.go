@@ -57,6 +57,7 @@ type Project struct {
 	GridTexture    *Image
 	Filepath       string
 	LoadingProject *Project // A reference to the "next" Project when opening another one
+	Loading        bool
 	UndoHistory    *UndoHistory
 }
 
@@ -75,6 +76,8 @@ func NewProject() *Project {
 	project.CurrentPage = newPage
 
 	project.CreateGridTexture()
+
+	cardID = 0
 
 	return project
 
@@ -115,6 +118,9 @@ func (project *Project) Update() {
 	globals.InputText = []rune{}
 
 	project.UndoHistory.Update()
+
+	// This should only be true for a total of essentially 1 or 2 frames, immediately after loading
+	project.Loading = false
 
 }
 
@@ -223,12 +229,16 @@ func (project *Project) OpenFrom(filename string) {
 	}
 
 	newProject := NewProject()
-
+	newProject.Loading = true
 	newProject.Filepath = filename
 
 	data := gjson.Get(string(jsonData), "root").String()
 
 	newProject.RootFolder.Deserialize(data)
+
+	for _, page := range newProject.RootFolder.Pages() {
+		page.UpdateLinks()
+	}
 
 	newProject.CurrentPage = newProject.RootFolder.Pages()[1]
 	newProject.RootFolder.Remove(newProject.RootFolder.Contents[0])
@@ -374,10 +384,12 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if globals.Keybindings.On(KBSelectAllCards) {
+			project.CurrentPage.Selection.Clear()
 			for _, card := range project.CurrentPage.Cards {
-				project.CurrentPage.Selection.Clear()
 				project.CurrentPage.Selection.Add(card)
 			}
+
+			globals.Keybindings.Shortcuts[KBSelectAllCards].ConsumeKeys()
 
 		}
 
@@ -386,9 +398,7 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if globals.Keybindings.On(KBPasteCards) {
-
 			project.CurrentPage.PasteCards()
-
 		}
 
 		if globals.Keybindings.On(KBSaveProject) {
