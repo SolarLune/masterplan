@@ -494,7 +494,7 @@ func (card *Card) PostDraw() {
 
 		if card.Numberable() {
 
-			guiTexture := globals.Resources.Get("assets/gui.png").AsImage().Texture
+			guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
 
 			menuColor := getThemeColor(GUIMenuColor)
 			guiTexture.SetColorMod(menuColor.RGB())
@@ -861,7 +861,7 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 		src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
 
-		guiTexture := globals.Resources.Get("assets/gui.png").AsImage().Texture
+		guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
 
 		drawPatches := func() {
 

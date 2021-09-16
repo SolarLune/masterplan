@@ -87,6 +87,10 @@ func NewResource(resourcePath string) (*Resource, error) {
 			req.Filename = filepath.Join(destDir, filepath.FromSlash(req.URL().Hostname()+"/"+unescapedPath))
 			resource.LocalFilepath = req.Filename
 			resource.Response = globals.GrabClient.Do(req)
+			if resource.Response.IsComplete() && resource.Response.Err() != nil {
+				return nil, resource.Response.Err()
+			}
+
 		}
 
 	}
@@ -161,23 +165,27 @@ func (resource *Resource) Parse() {
 
 }
 
-// LoadingPercentage returns 0-1 as the Resource loads, until it's finished loading.
-func (resource *Resource) LoadingPercentage() float64 {
+// DownloadPercentage returns 0-1 as the Resource downloads, until it's finished downloading. Sometimes the download percentage is -1
+// for some things (gifer does this, for example).
+func (resource *Resource) DownloadPercentage() float64 {
 	if resource.Response == nil {
 		return 1
 	} else if resource.Response.Size > 0 {
 		return resource.Response.Progress()
-	} else {
-		return -1
+	} else if resource.Response.IsComplete() {
+		return 1
 	}
+
+	return -1
+
 }
 
-func (resource *Resource) FinishedLoading() bool {
-	return resource.Response == nil || resource.LoadingPercentage() >= 1
+func (resource *Resource) FinishedDownloading() bool {
+	return resource.Response == nil || resource.DownloadPercentage() >= 1
 }
 
 func (resource *Resource) IsTexture() bool {
-	if resource.FinishedLoading() {
+	if resource.FinishedDownloading() {
 		resource.Parse()
 		return resource.MimeType != "image/gif" && strings.Contains(resource.MimeType, "image")
 	}
@@ -190,7 +198,7 @@ func (resource *Resource) AsImage() Image {
 }
 
 func (resource *Resource) IsGIF() bool {
-	if resource.FinishedLoading() {
+	if resource.FinishedDownloading() {
 		resource.Parse()
 		return strings.Contains(resource.MimeType, "gif")
 	}
@@ -203,7 +211,7 @@ func (resource *Resource) AsGIF() *GifAnimation {
 }
 
 func (resource *Resource) IsSound() bool {
-	if resource.FinishedLoading() {
+	if resource.FinishedDownloading() {
 		resource.Parse()
 		return strings.Contains(resource.MimeType, "audio")
 	}

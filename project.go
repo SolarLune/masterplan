@@ -88,7 +88,7 @@ func (project *Project) CreateGridTexture() {
 		project.GridTexture.Texture.Destroy()
 	}
 	gridColor := getThemeColor(GUIGridColor)
-	guiTex := globals.Resources.Get("assets/gui.png").AsImage()
+	guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage()
 	guiTex.Texture.SetColorMod(gridColor.RGB())
 	guiTex.Texture.SetAlphaMod(gridColor[3])
 	project.GridTexture = TileTexture(guiTex, &sdl.Rect{480, 0, 32, 32}, 512, 512)
@@ -280,9 +280,9 @@ func (project *Project) MouseActions() {
 	if globals.State != StateContextMenu {
 
 		if globals.Mouse.Wheel() > 0 {
-			project.Camera.AddZoom(0.25)
+			project.Camera.AddZoom(project.Camera.Zoom * 0.05)
 		} else if globals.Mouse.Wheel() < 0 {
-			project.Camera.AddZoom(-0.25)
+			project.Camera.AddZoom(-project.Camera.Zoom * 0.05)
 		}
 
 		if globals.Mouse.Button(sdl.BUTTON_MIDDLE).Held() {

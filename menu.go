@@ -381,7 +381,7 @@ func (menu *Menu) Recreate(newW, newH float32) {
 
 	color := getThemeColor(GUIMenuColor)
 
-	guiTexture := globals.Resources.Get("assets/gui.png").AsImage().Texture
+	guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
 
 	guiTexture.SetColorMod(color.RGB())
 	guiTexture.SetAlphaMod(color[3])

@@ -210,6 +210,8 @@ func main() {
 	window.SetPosition(x, y)
 	window.SetSize(w, h)
 	sdl.SetHint(sdl.HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0")
+	sdl.SetHint(sdl.HINT_RENDER_BATCHING, "1")
+	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "0")
 
 	globals.Window = window
 	globals.Renderer = renderer
@@ -818,7 +820,7 @@ func ConstructMenus() {
 		contextMenu.Close()
 	}))
 
-	commonMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 64}, true), "common", false)
+	commonMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 128}, true), "common", false)
 	commonMenu.Draggable = true
 	commonMenu.Resizeable = true
 	commonMenu.CloseButtonEnabled = true

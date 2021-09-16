@@ -1,3 +1,24 @@
+TO FIX IMMEDIATELY:
+
+- [x] Image loading isn't consistent (changing the path, specifically)
+- [x] Add more zoom steps
+- https://github.com/golang-design/clipboard - Use this clipboard package to copy and paste both text and images
+- Hovering over a website should open a little card linking to the website, with additional information (favicon, hostname (e.g. google.com), and description). See how Google Sheets does it.
+
+Re-add Paste Content command
+Tabbing around menus
+Re-add Recent Files list
+Buttons should close menus
+Lock zoom / camera render position
+See about fixing font up to be smoother
+Trim whitespace before loading image path
+Downloading / loading images might not be multithreaded??? Seems like it pauses loading a project to have images in them.
+Split shortcut - use this when editing textboxes to split a Note, Checkbox, etc. Card into two between the cursor.
+Draw shadow underneath Map
+Note card becoming too large crashes due to exceeding graphics card texture limits
+
+- [ ] Card movement!
+
 - [x] Drag and drop plan to load project
 - [ ] Reimplement Project.Modified / Confirmation before loading project
 - [ ] Fix being able to undo project loading
@@ -12,7 +33,6 @@
 - [ ] Confirm when loading project
 - [ ] Close menu when loading project
 
-- [ ] Card movement!
 
 - Count-down Timer
 - Progression Task
@@ -44,7 +64,6 @@ Short-term:
 - When zoomed out, text shouldn't draw or should be simplified
 - Card snapping
 - Hover over stuff to get a hint
-- https://github.com/golang-design/clipboard - Use this clipboard package to copy and paste both text and images
 
 Can't click and drag on Checkboxes when it's just 1x1
 

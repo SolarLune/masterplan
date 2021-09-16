@@ -82,6 +82,7 @@ type TextRendererResult struct {
 	Image           *Image
 	TextLines       [][]rune
 	AlignmentOffset Point
+	TextSize        Point
 }
 
 func (trr *TextRendererResult) Destroy() {
@@ -145,6 +146,8 @@ func (tr *TextRenderer) SizeForRunes(word []rune) Point {
 
 func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAlignment string) *TextRendererResult {
 
+	result := &TextRendererResult{}
+
 	lineskip := int(globals.GridSize)
 
 	textLines := [][]rune{{}}
@@ -203,11 +206,9 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 		panic(err)
 	}
 
-	result := &TextRendererResult{
-		Image: &Image{
-			Texture: outTexture,
-			Size:    Point{X: float32(w), Y: float32(h)},
-		},
+	result.Image = &Image{
+		Texture: outTexture,
+		Size:    Point{X: float32(w), Y: float32(h)},
 	}
 
 	outTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
@@ -318,7 +319,13 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 		x += glyph.Width()
 		textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
 
+		if result.TextSize.X < float32(x) {
+			result.TextSize.X = float32(x)
+		}
+
 	}
+
+	result.TextSize.Y = float32(lineskip * len(textLines))
 
 	result.TextLines = textLines
 

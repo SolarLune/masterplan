@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"path"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -312,6 +311,10 @@ func NewSoundContents(card *Card) *SoundContents {
 	row.Add("edit path button", NewButton("Edit Path", nil, nil, true, func() {
 		commonMenu := globals.MenuSystem.Get("common")
 		commonMenu.Pages["root"].Clear()
+		rect := soundContents.FilepathLabel.Rectangle()
+		rect.W = commonMenu.Rect.W - 32
+		soundContents.FilepathLabel.SetRectangle(rect)
+		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath label", NewLabel("Filepath:", nil, false, AlignLeft))
 		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath", soundContents.FilepathLabel)
 		commonMenu.Open()
 	}))
@@ -347,7 +350,7 @@ func (sc *SoundContents) Update() {
 
 	if sc.Resource != nil {
 
-		if sc.Resource.FinishedLoading() {
+		if sc.Resource.FinishedDownloading() {
 
 			if !sc.Resource.IsSound() {
 				globals.EventLog.Log("Error: Couldn't load [%s] as sound resource", sc.Resource.Name)
@@ -388,7 +391,7 @@ func (sc *SoundContents) Update() {
 			}
 
 		} else {
-			sc.PlaybackLabel.SetText([]rune("Downloading : " + strconv.FormatFloat(sc.Resource.LoadingPercentage()*100, 'f', 2, 64) + "%"))
+			sc.PlaybackLabel.SetText([]rune("Downloading : " + strconv.FormatFloat(sc.Resource.DownloadPercentage()*100, 'f', 2, 64) + "%"))
 		}
 
 	} else {
@@ -438,60 +441,65 @@ func (sc *SoundContents) DefaultSize() Point {
 
 type ImageContents struct {
 	DefaultContents
-	Resource       *Resource
-	GifPlayer      *GifPlayer
-	ImageNameLabel *Label
-	FilepathLabel  *Label
-	Showing        bool
-	LoadedImage    bool
+	GifPlayer     *GifPlayer
+	FilepathLabel *Label
+	LoadedImage   bool
+	Buttons       []*IconButton
+	Resource      *Resource
+	DefaultImage  *Resource
 }
 
 func NewImageContents(card *Card) *ImageContents {
+
 	imageContents := &ImageContents{
 		DefaultContents: newDefaultContents(card),
-		ImageNameLabel:  NewLabel("No image loaded", nil, true, AlignLeft),
+		DefaultImage:    globals.Resources.Get(LocalPath("assets/empty_image.png")),
 	}
 
-	imageContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
+	imageContents.FilepathLabel = NewLabel("Image file path", nil, false, AlignLeft)
 	imageContents.FilepathLabel.Editable = true
 	imageContents.FilepathLabel.AllowNewlines = false
-	imageContents.FilepathLabel.AutoExpand = true
 	imageContents.FilepathLabel.OnChange = func() {
 		filepathProp := imageContents.Card.Properties.Get("filepath")
 		filepathProp.Set(imageContents.FilepathLabel.TextAsString())
 		imageContents.LoadFile()
 	}
 
-	row := imageContents.Container.AddRow(AlignLeft)
+	imageContents.LoadFile()
 
-	row.Add("icon", NewIcon(nil, &sdl.Rect{48, 64, 32, 32}, true))
-	row.Add("image label", imageContents.ImageNameLabel)
+	imageContents.Buttons = []*IconButton{
 
-	row = imageContents.Container.AddRow(AlignCenter)
-	row.Add(
-		"browse button", NewButton("Browse", nil, nil, true, func() {
+		// Browse
+		NewIconButton(0, 0, &sdl.Rect{400, 224, 32, 32}, true, func() {
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			filepath, err := zenity.SelectFile(zenity.Title("Select image file..."), zenity.FileFilters{{Name: "Image files", Patterns: []string{"*.bmp", "*.gif", "*.png", "*.jpeg", "*.jpg"}}})
 			if err != nil {
-				// panic(err)
-				// Print message
+				globals.EventLog.Log(err.Error())
 			} else {
-				imageContents.Card.Properties.Get("filepath").Set(filepath)
 				imageContents.FilepathLabel.SetText([]rune(filepath))
+				filepathProp := imageContents.Card.Properties.Get("filepath")
+				filepathProp.Set(imageContents.FilepathLabel.TextAsString())
 				imageContents.LoadFile()
 			}
-		}))
+		}),
 
-	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
+		// Edit Path
+		NewIconButton(0, 0, &sdl.Rect{400, 256, 32, 32}, true, func() {
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+			commonMenu := globals.MenuSystem.Get("common")
+			commonMenu.Pages["root"].Clear()
+			rect := imageContents.FilepathLabel.Rectangle()
+			imageContents.FilepathLabel.SetRectangle(rect)
+			commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath label", NewLabel("Filepath:", nil, false, AlignLeft))
 
-	row.Add("edit path button", NewButton("Edit Path", nil, nil, true, func() {
-		commonMenu := globals.MenuSystem.Get("common")
-		commonMenu.Pages["root"].Clear()
-		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath", imageContents.FilepathLabel)
-		commonMenu.Open()
-	}))
+			// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
+			row := commonMenu.Pages["root"].AddRow(AlignLeft)
+			row.ExpandElements = true
+			row.Add("filepath", imageContents.FilepathLabel)
 
-	if card.Properties.Get("filepath").AsString() != "" {
-		imageContents.LoadFile()
+			commonMenu.Open()
+			imageContents.FilepathLabel.Selection.SelectAll()
+		}),
 	}
 
 	return imageContents
@@ -499,60 +507,61 @@ func NewImageContents(card *Card) *ImageContents {
 
 func (ic *ImageContents) Update() {
 
-	if !ic.Showing {
-		ic.DefaultContents.Update()
+	if ic.Card.Selected {
+
+		for _, button := range ic.Buttons {
+			button.Update()
+		}
+
 	}
 
-	ic.FilepathLabel.SetRectangle(globals.MenuSystem.Get("common").Pages["root"].Rectangle())
+	resource := ic.Resource
 
-	if ic.Resource != nil {
+	if resource == nil {
+		resource = ic.DefaultImage
+	}
 
-		if !ic.LoadedImage {
+	if resource != nil {
 
-			zoom := ic.Card.Page.Project.Camera.Zoom
-			if ic.Resource.IsTexture() {
+		if resource.FinishedDownloading() && (resource.IsGIF() || resource.IsTexture()) {
 
-				ic.Showing = true
-				asr := ic.Resource.AsImage().Size.Y / ic.Resource.AsImage().Size.X
-				ic.Card.Recreate(globals.ScreenSize.X/2/zoom, globals.ScreenSize.X/2*asr/zoom)
-				ic.LoadedImage = true
+			if !ic.LoadedImage {
 
-			} else if ic.Resource.IsGIF() && ic.Resource.AsGIF().IsReady() {
+				zoom := ic.Card.Page.Project.Camera.Zoom
 
-				ic.LoadedImage = true
-				ic.Showing = true
-				asr := ic.Resource.AsGIF().Height / ic.Resource.AsGIF().Width
-				ic.Card.Recreate(globals.ScreenSize.X/2/zoom, globals.ScreenSize.X/2*asr/zoom)
-				ic.GifPlayer = NewGifPlayer(ic.Resource.AsGIF())
+				sizeMultiplier := globals.ScreenSize.X / 8.0 / zoom
+
+				if resource.IsTexture() {
+
+					asr := resource.AsImage().Size.Y / resource.AsImage().Size.X
+					ic.Card.Recreate(sizeMultiplier, sizeMultiplier*asr)
+					ic.LoadedImage = true
+
+				} else if resource.IsGIF() && resource.AsGIF().IsReady() {
+
+					ic.LoadedImage = true
+					asr := resource.AsGIF().Height / resource.AsGIF().Width
+					ic.Card.Recreate(sizeMultiplier, sizeMultiplier*asr)
+					ic.GifPlayer = NewGifPlayer(resource.AsGIF())
+
+				}
 
 			}
 
-		}
-
-		if ic.Resource.IsGIF() && ic.Resource.AsGIF().IsReady() {
-			ic.GifPlayer.Update(globals.DeltaTime)
-		}
-
-		leftButton := globals.Mouse.Button(sdl.BUTTON_LEFT)
-		if leftButton.PressedTimes(2) && globals.Mouse.WorldPosition().Inside(ic.Card.Rect) {
-			ic.Showing = !ic.Showing
-		}
-
-		filename := ""
-
-		_, filename = filepath.Split(ic.Card.Properties.Get("filepath").AsString())
-		if ic.Resource.IsGIF() && !ic.Resource.AsGIF().IsReady() {
-			filename = fmt.Sprintf("Loading %0d%%", int(ic.Resource.AsGIF().LoadingProgress()*100))
-		}
-
-		ic.ImageNameLabel.SetText([]rune(filename))
-
-		if !globals.Keybindings.On(KBAddToSelection) {
-			if ic.Resource.IsTexture() {
-				ic.Card.LockResizingAspectRatio = ic.Resource.AsImage().Size.Y / ic.Resource.AsImage().Size.X
-			} else if ic.Resource.IsGIF() {
-				ic.Card.LockResizingAspectRatio = ic.Resource.AsGIF().Height / ic.Resource.AsGIF().Width
+			if resource.IsGIF() && resource.AsGIF().IsReady() {
+				ic.GifPlayer.Update(globals.DeltaTime)
 			}
+
+			if !globals.Keybindings.On(KBAddToSelection) {
+				if resource.IsTexture() {
+					ic.Card.LockResizingAspectRatio = resource.AsImage().Size.Y / resource.AsImage().Size.X
+				} else if resource.IsGIF() {
+					ic.Card.LockResizingAspectRatio = resource.AsGIF().Height / resource.AsGIF().Width
+				}
+			}
+
+		} else {
+			ic.Resource = nil
 		}
 
 	}
@@ -563,28 +572,59 @@ func (ic *ImageContents) Draw() {
 
 	var texture *sdl.Texture
 
-	if ic.Resource != nil {
-
-		if ic.Resource.IsTexture() {
-			texture = ic.Resource.AsImage().Texture
-		} else if ic.Resource.IsGIF() && ic.Resource.AsGIF().IsReady() {
-			texture = ic.GifPlayer.Texture()
+	if ic.Card.Selected {
+		for index, button := range ic.Buttons {
+			button.Rect.X = ic.Card.DisplayRect.X + (float32(index) * 32)
+			button.Rect.Y = ic.Card.DisplayRect.Y - 32
+			button.Draw()
 		}
-
-		if ic.Showing {
-			texture.SetAlphaMod(255)
-		} else {
-			texture.SetAlphaMod(64)
-		}
-
-		if texture != nil {
-			globals.Renderer.CopyF(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
-		}
-
 	}
 
-	if !ic.Showing || texture == nil {
-		ic.DefaultContents.Draw()
+	resource := ic.Resource
+	if resource == nil {
+		resource = ic.DefaultImage
+	}
+
+	if resource != nil {
+
+		ready := resource.FinishedDownloading() && (!resource.IsGIF() || resource.AsGIF().LoadingProgress() >= 1)
+
+		if ready {
+
+			if resource.IsTexture() {
+				texture = resource.AsImage().Texture
+			} else if resource.IsGIF() && resource.AsGIF().IsReady() {
+				texture = ic.GifPlayer.Texture()
+			}
+
+			if texture != nil {
+				globals.Renderer.CopyF(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
+			}
+
+		} else {
+
+			rect := *ic.Card.DisplayRect
+			rect.H /= 2
+			perc := resource.DownloadPercentage()
+			if perc < 0 {
+				perc = 0.5
+			}
+			rect.W = ic.Card.DisplayRect.W * float32(perc)
+			outRect := ic.Card.Page.Project.Camera.TranslateRect(&rect)
+			globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
+			globals.Renderer.FillRectF(outRect)
+
+			if resource.IsGIF() {
+				rect.Y += rect.H
+				rect.W = ic.Card.DisplayRect.W * float32(resource.AsGIF().LoadingProgress())
+				globals.Renderer.SetDrawColor(getThemeColor(GUICheckboxColor).RGBA())
+				outRect = ic.Card.Page.Project.Camera.TranslateRect(&rect)
+				globals.Renderer.FillRectF(outRect)
+
+			}
+
+		}
+
 	}
 
 }
@@ -592,13 +632,16 @@ func (ic *ImageContents) Draw() {
 func (ic *ImageContents) LoadFile() {
 
 	fp := ic.Card.Properties.Get("filepath").AsString()
+	if newResource := globals.Resources.Get(fp); newResource != nil {
 
-	if newImage := globals.Resources.Get(fp); newImage.IsGIF() || newImage.IsTexture() {
-		ic.Resource = newImage
-		ic.LoadedImage = false
+		if ic.Resource == nil || ic.Resource != newResource {
+			ic.Resource = newResource
+			ic.LoadedImage = false
+		}
+
 	} else {
-		globals.EventLog.Log("Couldn't load [%s] as image resource", fp)
-		ic.LoadedImage = true
+		ic.Resource = nil
+		ic.LoadedImage = false
 	}
 
 }
@@ -606,15 +649,11 @@ func (ic *ImageContents) LoadFile() {
 func (ic *ImageContents) ReceiveMessage(msg *Message) {}
 
 func (ic *ImageContents) Color() Color {
-	if ic.Showing {
-		return ColorTransparent
-	} else {
-		return getThemeColor(GUIBlankImageColor)
-	}
+	return ColorTransparent
 }
 
 func (ic *ImageContents) DefaultSize() Point {
-	return Point{globals.GridSize * 10, globals.GridSize * 2}
+	return Point{globals.GridSize * 4, globals.GridSize * 4}
 }
 
 type TimerContents struct {
@@ -1471,7 +1510,7 @@ func (mc *MapContents) UpdateTexture() {
 		globals.Renderer.SetDrawColor(getThemeColor(GUIMapColor).RGBA())
 		globals.Renderer.FillRect(nil)
 
-		guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
+		guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
 
 		guiTex.SetColorMod(255, 255, 255)
 		guiTex.SetAlphaMod(255)

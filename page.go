@@ -465,6 +465,7 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 		card := page.CreateNewCard(ContentTypeCheckbox)
 		card.Properties.Get("filepath").Set(filePath)
 		card.SetContents(ContentTypeImage)
+		card.Contents.(*ImageContents).FilepathLabel.SetText([]rune(filePath))
 	} else if strings.Contains(mimeType, "audio") {
 		card := page.CreateNewCard(ContentTypeCheckbox)
 		card.Properties.Get("filepath").Set(filePath)
@@ -472,6 +473,7 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 		contents := card.Contents.(*SoundContents)
 		defaultSize := contents.DefaultSize()
 		card.Recreate(defaultSize.X, defaultSize.Y)
+		card.Contents.(*SoundContents).FilepathLabel.SetText([]rune(filePath))
 	} else {
 
 		if filepath.Ext(filePath) == ".plan" {

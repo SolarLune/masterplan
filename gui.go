@@ -162,7 +162,7 @@ func (iconButton *IconButton) Draw() {
 
 	orig := *iconButton.Rect
 	rect := &orig
-	guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
+	guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
 
 	if iconButton.WorldSpace {
 		rect = globals.Project.Camera.TranslateRect(rect)
@@ -260,7 +260,7 @@ func (checkbox *Checkbox) Update() {
 // 		color.B = 255
 // 	}
 
-// 	guiTex := globals.Resources.Get("assets/gui.png").AsImage().Texture
+// 	guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
 // 	guiTex.SetColorMod(color.R, color.G, color.B)
 // 	guiTex.SetAlphaMod(color.A)
 
@@ -373,7 +373,7 @@ func (button *Button) Draw() {
 
 	if button.IconSrc != nil {
 
-		guiTexture := globals.Resources.Get("assets/gui.png").AsImage().Texture
+		guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
 
 		guiTexture.SetAlphaMod(uint8(button.Label.Alpha * 255))
 		guiTexture.SetColorMod(color.RGB())
@@ -478,6 +478,10 @@ func (ts *TextSelection) Select(start, end int) {
 
 }
 
+func (ts *TextSelection) SelectAll() {
+	ts.Select(0, len(ts.Label.Text))
+}
+
 func (ts *TextSelection) Length() int {
 	start, end := ts.ContiguousRange()
 	return end - start
@@ -570,7 +574,7 @@ func (label *Label) Update() {
 			if !label.Editing && ClickedInRect(activeRect, label.WorldSpace) && globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 				label.Editing = true
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-				label.Selection.Select(0, len(label.Text))
+				label.Selection.SelectAll()
 			}
 
 			label.Highlighter.Highlighting = false
@@ -816,7 +820,7 @@ func (label *Label) Update() {
 							label.Selection.Select(start, end)
 
 						} else if button.PressedTimes(4) {
-							label.Selection.Select(0, len(label.Text))
+							label.Selection.SelectAll()
 						}
 
 					}
@@ -877,7 +881,7 @@ func (label *Label) Update() {
 				}
 
 				if globals.Keybindings.On(KBSelectAllText) {
-					label.Selection.Select(0, len(label.Text))
+					label.Selection.SelectAll()
 				}
 
 				enter := globals.Keyboard.Key(sdl.K_KP_ENTER).Pressed() || globals.Keyboard.Key(sdl.K_RETURN).Pressed() || globals.Keyboard.Key(sdl.K_RETURN2).Pressed()
@@ -930,6 +934,24 @@ func (label *Label) Draw() {
 
 	if label.Editable {
 		label.Highlighter.Draw()
+
+		thickness := float32(2)
+
+		start := Point{label.Rect.X, label.Rect.Y + label.RendererResult.TextSize.Y + thickness}
+		end := start.AddF(label.Rect.W, 0)
+		if label.WorldSpace {
+			start = globals.Project.Camera.TranslatePoint(start)
+			end = globals.Project.Camera.TranslatePoint(end)
+		}
+
+		// start := Point{label.Rect.X, label.Rect.Y + label.RendererResult.TextSize.Y + thickness}
+		// end := start.AddF(label.RendererResult.TextSize.X, 0)
+		// if label.WorldSpace {
+		// 	start = globals.Project.Camera.TranslatePoint(start)
+		// 	end = globals.Project.Camera.TranslatePoint(end)
+		// }
+
+		ThickLine(start, end, int32(thickness), getThemeColor(GUIFontColor))
 	}
 
 	// We need this to be on if we are going to draw a blended alpha rectangle; this should be on automatically, but it seems like gfx functions may turn it off if you draw an opaque shape.
@@ -1023,6 +1045,16 @@ func (label *Label) Draw() {
 	// 	transformed := globals.Project.Camera.Translate(&sdl.FRect{label.Rect.X, label.Rect.Y + label.Rect.H + 1, label.Rect.X + label.Rect.W, label.Rect.Y + label.Rect.H + 1})
 	// 	globals.Renderer.DrawLineF(transformed.X, transformed.Y, transformed.X+transformed.W, transformed.Y)
 	// }
+
+	if globals.DebugMode {
+		dst := &sdl.FRect{label.Rect.X, label.Rect.Y, label.Rect.W, label.Rect.H}
+		if label.WorldSpace {
+			dst = globals.Project.Camera.TranslateRect(dst)
+		}
+
+		globals.Renderer.SetDrawColor(255, 255, 0, 255)
+		globals.Renderer.FillRectF(dst)
+	}
 
 	label.textChanged = false
 
@@ -1254,6 +1286,7 @@ type ContainerRow struct {
 	Elements          map[string]MenuElement
 	Alignment         string
 	HorizontalSpacing float32
+	ExpandElements    bool
 }
 
 func NewContainerRow(container *Container, horizontalAlignment string) *ContainerRow {
@@ -1302,6 +1335,10 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		rect.X = x
 		rect.Y = y
 		rect.Y += (yHeight - rect.H) / 2
+
+		if row.ExpandElements {
+			rect.W = maxWidth / float32(len(row.Elements))
+		}
 
 		element.SetRectangle(rect)
 		element.Update()
@@ -1586,7 +1623,7 @@ func (icon *Icon) Update() {}
 func (icon *Icon) Draw() {
 	color := getThemeColor(GUIFontColor)
 
-	guiTexture := globals.Resources.Get("assets/gui.png").AsImage().Texture
+	guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
 	guiTexture.SetColorMod(color.RGB())
 	guiTexture.SetAlphaMod(color[3])
 
@@ -1896,7 +1933,7 @@ func (highlighter *Highlighter) Draw() {
 			gfx.ThickLineColor(globals.Renderer, int32(rect.X), int32(rect.Y+rect.H), int32(rect.X+w), int32(rect.Y+rect.H), 2, highlightColor)
 		}
 	case HighlightSmallArrow:
-		guiTex := globals.Resources.Get("assets/gui.png").AsImage()
+		guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage()
 		guiTex.Texture.SetAlphaMod(highlightColor.A)
 		guiTex.Texture.SetColorMod(highlightColor.R, highlightColor.G, highlightColor.B)
 		globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{480, 32, 16, 16}, &rect)
