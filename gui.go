@@ -938,7 +938,7 @@ func (label *Label) Draw() {
 		thickness := float32(2)
 
 		start := Point{label.Rect.X, label.Rect.Y + label.RendererResult.TextSize.Y + thickness}
-		end := start.AddF(label.Rect.W, 0)
+		end := start.AddF(label.Rect.W-8, 0)
 		if label.WorldSpace {
 			start = globals.Project.Camera.TranslatePoint(start)
 			end = globals.Project.Camera.TranslatePoint(end)
