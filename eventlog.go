@@ -16,6 +16,7 @@ type Event struct {
 }
 
 type EventLog struct {
+	On     bool
 	Events []*Event
 }
 
@@ -24,6 +25,10 @@ func NewEventLog() *EventLog {
 }
 
 func (eventLog *EventLog) Log(text string, variables ...interface{}) {
+
+	if !eventLog.On {
+		return
+	}
 
 	output := text
 

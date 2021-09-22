@@ -583,6 +583,8 @@ func main() {
 
 	globals.Project.Destroy()
 
+	globals.Resources.Destroy()
+
 	sdl.Quit()
 
 }

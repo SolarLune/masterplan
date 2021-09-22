@@ -104,8 +104,6 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 func (cc *CheckboxContents) Update() {
 
-	cc.DefaultContents.Update()
-
 	description := cc.Card.Properties.Get("description")
 	if cc.Label.Editing {
 		description.Set(cc.Label.TextAsString())
@@ -125,6 +123,9 @@ func (cc *CheckboxContents) Update() {
 	} else {
 		cc.Checkbox.IconSrc.Y = 0
 	}
+
+	// Put the update here so the label gets updated after setting the description
+	cc.DefaultContents.Update()
 
 }
 
@@ -285,10 +286,7 @@ func NewSoundContents(card *Card) *SoundContents {
 	soundContents.FilepathLabel.Editable = true
 	soundContents.FilepathLabel.AllowNewlines = false
 	soundContents.FilepathLabel.OnChange = func() {
-		filepath := soundContents.FilepathLabel.TextAsString()
-		soundContents.Card.Properties.Get("filepath").Set(filepath)
-		soundContents.FilepathLabel.SetText([]rune(filepath))
-		soundContents.LoadFile()
+		soundContents.LoadFileFrom(soundContents.FilepathLabel.TextAsString())
 	}
 
 	row := soundContents.Container.AddRow(AlignCenter)
@@ -297,26 +295,27 @@ func NewSoundContents(card *Card) *SoundContents {
 		"browse button", NewButton("Browse", nil, nil, true, func() {
 			filepath, err := zenity.SelectFile(zenity.Title("Select audio file..."), zenity.FileFilters{{Name: "Audio files", Patterns: []string{"*.wav", "*.ogg", "*.oga", "*.mp3", "*.flac"}}})
 			if err != nil {
-				// panic(err)
-				// Print message
+				globals.EventLog.Log(err.Error())
 			} else {
-				filepathProp := soundContents.Card.Properties.Get("filepath")
-				filepathProp.Set(filepath)
-				soundContents.LoadFile()
+				soundContents.LoadFileFrom(filepath)
 			}
 		}))
 
 	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
 
 	row.Add("edit path button", NewButton("Edit Path", nil, nil, true, func() {
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		commonMenu := globals.MenuSystem.Get("common")
 		commonMenu.Pages["root"].Clear()
-		rect := soundContents.FilepathLabel.Rectangle()
-		rect.W = commonMenu.Rect.W - 32
-		soundContents.FilepathLabel.SetRectangle(rect)
 		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath label", NewLabel("Filepath:", nil, false, AlignLeft))
-		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath", soundContents.FilepathLabel)
+
+		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
+		row := commonMenu.Pages["root"].AddRow(AlignLeft)
+		row.ExpandElements = true
+		row.Add("filepath", soundContents.FilepathLabel)
+
 		commonMenu.Open()
+		soundContents.FilepathLabel.Selection.SelectAll()
 	}))
 
 	row = soundContents.Container.AddRow(AlignCenter)
@@ -339,8 +338,6 @@ func (sc *SoundContents) Update() {
 	sc.SeekBar.Rect.W = sc.Card.DisplayRect.W - 64
 
 	sc.DefaultContents.Update()
-
-	sc.FilepathLabel.SetRectangle(globals.MenuSystem.Get("common").Pages["root"].Rectangle())
 
 	rect := sc.SoundNameLabel.Rectangle()
 	rect.W = sc.Container.Rect.W - 32
@@ -380,7 +377,7 @@ func (sc *SoundContents) Update() {
 
 				}
 
-				_, filename := path.Split(sc.Resource.Name)
+				_, filename := path.Split(sc.Resource.LocalFilepath)
 				sc.SoundNameLabel.SetText([]rune(filename))
 				sc.PlaybackLabel.SetText([]rune(formatTime(sc.Sound.Position()) + " / " + formatTime(sc.Sound.Length())))
 
@@ -405,12 +402,19 @@ func (sc *SoundContents) Update() {
 func (sc *SoundContents) LoadFile() {
 	fp := sc.Card.Properties.Get("filepath").AsString()
 	sc.Resource = globals.Resources.Get(fp)
-	sc.FilepathLabel.SetText([]rune(fp))
 	if sc.Sound != nil {
 		sc.Sound.Pause()
 		sc.Sound.Destroy()
 	}
 	sc.Sound = nil
+}
+
+func (sc *SoundContents) LoadFileFrom(filepath string) {
+
+	sc.Card.Properties.Get("filepath").Set(filepath)
+	sc.FilepathLabel.SetTextRaw([]rune(filepath))
+	sc.LoadFile()
+
 }
 
 func (sc *SoundContents) Draw() {
@@ -460,9 +464,7 @@ func NewImageContents(card *Card) *ImageContents {
 	imageContents.FilepathLabel.Editable = true
 	imageContents.FilepathLabel.AllowNewlines = false
 	imageContents.FilepathLabel.OnChange = func() {
-		filepathProp := imageContents.Card.Properties.Get("filepath")
-		filepathProp.Set(imageContents.FilepathLabel.TextAsString())
-		imageContents.LoadFile()
+		imageContents.LoadFileFrom(imageContents.FilepathLabel.TextAsString())
 	}
 
 	imageContents.LoadFile()
@@ -476,10 +478,7 @@ func NewImageContents(card *Card) *ImageContents {
 			if err != nil {
 				globals.EventLog.Log(err.Error())
 			} else {
-				imageContents.FilepathLabel.SetText([]rune(filepath))
-				filepathProp := imageContents.Card.Properties.Get("filepath")
-				filepathProp.Set(imageContents.FilepathLabel.TextAsString())
-				imageContents.LoadFile()
+				imageContents.LoadFileFrom(filepath)
 			}
 		}),
 
@@ -488,8 +487,6 @@ func NewImageContents(card *Card) *ImageContents {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			commonMenu := globals.MenuSystem.Get("common")
 			commonMenu.Pages["root"].Clear()
-			rect := imageContents.FilepathLabel.Rectangle()
-			imageContents.FilepathLabel.SetRectangle(rect)
 			commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath label", NewLabel("Filepath:", nil, false, AlignLeft))
 
 			// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
@@ -499,6 +496,28 @@ func NewImageContents(card *Card) *ImageContents {
 
 			commonMenu.Open()
 			imageContents.FilepathLabel.Selection.SelectAll()
+		}),
+
+		// 1:1 / 100% button
+		NewIconButton(0, 0, &sdl.Rect{368, 224, 32, 32}, true, func() {
+
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
+			if imageContents.ValidResource() {
+
+				if imageContents.Resource.IsTexture() {
+
+					img := imageContents.Resource.AsImage()
+					imageContents.Card.Recreate(img.Size.X, img.Size.Y)
+
+				} else {
+					gif := imageContents.Resource.AsGIF()
+					imageContents.Card.Recreate(gif.Width, gif.Height)
+				}
+				imageContents.Card.CreateUndoState = true
+
+			}
+
 		}),
 	}
 
@@ -521,47 +540,45 @@ func (ic *ImageContents) Update() {
 		resource = ic.DefaultImage
 	}
 
-	if resource != nil {
+	if ic.ValidResource() {
 
-		if resource.FinishedDownloading() && (resource.IsGIF() || resource.IsTexture()) {
+		if !ic.LoadedImage {
 
-			if !ic.LoadedImage {
+			zoom := ic.Card.Page.Project.Camera.Zoom
 
-				zoom := ic.Card.Page.Project.Camera.Zoom
+			sizeMultiplier := globals.ScreenSize.X / 8.0 / zoom
 
-				sizeMultiplier := globals.ScreenSize.X / 8.0 / zoom
+			if resource.IsTexture() {
 
-				if resource.IsTexture() {
+				asr := resource.AsImage().Size.Y / resource.AsImage().Size.X
+				ic.Card.Recreate(sizeMultiplier, sizeMultiplier*asr)
+				ic.LoadedImage = true
 
-					asr := resource.AsImage().Size.Y / resource.AsImage().Size.X
-					ic.Card.Recreate(sizeMultiplier, sizeMultiplier*asr)
-					ic.LoadedImage = true
+			} else if resource.IsGIF() && resource.AsGIF().IsReady() {
 
-				} else if resource.IsGIF() && resource.AsGIF().IsReady() {
-
-					ic.LoadedImage = true
-					asr := resource.AsGIF().Height / resource.AsGIF().Width
-					ic.Card.Recreate(sizeMultiplier, sizeMultiplier*asr)
-					ic.GifPlayer = NewGifPlayer(resource.AsGIF())
-
-				}
+				asr := resource.AsGIF().Height / resource.AsGIF().Width
+				ic.Card.Recreate(sizeMultiplier, sizeMultiplier*asr)
+				ic.GifPlayer = NewGifPlayer(resource.AsGIF())
+				ic.LoadedImage = true
 
 			}
 
-			if resource.IsGIF() && resource.AsGIF().IsReady() {
-				ic.GifPlayer.Update(globals.DeltaTime)
-			}
+		}
 
-			if !globals.Keybindings.On(KBAddToSelection) {
-				if resource.IsTexture() {
-					ic.Card.LockResizingAspectRatio = resource.AsImage().Size.Y / resource.AsImage().Size.X
-				} else if resource.IsGIF() {
-					ic.Card.LockResizingAspectRatio = resource.AsGIF().Height / resource.AsGIF().Width
-				}
-			}
+		if resource.TempFile {
+			ic.Card.Properties.Get("saveimage") // InUse = true now
+		}
 
-		} else {
-			ic.Resource = nil
+		if ic.GifPlayer != nil {
+			ic.GifPlayer.Update(globals.DeltaTime)
+		}
+
+		if !globals.Keybindings.On(KBAddToSelection) {
+			if resource.IsTexture() {
+				ic.Card.LockResizingAspectRatio = resource.AsImage().Size.Y / resource.AsImage().Size.X
+			} else if resource.IsGIF() {
+				ic.Card.LockResizingAspectRatio = resource.AsGIF().Height / resource.AsGIF().Width
+			}
 		}
 
 	}
@@ -593,7 +610,7 @@ func (ic *ImageContents) Draw() {
 
 			if resource.IsTexture() {
 				texture = resource.AsImage().Texture
-			} else if resource.IsGIF() && resource.AsGIF().IsReady() {
+			} else if ic.GifPlayer != nil {
 				texture = ic.GifPlayer.Texture()
 			}
 
@@ -629,20 +646,38 @@ func (ic *ImageContents) Draw() {
 
 }
 
+func (ic *ImageContents) ValidResource() bool {
+	return ic.Resource != nil && ic.Resource.FinishedDownloading() && (ic.Resource.IsGIF() || ic.Resource.IsTexture())
+}
+
 func (ic *ImageContents) LoadFile() {
 
 	fp := ic.Card.Properties.Get("filepath").AsString()
+
 	if newResource := globals.Resources.Get(fp); newResource != nil {
 
 		if ic.Resource == nil || ic.Resource != newResource {
 			ic.Resource = newResource
 			ic.LoadedImage = false
+
+			if ic.Card.Page.Project.Loading {
+				ic.LoadedImage = true
+			}
+
 		}
 
 	} else {
 		ic.Resource = nil
 		ic.LoadedImage = false
 	}
+
+}
+
+func (ic *ImageContents) LoadFileFrom(filepath string) {
+
+	ic.FilepathLabel.SetTextRaw([]rune(filepath))
+	ic.Card.Properties.Get("filepath").Set(filepath)
+	ic.LoadFile()
 
 }
 

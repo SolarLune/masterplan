@@ -51,6 +51,7 @@ const (
 	KBOpenProject         = "Open Project"
 	KBCopyCards           = "Copy Selected Cards"
 	KBPasteCards          = "Paste Selected Cards"
+	KBExternalPaste       = "Paste From System Clipboard As Card"
 	KBReturnToOrigin      = "Center View to Origin"
 
 	KBCollapseCard = "Card: Collapse"
@@ -332,6 +333,7 @@ func (kb *Keybindings) Default() {
 
 	kb.Define(KBCopyCards, sdl.K_c, sdl.K_LCTRL)
 	kb.Define(KBPasteCards, sdl.K_v, sdl.K_LCTRL)
+	kb.Define(KBExternalPaste, sdl.K_v, sdl.K_LCTRL, sdl.K_LSHIFT)
 
 	kb.Define(KBReturnToOrigin, sdl.K_BACKSPACE)
 

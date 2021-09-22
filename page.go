@@ -9,6 +9,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
+	"golang.design/x/clipboard"
 )
 
 const (
@@ -493,6 +494,139 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 		}
 
 	}
+
+}
+
+func (page *Page) HandleExternalPaste() {
+
+	if clipboardImg := clipboard.Read(clipboard.FmtImage); clipboardImg != nil {
+
+		if filePath, err := WriteImageToTemp(clipboardImg); err != nil {
+			globals.EventLog.Log(err.Error())
+		} else {
+
+			globals.Resources.Get(filePath).TempFile = true
+
+			card := page.CreateNewCard(ContentTypeImage)
+			contents := card.Contents.(*ImageContents)
+			contents.LoadFileFrom(filePath)
+			card.Properties.Get("saveimage").Set(true)
+
+		}
+
+	}
+
+	if txt := clipboard.Read(clipboard.FmtText); txt != nil {
+
+		text := string(txt)
+
+		if res := globals.Resources.Get(text); res != nil && res.MimeType != "" {
+
+			if strings.Contains(res.MimeType, "image") {
+
+				card := page.CreateNewCard(ContentTypeImage)
+				contents := card.Contents.(*ImageContents)
+				contents.LoadFileFrom(text)
+
+			} else if strings.Contains(res.MimeType, "audio") {
+
+				card := page.CreateNewCard(ContentTypeSound)
+				contents := card.Contents.(*SoundContents)
+				contents.LoadFileFrom(text)
+
+			}
+
+		} else {
+
+			text = strings.ReplaceAll(text, "\r\n", "\n")
+
+			textLines := strings.Split(text, "\n")
+
+			// Get rid of empty starting and ending
+			for strings.TrimSpace(textLines[0]) == "" && len(textLines) > 0 {
+				textLines = textLines[1:]
+			}
+
+			for strings.TrimSpace(textLines[len(textLines)-1]) == "" && len(textLines) > 0 {
+				textLines = textLines[:len(textLines)-1]
+			}
+
+			todoList := strings.HasPrefix(textLines[0], "[")
+
+			if todoList {
+
+				lines := []string{}
+				linesOut := []string{}
+
+				for i, clipLine := range textLines {
+
+					if len(clipLine) == 0 {
+						continue
+					}
+
+					if len(lines) == 0 || clipLine[0] != '[' {
+
+						lines = append(lines, clipLine)
+
+					} else {
+
+						linesOut = append(linesOut, strings.Join(lines, "\n"))
+
+						lines = []string{clipLine}
+
+						if i == len(textLines)-1 {
+							linesOut = append(linesOut, clipLine)
+						}
+
+					}
+
+				}
+
+				globals.EventLog.On = false
+
+				y := float32(0)
+
+				for _, taskLine := range linesOut {
+
+					card := page.CreateNewCard(ContentTypeCheckbox)
+					card.Move(0, y)
+
+					completed := taskLine[:3] != "[ ]"
+
+					taskLine = taskLine[3:]
+					taskLine = strings.Replace(taskLine, "[o]", "", 1)
+					taskLine = strings.TrimSpace(taskLine)
+
+					card.Recreate(globals.TextRenderer.MeasureText([]rune(taskLine), 1).X+(globals.GridSize*2), card.Rect.H)
+
+					card.Properties.Get("description").Set(taskLine)
+
+					if completed {
+						card.Properties.Get("checked").Set(true)
+					}
+
+					y += card.Rect.H
+
+				}
+
+				globals.EventLog.On = true
+
+				globals.EventLog.Log("Pasted %d new Checkbox Tasks from clipboard content.", len(linesOut))
+
+			} else {
+
+				card := page.CreateNewCard(ContentTypeNote)
+				size := globals.TextRenderer.MeasureText([]rune(text), 1)
+				card.Recreate(size.X+(globals.GridSize*2), size.Y)
+				card.Properties.Get("description").Set(text)
+
+			}
+
+		}
+
+	}
+
+	page.UpdateStacks = true
 
 }
 

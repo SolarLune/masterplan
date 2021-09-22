@@ -158,6 +158,13 @@ func NewProperties() *Properties {
 	}
 }
 
+func (properties *Properties) Has(name string) bool {
+	if _, exists := properties.Props[name]; exists {
+		return true
+	}
+	return false
+}
+
 func (properties *Properties) Get(name string) *Property {
 
 	if _, exists := properties.Props[name]; !exists {
@@ -168,6 +175,19 @@ func (properties *Properties) Get(name string) *Property {
 	prop := properties.Props[name]
 	prop.InUse = true
 	return prop
+
+}
+
+func (properties *Properties) Remove(propertyName string) {
+
+	delete(properties.Props, propertyName)
+
+	for i, p := range properties.DefinitionOrder {
+		if p == propertyName {
+			properties.DefinitionOrder = append(properties.DefinitionOrder[:i], properties.DefinitionOrder[i+1:]...)
+			break
+		}
+	}
 
 }
 

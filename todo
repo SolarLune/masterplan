@@ -3,9 +3,13 @@ TO FIX IMMEDIATELY:
 - [x] Image loading isn't consistent (changing the path, specifically)
 - [x] Add more zoom steps
 - https://github.com/golang-design/clipboard - Use this clipboard package to copy and paste both text and images
-- Hovering over a website should open a little card linking to the website, with additional information (favicon, hostname (e.g. google.com), and description). See how Google Sheets does it.
 
-Re-add Paste Content command
+- Re-implement URL parsing
+- Hovering over a website should open a little card linking to the website, with additional information (favicon, hostname (e.g. google.com), and description). See how Google Sheets does it.
+- [x] Re-add Paste Content command
+- [ ] Re-implement pasting lists as a sequence of Cards
+- [ ] Re-implement pasting Cards as a text list
+
 Tabbing around menus
 Re-add Recent Files list
 Buttons should close menus
@@ -19,19 +23,19 @@ Note card becoming too large crashes due to exceeding graphics card texture limi
 
 - [ ] Card movement!
 
-- [x] Drag and drop plan to load project
-- [ ] Reimplement Project.Modified / Confirmation before loading project
-- [ ] Fix being able to undo project loading
-- [ ] Map buttons can be hidden by Cards above
-- [x] Migrate the rest of program settings over
-- [ ] Allow keybinding editing / saving and loading
-- [x] Fix double-clicking to select a word anymore?
-- [x] Need to be able to delete Drawables
-- [ ] Re-implement recent paths list / project autoloading / review main.go
-- [x] Filepath needs to be set when saving projects
-- [x] Saving seems to not save rects properly anymore?
-- [ ] Confirm when loading project
-- [ ] Close menu when loading project
+[x] Drag and drop plan to load project
+[ ] Reimplement Project.Modified / Confirmation before loading project
+[ ] Fix being able to undo project loading
+[ ] Map buttons can be hidden by Cards above
+[x] Migrate the rest of program settings over
+[ ] Allow keybinding editing / saving and loading
+[x] Fix double-clicking to select a word anymore?
+[x] Need to be able to delete Drawables
+[ ] Re-implement recent paths list / project autoloading / review main.go
+[x] Filepath needs to be set when saving projects
+[x] Saving seems to not save rects properly anymore?
+[ ] Confirm when loading project
+[ ] Close menu when loading project
 
 
 - Count-down Timer

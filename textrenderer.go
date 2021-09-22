@@ -128,7 +128,7 @@ func (tr *TextRenderer) GlyphsForRunes(word []rune) []*Glyph {
 	return glyphs
 }
 
-func (tr *TextRenderer) SizeForRunes(word []rune) Point {
+func (tr *TextRenderer) MeasureText(word []rune, sizeMultiplier float32) Point {
 
 	size := Point{}
 
@@ -136,9 +136,21 @@ func (tr *TextRenderer) SizeForRunes(word []rune) Point {
 
 	size.Y = float32(lineCount * int(globals.GridSize))
 
+	w := int32(0)
+
 	for _, glyph := range tr.GlyphsForRunes(word) {
-		size.X += float32(glyph.Width())
+		if glyph.Rune == '\n' {
+			w = 0
+		} else {
+			w += glyph.Width()
+		}
+		if size.X < float32(w) {
+			size.X = float32(w)
+		}
 	}
+
+	size.X *= sizeMultiplier
+	size.Y *= sizeMultiplier
 
 	return size
 
@@ -286,7 +298,7 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 
 				nextWord := text[nextStart:nextEnd]
 
-				wordWidth := int32(tr.SizeForRunes([]rune(nextWord)).X)
+				wordWidth := int32(tr.MeasureText([]rune(nextWord), 1).X)
 
 				if float32(x+wordWidth) > wordWrapMax.X {
 
@@ -334,21 +346,9 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 	return result
 }
 
-func (tr *TextRenderer) MeasureText(text string, sizeMultiplier float32) Point {
-
-	lineWidth := float32(0)
-
-	for _, glyph := range tr.GlyphsForRunes([]rune(text)) {
-		lineWidth += float32(glyph.Width()) * sizeMultiplier
-	}
-
-	return Point{lineWidth, globals.GridSize}
-
-}
-
 func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier float32, color Color, alignment string) {
 
-	textSize := tr.MeasureText(text, sizeMultiplier)
+	textSize := tr.MeasureText([]rune(text), sizeMultiplier)
 
 	switch alignment {
 	case AlignCenter:

@@ -175,9 +175,37 @@ func (project *Project) Save() {
 
 	saveData, _ = sjson.SetRaw(saveData, "root", project.RootFolder.Serialize())
 
-	// for _, page := range project.RootFolder. {
-	// 	saveData, _ = sjson.SetRaw(saveData, "pages.-1", page.Serialize())
-	// }
+	savedImages := map[string]string{}
+
+	for _, page := range project.RootFolder.Pages() {
+
+		for _, card := range page.Cards {
+
+			fp := card.Properties.Get("filepath").AsString()
+
+			if card.Properties.Has("saveimage") && globals.Resources.Get(fp).TempFile {
+
+				if pngFile, err := os.ReadFile(fp); err != nil {
+					panic(err)
+				} else {
+
+					out := ""
+					for _, b := range pngFile {
+						out += string(b)
+					}
+
+					savedImages[fp] = string(out)
+				}
+
+			} else {
+				card.Properties.Remove("saveimage")
+			}
+
+		}
+
+	}
+
+	saveData, _ = sjson.Set(saveData, "savedimages", savedImages)
 
 	saveData = gjson.Get(saveData, "@pretty").String()
 
@@ -232,11 +260,37 @@ func (project *Project) OpenFrom(filename string) {
 	newProject.Loading = true
 	newProject.Filepath = filename
 
-	data := gjson.Get(string(jsonData), "root").String()
+	json := string(jsonData)
+
+	data := gjson.Get(json, "root").String()
+
+	savedImageFileNames := map[string]string{}
+
+	for fpName, imgData := range gjson.Get(json, "savedimages").Map() {
+
+		imgOut := []byte{}
+
+		for _, c := range imgData.String() {
+			imgOut = append(imgOut, byte(c))
+		}
+
+		newFName, _ := WriteImageToTemp(imgOut)
+		savedImageFileNames[fpName] = newFName
+
+		globals.Resources.Get(newFName).TempFile = true
+
+	}
 
 	newProject.RootFolder.Deserialize(data)
 
 	for _, page := range newProject.RootFolder.Pages() {
+
+		for _, card := range page.Cards {
+			if card.Properties.Has("saveimage") {
+				card.Contents.(*ImageContents).LoadFileFrom(savedImageFileNames[card.Properties.Get("filepath").AsString()]) // Reload the file
+			}
+		}
+
 		page.UpdateLinks()
 	}
 
@@ -399,6 +453,10 @@ func (project *Project) GlobalShortcuts() {
 
 		if globals.Keybindings.On(KBPasteCards) {
 			project.CurrentPage.PasteCards()
+		}
+
+		if globals.Keybindings.On(KBExternalPaste) {
+			project.CurrentPage.HandleExternalPaste()
 		}
 
 		if globals.Keybindings.On(KBSaveProject) {

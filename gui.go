@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/atotto/clipboard"
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
+	"golang.design/x/clipboard"
 )
 
 // import (
@@ -854,18 +854,14 @@ func (label *Label) Update() {
 				if globals.Keybindings.On(KBCopyText) {
 					start, end := label.Selection.ContiguousRange()
 					text := label.Text[start:end]
-					if err := clipboard.WriteAll(string(text)); err != nil {
-						panic(err)
-					}
+					clipboard.Write(clipboard.FmtText, []byte(string(text)))
 				}
 
 				if globals.Keybindings.On(KBPasteText) {
-					if text, err := clipboard.ReadAll(); err != nil {
-						panic(err)
-					} else {
+					if text := clipboard.Read(clipboard.FmtText); text != nil {
 						label.DeleteSelectedChars()
 						start, _ := label.Selection.ContiguousRange()
-						label.InsertRunesAtIndex([]rune(text), start)
+						label.InsertRunesAtIndex([]rune(string(text)), start)
 						label.Selection.AdvanceCaret(len(text))
 					}
 				}
@@ -873,9 +869,7 @@ func (label *Label) Update() {
 				if globals.Keybindings.On(KBCutText) && label.Selection.Length() > 0 {
 					start, end := label.Selection.ContiguousRange()
 					text := label.Text[start:end]
-					if err := clipboard.WriteAll(string(text)); err != nil {
-						panic(err)
-					}
+					clipboard.Write(clipboard.FmtText, []byte(string(text)))
 					label.DeleteSelectedChars()
 					label.Selection.Select(start, start)
 				}
@@ -1063,6 +1057,15 @@ func (label *Label) Draw() {
 func (label *Label) SetText(text []rune) {
 
 	if string(label.Text) != string(text) {
+		label.SetTextRaw(text)
+		label.textChanged = true
+	}
+
+}
+
+func (label *Label) SetTextRaw(text []rune) {
+
+	if string(label.Text) != string(text) {
 
 		label.Text = []rune{}
 		for _, c := range text {
@@ -1072,7 +1075,6 @@ func (label *Label) SetText(text []rune) {
 		}
 
 		label.TextureDirty = true
-		label.textChanged = true
 
 	}
 

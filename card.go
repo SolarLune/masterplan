@@ -513,7 +513,7 @@ func (card *Card) PostDraw() {
 				}
 			}
 
-			textSize := globals.TextRenderer.MeasureText(number, 0.5)
+			textSize := globals.TextRenderer.MeasureText([]rune(number), 0.5)
 			textSize.X += 16
 
 			if textSize.X < 16 {
@@ -611,22 +611,6 @@ func (card *Card) Deserialize(data string) {
 
 		card.Page.DeserializationLinks = append(card.Page.DeserializationLinks, links...)
 
-		// if card.Page.Project.Loading {
-		// 	card.Page.DeserializationLinks = append(card.Page.DeserializationLinks, links...)
-		// } else {
-
-		// 	for i := 0; i < len(links); i += 2 {
-
-		// 		if startCard := card.Page.CardByID(links[i]); startCard != nil {
-		// 			if endCard := card.Page.CardByID(links[i+1]); endCard != nil {
-		// 				startCard.Link(endCard)
-		// 			}
-		// 		}
-
-		// 	}
-
-		// }
-
 	}
 
 	// Set Rect Position and Size before deserializing properties and setting contents so the contents can know the actual correct, current size of the Card (important for Map Contents)
@@ -718,6 +702,14 @@ func (card *Card) LockPosition() {
 	// We don't update the Card's Stack here manually because all Cards need to be in their final positions
 	// before the stacks can be accurate. This step is done in the Page later.
 	card.Page.UpdateStacks = true
+
+}
+
+func (card *Card) Move(dx, dy float32) {
+
+	card.Rect.X += dx
+	card.Rect.Y += dy
+	card.LockPosition()
 
 }
 

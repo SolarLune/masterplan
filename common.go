@@ -315,6 +315,33 @@ func formatTime(t time.Duration, showMilliseconds bool) string {
 // 	return float32(programSettings.FontSize) * (float32(i) / 100)
 // }
 
+func WriteImageToTemp(clipboardImg []byte) (string, error) {
+
+	var file *os.File
+	var err error
+
+	// Make the directory if it doesn't exist
+	mpTmpDir := filepath.Join(os.TempDir(), "masterplan")
+
+	if err = os.Mkdir(mpTmpDir, os.ModeDir+os.ModeAppend+os.ModePerm); err != nil {
+		// We're going to continue past any error from os.Mkdir, if there is one, as that just means the folder must exist already.
+		globals.EventLog.Log(err.Error())
+	}
+
+	file, err = os.CreateTemp(mpTmpDir, "screenshot_*.png")
+
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+	file.Write(clipboardImg)
+	file.Sync()
+
+	return file.Name(), err
+
+}
+
 func ReloadFonts() {
 
 	// fontPath := LocalPath("assets/Silver.ttf")

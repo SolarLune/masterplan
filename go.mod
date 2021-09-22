@@ -26,6 +26,7 @@ require (
 	github.com/tidwall/sjson v1.1.1
 	github.com/veandco/go-sdl2 v0.4.5
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
+	golang.design/x/clipboard v0.5.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
 

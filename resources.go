@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"image/gif"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -46,9 +48,12 @@ func (resourceBank ResourceBank) Get(resourcePath string) *Resource {
 
 }
 
-func (resourceBank ResourceBank) Destroy(resource *Resource) {
-	resource.Destroy()
-	delete(resourceBank, resource.Name)
+func (resourceBank ResourceBank) Destroy() {
+
+	for _, resource := range resourceBank {
+		resource.Destroy()
+	}
+
 }
 
 type Resource struct {
@@ -57,6 +62,7 @@ type Resource struct {
 	Data          interface{} // The data the resource represents; this might be an image, a sound stream, etc.
 	MimeType      string
 	Response      *grab.Response
+	TempFile      bool
 	Parsed        bool
 }
 
@@ -78,17 +84,30 @@ func NewResource(resourcePath string) (*Resource, error) {
 		destDir := globals.Settings.Get(SettingsDownloadDirectory).AsString()
 		if destDir == "" {
 			destDir = filepath.Join(os.TempDir(), "masterplan")
+			resource.TempFile = true
 		}
 
 		if req, err := grab.NewRequest("", resourcePath); err != nil {
 			return nil, err
 		} else {
-			unescapedPath, _ := url.PathUnescape(req.URL().Path)
+			unescapedPath, _ := url.QueryUnescape(req.URL().Path)
 			req.Filename = filepath.Join(destDir, filepath.FromSlash(req.URL().Hostname()+"/"+unescapedPath))
 			resource.LocalFilepath = req.Filename
 			resource.Response = globals.GrabClient.Do(req)
+
 			if resource.Response.IsComplete() && resource.Response.Err() != nil {
 				return nil, resource.Response.Err()
+			} else if site, err := http.Get(resourcePath); err == nil {
+
+				// We're going to get what the Mime data is by downloading the first 5kb of a link, and then passing
+				// it into mimetype.Detect().
+
+				r := bufio.NewScanner(site.Body)
+				r.Buffer([]byte{}, 5000)
+				r.Scan()
+
+				resource.MimeType = mimetype.Detect(r.Bytes()).String()
+
 			}
 
 		}
@@ -246,6 +265,11 @@ func (resource *Resource) AsNewSound() *Sound {
 }
 
 func (resource *Resource) Destroy() {
+
+	if resource.TempFile {
+		os.Remove(resource.LocalFilepath)
+	}
+
 	if resource.IsTexture() {
 		resource.AsImage().Texture.Destroy()
 	}
