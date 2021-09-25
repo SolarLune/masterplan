@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	SettingsPath                = "MasterPlan/settings.json"
-	SettingsLegacyPath          = "masterplan-settings.json"
+	SettingsPath                = "MasterPlan/settings08.json"
+	SettingsLegacyPath          = "masterplan-settings08.json"
 	SettingsTheme               = "Theme"
 	SettingsDownloadDirectory   = "DownloadDirectory"
 	SettingsWindowPosition      = "WindowPosition"
@@ -20,6 +20,7 @@ const (
 	SettingsBorderlessWindow    = "BorderlessWindow"
 	SettingsRecentPlanList      = "RecentPlanList"
 	SettingsAlwaysShowNumbering = "AlwaysShowNumbering"
+	SettingsDisableMessages     = "DisableMessages"
 )
 
 func NewProgramSettings() *Properties {
@@ -27,10 +28,11 @@ func NewProgramSettings() *Properties {
 	props := NewProperties()
 	props.Get(SettingsTheme).Set("Moonlight")
 	props.Get(SettingsDownloadDirectory).Set("")
-	props.Get(SettingsTargetFPS).Set(60)
-	props.Get(SettingsUnfocusedFPS).Set(60)
-	props.Get(SettingsFontSize).Set(30)
+	props.Get(SettingsTargetFPS).Set(60.0)
+	props.Get(SettingsUnfocusedFPS).Set(60.0)
+	props.Get(SettingsFontSize).Set(30.0)
 	props.Get(SettingsDownloadDirectory).Set("")
+	props.Get(SettingsDisableMessages).Set(false)
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 
@@ -44,14 +46,6 @@ func NewProgramSettings() *Properties {
 	}
 
 	props.Save(path)
-
-	// TargetFPS:         60,
-	// 	UnfocusedFPS:      60,
-	// 	WindowPosition:    sdl.Rect{-1, -1, 0, 0},
-	// 	Theme:             "Moonlight", // Default theme
-	// 	Keybindings:       NewKeybindings(),
-	// 	FontSize:          30,
-	// 	DownloadDirectory: "",
 
 	return props
 }

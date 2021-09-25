@@ -66,7 +66,7 @@ func (prop *Property) IsNumber() bool {
 	return isOK
 }
 
-func (prop *Property) AsNumber() float64 {
+func (prop *Property) AsFloat() float64 {
 	if prop.data == nil {
 		prop.data = 0.0
 	}

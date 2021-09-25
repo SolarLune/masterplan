@@ -276,7 +276,7 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 		}
 
 		// Wordwrapping
-		if wordWrapMax.X >= 0 && wordWrapMax.Y >= 0 {
+		if wordWrapMax.X > 0 && wordWrapMax.Y > 0 {
 
 			if c == ' ' {
 

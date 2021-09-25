@@ -92,6 +92,8 @@ func (history *UndoHistory) Undo() bool {
 
 		history.On = false
 
+		globals.EventLog.On = false
+
 		for _, state := range history.Frames[history.Index-1].States {
 			state.Exit(-1)
 		}
@@ -110,11 +112,17 @@ func (history *UndoHistory) Undo() bool {
 		// 	board.TaskChanged = true
 		// }
 
+		globals.EventLog.On = true
+
+		globals.EventLog.Log("Undo event triggered.")
+
 		history.On = true
 
 		return true
 
 	}
+
+	globals.EventLog.Log("No further undo state is available.")
 
 	return false
 }
@@ -124,6 +132,8 @@ func (history *UndoHistory) Redo() bool {
 	if history.Index < len(history.Frames) {
 
 		history.On = false
+
+		globals.EventLog.On = false
 
 		for _, state := range history.Frames[history.Index].States {
 			state.Exit(1)
@@ -135,6 +145,10 @@ func (history *UndoHistory) Redo() bool {
 			state.Apply()
 		}
 
+		globals.EventLog.On = true
+
+		globals.EventLog.Log("Redo event triggered.")
+
 		// for _, board := range currentProject.Boards {
 		// 	board.TaskChanged = true
 		// }
@@ -144,6 +158,8 @@ func (history *UndoHistory) Redo() bool {
 		return true
 
 	}
+
+	globals.EventLog.Log("No further redo state is available.")
 
 	return false
 

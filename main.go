@@ -433,6 +433,36 @@ func main() {
 
 			// y := float32(24)
 
+			eventY := globals.ScreenSize.Y - globals.GridSize
+
+			for _, event := range globals.EventLog.Events {
+
+				bgColor := getThemeColor(GUIMenuColor)
+				fontColor := getThemeColor(GUIFontColor)
+				fadeValue, _, _ := event.Tween.Update(globals.DeltaTime)
+
+				if !globals.Settings.Get(SettingsDisableMessages).AsBool() {
+
+					event.Y += (eventY - event.Y) * 0.2
+
+					fade := uint8(float32(fontColor[3]) * fadeValue)
+
+					dst := &sdl.FRect{0, event.Y, event.Texture.Image.Size.X, event.Texture.Image.Size.Y}
+					bgColor[3] = fade
+					FillRect(dst.X, dst.Y, dst.W, dst.H, bgColor)
+
+					event.Texture.Image.Texture.SetColorMod(fontColor.RGB())
+					event.Texture.Image.Texture.SetAlphaMod(fade)
+					globals.Renderer.CopyF(event.Texture.Image.Texture, nil, dst)
+
+					eventY -= dst.H
+
+				}
+
+			}
+
+			globals.EventLog.CleanUpDeadEvents()
+
 			// if !programSettings.DisableMessageLog {
 
 			// 	for i := 0; i < len(eventLogBuffer); i++ {
@@ -539,12 +569,12 @@ func main() {
 			windowTitle = title
 		}
 
-		targetFPS = int(globals.Settings.Get(SettingsTargetFPS).AsNumber())
+		targetFPS = int(globals.Settings.Get(SettingsTargetFPS).AsFloat())
 
 		// if !rl.IsWindowFocused() || rl.IsWindowHidden() || rl.IsWindowMinimized() {
 		windowFlags := window.GetFlags()
 		if windowFlags&sdl.WINDOW_MOUSE_FOCUS > 0 || windowFlags&sdl.WINDOW_MINIMIZED > 0 || windowFlags&sdl.WINDOW_HIDDEN > 0 {
-			targetFPS = int(globals.Settings.Get(SettingsUnfocusedFPS).AsNumber())
+			targetFPS = int(globals.Settings.Get(SettingsUnfocusedFPS).AsFloat())
 		}
 
 		elapsed += time.Since(currentTime)
@@ -877,10 +907,15 @@ func ConstructMenus() {
 		globals.Project.CreateGridTexture()
 		globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
 	}))
+
 	row = root.AddRow(AlignCenter)
 	row.Add("", NewLabel("Always Show List Numbering:", nil, false, AlignLeft))
-
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAlwaysShowNumbering)))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewLabel("Disable Status Messages:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsDisableMessages)))
+
 }
 
 func profileCPU() {

@@ -193,9 +193,10 @@ func (shortcut *Shortcut) Keys() []sdl.Keycode {
 }
 
 func (shortcut *Shortcut) ConsumeKeys() {
-	for _, key := range shortcut.Keys() {
-		globals.Keyboard.Key(key).Consume()
-	}
+	globals.Keyboard.Key(shortcut.Key).Consume()
+	// for _, key := range shortcut.Keys() {
+	// 	globals.Keyboard.Key(key).Consume()
+	// }
 }
 
 func (shortcut *Shortcut) Serialize() string {

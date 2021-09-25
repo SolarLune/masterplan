@@ -361,7 +361,7 @@ func ReloadFonts() {
 
 		// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
 
-		loadedFont, err := ttf.OpenFont(fontPath, int(globals.Settings.Get(SettingsFontSize).AsNumber()))
+		loadedFont, err := ttf.OpenFont(fontPath, int(globals.Settings.Get(SettingsFontSize).AsFloat()))
 
 		loadedFont.SetKerning(true) // I don't think this really will do anything for us here, as we're rendering text using individual characters, not strings.
 

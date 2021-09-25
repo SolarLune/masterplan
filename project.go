@@ -216,6 +216,8 @@ func (project *Project) Save() {
 		file.Close()
 	}
 
+	globals.EventLog.Log("Project saved successfully.")
+
 }
 
 func (project *Project) SaveAs() {
@@ -255,6 +257,8 @@ func (project *Project) OpenFrom(filename string) {
 	if err != nil {
 		panic(err)
 	}
+
+	globals.EventLog.On = false
 
 	newProject := NewProject()
 	newProject.Loading = true
@@ -298,6 +302,10 @@ func (project *Project) OpenFrom(filename string) {
 	newProject.RootFolder.Remove(newProject.RootFolder.Contents[0])
 
 	project.LoadingProject = newProject
+
+	globals.EventLog.On = true
+
+	globals.EventLog.Log("Project loaded successfully.")
 
 }
 
@@ -391,41 +399,68 @@ func (project *Project) GlobalShortcuts() {
 
 		if globals.Keybindings.On(KBZoomIn) {
 			project.Camera.AddZoom(1)
+			globals.Keybindings.Shortcuts[KBZoomIn].ConsumeKeys()
 		} else if globals.Keybindings.On(KBZoomOut) {
 			project.Camera.AddZoom(-1)
+			globals.Keybindings.Shortcuts[KBZoomOut].ConsumeKeys()
 		}
 
 		if globals.Keybindings.On(KBZoomLevel25) {
 			project.Camera.SetZoom(0.25)
+			globals.Keybindings.Shortcuts[KBZoomLevel25].ConsumeKeys()
 		} else if globals.Keybindings.On(KBZoomLevel50) {
 			project.Camera.SetZoom(0.5)
+			globals.Keybindings.Shortcuts[KBZoomLevel50].ConsumeKeys()
 		} else if globals.Keybindings.On(KBZoomLevel100) {
 			project.Camera.SetZoom(1.0)
+			globals.Keybindings.Shortcuts[KBZoomLevel100].ConsumeKeys()
 		} else if globals.Keybindings.On(KBZoomLevel200) {
 			project.Camera.SetZoom(2.0)
+			globals.Keybindings.Shortcuts[KBZoomLevel200].ConsumeKeys()
 		} else if globals.Keybindings.On(KBZoomLevel400) {
 			project.Camera.SetZoom(4.0)
+			globals.Keybindings.Shortcuts[KBZoomLevel400].ConsumeKeys()
 		} else if globals.Keybindings.On(KBZoomLevel1000) {
 			project.Camera.SetZoom(10.0)
+			globals.Keybindings.Shortcuts[KBZoomLevel1000].ConsumeKeys()
 		}
 
 		if globals.Keybindings.On(KBReturnToOrigin) {
 			project.Camera.TargetPosition = Point{}
+			globals.Keybindings.Shortcuts[KBReturnToOrigin].ConsumeKeys()
 		}
 
 		var newCard *Card
 		if globals.Keybindings.On(KBNewCheckboxCard) {
+
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
+			globals.Keybindings.Shortcuts[KBNewCheckboxCard].ConsumeKeys()
+
 		} else if globals.Keybindings.On(KBNewNoteCard) {
+
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeNote)
+			globals.Keybindings.Shortcuts[KBNewNoteCard].ConsumeKeys()
+
 		} else if globals.Keybindings.On(KBNewSoundCard) {
+
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeSound)
+			globals.Keybindings.Shortcuts[KBNewSoundCard].ConsumeKeys()
+
 		} else if globals.Keybindings.On(KBNewImageCard) {
+
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeImage)
+			globals.Keybindings.Shortcuts[KBNewImageCard].ConsumeKeys()
+
 		} else if globals.Keybindings.On(KBNewTimerCard) {
+
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeTimer)
+			globals.Keybindings.Shortcuts[KBNewTimerCard].ConsumeKeys()
+
 		} else if globals.Keybindings.On(KBNewMapCard) {
+
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeMap)
+			globals.Keybindings.Shortcuts[KBNewMapCard].ConsumeKeys()
+
 		}
 
 		if newCard != nil {
@@ -449,14 +484,17 @@ func (project *Project) GlobalShortcuts() {
 
 		if globals.Keybindings.On(KBCopyCards) {
 			project.CurrentPage.CopySelectedCards()
+			globals.Keybindings.Shortcuts[KBCopyCards].ConsumeKeys()
 		}
 
 		if globals.Keybindings.On(KBPasteCards) {
 			project.CurrentPage.PasteCards()
+			globals.Keybindings.Shortcuts[KBPasteCards].ConsumeKeys()
 		}
 
 		if globals.Keybindings.On(KBExternalPaste) {
 			project.CurrentPage.HandleExternalPaste()
+			globals.Keybindings.Shortcuts[KBExternalPaste].ConsumeKeys()
 		}
 
 		if globals.Keybindings.On(KBSaveProject) {
@@ -466,10 +504,13 @@ func (project *Project) GlobalShortcuts() {
 			} else {
 				project.SaveAs()
 			}
+			globals.Keybindings.Shortcuts[KBSaveProject].ConsumeKeys()
 
 		} else if globals.Keybindings.On(KBSaveProjectAs) {
+			globals.Keybindings.Shortcuts[KBSaveProjectAs].ConsumeKeys()
 			project.SaveAs()
 		} else if globals.Keybindings.On(KBOpenProject) {
+			globals.Keybindings.Shortcuts[KBOpenProject].ConsumeKeys()
 			project.Open()
 		}
 

@@ -371,6 +371,7 @@ func (page *Page) CreateNewCard(contentType string) *Card {
 	newCard.LockPosition()
 	page.Cards = append(page.Cards, newCard)
 	newCard.Valid = true
+	globals.EventLog.Log("Created new Card.")
 	return newCard
 
 }
@@ -385,6 +386,7 @@ func (page *Page) CardByID(id int64) *Card {
 }
 
 func (page *Page) DeleteCards(cards ...*Card) {
+	globals.EventLog.Log("Deleted %d Cards.", len(cards))
 	for _, card := range cards {
 		card.CreateUndoState = true
 		card.UndoDeletion = true

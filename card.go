@@ -339,6 +339,33 @@ func (card *Card) DrawShadow() {
 
 }
 
+func (card *Card) NearestPointInRect(in Point) Point {
+
+	cp := card.Center()
+
+	hw := card.DisplayRect.W / 2
+	hh := card.DisplayRect.H / 2
+
+	if in.X < cp.X-hw {
+		cp.X -= hw
+	} else if in.X > cp.X+hw {
+		cp.X += hw
+		// } else {
+		// 	cp.X = in.X
+	}
+
+	if in.Y < cp.Y-hh {
+		cp.Y -= hh
+	} else if in.Y > cp.Y+hh {
+		cp.Y += hh
+		// } else {
+		// 	cp.Y = in.Y
+	}
+
+	return cp
+
+}
+
 func (card *Card) DrawLines() {
 
 	// color = getThemeColor(GUIMenuColor)
@@ -352,19 +379,19 @@ func (card *Card) DrawLines() {
 
 	translatedStart := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)})
 
-	thickness := int32(2)
+	thickness := int32(4)
 
 	for _, link := range card.Links {
 
 		if link.Start == card && link.End.Valid {
 
-			translatedStart = card.Page.Project.Camera.TranslatePoint(card.Center())
+			translatedStart = card.Page.Project.Camera.TranslatePoint(card.NearestPointInRect(link.End.Center()))
 
 			camera := card.Page.Project.Camera
-			end := camera.TranslatePoint(link.End.Center())
+			translatedEnd := camera.TranslatePoint(link.End.NearestPointInRect(card.Center()))
 
-			ThickLine(translatedStart, end, thickness+2, outlineColor)
-			ThickLine(translatedStart, end, thickness, color)
+			ThickLine(translatedStart, translatedEnd, thickness+2, outlineColor)
+			ThickLine(translatedStart, translatedEnd, thickness, color)
 
 			halfThickness := float32(thickness / 2)
 
@@ -372,7 +399,7 @@ func (card *Card) DrawLines() {
 
 			dirCount := float32(8)
 
-			dir := link.End.Center().Sub(link.Start.Center())
+			dir := translatedEnd.Sub(translatedStart)
 
 			step := dir.Mult(1 / (dirCount + 1))
 
@@ -395,6 +422,8 @@ func (card *Card) DrawLines() {
 
 func (card *Card) DrawCard() {
 
+	card.DrawLines()
+
 	tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
 
 	color := NewColor(255, 255, 255, 255)
@@ -411,8 +440,6 @@ func (card *Card) DrawCard() {
 		card.Result.SetAlphaMod(color[3])
 		globals.Renderer.CopyF(card.Result, nil, tp)
 	}
-
-	card.DrawLines()
 
 	card.DrawContents()
 
