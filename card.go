@@ -923,6 +923,8 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 		globals.Renderer.SetRenderTarget(nil)
 
+		card.LockPosition() // Update Page's Grid.
+
 	}
 
 }

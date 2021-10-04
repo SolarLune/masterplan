@@ -1,0 +1,13 @@
+{
+    "Background Color":[30, 40, 70, 255],
+    "Grid Color":[40, 60, 100, 255],
+    "Menu Color":[60, 80, 100, 255],
+    "Font Color":[250, 245, 240, 255],
+    "Checkbox Color": [140, 150, 180, 255],
+    "Completed Color": [200, 220, 240, 255],
+    "Note Color": [40, 80, 160, 255],
+    "Sound Color": [140, 180, 220, 255],
+    "Blank Image Color": [140, 140, 140, 255],
+    "Timer Color": [120, 120, 120, 255],
+    "Map Color": [50, 55, 60, 255]
+}

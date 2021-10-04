@@ -577,3 +577,11 @@ func FilesInDirectory(dir string, prefix string) []string {
 	return existingFiles
 
 }
+
+func RegexNoNewlines() string {
+	return `[^\n]`
+}
+
+func RegexOnlyDigit() string {
+	return `[\d]`
+}

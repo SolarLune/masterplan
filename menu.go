@@ -466,9 +466,11 @@ func (menu *Menu) Close() {
 
 func (menu *Menu) Center() {
 
-	menu.Rect.X = (globals.ScreenSize.X / 2) - (menu.Rect.W / 2)
-	menu.Rect.Y = (globals.ScreenSize.Y / 2) - (menu.Rect.H / 2)
+	x := float32(int32((globals.ScreenSize.X / 2) - (menu.Rect.W / 2)))
+	y := float32(int32((globals.ScreenSize.Y / 2) - (menu.Rect.H / 2)))
 
+	menu.Rect.X = x
+	menu.Rect.Y = y
 }
 
 func (menu *Menu) Rectangle() *sdl.FRect {

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-	"os"
 	"strconv"
 
 	"github.com/tidwall/gjson"
@@ -196,8 +194,9 @@ func (properties *Properties) Serialize() string {
 	data := "{}"
 
 	for _, name := range properties.DefinitionOrder {
-		if properties.Props[name].InUse {
-			data, _ = sjson.Set(data, name, properties.Props[name].data)
+		prop := properties.Props[name]
+		if prop.InUse {
+			data, _ = sjson.Set(data, name, prop.data)
 		}
 	}
 
@@ -215,35 +214,5 @@ func (properties *Properties) Deserialize(data string) {
 		properties.Get(key.String()).SetRaw(value.Value())
 		return true
 	})
-
-}
-
-func (properties *Properties) Save(filepath string) {
-
-	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
-
-	saveData, _ = sjson.SetRaw(saveData, "properties", properties.Serialize())
-
-	saveData = gjson.Get(saveData, "@pretty").String()
-
-	if file, err := os.Create(filepath); err != nil {
-		log.Println(err)
-	} else {
-		file.Write([]byte(saveData))
-		file.Close()
-	}
-
-}
-
-func (properties *Properties) Load(filepath string) {
-
-	jsonData, err := os.ReadFile(filepath)
-	if err != nil {
-		panic(err)
-	}
-
-	data := gjson.Get(string(jsonData), "properties").String()
-
-	properties.Deserialize(data)
 
 }

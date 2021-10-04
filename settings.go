@@ -1,26 +1,31 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/adrg/xdg"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 const (
-	SettingsPath                = "MasterPlan/settings08.json"
-	SettingsLegacyPath          = "masterplan-settings08.json"
-	SettingsTheme               = "Theme"
-	SettingsDownloadDirectory   = "DownloadDirectory"
-	SettingsWindowPosition      = "WindowPosition"
-	SettingsSaveWindowPosition  = "SaveWindowPosition"
-	SettingsCustomFontPath      = "CustomFontPath"
-	SettingsFontSize            = "FontSize"
-	SettingsKeybindings         = "Keybindings"
-	SettingsTargetFPS           = "TargetFPS"
-	SettingsUnfocusedFPS        = "UnfocusedFPS"
-	SettingsDisableSplashscreen = "DisableSplashscreen"
-	SettingsBorderlessWindow    = "BorderlessWindow"
-	SettingsRecentPlanList      = "RecentPlanList"
-	SettingsAlwaysShowNumbering = "AlwaysShowNumbering"
-	SettingsDisableMessages     = "DisableMessages"
+	SettingsPath                   = "MasterPlan/settings08.json"
+	SettingsLegacyPath             = "masterplan-settings08.json"
+	SettingsTheme                  = "Theme"
+	SettingsDownloadDirectory      = "DownloadDirectory"
+	SettingsWindowPosition         = "WindowPosition"
+	SettingsSaveWindowPosition     = "SaveWindowPosition"
+	SettingsCustomFontPath         = "CustomFontPath"
+	SettingsFontSize               = "FontSize"
+	SettingsTargetFPS              = "TargetFPS"
+	SettingsUnfocusedFPS           = "UnfocusedFPS"
+	SettingsDisableSplashscreen    = "DisableSplashscreen"
+	SettingsBorderlessWindow       = "BorderlessWindow"
+	SettingsRecentPlanList         = "RecentPlanList"
+	SettingsAlwaysShowNumbering    = "AlwaysShowNumbering"
+	SettingsDisplayMessages        = "DisplayMessages"
+	SettingsDoubleClickCreatesCard = "DoubleClickCreatesCard"
 )
 
 func NewProgramSettings() *Properties {
@@ -32,22 +37,52 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsUnfocusedFPS).Set(60.0)
 	props.Get(SettingsFontSize).Set(30.0)
 	props.Get(SettingsDownloadDirectory).Set("")
-	props.Get(SettingsDisableMessages).Set(false)
+	props.Get(SettingsDisplayMessages).Set(true)
+	props.Get(SettingsDoubleClickCreatesCard).Set(true)
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 
-	// Attempt to load the property here
+	// Attempt to load the properties here
 	if FileExists(path) {
-		props.Load(path)
+		jsonData, err := os.ReadFile(path)
+		if err != nil {
+			panic(err)
+		}
+
+		data := gjson.Get(string(jsonData), "properties").String()
+
+		props.Deserialize(data)
+
+		globals.Keybindings.Deserialize(string(jsonData))
+
 	}
 
 	props.OnChange = func(property *Property) {
-		props.Save(path)
+		SaveSettings()
 	}
 
-	props.Save(path)
-
 	return props
+}
+
+func SaveSettings() {
+
+	path, _ := xdg.ConfigFile(SettingsPath)
+
+	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
+
+	saveData, _ = sjson.SetRaw(saveData, "properties", globals.Settings.Serialize())
+
+	saveData, _ = sjson.SetRaw(saveData, "keybindings", globals.Keybindings.Serialize())
+
+	saveData = gjson.Get(saveData, "@pretty").String()
+
+	if file, err := os.Create(path); err != nil {
+		log.Println(err)
+	} else {
+		file.Write([]byte(saveData))
+		file.Close()
+	}
+
 }
 
 // func (ps *OldProgramSettings) CleanUpRecentPlanList() {

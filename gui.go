@@ -3,11 +3,13 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -45,10 +47,10 @@ const (
 	GUISoundColor      = "Sound Color"
 	GUITimerColor      = "Timer Color"
 	GUIBlankImageColor = "Blank Image Color"
-	GUIImageBGColor    = "Image BG Color"
 	GUIMapColor        = "Map Color"
 )
 
+var availableThemes []string = []string{}
 var guiColors map[string]map[string]Color
 
 func getThemeColor(colorConstant string) Color {
@@ -59,9 +61,16 @@ func getThemeColor(colorConstant string) Color {
 	return color.Clone()
 }
 
+func refreshThemes() {
+	globals.MenuSystem.Recreate()
+	globals.Project.CreateGridTexture()
+	globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
+}
+
 func loadThemes() {
 
 	newGUIColors := map[string]map[string]Color{}
+	availableThemes = []string{}
 
 	filepath.Walk(LocalPath("assets/themes"), func(fp string, info os.FileInfo, err error) error {
 
@@ -75,6 +84,8 @@ func loadThemes() {
 
 				_, themeName := filepath.Split(fp)
 				themeName = strings.Split(themeName, ".json")[0]
+
+				availableThemes = append(availableThemes, themeName)
 
 				// themeData := []byte{}
 				themeData := ""
@@ -243,6 +254,116 @@ func (checkbox *Checkbox) Update() {
 	}
 }
 
+type NumberSpinner struct {
+	Label    *Label
+	Increase *IconButton
+	Decrease *IconButton
+	Property *Property
+	MaxValue float64
+	MinValue float64
+}
+
+func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *NumberSpinner {
+
+	spinner := &NumberSpinner{
+		Property: property,
+		MaxValue: math.MaxFloat32,
+	}
+
+	if rect != nil {
+		rect.X += 32
+		rect.W -= 64
+	}
+
+	spinner.Label = NewLabel("0", rect, worldSpace, AlignCenter)
+
+	spinner.Label.RegexString = RegexOnlyDigit()
+	spinner.Label.Editable = true
+	spinner.Label.OnChange = func() {
+		f, _ := strconv.Atoi(spinner.Label.TextAsString())
+		spinner.Property.Set(float64(f))
+	}
+
+	spinner.Increase = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, worldSpace, func() {
+		f := spinner.Property.AsFloat()
+		f += 1
+		if f > spinner.MaxValue {
+			f = spinner.MaxValue
+		}
+		spinner.Property.Set(f)
+	})
+
+	spinner.Decrease = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, worldSpace, func() {
+		f := spinner.Property.AsFloat()
+		f -= 1
+		if f < spinner.MinValue {
+			f = spinner.MinValue
+		}
+		spinner.Property.Set(f)
+	})
+
+	if rect == nil {
+		fmt.Println(spinner.Rectangle())
+		r := spinner.Label.Rectangle()
+		r.X -= 64
+		r.W += 128
+		fmt.Println("expand?")
+		spinner.SetRectangle(r)
+		fmt.Println(spinner.Rectangle())
+	}
+
+	return spinner
+
+}
+
+func (numberSpinner *NumberSpinner) Update() {
+
+	numberSpinner.Increase.Tint = getThemeColor(GUIFontColor)
+	numberSpinner.Decrease.Tint = getThemeColor(GUIFontColor)
+
+	v := numberSpinner.Property.AsFloat()
+	str := strconv.FormatFloat(v, 'f', 0, 64)
+	numberSpinner.Label.SetText([]rune(str))
+
+	numberSpinner.Label.Update()
+
+	rect := numberSpinner.Increase.Rectangle()
+	rect.X = numberSpinner.Label.Rect.X + numberSpinner.Label.Rect.W
+	rect.Y = numberSpinner.Label.Rect.Y
+	numberSpinner.Increase.SetRectangle(rect)
+	numberSpinner.Increase.Update()
+
+	rect = numberSpinner.Decrease.Rectangle()
+	rect.X = numberSpinner.Label.Rect.X - rect.W
+	rect.Y = numberSpinner.Label.Rect.Y
+	numberSpinner.Decrease.SetRectangle(rect)
+	numberSpinner.Decrease.Update()
+
+}
+
+func (numberSpinner *NumberSpinner) Draw() {
+
+	numberSpinner.Label.Draw()
+	numberSpinner.Increase.Draw()
+	numberSpinner.Decrease.Draw()
+
+}
+
+func (numberSpinner *NumberSpinner) Destroy() {}
+
+func (numberSpinner *NumberSpinner) Rectangle() *sdl.FRect {
+	rect := numberSpinner.Label.Rectangle()
+	rect.X -= 32
+	rect.W += 64
+	return rect
+}
+
+func (numberSpinner *NumberSpinner) SetRectangle(rect *sdl.FRect) {
+	rect.X += 32
+	rect.W -= 64
+	numberSpinner.Label.SetRectangle(rect)
+}
+
 // func ImmediateButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool) bool {
 
 // 	clickInside := false
@@ -323,7 +444,7 @@ func (button *Button) Update() {
 
 	alphaTarget := float32(0.5)
 
-	if mousePos.Inside(button.Rect) {
+	if mousePos.Inside(button.Rect) && !button.Disabled {
 		alphaTarget = 1
 		button.LineWidth += (1 - button.LineWidth) * 0.2
 
@@ -418,6 +539,126 @@ func (button *Button) SetRectangle(rect *sdl.FRect) {
 func (button *Button) Destroy() {
 	button.Label.Destroy()
 }
+
+type Dropdown struct {
+	Options         []string
+	Open            bool
+	ClickableButton *Button
+	Choices         []*Button
+	ChosenIndex     int
+	Button          *Button
+	OnOpen          func()
+	OnChoose        func(index int)
+	WorldSpace      bool
+}
+
+func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), options ...string) *Dropdown {
+
+	dropdown := &Dropdown{
+		Choices:    []*Button{},
+		WorldSpace: worldSpace,
+		OnChoose:   onChoose,
+	}
+
+	dropdown.Button = NewButton(options[0], rect, nil, worldSpace, func() {
+		if dropdown.OnOpen != nil {
+			dropdown.OnOpen()
+		}
+		dropdown.Open = !dropdown.Open
+	})
+
+	dropdown.SetOptions(options...)
+
+	return dropdown
+
+}
+
+func (dropdown *Dropdown) SetOptions(options ...string) {
+
+	dropdown.Options = append([]string{}, options...)
+
+	for _, b := range dropdown.Choices {
+		b.Destroy()
+	}
+
+	dropdown.Choices = []*Button{}
+
+	for i, o := range options {
+		index := i
+		b := NewButton(o, nil, nil, dropdown.WorldSpace, func() {
+			dropdown.ChosenIndex = index
+			dropdown.Open = false
+			if dropdown.OnChoose != nil {
+				dropdown.OnChoose(index)
+			}
+		})
+		dropdown.Choices = append(dropdown.Choices, b)
+	}
+}
+
+func (dropdown *Dropdown) Update() {
+
+	dropdown.Button.Update()
+	y := float32(dropdown.Button.Rect.H)
+
+	if dropdown.Open {
+
+		for i, b := range dropdown.Choices {
+
+			if i == dropdown.ChosenIndex {
+				continue
+			}
+
+			r := b.Rectangle()
+			r.X = dropdown.Button.Rect.X + (dropdown.Button.Rect.W / 2) - (r.W / 2)
+			r.Y = dropdown.Button.Rect.Y + y
+
+			b.SetRectangle(r)
+			b.Update()
+			y += b.Rect.H
+
+		}
+	}
+
+	dropdown.Button.Label.SetText([]rune(dropdown.Options[dropdown.ChosenIndex]))
+
+}
+
+func (dropdown *Dropdown) Draw() {
+
+	dropdown.Button.Draw()
+
+	if dropdown.Open {
+		for i, b := range dropdown.Choices {
+			if i == dropdown.ChosenIndex {
+				continue
+			}
+			b.Draw()
+		}
+	}
+
+}
+
+func (dropdown *Dropdown) Rectangle() *sdl.FRect {
+	if dropdown.Open {
+		r := *dropdown.Button.Rect
+		r.H += float32(len(dropdown.Choices)-1) * r.H
+		return &r
+	} else {
+		return dropdown.Button.Rect
+	}
+}
+func (dropdown *Dropdown) SetRectangle(rect *sdl.FRect) {
+	// r := *rect
+	// dropdown.Rect = &r
+	if !dropdown.Open {
+		dropdown.Button.SetRectangle(rect)
+	} else {
+		rect.H = dropdown.Button.Rect.H
+		dropdown.Button.SetRectangle(rect)
+	}
+}
+func (dropdown *Dropdown) Destroy() {}
 
 type Spacer struct {
 	Rect *sdl.FRect
@@ -515,7 +756,7 @@ type Label struct {
 	Scrollable   bool
 	ScrollAmount float32
 
-	AllowNewlines bool
+	RegexString string
 
 	HorizontalAlignment string
 	Offset              Point
@@ -536,7 +777,7 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 		HorizontalAlignment: horizontalAlignment,
 		Alpha:               1,
 		Highlighter:         NewHighlighter(&sdl.FRect{}, worldSpace),
-		AllowNewlines:       true,
+		RegexString:         "",
 	}
 
 	label.Highlighter.HighlightMode = HighlightColor
@@ -1069,9 +1310,7 @@ func (label *Label) SetTextRaw(text []rune) {
 
 		label.Text = []rune{}
 		for _, c := range text {
-			if c != '\n' || label.AllowNewlines {
-				label.Text = append(label.Text, c)
-			}
+			label.Text = append(label.Text, c)
 		}
 
 		label.TextureDirty = true
@@ -1174,6 +1413,18 @@ func (label *Label) DeleteChars(start, end int) {
 
 func (label *Label) InsertRunesAtIndex(text []rune, index int) {
 
+	if label.RegexString != "" {
+
+		match, err := regexp.Match(label.RegexString, []byte(string(text)))
+
+		if err != nil {
+			log.Println(err)
+		} else if !match {
+			return
+		}
+
+	}
+
 	newText := append([]rune{}, label.Text[:index]...)
 	newText = append(newText, text...)
 	newText = append(newText, label.Text[index:]...)
@@ -1184,7 +1435,7 @@ func (label *Label) InsertRunesAtIndex(text []rune, index int) {
 
 func (label *Label) IndexToWorld(index int) Point {
 
-	point := Point{0, 0}
+	point := label.RendererResult.AlignmentOffset
 
 	for _, line := range label.RendererResult.TextLines {
 
@@ -1420,10 +1671,10 @@ func (row *ContainerRow) Destroy() {
 type Container struct {
 	Rect             *sdl.FRect
 	Rows             []*ContainerRow
-	Texture          *sdl.Texture
 	WorldSpace       bool
 	Scrollbar        *Scrollbar
 	DisplayScrollbar bool
+	OnUpdate         func()
 }
 
 func NewContainer(rect *sdl.FRect, worldSpace bool) *Container {
@@ -1471,12 +1722,16 @@ func (container *Container) Update() {
 		container.Scrollbar.Rect.Y = container.Rect.Y + 32
 
 		if wheel := globals.Mouse.Wheel(); wheel != 0 && pos.Inside(container.Rect) {
-			container.Scrollbar.SetValue(container.Scrollbar.Value - float32(wheel)*0.25)
+			container.Scrollbar.SetValue(container.Scrollbar.Value - float32(wheel)*0.1)
 			globals.Mouse.wheel = 0 // Consume the wheel movement
 		}
 
 		container.Scrollbar.Update()
 
+	}
+
+	if container.OnUpdate != nil {
+		container.OnUpdate()
 	}
 
 }
@@ -1541,32 +1796,6 @@ func (container *Container) SetRectangle(rect *sdl.FRect) {
 	container.Rect.Y = rect.Y
 	container.Rect.W = rect.W
 	container.Rect.H = rect.H
-	container.RecreateTexture()
-}
-
-func (container *Container) RecreateTexture() {
-
-	if container.Texture != nil {
-		container.Texture.Destroy()
-	}
-
-	w := container.Rect.W
-	if w <= 2 {
-		w = 2
-	}
-
-	h := container.Rect.H
-	if h <= 2 {
-		h = 2
-	}
-
-	texture, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(w), int32(h))
-	if err != nil {
-		panic(err)
-	}
-	texture.SetBlendMode(sdl.BLENDMODE_BLEND)
-
-	container.Texture = texture
 }
 
 func (container *Container) NeedScroll() bool {
@@ -1893,8 +2122,8 @@ func (highlighter *Highlighter) Draw() {
 	var highlightColor sdl.Color
 
 	if highlighter.Color == nil {
-		highlightColor = getThemeColor(GUIMenuColor).SDLColor()
-		highlightColor.A = 192
+		highlightColor = getThemeColor(GUICompletedColor).SDLColor()
+		highlightColor.A = 220
 	} else {
 		highlightColor = highlighter.Color.SDLColor()
 	}

@@ -317,7 +317,7 @@ func (project *Project) MouseActions() {
 
 	if globals.State == StateNeutral {
 
-		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) && globals.Settings.Get(SettingsDoubleClickCreatesCard).AsBool() {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			card := project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
@@ -330,7 +330,7 @@ func (project *Project) MouseActions() {
 
 		}
 
-		if globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
+		if globals.Keybindings.On(KBOpenContextMenu) {
 			contextMenu := globals.MenuSystem.Get("context")
 			contextMenu.Rect.X = globals.Mouse.Position().X
 			contextMenu.Rect.Y = globals.Mouse.Position().Y
@@ -347,8 +347,8 @@ func (project *Project) MouseActions() {
 			project.Camera.AddZoom(-project.Camera.Zoom * 0.05)
 		}
 
-		if globals.Mouse.Button(sdl.BUTTON_MIDDLE).Held() {
-			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement().Mult(8))
+		if globals.Keybindings.On(KBPanModifier) {
+			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement().Mult(480 * globals.DeltaTime))
 		}
 
 	}
@@ -373,7 +373,7 @@ func (project *Project) GlobalShortcuts() {
 
 		dx := float32(0)
 		dy := float32(0)
-		panSpeed := float32(16)
+		panSpeed := float32(960) * globals.DeltaTime
 
 		if globals.Keybindings.On(KBPanRight) {
 			dx = panSpeed

@@ -284,7 +284,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 	soundContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
 	soundContents.FilepathLabel.Editable = true
-	soundContents.FilepathLabel.AllowNewlines = false
+	soundContents.FilepathLabel.RegexString = RegexNoNewlines()
 	soundContents.FilepathLabel.OnChange = func() {
 		soundContents.LoadFileFrom(soundContents.FilepathLabel.TextAsString())
 	}
@@ -462,7 +462,7 @@ func NewImageContents(card *Card) *ImageContents {
 
 	imageContents.FilepathLabel = NewLabel("Image file path", nil, false, AlignLeft)
 	imageContents.FilepathLabel.Editable = true
-	imageContents.FilepathLabel.AllowNewlines = false
+	imageContents.FilepathLabel.RegexString = RegexNoNewlines()
 	imageContents.FilepathLabel.OnChange = func() {
 		imageContents.LoadFileFrom(imageContents.FilepathLabel.TextAsString())
 	}
@@ -615,6 +615,10 @@ func (ic *ImageContents) Draw() {
 			}
 
 			if texture != nil {
+				if resource == ic.DefaultImage {
+					texture.SetColorMod(getThemeColor(GUIBlankImageColor).RGB())
+				}
+
 				globals.Renderer.CopyF(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
 			}
 
@@ -626,6 +630,7 @@ func (ic *ImageContents) Draw() {
 			if perc < 0 {
 				perc = 0.5
 			}
+
 			rect.W = ic.Card.DisplayRect.W * float32(perc)
 			outRect := ic.Card.Page.Project.Camera.TranslateRect(&rect)
 			globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())

@@ -1,9 +1,9 @@
-version: 0.7.1.{build}
+version: 0.8.0.{build}
 
 image:
   - macos-mojave
   - Visual Studio 2017
-  - Ubuntu
+  - Ubuntu2004
 
 platform:
   - x64
@@ -11,16 +11,23 @@ platform:
 # We don't want to build any other branches; just master
 branches:
   only:
-    - master
+    - sdl-rework
 
 for:
 -
   matrix:
     only: 
-      - image: Ubuntu
+      - image: Ubuntu2004
   install:
     - sudo apt-get update
-    - sudo apt-get install libgl1-mesa-dev libxi-dev libxcursor-dev libxrandr-dev libxinerama-dev libasound2-dev -y
+    - sudo apt-get install libsdl2{, -image, -mixer, -ttf, -gfx}-dev -y
+
+-
+  matrix:
+    only:
+      - image: macos-mojave
+  install:
+    - brew install sdl2{,_image,_mixer,_ttf,_gfx} pkg-config
 
 -
   matrix:
@@ -28,13 +35,9 @@ for:
       - image: Visual Studio 2017
   install:
     # Set the path to include the 64-bit MinGW
-    - set PATH=C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin;%PATH%
+    - set PATH=C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin;%PATH%
   build_script:
     - go run ./build_script/main.go -b
-    # There's probably a better way to do this than copy libwinpthread-1.dll to the distribution folder but I'm stupid and 
-    # have spent, like, 20 hours getting it straightened out. This ends here.
-    - copy C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin\libwinpthread-1.dll bin\MasterPlan-Windows-Release\libwinpthread-1.dll
-    - copy C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin\libwinpthread-1.dll bin\MasterPlan-Windows-Demo\libwinpthread-1.dll
 
 build_script:
   - go run ./build_script/main.go -b # Build...

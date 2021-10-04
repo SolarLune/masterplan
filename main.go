@@ -27,7 +27,6 @@ var releaseMode = "false"
 var demoMode = "" // If set to something other than "", it's a demo
 
 var drawFPS = false
-var softwareVersion, _ = semver.Make("0.8.0-dev")
 var takeScreenshot = false
 
 var windowTitle = "MasterPlan"
@@ -72,7 +71,7 @@ func init() {
 
 	runtime.LockOSThread() // Don't know if this is necessary still
 
-	globals.Version = semver.MustParse("0.8.0")
+	globals.Version = semver.MustParse("0.8.0-alpha.1")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -86,8 +85,8 @@ func init() {
 	globals.State = StateNeutral
 	globals.GrabClient = grab.NewClient()
 	globals.MenuSystem = NewMenuSystem()
-	globals.Settings = NewProgramSettings()
 	globals.Keybindings = NewKeybindings()
+	globals.Settings = NewProgramSettings()
 
 }
 
@@ -270,7 +269,7 @@ func main() {
 
 		globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
 
-		globals.Time += 1.0 / 60.0
+		globals.Time += float64(globals.DeltaTime)
 
 		if globals.Frame == math.MaxInt64 {
 			globals.Frame = 0
@@ -303,6 +302,9 @@ func main() {
 				window.SetFullscreen(0)
 			}
 		}
+
+		windowFlags := window.GetFlags()
+		windowVisible := windowFlags&sdl.WINDOW_MINIMIZED == 0 && windowFlags&sdl.WINDOW_HIDDEN == 0
 
 		// if windowFlags&byte(rl.FlagWindowTransparent) > 0 {
 		// 	clearColor = rl.Color{}
@@ -374,11 +376,15 @@ func main() {
 
 			globals.Project.Update()
 
-			globals.Project.Draw()
+			if windowVisible {
 
-			globals.Renderer.SetScale(1, 1)
+				globals.Project.Draw()
 
-			globals.MenuSystem.Draw()
+				globals.Renderer.SetScale(1, 1)
+
+				globals.MenuSystem.Draw()
+
+			}
 
 			if globals.Project.LoadingProject != nil {
 				original := globals.Project
@@ -386,6 +392,9 @@ func main() {
 				globals.Project = loading
 				original.Destroy()
 			}
+
+			// loadThemes()
+			// refreshThemes()
 
 			// y := int32(0)
 
@@ -441,7 +450,7 @@ func main() {
 				fontColor := getThemeColor(GUIFontColor)
 				fadeValue, _, _ := event.Tween.Update(globals.DeltaTime)
 
-				if !globals.Settings.Get(SettingsDisableMessages).AsBool() {
+				if globals.Settings.Get(SettingsDisplayMessages).AsBool() {
 
 					event.Y += (eventY - event.Y) * 0.2
 
@@ -553,7 +562,7 @@ func main() {
 
 		renderer.Present()
 
-		title := "MasterPlan v" + softwareVersion.String() + demoMode
+		title := "MasterPlan v" + globals.Version.String() + demoMode
 
 		// if currentProject.FilePath != "" {
 		// 	_, fileName := filepath.Split(currentProject.FilePath)
@@ -571,10 +580,10 @@ func main() {
 
 		targetFPS = int(globals.Settings.Get(SettingsTargetFPS).AsFloat())
 
-		// if !rl.IsWindowFocused() || rl.IsWindowHidden() || rl.IsWindowMinimized() {
-		windowFlags := window.GetFlags()
-		if windowFlags&sdl.WINDOW_MOUSE_FOCUS > 0 || windowFlags&sdl.WINDOW_MINIMIZED > 0 || windowFlags&sdl.WINDOW_HIDDEN > 0 {
+		if windowFlags&sdl.WINDOW_MOUSE_FOCUS == 0 {
 			targetFPS = int(globals.Settings.Get(SettingsUnfocusedFPS).AsFloat())
+		} else if !windowVisible {
+			targetFPS = 5 // Automatically drop to 5 FPS if the window's minimized
 		}
 
 		elapsed += time.Since(currentTime)
@@ -885,36 +894,189 @@ func ConstructMenus() {
 
 	// confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y)
 
+	// Settings Menu
+
 	settings := NewMenu(&sdl.FRect{0, 0, 512, 512}, true)
 	settings.CloseButtonEnabled = true
 	settings.Draggable = true
+	settings.Resizeable = true
 	globals.MenuSystem.Add(settings, "settings", true)
+
 	root = settings.Pages["root"]
+	row = root.AddRow(AlignCenter)
+	row.Add("header", NewLabel("Settings", nil, false, AlignCenter))
 
 	row = root.AddRow(AlignCenter)
+	row.Add("visual options", NewButton("Visual Options", nil, nil, false, func() {
+		settings.SetPage("visual")
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	}))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("input", NewButton("Input", nil, nil, false, func() {
+		settings.SetPage("input")
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	}))
+
+	visual := settings.AddPage("visual")
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("header", NewLabel("Visual Settings", nil, false, AlignCenter))
+
+	row = visual.AddRow(AlignCenter)
 	row.Add("theme label", NewLabel("Color theme:", nil, false, AlignLeft))
-	row = root.AddRow(AlignCenter)
-	row.Add("sunlight", NewButton("Sunlight", nil, nil, false, func() {
-		globals.Settings.Get(SettingsTheme).Set("Sunlight")
-		globals.MenuSystem.Recreate()
-		globals.Project.CreateGridTexture()
-		globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
+	row = visual.AddRow(AlignCenter)
 
-	}))
-	row.Add("moonlight", NewButton("Moonlight", nil, nil, false, func() {
-		globals.Settings.Get(SettingsTheme).Set("Moonlight")
-		globals.MenuSystem.Recreate()
-		globals.Project.CreateGridTexture()
-		globals.Project.SendMessage(NewMessage(MessageThemeChange, nil, nil))
-	}))
+	drop := NewDropdown(&sdl.FRect{0, 0, 128, 32}, false, func(index int) {
+		globals.Settings.Get(SettingsTheme).Set(availableThemes[index])
+		refreshThemes()
+	}, availableThemes...)
 
-	row = root.AddRow(AlignCenter)
+	drop.OnOpen = func() {
+		loadThemes()
+		drop.SetOptions(availableThemes...)
+	}
+
+	for i, k := range availableThemes {
+		if globals.Settings.Get(SettingsTheme).AsString() == k {
+			drop.ChosenIndex = i
+			break
+		}
+	}
+
+	row.Add("theme dropdown", drop)
+
+	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Always Show List Numbering:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAlwaysShowNumbering)))
 
-	row = root.AddRow(AlignCenter)
-	row.Add("", NewLabel("Disable Status Messages:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsDisableMessages)))
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Display Status Messages:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsDisplayMessages)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Render FPS:", nil, false, AlignLeft))
+	row.Add("", NewNumberSpinner(nil, false, globals.Settings.Get(SettingsTargetFPS)))
+	row.ExpandElements = true
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Unfocused FPS:", nil, false, AlignLeft))
+	row.Add("", NewNumberSpinner(nil, false, globals.Settings.Get(SettingsUnfocusedFPS)))
+	row.ExpandElements = true
+
+	var rebindingKey *Button
+	var rebindingShortcut *Shortcut
+	heldKeys := []sdl.Keycode{}
+	heldButtons := []uint8{}
+
+	input := settings.AddPage("input")
+	input.OnUpdate = func() {
+
+		if rebindingKey != nil {
+
+			rebindingKey.Label.SetText([]rune("Rebinding..."))
+
+			if globals.Keyboard.Key(sdl.K_ESCAPE).Pressed() {
+				rebindingKey = nil
+				rebindingShortcut = nil
+			} else {
+
+				if (len(globals.Keyboard.HeldKeys()) == 0 && len(heldKeys) > 0) || (len(globals.Mouse.HeldButtons()) == 0 && len(heldButtons) > 0) {
+
+					if len(heldKeys) > 0 {
+						rebindingShortcut.SetKeys(heldKeys[len(heldKeys)-1], heldKeys[:len(heldKeys)-1]...)
+					} else if len(heldButtons) > 0 {
+						rebindingShortcut.SetButton(heldButtons[0])
+					}
+
+					rebindingKey = nil
+					rebindingShortcut = nil
+					heldKeys = []sdl.Keycode{}
+					heldButtons = []uint8{}
+
+					SaveSettings()
+
+				} else {
+
+					if pressed := globals.Keyboard.PressedKeys(); len(pressed) > 0 {
+
+						added := false
+						for _, h := range heldKeys {
+							if h == pressed[0] {
+								added = true
+							}
+						}
+						if !added {
+							heldKeys = append(heldKeys, pressed[0])
+						}
+
+					} else if pressed := globals.Mouse.PressedButtons(); len(pressed) > 0 {
+						heldButtons = append(heldButtons, pressed[0])
+					}
+
+				}
+
+			}
+
+		} else {
+
+			for name, shortcut := range globals.Keybindings.Shortcuts {
+				b := input.FindElement(name + "-b").(*Button)
+				b.Label.SetText([]rune(shortcut.KeysToString()))
+
+				d := input.FindElement(name + "-d").(*Button)
+				d.Disabled = shortcut.IsDefault()
+				if d.Disabled {
+					d.Label.SetText([]rune("---"))
+				} else {
+					d.Label.SetText([]rune("Reset To Default"))
+				}
+			}
+
+		}
+
+	}
+
+	row = input.AddRow(AlignCenter)
+	row.Add("input header", NewLabel("Input", nil, false, AlignLeft))
+
+	row = input.AddRow(AlignCenter)
+	row.Add("", NewLabel("Double-click to Create Cards:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsDoubleClickCreatesCard)))
+
+	// row = input.AddRow(AlignCenter)
+	// row.Add("", NewLabel("", nil, false, AlignLeft))
+
+	row = input.AddRow(AlignCenter)
+	row.Add("keybindings header", NewLabel("Keybindings", nil, false, AlignLeft))
+
+	for _, s := range globals.Keybindings.ShortcutsInOrder {
+
+		// Make a copy so the OnPressed() function below refers to "this" shortcut, rather than the last one in the range
+		shortcut := s
+
+		row = input.AddRow(AlignCenter)
+
+		row.Add("key-"+shortcut.Name, NewLabel(shortcut.Name, nil, false, AlignLeft))
+		row.ExpandElements = true
+
+		redefineButton := NewButton(shortcut.KeysToString(), nil, nil, false, nil)
+
+		redefineButton.OnPressed = func() {
+			rebindingKey = redefineButton
+			rebindingShortcut = shortcut
+		}
+
+		row.Add(shortcut.Name+"-b", redefineButton)
+
+		button := NewButton("Reset to Default", nil, nil, false, nil)
+
+		button.OnPressed = func() {
+			shortcut.ResetToDefault()
+		}
+
+		row.Add(shortcut.Name+"-d", button)
+	}
 
 }
 

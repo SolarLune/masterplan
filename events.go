@@ -98,6 +98,26 @@ func (keyboard Keyboard) Key(keycode sdl.Keycode) *InputState {
 
 }
 
+func (keyboard Keyboard) HeldKeys() []sdl.Keycode {
+	inputs := []sdl.Keycode{}
+	for keycode := range keyboard.KeyState {
+		if keyboard.KeyState[keycode].Held() {
+			inputs = append(inputs, keycode)
+		}
+	}
+	return inputs
+}
+
+func (keyboard Keyboard) PressedKeys() []sdl.Keycode {
+	inputs := []sdl.Keycode{}
+	for keycode := range keyboard.KeyState {
+		if keyboard.KeyState[keycode].Pressed() {
+			inputs = append(inputs, keycode)
+		}
+	}
+	return inputs
+}
+
 type Mouse struct {
 	buttonState      map[uint8]*InputState
 	wheel            int32
@@ -212,6 +232,28 @@ func (mouse *Mouse) Moving() bool {
 		return false
 	}
 	return globals.Mouse.relativeMovement.Length() > 0
+}
+
+func (mouse *Mouse) PressedButtons() []uint8 {
+
+	inputs := []uint8{}
+	for buttonIndex := range mouse.buttonState {
+		if mouse.buttonState[buttonIndex].Pressed() {
+			inputs = append(inputs, buttonIndex)
+		}
+	}
+	return inputs
+}
+
+func (mouse *Mouse) HeldButtons() []uint8 {
+
+	inputs := []uint8{}
+	for buttonIndex := range mouse.buttonState {
+		if mouse.buttonState[buttonIndex].Held() {
+			inputs = append(inputs, buttonIndex)
+		}
+	}
+	return inputs
 }
 
 func LoadCursors() {

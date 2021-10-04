@@ -1,9 +1,5 @@
 TO FIX IMMEDIATELY:
 
-- [x] Image loading isn't consistent (changing the path, specifically)
-- [x] Add more zoom steps
-- https://github.com/golang-design/clipboard - Use this clipboard package to copy and paste both text and images
-
 - Re-implement URL parsing
 - Hovering over a website should open a little card linking to the website, with additional information (favicon, hostname (e.g. google.com), and description). See how Google Sheets does it.
 - [x] Re-add Paste Content command
