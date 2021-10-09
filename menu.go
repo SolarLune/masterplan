@@ -119,6 +119,7 @@ type Menu struct {
 	MinSize     Point
 	Pages       map[string]*Container
 	CurrentPage string
+	NextPage    string
 	Orientation int
 	BGTexture   *sdl.Texture
 	Spacing     string
@@ -167,6 +168,10 @@ func NewMenu(rect *sdl.FRect, openable bool) *Menu {
 }
 
 func (menu *Menu) Update() {
+
+	if menu.CurrentPage == "" {
+		return
+	}
 
 	if !menu.Openable || menu.Opened {
 
@@ -312,7 +317,9 @@ func (menu *Menu) Draw() {
 
 	globals.Renderer.CopyF(menu.BGTexture, nil, menu.Rect)
 
-	menu.Pages[menu.CurrentPage].Draw()
+	if menu.CurrentPage != "" {
+		menu.Pages[menu.CurrentPage].Draw()
+	}
 
 	if menu.CloseButtonEnabled {
 		menu.closeButtonButton.Draw()
@@ -321,6 +328,8 @@ func (menu *Menu) Draw() {
 	if menu.CanGoBack() {
 		menu.BackButton.Draw()
 	}
+
+	menu.CurrentPage = menu.NextPage
 
 }
 
@@ -331,7 +340,7 @@ func (menu *Menu) AddPage(pageName string) *Container {
 }
 
 func (menu *Menu) SetPage(pageName string) {
-	menu.CurrentPage = pageName
+	menu.NextPage = pageName
 	menu.PageThread = append(menu.PageThread, pageName)
 }
 

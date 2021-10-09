@@ -168,6 +168,14 @@ func main() {
 	w := int32(960)
 	h := int32(540)
 
+	if globals.Settings.Get(SettingsSaveWindowPosition).AsBool() {
+		windowData := globals.Settings.Get(SettingsWindowPosition).AsMap()
+		x = int32(windowData["X"].(float64))
+		y = int32(windowData["Y"].(float64))
+		w = int32(windowData["W"].(float64))
+		h = int32(windowData["H"].(float64))
+	}
+
 	if globals.Settings.Get(SettingsBorderlessWindow).AsBool() {
 		windowFlags |= sdl.WINDOW_BORDERLESS
 	}
@@ -286,15 +294,15 @@ func main() {
 		// 	drawFPS = !drawFPS
 		// }
 
-		if globals.Keybindings.On(KBWindowSizeSmall) {
+		if globals.Keybindings.Pressed(KBWindowSizeSmall) {
 			window.SetSize(960, 540)
 		}
 
-		if globals.Keybindings.On(KBWindowSizeNormal) {
+		if globals.Keybindings.Pressed(KBWindowSizeNormal) {
 			window.SetSize(1920, 1080)
 		}
 
-		if globals.Keybindings.On(KBToggleFullscreen) {
+		if globals.Keybindings.Pressed(KBToggleFullscreen) {
 			fullscreen = !fullscreen
 			if fullscreen {
 				window.SetFullscreen(sdl.WINDOW_FULLSCREEN_DESKTOP)
@@ -348,11 +356,11 @@ func main() {
 
 		} else {
 
-			if globals.State == StateNeutral && globals.Keybindings.On(KBDebugRestart) {
+			if globals.State == StateNeutral && globals.Keybindings.Pressed(KBDebugRestart) {
 				globals.Project = NewProject()
 			}
 
-			if globals.Keybindings.On(KBDebugToggle) {
+			if globals.Keybindings.Pressed(KBDebugToggle) {
 				globals.DebugMode = !globals.DebugMode
 			}
 
@@ -376,6 +384,8 @@ func main() {
 
 			globals.Project.Update()
 
+			globals.Keybindings.On = true
+
 			if windowVisible {
 
 				globals.Project.Draw()
@@ -392,9 +402,6 @@ func main() {
 				globals.Project = loading
 				original.Destroy()
 			}
-
-			// loadThemes()
-			// refreshThemes()
 
 			// y := int32(0)
 
@@ -586,6 +593,10 @@ func main() {
 			targetFPS = 5 // Automatically drop to 5 FPS if the window's minimized
 		}
 
+		if targetFPS <= 0 {
+			targetFPS = 5
+		}
+
 		elapsed += time.Since(currentTime)
 		attemptedSleep := (time.Second / time.Duration(targetFPS)) - elapsed
 
@@ -640,7 +651,7 @@ func ConstructMenus() {
 		globals.MenuSystem.Get("file").Open()
 	}))
 
-	row.Add("edit menu", NewButton("View", &sdl.FRect{0, 0, 96, 32}, nil, false, func() {
+	row.Add("view menu", NewButton("View", &sdl.FRect{0, 0, 96, 32}, nil, false, func() {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		globals.MenuSystem.Get("view").Open()
 	}))
@@ -713,6 +724,12 @@ func ConstructMenus() {
 	setType.AddRow(AlignCenter).Add("set checkbox content type", NewButton("Checkbox", nil, &sdl.Rect{48, 32, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeCheckbox)
+		}
+	}))
+
+	setType.AddRow(AlignCenter).Add("set number content type", NewButton("Number", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			card.SetContents(ContentTypeNumber)
 		}
 	}))
 
@@ -896,7 +913,7 @@ func ConstructMenus() {
 
 	// Settings Menu
 
-	settings := NewMenu(&sdl.FRect{0, 0, 512, 512}, true)
+	settings := NewMenu(&sdl.FRect{0, 0, 650, 512}, true)
 	settings.CloseButtonEnabled = true
 	settings.Draggable = true
 	settings.Resizeable = true
@@ -920,12 +937,19 @@ func ConstructMenus() {
 
 	visual := settings.AddPage("visual")
 
+	visual.OnUpdate = func() {
+		// Refresh themes
+		loadThemes()
+		refreshThemes()
+	}
+
+	visual.DefaultExpand = true
+
 	row = visual.AddRow(AlignCenter)
 	row.Add("header", NewLabel("Visual Settings", nil, false, AlignCenter))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("theme label", NewLabel("Color theme:", nil, false, AlignLeft))
-	row = visual.AddRow(AlignCenter)
 
 	drop := NewDropdown(&sdl.FRect{0, 0, 128, 32}, false, func(index int) {
 		globals.Settings.Get(SettingsTheme).Set(availableThemes[index])
@@ -951,18 +975,28 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAlwaysShowNumbering)))
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Display Status Messages:", nil, false, AlignLeft))
+	row.Add("", NewLabel("Show Status Messages:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsDisplayMessages)))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Render FPS:", nil, false, AlignLeft))
-	row.Add("", NewNumberSpinner(nil, false, globals.Settings.Get(SettingsTargetFPS)))
-	row.ExpandElements = true
+	num := NewNumberSpinner(nil, false, globals.Settings.Get(SettingsTargetFPS))
+	num.MinValue = 5
+	row.Add("", num)
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Unfocused FPS:", nil, false, AlignLeft))
-	row.Add("", NewNumberSpinner(nil, false, globals.Settings.Get(SettingsUnfocusedFPS)))
-	row.ExpandElements = true
+	num = NewNumberSpinner(nil, false, globals.Settings.Get(SettingsUnfocusedFPS))
+	num.MinValue = 5
+	row.Add("", num)
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Show Grid:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowGrid)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Save Window Position:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSaveWindowPosition)))
 
 	var rebindingKey *Button
 	var rebindingShortcut *Shortcut
@@ -971,6 +1005,8 @@ func ConstructMenus() {
 
 	input := settings.AddPage("input")
 	input.OnUpdate = func() {
+
+		globals.Keybindings.On = false
 
 		if rebindingKey != nil {
 
@@ -983,10 +1019,10 @@ func ConstructMenus() {
 
 				if (len(globals.Keyboard.HeldKeys()) == 0 && len(heldKeys) > 0) || (len(globals.Mouse.HeldButtons()) == 0 && len(heldButtons) > 0) {
 
-					if len(heldKeys) > 0 {
+					if len(heldButtons) > 0 {
+						rebindingShortcut.SetButton(heldButtons[0], heldKeys...)
+					} else if len(heldKeys) > 0 {
 						rebindingShortcut.SetKeys(heldKeys[len(heldKeys)-1], heldKeys[:len(heldKeys)-1]...)
-					} else if len(heldButtons) > 0 {
-						rebindingShortcut.SetButton(heldButtons[0])
 					}
 
 					rebindingKey = nil

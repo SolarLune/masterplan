@@ -29,11 +29,11 @@ func (selection *Selection) Update() {
 
 			selectionRect := NewCorrectingRect(selection.BoxStart.X, selection.BoxStart.Y, globals.Mouse.WorldPosition().X, globals.Mouse.WorldPosition().Y).SDLRect()
 
-			if !globals.Keybindings.On(KBAddToSelection) && !globals.Keybindings.On(KBRemoveFromSelection) {
+			if !globals.Keybindings.Pressed(KBAddToSelection) && !globals.Keybindings.Pressed(KBRemoveFromSelection) {
 				selection.Clear()
 			}
 
-			if globals.Keybindings.On(KBRemoveFromSelection) {
+			if globals.Keybindings.Pressed(KBRemoveFromSelection) {
 
 				for _, card := range selection.Page.Cards {
 					if card.Rect.HasIntersection(selectionRect) {

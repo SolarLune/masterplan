@@ -136,7 +136,7 @@ func (card *Card) Update() {
 		card.Contents.Update()
 	}
 
-	if globals.Keybindings.On(KBLinkCard) {
+	if globals.Keybindings.Pressed(KBLinkCard) {
 
 		globals.State = StateCardLinking
 		globals.Mouse.SetCursor("link")
@@ -193,7 +193,7 @@ func (card *Card) Update() {
 
 		if globals.State == StateNeutral {
 
-			if card.Selected && globals.Keybindings.On(KBCollapseCard) {
+			if card.Selected && globals.Keybindings.Pressed(KBCollapseCard) {
 				card.Collapse()
 			}
 
@@ -213,7 +213,7 @@ func (card *Card) Update() {
 					card.Page.Raise(card)
 				}
 
-				if globals.Keybindings.On(KBRemoveFromSelection) {
+				if globals.Keybindings.Pressed(KBRemoveFromSelection) {
 
 					if card.Selected {
 						card.Deselect()
@@ -222,7 +222,7 @@ func (card *Card) Update() {
 
 				} else {
 
-					if !card.Selected && !globals.Keybindings.On(KBAddToSelection) {
+					if !card.Selected && !globals.Keybindings.Pressed(KBAddToSelection) {
 
 						for card := range selection.Cards {
 							card.Deselect()
@@ -521,17 +521,6 @@ func (card *Card) PostDraw() {
 
 		if card.Numberable() {
 
-			guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
-
-			menuColor := getThemeColor(GUIMenuColor)
-			guiTexture.SetColorMod(menuColor.RGB())
-
-			if card == card.Stack.Top() {
-				guiTexture.SetColorMod(255, 255, 0)
-			}
-
-			guiTexture.SetAlphaMod(menuColor[3])
-
 			number := ""
 			for i, n := range card.Stack.Number {
 				number += strconv.Itoa(n)
@@ -540,41 +529,9 @@ func (card *Card) PostDraw() {
 				}
 			}
 
-			textSize := globals.TextRenderer.MeasureText([]rune(number), 0.5)
-			textSize.X += 16
-
-			if textSize.X < 16 {
-				textSize.X = 16
-			}
-
 			// numberingStartX := card.DisplayRect.X + card.DisplayRect.W - 16 - textSize.X
-			numberingStartX := card.DisplayRect.X + (globals.GridSize * 0.75)
-			numberingStartY := card.DisplayRect.Y - 8
 
-			guiTexture.SetColorMod(menuColor.RGB())
-			guiTexture.SetAlphaMod(menuColor[3])
-
-			src := &sdl.Rect{480, 48, 8, 24}
-			dst := &sdl.FRect{numberingStartX, numberingStartY, float32(src.W), float32(src.H)}
-			dst = card.Page.Project.Camera.TranslateRect(dst)
-			globals.Renderer.CopyF(guiTexture, src, dst)
-
-			dst.X += float32(src.W)
-			src.X += 8
-			dst.W = textSize.X - 16
-			if dst.W > 0 {
-				globals.Renderer.CopyF(guiTexture, src, dst)
-			}
-
-			dst.X += dst.W
-			src.X += 8
-			src.W = 16
-			dst.W = float32(src.W)
-			globals.Renderer.CopyF(guiTexture, src, dst)
-
-			dstPoint := card.Page.Project.Camera.TranslatePoint(Point{numberingStartX + (textSize.X / 2), numberingStartY})
-
-			globals.TextRenderer.QuickRenderText(number, dstPoint, 0.5, getThemeColor(GUIFontColor), AlignCenter)
+			DrawLabel(card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (globals.GridSize * 0.75), card.DisplayRect.Y - 8}), number)
 
 		}
 
@@ -583,7 +540,7 @@ func (card *Card) PostDraw() {
 }
 
 func (card *Card) Numberable() bool {
-	return card.ContentType == ContentTypeCheckbox // Or progression or table
+	return card.ContentType == ContentTypeCheckbox || card.ContentType == ContentTypeNumber // Or progression or table
 }
 
 func (card *Card) Serialize() string {
@@ -824,14 +781,22 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 	newWidth = float32(math.Ceil(float64(newWidth/globals.GridSize))) * globals.GridSize
 	newHeight = float32(math.Ceil(float64(newHeight/globals.GridSize))) * globals.GridSize
 
+	// In truth, it'd be "better" to get the information for the renderer and then use that for the max size,
+	// but it's better to hardcode the size for simplicity.
+	maxSize := float32(4096)
+
 	// Let's just say this is the smallest size
 	gs := globals.GridSize
 	if newWidth < gs {
 		newWidth = gs
+	} else if newWidth > maxSize {
+		newWidth = maxSize
 	}
 
 	if newHeight < gs {
 		newHeight = gs
+	} else if newHeight > maxSize {
+		newHeight = maxSize
 	}
 
 	if card.Rect.W != newWidth || card.Rect.H != newHeight {
@@ -958,6 +923,8 @@ func (card *Card) SetContents(contentType string) {
 		switch contentType {
 		case ContentTypeCheckbox:
 			card.Contents = NewCheckboxContents(card)
+		case ContentTypeNumber:
+			card.Contents = NewNumberContents(card)
 		case ContentTypeNote:
 			card.Contents = NewNoteContents(card)
 		case ContentTypeSound:

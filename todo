@@ -12,6 +12,8 @@ TO FIX IMMEDIATELY:
 - [ ] Alignment options for cards on the board (i.e. center, align vertically, spread, etc)
 - [ ] Alignment options for text in Cards (not quite sure how to do this yet)
 - [ ] System notification when something happens in MasterPlan. See: https://github.com/gen2brain/beeep or https://github.com/0xAX/notificator
+- [ ] Disable Grid setting
+- [ ] Implement searching again
 
 Tabbing around menus
 Re-add Recent Files list

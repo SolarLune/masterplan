@@ -475,6 +475,43 @@ func ThickLine(start, end Point, thickness int32, color Color) {
 	gfx.ThickLineRGBA(globals.Renderer, int32(start.X), int32(start.Y), int32(end.X), int32(end.Y), thickness, color[0], color[1], color[2], color[3])
 }
 
+// DrawLabel draws a small label of the specified text at the X and Y position specified.
+func DrawLabel(pos Point, text string) {
+
+	textSize := globals.TextRenderer.MeasureText([]rune(text), 0.5)
+	textSize.X += 16
+
+	if textSize.X < 16 {
+		textSize.X = 16
+	}
+
+	guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+	menuColor := getThemeColor(GUIMenuColor)
+
+	guiTexture.SetColorMod(menuColor.RGB())
+	guiTexture.SetAlphaMod(menuColor[3])
+
+	src := &sdl.Rect{480, 48, 8, 24}
+	dst := &sdl.FRect{pos.X, pos.Y, float32(src.W), float32(src.H)}
+	globals.Renderer.CopyF(guiTexture, src, dst)
+
+	dst.X += float32(src.W)
+	src.X += 8
+	dst.W = textSize.X - 16
+	if dst.W > 0 {
+		globals.Renderer.CopyF(guiTexture, src, dst)
+	}
+
+	dst.X += dst.W
+	src.X += 8
+	src.W = 16
+	dst.W = float32(src.W)
+	globals.Renderer.CopyF(guiTexture, src, dst)
+
+	globals.TextRenderer.QuickRenderText(text, Point{pos.X + (textSize.X / 2), pos.Y}, 0.5, getThemeColor(GUIFontColor), AlignCenter)
+
+}
+
 // func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {
 
 // 	r.X -= thickness

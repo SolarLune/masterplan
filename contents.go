@@ -14,14 +14,14 @@ import (
 )
 
 const (
-	ContentTypeCheckbox    = "Checkbox"
-	ContentTypeNote        = "Note"
-	ContentTypeSound       = "Sound"
-	ContentTypeProgression = "Progression"
-	ContentTypeImage       = "Image"
-	ContentTypeTimer       = "Timer"
-	ContentTypeMap         = "Map"
-	ContentTypeTable       = "Table"
+	ContentTypeCheckbox = "Checkbox"
+	ContentTypeNumber   = "Number"
+	ContentTypeNote     = "Note"
+	ContentTypeSound    = "Sound"
+	ContentTypeImage    = "Image"
+	ContentTypeTimer    = "Timer"
+	ContentTypeMap      = "Map"
+	ContentTypeTable    = "Table"
 )
 
 type Contents interface {
@@ -53,6 +53,8 @@ func (dc *DefaultContents) Update() {
 func (dc *DefaultContents) Draw() {
 	dc.Container.Draw()
 }
+
+func (dc *DefaultContents) ReceiveMessage(msg *Message) {}
 
 type CheckboxContents struct {
 	DefaultContents
@@ -137,8 +139,6 @@ func (cc *CheckboxContents) Trigger() {
 
 }
 
-func (cc *CheckboxContents) ReceiveMessage(msg *Message) {}
-
 func (cc *CheckboxContents) Color() Color {
 
 	color := getThemeColor(GUICheckboxColor)
@@ -152,6 +152,111 @@ func (cc *CheckboxContents) Color() Color {
 
 func (cc *CheckboxContents) DefaultSize() Point {
 	return Point{globals.GridSize * 9, globals.GridSize}
+}
+
+type NumberContents struct {
+	DefaultContents
+	Label              *Label
+	Current            *NumberSpinner
+	Max                *NumberSpinner
+	PercentageComplete float32
+}
+
+func NewNumberContents(card *Card) *NumberContents {
+
+	number := &NumberContents{
+		DefaultContents: newDefaultContents(card),
+		Label:           NewLabel("New Progression", nil, true, AlignLeft),
+	}
+
+	number.Label.OnChange = func() {
+		if number.Label.Editing {
+
+			y := number.Label.IndexToWorld(number.Label.Selection.CaretPos).Y - number.Card.Rect.Y
+			if y >= number.Card.Rect.H-32 {
+				lineCount := float32(number.Label.LineCount())
+				if lineCount*globals.GridSize > number.Card.Rect.H-32 {
+					number.Card.Recreate(number.Card.Rect.W, lineCount*globals.GridSize+32)
+				}
+			}
+		}
+
+	}
+
+	current := card.Properties.Get("value")
+	number.Current = NewNumberSpinner(nil, true, current)
+
+	max := card.Properties.Get("maximum")
+	number.Max = NewNumberSpinner(nil, true, max)
+
+	number.Label.Editable = true
+
+	row := number.Container.AddRow(AlignCenter)
+	row.Add("label", number.Label)
+	row = number.Container.AddRow(AlignCenter)
+	row.Add("current", number.Current)
+	// row.Add("out of", NewLabel("out of", nil, true, AlignCenter))
+	row.Add("max", number.Max)
+	row.ExpandElements = true
+
+	return number
+}
+
+func (number *NumberContents) Update() {
+
+	number.DefaultContents.Update()
+
+	rect := number.Label.Rectangle()
+	rect.H = number.Container.Rect.H - 32
+	number.Label.SetRectangle(rect)
+
+	number.Current.MaxValue = number.Max.Property.AsFloat()
+	number.Max.MinValue = number.Current.Property.AsFloat()
+
+}
+
+func (number *NumberContents) Draw() {
+
+	f := &sdl.FRect{0, 0, number.Card.Rect.W, number.Card.Rect.H}
+
+	p := float32(0)
+
+	if number.Max.Property.AsFloat() > 0 {
+		p = float32(number.Current.Property.AsFloat()) / float32(number.Max.Property.AsFloat())
+		f.W *= p
+
+		number.PercentageComplete += (p - number.PercentageComplete) * 0.1
+
+		src := &sdl.Rect{0, 0, int32(number.Card.Rect.W * number.PercentageComplete), int32(number.Card.Rect.H)}
+		dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
+		dst.X = number.Card.DisplayRect.X
+		dst.Y = number.Card.DisplayRect.Y
+		dst = number.Card.Page.Project.Camera.TranslateRect(dst)
+		number.Card.Result.SetColorMod(getThemeColor(GUICompletedColor).RGB())
+		number.Card.Result.SetAlphaMod(128)
+		globals.Renderer.CopyF(number.Card.Result, src, dst)
+
+	}
+
+	number.DefaultContents.Draw()
+
+	if number.Max.Property.AsFloat() > 0 {
+
+		dstPoint := Point{number.Card.DisplayRect.X + number.Card.DisplayRect.W - 32, number.Card.DisplayRect.Y}
+		perc := strconv.FormatFloat(float64(p*100), 'f', 0, 32) + "%"
+		DrawLabel(number.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+
+	}
+
+}
+
+func (number *NumberContents) Color() Color {
+	return getThemeColor(GUINumberColor)
+}
+
+func (number *NumberContents) DefaultSize() Point {
+	gs := globals.GridSize
+	return Point{gs * 8, gs * 2}
 }
 
 type NoteContents struct {
@@ -210,8 +315,6 @@ func (nc *NoteContents) Update() {
 
 }
 
-func (nc *NoteContents) ReceiveMessage(msg *Message) {}
-
 func (nc *NoteContents) Color() Color { return getThemeColor(GUINoteColor) }
 
 func (nc *NoteContents) DefaultSize() Point {
@@ -223,7 +326,7 @@ type SoundContents struct {
 	Playing        bool
 	SoundNameLabel *Label
 	PlaybackLabel  *Label
-	PlayButton     *Button
+	PlayButton     *IconButton
 
 	FilepathLabel *Label
 
@@ -248,7 +351,7 @@ func NewSoundContents(card *Card) *SoundContents {
 		}
 	}
 
-	soundContents.PlayButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{112, 32, 32, 32}, true, nil)
+	soundContents.PlayButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, nil)
 	soundContents.PlayButton.OnPressed = func() {
 
 		if soundContents.Resource == nil {
@@ -265,7 +368,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 	}
 
-	repeatButton := NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{176, 32, 32, 32}, true, func() {
+	repeatButton := NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, true, func() {
 
 		if soundContents.Resource == nil {
 			return
@@ -435,7 +538,7 @@ func (sc *SoundContents) Draw() {
 }
 
 // We don't want to delete the sound on switch from SoundContents to another content type or on Card destruction because you could undo / switch back, which would require recreating the Sound, which seems unnecessary...?
-func (sc *SoundContents) ReceiveMessage(msg *Message) {}
+// func (sc *SoundContents) ReceiveMessage(msg *Message) {}
 
 func (sc *SoundContents) Color() Color { return getThemeColor(GUISoundColor) }
 
@@ -573,7 +676,7 @@ func (ic *ImageContents) Update() {
 			ic.GifPlayer.Update(globals.DeltaTime)
 		}
 
-		if !globals.Keybindings.On(KBAddToSelection) {
+		if !globals.Keybindings.Pressed(KBAddToSelection) {
 			if resource.IsTexture() {
 				ic.Card.LockResizingAspectRatio = resource.AsImage().Size.Y / resource.AsImage().Size.X
 			} else if resource.IsGIF() {
@@ -686,8 +789,6 @@ func (ic *ImageContents) LoadFileFrom(filepath string) {
 
 }
 
-func (ic *ImageContents) ReceiveMessage(msg *Message) {}
-
 func (ic *ImageContents) Color() Color {
 	return ColorTransparent
 }
@@ -728,7 +829,7 @@ func NewTimerContents(card *Card) *TimerContents {
 	tc.Pie = NewPie(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color(), true)
 
 	tc.Name.Editable = true
-	tc.Name.AutoExpand = true
+	// tc.Name.AutoExpand = true
 	// tc.ClockLabel.AutoExpand = true
 
 	row := tc.Container.AddRow(AlignLeft)
@@ -753,6 +854,15 @@ func NewTimerContents(card *Card) *TimerContents {
 }
 
 func (tc *TimerContents) Update() {
+
+	gs := globals.GridSize
+	r := tc.Name.Rectangle()
+	r.W = tc.Card.Rect.W - gs
+	r.H = tc.Card.Rect.H - (gs * 4)
+	if r.H < gs {
+		r.H = gs
+	}
+	tc.Name.SetRectangle(r)
 
 	tc.DefaultContents.Update()
 
@@ -1161,27 +1271,27 @@ func (mc *MapContents) Update() {
 
 	if mc.Card.Selected {
 
-		if globals.Keybindings.On(KBMapNoTool) {
+		if globals.Keybindings.Pressed(KBMapNoTool) {
 			mc.Tool = MapEditToolNone
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.Keybindings.On(KBMapPencilTool) {
+		} else if globals.Keybindings.Pressed(KBMapPencilTool) {
 			mc.Tool = MapEditToolPencil
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.Keybindings.On(KBMapEraserTool) {
+		} else if globals.Keybindings.Pressed(KBMapEraserTool) {
 			mc.Tool = MapEditToolEraser
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.Keybindings.On(KBMapFillTool) {
+		} else if globals.Keybindings.Pressed(KBMapFillTool) {
 			mc.Tool = MapEditToolFill
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.Keybindings.On(KBMapLineTool) {
+		} else if globals.Keybindings.Pressed(KBMapLineTool) {
 			mc.Tool = MapEditToolLine
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
-		} else if globals.Keybindings.On(KBMapPalette) && mc.Card.Selected && len(mc.Card.Page.Selection.Cards) == 1 {
+		} else if globals.Keybindings.Pressed(KBMapPalette) && mc.Card.Selected && len(mc.Card.Page.Selection.Cards) == 1 {
 			if mc.PaletteMenu.Opened {
 				mc.PaletteMenu.Close()
 			} else {
@@ -1202,7 +1312,7 @@ func (mc *MapContents) Update() {
 
 		if !mc.Card.Resizing {
 
-			if globals.Keybindings.On(KBPickColor) {
+			if globals.Keybindings.Pressed(KBPickColor) {
 
 				// Eyedropping to pick color
 				globals.Mouse.SetCursor("eyedropper")
@@ -1457,7 +1567,7 @@ func (mc *MapContents) Draw() {
 }
 
 func (mc *MapContents) UsingLineTool() bool {
-	return mc.Tool == MapEditToolLine || (mc.Tool == MapEditToolPencil && globals.Keybindings.On(KBMapQuickLineTool))
+	return mc.Tool == MapEditToolLine || (mc.Tool == MapEditToolPencil && globals.Keybindings.Pressed(KBMapQuickLineTool))
 }
 
 func (mc *MapContents) ColorIndex() int {

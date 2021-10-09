@@ -4,6 +4,7 @@
     "Menu Color":[16, 14, 12, 255],
     "Font Color":[255, 255, 255, 255],
     "Checkbox Color": [203, 198, 193, 255],
+    "Number Color": [210, 208, 203, 255],
     "Completed Color": [66, 191, 255, 255],
     "Note Color": [248, 197, 58, 255],
     "Sound Color": [226, 114, 133, 255],

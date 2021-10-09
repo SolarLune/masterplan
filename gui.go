@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"log"
 	"math"
 	"math/rand"
@@ -43,6 +42,7 @@ const (
 	GUIMenuColor       = "Menu Color"
 	GUICheckboxColor   = "Checkbox Color"
 	GUICompletedColor  = "Completed Color"
+	GUINumberColor     = "Number Color"
 	GUINoteColor       = "Note Color"
 	GUISoundColor      = "Sound Color"
 	GUITimerColor      = "Timer Color"
@@ -139,13 +139,15 @@ type FocusableMenuElement interface {
 }
 
 type IconButton struct {
-	Rect       *sdl.FRect
-	IconSrc    *sdl.Rect
-	WorldSpace bool
-	OnClicked  func()
-	Tint       Color
-	Flip       sdl.RendererFlip
-	BGIconSrc  *sdl.Rect
+	Rect        *sdl.FRect
+	IconSrc     *sdl.Rect
+	WorldSpace  bool
+	OnPressed   func()
+	Tint        Color
+	Flip        sdl.RendererFlip
+	BGIconSrc   *sdl.Rect
+	Highlighter *Highlighter
+	Alpha       float32
 }
 
 func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked func()) *IconButton {
@@ -155,16 +157,19 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked f
 		IconSrc:    iconSrc,
 		WorldSpace: worldSpace,
 		Tint:       NewColor(255, 255, 255, 255),
-		OnClicked:  onClicked,
+		OnPressed:  onClicked,
+		Alpha:      1,
 	}
+	iconButton.Highlighter = NewHighlighter(iconButton.Rect, worldSpace)
+	iconButton.Highlighter.HighlightMode = HighlightUnderline
 	return iconButton
 
 }
 
 func (iconButton *IconButton) Update() {
 
-	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnClicked != nil {
-		iconButton.OnClicked()
+	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil {
+		iconButton.OnPressed()
 	}
 
 }
@@ -184,13 +189,19 @@ func (iconButton *IconButton) Draw() {
 		mp = globals.Mouse.WorldPosition()
 	}
 
+	hovering := mp.Inside(iconButton.Rect)
+
+	targetAlpha := float32(0.5)
+	if hovering {
+		targetAlpha = 1
+	}
+
+	iconButton.Alpha += (targetAlpha - iconButton.Alpha) * 0.1
+
 	drawSrc := func(src *sdl.Rect, color Color, flip sdl.RendererFlip) {
 
-		if !mp.Inside(iconButton.Rect) {
-			color = color.Sub(40)
-		}
 		guiTex.SetColorMod(color.RGB())
-		guiTex.SetAlphaMod(color[3])
+		guiTex.SetAlphaMod(uint8(iconButton.Alpha * 255))
 		globals.Renderer.CopyExF(guiTex, src, rect, 0, nil, flip)
 
 	}
@@ -200,6 +211,20 @@ func (iconButton *IconButton) Draw() {
 	}
 
 	drawSrc(iconButton.IconSrc, iconButton.Tint, iconButton.Flip)
+
+	iconButton.Highlighter.SetRect(iconButton.Rect)
+	iconButton.Highlighter.Highlighting = mp.Inside(iconButton.Rect)
+	iconButton.Highlighter.Draw()
+
+	if globals.DebugMode {
+		dst := &sdl.FRect{iconButton.Rect.X, iconButton.Rect.Y, iconButton.Rect.W, iconButton.Rect.H}
+		if iconButton.WorldSpace {
+			dst = globals.Project.Camera.TranslateRect(dst)
+		}
+
+		globals.Renderer.SetDrawColor(255, 128, 128, 255)
+		globals.Renderer.FillRectF(dst)
+	}
 
 }
 
@@ -221,6 +246,7 @@ type Checkbox struct {
 	IconButton
 	// Checked bool
 	Property *Property
+	Rect     *sdl.FRect
 }
 
 func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
@@ -228,9 +254,12 @@ func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 		IconButton: *NewIconButton(x, y, &sdl.Rect{48, 160, 32, 32}, worldSpace, nil),
 	}
 
+	r := *checkbox.IconButton.Rect
+	checkbox.Rect = &r
+
 	checkbox.Property = property
 
-	checkbox.OnClicked = func() {
+	checkbox.OnPressed = func() {
 
 		if checkbox.Property != nil {
 			checkbox.Property.Set(!checkbox.Property.AsBool())
@@ -254,7 +283,22 @@ func (checkbox *Checkbox) Update() {
 	}
 }
 
+func (checkbox *Checkbox) SetRectangle(rect *sdl.FRect) {
+	checkbox.Rect.X = rect.X
+	checkbox.Rect.Y = rect.Y
+	checkbox.Rect.W = rect.W
+	checkbox.Rect.H = rect.H
+	checkbox.IconButton.Rect.X = checkbox.Rect.X + (checkbox.Rect.W / 2) - (checkbox.IconButton.Rect.W / 2)
+	checkbox.IconButton.Rect.Y = checkbox.Rect.Y + (checkbox.Rect.H / 2) - (checkbox.IconButton.Rect.H / 2)
+}
+
+func (checkbox *Checkbox) Rectangle() *sdl.FRect {
+	r := *checkbox.Rect
+	return &r
+}
+
 type NumberSpinner struct {
+	Rect     *sdl.FRect
 	Label    *Label
 	Increase *IconButton
 	Decrease *IconButton
@@ -266,102 +310,100 @@ type NumberSpinner struct {
 func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *NumberSpinner {
 
 	spinner := &NumberSpinner{
+		Rect:     rect,
 		Property: property,
 		MaxValue: math.MaxFloat32,
 	}
 
-	if rect != nil {
-		rect.X += 32
-		rect.W -= 64
+	if rect == nil {
+		spinner.Rect = &sdl.FRect{0, 0, 1, globals.GridSize}
 	}
 
 	spinner.Label = NewLabel("0", rect, worldSpace, AlignCenter)
 
 	spinner.Label.RegexString = RegexOnlyDigit()
 	spinner.Label.Editable = true
-	spinner.Label.OnChange = func() {
+	spinner.Label.OnClickOut = func() {
 		f, _ := strconv.Atoi(spinner.Label.TextAsString())
-		spinner.Property.Set(float64(f))
+		spinner.Property.Set(spinner.EnforceCaps(float64(f)))
 	}
 
 	spinner.Increase = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, worldSpace, func() {
 		f := spinner.Property.AsFloat()
-		f += 1
-		if f > spinner.MaxValue {
-			f = spinner.MaxValue
-		}
-		spinner.Property.Set(f)
+		spinner.Property.Set(spinner.EnforceCaps(f + 1))
 	})
 
 	spinner.Decrease = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, worldSpace, func() {
 		f := spinner.Property.AsFloat()
-		f -= 1
-		if f < spinner.MinValue {
-			f = spinner.MinValue
-		}
-		spinner.Property.Set(f)
+		spinner.Property.Set(spinner.EnforceCaps(f - 1))
 	})
-
-	if rect == nil {
-		fmt.Println(spinner.Rectangle())
-		r := spinner.Label.Rectangle()
-		r.X -= 64
-		r.W += 128
-		fmt.Println("expand?")
-		spinner.SetRectangle(r)
-		fmt.Println(spinner.Rectangle())
-	}
 
 	return spinner
 
 }
 
-func (numberSpinner *NumberSpinner) Update() {
+func (spinner *NumberSpinner) EnforceCaps(v float64) float64 {
+	if v < spinner.MinValue {
+		v = spinner.MinValue
+	} else if v > spinner.MaxValue {
+		v = spinner.MaxValue
+	}
+	return v
+}
 
-	numberSpinner.Increase.Tint = getThemeColor(GUIFontColor)
-	numberSpinner.Decrease.Tint = getThemeColor(GUIFontColor)
+func (spinner *NumberSpinner) Update() {
 
-	v := numberSpinner.Property.AsFloat()
-	str := strconv.FormatFloat(v, 'f', 0, 64)
-	numberSpinner.Label.SetText([]rune(str))
+	spinner.Increase.Tint = getThemeColor(GUIFontColor)
+	spinner.Decrease.Tint = getThemeColor(GUIFontColor)
 
-	numberSpinner.Label.Update()
+	if !spinner.Label.Editing {
+		v := spinner.Property.AsFloat()
+		str := strconv.FormatFloat(v, 'f', 0, 64)
+		spinner.Label.SetText([]rune(str))
+	}
 
-	rect := numberSpinner.Increase.Rectangle()
-	rect.X = numberSpinner.Label.Rect.X + numberSpinner.Label.Rect.W
-	rect.Y = numberSpinner.Label.Rect.Y
-	numberSpinner.Increase.SetRectangle(rect)
-	numberSpinner.Increase.Update()
-
-	rect = numberSpinner.Decrease.Rectangle()
-	rect.X = numberSpinner.Label.Rect.X - rect.W
-	rect.Y = numberSpinner.Label.Rect.Y
-	numberSpinner.Decrease.SetRectangle(rect)
-	numberSpinner.Decrease.Update()
+	spinner.Label.Update()
+	spinner.Increase.Update()
+	spinner.Decrease.Update()
 
 }
 
-func (numberSpinner *NumberSpinner) Draw() {
+func (spinner *NumberSpinner) Draw() {
 
-	numberSpinner.Label.Draw()
-	numberSpinner.Increase.Draw()
-	numberSpinner.Decrease.Draw()
+	spinner.Label.Draw()
+	spinner.Increase.Draw()
+	spinner.Decrease.Draw()
 
 }
 
-func (numberSpinner *NumberSpinner) Destroy() {}
+func (spinner *NumberSpinner) Destroy() {}
 
-func (numberSpinner *NumberSpinner) Rectangle() *sdl.FRect {
-	rect := numberSpinner.Label.Rectangle()
-	rect.X -= 32
-	rect.W += 64
-	return rect
+func (spinner *NumberSpinner) Rectangle() *sdl.FRect {
+	return spinner.Rect
 }
 
-func (numberSpinner *NumberSpinner) SetRectangle(rect *sdl.FRect) {
-	rect.X += 32
-	rect.W -= 64
-	numberSpinner.Label.SetRectangle(rect)
+func (spinner *NumberSpinner) SetRectangle(rect *sdl.FRect) {
+
+	spinner.Rect.X = rect.X
+	spinner.Rect.Y = rect.Y
+	spinner.Rect.W = rect.W
+	spinner.Rect.H = rect.H
+
+	r := *rect
+	r.X += spinner.Increase.Rect.W
+	r.W -= spinner.Increase.Rect.W * 2
+	spinner.Label.SetRectangle(&r)
+
+	incRect := spinner.Increase.Rectangle()
+	incRect.X = spinner.Rect.X + spinner.Rect.W - incRect.W - 8
+	incRect.Y = spinner.Rect.Y
+	spinner.Increase.SetRectangle(incRect)
+
+	decRect := spinner.Decrease.Rectangle()
+	decRect.X = spinner.Label.Rect.X - decRect.W
+	decRect.Y = spinner.Label.Rect.Y
+	spinner.Decrease.SetRectangle(decRect)
+
 }
 
 // func ImmediateButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool) bool {
@@ -405,6 +447,7 @@ type Button struct {
 	WorldSpace     bool
 	FadeOnInactive bool
 	OnPressed      func()
+	Highlighter    *Highlighter
 }
 
 func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, worldSpace bool, pressedFunc func()) *Button {
@@ -416,7 +459,10 @@ func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, worldSp
 		OnPressed:      pressedFunc,
 		WorldSpace:     worldSpace,
 		FadeOnInactive: true,
+		Highlighter:    NewHighlighter(nil, worldSpace),
 	}
+
+	button.Highlighter.HighlightMode = HighlightUnderline
 
 	if rect == nil {
 		button.Label.RecreateTexture()
@@ -471,26 +517,21 @@ func (button *Button) Update() {
 
 func (button *Button) Draw() {
 
-	color := getThemeColor(GUIFontColor)
-	lineWidth := button.Rect.W
-	centerX := float32(button.Rect.X + button.Rect.W/2)
-
 	if len(button.Label.Text) > 0 {
 		button.Label.Draw()
 	}
 
-	if button.LineWidth > 0.05 {
+	mousePos := globals.Mouse.Position()
 
-		w := lineWidth * button.LineWidth
-		y := int32(button.Label.Rect.Y + button.Label.Rect.H)
-		if button.WorldSpace {
-			translatedPoint := globals.Project.Camera.TranslatePoint(Point{centerX, float32(y)})
-			centerX = translatedPoint.X
-			y = int32(translatedPoint.Y)
-		}
-		gfx.ThickLineColor(globals.Renderer, int32(centerX-w/2), y, int32(centerX+w/2), y, 2, color.SDLColor())
-
+	if button.WorldSpace {
+		mousePos = globals.Mouse.WorldPosition()
 	}
+
+	button.Highlighter.Highlighting = mousePos.Inside(button.Rect)
+	button.Highlighter.SetRect(button.Rect)
+	button.Highlighter.Draw()
+
+	color := getThemeColor(GUIFontColor)
 
 	if button.IconSrc != nil {
 
@@ -509,7 +550,7 @@ func (button *Button) Draw() {
 	}
 
 	if globals.DebugMode {
-		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, lineWidth, button.Rect.H}
+		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, button.Rect.W, button.Rect.H}
 		if button.WorldSpace {
 			dst = globals.Project.Camera.TranslateRect(dst)
 		}
@@ -762,6 +803,7 @@ type Label struct {
 	Offset              Point
 	Alpha               float32
 	OnChange            func()
+	OnClickOut          func()
 	textChanged         bool
 	Highlighter         *Highlighter
 	AutoExpand          bool
@@ -828,6 +870,9 @@ func (label *Label) Update() {
 					label.Editing = false
 					globals.State = StateNeutral
 					label.Selection.Select(0, 0)
+					if label.OnClickOut != nil {
+						label.OnClickOut()
+					}
 				}
 
 				if globals.Keyboard.Key(sdl.K_RIGHT).Pressed() {
@@ -1092,13 +1137,13 @@ func (label *Label) Update() {
 
 				}
 
-				if globals.Keybindings.On(KBCopyText) {
+				if globals.Keybindings.Pressed(KBCopyText) {
 					start, end := label.Selection.ContiguousRange()
 					text := label.Text[start:end]
 					clipboard.Write(clipboard.FmtText, []byte(string(text)))
 				}
 
-				if globals.Keybindings.On(KBPasteText) {
+				if globals.Keybindings.Pressed(KBPasteText) {
 					if text := clipboard.Read(clipboard.FmtText); text != nil {
 						label.DeleteSelectedChars()
 						start, _ := label.Selection.ContiguousRange()
@@ -1107,7 +1152,7 @@ func (label *Label) Update() {
 					}
 				}
 
-				if globals.Keybindings.On(KBCutText) && label.Selection.Length() > 0 {
+				if globals.Keybindings.Pressed(KBCutText) && label.Selection.Length() > 0 {
 					start, end := label.Selection.ContiguousRange()
 					text := label.Text[start:end]
 					clipboard.Write(clipboard.FmtText, []byte(string(text)))
@@ -1115,7 +1160,7 @@ func (label *Label) Update() {
 					label.Selection.Select(start, start)
 				}
 
-				if globals.Keybindings.On(KBSelectAllText) {
+				if globals.Keybindings.Pressed(KBSelectAllText) {
 					label.Selection.SelectAll()
 				}
 
@@ -1230,11 +1275,9 @@ func (label *Label) Draw() {
 			pos = globals.Project.Camera.TranslatePoint(pos)
 		}
 
-		pos.X -= 2
-
-		color := getThemeColor(GUIFontColor)
-		globals.Renderer.SetDrawColor(color.RGBA())
-		globals.Renderer.DrawLineF(pos.X, pos.Y, pos.X, pos.Y+float32(globals.GridSize))
+		if math.Sin(globals.Time*(math.Pi*2)) > 0 {
+			ThickLine(pos, pos.Add(Point{0, globals.GridSize}), 2, getThemeColor(GUIFontColor))
+		}
 
 		if mousePos.Inside(label.Rect) {
 			globals.Mouse.SetCursor("text caret")
@@ -1599,39 +1642,14 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		x += rect.W + row.HorizontalSpacing
 	}
 
-	return yHeight
+	margin := float32(0)
 
-	// // Automatic spacing
+	if !row.Container.WorldSpace {
+		margin = 4
+	}
 
-	// spacing := float32(0)
+	return yHeight + margin
 
-	// // percent := x / row.Container.Rect.W
-	// // // rect.X -= (rect.W) * percent
-	// // x += spacing
-
-	// if len(row.Elements) == 1 {
-	// 	x += row.Container.Rect.W / 2
-	// } else if len(row.Elements) == 2 {
-	// 	spacing = 1.0
-	// } else {
-	// 	spacing = 1.0 / float32(len(row.Elements)-1)
-	// }
-
-	// // y += w / float32(len(row.Elements))
-
-	// for _, element := range row.Elements {
-	// 	rect := element.Rectangle()
-
-	// 	percent := (x - row.Container.Rect.X) / row.Container.Rect.W
-	// 	rect.X = x - (element.Rectangle().W * percent)
-	// 	rect.Y = y
-	// 	// percent := (x - row.Container.Rect.X) / row.Container.Rect.W
-	// 	// rect.X = x - (element.Rectangle().W * percent)
-	// 	// rect.Y = y
-	// 	element.SetRectangle(rect)
-	// 	element.Update()
-	// 	x += spacing * row.Container.Rect.W
-	// }
 }
 
 func (row *ContainerRow) Draw() {
@@ -1675,6 +1693,7 @@ type Container struct {
 	Scrollbar        *Scrollbar
 	DisplayScrollbar bool
 	OnUpdate         func()
+	DefaultExpand    bool
 }
 
 func NewContainer(rect *sdl.FRect, worldSpace bool) *Container {
@@ -1760,6 +1779,7 @@ func (container *Container) Draw() {
 
 func (container *Container) AddRow(alignment string) *ContainerRow {
 	newRow := NewContainerRow(container, alignment)
+	newRow.ExpandElements = container.DefaultExpand
 	container.Rows = append(container.Rows, newRow)
 	return newRow
 }
@@ -2065,9 +2085,10 @@ func (pie *Pie) SetRectangle(rect *sdl.FRect) {
 func (pie *Pie) Destroy() {}
 
 const (
-	HighlightColor      = "HighlightLighten"
+	HighlightColor      = "HighlightColor"
 	HighlightRing       = "HighlightRing"
 	HighlightSmallArrow = "HighlightSmallArrow"
+	HighlightUnderline  = "HighlightUnderline"
 )
 
 type Highlighter struct {
@@ -2081,8 +2102,11 @@ type Highlighter struct {
 }
 
 func NewHighlighter(rect *sdl.FRect, worldSpace bool) *Highlighter {
+	if rect == nil {
+		rect = &sdl.FRect{}
+	}
 	return &Highlighter{
-		Rect:          &sdl.FRect{rect.X, rect.Y, rect.W, rect.H},
+		Rect:          rect,
 		TargetRect:    &sdl.FRect{rect.X, rect.Y, rect.W, rect.H},
 		WorldSpace:    worldSpace,
 		HighlightMode: HighlightRing,
@@ -2112,7 +2136,7 @@ func (highlighter *Highlighter) Draw() {
 
 	rect := *r
 
-	padding := float32(4)
+	padding := float32(0)
 
 	rect.X -= padding
 	rect.Y -= padding
@@ -2133,8 +2157,8 @@ func (highlighter *Highlighter) Draw() {
 	case HighlightColor:
 
 		if highlighter.HighlightPercentage > 0.01 {
-			highlightColor.A = uint8(highlighter.HighlightPercentage * float32(highlightColor.A))
-			gfx.RoundedBoxColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+rect.H), 8, highlightColor)
+			highlightColor.A = uint8(highlighter.HighlightPercentage * float32(highlightColor.A) * 0.5)
+			gfx.RoundedBoxColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+rect.H), 4, highlightColor)
 		}
 
 	case HighlightRing:
@@ -2168,6 +2192,17 @@ func (highlighter *Highlighter) Draw() {
 		guiTex.Texture.SetAlphaMod(highlightColor.A)
 		guiTex.Texture.SetColorMod(highlightColor.R, highlightColor.G, highlightColor.B)
 		globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{480, 32, 16, 16}, &rect)
+
+	case HighlightUnderline:
+
+		center := Point{rect.X + rect.W/2, rect.Y + rect.H}
+		w := rect.W * highlighter.HighlightPercentage
+
+		if highlighter.HighlightPercentage > 0.05 {
+
+			gfx.ThickLineColor(globals.Renderer, int32(center.X-w/2), int32(center.Y), int32(center.X+w/2), int32(center.Y), 2, highlightColor)
+
+		}
 
 	}
 

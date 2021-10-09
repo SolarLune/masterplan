@@ -71,12 +71,12 @@ func (prop *Property) AsFloat() float64 {
 	return prop.data.(float64)
 }
 
-// func (prop *Property) AsMap() map[interface{}]interface{} {
-// 	if prop.data == nil {
-// 		prop.data = map[interface{}]interface{}{}
-// 	}
-// 	return prop.data.(map[interface{}]interface{})
-// }
+func (prop *Property) AsMap() map[string]interface{} {
+	if prop.data == nil {
+		prop.data = map[string]interface{}{}
+	}
+	return prop.data.(map[string]interface{})
+}
 
 func (prop *Property) Set(value interface{}) {
 

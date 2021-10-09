@@ -33,6 +33,7 @@ const (
 	KBPanModifier = "Pan Modifier"
 
 	KBNewCheckboxCard = "New Checkbox Card"
+	KBNewNumberCard   = "New Number Card"
 	KBNewNoteCard     = "New Note Card"
 	KBNewSoundCard    = "New Sound Card"
 	KBNewImageCard    = "New Image Card"
@@ -188,16 +189,16 @@ func (shortcut *Shortcut) SetKeys(code sdl.Keycode, modCodes ...sdl.Keycode) {
 	}
 }
 
-func (shortcut *Shortcut) SetButton(buttonIndex uint8) {
+func (shortcut *Shortcut) SetButton(buttonIndex uint8, modCodes ...sdl.Keycode) {
 
 	shortcut.MouseButton = buttonIndex
 	shortcut.Key = -1
-	shortcut.Modifiers = []sdl.Keycode{}
+	shortcut.Modifiers = append([]sdl.Keycode{}, modCodes...)
 
 	if !shortcut.DefaultSet {
-		shortcut.DefaultKey = -1
-		shortcut.DefaultModifiers = []sdl.Keycode{}
 		shortcut.DefaultMouseButton = buttonIndex
+		shortcut.DefaultModifiers = append([]sdl.Keycode{}, modCodes...)
+		shortcut.DefaultKey = -1
 		shortcut.DefaultSet = true
 	}
 
@@ -206,22 +207,24 @@ func (shortcut *Shortcut) SetButton(buttonIndex uint8) {
 func (shortcut *Shortcut) KeysToString() string {
 	name := ""
 
-	if shortcut.MouseButton == sdl.BUTTON_LEFT {
-		return "Left Mouse Button"
-	} else if shortcut.MouseButton == sdl.BUTTON_MIDDLE {
-		return "Middle Mouse Button"
-	} else if shortcut.MouseButton == sdl.BUTTON_RIGHT {
-		return "Right Mouse Button"
-	} else if shortcut.MouseButton == sdl.BUTTON_X1 {
-		return "Mouse Button X1"
-	} else if shortcut.MouseButton == sdl.BUTTON_X2 {
-		return "Mouse Button X2"
-	}
-
 	for _, mod := range shortcut.Modifiers {
 		name += sdl.GetKeyName(mod) + "+"
 	}
-	name += sdl.GetKeyName(shortcut.Key)
+
+	if shortcut.MouseButton == sdl.BUTTON_LEFT {
+		name += "Left Mouse Button"
+	} else if shortcut.MouseButton == sdl.BUTTON_MIDDLE {
+		name += "Middle Mouse Button"
+	} else if shortcut.MouseButton == sdl.BUTTON_RIGHT {
+		name += "Right Mouse Button"
+	} else if shortcut.MouseButton == sdl.BUTTON_X1 {
+		name += "Mouse Button X1"
+	} else if shortcut.MouseButton == sdl.BUTTON_X2 {
+		name += "Mouse Button X2"
+	} else {
+		name += sdl.GetKeyName(shortcut.Key)
+	}
+
 	return name
 }
 
@@ -245,13 +248,11 @@ func (shortcut *Shortcut) Serialize() string {
 	if shortcut.MouseButton < 255 {
 		data, _ = sjson.Set(data, "mouse", shortcut.MouseButton)
 	} else {
-
 		data, _ = sjson.Set(data, "key", shortcut.Key)
+	}
 
-		if len(shortcut.Modifiers) > 0 {
-			data, _ = sjson.Set(data, "mods", shortcut.Modifiers)
-		}
-
+	if len(shortcut.Modifiers) > 0 {
+		data, _ = sjson.Set(data, "mods", shortcut.Modifiers)
 	}
 
 	return data
@@ -260,19 +261,18 @@ func (shortcut *Shortcut) Serialize() string {
 
 func (shortcut *Shortcut) Deserialize(data string) {
 
-	if gjson.Get(data, "mouse").Exists() {
-		shortcut.SetButton(uint8(gjson.Get(data, "mouse").Int()))
-	} else {
+	mods := []sdl.Keycode{}
 
-		key := sdl.Keycode(gjson.Get(data, "key").Int())
-		mods := []sdl.Keycode{}
-
-		if jmods := gjson.Get(data, "mods"); jmods.Exists() {
-			for _, mod := range jmods.Array() {
-				mods = append(mods, sdl.Keycode(mod.Int()))
-			}
+	if jmods := gjson.Get(data, "mods"); jmods.Exists() {
+		for _, mod := range jmods.Array() {
+			mods = append(mods, sdl.Keycode(mod.Int()))
 		}
-		shortcut.SetKeys(key, mods...)
+	}
+
+	if gjson.Get(data, "mouse").Exists() {
+		shortcut.SetButton(uint8(gjson.Get(data, "mouse").Int()), mods...)
+	} else {
+		shortcut.SetKeys(sdl.Keycode(gjson.Get(data, "key").Int()), mods...)
 	}
 
 }
@@ -318,6 +318,7 @@ func (shortcut *Shortcut) String() string {
 }
 
 type Keybindings struct {
+	On                bool
 	ShortcutsInOrder  []*Shortcut
 	Shortcuts         map[string]*Shortcut
 	ShortcutsByFamily map[sdl.Keycode][]*Shortcut
@@ -325,6 +326,7 @@ type Keybindings struct {
 
 func NewKeybindings() *Keybindings {
 	kb := &Keybindings{
+		On:                true,
 		Shortcuts:         map[string]*Shortcut{},
 		ShortcutsByFamily: map[sdl.Keycode][]*Shortcut{},
 	}
@@ -374,13 +376,13 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBSaveProject, sdl.K_s, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBSaveProjectAs, sdl.K_s, sdl.K_LCTRL, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBOpenProject, sdl.K_o, sdl.K_LCTRL)
-	kb.DefineMouseShortcut(KBPanModifier, sdl.BUTTON_MIDDLE).triggerMode = TriggerModeHold
 	kb.DefineMouseShortcut(KBOpenContextMenu, sdl.BUTTON_RIGHT)
 
 	kb.DefineKeyShortcut(KBPanUp, sdl.K_w).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBPanLeft, sdl.K_a).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBPanRight, sdl.K_d).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBPanDown, sdl.K_s).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBPanRight, sdl.K_d).triggerMode = TriggerModeHold
+	kb.DefineMouseShortcut(KBPanModifier, sdl.BUTTON_MIDDLE).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBFastPan, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
 	// kb.Define(KBFastPanUp, sdl.K_w, sdl.K_LSHIFT).triggerMode = TriggerModeHold
@@ -389,11 +391,12 @@ func (kb *Keybindings) Default() {
 	// kb.Define(KBFastPanRight, sdl.K_d, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
 	kb.DefineKeyShortcut(KBNewCheckboxCard, sdl.K_1, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewNoteCard, sdl.K_2, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewSoundCard, sdl.K_3, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewImageCard, sdl.K_4, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewTimerCard, sdl.K_5, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewMapCard, sdl.K_6, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewNumberCard, sdl.K_2, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewNoteCard, sdl.K_3, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewSoundCard, sdl.K_4, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewImageCard, sdl.K_5, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewTimerCard, sdl.K_6, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewMapCard, sdl.K_7, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
@@ -493,43 +496,53 @@ func (kb *Keybindings) SetupShortcutFamilies() {
 
 }
 
-func (kb *Keybindings) On(bindingName string) bool {
+func (kb *Keybindings) Pressed(bindingName string) bool {
 
 	sc := kb.Shortcuts[bindingName]
 
-	if !sc.Enabled {
+	if !kb.On || !sc.Enabled {
 		return false
 	}
 
 	for _, familyShortcut := range kb.ShortcutsByFamily[sc.Key] {
 		if familyShortcut == sc {
 			break
-		} else if len(familyShortcut.Keys()) > len(sc.Keys()) && kb.On(familyShortcut.Name) {
+		} else if len(familyShortcut.Keys()) > len(sc.Keys()) && kb.Pressed(familyShortcut.Name) {
 			return false
 		}
 	}
 
 	if sc.MouseButton < 255 {
+		for _, key := range sc.Modifiers {
+			// The modifier keys have to be held; otherwise, it doesn't work.
+			if !globals.Keyboard.Key(key).Held() {
+				return false
+			}
+		}
+
 		if sc.triggerMode == TriggerModeHold {
 			return globals.Mouse.Button(sc.MouseButton).Held()
 		} else if sc.triggerMode == TriggerModePress {
 			return globals.Mouse.Button(sc.MouseButton).Pressed()
 		}
-	}
 
-	for i, key := range sc.Keys() {
+	} else {
 
-		if i < len(sc.Keys())-1 {
-			// The modifier keys have to be held; otherwise, it doesn't work.
-			if !globals.Keyboard.Key(key).Held() {
-				return false
+		for i, key := range sc.Keys() {
+
+			if i < len(sc.Keys())-1 {
+				// The modifier keys have to be held; otherwise, it doesn't work.
+				if !globals.Keyboard.Key(key).Held() {
+					return false
+				}
+			} else {
+				if sc.triggerMode == TriggerModeHold {
+					return globals.Keyboard.Key(key).Held()
+				} else if sc.triggerMode == TriggerModePress {
+					return globals.Keyboard.Key(key).Pressed()
+				}
 			}
-		} else {
-			if sc.triggerMode == TriggerModeHold {
-				return globals.Keyboard.Key(key).Held()
-			} else if sc.triggerMode == TriggerModePress {
-				return globals.Keyboard.Key(key).Pressed()
-			}
+
 		}
 
 	}

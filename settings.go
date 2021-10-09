@@ -26,6 +26,7 @@ const (
 	SettingsAlwaysShowNumbering    = "AlwaysShowNumbering"
 	SettingsDisplayMessages        = "DisplayMessages"
 	SettingsDoubleClickCreatesCard = "DoubleClickCreatesCard"
+	SettingsShowGrid               = "ShowGrid"
 )
 
 func NewProgramSettings() *Properties {
@@ -39,6 +40,8 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsDownloadDirectory).Set("")
 	props.Get(SettingsDisplayMessages).Set(true)
 	props.Get(SettingsDoubleClickCreatesCard).Set(true)
+	props.Get(SettingsShowGrid).Set(true)
+	props.Get(SettingsSaveWindowPosition).Set(true)
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 
