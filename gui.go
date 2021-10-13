@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -139,26 +140,28 @@ type FocusableMenuElement interface {
 }
 
 type IconButton struct {
-	Rect        *sdl.FRect
-	IconSrc     *sdl.Rect
-	WorldSpace  bool
-	OnPressed   func()
-	Tint        Color
-	Flip        sdl.RendererFlip
-	BGIconSrc   *sdl.Rect
-	Highlighter *Highlighter
-	Alpha       float32
+	Rect           *sdl.FRect
+	IconSrc        *sdl.Rect
+	WorldSpace     bool
+	OnPressed      func()
+	Tint           Color
+	Flip           sdl.RendererFlip
+	BGIconSrc      *sdl.Rect
+	Highlighter    *Highlighter
+	Alpha          float32
+	FadeOnInactive bool
 }
 
 func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked func()) *IconButton {
 
 	iconButton := &IconButton{
-		Rect:       &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)},
-		IconSrc:    iconSrc,
-		WorldSpace: worldSpace,
-		Tint:       NewColor(255, 255, 255, 255),
-		OnPressed:  onClicked,
-		Alpha:      1,
+		Rect:           &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)},
+		IconSrc:        iconSrc,
+		WorldSpace:     worldSpace,
+		Tint:           NewColor(255, 255, 255, 255),
+		OnPressed:      onClicked,
+		Alpha:          1,
+		FadeOnInactive: true,
 	}
 	iconButton.Highlighter = NewHighlighter(iconButton.Rect, worldSpace)
 	iconButton.Highlighter.HighlightMode = HighlightUnderline
@@ -191,8 +194,8 @@ func (iconButton *IconButton) Draw() {
 
 	hovering := mp.Inside(iconButton.Rect)
 
-	targetAlpha := float32(0.5)
-	if hovering {
+	targetAlpha := float32(0.6)
+	if hovering || !iconButton.FadeOnInactive {
 		targetAlpha = 1
 	}
 
@@ -321,11 +324,10 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 
 	spinner.Label = NewLabel("0", rect, worldSpace, AlignCenter)
 
-	spinner.Label.RegexString = RegexOnlyDigit()
+	spinner.Label.RegexString = RegexOnlyDigits()
 	spinner.Label.Editable = true
 	spinner.Label.OnClickOut = func() {
-		f, _ := strconv.Atoi(spinner.Label.TextAsString())
-		spinner.Property.Set(spinner.EnforceCaps(float64(f)))
+		spinner.Property.Set(spinner.EnforceCaps(float64(spinner.Label.TextAsInt())))
 	}
 
 	spinner.Increase = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, worldSpace, func() {
@@ -439,27 +441,29 @@ func (spinner *NumberSpinner) SetRectangle(rect *sdl.FRect) {
 // 	return clickInside
 // }
 type Button struct {
-	Label          *Label
-	Rect           *sdl.FRect
-	IconSrc        *sdl.Rect
-	LineWidth      float32
-	Disabled       bool
-	WorldSpace     bool
-	FadeOnInactive bool
-	OnPressed      func()
-	Highlighter    *Highlighter
+	Label           *Label
+	BackgroundColor Color
+	Rect            *sdl.FRect
+	IconSrc         *sdl.Rect
+	LineWidth       float32
+	Disabled        bool
+	WorldSpace      bool
+	FadeOnInactive  bool
+	OnPressed       func()
+	Highlighter     *Highlighter
 }
 
 func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, worldSpace bool, pressedFunc func()) *Button {
 
 	button := &Button{
-		Label:          NewLabel(labelText, rect, worldSpace, AlignCenter),
-		Rect:           &sdl.FRect{},
-		IconSrc:        iconSrcRect,
-		OnPressed:      pressedFunc,
-		WorldSpace:     worldSpace,
-		FadeOnInactive: true,
-		Highlighter:    NewHighlighter(nil, worldSpace),
+		Label:           NewLabel(labelText, rect, worldSpace, AlignCenter),
+		Rect:            &sdl.FRect{},
+		IconSrc:         iconSrcRect,
+		OnPressed:       pressedFunc,
+		WorldSpace:      worldSpace,
+		FadeOnInactive:  true,
+		Highlighter:     NewHighlighter(nil, worldSpace),
+		BackgroundColor: ColorTransparent,
 	}
 
 	button.Highlighter.HighlightMode = HighlightUnderline
@@ -488,11 +492,10 @@ func (button *Button) Update() {
 		mousePos = globals.Mouse.WorldPosition()
 	}
 
-	alphaTarget := float32(0.5)
+	alphaTarget := float32(1)
+	lineTarget := float32(1)
 
 	if mousePos.Inside(button.Rect) && !button.Disabled {
-		alphaTarget = 1
-		button.LineWidth += (1 - button.LineWidth) * 0.2
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.CurrentCursor == "normal" {
 			if button.OnPressed != nil {
@@ -501,13 +504,13 @@ func (button *Button) Update() {
 			}
 		}
 
-	} else {
-		button.LineWidth += (0 - button.LineWidth) * 0.2
+	} else if button.FadeOnInactive {
+		alphaTarget = 0.6
+		lineTarget = 0
 	}
 
-	if button.FadeOnInactive {
-		button.Label.Alpha += ((alphaTarget - button.Label.Alpha) * 0.1)
-	}
+	button.Label.Alpha += ((alphaTarget - button.Label.Alpha) * 0.1)
+	button.LineWidth += (lineTarget - button.LineWidth) * 0.2
 
 	if len(button.Label.Text) > 0 {
 		button.Label.Update()
@@ -516,6 +519,15 @@ func (button *Button) Update() {
 }
 
 func (button *Button) Draw() {
+
+	if button.BackgroundColor[3] > 0 {
+		guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+		guiTexture.SetBlendMode(sdl.BLENDMODE_NONE)
+		guiTexture.SetColorMod(button.BackgroundColor.RGB())
+		guiTexture.SetAlphaMod(1)
+		globals.Renderer.CopyF(guiTexture, &sdl.Rect{240, 128, 32, 32}, button.Rect)
+		guiTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
+	}
 
 	if len(button.Label.Text) > 0 {
 		button.Label.Draw()
@@ -527,7 +539,8 @@ func (button *Button) Draw() {
 		mousePos = globals.Mouse.WorldPosition()
 	}
 
-	button.Highlighter.Highlighting = mousePos.Inside(button.Rect)
+	button.Highlighter.Highlighting = mousePos.Inside(button.Rect) || !button.FadeOnInactive
+
 	button.Highlighter.SetRect(button.Rect)
 	button.Highlighter.Draw()
 
@@ -539,6 +552,7 @@ func (button *Button) Draw() {
 
 		guiTexture.SetAlphaMod(uint8(button.Label.Alpha * 255))
 		guiTexture.SetColorMod(color.RGB())
+		guiTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
 		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, float32(button.IconSrc.W), float32(button.IconSrc.H)}
 
 		if button.WorldSpace {
@@ -608,6 +622,8 @@ func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), opt
 		dropdown.Open = !dropdown.Open
 	})
 
+	dropdown.Button.BackgroundColor = getThemeColor(GUIMenuColor)
+
 	dropdown.SetOptions(options...)
 
 	return dropdown
@@ -633,11 +649,18 @@ func (dropdown *Dropdown) SetOptions(options ...string) {
 				dropdown.OnChoose(index)
 			}
 		})
+		b.BackgroundColor = getThemeColor(GUIMenuColor)
 		dropdown.Choices = append(dropdown.Choices, b)
 	}
 }
 
 func (dropdown *Dropdown) Update() {
+
+	bgColor := getThemeColor(GUIMenuColor)
+	dropdown.Button.BackgroundColor = bgColor
+	for _, c := range dropdown.Choices {
+		c.BackgroundColor = bgColor
+	}
 
 	dropdown.Button.Update()
 	y := float32(dropdown.Button.Rect.H)
@@ -653,6 +676,7 @@ func (dropdown *Dropdown) Update() {
 			r := b.Rectangle()
 			r.X = dropdown.Button.Rect.X + (dropdown.Button.Rect.W / 2) - (r.W / 2)
 			r.Y = dropdown.Button.Rect.Y + y
+			r.W = dropdown.Button.Rect.W
 
 			b.SetRectangle(r)
 			b.Update()
@@ -689,17 +713,112 @@ func (dropdown *Dropdown) Rectangle() *sdl.FRect {
 		return dropdown.Button.Rect
 	}
 }
+
 func (dropdown *Dropdown) SetRectangle(rect *sdl.FRect) {
 	// r := *rect
 	// dropdown.Rect = &r
-	if !dropdown.Open {
-		dropdown.Button.SetRectangle(rect)
+	if dropdown.Open {
+		r := dropdown.Button.Rectangle()
+		r.Y = rect.Y
+		r.X = rect.X
+		dropdown.Button.SetRectangle(r)
 	} else {
-		rect.H = dropdown.Button.Rect.H
 		dropdown.Button.SetRectangle(rect)
 	}
+
 }
 func (dropdown *Dropdown) Destroy() {}
+
+type ButtonGroup struct {
+	ChosenIndex int
+	Options     []string
+	Buttons     []*Button
+	Rect        *sdl.FRect
+	OnChoose    func(index int)
+	Property    *Property
+	WorldSpace  bool
+}
+
+func NewButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index int), property *Property, choices ...string) *ButtonGroup {
+
+	if rect == nil {
+		rect = &sdl.FRect{0, 0, 1, 1}
+	}
+
+	group := &ButtonGroup{
+		Rect:       rect,
+		Options:    []string{},
+		Buttons:    []*Button{},
+		Property:   property,
+		WorldSpace: worldSpace,
+	}
+
+	group.SetChoices(choices...)
+
+	return group
+
+}
+
+func (bg *ButtonGroup) SetChoices(choices ...string) {
+
+	for _, b := range bg.Buttons {
+		b.Destroy()
+	}
+
+	bg.Buttons = []*Button{}
+	bg.Options = choices
+
+	for i, c := range choices {
+		index := i
+		bg.Buttons = append(bg.Buttons, NewButton(c, nil, nil, bg.WorldSpace, func() {
+			bg.ChosenIndex = index
+			if bg.OnChoose != nil {
+				bg.OnChoose(index)
+			}
+		}))
+	}
+
+}
+
+func (bg *ButtonGroup) Update() {
+
+	rect := bg.Rectangle()
+	rect.W /= float32(len(bg.Buttons))
+
+	for _, b := range bg.Buttons {
+		b.SetRectangle(rect)
+		rect.X += rect.W
+		b.Update()
+	}
+
+}
+
+func (bg *ButtonGroup) Draw() {
+
+	for i, b := range bg.Buttons {
+		b.FadeOnInactive = bg.ChosenIndex != i
+		b.Draw()
+	}
+
+}
+
+func (bg *ButtonGroup) Rectangle() *sdl.FRect {
+	rect := *bg.Rect
+	return &rect
+}
+
+func (bg *ButtonGroup) SetRectangle(rect *sdl.FRect) {
+	bg.Rect.X = rect.X
+	bg.Rect.Y = rect.Y
+	bg.Rect.W = rect.W
+	bg.Rect.H = rect.H
+}
+
+func (bg *ButtonGroup) Destroy() {
+	for _, b := range bg.Buttons {
+		b.Destroy()
+	}
+}
 
 type Spacer struct {
 	Rect *sdl.FRect
@@ -807,6 +926,7 @@ type Label struct {
 	textChanged         bool
 	Highlighter         *Highlighter
 	AutoExpand          bool
+	Property            *Property
 }
 
 // NewLabel creates a new Label object. a rect of nil means the Label will default to a rectangle of the necessary size to fully display the text given.
@@ -823,6 +943,7 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 	}
 
 	label.Highlighter.HighlightMode = HighlightColor
+	label.Highlighter.Color = getThemeColor(GUIFontColor)
 
 	if rect == nil {
 		// A rect width or height of -1, -1 means the Label's rect's size should expand to fill as necessary
@@ -1191,6 +1312,14 @@ func (label *Label) Update() {
 
 	}
 
+	if label.Property != nil && label.Property.AsString() != label.TextAsString() {
+		if label.textChanged {
+			label.Property.Set(label.TextAsString())
+		} else {
+			label.SetText([]rune(label.Property.AsString()))
+		}
+	}
+
 }
 
 func (label *Label) Draw() {
@@ -1212,7 +1341,7 @@ func (label *Label) Draw() {
 		mousePos = globals.Mouse.WorldPosition()
 	}
 
-	if label.Editable {
+	if label.Editable && label.RendererResult != nil {
 		label.Highlighter.Draw()
 
 		thickness := float32(2)
@@ -1310,7 +1439,12 @@ func (label *Label) Draw() {
 			newRect = globals.Project.Camera.TranslateRect(newRect)
 		}
 
-		label.RendererResult.Image.Texture.SetColorMod(getThemeColor(GUIFontColor).RGB())
+		color := getThemeColor(GUIFontColor)
+
+		if label.Highlighter.Highlighting {
+			color = color.Invert()
+		}
+		label.RendererResult.Image.Texture.SetColorMod(color.RGB())
 		label.RendererResult.Image.Texture.SetAlphaMod(uint8(label.Alpha * 255))
 
 		globals.Renderer.CopyF(label.RendererResult.Image.Texture, src, newRect)
@@ -1429,6 +1563,11 @@ func (label *Label) RecreateTexture() {
 }
 
 func (label *Label) TextAsString() string { return string(label.Text) }
+
+func (label *Label) TextAsInt() int {
+	i, _ := strconv.Atoi(label.TextAsString())
+	return i
+}
 
 func (label *Label) DeleteSelectedChars() {
 	start, end := label.Selection.ContiguousRange()
@@ -1582,6 +1721,7 @@ type ContainerRow struct {
 	Elements          map[string]MenuElement
 	Alignment         string
 	HorizontalSpacing float32
+	VerticalSpacing   float32
 	ExpandElements    bool
 }
 
@@ -1591,9 +1731,17 @@ func NewContainerRow(container *Container, horizontalAlignment string) *Containe
 		ElementOrder:      []MenuElement{},
 		Elements:          map[string]MenuElement{},
 		Alignment:         horizontalAlignment,
-		HorizontalSpacing: 8,
+		HorizontalSpacing: 0,
+		VerticalSpacing:   4,
 		// InterElementSpacing: -1,
 	}
+
+	// By default, the vertical spacing is not there for worldspace rows (i.e.
+	// rows updated and drawn on Cards, where they have to be tight on space).
+	if row.Container.WorldSpace {
+		row.VerticalSpacing = 0
+	}
+
 	return row
 }
 
@@ -1605,9 +1753,10 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 
 	usedWidth := float32(0)
 	maxWidth := row.Container.Rect.W
-	yHeight := globals.GridSize
+	yHeight := float32(0)
 
 	for _, element := range row.Elements {
+
 		rect := element.Rectangle()
 		usedWidth += rect.W
 		if yHeight < rect.H {
@@ -1630,7 +1779,6 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 
 		rect.X = x
 		rect.Y = y
-		rect.Y += (yHeight - rect.H) / 2
 
 		if row.ExpandElements {
 			rect.W = maxWidth / float32(len(row.Elements))
@@ -1642,13 +1790,7 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		x += rect.W + row.HorizontalSpacing
 	}
 
-	margin := float32(0)
-
-	if !row.Container.WorldSpace {
-		margin = 4
-	}
-
-	return yHeight + margin
+	return yHeight + row.VerticalSpacing
 
 }
 
@@ -1677,6 +1819,7 @@ func (row *ContainerRow) Add(name string, element MenuElement) {
 	}
 	row.Elements[name] = element
 	row.ElementOrder = append(row.ElementOrder, element)
+
 	// return row
 }
 
@@ -1735,13 +1878,13 @@ func (container *Container) Update() {
 	globals.Mouse.HiddenPosition = false
 
 	if container.NeedScroll() && container.DisplayScrollbar {
-		container.Scrollbar.Rect.H = container.Rect.H - 32
+		container.Scrollbar.Rect.H = container.Rect.H - 48
 		container.Scrollbar.Rect.W = 16
 		container.Scrollbar.Rect.X = container.Rect.X + container.Rect.W
-		container.Scrollbar.Rect.Y = container.Rect.Y + 32
+		container.Scrollbar.Rect.Y = container.Rect.Y + 48
 
 		if wheel := globals.Mouse.Wheel(); wheel != 0 && pos.Inside(container.Rect) {
-			container.Scrollbar.SetValue(container.Scrollbar.Value - float32(wheel)*0.1)
+			container.Scrollbar.SetValue(container.Scrollbar.TargetValue - float32(wheel)*0.1)
 			globals.Mouse.wheel = 0 // Consume the wheel movement
 		}
 
@@ -1765,7 +1908,11 @@ func (container *Container) Draw() {
 
 	globals.Renderer.SetClipRect(&sdl.Rect{int32(rect.X), int32(rect.Y), int32(rect.W), int32(rect.H)})
 
-	for _, row := range container.Rows {
+	rows := append([]*ContainerRow{}, container.Rows...)
+
+	sort.SliceStable(rows, func(i, j int) bool { return i > j })
+
+	for _, row := range rows {
 		row.Draw()
 	}
 
@@ -1845,7 +1992,7 @@ func (container *Container) IdealSize() Point {
 			size.X = greatestW
 		}
 
-		size.Y += greatestH
+		size.Y += greatestH + row.VerticalSpacing
 
 	}
 
@@ -1902,6 +2049,7 @@ func (icon *Icon) Destroy() {}
 type Scrollbar struct {
 	Rect        *sdl.FRect
 	Value       float32
+	TargetValue float32
 	WorldSpace  bool
 	OnValueSet  func()
 	OnRelease   func()
@@ -1954,15 +2102,17 @@ func (scrollbar *Scrollbar) Update() {
 
 	}
 
+	scrollbar.Value += (scrollbar.TargetValue - scrollbar.Value) * 12 * globals.DeltaTime
+
 }
 
 func (scrollbar *Scrollbar) SetValue(value float32) {
-	scrollbar.Value = value
+	scrollbar.TargetValue = value
 
-	if scrollbar.Value < 0 {
-		scrollbar.Value = 0
-	} else if scrollbar.Value > 1 {
-		scrollbar.Value = 1
+	if scrollbar.TargetValue < 0 {
+		scrollbar.TargetValue = 0
+	} else if scrollbar.TargetValue > 1 {
+		scrollbar.TargetValue = 1
 	}
 
 	if scrollbar.OnValueSet != nil {
@@ -2085,10 +2235,10 @@ func (pie *Pie) SetRectangle(rect *sdl.FRect) {
 func (pie *Pie) Destroy() {}
 
 const (
-	HighlightColor      = "HighlightColor"
-	HighlightRing       = "HighlightRing"
-	HighlightSmallArrow = "HighlightSmallArrow"
-	HighlightUnderline  = "HighlightUnderline"
+	HighlightColor = "HighlightColor"
+	HighlightRing  = "HighlightRing"
+	// HighlightSmallDiamond = "HighlightSmallDiamond"
+	HighlightUnderline = "HighlightUnderline"
 )
 
 type Highlighter struct {
@@ -2147,7 +2297,7 @@ func (highlighter *Highlighter) Draw() {
 
 	if highlighter.Color == nil {
 		highlightColor = getThemeColor(GUICompletedColor).SDLColor()
-		highlightColor.A = 220
+		highlightColor.A = 255
 	} else {
 		highlightColor = highlighter.Color.SDLColor()
 	}
@@ -2187,11 +2337,16 @@ func (highlighter *Highlighter) Draw() {
 			gfx.ThickLineColor(globals.Renderer, int32(rect.X+rect.W), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+h), 2, highlightColor)
 			gfx.ThickLineColor(globals.Renderer, int32(rect.X), int32(rect.Y+rect.H), int32(rect.X+w), int32(rect.Y+rect.H), 2, highlightColor)
 		}
-	case HighlightSmallArrow:
-		guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage()
-		guiTex.Texture.SetAlphaMod(highlightColor.A)
-		guiTex.Texture.SetColorMod(highlightColor.R, highlightColor.G, highlightColor.B)
-		globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{480, 32, 16, 16}, &rect)
+
+	// case HighlightSmallDiamond:
+
+	// 	if highlighter.HighlightPercentage > 0.01 {
+	// 		highlightColor.A = uint8(highlighter.HighlightPercentage * float32(highlightColor.A) * 0.5)
+	// 		guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage()
+	// 		guiTex.Texture.SetAlphaMod(highlightColor.A)
+	// 		guiTex.Texture.SetColorMod(highlightColor.R, highlightColor.G, highlightColor.B)
+	// 		globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{480, 32, 16, 16}, &rect)
+	// 	}
 
 	case HighlightUnderline:
 

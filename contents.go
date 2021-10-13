@@ -59,8 +59,7 @@ func (dc *DefaultContents) ReceiveMessage(msg *Message) {}
 type CheckboxContents struct {
 	DefaultContents
 	Label    *Label
-	Checkbox *Button
-	Checked  bool
+	Checkbox *Checkbox
 }
 
 func NewCheckboxContents(card *Card) *CheckboxContents {
@@ -69,7 +68,7 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 		DefaultContents: newDefaultContents(card),
 	}
 
-	cc.Checkbox = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{48, 0, 32, 32}, true, cc.Trigger)
+	cc.Checkbox = NewCheckbox(0, 0, true, card.Properties.Get("checked"))
 	cc.Checkbox.FadeOnInactive = false
 
 	cc.Label = NewLabel("New Checkbox", nil, true, AlignLeft)
@@ -113,29 +112,13 @@ func (cc *CheckboxContents) Update() {
 		cc.Label.SetText([]rune(description.AsString()))
 	}
 
-	cc.Checked = cc.Card.Properties.Get("checked").AsBool()
-
 	rect := cc.Label.Rectangle()
 	rect.W = cc.Container.Rect.W - rect.X + cc.Container.Rect.X
 	rect.H = cc.Container.Rect.H - rect.Y + cc.Container.Rect.Y
 	cc.Label.SetRectangle(rect)
 
-	if cc.Checked {
-		cc.Checkbox.IconSrc.Y = 32
-	} else {
-		cc.Checkbox.IconSrc.Y = 0
-	}
-
 	// Put the update here so the label gets updated after setting the description
 	cc.DefaultContents.Update()
-
-}
-
-func (cc *CheckboxContents) Trigger() {
-
-	cc.Checked = !cc.Checked
-
-	cc.Card.Properties.Get("checked").Set(cc.Checked)
 
 }
 
@@ -143,7 +126,7 @@ func (cc *CheckboxContents) Color() Color {
 
 	color := getThemeColor(GUICheckboxColor)
 
-	if cc.Checked {
+	if cc.Card.Properties.Get("checked").AsBool() {
 		color = getThemeColor(GUICompletedColor)
 	}
 
@@ -152,6 +135,13 @@ func (cc *CheckboxContents) Color() Color {
 
 func (cc *CheckboxContents) DefaultSize() Point {
 	return Point{globals.GridSize * 9, globals.GridSize}
+}
+
+func (cc *CheckboxContents) CompletionLevel() float32 {
+	if cc.Card.Properties.Get("checked").AsBool() {
+		return 1
+	}
+	return 0
 }
 
 type NumberContents struct {
@@ -166,8 +156,14 @@ func NewNumberContents(card *Card) *NumberContents {
 
 	number := &NumberContents{
 		DefaultContents: newDefaultContents(card),
-		Label:           NewLabel("New Progression", nil, true, AlignLeft),
+		Label:           NewLabel("New Numbered", nil, true, AlignLeft),
 	}
+
+	desc := card.Properties.Get("description")
+	if desc.AsString() == "" {
+		desc.Set("New Numbered")
+	}
+	number.Label.Property = desc
 
 	number.Label.OnChange = func() {
 		if number.Label.Editing {
@@ -257,6 +253,15 @@ func (number *NumberContents) Color() Color {
 func (number *NumberContents) DefaultSize() Point {
 	gs := globals.GridSize
 	return Point{gs * 8, gs * 2}
+}
+
+func (number *NumberContents) CompletionLevel() float32 {
+	current := number.Card.Properties.Get("value").AsFloat()
+	max := number.Card.Properties.Get("maximum").AsFloat()
+	if max > 0 {
+		return float32(current / max)
+	}
+	return 0
 }
 
 type NoteContents struct {
@@ -721,6 +726,14 @@ func (ic *ImageContents) Draw() {
 				if resource == ic.DefaultImage {
 					texture.SetColorMod(getThemeColor(GUIBlankImageColor).RGB())
 				}
+
+				color := ColorWhite.Clone()
+
+				if ic.Card.Selected && globals.Settings.Get(SettingsFlashSelected).AsBool() {
+					color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((ic.Card.Rect.X+ic.Card.Rect.Y)*0.004))*30 + 30))
+				}
+
+				texture.SetColorMod(color.RGB())
 
 				globals.Renderer.CopyF(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
 			}

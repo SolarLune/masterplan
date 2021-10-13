@@ -13,8 +13,8 @@ const (
 
 	// Keyboard Constants
 
-	KBDebugRestart = "DEBUG: RESTART"
-	KBDebugToggle  = "DEBUG: Toggle Debug"
+	// KBDebugRestart = "DEBUG: RESTART"
+	KBDebugToggle = "DEBUG: Toggle Debug"
 
 	KBZoomLevel25   = "Zoom Level 25%"
 	KBZoomLevel50   = "Zoom Level 50%"
@@ -49,8 +49,9 @@ const (
 	KBOpenProject         = "Open Project"
 	KBCopyCards           = "Copy Selected Cards"
 	KBPasteCards          = "Paste Selected Cards"
-	KBExternalPaste       = "Paste From System Clipboard As Card"
+	KBExternalPaste       = "External Clipboard Paste"
 	KBReturnToOrigin      = "Center View to Origin"
+	KBFocusOnCards        = "Focus On Selected Cards"
 	KBOpenContextMenu     = "Open Context Menu"
 
 	KBCollapseCard = "Card: Collapse"
@@ -68,7 +69,7 @@ const (
 	KBWindowSizeSmall  = "Set Window Size to 960x540"
 	KBWindowSizeNormal = "Set Window Size to 1920x1080"
 
-	KBUnlockImageASR = "Image: Unlock Aspect Ratio When Resizing"
+	KBUnlockImageASR = "Image: Unlock Aspect Ratio Modifier"
 
 	KBPickColor        = "Map: Pick Color"
 	KBMapNoTool        = "Map: Pointer Tool"
@@ -78,6 +79,10 @@ const (
 	KBMapLineTool      = "Map: Line Tool"
 	KBMapQuickLineTool = "Map: Quick Line"
 	KBMapPalette       = "Map: Open Palette"
+
+	KBFind     = "Open Find Menu"
+	KBFindNext = "Find: Next Card"
+	KBFindPrev = "Find: Prev. Card"
 
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -235,10 +240,11 @@ func (shortcut *Shortcut) Keys() []sdl.Keycode {
 }
 
 func (shortcut *Shortcut) ConsumeKeys() {
-	globals.Keyboard.Key(shortcut.Key).Consume()
-	// for _, key := range shortcut.Keys() {
-	// 	globals.Keyboard.Key(key).Consume()
-	// }
+	if shortcut.MouseButton < 255 {
+		globals.Mouse.Button(shortcut.MouseButton).Consume()
+	} else {
+		globals.Keyboard.Key(shortcut.Key).Consume()
+	}
 }
 
 func (shortcut *Shortcut) Serialize() string {
@@ -318,20 +324,22 @@ func (shortcut *Shortcut) String() string {
 }
 
 type Keybindings struct {
-	On                bool
-	ShortcutsInOrder  []*Shortcut
-	Shortcuts         map[string]*Shortcut
-	ShortcutsByFamily map[sdl.Keycode][]*Shortcut
+	On                     bool
+	ShortcutsInOrder       []*Shortcut
+	Shortcuts              map[string]*Shortcut
+	KeyShortcutsByFamily   map[sdl.Keycode][]*Shortcut
+	MouseShortcutsByFamily map[uint8][]*Shortcut
 }
 
 func NewKeybindings() *Keybindings {
 	kb := &Keybindings{
-		On:                true,
-		Shortcuts:         map[string]*Shortcut{},
-		ShortcutsByFamily: map[sdl.Keycode][]*Shortcut{},
+		On:                     true,
+		Shortcuts:              map[string]*Shortcut{},
+		KeyShortcutsByFamily:   map[sdl.Keycode][]*Shortcut{},
+		MouseShortcutsByFamily: map[uint8][]*Shortcut{},
 	}
 	kb.Default()
-	kb.SetupShortcutFamilies()
+	kb.UpdateShortcutFamilies()
 	return kb
 }
 
@@ -354,7 +362,7 @@ func (kb *Keybindings) DefineMouseShortcut(bindingName string, mouseButton uint8
 // Default keybinding definitions
 func (kb *Keybindings) Default() {
 
-	kb.DefineKeyShortcut(KBDebugRestart, sdl.K_r)
+	// kb.DefineKeyShortcut(KBDebugRestart, sdl.K_r)
 	kb.DefineKeyShortcut(KBDebugToggle, sdl.K_F1)
 
 	kb.DefineKeyShortcut(KBZoomLevel25, sdl.K_1)
@@ -409,6 +417,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBExternalPaste, sdl.K_v, sdl.K_LCTRL, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBReturnToOrigin, sdl.K_BACKSPACE)
+	kb.DefineKeyShortcut(KBFocusOnCards, sdl.K_f)
 
 	kb.DefineKeyShortcut(KBCopyText, sdl.K_c, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBCutText, sdl.K_x, sdl.K_LCTRL)
@@ -434,62 +443,53 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBMapQuickLineTool, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBMapPalette, sdl.K_TAB)
 
-	// guiFocus := kb.Define(KBTabFocusNext, rl.KeyTab)
-	// guiFocus.triggerMode = TriggerModeRepeating
-	// guiFocus.canClash = false
+	kb.DefineKeyShortcut(KBFind, sdl.K_f, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBFindNext, sdl.K_f, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBFindPrev, sdl.K_f, sdl.K_LCTRL, sdl.K_LSHIFT)
 
-	// guiFocus = kb.Define(KBTabFocusPrev, rl.KeyTab, rl.KeyLeftShift)
-	// guiFocus.triggerMode = TriggerModeRepeating
-	// guiFocus.canClash = false
-
-	// // Textbox shortcuts all have the same triggerMode and rule, so it makes sense to put them in a
-	// // for loop
-	// textboxShortcuts := map[string][]int32{
-	// 	KBSelectAllText: {rl.KeyA, rl.KeyLeftControl},
-	// 	KBCopyText:      {rl.KeyC, rl.KeyLeftControl},
-	// 	KBPasteText:     {rl.KeyV, rl.KeyLeftControl},
-	// 	KBCutText:       {rl.KeyX, rl.KeyLeftControl},
-	// }
-
-	// for shortcutName, keys := range textboxShortcuts {
-	// 	shortcut := kb.Define(shortcutName, sdl.Keycode(keys[0]), sdl.Keymod(keys[1]))
-	// 	shortcut.canClash = false
-	// }
-
-	// kb.ShortcutsByLevel = map[int][]*Shortcut{}
-
-	// for _, shortcut := range kb.Shortcuts {
-
-	// 	_, exists := kb.ShortcutsByLevel[shortcut.KeyCount()-1]
-
-	// 	if !exists {
-	// 		kb.ShortcutsByLevel[shortcut.KeyCount()-1] = []*Shortcut{}
-	// 	}
-
-	// 	kb.ShortcutsByLevel[shortcut.KeyCount()-1] = append(kb.ShortcutsByLevel[shortcut.KeyCount()-1], shortcut)
-
-	// }
+	kb.UpdateShortcutFamilies()
 
 }
 
-// This organizes shortcuts by families (which key they end with).
-func (kb *Keybindings) SetupShortcutFamilies() {
+// This organizes shortcuts by families (which key they end with). Each shortcut is sorted by number of keys, so shortcuts with more keys "clank" with others.
+func (kb *Keybindings) UpdateShortcutFamilies() {
 
-	kb.ShortcutsByFamily = map[sdl.Keycode][]*Shortcut{}
+	kb.KeyShortcutsByFamily = map[sdl.Keycode][]*Shortcut{}
+	kb.MouseShortcutsByFamily = map[uint8][]*Shortcut{}
 
 	for _, shortcut := range kb.Shortcuts {
 
-		if _, exists := kb.ShortcutsByFamily[shortcut.Key]; !exists {
-			kb.ShortcutsByFamily[shortcut.Key] = []*Shortcut{}
+		if shortcut.MouseButton < 255 {
+
+			if _, exists := kb.MouseShortcutsByFamily[shortcut.MouseButton]; !exists {
+				kb.MouseShortcutsByFamily[shortcut.MouseButton] = []*Shortcut{}
+			}
+
+			kb.MouseShortcutsByFamily[shortcut.MouseButton] = append(kb.MouseShortcutsByFamily[shortcut.MouseButton], shortcut)
+
+		} else {
+
+			if _, exists := kb.KeyShortcutsByFamily[shortcut.Key]; !exists {
+				kb.KeyShortcutsByFamily[shortcut.Key] = []*Shortcut{}
+			}
+
+			kb.KeyShortcutsByFamily[shortcut.Key] = append(kb.KeyShortcutsByFamily[shortcut.Key], shortcut)
 		}
 
-		kb.ShortcutsByFamily[shortcut.Key] = append(kb.ShortcutsByFamily[shortcut.Key], shortcut)
 	}
 
-	for _, family := range kb.ShortcutsByFamily {
+	for _, family := range kb.KeyShortcutsByFamily {
 
 		sort.Slice(family, func(i, j int) bool {
 			return len(family[i].Keys()) > len(family[j].Keys())
+		})
+
+	}
+
+	for _, family := range kb.MouseShortcutsByFamily {
+
+		sort.Slice(family, func(i, j int) bool {
+			return len(family[i].Modifiers) > len(family[j].Modifiers)
 		})
 
 	}
@@ -504,15 +504,16 @@ func (kb *Keybindings) Pressed(bindingName string) bool {
 		return false
 	}
 
-	for _, familyShortcut := range kb.ShortcutsByFamily[sc.Key] {
-		if familyShortcut == sc {
-			break
-		} else if len(familyShortcut.Keys()) > len(sc.Keys()) && kb.Pressed(familyShortcut.Name) {
-			return false
-		}
-	}
-
 	if sc.MouseButton < 255 {
+
+		for _, familyShortcut := range kb.MouseShortcutsByFamily[sc.MouseButton] {
+			if familyShortcut == sc {
+				break
+			} else if len(familyShortcut.Modifiers) > len(sc.Modifiers) && kb.Pressed(familyShortcut.Name) {
+				return false
+			}
+		}
+
 		for _, key := range sc.Modifiers {
 			// The modifier keys have to be held; otherwise, it doesn't work.
 			if !globals.Keyboard.Key(key).Held() {
@@ -527,6 +528,14 @@ func (kb *Keybindings) Pressed(bindingName string) bool {
 		}
 
 	} else {
+
+		for _, familyShortcut := range kb.KeyShortcutsByFamily[sc.Key] {
+			if familyShortcut == sc {
+				break
+			} else if len(familyShortcut.Keys()) > len(sc.Keys()) && kb.Pressed(familyShortcut.Name) {
+				return false
+			}
+		}
 
 		for i, key := range sc.Keys() {
 
@@ -570,6 +579,8 @@ func (kb *Keybindings) Deserialize(data string) {
 		if exists {
 			shortcut.Deserialize(shortcutData.String())
 		}
+
+		kb.UpdateShortcutFamilies()
 
 	}
 

@@ -10,6 +10,7 @@ require (
 	github.com/faiface/beep v1.0.2
 	github.com/gabriel-vasile/mimetype v1.3.0
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b // indirect
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/ncruces/zenity v0.7.4
 	github.com/nwaples/rardecode v1.0.0 // indirect

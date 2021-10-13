@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -17,6 +18,7 @@ import (
 	"github.com/cavaliercoder/grab"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
+	"github.com/hako/durafmt"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -356,9 +358,9 @@ func main() {
 
 		} else {
 
-			if globals.State == StateNeutral && globals.Keybindings.Pressed(KBDebugRestart) {
-				globals.Project = NewProject()
-			}
+			// if globals.State == StateNeutral && globals.Keybindings.Pressed(KBDebugRestart) {
+			// 	globals.Project = NewProject()
+			// }
 
 			if globals.Keybindings.Pressed(KBDebugToggle) {
 				globals.DebugMode = !globals.DebugMode
@@ -692,21 +694,33 @@ func ConstructMenus() {
 	viewMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 200}, true), "view", false)
 	root = viewMenu.Pages["root"]
 
-	root.AddRow(AlignCenter).Add("Edit Menu", NewButton("Edit Menu", nil, nil, false, func() {
+	root.AddRow(AlignCenter).Add("Edit Menu", NewButton("Edit", nil, nil, false, func() {
 		globals.MenuSystem.Get("edit").Open()
+		viewMenu.Close()
 	}))
 
-	root.AddRow(AlignCenter).Add("Board Menu", NewButton("Board Menu", nil, nil, false, func() {
-		boardMenu := globals.MenuSystem.Get("boards")
-		// boardMenu.Center()
-		boardMenu.Rect.X = globals.ScreenSize.X - boardMenu.Rect.W
-		boardMenu.Rect.Y = 0
-		boardMenu.Open()
+	// root.AddRow(AlignCenter).Add("Board Menu", NewButton("Boards", nil, nil, false, func() {
+	// 	boardMenu := globals.MenuSystem.Get("boards")
+	// 	// boardMenu.Center()
+	// 	boardMenu.Rect.X = globals.ScreenSize.X - boardMenu.Rect.W
+	// 	boardMenu.Rect.Y = 0
+	// 	boardMenu.Open()
+	// 	viewMenu.Close()
+	// }))
+
+	root.AddRow(AlignCenter).Add("Find Menu", NewButton("Find", nil, nil, false, func() {
+		globals.MenuSystem.Get("search").Open()
+		viewMenu.Close()
+	}))
+
+	root.AddRow(AlignCenter).Add("Stats", NewButton("Stats", nil, nil, false, func() {
+		globals.MenuSystem.Get("stats").Open()
+		viewMenu.Close()
 	}))
 
 	// Edit Menu
 
-	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 2, globals.ScreenSize.Y / 2, 300, 200}, true), "edit", false)
+	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 2, globals.ScreenSize.Y / 2, 300, 400}, true), "edit", false)
 	editMenu.Draggable = true
 	editMenu.Resizeable = true
 	editMenu.CloseButtonEnabled = true
@@ -913,7 +927,7 @@ func ConstructMenus() {
 
 	// Settings Menu
 
-	settings := NewMenu(&sdl.FRect{0, 0, 650, 512}, true)
+	settings := NewMenu(&sdl.FRect{0, 0, 800, 512}, true)
 	settings.CloseButtonEnabled = true
 	settings.Draggable = true
 	settings.Resizeable = true
@@ -949,7 +963,7 @@ func ConstructMenus() {
 	row.Add("header", NewLabel("Visual Settings", nil, false, AlignCenter))
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("theme label", NewLabel("Color theme:", nil, false, AlignLeft))
+	row.Add("theme label", NewLabel("Color Theme:", nil, false, AlignLeft))
 
 	drop := NewDropdown(&sdl.FRect{0, 0, 128, 32}, false, func(index int) {
 		globals.Settings.Get(SettingsTheme).Set(availableThemes[index])
@@ -971,7 +985,7 @@ func ConstructMenus() {
 	row.Add("theme dropdown", drop)
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Always Show List Numbering:", nil, false, AlignLeft))
+	row.Add("", NewLabel("Always Show Numbering:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAlwaysShowNumbering)))
 
 	row = visual.AddRow(AlignCenter)
@@ -997,6 +1011,12 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Save Window Position:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSaveWindowPosition)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Flash Selected Cards:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFlashSelected)))
+
+	// INPUT
 
 	var rebindingKey *Button
 	var rebindingShortcut *Shortcut
@@ -1024,6 +1044,7 @@ func ConstructMenus() {
 					} else if len(heldKeys) > 0 {
 						rebindingShortcut.SetKeys(heldKeys[len(heldKeys)-1], heldKeys[:len(heldKeys)-1]...)
 					}
+					globals.Keybindings.UpdateShortcutFamilies()
 
 					rebindingKey = nil
 					rebindingShortcut = nil
@@ -1086,6 +1107,14 @@ func ConstructMenus() {
 	row = input.AddRow(AlignCenter)
 	row.Add("keybindings header", NewLabel("Keybindings", nil, false, AlignLeft))
 
+	row = input.AddRow(AlignCenter)
+	row.Add("reset all to default", NewButton("Reset All Bindings to Default", nil, nil, false, func() {
+		for _, shortcut := range globals.Keybindings.Shortcuts {
+			shortcut.ResetToDefault()
+			globals.Keybindings.UpdateShortcutFamilies()
+		}
+	}))
+
 	for _, s := range globals.Keybindings.ShortcutsInOrder {
 
 		// Make a copy so the OnPressed() function below refers to "this" shortcut, rather than the last one in the range
@@ -1109,9 +1138,229 @@ func ConstructMenus() {
 
 		button.OnPressed = func() {
 			shortcut.ResetToDefault()
+			globals.Keybindings.UpdateShortcutFamilies()
 		}
 
 		row.Add(shortcut.Name+"-d", button)
+	}
+
+	search := NewMenu(&sdl.FRect{0, 0, 512, 96}, true)
+	search.Center()
+	search.CloseButtonEnabled = true
+	search.Draggable = true
+	search.Resizeable = true
+
+	globals.MenuSystem.Add(search, "search", false)
+
+	root = search.Pages["root"]
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewLabel("Find:", nil, false, AlignCenter))
+	searchLabel := NewLabel("Text", &sdl.FRect{0, 0, 256, 32}, false, AlignLeft)
+	searchLabel.Editable = true
+	searchLabel.RegexString = RegexNoNewlines()
+
+	foundLabel := NewLabel("0 of 0", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter)
+	foundCards := []*Card{}
+	foundIndex := 0
+
+	caseSensitive := false
+
+	findFunc := func() {
+
+		page := globals.Project.CurrentPage
+		page.Selection.Clear()
+		foundCards = []*Card{}
+
+		if len(searchLabel.Text) == 0 {
+			foundLabel.SetText([]rune("0 of 0"))
+			return
+		}
+
+		for _, card := range page.Cards {
+
+			for propName, prop := range card.Properties.Props {
+
+				if (propName == "description" || propName == "filepath") && prop.InUse && prop.IsString() {
+
+					propString := prop.AsString()
+					searchString := searchLabel.TextAsString()
+
+					if !caseSensitive {
+						propString = strings.ToLower(prop.AsString())
+						searchString = strings.ToLower(searchString)
+					}
+
+					if strings.Contains(propString, searchString) {
+						foundCards = append(foundCards, card)
+						continue
+					}
+				}
+
+			}
+
+		}
+
+		if foundIndex >= len(foundCards) {
+			foundIndex = 0
+		} else if foundIndex < 0 {
+			foundIndex = len(foundCards) - 1
+		}
+
+		if len(foundCards) > 0 {
+			page.Selection.Add(foundCards[foundIndex])
+			foundLabel.SetText([]rune(fmt.Sprintf("%d of %d", foundIndex+1, len(foundCards))))
+			globals.Project.Camera.FocusOn(foundCards[foundIndex])
+		} else {
+			foundLabel.SetText([]rune("0 of 0"))
+		}
+
+	}
+
+	searchLabel.OnChange = func() {
+		foundIndex = 0
+		findFunc()
+	}
+
+	root.OnUpdate = func() {
+
+		if globals.Keybindings.Pressed(KBFindNext) {
+			foundIndex++
+			findFunc()
+		} else if globals.Keybindings.Pressed(KBFindPrev) {
+			foundIndex--
+			findFunc()
+		}
+
+	}
+
+	search.OnOpen = func() {
+		searchLabel.Editing = true
+		searchLabel.Selection.SelectAll()
+	}
+
+	var caseSensitiveButton *IconButton
+	caseSensitiveButton = NewIconButton(0, 0, &sdl.Rect{112, 160, 32, 32}, false, func() {
+		caseSensitive = !caseSensitive
+		if caseSensitive {
+			caseSensitiveButton.IconSrc.X = 144
+		} else {
+			caseSensitiveButton.IconSrc.X = 112
+		}
+		findFunc()
+	})
+	row.Add("", caseSensitiveButton)
+
+	row.Add("", NewIconButton(0, 0, &sdl.Rect{176, 96, 32, 32}, false, func() {
+		searchLabel.SetText([]rune(""))
+	}))
+
+	row.Add("", searchLabel)
+
+	row = root.AddRow(AlignCenter)
+
+	prev := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+		foundIndex--
+		findFunc()
+	})
+	prev.Flip = sdl.FLIP_HORIZONTAL
+	row.Add("", prev)
+
+	row.Add("", foundLabel)
+
+	row.Add("", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+		foundIndex++
+		findFunc()
+	}))
+
+	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 512, 128}, true), "stats", false)
+	stats.Center()
+	stats.Draggable = true
+	stats.CloseButtonEnabled = true
+	stats.Resizeable = true
+
+	root = stats.Pages["root"]
+
+	row = root.AddRow(AlignLeft)
+	maxLabel := NewLabel("so many cards existing", nil, false, AlignLeft)
+	row.Add("", maxLabel)
+
+	row = root.AddRow(AlignLeft)
+	completedLabel := NewLabel("so many cards completed", nil, false, AlignLeft)
+	row.Add("", completedLabel)
+	row.ExpandElements = true
+
+	row = root.AddRow(AlignLeft)
+	row.Add("", NewSpacer(&sdl.FRect{0, 0, 32, 1}))
+
+	row = root.AddRow(AlignLeft)
+	row.Add("time estimation", NewLabel("Time Estimation:", nil, false, AlignLeft))
+
+	timeNumber := NewLabel("15", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter)
+	timeNumber.Editable = true
+	timeNumber.RegexString = RegexOnlyDigits()
+	row.Add("", timeNumber)
+
+	timeUnitChoices := []string{
+		"Minutes",
+		"Hours",
+		"Days",
+		"Weeks",
+		"Months",
+	}
+
+	row = root.AddRow(AlignLeft)
+	row.ExpandElements = true
+	timeUnit := NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {}, globals.Settings.Get("time unit"), timeUnitChoices...)
+
+	// timeUnit := NewDropdown(nil, false, func(index int) {}, timeUnitChoices...)
+	row.Add("", timeUnit)
+
+	row = root.AddRow(AlignLeft)
+	estimatedTime := NewLabel("Time estimation label", nil, false, AlignLeft)
+	row.Add("", estimatedTime)
+	row.ExpandElements = true
+
+	root.OnUpdate = func() {
+
+		maxLabel.SetText([]rune(fmt.Sprintf("Total Cards: %d Cards", len(globals.Project.CurrentPage.Cards))))
+
+		completionLevel := float32(0)
+		maxLevel := float32(0)
+
+		for _, i := range globals.Project.CurrentPage.Cards {
+
+			if i.Numberable() {
+				maxLevel++
+
+				completionLevel += i.CompletionLevel()
+			}
+
+		}
+
+		completedLabel.SetText([]rune(fmt.Sprintf("Total Cards Completed: %d / %d (%d%%)", int(completionLevel), int(maxLevel), int(completionLevel/maxLevel*100))))
+
+		if completionLevel < maxLevel {
+			var unit time.Duration
+			t := timeUnitChoices[timeUnit.ChosenIndex]
+			switch t {
+			case "Minutes":
+				unit = time.Minute
+			case "Hours":
+				unit = time.Minute * 60
+			case "Days":
+				unit = time.Minute * 60 * 24
+			case "Weeks":
+				unit = time.Minute * 60 * 24 * 7
+			case "Months":
+				unit = time.Minute * 60 * 24 * 30
+			}
+			duration := unit * time.Duration(float32(timeNumber.TextAsInt())*(maxLevel-completionLevel)*10) / 10
+			s := durafmt.Parse(duration)
+			estimatedTime.SetText([]rune(fmt.Sprintf("%s to completion.", s.LimitFirstN(2))))
+		} else {
+			estimatedTime.SetText([]rune(fmt.Sprintf("All tasks completed.")))
+		}
+
 	}
 
 }

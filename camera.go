@@ -98,3 +98,21 @@ func (camera *Camera) ViewArea() *sdl.Rect {
 	return rect
 
 }
+
+func (camera *Camera) FocusOn(cards ...*Card) {
+
+	if len(cards) == 0 {
+		return
+	}
+
+	px := Point{}
+
+	for _, c := range cards {
+		px = px.Add(c.Center())
+	}
+
+	px = px.Div(float32(len(cards)))
+
+	camera.TargetPosition = px
+
+}

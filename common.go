@@ -436,6 +436,19 @@ func (color Color) Sub(value uint8) Color {
 	return newColor
 
 }
+
+func (color Color) Invert() Color {
+
+	newColor := NewColor(color.RGBA())
+
+	newColor[0] = 255 - newColor[0]
+	newColor[1] = 255 - newColor[1]
+	newColor[2] = 255 - newColor[2]
+
+	return newColor
+
+}
+
 func (color Color) Clone() Color {
 	return NewColor(color.RGBA())
 }
@@ -619,6 +632,6 @@ func RegexNoNewlines() string {
 	return `[^\n]`
 }
 
-func RegexOnlyDigit() string {
+func RegexOnlyDigits() string {
 	return `[\d]`
 }

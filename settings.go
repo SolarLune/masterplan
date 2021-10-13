@@ -27,6 +27,7 @@ const (
 	SettingsDisplayMessages        = "DisplayMessages"
 	SettingsDoubleClickCreatesCard = "DoubleClickCreatesCard"
 	SettingsShowGrid               = "ShowGrid"
+	SettingsFlashSelected          = "FlashSelected"
 )
 
 func NewProgramSettings() *Properties {
@@ -42,6 +43,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsDoubleClickCreatesCard).Set(true)
 	props.Get(SettingsShowGrid).Set(true)
 	props.Get(SettingsSaveWindowPosition).Set(true)
+	props.Get(SettingsFlashSelected).Set(true)
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 

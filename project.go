@@ -400,10 +400,10 @@ func (project *Project) GlobalShortcuts() {
 		project.Camera.TargetPosition.Y += dy / project.Camera.Zoom
 
 		if globals.Keybindings.Pressed(KBZoomIn) {
-			project.Camera.AddZoom(1)
+			project.Camera.AddZoom(project.Camera.Zoom * 0.05)
 			globals.Keybindings.Shortcuts[KBZoomIn].ConsumeKeys()
 		} else if globals.Keybindings.Pressed(KBZoomOut) {
-			project.Camera.AddZoom(-1)
+			project.Camera.AddZoom(-project.Camera.Zoom * 0.05)
 			globals.Keybindings.Shortcuts[KBZoomOut].ConsumeKeys()
 		}
 
@@ -525,6 +525,16 @@ func (project *Project) GlobalShortcuts() {
 			project.UndoHistory.Undo()
 		} else if globals.Keybindings.Pressed(KBRedo) {
 			project.UndoHistory.Redo()
+		}
+
+		if globals.Keybindings.Pressed(KBFind) {
+			if !globals.MenuSystem.Get("search").Opened {
+				globals.MenuSystem.Get("search").Open()
+			}
+		}
+
+		if globals.Keybindings.Pressed(KBFocusOnCards) {
+			project.Camera.FocusOn(project.CurrentPage.Selection.AsSlice()...)
 		}
 
 	}

@@ -207,13 +207,16 @@ func (menu *Menu) Update() {
 		pageRect.Y += padding
 		pageRect.W -= padding * 2
 		pageRect.H -= padding * 2
+
+		buttonPadding := float32(8)
+
 		if menu.CanGoBack() {
-			pageRect.W -= 32 // X button at top-right
-			pageRect.X += 16 // Back button
+			pageRect.W -= buttonPadding * 4 // X button at top-right
+			pageRect.X += buttonPadding * 2 // Back button
 		}
 		if menu.CloseButtonEnabled {
-			pageRect.X += 16
-			pageRect.W -= 32 // X button at top-right
+			pageRect.X += buttonPadding * 2
+			pageRect.W -= buttonPadding * 4 // X button at top-right
 		}
 		// pageRect.H -= 32
 		menu.Pages[menu.CurrentPage].SetRectangle(&pageRect)
@@ -228,16 +231,16 @@ func (menu *Menu) Update() {
 
 		if menu.CloseButtonEnabled {
 			rect := menu.closeButtonButton.Rectangle()
-			rect.X = menu.Rect.X + menu.Rect.W - menu.closeButtonButton.Rect.W
-			rect.Y = menu.Rect.Y
+			rect.X = menu.Rect.X + menu.Rect.W - menu.closeButtonButton.Rect.W - buttonPadding
+			rect.Y = menu.Rect.Y + buttonPadding
 			menu.closeButtonButton.SetRectangle(rect)
 			menu.closeButtonButton.Update()
 		}
 
 		if menu.CanGoBack() {
 			rect := menu.BackButton.Rectangle()
-			rect.X = menu.Rect.X + 16
-			rect.Y = menu.Rect.Y
+			rect.X = menu.Rect.X + buttonPadding
+			rect.Y = menu.Rect.Y + buttonPadding
 			menu.BackButton.SetRectangle(rect)
 			menu.BackButton.Update()
 		}
@@ -414,7 +417,7 @@ func (menu *Menu) Recreate(newW, newH float32) {
 		{menu.Rect.W - cornerSize, menu.Rect.H - cornerSize, cornerSize, cornerSize},
 	}
 
-	src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
+	src := &sdl.Rect{0, 96, int32(cornerSize), int32(cornerSize)}
 
 	drawPatches := func() {
 
@@ -440,7 +443,7 @@ func (menu *Menu) Recreate(newW, newH float32) {
 	drawPatches()
 
 	src.X = 0
-	src.Y = 48
+	src.Y = 144
 
 	// Drawing outlines
 	outlineColor := getThemeColor(GUIFontColor)

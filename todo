@@ -6,21 +6,23 @@ TO FIX IMMEDIATELY:
 - [ ] Re-implement pasting lists as a sequence of Cards in MasterPlan
 - [ ] Re-implement pasting Cards as a text list outside of MasterPlan
 - [x] Consume shortcut after saving
-- [ ] Lines should be one color, no outline (not sure about either of these), have arrows pointing towards the other end, rather than the current sloppy implementation. They should draw before or after shadows (test it). They should draw on top of maps.
-- [ ] Edit Menu > Set Size for consistency
-- [ ] Edit Menu > Align Cards for consistency
+- [x] Lines should be one color, no outline (not sure about either of these), have arrows pointing towards the other end, rather than the current sloppy implementation. They should draw before or after shadows (test it). They should draw on top of maps.
+- [ ] Edit Menu > Set Size, Align Cards for consistency
 - [ ] Alignment options for cards on the board (i.e. center, align vertically, spread, etc)
 - [ ] Alignment options for text in Cards (not quite sure how to do this yet)
-- [ ] System notification when something happens in MasterPlan. See: https://github.com/gen2brain/beeep or https://github.com/0xAX/notificator
-- [ ] Disable Grid setting
-- [ ] Implement searching again
+- [ ] System notification when something happens (a timer elapsing, for example) in MasterPlan. See: https://github.com/gen2brain/beeep or https://github.com/0xAX/notificator
+- [x] Disable Grid setting
+- [x] Implement searching again
 
-Tabbing around menus
+Labels NEED To be able to scroll. There's not really a good way around this, it's highly necessary.
+
+Tabbing around menus / boards
 Re-add Recent Files list
 Buttons should close menus
 Lock zoom / camera render position
-See about fixing font up to be smoother
+See about fixing font up to be EVEN smoother
 Trim whitespace before loading image path
+Images don't load if they contain special characters (Russian, for example?)
 Downloading / loading images might not be multithreaded??? Seems like it pauses loading a project to have images in them.
 Split shortcut - use this when editing textboxes to split a Note, Checkbox, etc. Card into two between the cursor.
 Draw shadow underneath Map
@@ -28,13 +30,13 @@ Note card becoming too large crashes due to exceeding graphics card texture limi
 
 - [ ] Card movement!
 
-[ ] Space bar (or any keyboard key, or mouse click) to pan
+[x] Space bar (or any keyboard key, or mouse click) to pan
 [x] Drag and drop plan to load project
 [ ] Reimplement Project.Modified / Confirmation before loading project
 [ ] Fix being able to undo project loading
 [ ] Map buttons can be hidden by Cards above
 [x] Migrate the rest of program settings over
-[ ] Allow keybinding editing / saving and loading
+[x] Allow keybinding editing / saving and loading
 [x] Fix double-clicking to select a word anymore?
 [x] Need to be able to delete Drawables
 [ ] Re-implement recent paths list / project autoloading / review main.go
@@ -42,9 +44,9 @@ Note card becoming too large crashes due to exceeding graphics card texture limi
 [x] Saving seems to not save rects properly anymore?
 [ ] Confirm when loading project
 [ ] Close menu when loading project
+[ ] Use Label.Property directly for Card Contents that manually sync the Label and Property (i.e. CheckboxContents / NoteContents / etc).
 
-
-- Count-down Timer
+[ ] Count-down Timer
 - Progression Task
 - Pasting Images
 - Create a roadmap; post on itch and Steam.

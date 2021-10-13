@@ -136,7 +136,7 @@ func (card *Card) Update() {
 		card.Contents.Update()
 	}
 
-	if globals.Keybindings.Pressed(KBLinkCard) {
+	if globals.Keybindings.Pressed(KBLinkCard) && (globals.State == StateNeutral || globals.State == StateCardLinking) {
 
 		globals.State = StateCardLinking
 		globals.Mouse.SetCursor("link")
@@ -431,8 +431,8 @@ func (card *Card) DrawCard() {
 	if card.Contents != nil {
 		color = card.Contents.Color()
 	}
-	if card.Selected {
-		color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
+	if card.Selected && globals.Settings.Get(SettingsFlashSelected).AsBool() {
+		color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*30 + 30))
 	}
 
 	if color[3] != 0 {
@@ -540,7 +540,16 @@ func (card *Card) PostDraw() {
 }
 
 func (card *Card) Numberable() bool {
-	return card.ContentType == ContentTypeCheckbox || card.ContentType == ContentTypeNumber // Or progression or table
+	return card.ContentType == ContentTypeCheckbox || card.ContentType == ContentTypeNumber // Or table
+}
+
+func (card *Card) CompletionLevel() float32 {
+	if card.ContentType == ContentTypeCheckbox {
+		return card.Contents.(*CheckboxContents).CompletionLevel()
+	} else if card.ContentType == ContentTypeNumber {
+		return card.Contents.(*NumberContents).CompletionLevel()
+	}
+	return 0
 }
 
 func (card *Card) Serialize() string {
