@@ -55,7 +55,7 @@ type Project struct {
 	RootFolder     *PageFolder
 	CurrentPage    *Page
 	Camera         *Camera
-	GridTexture    *Image
+	GridTexture    *RenderTexture
 	Filepath       string
 	LoadingProject *Project // A reference to the "next" Project when opening another one
 	Loading        bool
@@ -85,14 +85,46 @@ func NewProject() *Project {
 }
 
 func (project *Project) CreateGridTexture() {
-	if project.GridTexture != nil {
-		project.GridTexture.Texture.Destroy()
-	}
-	gridColor := getThemeColor(GUIGridColor)
+
 	guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
-	guiTex.Texture.SetColorMod(gridColor.RGB())
-	guiTex.Texture.SetAlphaMod(gridColor[3])
-	project.GridTexture = TileTexture(guiTex, &sdl.Rect{480, 0, 32, 32}, 512, 512)
+
+	// project.GridTexture = TileTexture(guiTex, &sdl.Rect{480, 0, 32, 32}, 512, 512)
+
+	w := int32(512)
+	h := int32(512)
+	srcRect := &sdl.Rect{480, 0, 32, 32}
+
+	if project.GridTexture == nil {
+
+		NewRenderTexture(w, h, func(rt *RenderTexture) {
+
+			gridColor := getThemeColor(GUIGridColor)
+			guiTex.Texture.SetColorMod(gridColor.RGB())
+			guiTex.Texture.SetAlphaMod(gridColor[3])
+
+			rt.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+
+			globals.Renderer.SetRenderTarget(rt.Texture)
+
+			dst := &sdl.Rect{0, 0, srcRect.W, srcRect.H}
+
+			for y := int32(0); y < h; y += srcRect.H {
+				for x := int32(0); x < w; x += srcRect.W {
+					dst.X = x
+					dst.Y = y
+					globals.Renderer.Copy(guiTex.Texture, srcRect, dst)
+				}
+			}
+
+			globals.Renderer.SetRenderTarget(nil)
+
+			project.GridTexture = rt
+
+		})
+
+	} else {
+		project.GridTexture.Rerender(int32(project.GridTexture.Size.X), int32(project.GridTexture.Size.Y))
+	}
 
 }
 
@@ -362,7 +394,7 @@ func (project *Project) MouseActions() {
 		}
 
 		if globals.Keybindings.Pressed(KBPanModifier) {
-			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement().Mult(480 * globals.DeltaTime))
+			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement().Mult(480 * globals.DeltaTime).Div(project.Camera.TargetZoom))
 		}
 
 	}

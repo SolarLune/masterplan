@@ -42,7 +42,6 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsDownloadDirectory).Set("")
 	props.Get(SettingsTargetFPS).Set(60.0)
 	props.Get(SettingsUnfocusedFPS).Set(60.0)
-	props.Get(SettingsFontSize).Set(30.0)
 	props.Get(SettingsDownloadDirectory).Set("")
 	props.Get(SettingsDisplayMessages).Set(true)
 	props.Get(SettingsDoubleClickCreatesCard).Set(true)

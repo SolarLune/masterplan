@@ -76,7 +76,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.8.0-alpha.1")
+	globals.Version = semver.MustParse("0.8.0-alpha.1-2")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -728,11 +728,12 @@ func ConstructMenus() {
 
 	// Create Menu
 
-	createMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 2, globals.ScreenSize.Y / 2, 300, 400}, true), "create", false)
+	createMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X, globals.ScreenSize.Y, 250, 320}, true), "create", false)
 	createMenu.Draggable = true
 	createMenu.Resizeable = true
 	createMenu.CloseButtonEnabled = true
 	createMenu.Orientation = MenuOrientationVertical
+	createMenu.Open()
 
 	root = createMenu.Pages["root"]
 	root.AddRow(AlignCenter).Add("create label", NewLabel("-Create-", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
@@ -1413,6 +1414,9 @@ func ConstructMenus() {
 
 	root = stats.Pages["root"]
 
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewLabel("-Stats-", nil, false, AlignCenter))
+
 	row = root.AddRow(AlignLeft)
 	maxLabel := NewLabel("so many cards existing", nil, false, AlignLeft)
 	row.Add("", maxLabel)
@@ -1453,24 +1457,42 @@ func ConstructMenus() {
 	row.Add("", estimatedTime)
 	row.ExpandElements = true
 
+	row = root.AddRow(AlignLeft)
+	row.Add("", NewLabel("Limit time estimation read-out to same as units: ", nil, false, AlignLeft))
+
+	limitTimeCheckbox := NewCheckbox(0, 0, false, nil)
+	row.Add("", limitTimeCheckbox)
+
 	root.OnUpdate = func() {
 
 		maxLabel.SetText([]rune(fmt.Sprintf("Total Cards: %d Cards", len(globals.Project.CurrentPage.Cards))))
 
 		completionLevel := float32(0)
 		maxLevel := float32(0)
+		totalCompletable := 0
+		completedCards := 0
 
 		for _, i := range globals.Project.CurrentPage.Cards {
 
 			if i.Numberable() {
-				maxLevel++
 
+				maxLevel += i.MaximumCompletionLevel()
 				completionLevel += i.CompletionLevel()
+
+				totalCompletable++
+				if i.MaximumCompletionLevel() > 0 && i.CompletionLevel() >= i.MaximumCompletionLevel() {
+					completedCards++
+				}
+
 			}
 
 		}
 
-		completedLabel.SetText([]rune(fmt.Sprintf("Total Cards Completed: %d / %d (%d%%)", int(completionLevel), int(maxLevel), int(completionLevel/maxLevel*100))))
+		if maxLevel == 0 {
+			completedLabel.SetText([]rune("Total Cards Completed: 0 / 0 (0%)"))
+		} else {
+			completedLabel.SetText([]rune(fmt.Sprintf("Total Cards Completed: %d / %d (%d%%)", int(completedCards), int(totalCompletable), int(float32(completedCards)/float32(totalCompletable)*100))))
+		}
 
 		if completionLevel < maxLevel {
 			var unit time.Duration
@@ -1489,7 +1511,18 @@ func ConstructMenus() {
 			}
 			duration := unit * time.Duration(float32(timeNumber.TextAsInt())*(maxLevel-completionLevel)*10) / 10
 			s := durafmt.Parse(duration)
-			estimatedTime.SetText([]rune(fmt.Sprintf("%s to completion.", s.LimitFirstN(2))))
+			if limitTimeCheckbox.Checked {
+
+				// durafmt has no concept of "months"
+				if t == "Months" {
+					t = "Weeks"
+				}
+
+				s = s.LimitToUnit(strings.ToLower(t))
+			} else {
+				s = s.LimitFirstN(2)
+			}
+			estimatedTime.SetText([]rune(fmt.Sprintf("%s to completion.", s)))
 		} else {
 			estimatedTime.SetText([]rune(fmt.Sprintf("All tasks completed.")))
 		}

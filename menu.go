@@ -121,7 +121,7 @@ type Menu struct {
 	CurrentPage string
 	NextPage    string
 	Orientation int
-	BGTexture   *sdl.Texture
+	BGTexture   *RenderTexture
 	Spacing     string
 
 	Openable           bool
@@ -342,7 +342,7 @@ func (menu *Menu) Draw() {
 		return
 	}
 
-	globals.Renderer.CopyF(menu.BGTexture, nil, menu.Rect)
+	globals.Renderer.CopyF(menu.BGTexture.Texture, nil, menu.Rect)
 
 	if menu.CurrentPage != "" {
 		menu.Pages[menu.CurrentPage].Draw()
@@ -401,82 +401,82 @@ func (menu *Menu) Recreate(newW, newH float32) {
 	menu.Rect.W = newW
 	menu.Rect.H = newH
 
-	tex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(menu.Rect.W), int32(menu.Rect.H))
+	if menu.BGTexture == nil {
 
-	tex.SetBlendMode(sdl.BLENDMODE_BLEND)
+		NewRenderTexture(int32(menu.Rect.W), int32(menu.Rect.H), func(rt *RenderTexture) {
 
-	if err != nil {
-		panic(err)
-	}
+			rt.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
-	if menu.BGTexture != nil {
-		menu.BGTexture.Destroy()
-	}
+			menu.BGTexture = rt
 
-	menu.BGTexture = tex
+			color := getThemeColor(GUIMenuColor)
 
-	color := getThemeColor(GUIMenuColor)
+			guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 
-	guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
+			guiTexture.SetColorMod(color.RGB())
+			guiTexture.SetAlphaMod(color[3])
 
-	guiTexture.SetColorMod(color.RGB())
-	guiTexture.SetAlphaMod(color[3])
+			cornerSize := float32(16)
 
-	cornerSize := float32(16)
+			midWidth := menu.Rect.W - (cornerSize * 2)
+			midHeight := menu.Rect.H - (cornerSize * 2)
 
-	midWidth := menu.Rect.W - (cornerSize * 2)
-	midHeight := menu.Rect.H - (cornerSize * 2)
+			patches := []*sdl.FRect{
+				{0, 0, cornerSize, cornerSize},
+				{cornerSize, 0, midWidth, cornerSize},
+				{menu.Rect.W - cornerSize, 0, cornerSize, cornerSize},
 
-	patches := []*sdl.FRect{
-		{0, 0, cornerSize, cornerSize},
-		{cornerSize, 0, midWidth, cornerSize},
-		{menu.Rect.W - cornerSize, 0, cornerSize, cornerSize},
+				{0, cornerSize, cornerSize, midHeight},
+				{cornerSize, cornerSize, midWidth, midHeight},
+				{menu.Rect.W - cornerSize, cornerSize, cornerSize, midHeight},
 
-		{0, cornerSize, cornerSize, midHeight},
-		{cornerSize, cornerSize, midWidth, midHeight},
-		{menu.Rect.W - cornerSize, cornerSize, cornerSize, midHeight},
-
-		{0, menu.Rect.H - cornerSize, cornerSize, cornerSize},
-		{cornerSize, menu.Rect.H - cornerSize, midWidth, cornerSize},
-		{menu.Rect.W - cornerSize, menu.Rect.H - cornerSize, cornerSize, cornerSize},
-	}
-
-	src := &sdl.Rect{0, 96, int32(cornerSize), int32(cornerSize)}
-
-	drawPatches := func() {
-
-		for _, patch := range patches {
-
-			if patch.W > 0 && patch.H > 0 {
-				globals.Renderer.CopyF(guiTexture, src, patch)
+				{0, menu.Rect.H - cornerSize, cornerSize, cornerSize},
+				{cornerSize, menu.Rect.H - cornerSize, midWidth, cornerSize},
+				{menu.Rect.W - cornerSize, menu.Rect.H - cornerSize, cornerSize, cornerSize},
 			}
 
-			src.X += src.W
+			src := &sdl.Rect{0, 96, int32(cornerSize), int32(cornerSize)}
 
-			if src.X > int32(cornerSize)*2 {
-				src.X = 0
-				src.Y += int32(cornerSize)
+			drawPatches := func() {
+
+				for _, patch := range patches {
+
+					if patch.W > 0 && patch.H > 0 {
+						globals.Renderer.CopyF(guiTexture, src, patch)
+					}
+
+					src.X += src.W
+
+					if src.X > int32(cornerSize)*2 {
+						src.X = 0
+						src.Y += int32(cornerSize)
+					}
+
+				}
+
 			}
 
-		}
+			globals.Renderer.SetRenderTarget(menu.BGTexture.Texture)
 
+			drawPatches()
+
+			src.X = 0
+			src.Y = 144
+
+			// Drawing outlines
+			outlineColor := getThemeColor(GUIFontColor)
+			guiTexture.SetColorMod(outlineColor.RGB())
+			guiTexture.SetAlphaMod(outlineColor[3])
+
+			drawPatches()
+
+			globals.Renderer.SetRenderTarget(nil)
+
+		})
+
+	} else {
+		menu.BGTexture.Rerender(int32(menu.Rect.W), int32(menu.Rect.H))
 	}
-
-	globals.Renderer.SetRenderTarget(menu.BGTexture)
-
-	drawPatches()
-
-	src.X = 0
-	src.Y = 144
-
-	// Drawing outlines
-	outlineColor := getThemeColor(GUIFontColor)
-	guiTexture.SetColorMod(outlineColor.RGB())
-	guiTexture.SetAlphaMod(outlineColor[3])
-
-	drawPatches()
-
-	globals.Renderer.SetRenderTarget(nil)
 
 }
 

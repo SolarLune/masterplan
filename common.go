@@ -210,37 +210,6 @@ type Image struct {
 	Texture *sdl.Texture
 }
 
-func TileTexture(srcTexture Image, srcRect *sdl.Rect, w, h int32) *Image {
-
-	newTex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, w, h)
-
-	newTex.SetBlendMode(sdl.BLENDMODE_BLEND)
-
-	if err != nil {
-		panic(err)
-	}
-
-	globals.Renderer.SetRenderTarget(newTex)
-
-	dst := &sdl.Rect{0, 0, srcRect.W, srcRect.H}
-
-	for y := int32(0); y < h; y += srcRect.H {
-		for x := int32(0); x < w; x += srcRect.W {
-			dst.X = x
-			dst.Y = y
-			globals.Renderer.Copy(srcTexture.Texture, srcRect, dst)
-		}
-	}
-
-	globals.Renderer.SetRenderTarget(nil)
-
-	return &Image{
-		Size:    Point{float32(w), float32(h)},
-		Texture: newTex,
-	}
-
-}
-
 func formatTime(t time.Duration, showMilliseconds bool) string {
 
 	minutes := int(t.Seconds()) / 60
@@ -341,10 +310,7 @@ func WriteImageToTemp(clipboardImg []byte) (string, error) {
 
 func ReloadFonts() {
 
-	// fontPath := LocalPath("assets/Silver.ttf")
-	// fontPath := LocalPath("assets/quicksand-bold.otf")
-	// fontPath := LocalPath("assets/m5x7.ttf")
-	fontPath := LocalRelativePath("assets/Quicksand-Bold.ttf")
+	fontPath := LocalRelativePath("assets/NotoSans-Bold.ttf")
 
 	customFontPath := globals.Settings.Get(SettingsCustomFontPath).AsString()
 	if customFontPath != "" && FileExists(customFontPath) {
@@ -358,11 +324,12 @@ func ReloadFonts() {
 
 		// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
 
-		loadedFont, err := ttf.OpenFont(fontPath, int(globals.Settings.Get(SettingsFontSize).AsFloat()))
+		// loadedFont, err := ttf.OpenFont(fontPath, int(globals.Settings.Get(SettingsFontSize).AsFloat()))
+		loadedFont, err := ttf.OpenFont(fontPath, 48)
 
 		loadedFont.SetKerning(true) // I don't think this really will do anything for us here, as we're rendering text using individual characters, not strings.
 
-		loadedFont.SetHinting(ttf.HINTING_MONO)
+		loadedFont.SetHinting(ttf.HINTING_NORMAL)
 
 		if err != nil {
 			panic(err)

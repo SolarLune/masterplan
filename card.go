@@ -30,7 +30,7 @@ type Card struct {
 	ContentsLibrary         map[string]Contents
 	Properties              *Properties
 	Selected                bool
-	Result                  *sdl.Texture
+	Result                  *RenderTexture
 	Dragging                bool
 	Draggable               bool
 	DragStart               Point
@@ -332,9 +332,9 @@ func (card *Card) DrawShadow() {
 		color = color.Sub(80)
 		color[3] = 192
 
-		card.Result.SetColorMod(color.RGB())
-		card.Result.SetAlphaMod(color[3])
-		globals.Renderer.CopyF(card.Result, nil, tp)
+		card.Result.Texture.SetColorMod(color.RGB())
+		card.Result.Texture.SetAlphaMod(color[3])
+		globals.Renderer.CopyF(card.Result.Texture, nil, tp)
 
 	}
 
@@ -437,9 +437,9 @@ func (card *Card) DrawCard() {
 	}
 
 	if color[3] != 0 {
-		card.Result.SetColorMod(color.RGB())
-		card.Result.SetAlphaMod(color[3])
-		globals.Renderer.CopyF(card.Result, nil, tp)
+		card.Result.Texture.SetColorMod(color.RGB())
+		card.Result.Texture.SetAlphaMod(color[3])
+		globals.Renderer.CopyF(card.Result.Texture, nil, tp)
 	}
 
 	card.DrawContents()
@@ -549,6 +549,15 @@ func (card *Card) CompletionLevel() float32 {
 		return card.Contents.(*CheckboxContents).CompletionLevel()
 	} else if card.ContentType == ContentTypeNumbered {
 		return card.Contents.(*NumberedContents).CompletionLevel()
+	}
+	return 0
+}
+
+func (card *Card) MaximumCompletionLevel() float32 {
+	if card.ContentType == ContentTypeCheckbox {
+		return 1
+	} else if card.ContentType == ContentTypeNumbered {
+		return card.Contents.(*NumberedContents).MaximumCompletionLevel()
 	}
 	return 0
 }
@@ -822,89 +831,87 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 		card.Rect.W = newWidth
 		card.Rect.H = newHeight
 
-		result, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(card.Rect.W), int32(card.Rect.H))
+		if card.Result == nil {
+			NewRenderTexture(int32(card.Rect.W), int32(card.Rect.H), func(rt *RenderTexture) {
 
-		if err != nil {
-			panic(err)
-		}
+				card.Result = rt
 
-		if card.Result != nil {
-			card.Result.Destroy()
-		}
+				rt.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
-		card.Result = result
+				globals.Renderer.SetRenderTarget(card.Result.Texture)
 
-		result.SetBlendMode(sdl.BLENDMODE_BLEND)
+				globals.Renderer.SetDrawColor(0, 0, 0, 0)
 
-		globals.Renderer.SetRenderTarget(card.Result)
+				globals.Renderer.Clear()
 
-		globals.Renderer.SetDrawColor(0, 0, 0, 0)
+				cornerSize := float32(16)
 
-		globals.Renderer.Clear()
+				midWidth := card.Rect.W - (cornerSize * 2)
+				midHeight := card.Rect.H - (cornerSize * 2)
 
-		cornerSize := float32(16)
+				patches := []*sdl.FRect{
+					{0, 0, cornerSize, cornerSize},
+					{cornerSize, 0, midWidth, cornerSize},
+					{card.Rect.W - cornerSize, 0, cornerSize, cornerSize},
 
-		midWidth := card.Rect.W - (cornerSize * 2)
-		midHeight := card.Rect.H - (cornerSize * 2)
+					{0, cornerSize, cornerSize, midHeight},
+					{cornerSize, cornerSize, midWidth, midHeight},
+					{card.Rect.W - cornerSize, cornerSize, cornerSize, midHeight},
 
-		patches := []*sdl.FRect{
-			{0, 0, cornerSize, cornerSize},
-			{cornerSize, 0, midWidth, cornerSize},
-			{card.Rect.W - cornerSize, 0, cornerSize, cornerSize},
-
-			{0, cornerSize, cornerSize, midHeight},
-			{cornerSize, cornerSize, midWidth, midHeight},
-			{card.Rect.W - cornerSize, cornerSize, cornerSize, midHeight},
-
-			{0, card.Rect.H - cornerSize, cornerSize, cornerSize},
-			{cornerSize, card.Rect.H - cornerSize, midWidth, cornerSize},
-			{card.Rect.W - cornerSize, card.Rect.H - cornerSize, cornerSize, cornerSize},
-		}
-
-		src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
-
-		guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
-
-		drawPatches := func() {
-
-			for _, patch := range patches {
-
-				if patch.W > 0 && patch.H > 0 {
-					globals.Renderer.CopyF(guiTexture, src, patch)
+					{0, card.Rect.H - cornerSize, cornerSize, cornerSize},
+					{cornerSize, card.Rect.H - cornerSize, midWidth, cornerSize},
+					{card.Rect.W - cornerSize, card.Rect.H - cornerSize, cornerSize, cornerSize},
 				}
 
-				src.X += src.W
+				src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
 
-				if src.X > int32(cornerSize)*2 {
-					src.X = 0
-					src.Y += int32(cornerSize)
+				guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
+
+				drawPatches := func() {
+
+					for _, patch := range patches {
+
+						if patch.W > 0 && patch.H > 0 {
+							globals.Renderer.CopyF(guiTexture, src, patch)
+						}
+
+						src.X += src.W
+
+						if src.X > int32(cornerSize)*2 {
+							src.X = 0
+							src.Y += int32(cornerSize)
+						}
+
+					}
+
 				}
 
-			}
+				// This slight color blending looks great on dark colors, but trash for light ones, so forget it
+				// rand.Seed(card.ID)
+				// f := uint8(rand.Float32() * 32)
+				// guiTexture.SetColorMod(255-f, 255-f, 255-f)
+				// guiTexture.SetAlphaMod(255)
 
+				guiTexture.SetColorMod(255, 255, 255)
+				guiTexture.SetAlphaMod(255)
+
+				drawPatches()
+
+				// Drawing outlines
+				src.X = 0
+				src.Y = 48
+				guiTexture.SetColorMod(192, 192, 192)
+				drawPatches()
+
+				guiTexture.SetColorMod(255, 255, 255)
+				guiTexture.SetAlphaMod(255)
+
+				globals.Renderer.SetRenderTarget(nil)
+
+			})
+		} else {
+			card.Result.Rerender(int32(card.Rect.W), int32(card.Rect.H))
 		}
-
-		// This slight color blending looks great on dark colors, but trash for light ones, so forget it
-		// rand.Seed(card.ID)
-		// f := uint8(rand.Float32() * 32)
-		// guiTexture.SetColorMod(255-f, 255-f, 255-f)
-		// guiTexture.SetAlphaMod(255)
-
-		guiTexture.SetColorMod(255, 255, 255)
-		guiTexture.SetAlphaMod(255)
-
-		drawPatches()
-
-		// Drawing outlines
-		src.X = 0
-		src.Y = 48
-		guiTexture.SetColorMod(192, 192, 192)
-		drawPatches()
-
-		guiTexture.SetColorMod(255, 255, 255)
-		guiTexture.SetAlphaMod(255)
-
-		globals.Renderer.SetRenderTarget(nil)
 
 		card.LockPosition() // Update Page's Grid.
 

@@ -205,7 +205,7 @@ func publishToItch() {
 
 	buildNames := []string{}
 
-	filepath.Walk(filepath.Join("./", "build_script"), func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(filepath.Join("./", "bin"), func(path string, info os.FileInfo, err error) error {
 
 		dirCount := len(strings.Split(path, string(os.PathSeparator)))
 
@@ -226,7 +226,7 @@ func publishToItch() {
 		if err == nil {
 			fmt.Println("Published", build, "to itch!")
 		} else {
-			fmt.Println(string(result))
+			fmt.Println(string(result), string(err.Error()))
 		}
 
 	}
@@ -243,12 +243,12 @@ func main() {
 
 	if *buildMP != "" {
 		if *buildMP == "all" {
-			build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", "linux-amd64")), true, "linux")
-			build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", "windows-amd64")), true, "windows")
-			build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", "darwin-amd64")), true, "darwin")
+			build(filepath.Join("bin", "linux-amd64-0.8-Release"), true, "linux")
+			build(filepath.Join("bin", "windows-amd64-0.8-Release"), true, "windows")
+			build(filepath.Join("bin", "macos-amd64-0.8-Release"), true, "darwin")
 		} else {
 			target := strings.ReplaceAll(*buildMP, "/", "-")
-			build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", target)), true, target)
+			build(filepath.Join("bin", target+"-amd64-0.8-Release"), true, target)
 		}
 		// Demo builds are paused until MasterPlan v0.8 is the main version.
 		// build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Demo", target)), "-X main.releaseMode=true -X main.demoMode=DEMO", *targetOS)

@@ -350,6 +350,17 @@ func handleEvents() {
 
 			globals.InputText = append(globals.InputText, []rune(event.GetText())...)
 
+		case *sdl.RenderEvent:
+
+			// If the render targets reset, re-render all render textures
+			if event.Type == sdl.RENDER_TARGETS_RESET || event.Type == sdl.RENDER_DEVICE_RESET {
+				for _, renderTexture := range renderTextures {
+					// If we're getting the RENDER_TARGETS_RESET event, the texture has been disposed of; we don't need to call Dispose on the texture itself.
+					renderTexture.Texture = nil
+					renderTexture.Rerender(int32(renderTexture.Size.X), int32(renderTexture.Size.Y))
+				}
+			}
+
 		}
 
 	}

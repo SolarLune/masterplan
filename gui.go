@@ -256,6 +256,7 @@ type Checkbox struct {
 	// Checked bool
 	Property *Property
 	Rect     *sdl.FRect
+	Checked  bool
 }
 
 func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
@@ -272,6 +273,8 @@ func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 
 		if checkbox.Property != nil {
 			checkbox.Property.Set(!checkbox.Property.AsBool())
+		} else {
+			checkbox.Checked = !checkbox.Checked
 		}
 
 	}
@@ -285,11 +288,22 @@ func (checkbox *Checkbox) Update() {
 
 	checkbox.IconButton.Update()
 
-	if checkbox.Property != nil && checkbox.Property.AsBool() {
-		checkbox.IconSrc.X = 48
+	if checkbox.Property != nil {
+
+		if checkbox.Property.AsBool() {
+			checkbox.IconSrc.X = 48
+		} else {
+			checkbox.IconSrc.X = 80
+		}
 	} else {
-		checkbox.IconSrc.X = 80
+
+		if checkbox.Checked {
+			checkbox.IconSrc.X = 48
+		} else {
+			checkbox.IconSrc.X = 80
+		}
 	}
+
 }
 
 func (checkbox *Checkbox) SetRectangle(rect *sdl.FRect) {

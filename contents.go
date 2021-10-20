@@ -254,8 +254,8 @@ func (numbered *NumberedContents) Draw() {
 		dst.X = numbered.Card.DisplayRect.X
 		dst.Y = numbered.Card.DisplayRect.Y
 		dst = numbered.Card.Page.Project.Camera.TranslateRect(dst)
-		numbered.Card.Result.SetColorMod(getThemeColor(GUICompletedColor).RGB())
-		globals.Renderer.CopyF(numbered.Card.Result, src, dst)
+		numbered.Card.Result.Texture.SetColorMod(getThemeColor(GUICompletedColor).RGB())
+		globals.Renderer.CopyF(numbered.Card.Result.Texture, src, dst)
 
 	}
 
@@ -272,10 +272,10 @@ func (numbered *NumberedContents) Draw() {
 }
 
 func (numbered *NumberedContents) Color() Color {
-	if numbered.CompletionLevel() < 1 {
-		return getThemeColor(GUINumberColor)
-	} else {
+	if numbered.PercentageComplete >= 0.99 {
 		return getThemeColor(GUICompletedColor)
+	} else {
+		return getThemeColor(GUINumberColor)
 	}
 }
 
@@ -306,12 +306,11 @@ func (numbered *NumberedContents) DefaultSize() Point {
 }
 
 func (numbered *NumberedContents) CompletionLevel() float32 {
-	current := numbered.Card.Properties.Get("current").AsFloat()
-	max := numbered.Card.Properties.Get("maximum").AsFloat()
-	if max > 0 {
-		return float32(current / max)
-	}
-	return 0
+	return float32(numbered.Card.Properties.Get("current").AsFloat())
+}
+
+func (numbered *NumberedContents) MaximumCompletionLevel() float32 {
+	return float32(numbered.Card.Properties.Get("maximum").AsFloat())
 }
 
 type NoteContents struct {
@@ -1000,7 +999,6 @@ func NewTimerContents(card *Card) *TimerContents {
 	)
 
 	tc.TriggerMode = NewIconButtonGroup(&sdl.FRect{0, 0, 96, 32}, true, func(index int) {
-		tc.Running = false
 		if index == 0 {
 			globals.EventLog.Log("Timer Trigger Mode changed to Toggle.")
 		} else if index == 1 {
@@ -1166,9 +1164,9 @@ func (tc *TimerContents) Draw() {
 	dst.X = tc.Card.DisplayRect.X
 	dst.Y = tc.Card.DisplayRect.Y
 	dst = tc.Card.Page.Project.Camera.TranslateRect(dst)
-	tc.Card.Result.SetColorMod(getThemeColor(GUITimerColor).RGB())
-	tc.Card.Result.SetAlphaMod(255)
-	globals.Renderer.CopyF(tc.Card.Result, src, dst)
+	tc.Card.Result.Texture.SetColorMod(getThemeColor(GUITimerColor).RGB())
+	tc.Card.Result.Texture.SetAlphaMod(255)
+	globals.Renderer.CopyF(tc.Card.Result.Texture, src, dst)
 
 	tc.DefaultContents.Draw()
 
@@ -1933,20 +1931,20 @@ func (mc *MapContents) RecreateTexture() {
 
 	if mc.Texture == nil || (mc.Texture != nil && !mc.Texture.Size.Equals(rectSize)) {
 
-		tex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(rectSize.X), int32(rectSize.Y))
+		NewRenderTexture(int32(rectSize.X), int32(rectSize.Y), func(rt *RenderTexture) {
 
-		tex.SetBlendMode(sdl.BLENDMODE_BLEND)
+			rt.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
-		if err != nil {
-			return
-		} else {
 			if mc.Texture != nil {
 				mc.Texture.Texture.Destroy()
 			}
-			mc.Texture = &Image{}
-			mc.Texture.Texture = tex
-			mc.Texture.Size = rectSize
-		}
+
+			mc.Texture = &Image{
+				Texture: rt.Texture,
+				Size:    rectSize,
+			}
+
+		})
 
 	}
 
