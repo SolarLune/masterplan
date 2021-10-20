@@ -25,6 +25,7 @@ require (
 	github.com/nwaples/rardecode v1.1.2 // indirect
 	github.com/otiai10/copy v1.6.0
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
+	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/tanema/gween v0.0.0-20200427131925-c89ae23cc63c
 	github.com/tidwall/gjson v1.9.4
 	github.com/tidwall/sjson v1.2.2

@@ -32,6 +32,7 @@ const (
 	SettingsNotifyOnElapsedTimers  = "NotifyOnElapsedTimers"
 	SettingsPlayAlarmSound         = "PlayAlarmSound"
 	SettingsAudioVolume            = "AudioVolume"
+	SettingsShowAboutDialogOnStart = "ShowAboutDialogOnStart"
 )
 
 func NewProgramSettings() *Properties {
@@ -52,6 +53,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsNotifyOnElapsedTimers).Set(true)
 	props.Get(SettingsPlayAlarmSound).Set(true)
 	props.Get(SettingsAudioVolume).Set(80.0)
+	props.Get(SettingsShowAboutDialogOnStart).Set(true)
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 

@@ -20,6 +20,7 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/hako/durafmt"
+	"github.com/pkg/browser"
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
@@ -242,7 +243,7 @@ func main() {
 	// renderer.SetLogicalSize(960, 540)
 
 	attemptAutoload := 5
-	// showedAboutDialog := false
+	showedAboutDialog := false
 	splashScreenTime := float32(0)
 	// splashScreen := rl.LoadTexture(LocalPath("assets", "splashscreen.png"))
 	splashColor := sdl.Color{255, 255, 255, 255}
@@ -381,13 +382,15 @@ func main() {
 			// 	currentProject.PromptQuit()
 			// }
 
-			// if !showedAboutDialog {
-			// 	showedAboutDialog = true
-			// 	if !programSettings.DisableAboutDialogOnStart {
-			// 		currentProject.OpenSettings()
-			// 		currentProject.SettingsSection.CurrentChoice = len(currentProject.SettingsSection.Options) - 1 // Set the settings section to "ABOUT" (the last option)
-			// 	}
-			// }
+			if !showedAboutDialog {
+				showedAboutDialog = true
+				if globals.Settings.Get(SettingsShowAboutDialogOnStart).AsBool() {
+					settings := globals.MenuSystem.Get("settings")
+					settings.Center()
+					settings.Open()
+					settings.SetPage("about")
+				}
+			}
 
 			globals.MenuSystem.Update()
 
@@ -1006,6 +1009,12 @@ func ConstructMenus() {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	}))
 
+	row = root.AddRow(AlignCenter)
+	row.Add("about", NewButton("About", nil, nil, false, func() {
+		settings.SetPage("about")
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	}))
+
 	// Sound options
 
 	sound := settings.AddPage("sound")
@@ -1072,7 +1081,7 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsDisplayMessages)))
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Render FPS:", nil, false, AlignLeft))
+	row.Add("", NewLabel("Focused FPS:", nil, false, AlignLeft))
 	num := NewNumberSpinner(nil, false, globals.Settings.Get(SettingsTargetFPS))
 	num.MinValue = 5
 	row.Add("", num)
@@ -1103,7 +1112,11 @@ func ConstructMenus() {
 	row.Add("", NewLabel("Notify on Elapsed Timers:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNotifyOnElapsedTimers)))
 
-	// INPUT
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Show About Dialog On Start:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
+
+	// INPUT PAGE
 
 	var rebindingKey *Button
 	var rebindingShortcut *Shortcut
@@ -1231,13 +1244,44 @@ func ConstructMenus() {
 		row.Add(shortcut.Name+"-d", button)
 	}
 
-	search := NewMenu(&sdl.FRect{0, 0, 512, 96}, true)
+	about := settings.AddPage("about")
+
+	about.DefaultExpand = true
+
+	row = about.AddRow(AlignCenter)
+	row.Add("", NewLabel("About", nil, false, AlignCenter))
+	row = about.AddRow(AlignCenter)
+	row.Add("", NewLabel("Welcome to MasterPlan!", nil, false, AlignCenter))
+	row = about.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = about.AddRow(AlignCenter)
+	row.Add("", NewLabel("This is an alpha of the next update, v0.8.0. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet.", &sdl.FRect{0, 0, 512, 96}, false, AlignLeft))
+
+	row = about.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = about.AddRow(AlignCenter)
+	row.Add("", NewLabel("That said, I think this is already FAR better than v0.7 and am very excited to get people using it and get some feedback on the new changes. Please do let me know your thoughts! (And don't forget to do frequent back-ups!) ~ SolarLune", &sdl.FRect{0, 0, 512, 160}, false, AlignLeft))
+
+	row = about.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = about.AddRow(AlignCenter)
+	row.ExpandElements = false
+	row.Add("", NewButton("Discord", nil, &sdl.Rect{48, 224, 32, 32}, false, func() { browser.OpenURL("https://discord.gg/tRVf7qd") }))
+	row.Add("", NewSpacer(nil))
+	row.Add("", NewButton("Overview Video", nil, nil, false, func() { browser.OpenURL("https://youtu.be/43sotReXnGA") }))
+	row.Add("", NewSpacer(nil))
+	row.Add("", NewButton("Twitter", nil, &sdl.Rect{80, 224, 32, 32}, false, func() { browser.OpenURL("https://twitter.com/MasterPlanApp") }))
+
+	// Search Menu
+
+	search := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 512, 96}, true), "search", false)
 	search.Center()
 	search.CloseButtonEnabled = true
 	search.Draggable = true
 	search.Resizeable = true
-
-	globals.MenuSystem.Add(search, "search", false)
 
 	root = search.Pages["root"]
 	row = root.AddRow(AlignCenter)
@@ -1358,6 +1402,8 @@ func ConstructMenus() {
 		foundIndex++
 		findFunc()
 	}))
+
+	// Stats Menu
 
 	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 700, 128}, true), "stats", false)
 	stats.Center()
