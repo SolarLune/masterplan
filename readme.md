@@ -1,8 +1,10 @@
-![MasterPlan](https://user-images.githubusercontent.com/4733521/72319146-4372bd80-3653-11ea-806f-9c66c41d4c2f.png)
+![MasterPlan](https://img.itch.zone/aW1hZ2UvNTAxNDc3LzcyMTg3MDAucG5n/original/i2wVmP.png)
 
-MasterPlan is a customizeable graphical project management software for independent users or small teams. If you need to share plans across a whole company on an online platform, there are quite a few tools for that. However, if you want to keep track of your todo list, version control your project plan, make an ideaboard, and plan your project your way, MasterPlan is the tool for you.
+MasterPlan is a customizeable graphical project management software for independent users or small teams. 
 
-Note that this is the code repository and external issue tracker for MasterPlan; actual releases can be purchased from [itch](https://solarlune.itch.io/masterplan) or [Steam](https://store.steampowered.com/app/1269310/MasterPlan/). You can also just build it yourself from this repository if you're familiar with [Go](https://golang.org/).
+If you need to share plans across a whole company on an online platform, there are quite a few tools for that. However, if you want to keep track of your todo list, version control your project plan, make an ideaboard, and plan your project your way, MasterPlan is the tool for you.
+
+Note that this is the code repo and internal-ish issue tracker for MasterPlan. Releases can be purchased from [itch](https://solarlune.itch.io/masterplan) or [Steam](https://store.steampowered.com/app/1269310/MasterPlan/). You can build it yourself from this repository if you're familiar with [Go](https://golang.org/).
 
 ## History
 
@@ -17,22 +19,32 @@ While these features (cloud-based, browser apps, etc.) can be beneficial for lar
 
 ## Building
 
-MasterPlan is not quite fully free software, but the source is available here. If you wish to build MasterPlan or contribute to its development, I thank you, and welcome it. I've made a build script in Go to simplify the building process. The build script is located at `build_script\main.go`. The dependencies for building should be resolved automatically by `go mod` (so you should be using a recent version of Go with support for `go.mod` files). Just run:
+MasterPlan is not quite fully free software, but the source is available here. If you wish to build MasterPlan or contribute to its development, I thank you, and welcome it. 
+
+To this end, I've made a build script in Go to simplify the building process. In general, it's easier to try running MasterPlan first (`go run ./` in the project root), and if that works, building should generally succeed. The build script is located at `build_script\main.go`. The dependencies for building should be resolved automatically by `go mod` (so you should be using a recent version of Go with support for `go.mod` files). Just run:
 
 ```
 > go run ./build_script/main.go -b
 ```
 
-from the MasterPlan source directory to build. It should generate a folder named `bin`, and populate it with a directory with a release build for your OS and architecture. MasterPlan's `go.mod` automatically uses my fork of raylib-go, located [here](https://github.com/SolarLune/raylib-go). It should be kept up to date with `raylib-go` master, but with its `raylib/config.h` file altered to turn off automatic screenshots (as MasterPlan handles this manually).
+from the MasterPlan source directory to build. It should generate a folder named `bin`, and populate it with a directory with a release build for your OS and architecture, by default. 
+
+If you follow the necessary steps for cross-compilation from go-sdl2's instructions, you can also specify a target OS to build MasterPlan for that OS.
+
+```
+> go run ./build_script/main.go -b -os windows/amd64
+```
 
 ## Requirements
 
-All requirements for building and running MasterPlan should be filled by the go.mod and the building process automatically on all platforms. Linux additionally requires the use of `zenity`, `qarma`, or `matedialog` for opening file selection windows, and `xsel`, `xclip`, or `wl-clipboard` for clipboard copy-and-paste functions. At least one of each of these two groups will most likely be installed by default on your chosen Linux distro.
+All requirements for building and running MasterPlan should be filled by the go.mod and the building process automatically on all platforms. 
+
+Linux additionally requires the use of `zenity`, `qarma`, or `matedialog` for opening file selection windows, and a X11 dev package (`libx11-dev`, `xorg-dev`, or `libX11-devel`) for clipboard copy-and-paste functions.
 
 ## License
 
-MasterPlan is copyright, All Rights Reserved, SolarLune Games 2019-2020. 
+MasterPlan is copyright, All Rights Reserved, SolarLune Games 2019-2021. 
 
 Feel free to use the program itself and the generated plan files in the development of projects, commercial or otherwise, as that's the point of the tool, haha. You can also build MasterPlan yourself using the repo here, contribute to its development, and fork it freely, but you may not use any assets (graphics files, sound files, code, etc) from this repository in any commercial creations. **Please also do not distribute builds of MasterPlan to others.**
 
-Special thanks to raysan5 for creating Raylib, as it's pretty key to the development of MasterPlan, and works rather well!
+Special thanks to raysan5 for creating Raylib, as it was pretty key to the development of MasterPlan, and works rather well! Also thanks to the SDL development team, and the go-sdl2 maintenance team!

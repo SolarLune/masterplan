@@ -13,12 +13,14 @@ import (
 	"github.com/otiai10/copy"
 )
 
-func build(baseDir string, ldFlags string) {
+func build(baseDir string, releaseMode bool, targetOS string) {
 
-	fmt.Println(fmt.Sprintf("Beginning build to %s.", baseDir))
+	fmt.Println(`< Beginning build to "/` + baseDir + `" for ` + targetOS + `. >`)
 
-	onWin := strings.Contains(runtime.GOOS, "windows")
-	onMac := strings.Contains(runtime.GOOS, "darwin")
+	forWin := strings.Contains(targetOS, "windows")
+	forMac := strings.Contains(targetOS, "darwin")
+	// forLinux := !forWin && !forMac
+	crossbuild := targetOS != runtime.GOOS
 
 	copyTo := func(src, dest string) {
 		if err := copy.Copy(src, dest); err != nil {
@@ -27,7 +29,7 @@ func build(baseDir string, ldFlags string) {
 	}
 
 	// Note that this script is meant to be run from a terminal at the project root.
-	// It is specifically not meant to be built into an executable and run by double-clicking in
+	// It is specifically NOT meant to be built into an executable and run by double-clicking in
 	// Finder, on Mac OS.
 
 	// We always remove any pre-existing platform directory before building to ensure it's fresh.
@@ -37,7 +39,7 @@ func build(baseDir string, ldFlags string) {
 
 	copyTo("changelog.txt", filepath.Join(baseDir, "changelog.txt"))
 
-	if onMac {
+	if forMac {
 		baseDir = filepath.Join(baseDir, "MasterPlan.app", "Contents", "MacOS")
 	}
 
@@ -49,31 +51,98 @@ func build(baseDir string, ldFlags string) {
 
 	filename := filepath.Join(baseDir, "MasterPlan")
 
-	if onWin {
+	ldFlags := "-X main.releaseMode=false"
+
+	if releaseMode {
+		ldFlags = "-X main.releaseMode=true"
+	}
+
+	if forWin {
+
+		filename += ".exe"
+
+		// The -H=windowsgui -ldflag is to make sure Go builds a Windows GUI app so the command prompt doesn't stay
+		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag
+		// gets passed to the compiler and XCode wouldn't build if on Mac I leave it in there.
+
+		ldFlags += " -H=windowsgui"
 
 		// Copy the resources.syso so the executable has the generated icon and executable properties compiled in.
 		// This is done using go generate with goversioninfo downloaded and "// go:generate goversioninfo -64=true" in main.go.
 		copyTo(filepath.Join("other_sources", "resource.syso"), "resource.syso")
 
-		filename += ".exe"
-		// The -H=windowsgui -ldflag is to make sure Go builds a Windows GUI app so the command prompt doesn't stay
-		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag
-		// gets passed to the compiler and XCode wouldn't build if on Mac I leave it in there.
-		ldFlags += " -H=windowsgui"
+		// Copy in the SDL requirements
+		copyTo(filepath.Join("other_sources", "SDL2.dll"), filepath.Join(baseDir, "SDL2.dll"))
+		copyTo(filepath.Join("other_sources", "SDL2_image.dll"), filepath.Join(baseDir, "SDL2_image.dll"))
+		copyTo(filepath.Join("other_sources", "SDL2_ttf.dll"), filepath.Join(baseDir, "SDL2_ttf.dll"))
+		copyTo(filepath.Join("other_sources", "SDL2_gfx.dll"), filepath.Join(baseDir, "SDL2_gfx.dll"))
+		copyTo(filepath.Join("other_sources", "libfreetype-6.dll"), filepath.Join(baseDir, "libfreetype-6.dll"))
+		copyTo(filepath.Join("other_sources", "libpng16-16.dll"), filepath.Join(baseDir, "libpng16-16.dll"))
+		copyTo(filepath.Join("other_sources", "zlib1.dll"), filepath.Join(baseDir, "zlib1.dll"))
 	}
 
-	args := []string{"build", "-ldflags", ldFlags, "-o", filename, "./"}
+	var c *exec.Cmd
+	var err error
 
-	fmt.Println(fmt.Sprintf("Building binary with flags %s...", args))
+	// Basic crossbuilding from Linux to Windows or Mac
+	if crossbuild {
 
-	result, err := exec.Command("go", args...).CombinedOutput()
+		if forWin {
 
-	if string(result) != "" {
-		fmt.Println(string(result))
+			c = exec.Command(`env`, `CGO_ENABLED=1`,
+				`CC=/usr/bin/x86_64-w64-mingw32-gcc`,
+				`GOOS=windows`,
+				`GOARCH=amd64`,
+				`CGO_LDFLAGS=-lmingw32 -lSDL2 -lSDL2_gfx`,
+				`CGO_CFLAGS=-pthread`,
+				`go`, `build`, `-ldflags`, ldFlags, `-o`, filename, `./`)
+
+		} else if forMac {
+
+			c = exec.Command(
+				`env`,
+				`CGO_ENABLED=1`,
+				`CC=x86_64-apple-darwin20.4-clang`,
+				`GOOS=darwin`,
+				`GOARCH=amd64`,
+				`go`,
+				`build`,
+				`-tags`, `static`,
+				`-ldflags`, `-s -w -a `+ldFlags,
+				`-o`, filename, `./`,
+			)
+
+		} else {
+
+			// No command for building from some other OSes to Linux.
+
+		}
+
+		// result, err := exec.Command("go", args...).CombinedOutput()
+
+	} else {
+
+		// Default building for the current OS
+		c = exec.Command(
+			`env`,
+			`GOOS=`+targetOS,
+			`GOARCH=amd64`,
+			`go`, `build`, `-ldflags`, ldFlags, `-o`, filename, `./`)
+
+	}
+
+	fmt.Println("Building binary with args: ", c.Args, " ...")
+
+	_, err = c.CombinedOutput()
+
+	// result, err := exec.Command("go", args...).CombinedOutput()
+
+	if err != nil {
+		fmt.Println("ERROR: ", string(err.Error()))
 	}
 
 	// Add the stuff for Mac
-	if onMac {
+	if forMac {
 		baseDir = filepath.Clean(filepath.Join(baseDir, ".."))
 		copyTo(filepath.Join("other_sources", "Info.plist"), filepath.Join(baseDir, "Info.plist"))
 		copyTo(filepath.Join("other_sources", "macicons.icns"), filepath.Join(baseDir, "Resources", "macicons.icns"))
@@ -87,9 +156,9 @@ func build(baseDir string, ldFlags string) {
 		fmt.Println("")
 	}
 
-	if onWin {
+	if forWin {
 		// Remove Resources; we don't need it in the root directory anymore after building.
-		os.Remove("resources.syso")
+		os.Remove("resource.syso")
 	}
 
 }
@@ -166,14 +235,23 @@ func publishToItch() {
 
 func main() {
 
-	buildMP := flag.Bool("b", false, "Build MasterPlan into the bin directory.")
+	buildMP := flag.String("b", "", "Build MasterPlan into the bin directory.")
 	compressMP := flag.Bool("c", false, "Compress build output.")
 	itch := flag.Bool("i", false, "Upload build to itch.io.")
+
 	flag.Parse()
 
-	if *buildMP {
-		build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", getOSName())), "-X main.releaseMode=true")
-		build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Demo", getOSName())), "-X main.releaseMode=true -X main.demoMode=DEMO")
+	if *buildMP != "" {
+		if *buildMP == "all" {
+			build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", "linux-amd64")), true, "linux")
+			build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", "windows-amd64")), true, "windows")
+			build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", "darwin-amd64")), true, "darwin")
+		} else {
+			target := strings.ReplaceAll(*buildMP, "/", "-")
+			build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Release", target)), true, target)
+		}
+		// Demo builds are paused until MasterPlan v0.8 is the main version.
+		// build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Demo", target)), "-X main.releaseMode=true -X main.demoMode=DEMO", *targetOS)
 	}
 	if *compressMP {
 		compress()
@@ -182,26 +260,24 @@ func main() {
 		publishToItch()
 	}
 
-	if !*buildMP && !*compressMP && !*itch {
+	if *buildMP == "" && !*compressMP && !*itch {
 
 		fmt.Println(
+			"MASTERPLAN BUILD SCRIPT:\n",
 			"To use this script, you can use the following arguments:\n",
-			"-b to build MasterPlan for the current OS.\n",
+			"\n",
+			"-b to build MasterPlan for the current OS. If you're on Linux, you can cross-compile to Windows or Mac by specifying the target OS name.\n",
+			"Example to build for Mac: >go run ./build_script/main.go -b -os darwin/amd64 \n",
+			"Example to build for Windows: >go run ./build_script/main.go -b -os windows/amd64 \n",
+			"Example to build for Linux: >go run ./build_script/main.go -b -os linux/amd64 \n",
+			"\n",
+			"Passing all for the OS name (e.g. -b all) creates a 64-bit build for all operating systems.\n",
+			"\n",
 			"-c to compress the build output, as a .tar.gz file for Linux or Mac, or a .zip file for Windows.\n",
+			"\n",
 			"-i to publish the bin contents to itch.",
 		)
 
 	}
-
-}
-
-func getOSName() string {
-
-	platformName := strings.Title(runtime.GOOS)
-	if strings.Contains(runtime.GOOS, "darwin") {
-		platformName = "Mac"
-	}
-
-	return platformName
 
 }

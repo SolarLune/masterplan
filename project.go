@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/blang/semver"
 	"github.com/ncruces/zenity"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -88,7 +89,7 @@ func (project *Project) CreateGridTexture() {
 		project.GridTexture.Texture.Destroy()
 	}
 	gridColor := getThemeColor(GUIGridColor)
-	guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage()
+	guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
 	guiTex.Texture.SetColorMod(gridColor.RGB())
 	guiTex.Texture.SetAlphaMod(gridColor[3])
 	project.GridTexture = TileTexture(guiTex, &sdl.Rect{480, 0, 32, 32}, 512, 512)
@@ -140,8 +141,10 @@ func (project *Project) Draw() {
 			}
 		}
 
-		ThickLine(project.Camera.TranslatePoint(Point{-10000, 0}), project.Camera.TranslatePoint(Point{10000, 0}), 2, getThemeColor(GUIGridColor))
-		ThickLine(project.Camera.TranslatePoint(Point{0, -10000}), project.Camera.TranslatePoint(Point{0, 10000}), 2, getThemeColor(GUIGridColor))
+		halfW := float32(project.Camera.ViewArea().W / 2)
+		halfH := float32(project.Camera.ViewArea().H / 2)
+		ThickLine(project.Camera.TranslatePoint(Point{project.Camera.Position.X - halfW, 0}), project.Camera.TranslatePoint(Point{project.Camera.Position.X + halfW, 0}), 2, getThemeColor(GUIGridColor))
+		ThickLine(project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y - halfH}), project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y + halfH}), 2, getThemeColor(GUIGridColor))
 	}
 
 	// gridPieceToScreenW := globals.ScreenSize.X / project.GridTexture.Size.X / project.Camera.TargetZoom
@@ -260,54 +263,63 @@ func (project *Project) OpenFrom(filename string) {
 		panic(err)
 	}
 
-	globals.EventLog.On = false
-
-	newProject := NewProject()
-	newProject.Loading = true
-	newProject.Filepath = filename
-
 	json := string(jsonData)
 
-	data := gjson.Get(json, "root").String()
+	if ver, err := semver.Parse(gjson.Get(json, "version").String()); err != nil || ver.Minor < 8 {
+		globals.EventLog.Log("Error: Can't load project as it's a pre-0.8 project.", filename)
+		globals.EventLog.Log("Pre-0.8 projects will be supported later.")
+	} else {
 
-	savedImageFileNames := map[string]string{}
+		globals.EventLog.On = false
 
-	for fpName, imgData := range gjson.Get(json, "savedimages").Map() {
+		newProject := NewProject()
+		newProject.Loading = true
+		newProject.Filepath = filename
 
-		imgOut := []byte{}
+		data := gjson.Get(json, "root").String()
 
-		for _, c := range imgData.String() {
-			imgOut = append(imgOut, byte(c))
-		}
+		savedImageFileNames := map[string]string{}
 
-		newFName, _ := WriteImageToTemp(imgOut)
-		savedImageFileNames[fpName] = newFName
+		for fpName, imgData := range gjson.Get(json, "savedimages").Map() {
 
-		globals.Resources.Get(newFName).TempFile = true
+			imgOut := []byte{}
 
-	}
-
-	newProject.RootFolder.Deserialize(data)
-
-	for _, page := range newProject.RootFolder.Pages() {
-
-		for _, card := range page.Cards {
-			if card.Properties.Has("saveimage") {
-				card.Contents.(*ImageContents).LoadFileFrom(savedImageFileNames[card.Properties.Get("filepath").AsString()]) // Reload the file
+			for _, c := range imgData.String() {
+				imgOut = append(imgOut, byte(c))
 			}
+
+			newFName, _ := WriteImageToTemp(imgOut)
+			savedImageFileNames[fpName] = newFName
+
+			globals.Resources.Get(newFName).TempFile = true
+
 		}
 
-		page.UpdateLinks()
+		newProject.RootFolder.Deserialize(data)
+
+		for _, page := range newProject.RootFolder.Pages() {
+
+			for _, card := range page.Cards {
+				if card.Properties.Has("saveimage") {
+					card.Contents.(*ImageContents).LoadFileFrom(savedImageFileNames[card.Properties.Get("filepath").AsString()]) // Reload the file
+				}
+			}
+
+			page.UpdateLinks()
+		}
+
+		newProject.CurrentPage = newProject.RootFolder.Pages()[1]
+		newProject.RootFolder.Remove(newProject.RootFolder.Contents[0])
+
+		project.LoadingProject = newProject
+
+		project.LoadingProject.UndoHistory.MinimumFrame = 1
+
+		globals.EventLog.On = true
+
+		globals.EventLog.Log("Project loaded successfully.")
+
 	}
-
-	newProject.CurrentPage = newProject.RootFolder.Pages()[1]
-	newProject.RootFolder.Remove(newProject.RootFolder.Contents[0])
-
-	project.LoadingProject = newProject
-
-	globals.EventLog.On = true
-
-	globals.EventLog.Log("Project loaded successfully.")
 
 }
 
@@ -440,7 +452,7 @@ func (project *Project) GlobalShortcuts() {
 
 		} else if globals.Keybindings.Pressed(KBNewNumberCard) {
 
-			newCard = project.CurrentPage.CreateNewCard(ContentTypeNumber)
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeNumbered)
 			globals.Keybindings.Shortcuts[KBNewCheckboxCard].ConsumeKeys()
 
 		} else if globals.Keybindings.Pressed(KBNewNoteCard) {

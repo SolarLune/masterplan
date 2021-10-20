@@ -37,6 +37,7 @@ type Globals struct {
 	GrabClient     *grab.Client
 	MenuSystem     *MenuSystem
 	EventLog       *EventLog
+	WindowFlags    uint32
 
 	Settings    *Properties
 	Keybindings *Keybindings

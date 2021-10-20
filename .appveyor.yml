@@ -20,7 +20,11 @@ for:
       - image: Ubuntu2004
   install:
     - sudo apt-get update
-    - sudo apt-get install libsdl2{, -image, -mixer, -ttf, -gfx}-dev -y
+    - sudo apt-get install libsdl2-dev -y
+    - sudo apt-get install libsdl2-image-dev -y
+    - sudo apt-get install libsdl2-mixer-dev -y
+    - sudo apt-get install libsdl2-ttf-dev -y
+    - sudo apt-get install libsdl2-gfx-dev -y
 
 -
   matrix:

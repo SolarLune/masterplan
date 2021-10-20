@@ -45,8 +45,9 @@ Note card becoming too large crashes due to exceeding graphics card texture limi
 [ ] Confirm when loading project
 [ ] Close menu when loading project
 [ ] Use Label.Property directly for Card Contents that manually sync the Label and Property (i.e. CheckboxContents / NoteContents / etc).
+[x] Count-down Timer
+[ ] Reimplement Timers doing things on connected things on completion
 
-[ ] Count-down Timer
 - Progression Task
 - Pasting Images
 - Create a roadmap; post on itch and Steam.

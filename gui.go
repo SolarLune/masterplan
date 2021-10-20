@@ -73,7 +73,7 @@ func loadThemes() {
 	newGUIColors := map[string]map[string]Color{}
 	availableThemes = []string{}
 
-	filepath.Walk(LocalPath("assets/themes"), func(fp string, info os.FileInfo, err error) error {
+	filepath.Walk(LocalRelativePath("assets/themes"), func(fp string, info os.FileInfo, err error) error {
 
 		if !info.IsDir() {
 
@@ -140,28 +140,29 @@ type FocusableMenuElement interface {
 }
 
 type IconButton struct {
-	Rect           *sdl.FRect
-	IconSrc        *sdl.Rect
-	WorldSpace     bool
-	OnPressed      func()
-	Tint           Color
-	Flip           sdl.RendererFlip
-	BGIconSrc      *sdl.Rect
-	Highlighter    *Highlighter
-	Alpha          float32
-	FadeOnInactive bool
+	Rect                    *sdl.FRect
+	IconSrc                 *sdl.Rect
+	WorldSpace              bool
+	OnPressed               func()
+	Tint                    Color
+	Flip                    sdl.RendererFlip
+	BGIconSrc               *sdl.Rect
+	Highlighter             *Highlighter
+	HighlightingTargetColor float32
+	FadeOnInactive          bool
+	AlwaysHighlight         bool
 }
 
 func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked func()) *IconButton {
 
 	iconButton := &IconButton{
-		Rect:           &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)},
-		IconSrc:        iconSrc,
-		WorldSpace:     worldSpace,
-		Tint:           NewColor(255, 255, 255, 255),
-		OnPressed:      onClicked,
-		Alpha:          1,
-		FadeOnInactive: true,
+		Rect:                    &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)},
+		IconSrc:                 iconSrc,
+		WorldSpace:              worldSpace,
+		Tint:                    NewColor(255, 255, 255, 255),
+		OnPressed:               onClicked,
+		HighlightingTargetColor: 1,
+		FadeOnInactive:          true,
 	}
 	iconButton.Highlighter = NewHighlighter(iconButton.Rect, worldSpace)
 	iconButton.Highlighter.HighlightMode = HighlightUnderline
@@ -181,7 +182,7 @@ func (iconButton *IconButton) Draw() {
 
 	orig := *iconButton.Rect
 	rect := &orig
-	guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+	guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 
 	if iconButton.WorldSpace {
 		rect = globals.Project.Camera.TranslateRect(rect)
@@ -194,29 +195,34 @@ func (iconButton *IconButton) Draw() {
 
 	hovering := mp.Inside(iconButton.Rect)
 
-	targetAlpha := float32(0.6)
-	if hovering || !iconButton.FadeOnInactive {
-		targetAlpha = 1
+	targetSub := float32(0.3)
+	if hovering || !iconButton.FadeOnInactive || iconButton.AlwaysHighlight {
+		targetSub = 0
 	}
 
-	iconButton.Alpha += (targetAlpha - iconButton.Alpha) * 0.1
+	iconButton.HighlightingTargetColor += (targetSub - iconButton.HighlightingTargetColor) * 0.1
 
-	drawSrc := func(src *sdl.Rect, color Color, flip sdl.RendererFlip) {
+	drawSrc := func(src *sdl.Rect, x, y float32, color Color, flip sdl.RendererFlip) {
 
-		guiTex.SetColorMod(color.RGB())
-		guiTex.SetAlphaMod(uint8(iconButton.Alpha * 255))
-		globals.Renderer.CopyExF(guiTex, src, rect, 0, nil, flip)
+		guiTex.SetColorMod(color.Sub(uint8(iconButton.HighlightingTargetColor * 255)).RGB())
+		// alpha := uint8(iconButton.Alpha * float32(color[3]))
+		guiTex.SetAlphaMod(color[3])
+		r := *rect
+		r.X += x
+		r.Y += y
+		globals.Renderer.CopyExF(guiTex, src, &r, 0, nil, flip)
 
 	}
 
 	if iconButton.BGIconSrc != nil {
-		drawSrc(iconButton.BGIconSrc, NewColor(255, 255, 255, 255), 0)
+		drawSrc(iconButton.BGIconSrc, 0, 0, NewColor(255, 255, 255, 255), 0)
 	}
 
-	drawSrc(iconButton.IconSrc, iconButton.Tint, iconButton.Flip)
+	drawSrc(iconButton.IconSrc, 2, 2, NewColor(0, 0, 0, 64), iconButton.Flip)
+	drawSrc(iconButton.IconSrc, 0, 0, iconButton.Tint, iconButton.Flip)
 
 	iconButton.Highlighter.SetRect(iconButton.Rect)
-	iconButton.Highlighter.Highlighting = mp.Inside(iconButton.Rect)
+	iconButton.Highlighter.Highlighting = iconButton.AlwaysHighlight || mp.Inside(iconButton.Rect)
 	iconButton.Highlighter.Draw()
 
 	if globals.DebugMode {
@@ -308,6 +314,7 @@ type NumberSpinner struct {
 	Property *Property
 	MaxValue float64
 	MinValue float64
+	OnChange func()
 }
 
 func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *NumberSpinner {
@@ -322,22 +329,31 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 		spinner.Rect = &sdl.FRect{0, 0, 1, globals.GridSize}
 	}
 
-	spinner.Label = NewLabel("0", rect, worldSpace, AlignCenter)
+	spinner.Label = NewLabel("0", nil, worldSpace, AlignCenter)
 
 	spinner.Label.RegexString = RegexOnlyDigits()
 	spinner.Label.Editable = true
 	spinner.Label.OnClickOut = func() {
 		spinner.Property.Set(spinner.EnforceCaps(float64(spinner.Label.TextAsInt())))
+		if spinner.OnChange != nil {
+			spinner.OnChange()
+		}
 	}
 
 	spinner.Increase = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, worldSpace, func() {
 		f := spinner.Property.AsFloat()
 		spinner.Property.Set(spinner.EnforceCaps(f + 1))
+		if spinner.OnChange != nil {
+			spinner.OnChange()
+		}
 	})
 
 	spinner.Decrease = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, worldSpace, func() {
 		f := spinner.Property.AsFloat()
 		spinner.Property.Set(spinner.EnforceCaps(f - 1))
+		if spinner.OnChange != nil {
+			spinner.OnChange()
+		}
 	})
 
 	return spinner
@@ -355,8 +371,8 @@ func (spinner *NumberSpinner) EnforceCaps(v float64) float64 {
 
 func (spinner *NumberSpinner) Update() {
 
-	spinner.Increase.Tint = getThemeColor(GUIFontColor)
-	spinner.Decrease.Tint = getThemeColor(GUIFontColor)
+	// spinner.Increase.Tint = getThemeColor(GUIFontColor)
+	// spinner.Decrease.Tint = getThemeColor(GUIFontColor)
 
 	if !spinner.Label.Editing {
 		v := spinner.Property.AsFloat()
@@ -381,7 +397,12 @@ func (spinner *NumberSpinner) Draw() {
 func (spinner *NumberSpinner) Destroy() {}
 
 func (spinner *NumberSpinner) Rectangle() *sdl.FRect {
-	return spinner.Rect
+	return &sdl.FRect{
+		spinner.Rect.X,
+		spinner.Rect.Y,
+		spinner.Rect.W,
+		spinner.Rect.H,
+	}
 }
 
 func (spinner *NumberSpinner) SetRectangle(rect *sdl.FRect) {
@@ -521,7 +542,7 @@ func (button *Button) Update() {
 func (button *Button) Draw() {
 
 	if button.BackgroundColor[3] > 0 {
-		guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+		guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 		guiTexture.SetBlendMode(sdl.BLENDMODE_NONE)
 		guiTexture.SetColorMod(button.BackgroundColor.RGB())
 		guiTexture.SetAlphaMod(1)
@@ -548,7 +569,7 @@ func (button *Button) Draw() {
 
 	if button.IconSrc != nil {
 
-		guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+		guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 
 		guiTexture.SetAlphaMod(uint8(button.Label.Alpha * 255))
 		guiTexture.SetColorMod(color.RGB())
@@ -820,6 +841,106 @@ func (bg *ButtonGroup) Destroy() {
 	}
 }
 
+type IconButtonGroup struct {
+	ChosenIndex int
+	Buttons     []*IconButton
+	Rect        *sdl.FRect
+	Icons       []*sdl.Rect
+	OnChoose    func(index int)
+	Property    *Property
+	WorldSpace  bool
+}
+
+func NewIconButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index int), property *Property, icons ...*sdl.Rect) *IconButtonGroup {
+
+	group := &IconButtonGroup{
+		Rect:       rect,
+		OnChoose:   onChoose,
+		Buttons:    []*IconButton{},
+		Property:   property,
+		WorldSpace: worldSpace,
+		Icons:      icons,
+	}
+
+	group.SetButtons(icons...)
+
+	if rect == nil {
+		group.Rect = &sdl.FRect{0, 0, 0, 32}
+		for _, b := range group.Buttons {
+			group.Rect.W += b.Rect.W
+		}
+	}
+
+	return group
+
+}
+
+func (bg *IconButtonGroup) SetButtons(icons ...*sdl.Rect) {
+
+	for _, b := range bg.Buttons {
+		b.Destroy()
+	}
+
+	bg.Buttons = []*IconButton{}
+
+	for i, src := range icons {
+
+		index := i
+		bg.Buttons = append(bg.Buttons, NewIconButton(0, 0, src, bg.WorldSpace, func() {
+			bg.ChosenIndex = index
+			if bg.OnChoose != nil {
+				bg.OnChoose(index)
+			}
+		}))
+
+	}
+
+}
+
+func (bg *IconButtonGroup) Update() {
+
+	rect := bg.Rectangle()
+	w := rect.W / float32(len(bg.Buttons))
+
+	for i, b := range bg.Buttons {
+
+		// b.Tint = getThemeColor(GUIFontColor)
+		r := b.Rectangle()
+		r.X = rect.X + (w * float32(i))
+		r.Y = rect.Y
+		b.SetRectangle(r)
+		b.Update()
+	}
+
+}
+
+func (bg *IconButtonGroup) Draw() {
+
+	for i, b := range bg.Buttons {
+		b.AlwaysHighlight = bg.ChosenIndex == i
+		b.Draw()
+	}
+
+}
+
+func (bg *IconButtonGroup) Rectangle() *sdl.FRect {
+	rect := *bg.Rect
+	return &rect
+}
+
+func (bg *IconButtonGroup) SetRectangle(rect *sdl.FRect) {
+	bg.Rect.X = rect.X
+	bg.Rect.Y = rect.Y
+	bg.Rect.W = rect.W
+	bg.Rect.H = rect.H
+}
+
+func (bg *IconButtonGroup) Destroy() {
+	for _, b := range bg.Buttons {
+		b.Destroy()
+	}
+}
+
 type Spacer struct {
 	Rect *sdl.FRect
 }
@@ -927,6 +1048,7 @@ type Label struct {
 	Highlighter         *Highlighter
 	AutoExpand          bool
 	Property            *Property
+	MaxLength           int
 }
 
 // NewLabel creates a new Label object. a rect of nil means the Label will default to a rectangle of the necessary size to fully display the text given.
@@ -940,6 +1062,7 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 		Alpha:               1,
 		Highlighter:         NewHighlighter(&sdl.FRect{}, worldSpace),
 		RegexString:         "",
+		MaxLength:           -1,
 	}
 
 	label.Highlighter.HighlightMode = HighlightColor
@@ -1312,12 +1435,23 @@ func (label *Label) Update() {
 
 	}
 
-	if label.Property != nil && label.Property.AsString() != label.TextAsString() {
-		if label.textChanged {
-			label.Property.Set(label.TextAsString())
+	if label.Property != nil {
+
+		if label.Property.IsString() {
+
+			if label.Property.AsString() != label.TextAsString() {
+
+				if label.textChanged {
+					label.Property.Set(label.TextAsString())
+				} else {
+					label.SetText([]rune(label.Property.AsString()))
+				}
+
+			}
 		} else {
-			label.SetText([]rune(label.Property.AsString()))
+			label.Property.Set(label.TextAsString())
 		}
+
 	}
 
 }
@@ -1329,7 +1463,6 @@ func (label *Label) Draw() {
 	// don't necessitate two recreations of its underlying texture
 	if label.TextureDirty {
 		label.RecreateTexture()
-		// TODO: Maybe just do this when the label exits editing?
 		if label.OnChange != nil && label.textChanged {
 			label.OnChange()
 		}
@@ -1594,6 +1727,10 @@ func (label *Label) DeleteChars(start, end int) {
 }
 
 func (label *Label) InsertRunesAtIndex(text []rune, index int) {
+
+	if label.MaxLength >= 0 && len(label.Text) > label.MaxLength {
+		return
+	}
 
 	if label.RegexString != "" {
 
@@ -2021,7 +2158,7 @@ func (icon *Icon) Update() {}
 func (icon *Icon) Draw() {
 	color := getThemeColor(GUIFontColor)
 
-	guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+	guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 	guiTexture.SetColorMod(color.RGB())
 	guiTexture.SetAlphaMod(color[3])
 
@@ -2050,6 +2187,7 @@ type Scrollbar struct {
 	Rect        *sdl.FRect
 	Value       float32
 	TargetValue float32
+	Soft        bool
 	WorldSpace  bool
 	OnValueSet  func()
 	OnRelease   func()
@@ -2062,6 +2200,7 @@ func NewScrollbar(rect *sdl.FRect, worldSpace bool) *Scrollbar {
 		Rect:        rect,
 		WorldSpace:  worldSpace,
 		Highlighter: NewHighlighter(&sdl.FRect{0, 0, 32, 32}, worldSpace),
+		Soft:        true,
 	}
 }
 
@@ -2102,7 +2241,11 @@ func (scrollbar *Scrollbar) Update() {
 
 	}
 
-	scrollbar.Value += (scrollbar.TargetValue - scrollbar.Value) * 12 * globals.DeltaTime
+	if scrollbar.Soft {
+		scrollbar.Value += (scrollbar.TargetValue - scrollbar.Value) * 12 * globals.DeltaTime
+	} else {
+		scrollbar.Value = scrollbar.TargetValue
+	}
 
 }
 

@@ -28,6 +28,10 @@ const (
 	SettingsDoubleClickCreatesCard = "DoubleClickCreatesCard"
 	SettingsShowGrid               = "ShowGrid"
 	SettingsFlashSelected          = "FlashSelected"
+	SettingsFocusOnElapsedTimers   = "FocusOnElapsedTimers"
+	SettingsNotifyOnElapsedTimers  = "NotifyOnElapsedTimers"
+	SettingsPlayAlarmSound         = "PlayAlarmSound"
+	SettingsAudioVolume            = "AudioVolume"
 )
 
 func NewProgramSettings() *Properties {
@@ -44,6 +48,10 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsShowGrid).Set(true)
 	props.Get(SettingsSaveWindowPosition).Set(true)
 	props.Get(SettingsFlashSelected).Set(true)
+	props.Get(SettingsFocusOnElapsedTimers).Set(true)
+	props.Get(SettingsNotifyOnElapsedTimers).Set(true)
+	props.Get(SettingsPlayAlarmSound).Set(true)
+	props.Get(SettingsAudioVolume).Set(80.0)
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 

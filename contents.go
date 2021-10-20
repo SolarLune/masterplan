@@ -5,8 +5,10 @@ import (
 	"math"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/gen2brain/beeep"
 	"github.com/ncruces/zenity"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -15,13 +17,17 @@ import (
 
 const (
 	ContentTypeCheckbox = "Checkbox"
-	ContentTypeNumber   = "Number"
+	ContentTypeNumbered = "Number"
 	ContentTypeNote     = "Note"
 	ContentTypeSound    = "Sound"
 	ContentTypeImage    = "Image"
 	ContentTypeTimer    = "Timer"
 	ContentTypeMap      = "Map"
 	ContentTypeTable    = "Table"
+
+	TriggerTypeSet    = "Set"
+	TriggerTypeToggle = "Toggle"
+	TriggerTypeClear  = "Clear"
 )
 
 type Contents interface {
@@ -30,6 +36,7 @@ type Contents interface {
 	ReceiveMessage(*Message)
 	Color() Color
 	DefaultSize() Point
+	Trigger(triggerType string)
 }
 
 type DefaultContents struct {
@@ -54,6 +61,8 @@ func (dc *DefaultContents) Draw() {
 	dc.Container.Draw()
 }
 
+func (dc *DefaultContents) Trigger(triggerType string) {}
+
 func (dc *DefaultContents) ReceiveMessage(msg *Message) {}
 
 type CheckboxContents struct {
@@ -73,6 +82,7 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 	cc.Label = NewLabel("New Checkbox", nil, true, AlignLeft)
 	cc.Label.Editable = true
+	cc.Label.Property = card.Properties.Get("description")
 
 	cc.Label.OnChange = func() {
 		if cc.Label.Editing {
@@ -88,13 +98,6 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 	}
 
-	description := cc.Card.Properties.Get("description")
-	if description.AsString() != "" {
-		cc.Label.SetText([]rune(description.AsString()))
-	} else {
-		description.Set(cc.Label.TextAsString())
-	}
-
 	row := cc.Container.AddRow(AlignLeft)
 	row.Add("checkbox", cc.Checkbox)
 	row.Add("label", cc.Label)
@@ -105,11 +108,9 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 func (cc *CheckboxContents) Update() {
 
-	description := cc.Card.Properties.Get("description")
-	if cc.Label.Editing {
-		description.Set(cc.Label.TextAsString())
-	} else {
-		cc.Label.SetText([]rune(description.AsString()))
+	if cc.Card.Selected && globals.State == StateNeutral && globals.Keybindings.Pressed(KBCheckboxToggleCompletion) {
+		prop := cc.Card.Properties.Get("checked")
+		prop.Set(!prop.AsBool())
 	}
 
 	rect := cc.Label.Rectangle()
@@ -137,6 +138,21 @@ func (cc *CheckboxContents) DefaultSize() Point {
 	return Point{globals.GridSize * 9, globals.GridSize}
 }
 
+func (cc *CheckboxContents) Trigger(triggerType string) {
+
+	prop := cc.Card.Properties.Get("checked")
+
+	switch triggerType {
+	case TriggerTypeSet:
+		prop.Set(true)
+	case TriggerTypeClear:
+		prop.Set(false)
+	case TriggerTypeToggle:
+		prop.Set(!prop.AsBool())
+	}
+
+}
+
 func (cc *CheckboxContents) CompletionLevel() float32 {
 	if cc.Card.Properties.Get("checked").AsBool() {
 		return 1
@@ -144,7 +160,7 @@ func (cc *CheckboxContents) CompletionLevel() float32 {
 	return 0
 }
 
-type NumberContents struct {
+type NumberedContents struct {
 	DefaultContents
 	Label              *Label
 	Current            *NumberSpinner
@@ -152,112 +168,146 @@ type NumberContents struct {
 	PercentageComplete float32
 }
 
-func NewNumberContents(card *Card) *NumberContents {
+func NewNumberedContents(card *Card) *NumberedContents {
 
-	number := &NumberContents{
+	numbered := &NumberedContents{
 		DefaultContents: newDefaultContents(card),
 		Label:           NewLabel("New Numbered", nil, true, AlignLeft),
 	}
+	numbered.Label.Property = card.Properties.Get("description")
+	numbered.Label.Editable = true
+	numbered.Label.OnChange = func() {
+		if numbered.Label.Editing {
 
-	desc := card.Properties.Get("description")
-	if desc.AsString() == "" {
-		desc.Set("New Numbered")
-	}
-	number.Label.Property = desc
-
-	number.Label.OnChange = func() {
-		if number.Label.Editing {
-
-			y := number.Label.IndexToWorld(number.Label.Selection.CaretPos).Y - number.Card.Rect.Y
-			if y >= number.Card.Rect.H-32 {
-				lineCount := float32(number.Label.LineCount())
-				if lineCount*globals.GridSize > number.Card.Rect.H-32 {
-					number.Card.Recreate(number.Card.Rect.W, lineCount*globals.GridSize+32)
+			y := numbered.Label.IndexToWorld(numbered.Label.Selection.CaretPos).Y - numbered.Card.Rect.Y
+			if y >= numbered.Card.Rect.H-32 {
+				lineCount := float32(numbered.Label.LineCount())
+				if lineCount*globals.GridSize > numbered.Card.Rect.H-32 {
+					numbered.Card.Recreate(numbered.Card.Rect.W, lineCount*globals.GridSize+32)
 				}
 			}
 		}
 
 	}
 
-	current := card.Properties.Get("value")
-	number.Current = NewNumberSpinner(nil, true, current)
+	current := card.Properties.Get("current")
+	numbered.Current = NewNumberSpinner(nil, true, current)
 
 	max := card.Properties.Get("maximum")
-	number.Max = NewNumberSpinner(nil, true, max)
+	numbered.Max = NewNumberSpinner(nil, true, max)
 
-	number.Label.Editable = true
-
-	row := number.Container.AddRow(AlignCenter)
-	row.Add("label", number.Label)
-	row = number.Container.AddRow(AlignCenter)
-	row.Add("current", number.Current)
+	row := numbered.Container.AddRow(AlignCenter)
+	row.Add("label", numbered.Label)
+	row = numbered.Container.AddRow(AlignCenter)
+	row.Add("current", numbered.Current)
 	// row.Add("out of", NewLabel("out of", nil, true, AlignCenter))
-	row.Add("max", number.Max)
+	row.Add("max", numbered.Max)
 	row.ExpandElements = true
 
-	return number
+	return numbered
 }
 
-func (number *NumberContents) Update() {
+func (numbered *NumberedContents) Update() {
 
-	number.DefaultContents.Update()
+	if numbered.Card.Selected && globals.State == StateNeutral {
 
-	rect := number.Label.Rectangle()
-	rect.H = number.Container.Rect.H - 32
-	number.Label.SetRectangle(rect)
+		if globals.Keybindings.Pressed(KBNumberedIncrement) {
+			current := numbered.Card.Properties.Get("current")
+			current.Set(numbered.Current.EnforceCaps(current.AsFloat() + 1))
+		}
 
-	number.Current.MaxValue = number.Max.Property.AsFloat()
-	number.Max.MinValue = number.Current.Property.AsFloat()
+		if globals.Keybindings.Pressed(KBNumberedDecrement) {
+			current := numbered.Card.Properties.Get("current")
+			current.Set(numbered.Current.EnforceCaps(current.AsFloat() - 1))
+		}
+
+	}
+
+	numbered.DefaultContents.Update()
+
+	rect := numbered.Label.Rectangle()
+	rect.H = numbered.Container.Rect.H - 32
+	if rect.H < 32 {
+		rect.H = 32
+	}
+	numbered.Label.SetRectangle(rect)
+
+	numbered.Current.MaxValue = numbered.Max.Property.AsFloat()
+	numbered.Max.MinValue = numbered.Current.Property.AsFloat()
 
 }
 
-func (number *NumberContents) Draw() {
+func (numbered *NumberedContents) Draw() {
 
-	f := &sdl.FRect{0, 0, number.Card.Rect.W, number.Card.Rect.H}
+	f := &sdl.FRect{0, 0, numbered.Card.Rect.W, numbered.Card.Rect.H}
 
 	p := float32(0)
 
-	if number.Max.Property.AsFloat() > 0 {
-		p = float32(number.Current.Property.AsFloat()) / float32(number.Max.Property.AsFloat())
+	if numbered.Max.Property.AsFloat() > 0 {
+		p = float32(numbered.Current.Property.AsFloat()) / float32(numbered.Max.Property.AsFloat())
 		f.W *= p
 
-		number.PercentageComplete += (p - number.PercentageComplete) * 0.1
+		numbered.PercentageComplete += (p - numbered.PercentageComplete) * 0.1
 
-		src := &sdl.Rect{0, 0, int32(number.Card.Rect.W * number.PercentageComplete), int32(number.Card.Rect.H)}
+		src := &sdl.Rect{0, 0, int32(numbered.Card.Rect.W * numbered.PercentageComplete), int32(numbered.Card.Rect.H)}
 		dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
-		dst.X = number.Card.DisplayRect.X
-		dst.Y = number.Card.DisplayRect.Y
-		dst = number.Card.Page.Project.Camera.TranslateRect(dst)
-		number.Card.Result.SetColorMod(getThemeColor(GUICompletedColor).RGB())
-		number.Card.Result.SetAlphaMod(128)
-		globals.Renderer.CopyF(number.Card.Result, src, dst)
+		dst.X = numbered.Card.DisplayRect.X
+		dst.Y = numbered.Card.DisplayRect.Y
+		dst = numbered.Card.Page.Project.Camera.TranslateRect(dst)
+		numbered.Card.Result.SetColorMod(getThemeColor(GUICompletedColor).RGB())
+		globals.Renderer.CopyF(numbered.Card.Result, src, dst)
 
 	}
 
-	number.DefaultContents.Draw()
+	numbered.DefaultContents.Draw()
 
-	if number.Max.Property.AsFloat() > 0 {
+	if numbered.Max.Property.AsFloat() > 0 {
 
-		dstPoint := Point{number.Card.DisplayRect.X + number.Card.DisplayRect.W - 32, number.Card.DisplayRect.Y}
+		dstPoint := Point{numbered.Card.DisplayRect.X + numbered.Card.DisplayRect.W - 32, numbered.Card.DisplayRect.Y}
 		perc := strconv.FormatFloat(float64(p*100), 'f', 0, 32) + "%"
-		DrawLabel(number.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+		DrawLabel(numbered.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
 
 	}
 
 }
 
-func (number *NumberContents) Color() Color {
-	return getThemeColor(GUINumberColor)
+func (numbered *NumberedContents) Color() Color {
+	if numbered.CompletionLevel() < 1 {
+		return getThemeColor(GUINumberColor)
+	} else {
+		return getThemeColor(GUICompletedColor)
+	}
 }
 
-func (number *NumberContents) DefaultSize() Point {
+func (nc *NumberedContents) Trigger(triggerType string) {
+
+	current := nc.Card.Properties.Get("current")
+	max := nc.Card.Properties.Get("maximum")
+	// current.Set(numbered.Current.EnforceCaps(current.AsFloat() + 1))
+
+	switch triggerType {
+	case TriggerTypeSet:
+		current.Set(max.AsFloat())
+	case TriggerTypeClear:
+		current.Set(0.0)
+	case TriggerTypeToggle:
+		if current.AsFloat() > 0 {
+			current.Set(0.0)
+		} else {
+			current.Set(max.AsFloat())
+		}
+	}
+
+}
+
+func (numbered *NumberedContents) DefaultSize() Point {
 	gs := globals.GridSize
 	return Point{gs * 8, gs * 2}
 }
 
-func (number *NumberContents) CompletionLevel() float32 {
-	current := number.Card.Properties.Get("value").AsFloat()
-	max := number.Card.Properties.Get("maximum").AsFloat()
+func (numbered *NumberedContents) CompletionLevel() float32 {
+	current := numbered.Card.Properties.Get("current").AsFloat()
+	max := numbered.Card.Properties.Get("maximum").AsFloat()
 	if max > 0 {
 		return float32(current / max)
 	}
@@ -277,6 +327,7 @@ func NewNoteContents(card *Card) *NoteContents {
 
 	nc.Label = NewLabel("New Note", nil, true, AlignLeft)
 	nc.Label.Editable = true
+	nc.Label.Property = card.Properties.Get("description")
 
 	nc.Label.OnChange = func() {
 		if nc.Label.Editing {
@@ -285,13 +336,6 @@ func NewNoteContents(card *Card) *NoteContents {
 				nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
 			}
 		}
-	}
-
-	description := nc.Card.Properties.Get("description")
-	if description.AsString() != "" {
-		nc.Label.SetText([]rune(description.AsString()))
-	} else {
-		description.Set(nc.Label.TextAsString())
 	}
 
 	row := nc.Container.AddRow(AlignLeft)
@@ -305,13 +349,6 @@ func NewNoteContents(card *Card) *NoteContents {
 func (nc *NoteContents) Update() {
 
 	nc.DefaultContents.Update()
-
-	description := nc.Card.Properties.Get("description")
-	if nc.Label.Editing {
-		description.Set(nc.Label.TextAsString())
-	} else {
-		nc.Label.SetText([]rune(description.AsString()))
-	}
 
 	rect := nc.Label.Rectangle()
 	rect.W = nc.Container.Rect.W - rect.X + nc.Container.Rect.X
@@ -348,6 +385,8 @@ func NewSoundContents(card *Card) *SoundContents {
 		SeekBar:         NewScrollbar(&sdl.FRect{0, 0, 128, 16}, true),
 	}
 
+	soundContents.SeekBar.Soft = false
+
 	soundContents.SoundNameLabel.AutoExpand = true
 
 	soundContents.SeekBar.OnRelease = func() {
@@ -358,19 +397,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 	soundContents.PlayButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, nil)
 	soundContents.PlayButton.OnPressed = func() {
-
-		if soundContents.Resource == nil {
-			return
-		}
-
-		if soundContents.Sound.IsPaused() {
-			soundContents.Sound.Play()
-			soundContents.Playing = true
-		} else {
-			soundContents.Sound.Pause()
-			soundContents.Playing = false
-		}
-
+		soundContents.TogglePlayback()
 	}
 
 	repeatButton := NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, true, func() {
@@ -391,8 +418,10 @@ func NewSoundContents(card *Card) *SoundContents {
 	firstRow.Add("sound name label", soundContents.SoundNameLabel)
 
 	soundContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
+
 	soundContents.FilepathLabel.Editable = true
 	soundContents.FilepathLabel.RegexString = RegexNoNewlines()
+	soundContents.FilepathLabel.Property = card.Properties.Get("filepath")
 	soundContents.FilepathLabel.OnChange = func() {
 		soundContents.LoadFileFrom(soundContents.FilepathLabel.TextAsString())
 	}
@@ -455,13 +484,32 @@ func (sc *SoundContents) Update() {
 
 	if sc.Resource != nil {
 
+		if sc.Card.Selected && globals.State == StateNeutral {
+
+			if globals.Keybindings.Pressed(KBSoundPlay) {
+				sc.TogglePlayback()
+			}
+
+			if globals.Keybindings.Pressed(KBSoundJumpForward) {
+				sc.Sound.Seek(sc.Sound.Position() + time.Second)
+			}
+
+			if globals.Keybindings.Pressed(KBSoundJumpBackward) {
+				sc.Sound.Seek(sc.Sound.Position() - time.Second)
+			}
+
+		}
+
 		if sc.Resource.FinishedDownloading() {
 
 			if !sc.Resource.IsSound() {
 				globals.EventLog.Log("Error: Couldn't load [%s] as sound resource", sc.Resource.Name)
 				sc.Resource = nil
 				return
-			} else if sc.Sound == nil {
+			} else if sc.Sound == nil || sc.Sound.Empty {
+				if sc.Sound != nil {
+					sc.Sound.Destroy()
+				}
 				sc.Sound = sc.Resource.AsNewSound()
 				sc.SeekBar.SetValue(0)
 				if sc.Playing {
@@ -474,8 +522,6 @@ func (sc *SoundContents) Update() {
 				if !sc.SeekBar.Dragging {
 					sc.SeekBar.Value = float32(sc.Sound.Position().Seconds() / sc.Sound.Length().Seconds())
 				}
-
-				// lengthMinutes := fmt.Sprintf("%02d", int(sc.Sound.Length().Truncate(time.Second).Seconds()))
 
 				formatTime := func(t time.Duration) string {
 
@@ -508,20 +554,44 @@ func (sc *SoundContents) Update() {
 }
 
 func (sc *SoundContents) LoadFile() {
+
 	fp := sc.Card.Properties.Get("filepath").AsString()
-	sc.Resource = globals.Resources.Get(fp)
-	if sc.Sound != nil {
-		sc.Sound.Pause()
-		sc.Sound.Destroy()
+
+	if newRes := globals.Resources.Get(fp); sc.Resource != newRes {
+
+		sc.Resource = newRes
+
+		if sc.Sound != nil {
+			sc.Sound.Pause()
+			sc.Sound.Destroy()
+			sc.Playing = false
+		}
+		sc.Sound = nil
+
 	}
-	sc.Sound = nil
+
 }
 
 func (sc *SoundContents) LoadFileFrom(filepath string) {
 
 	sc.Card.Properties.Get("filepath").Set(filepath)
-	sc.FilepathLabel.SetTextRaw([]rune(filepath))
 	sc.LoadFile()
+
+}
+
+func (sc *SoundContents) TogglePlayback() {
+
+	if sc.Resource == nil || sc.Sound == nil {
+		return
+	}
+
+	if sc.Sound.IsPaused() {
+		sc.Sound.Play()
+		sc.Playing = true
+	} else {
+		sc.Sound.Pause()
+		sc.Playing = false
+	}
 
 }
 
@@ -542,6 +612,30 @@ func (sc *SoundContents) Draw() {
 
 }
 
+func (sc *SoundContents) Trigger(triggerMode string) {
+
+	if sc.Sound != nil {
+
+		switch triggerMode {
+		case TriggerTypeSet:
+			sc.Playing = true
+			sc.Sound.Play()
+		case TriggerTypeClear:
+			sc.Playing = false
+			sc.Sound.Pause()
+		case TriggerTypeToggle:
+			sc.Playing = !sc.Playing
+			if sc.Playing {
+				sc.Sound.Play()
+			} else {
+				sc.Sound.Pause()
+			}
+		}
+
+	}
+
+}
+
 // We don't want to delete the sound on switch from SoundContents to another content type or on Card destruction because you could undo / switch back, which would require recreating the Sound, which seems unnecessary...?
 // func (sc *SoundContents) ReceiveMessage(msg *Message) {}
 
@@ -549,6 +643,27 @@ func (sc *SoundContents) Color() Color { return getThemeColor(GUISoundColor) }
 
 func (sc *SoundContents) DefaultSize() Point {
 	return Point{globals.GridSize * 10, globals.GridSize * 4}
+}
+
+func (sc *SoundContents) ReceiveMessage(msg *Message) {
+
+	if msg.Type == MessageUndoRedo {
+		sc.LoadFile()
+	}
+
+	if sc.Sound != nil {
+
+		if msg.Type == MessageCardDeleted {
+			sc.Sound.Pause()
+			sc.Playing = false
+		}
+
+		if msg.Type == MessageVolumeChange {
+			sc.Sound.UpdateVolume()
+		}
+
+	}
+
 }
 
 type ImageContents struct {
@@ -565,12 +680,13 @@ func NewImageContents(card *Card) *ImageContents {
 
 	imageContents := &ImageContents{
 		DefaultContents: newDefaultContents(card),
-		DefaultImage:    globals.Resources.Get(LocalPath("assets/empty_image.png")),
+		DefaultImage:    globals.Resources.Get(LocalRelativePath("assets/empty_image.png")),
 	}
 
 	imageContents.FilepathLabel = NewLabel("Image file path", nil, false, AlignLeft)
 	imageContents.FilepathLabel.Editable = true
 	imageContents.FilepathLabel.RegexString = RegexNoNewlines()
+	imageContents.FilepathLabel.Property = card.Properties.Get("filepath")
 	imageContents.FilepathLabel.OnChange = func() {
 		imageContents.LoadFileFrom(imageContents.FilepathLabel.TextAsString())
 	}
@@ -681,7 +797,7 @@ func (ic *ImageContents) Update() {
 			ic.GifPlayer.Update(globals.DeltaTime)
 		}
 
-		if !globals.Keybindings.Pressed(KBAddToSelection) {
+		if !globals.Keybindings.Pressed(KBUnlockImageASR) {
 			if resource.IsTexture() {
 				ic.Card.LockResizingAspectRatio = resource.AsImage().Size.Y / resource.AsImage().Size.X
 			} else if resource.IsGIF() {
@@ -796,7 +912,6 @@ func (ic *ImageContents) LoadFile() {
 
 func (ic *ImageContents) LoadFileFrom(filepath string) {
 
-	ic.FilepathLabel.SetTextRaw([]rune(filepath))
 	ic.Card.Properties.Get("filepath").Set(filepath)
 	ic.LoadFile()
 
@@ -810,35 +925,110 @@ func (ic *ImageContents) DefaultSize() Point {
 	return Point{globals.GridSize * 4, globals.GridSize * 4}
 }
 
+func (ic *ImageContents) ReceiveMessage(msg *Message) {
+	if msg.Type == MessageUndoRedo {
+		ic.LoadFile()
+	}
+}
+
 type TimerContents struct {
 	DefaultContents
-	Name          *Label
-	ClockLabel    *Label
-	Running       bool
-	TimerValue    time.Duration
-	Pie           *Pie
-	StartButton   *Button
-	RestartButton *Button
+	Name               *Label
+	ClockLabel         *Label
+	ClockMaxTime       *Label
+	Running            bool
+	TimerValue         time.Duration
+	Pie                *Pie
+	StartButton        *IconButton
+	RestartButton      *IconButton
+	MaxTime            time.Duration
+	Mode               *IconButtonGroup
+	TriggerMode        *IconButtonGroup
+	AlarmSound         *Sound
+	PercentageComplete float32
 }
 
 func NewTimerContents(card *Card) *TimerContents {
+
 	tc := &TimerContents{
 		DefaultContents: newDefaultContents(card),
 		Name:            NewLabel("New Timer", nil, true, AlignLeft),
-		ClockLabel:      NewLabel("00:00:00", &sdl.FRect{0, 0, 128, 32}, true, AlignCenter),
+		ClockLabel:      NewLabel("00:00", &sdl.FRect{0, 0, 128, 32}, true, AlignCenter),
+		ClockMaxTime:    NewLabel("00:00", &sdl.FRect{0, 0, 0, 0}, true, AlignCenter),
 	}
+
+	tc.Name.Property = card.Properties.Get("description")
+
+	tc.ClockMaxTime.RegexString = RegexOnlyDigitsAndColon()
+	tc.ClockMaxTime.MaxLength = 8
+
+	tc.ClockMaxTime.OnClickOut = func() {
+		text := tc.ClockMaxTime.TextAsString()
+		if !strings.Contains(text, ":") {
+			tc.ClockMaxTime.SetTextRaw([]rune("00:" + text))
+		}
+		timeUnits := strings.Split(tc.ClockMaxTime.TextAsString(), ":")
+
+		minutes, _ := strconv.Atoi(timeUnits[0])
+		seconds, _ := strconv.Atoi(timeUnits[1])
+
+		for seconds >= 60 {
+			seconds -= 60
+			minutes++
+		}
+
+		tc.ClockMaxTime.SetText([]rune(fmt.Sprintf("%02d", minutes) + ":" + fmt.Sprintf("%02d", seconds)))
+
+		tc.MaxTime = time.Duration((minutes * int(time.Minute)) + (seconds * int(time.Second)))
+
+	}
+
+	tc.Mode = NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, true, func(index int) {
+		tc.Running = false
+		if index == 0 {
+			tc.ClockMaxTime.SetRectangle(&sdl.FRect{0, 0, 0, 0})
+			tc.ClockMaxTime.Editable = false
+			globals.EventLog.Log("Timer Mode changed to Stopwatch.")
+		} else {
+			tc.ClockMaxTime.SetRectangle(&sdl.FRect{0, 0, 128, 32})
+			tc.ClockMaxTime.Editable = true
+			globals.EventLog.Log("Timer Mode changed to Countdown.")
+		}
+	}, card.Properties.Get("mode group"),
+		&sdl.Rect{48, 192, 32, 32},
+		&sdl.Rect{80, 192, 32, 32},
+	)
+
+	tc.TriggerMode = NewIconButtonGroup(&sdl.FRect{0, 0, 96, 32}, true, func(index int) {
+		tc.Running = false
+		if index == 0 {
+			globals.EventLog.Log("Timer Trigger Mode changed to Toggle.")
+		} else if index == 1 {
+			globals.EventLog.Log("Timer Trigger Mode changed to Set.")
+		} else {
+			globals.EventLog.Log("Timer Trigger Mode changed to Clear.")
+		}
+	}, card.Properties.Get("trigger mode"),
+		&sdl.Rect{112, 192, 32, 32},
+		&sdl.Rect{48, 160, 32, 32},
+		&sdl.Rect{144, 192, 32, 32},
+	)
 
 	tc.Name.OnChange = func() {
-		tc.Card.Properties.Get("description").Set(tc.Name.TextAsString())
+		if tc.Name.Editing {
 
-		lineCount := float32(tc.Name.LineCount())
-		if lineCount*globals.GridSize > tc.Card.Rect.H {
-			tc.Card.Recreate(tc.Card.Rect.W, lineCount*globals.GridSize)
+			dy := tc.DefaultSize().Y
+			lineCount := float32(tc.Name.LineCount())
+			if (lineCount-1)*globals.GridSize > card.Rect.H-dy {
+				card.Recreate(card.Rect.W, (lineCount-1)*globals.GridSize+dy)
+			}
+
 		}
+
 	}
 
-	tc.StartButton = NewButton("", nil, &sdl.Rect{112, 32, 32, 32}, true, tc.Trigger)
-	tc.RestartButton = NewButton("", nil, &sdl.Rect{176, 32, 32, 32}, true, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 })
+	tc.StartButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() { tc.Running = !tc.Running })
+	tc.RestartButton = NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, true, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 })
 	tc.Pie = NewPie(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color(), true)
 
 	tc.Name.Editable = true
@@ -849,19 +1039,22 @@ func NewTimerContents(card *Card) *TimerContents {
 	row.Add("icon", NewIcon(nil, &sdl.Rect{80, 64, 32, 32}, true))
 	row.Add("name", tc.Name)
 
-	if tc.Card.Properties.Get("description").AsString() != "" {
-		tc.Name.SetText([]rune(tc.Card.Properties.Get("description").AsString()))
-	} else {
-		tc.Card.Properties.Get("description").Set(tc.Name.TextAsString())
-	}
-
 	row = tc.Container.AddRow(AlignCenter)
 	row.Add("clock", tc.ClockLabel)
+	row.Add("max", tc.ClockMaxTime)
 
 	row = tc.Container.AddRow(AlignCenter)
 	row.Add("pie", tc.Pie)
 	row.Add("start button", tc.StartButton)
 	row.Add("restart button", tc.RestartButton)
+
+	row = tc.Container.AddRow(AlignCenter)
+	row.Add("", NewLabel("Mode:  ", nil, true, AlignRight))
+	row.Add("mode", tc.Mode)
+
+	row = tc.Container.AddRow(AlignCenter)
+	row.Add("", NewLabel("Trigger:  ", nil, true, AlignRight))
+	row.Add("trigger", tc.TriggerMode)
 
 	return tc
 }
@@ -871,7 +1064,7 @@ func (tc *TimerContents) Update() {
 	gs := globals.GridSize
 	r := tc.Name.Rectangle()
 	r.W = tc.Card.Rect.W - gs
-	r.H = tc.Card.Rect.H - (gs * 4)
+	r.H = tc.Card.Rect.H - (gs * 5)
 	if r.H < gs {
 		r.H = gs
 	}
@@ -880,6 +1073,10 @@ func (tc *TimerContents) Update() {
 	tc.DefaultContents.Update()
 
 	if tc.Card.Selected {
+
+		if globals.State == StateNeutral && globals.Keybindings.Pressed(KBTimerStartStop) {
+			tc.Running = !tc.Running
+		}
 
 		description := tc.Card.Properties.Get("description")
 		if tc.Name.Editing {
@@ -893,29 +1090,122 @@ func (tc *TimerContents) Update() {
 	tc.StartButton.IconSrc.X = 112
 
 	if tc.Running {
+
 		tc.StartButton.IconSrc.X = 144
 		tc.TimerValue += time.Duration(globals.DeltaTime * float32(time.Second))
-		tc.ClockLabel.SetText([]rune(formatTime(tc.TimerValue, false)))
 		tc.Pie.FillPercent += globals.DeltaTime
+
+		if tc.TimerValue > tc.MaxTime && tc.Mode.ChosenIndex == 1 {
+
+			elapsedMessage := "Timer [" + tc.Name.TextAsString() + "] elapsed."
+
+			tc.Running = false
+			globals.EventLog.Log(elapsedMessage)
+			tc.Pie.FillPercent = 0
+			tc.TimerValue = 0
+
+			triggerType := TriggerTypeToggle
+			if tc.TriggerMode.ChosenIndex == 1 {
+				triggerType = TriggerTypeSet
+			} else if tc.TriggerMode.ChosenIndex == 2 {
+				triggerType = TriggerTypeClear
+			}
+
+			for _, link := range tc.Card.Links {
+
+				if link.End.Contents != nil {
+					link.End.Contents.Trigger(triggerType)
+				}
+			}
+
+			if globals.Settings.Get(SettingsFocusOnElapsedTimers).AsBool() {
+				tc.Card.Page.Project.Camera.FocusOn(tc.Card)
+			}
+			if globals.Settings.Get(SettingsNotifyOnElapsedTimers).AsBool() && globals.WindowFlags&sdl.WINDOW_INPUT_FOCUS == 0 {
+				beeep.Notify("MasterPlan", elapsedMessage, "")
+			}
+
+			if globals.Settings.Get(SettingsPlayAlarmSound).AsBool() {
+				if tc.AlarmSound != nil {
+					tc.AlarmSound.Destroy()
+				}
+				tc.AlarmSound = globals.Resources.Get(LocalRelativePath("assets/alarm.wav")).AsNewSound()
+				tc.AlarmSound.Play()
+			}
+
+		}
+
 	}
+
+	tc.ClockLabel.SetText([]rune(formatTime(tc.TimerValue, false)))
 
 }
 
-func (tc *TimerContents) Trigger() {
-	tc.Running = !tc.Running
+func (tc *TimerContents) Draw() {
+
+	p := float32(0)
+
+	// Numbered mode
+	if tc.Mode.ChosenIndex != 0 && tc.MaxTime > 0 {
+
+		if tc.TimerValue > 0 {
+			p = float32(tc.TimerValue) / float32(tc.MaxTime)
+		}
+
+	}
+	tc.PercentageComplete += (p - tc.PercentageComplete) * 0.1
+
+	if tc.PercentageComplete < 0 {
+		tc.PercentageComplete = 0
+	} else if tc.PercentageComplete > 1 {
+		tc.PercentageComplete = 1
+	}
+
+	src := &sdl.Rect{0, 0, int32(tc.Card.Rect.W * tc.PercentageComplete), int32(tc.Card.Rect.H)}
+	dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
+	dst.X = tc.Card.DisplayRect.X
+	dst.Y = tc.Card.DisplayRect.Y
+	dst = tc.Card.Page.Project.Camera.TranslateRect(dst)
+	tc.Card.Result.SetColorMod(getThemeColor(GUITimerColor).RGB())
+	tc.Card.Result.SetAlphaMod(255)
+	globals.Renderer.CopyF(tc.Card.Result, src, dst)
+
+	tc.DefaultContents.Draw()
+
+}
+
+func (tc *TimerContents) Trigger(triggerType string) {
+
+	switch triggerType {
+	case TriggerTypeSet:
+		tc.Running = true
+	case TriggerTypeClear:
+		tc.Running = false
+	case TriggerTypeToggle:
+		tc.Running = !tc.Running
+	}
+
 }
 
 func (tc *TimerContents) ReceiveMessage(msg *Message) {
 	if msg.Type == MessageThemeChange {
 		tc.Pie.EdgeColor = tc.Color().Sub(80)
 		tc.Pie.FillColor = tc.Color()
+	} else if msg.Type == MessageVolumeChange {
+		if tc.AlarmSound != nil {
+			tc.AlarmSound.UpdateVolume()
+		}
 	}
 }
 
-func (tc *TimerContents) Color() Color { return getThemeColor(GUITimerColor) }
+func (tc *TimerContents) Color() Color {
+
+	return getThemeColor(GUITimerColor).Sub(40)
+
+}
 
 func (tc *TimerContents) DefaultSize() Point {
-	return Point{globals.GridSize * 8, globals.GridSize * 5}
+	return Point{globals.GridSize * 8, globals.GridSize * 6}
 }
 
 type MapData struct {
@@ -1673,7 +1963,7 @@ func (mc *MapContents) UpdateTexture() {
 		globals.Renderer.SetDrawColor(getThemeColor(GUIMapColor).RGBA())
 		globals.Renderer.FillRect(nil)
 
-		guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+		guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 
 		guiTex.SetColorMod(255, 255, 255)
 		guiTex.SetAlphaMod(255)

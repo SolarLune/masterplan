@@ -72,28 +72,25 @@ import (
 // 	return vec
 // }
 
-func LocalPath(localPath string) string {
+func LocalRelativePath(localPath string) string {
 
 	// Running apps from Finder in MacOS makes the working directory the home directory, which is nice, because
 	// now I have to make this function to do what should be done anyway and give me a relative path starting from
 	// the executable so that I can load assets from the assets directory. :,)
 
-	return filepath.Join(WorkingDirectory(), filepath.FromSlash(localPath))
-
-}
-
-func WorkingDirectory() string {
-
-	workingDirectory := ""
 	exePath, _ := os.Executable()
-	workingDirectory = filepath.Dir(exePath)
+
+	workingDirectory := filepath.Dir(exePath)
 
 	if releaseMode == "false" {
 		// Not in release mode, so current working directory is the root.
 		workingDirectory, _ = os.Getwd()
 	}
 
-	return workingDirectory
+	out := filepath.Join(workingDirectory, filepath.FromSlash(localPath))
+
+	return out
+
 }
 
 func FileExists(filepath string) bool {
@@ -347,7 +344,7 @@ func ReloadFonts() {
 	// fontPath := LocalPath("assets/Silver.ttf")
 	// fontPath := LocalPath("assets/quicksand-bold.otf")
 	// fontPath := LocalPath("assets/m5x7.ttf")
-	fontPath := LocalPath("assets/Quicksand-Bold.ttf")
+	fontPath := LocalRelativePath("assets/Quicksand-Bold.ttf")
 
 	customFontPath := globals.Settings.Get(SettingsCustomFontPath).AsString()
 	if customFontPath != "" && FileExists(customFontPath) {
@@ -498,7 +495,7 @@ func DrawLabel(pos Point, text string) {
 		textSize.X = 16
 	}
 
-	guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+	guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 	menuColor := getThemeColor(GUIMenuColor)
 
 	guiTexture.SetColorMod(menuColor.RGB())
@@ -634,4 +631,8 @@ func RegexNoNewlines() string {
 
 func RegexOnlyDigits() string {
 	return `[\d]`
+}
+
+func RegexOnlyDigitsAndColon() string {
+	return `[\d:]`
 }

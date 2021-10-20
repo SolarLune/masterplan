@@ -13,17 +13,17 @@
 		<key>CFBundleName</key>
 		<string>MasterPlan</string>
 		<key>CFBundleExecutable</key>
-		<string>MacOS/MasterPlan</string>
+		<string>Contents/MacOS/MasterPlan</string>
 		<key>CFBundleIdentifier</key>
 		<string>com.solarlune.masterplan</string>
 		<key>CFBundleVersion</key>
-		<string>0.3</string>
+		<string>0.8.0a1</string>
 		<key>CFBundleGetInfoString</key>
-		<string>MasterPlan by SolarLune</string>
+		<string>MasterPlan by SolarLune Games</string>
 		<key>CFBundleShortVersionString</key>
-		<string>0.3.0</string>
+		<string>0.8.0</string>
 		<key>NSHumanReadableCopyright</key>
-		<string>Copyright SolarLune Games, 2020</string>
+		<string>Copyright SolarLune Games, 2019-2021</string>
 		<key>LSMinimumSystemVersion</key>
 		<string>10.14</string>
 	</dict>

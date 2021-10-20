@@ -193,12 +193,36 @@ func (menu *Menu) Update() {
 			menu.Rect.Y = 0
 		}
 
-		if menu.Rect.Y+menu.Rect.H > globals.ScreenSize.Y {
-			menu.Rect.Y = globals.ScreenSize.Y - menu.Rect.H
+		sizeChanged := false
+
+		if menu.Draggable {
+
+			if menu.Rect.Y+menu.Rect.H > globals.ScreenSize.Y {
+				menu.Rect.Y = globals.ScreenSize.Y - menu.Rect.H
+			}
+
+			if menu.Rect.X+menu.Rect.W > globals.ScreenSize.X {
+				menu.Rect.X = globals.ScreenSize.X - menu.Rect.W
+			}
+
 		}
 
-		if menu.Rect.X+menu.Rect.W > globals.ScreenSize.X {
-			menu.Rect.X = globals.ScreenSize.X - menu.Rect.W
+		if menu.Resizeable {
+
+			if menu.Rect.W > globals.ScreenSize.X {
+				menu.Rect.W = globals.ScreenSize.X
+				sizeChanged = true
+			}
+
+			if menu.Rect.H > globals.ScreenSize.Y {
+				menu.Rect.H = globals.ScreenSize.Y
+				sizeChanged = true
+			}
+
+			if sizeChanged {
+				menu.Recreate(menu.Rect.W, menu.Rect.H)
+			}
+
 		}
 
 		padding := float32(8)
@@ -393,7 +417,7 @@ func (menu *Menu) Recreate(newW, newH float32) {
 
 	color := getThemeColor(GUIMenuColor)
 
-	guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+	guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 
 	guiTexture.SetColorMod(color.RGB())
 	guiTexture.SetAlphaMod(color[3])

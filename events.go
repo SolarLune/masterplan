@@ -260,7 +260,7 @@ func LoadCursors() {
 
 	createCursor := func(srcX, srcY int32) *sdl.Cursor {
 
-		cursorImg, err := img.Load(LocalPath("assets/gui.png"))
+		cursorImg, err := img.Load(LocalRelativePath("assets/gui.png"))
 		if err != nil {
 			panic(err)
 		}

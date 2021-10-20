@@ -9,6 +9,7 @@ const (
 	MessageContentSwitched = "MessageContentSwitched"
 	MessageThemeChange     = "MessageThemeChange"
 	MessageUndoRedo        = "MessageUndoRedo"
+	MessageVolumeChange    = "MessageVolumeChange"
 )
 
 type Message struct {

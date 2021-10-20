@@ -9,11 +9,11 @@ import (
 )
 
 type Sound struct {
-	Stream           beep.StreamSeekCloser
-	Format           beep.Format
-	volume           effects.Volume
-	control          *beep.Ctrl
-	PlaybackFinished func()
+	Stream  beep.StreamSeekCloser
+	Format  beep.Format
+	volume  *effects.Volume
+	control *beep.Ctrl
+	Empty   bool
 }
 
 func NewSound(stream beep.StreamSeekCloser, format beep.Format) *Sound {
@@ -23,25 +23,50 @@ func NewSound(stream beep.StreamSeekCloser, format beep.Format) *Sound {
 		Format: format,
 	}
 
-	loop := beep.Loop(-1, stream)
-	resampled := beep.Resample(3, format.SampleRate, 44100, loop)
-	seq := beep.Seq(resampled, beep.Callback(sound.PlaybackFinished))
-	volume := effects.Volume{
-		Streamer: seq,
-		Volume:   0,
-		Base:     2,
-		Silent:   false,
-	}
+	sound.ReloadStream()
 
-	sound.control = &beep.Ctrl{
-		Streamer: volume.Streamer,
-		Paused:   true,
-	}
-
-	speaker.Play(sound.control)
+	speaker.Play(sound.volume)
 
 	return sound
 
+}
+
+func (sound *Sound) ReloadStream() {
+
+	resampled := beep.Resample(3, sound.Format.SampleRate, 44100, sound.Stream)
+
+	seq := beep.Seq(resampled, beep.Callback(func() {
+		sound.Empty = true
+	}))
+
+	sound.control = &beep.Ctrl{
+		Streamer: seq,
+		Paused:   true,
+	}
+
+	sound.volume = &effects.Volume{
+		Streamer: sound.control,
+		Volume:   0,
+		Base:     100,
+		Silent:   false,
+	}
+
+	sound.UpdateVolume()
+
+}
+
+func (sound *Sound) UpdateVolume() {
+	speaker.Lock()
+
+	v := globals.Settings.Get(SettingsAudioVolume).AsFloat()
+	if v > 0 {
+		sound.volume.Silent = false
+		sound.volume.Volume = (v / 100) - 1
+	} else {
+		sound.volume.Silent = true
+	}
+
+	speaker.Unlock()
 }
 
 func (sound *Sound) Play() {
@@ -58,6 +83,15 @@ func (sound *Sound) Pause() {
 
 func (sound *Sound) IsPaused() bool {
 	return sound.control.Paused
+}
+
+func (sound *Sound) Seek(to time.Duration) {
+	for to > sound.Length() {
+		to = to - sound.Length()
+	}
+	speaker.Lock()
+	sound.Stream.Seek(sound.Format.SampleRate.N(to))
+	speaker.Unlock()
 }
 
 func (sound *Sound) SeekPercentage(percentage float32) {
@@ -85,8 +119,6 @@ func (sound *Sound) Destroy() {
 	speaker.Lock()
 	sound.Stream.Close()
 	speaker.Unlock()
-	sound.volume.Streamer = nil
-	sound.control.Streamer = nil
 }
 
 // func (sound *Sound) TogglePause() {

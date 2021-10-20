@@ -195,6 +195,7 @@ func (card *Card) Update() {
 
 			if card.Selected && globals.Keybindings.Pressed(KBCollapseCard) {
 				card.Collapse()
+				card.CreateUndoState = true
 			}
 
 			if globals.Mouse.WorldPosition().Inside(resizeRect) {
@@ -432,7 +433,7 @@ func (card *Card) DrawCard() {
 		color = card.Contents.Color()
 	}
 	if card.Selected && globals.Settings.Get(SettingsFlashSelected).AsBool() {
-		color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*30 + 30))
+		color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
 	}
 
 	if color[3] != 0 {
@@ -540,14 +541,14 @@ func (card *Card) PostDraw() {
 }
 
 func (card *Card) Numberable() bool {
-	return card.ContentType == ContentTypeCheckbox || card.ContentType == ContentTypeNumber // Or table
+	return card.ContentType == ContentTypeCheckbox || card.ContentType == ContentTypeNumbered // Or table
 }
 
 func (card *Card) CompletionLevel() float32 {
 	if card.ContentType == ContentTypeCheckbox {
 		return card.Contents.(*CheckboxContents).CompletionLevel()
-	} else if card.ContentType == ContentTypeNumber {
-		return card.Contents.(*NumberContents).CompletionLevel()
+	} else if card.ContentType == ContentTypeNumbered {
+		return card.Contents.(*NumberedContents).CompletionLevel()
 	}
 	return 0
 }
@@ -706,6 +707,14 @@ func (card *Card) Move(dx, dy float32) {
 
 }
 
+func (card *Card) SetCenter(position Point) {
+
+	card.Rect.X = position.X - (card.Rect.W / 2)
+	card.Rect.Y = position.Y - (card.Rect.H / 2)
+	card.LockPosition()
+
+}
+
 // func (card *Card) SetupStack() {
 
 // 	grid := card.Page.Grid
@@ -854,7 +863,7 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 		src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
 
-		guiTexture := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
+		guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 
 		drawPatches := func() {
 
@@ -932,8 +941,8 @@ func (card *Card) SetContents(contentType string) {
 		switch contentType {
 		case ContentTypeCheckbox:
 			card.Contents = NewCheckboxContents(card)
-		case ContentTypeNumber:
-			card.Contents = NewNumberContents(card)
+		case ContentTypeNumbered:
+			card.Contents = NewNumberedContents(card)
 		case ContentTypeNote:
 			card.Contents = NewNoteContents(card)
 		case ContentTypeSound:

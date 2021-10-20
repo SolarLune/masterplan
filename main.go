@@ -1,5 +1,5 @@
 // Erase the space before "go" to enable generating the version info from the version info file when it's in the root directory
-// go:generate goversioninfo -64=true
+//go:generate goversioninfo -64=true
 package main
 
 import (
@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/hako/durafmt"
+	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -71,7 +73,7 @@ func init() {
 
 	}
 
-	runtime.LockOSThread() // Don't know if this is necessary still
+	runtime.LockOSThread()
 
 	globals.Version = semver.MustParse("0.8.0-alpha.1")
 	globals.Keyboard = NewKeyboard()
@@ -135,6 +137,8 @@ func main() {
 
 	settingsLoaded := true
 
+	fmt.Println("Release mode:", releaseMode)
+
 	loadThemes()
 
 	if demoMode != "" {
@@ -163,20 +167,20 @@ func main() {
 	// 	rl.SetWindowSize(int(programSettings.WindowPosition.Width), int(programSettings.WindowPosition.Height))
 	// }
 
-	windowFlags := uint32(sdl.WINDOW_RESIZABLE)
-
 	x := int32(sdl.WINDOWPOS_UNDEFINED)
 	y := int32(sdl.WINDOWPOS_UNDEFINED)
 	w := int32(960)
 	h := int32(540)
 
-	if globals.Settings.Get(SettingsSaveWindowPosition).AsBool() {
+	if globals.Settings.Get(SettingsSaveWindowPosition).AsBool() && globals.Settings.Has(SettingsWindowPosition) {
 		windowData := globals.Settings.Get(SettingsWindowPosition).AsMap()
 		x = int32(windowData["X"].(float64))
 		y = int32(windowData["Y"].(float64))
 		w = int32(windowData["W"].(float64))
 		h = int32(windowData["H"].(float64))
 	}
+
+	windowFlags := uint32(sdl.WINDOW_RESIZABLE)
 
 	if globals.Settings.Get(SettingsBorderlessWindow).AsBool() {
 		windowFlags |= sdl.WINDOW_BORDERLESS
@@ -186,7 +190,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := speaker.Init(beep.SampleRate(44100), 512); err != nil {
+	if err := speaker.Init(beep.SampleRate(44100), 2048); err != nil {
 		panic(err)
 	}
 
@@ -197,7 +201,7 @@ func main() {
 	}
 
 	// Should default to hardware accelerators, if available
-	renderer, err := sdl.CreateRenderer(window, 0, 0)
+	renderer, err := sdl.CreateRenderer(window, 0, sdl.RENDERER_ACCELERATED+sdl.RENDERER_SOFTWARE)
 	if err != nil {
 		panic(err)
 	}
@@ -211,7 +215,7 @@ func main() {
 
 	LoadCursors()
 
-	icon, err := img.Load(LocalPath("assets/window_icon.png"))
+	icon, err := img.Load(LocalRelativePath("assets/window_icon.png"))
 	if err != nil {
 		panic(err)
 	}
@@ -248,11 +252,14 @@ func main() {
 		splashColor.A = 0
 	}
 
-	// fpsDisplayValue := float32(0)
-	fpsDisplayAccumulator := float32(0)
-	fpsDisplayTimer := time.Now()
+	fpsManager := &gfx.FPSmanager{}
 
-	elapsed := time.Duration(0)
+	gfx.InitFramerate(fpsManager)
+	gfx.SetFramerate(fpsManager, 60)
+
+	// fpsDisplayValue := float32(0)
+	// fpsDisplayAccumulator := float32(0)
+	// fpsDisplayTimer := time.Now()
 
 	log.Println("MasterPlan initialized successfully.")
 
@@ -288,7 +295,7 @@ func main() {
 
 		handleEvents()
 
-		currentTime := time.Now()
+		// currentTime := time.Now()
 
 		// handleMouseInputs()
 
@@ -313,8 +320,8 @@ func main() {
 			}
 		}
 
-		windowFlags := window.GetFlags()
-		windowVisible := windowFlags&sdl.WINDOW_MINIMIZED == 0 && windowFlags&sdl.WINDOW_HIDDEN == 0
+		globals.WindowFlags = window.GetFlags()
+		windowFocused := globals.WindowFlags&sdl.WINDOW_MINIMIZED == 0 && globals.WindowFlags&sdl.WINDOW_HIDDEN == 0
 
 		// if windowFlags&byte(rl.FlagWindowTransparent) > 0 {
 		// 	clearColor = rl.Color{}
@@ -388,13 +395,19 @@ func main() {
 
 			globals.Keybindings.On = true
 
-			if windowVisible {
+			if windowFocused {
 
 				globals.Project.Draw()
 
 				globals.Renderer.SetScale(1, 1)
 
 				globals.MenuSystem.Draw()
+
+				if globals.DebugMode {
+					fps, _ := gfx.GetFramerate(fpsManager)
+					s := strconv.FormatFloat(float64(fps), 'f', 0, 64)
+					globals.TextRenderer.QuickRenderText(s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, AlignRight)
+				}
 
 			}
 
@@ -451,7 +464,8 @@ func main() {
 
 			// y := float32(24)
 
-			eventY := globals.ScreenSize.Y - globals.GridSize
+			msgSize := float32(1)
+			eventY := globals.ScreenSize.Y - (globals.GridSize * msgSize)
 
 			for _, event := range globals.EventLog.Events {
 
@@ -465,13 +479,13 @@ func main() {
 
 					fade := uint8(float32(fontColor[3]) * fadeValue)
 
-					dst := &sdl.FRect{0, event.Y, event.Texture.Image.Size.X, event.Texture.Image.Size.Y}
+					textSize := globals.TextRenderer.MeasureText([]rune(event.Text), msgSize)
+
+					dst := &sdl.FRect{0, event.Y, textSize.X, textSize.Y}
 					bgColor[3] = fade
 					FillRect(dst.X, dst.Y, dst.W, dst.H, bgColor)
 
-					event.Texture.Image.Texture.SetColorMod(fontColor.RGB())
-					event.Texture.Image.Texture.SetAlphaMod(fade)
-					globals.Renderer.CopyF(event.Texture.Image.Texture, nil, dst)
+					globals.TextRenderer.QuickRenderText(event.Text, Point{0, event.Y}, msgSize, fontColor, AlignLeft)
 
 					eventY -= dst.H
 
@@ -545,11 +559,6 @@ func main() {
 			// 	currentProject.Log("Screenshot saved successfully to %s.", screenshotPath)
 			// 	takeScreenshot = false
 			// }
-
-			// if drawFPS {
-			// 	rl.DrawTextEx(font, fmt.Sprintf("%.2f", fpsDisplayValue), rl.Vector2{0, 0}, 60, spacing, rl.Red)
-			// }
-
 		}
 
 		splashScreenTime += globals.DeltaTime
@@ -587,40 +596,28 @@ func main() {
 			windowTitle = title
 		}
 
-		targetFPS = int(globals.Settings.Get(SettingsTargetFPS).AsFloat())
+		newTarget := int(globals.Settings.Get(SettingsTargetFPS).AsFloat())
 
-		if windowFlags&sdl.WINDOW_MOUSE_FOCUS == 0 {
-			targetFPS = int(globals.Settings.Get(SettingsUnfocusedFPS).AsFloat())
-		} else if !windowVisible {
-			targetFPS = 5 // Automatically drop to 5 FPS if the window's minimized
+		if globals.WindowFlags&sdl.WINDOW_INPUT_FOCUS == 0 {
+			newTarget = int(globals.Settings.Get(SettingsUnfocusedFPS).AsFloat())
+		} else if !windowFocused {
+			newTarget = 5 // Automatically drop to 5 FPS if the window's minimized
 		}
 
-		if targetFPS <= 0 {
-			targetFPS = 5
+		if newTarget <= 0 {
+			newTarget = 5
 		}
 
-		elapsed += time.Since(currentTime)
-		attemptedSleep := (time.Second / time.Duration(targetFPS)) - elapsed
-
-		beforeSleep := time.Now()
-		time.Sleep(attemptedSleep)
-		sleepDifference := time.Since(beforeSleep) - attemptedSleep
-
-		if attemptedSleep > 0 {
-			globals.DeltaTime = float32((attemptedSleep + elapsed).Seconds())
-		} else {
-			sleepDifference = 0
-			globals.DeltaTime = float32(elapsed.Seconds())
+		if targetFPS != newTarget {
+			targetFPS = newTarget
+			gfx.SetFramerate(fpsManager, uint32(targetFPS))
 		}
 
-		if time.Since(fpsDisplayTimer).Seconds() >= 1 {
-			fpsDisplayTimer = time.Now()
-			// fpsDisplayValue = fpsDisplayAccumulator * float32(targetFPS)
-			fpsDisplayAccumulator = 0
-		}
-		fpsDisplayAccumulator += 1.0 / float32(targetFPS)
+		dt := float32(gfx.FramerateDelay(fpsManager)) / 1000
 
-		elapsed = sleepDifference // Sleeping doesn't sleep for exact amounts; carry this into next frame for sleep attempt
+		if dt > 0 && dt < float32(math.Inf(1)) {
+			globals.DeltaTime = dt
+		}
 
 	}
 
@@ -666,7 +663,10 @@ func ConstructMenus() {
 	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 300}, true), "file", false)
 	root = fileMenu.Pages["root"]
 
-	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() { globals.Project.LoadingProject = NewProject() }))
+	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() {
+		globals.Project.LoadingProject = NewProject()
+		globals.EventLog.Log("New project created.")
+	}))
 	root.AddRow(AlignCenter).Add("Load Project", NewButton("Load Project", nil, nil, false, func() { globals.Project.Open() }))
 	root.AddRow(AlignCenter).Add("Save Project", NewButton("Save Project", nil, nil, false, func() {
 		if globals.Project.Filepath != "" {
@@ -694,6 +694,11 @@ func ConstructMenus() {
 	viewMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 200}, true), "view", false)
 	root = viewMenu.Pages["root"]
 
+	root.AddRow(AlignCenter).Add("Create Menu", NewButton("Create", nil, nil, false, func() {
+		globals.MenuSystem.Get("create").Open()
+		viewMenu.Close()
+	}))
+
 	root.AddRow(AlignCenter).Add("Edit Menu", NewButton("Edit", nil, nil, false, func() {
 		globals.MenuSystem.Get("edit").Open()
 		viewMenu.Close()
@@ -716,6 +721,52 @@ func ConstructMenus() {
 	root.AddRow(AlignCenter).Add("Stats", NewButton("Stats", nil, nil, false, func() {
 		globals.MenuSystem.Get("stats").Open()
 		viewMenu.Close()
+	}))
+
+	// Create Menu
+
+	createMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 2, globals.ScreenSize.Y / 2, 300, 400}, true), "create", false)
+	createMenu.Draggable = true
+	createMenu.Resizeable = true
+	createMenu.CloseButtonEnabled = true
+	createMenu.Orientation = MenuOrientationVertical
+
+	root = createMenu.Pages["root"]
+	root.AddRow(AlignCenter).Add("create label", NewLabel("-Create-", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
+
+	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, &sdl.Rect{48, 32, 32, 32}, false, func() {
+		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
+		card.SetCenter(globals.Project.Camera.TargetPosition)
+	}))
+
+	root.AddRow(AlignCenter).Add("create new numbered", NewButton("Numbered", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
+		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNumbered)
+		card.SetCenter(globals.Project.Camera.TargetPosition)
+	}))
+
+	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, &sdl.Rect{80, 0, 32, 32}, false, func() {
+		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNote)
+		card.SetCenter(globals.Project.Camera.TargetPosition)
+	}))
+
+	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, &sdl.Rect{80, 32, 32, 32}, false, func() {
+		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSound)
+		card.SetCenter(globals.Project.Camera.TargetPosition)
+	}))
+
+	root.AddRow(AlignCenter).Add("create new image", NewButton("Image", nil, &sdl.Rect{48, 64, 32, 32}, false, func() {
+		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeImage)
+		card.SetCenter(globals.Project.Camera.TargetPosition)
+	}))
+
+	root.AddRow(AlignCenter).Add("create new timer", NewButton("Timer", nil, &sdl.Rect{80, 64, 32, 32}, false, func() {
+		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeTimer)
+		card.SetCenter(globals.Project.Camera.TargetPosition)
+	}))
+
+	root.AddRow(AlignCenter).Add("create new map", NewButton("Map", nil, &sdl.Rect{112, 96, 32, 32}, false, func() {
+		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeMap)
+		card.SetCenter(globals.Project.Camera.TargetPosition)
 	}))
 
 	// Edit Menu
@@ -743,7 +794,7 @@ func ConstructMenus() {
 
 	setType.AddRow(AlignCenter).Add("set number content type", NewButton("Number", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
-			card.SetContents(ContentTypeNumber)
+			card.SetContents(ContentTypeNumbered)
 		}
 	}))
 
@@ -944,10 +995,38 @@ func ConstructMenus() {
 	}))
 
 	row = root.AddRow(AlignCenter)
+	row.Add("sound options", NewButton("Sound Options", nil, nil, false, func() {
+		settings.SetPage("sound")
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	}))
+
+	row = root.AddRow(AlignCenter)
 	row.Add("input", NewButton("Input", nil, nil, false, func() {
 		settings.SetPage("input")
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	}))
+
+	// Sound options
+
+	sound := settings.AddPage("sound")
+	sound.DefaultExpand = true
+
+	row = sound.AddRow(AlignCenter)
+	row.Add("", NewLabel("Sound Settings", nil, false, AlignCenter))
+
+	row = sound.AddRow(AlignCenter)
+	row.Add("", NewLabel("Timers Play Alarm Sound:", nil, false, AlignCenter))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsPlayAlarmSound)))
+
+	row = sound.AddRow(AlignCenter)
+	row.Add("", NewLabel("Audio Volume:", nil, false, AlignCenter))
+	number := NewNumberSpinner(&sdl.FRect{0, 0, 256, 32}, false, globals.Settings.Get(SettingsAudioVolume))
+	number.OnChange = func() {
+		globals.Project.SendMessage(NewMessage(MessageVolumeChange, nil, nil))
+	}
+	row.Add("", number)
+
+	// Visual options
 
 	visual := settings.AddPage("visual")
 
@@ -1015,6 +1094,14 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Flash Selected Cards:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFlashSelected)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Focus on Elapsed Timers:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnElapsedTimers)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Notify on Elapsed Timers:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNotifyOnElapsedTimers)))
 
 	// INPUT
 
@@ -1098,7 +1185,7 @@ func ConstructMenus() {
 	row.Add("input header", NewLabel("Input", nil, false, AlignLeft))
 
 	row = input.AddRow(AlignCenter)
-	row.Add("", NewLabel("Double-click to Create Cards:", nil, false, AlignLeft))
+	row.Add("", NewLabel("Double-click to Create Cards: ", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsDoubleClickCreatesCard)))
 
 	// row = input.AddRow(AlignCenter)
@@ -1272,7 +1359,7 @@ func ConstructMenus() {
 		findFunc()
 	}))
 
-	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 512, 128}, true), "stats", false)
+	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 700, 128}, true), "stats", false)
 	stats.Center()
 	stats.Draggable = true
 	stats.CloseButtonEnabled = true
@@ -1374,12 +1461,11 @@ func profileCPU() {
 		log.Fatal("Could not create CPU Profile: ", err)
 	}
 	pprof.StartCPUProfile(cpuProfFile)
-	globals.EventLog.Log("CPU Profiling begun...")
+	globals.EventLog.Log("CPU Profiling begun.")
 
-	time.AfterFunc(time.Second*10, func() {
+	time.AfterFunc(time.Second*2, func() {
 		cpuProfileStart = time.Time{}
 		pprof.StopCPUProfile()
-		globals.EventLog.Log("CPU Profiling finished!")
 	})
 
 }

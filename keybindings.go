@@ -69,6 +69,13 @@ const (
 	KBWindowSizeSmall  = "Set Window Size to 960x540"
 	KBWindowSizeNormal = "Set Window Size to 1920x1080"
 
+	KBCheckboxToggleCompletion = "Checkbox: Complete"
+	KBNumberedIncrement        = "Numbered: Increment Value"
+	KBNumberedDecrement        = "Numbered: Decrement Value"
+	KBSoundPlay                = "Sound: Toggle Playback"
+	KBSoundJumpForward         = "Sound: Jump Forward 1s"
+	KBSoundJumpBackward        = "Sound: Jump Backward 1s"
+
 	KBUnlockImageASR = "Image: Unlock Aspect Ratio Modifier"
 
 	KBPickColor        = "Map: Pick Color"
@@ -83,6 +90,8 @@ const (
 	KBFind     = "Open Find Menu"
 	KBFindNext = "Find: Next Card"
 	KBFindPrev = "Find: Prev. Card"
+
+	KBTimerStartStop = "Timer: Start / Stop Timer"
 
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -433,6 +442,14 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBWindowSizeNormal, sdl.K_F3)
 	kb.DefineKeyShortcut(KBToggleFullscreen, sdl.K_F11)
 	kb.DefineKeyShortcut(KBUnlockImageASR, sdl.K_LSHIFT)
+
+	kb.DefineKeyShortcut(KBCheckboxToggleCompletion, sdl.K_SPACE)
+	kb.DefineKeyShortcut(KBNumberedIncrement, sdl.K_SPACE)
+	kb.DefineKeyShortcut(KBNumberedDecrement, sdl.K_SPACE, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBSoundPlay, sdl.K_SPACE)
+	kb.DefineKeyShortcut(KBSoundJumpForward, sdl.K_RIGHT, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBSoundJumpBackward, sdl.K_LEFT, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBTimerStartStop, sdl.K_SPACE)
 
 	kb.DefineKeyShortcut(KBPickColor, sdl.K_LALT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBMapNoTool, sdl.K_q)

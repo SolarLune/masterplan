@@ -122,7 +122,7 @@ func (history *UndoHistory) Undo() bool {
 
 	}
 
-	globals.EventLog.Log("No further undo state is available.")
+	// globals.EventLog.Log("No further undo state is available.")
 
 	return false
 }
@@ -159,7 +159,7 @@ func (history *UndoHistory) Redo() bool {
 
 	}
 
-	globals.EventLog.Log("No further redo state is available.")
+	// globals.EventLog.Log("No further redo state is available.")
 
 	return false
 

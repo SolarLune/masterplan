@@ -2,15 +2,15 @@
     "FixedFileInfo": {
         "FileVersion": {
             "Major": 0,
-            "Minor": 5,
-            "Patch": 4,
-            "Build": 0
+            "Minor": 8,
+            "Patch": 0,
+            "Build": 1
         },
         "ProductVersion": {
             "Major": 0,
-            "Minor": 5,
-            "Patch": 4,
-            "Build": 0
+            "Minor": 8,
+            "Patch": 0,
+            "Build": 1
         },
         "FileFlagsMask": "3f",
         "FileFlags ": "00",
@@ -21,15 +21,15 @@
     "StringFileInfo": {
         "Comments": "Plan Your Way.",
         "CompanyName": "Solarlune Games",
-        "FileDescription": "",
-        "FileVersion": "v0.5.4",
+        "FileDescription": "Graphical Ideaboard",
+        "FileVersion": "v0.8.0-1",
         "InternalName": "MasterPlan",
-        "LegalCopyright": "SolarLune Games 2019-2020",
+        "LegalCopyright": "SolarLune Games 2019-2021",
         "LegalTrademarks": "",
         "OriginalFilename": "MasterPlan.exe",
         "PrivateBuild": "",
         "ProductName": "MasterPlan",
-        "ProductVersion": "v0.5.4",
+        "ProductVersion": "v0.8.0-1",
         "SpecialBuild": ""
     },
     "VarFileInfo": {
