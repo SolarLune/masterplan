@@ -4,10 +4,7 @@ v0.8.0-alpha1
 
 -------
 
-Like, everything's better. More documentation to come later, but here's the broadstrokes:
-
-- The UI has been redesigned from scratch.
-- 
+Like, everything's better. More documentation to come later, but the broadstrokes can be seen in this video: https://youtu.be/43sotReXnGA
 
 -------
 

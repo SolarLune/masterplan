@@ -1271,7 +1271,7 @@ func ConstructMenus() {
 	row.ExpandElements = false
 	row.Add("", NewButton("Discord", nil, &sdl.Rect{48, 224, 32, 32}, false, func() { browser.OpenURL("https://discord.gg/tRVf7qd") }))
 	row.Add("", NewSpacer(nil))
-	row.Add("", NewButton("Overview Video", nil, nil, false, func() { browser.OpenURL("https://youtu.be/43sotReXnGA") }))
+	row.Add("", NewButton("Overview Devlog", nil, nil, false, func() { browser.OpenURL("https://youtu.be/43sotReXnGA") }))
 	row.Add("", NewSpacer(nil))
 	row.Add("", NewButton("Twitter", nil, &sdl.Rect{80, 224, 32, 32}, false, func() { browser.OpenURL("https://twitter.com/MasterPlanApp") }))
 
