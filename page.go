@@ -363,6 +363,10 @@ func (page *Page) UpdateLinks() {
 
 func (page *Page) CreateNewCard(contentType string) *Card {
 
+	if !page.Project.Loading {
+		page.Project.LastCardType = contentType
+	}
+
 	newCard := NewCard(page, contentType)
 	newCard.CreateUndoState = true
 	newCard.UndoCreation = true

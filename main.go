@@ -1198,7 +1198,7 @@ func ConstructMenus() {
 	}
 
 	row = input.AddRow(AlignCenter)
-	row.Add("input header", NewLabel("Input", nil, false, AlignLeft))
+	row.Add("input header", NewLabel("-Input-", nil, false, AlignLeft))
 
 	row = input.AddRow(AlignCenter)
 	row.Add("", NewLabel("Double-click to Create Cards: ", nil, false, AlignLeft))
@@ -1207,6 +1207,10 @@ func ConstructMenus() {
 	row = input.AddRow(AlignCenter)
 	row.Add("", NewLabel("Reverse panning direction: ", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsReversePan)))
+
+	row = input.AddRow(AlignCenter)
+	row.Add("", NewLabel("Save Last Card Type For Double-click: ", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSaveLastCardType)))
 
 	// row = input.AddRow(AlignCenter)
 	// row.Add("", NewLabel("", nil, false, AlignLeft))

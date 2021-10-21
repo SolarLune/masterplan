@@ -34,6 +34,7 @@ const (
 	SettingsAudioVolume            = "AudioVolume"
 	SettingsShowAboutDialogOnStart = "ShowAboutDialogOnStart"
 	SettingsReversePan             = "ReversePan"
+	SettingsSaveLastCardType       = "SaveLastCardType"
 )
 
 func NewProgramSettings() *Properties {
@@ -55,6 +56,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsAudioVolume).Set(80.0)
 	props.Get(SettingsShowAboutDialogOnStart).Set(true)
 	props.Get(SettingsReversePan).Set(false)
+	props.Get(SettingsSaveLastCardType).Set(true)
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 

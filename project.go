@@ -60,6 +60,7 @@ type Project struct {
 	LoadingProject *Project // A reference to the "next" Project when opening another one
 	Loading        bool
 	UndoHistory    *UndoHistory
+	LastCardType   string
 }
 
 func NewProject() *Project {
@@ -67,7 +68,8 @@ func NewProject() *Project {
 	project := &Project{
 		Camera: NewCamera(),
 		// Pages:           []*Page{},
-		UndoHistory: NewUndoHistory(),
+		UndoHistory:  NewUndoHistory(),
+		LastCardType: ContentTypeCheckbox,
 	}
 
 	project.RootFolder = NewPageFolder(nil, project)
@@ -366,7 +368,13 @@ func (project *Project) MouseActions() {
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) && globals.Settings.Get(SettingsDoubleClickCreatesCard).AsBool() {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-			card := project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
+
+			cardType := ContentTypeCheckbox
+			if globals.Settings.Get(SettingsSaveLastCardType).AsBool() {
+				cardType = project.LastCardType
+			}
+			card := project.CurrentPage.CreateNewCard(cardType)
+
 			project.CurrentPage.Selection.Clear()
 			project.CurrentPage.Selection.Add(card)
 			card.Rect.X = globals.Mouse.WorldPosition().X - (card.Rect.W / 2)
