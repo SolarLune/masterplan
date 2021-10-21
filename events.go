@@ -119,10 +119,10 @@ func (keyboard Keyboard) PressedKeys() []sdl.Keycode {
 }
 
 type Mouse struct {
-	buttonState      map[uint8]*InputState
-	wheel            int32
-	screenPosition   Point
-	relativeMovement Point
+	buttonState    map[uint8]*InputState
+	wheel          int32
+	screenPosition Point
+	prevPosition   Point
 
 	Cursors       map[string]*sdl.Cursor
 	CurrentCursor string
@@ -165,7 +165,7 @@ func (mouse Mouse) RelativeMovement() Point {
 	if mouse.HiddenPosition {
 		return mouse.Dummy.RelativeMovement()
 	}
-	return mouse.relativeMovement
+	return mouse.screenPosition.Sub(mouse.prevPosition)
 }
 
 func (mouse Mouse) Wheel() int32 {
@@ -231,7 +231,7 @@ func (mouse *Mouse) Moving() bool {
 	if mouse.HiddenPosition {
 		return false
 	}
-	return globals.Mouse.relativeMovement.Length() > 0
+	return globals.Mouse.RelativeMovement().Length() > 0
 }
 
 func (mouse *Mouse) PressedButtons() []uint8 {
@@ -279,7 +279,9 @@ func LoadCursors() {
 	}
 
 	globals.Mouse.Cursors["normal"] = createCursor(432, 0)
-	globals.Mouse.Cursors["resize"] = createCursor(432, 48)
+	globals.Mouse.Cursors["resizecorner"] = createCursor(432, 48)
+	globals.Mouse.Cursors["resizehorizontal"] = createCursor(432, 368)
+	globals.Mouse.Cursors["resizevertical"] = createCursor(432, 416)
 	globals.Mouse.Cursors["text caret"] = createCursor(432, 96)
 	globals.Mouse.Cursors["pencil"] = createCursor(432, 144)
 	globals.Mouse.Cursors["eyedropper"] = createCursor(432, 192)
@@ -294,7 +296,7 @@ func LoadCursors() {
 func handleEvents() {
 
 	globals.Mouse.wheel = 0
-	globals.Mouse.relativeMovement = Point{}
+	globals.Mouse.prevPosition = globals.Mouse.screenPosition
 
 	for baseEvent := sdl.PollEvent(); baseEvent != nil; baseEvent = sdl.PollEvent() {
 
@@ -329,8 +331,6 @@ func handleEvents() {
 
 			globals.Mouse.screenPosition.X = float32(event.X)
 			globals.Mouse.screenPosition.Y = float32(event.Y)
-			globals.Mouse.relativeMovement.X = float32(event.XRel)
-			globals.Mouse.relativeMovement.Y = float32(event.YRel)
 
 		case *sdl.MouseButtonEvent:
 

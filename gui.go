@@ -173,6 +173,7 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked f
 func (iconButton *IconButton) Update() {
 
 	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil {
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		iconButton.OnPressed()
 	}
 

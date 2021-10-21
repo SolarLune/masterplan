@@ -14,6 +14,10 @@ import (
 const (
 	CollapsedNone  = "CollapsedNone"
 	CollapsedShade = "CollapsedShade"
+
+	ResizeCorner     = "resizecorner"
+	ResizeHorizontal = "resizehorizontal"
+	ResizeVertical   = "resizevertical"
 )
 
 type LinkEnding struct {
@@ -38,7 +42,8 @@ type Card struct {
 	Occupying               []Point
 	ID                      int64
 	RandomValue             float32
-	Resizing                bool
+	Resizing                string
+	ResizeShape             *Shape
 	LockResizingAspectRatio float32
 	CreateUndoState         bool
 	UndoCreation            bool
@@ -74,6 +79,7 @@ func NewCard(page *Page, contentType string) *Card {
 		Collapsed:       CollapsedNone,
 		Draggable:       true,
 		Links:           []LinkEnding{},
+		ResizeShape:     NewShape(),
 	}
 
 	card.Drawable = NewDrawable(card.PostDraw)
@@ -106,12 +112,26 @@ func (card *Card) Update() {
 		}
 	}
 
-	resizeRect := &sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + card.Rect.H, 16, 16}
+	card.ResizeShape.SetRects(
+		&sdl.FRect{card.Rect.X, card.Rect.Y + card.Rect.H, card.Rect.W, 16},
+		&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + card.Rect.H, 16, 16},
+		&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y, 16, card.Rect.H},
+	)
 
-	if card.Resizing {
-		globals.Mouse.SetCursor("resize")
-		w := globals.Mouse.WorldPosition().X - card.Rect.X - resizeRect.W
-		h := globals.Mouse.WorldPosition().Y - card.Rect.Y - resizeRect.H
+	if card.Resizing != "" {
+		globals.Mouse.SetCursor(card.Resizing)
+
+		w := card.Rect.W
+		h := card.Rect.H
+
+		if card.Resizing == ResizeHorizontal || card.Resizing == ResizeCorner {
+			w = globals.Mouse.WorldPosition().X - card.Rect.X - card.ResizeShape.Rects[1].W
+		}
+
+		if card.Resizing == ResizeVertical || card.Resizing == ResizeCorner {
+			h = globals.Mouse.WorldPosition().Y - card.Rect.Y - card.ResizeShape.Rects[1].H
+		}
+
 		if card.LockResizingAspectRatio > 0 {
 			h = w * card.LockResizingAspectRatio
 		}
@@ -198,11 +218,20 @@ func (card *Card) Update() {
 				card.CreateUndoState = true
 			}
 
-			if globals.Mouse.WorldPosition().Inside(resizeRect) {
-				globals.Mouse.SetCursor("resize")
+			if i := globals.Mouse.WorldPosition().InsideShape(card.ResizeShape); i >= 0 && card.Resizing == "" {
+
+				side := "resizevertical"
+
+				if i == 1 {
+					side = "resizecorner"
+				} else if i == 2 {
+					side = "resizehorizontal"
+				}
+
+				globals.Mouse.SetCursor(side)
 
 				if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
-					card.StartResizing()
+					card.Resizing = side
 					globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 				}
 
@@ -657,12 +686,8 @@ func (card *Card) StopDragging() {
 	card.CreateUndoState = true
 }
 
-func (card *Card) StartResizing() {
-	card.Resizing = true
-}
-
 func (card *Card) StopResizing() {
-	card.Resizing = false
+	card.Resizing = ""
 	card.LockPosition()
 	card.ReceiveMessage(NewMessage(MessageResizeCompleted, card, nil))
 

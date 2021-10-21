@@ -82,6 +82,8 @@ func init() {
 	nm := NewMouse()
 	nm.screenPosition.X = -99999999999
 	nm.screenPosition.Y = -99999999999
+	nm.prevPosition.X = -99999999999
+	nm.prevPosition.Y = -99999999999
 	globals.Mouse.Dummy = &nm
 	globals.Resources = NewResourceBank()
 	globals.GridSize = 32
@@ -1201,6 +1203,10 @@ func ConstructMenus() {
 	row = input.AddRow(AlignCenter)
 	row.Add("", NewLabel("Double-click to Create Cards: ", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsDoubleClickCreatesCard)))
+
+	row = input.AddRow(AlignCenter)
+	row.Add("", NewLabel("Reverse panning direction: ", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsReversePan)))
 
 	// row = input.AddRow(AlignCenter)
 	// row.Add("", NewLabel("", nil, false, AlignLeft))

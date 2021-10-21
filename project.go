@@ -394,7 +394,13 @@ func (project *Project) MouseActions() {
 		}
 
 		if globals.Keybindings.Pressed(KBPanModifier) {
-			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(globals.Mouse.RelativeMovement().Mult(480 * globals.DeltaTime).Div(project.Camera.TargetZoom))
+
+			pan := globals.Mouse.RelativeMovement().Div(project.Camera.TargetZoom)
+			if globals.Settings.Get(SettingsReversePan).AsBool() {
+				pan = pan.Mult(-1)
+			}
+			project.Camera.TargetPosition = project.Camera.TargetPosition.Sub(pan)
+
 		}
 
 	}

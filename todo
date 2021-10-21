@@ -29,6 +29,9 @@ Draw shadow underneath Map
 Note card becoming too large crashes due to exceeding graphics card texture limits
 
 - [ ] Card movement!
+- [ ] Execution of files somehow (either through evaluating text as a file link, or through a Card that accepts a path that will open it with the default application). It'd
+  be nice if I could click for example on an executable to run it, or on a markdown file to open it in a markdown editor (if I have it set up like that on my computer).
+- [ ] Calculator
 
 [x] Space bar (or any keyboard key, or mouse click) to pan
 [x] Drag and drop plan to load project

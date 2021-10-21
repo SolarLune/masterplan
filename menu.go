@@ -136,7 +136,8 @@ type Menu struct {
 	DragOffset Point
 
 	Resizeable  bool
-	Resizing    bool
+	Resizing    string
+	ResizeShape *Shape
 	ResizeStart Point
 	PageThread  []string
 
@@ -147,12 +148,13 @@ type Menu struct {
 func NewMenu(rect *sdl.FRect, openable bool) *Menu {
 
 	menu := &Menu{
-		Rect:      &sdl.FRect{rect.X, rect.Y, 0, 0},
-		MinSize:   Point{32, 32},
-		Pages:     map[string]*Container{},
-		Openable:  openable,
-		Spacing:   MenuSpacingNone,
-		Draggable: false,
+		Rect:        &sdl.FRect{rect.X, rect.Y, 0, 0},
+		MinSize:     Point{32, 32},
+		Pages:       map[string]*Container{},
+		Openable:    openable,
+		ResizeShape: NewShape(),
+		Spacing:     MenuSpacingNone,
+		Draggable:   false,
 	}
 
 	menu.closeButtonButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{176, 0, 32, 32}, false, func() { menu.Close() })
@@ -271,23 +273,44 @@ func (menu *Menu) Update() {
 
 		if menu.Resizeable {
 
-			resizeRect := &sdl.FRect{menu.Rect.X + menu.Rect.W - 16, menu.Rect.Y + menu.Rect.H - 16, 16, 16}
+			menu.ResizeShape.SetRects(
+				&sdl.FRect{menu.Rect.X, menu.Rect.Y + menu.Rect.H, menu.Rect.W, 16},
+				&sdl.FRect{menu.Rect.X + menu.Rect.W, menu.Rect.Y + menu.Rect.H, 16, 16},
+				&sdl.FRect{menu.Rect.X + menu.Rect.W, menu.Rect.Y, 16, menu.Rect.H},
+			)
 
-			if globals.Mouse.Position().Inside(resizeRect) {
-				globals.Mouse.SetCursor("resize")
+			if i := globals.Mouse.Position().InsideShape(menu.ResizeShape); i >= 0 {
+
+				side := "resizevertical"
+				if i == 1 {
+					side = "resizecorner"
+				} else if i == 2 {
+					side = "resizehorizontal"
+				}
+
+				globals.Mouse.SetCursor(side)
+
 				if button.Pressed() {
 					button.Consume()
-					menu.Resizing = true
+					menu.Resizing = side
 					menu.ResizeStart = globals.Mouse.Position()
 				}
+
 			}
 
-			if menu.Resizing {
+			if menu.Resizing != "" {
 
 				globals.Mouse.SetCursor("resize")
 
-				w := globals.Mouse.Position().X - menu.Rect.X
-				h := globals.Mouse.Position().Y - menu.Rect.Y
+				w := menu.Rect.W
+				h := menu.Rect.H
+
+				if menu.Resizing == ResizeHorizontal || menu.Resizing == ResizeCorner {
+					w = globals.Mouse.Position().X - menu.Rect.X
+				}
+				if menu.Resizing == ResizeVertical || menu.Resizing == ResizeCorner {
+					h = globals.Mouse.Position().Y - menu.Rect.Y
+				}
 
 				if w < menu.MinSize.X {
 					w = menu.MinSize.X
@@ -304,7 +327,7 @@ func (menu *Menu) Update() {
 				menu.Recreate(w, h)
 
 				if button.Released() {
-					menu.Resizing = false
+					menu.Resizing = ""
 				}
 
 			}
@@ -331,7 +354,7 @@ func (menu *Menu) Update() {
 
 	} else {
 		menu.Dragging = false
-		menu.Resizing = false
+		menu.Resizing = ""
 	}
 
 }

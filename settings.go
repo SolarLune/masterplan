@@ -33,6 +33,7 @@ const (
 	SettingsPlayAlarmSound         = "PlayAlarmSound"
 	SettingsAudioVolume            = "AudioVolume"
 	SettingsShowAboutDialogOnStart = "ShowAboutDialogOnStart"
+	SettingsReversePan             = "ReversePan"
 )
 
 func NewProgramSettings() *Properties {
@@ -53,6 +54,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsPlayAlarmSound).Set(true)
 	props.Get(SettingsAudioVolume).Set(80.0)
 	props.Get(SettingsShowAboutDialogOnStart).Set(true)
+	props.Get(SettingsReversePan).Set(false)
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 

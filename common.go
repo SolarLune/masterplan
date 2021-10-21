@@ -110,6 +110,24 @@ func (point Point) Inside(rect *sdl.FRect) bool {
 	return point.X >= float32(rect.X) && point.X <= float32(rect.X+rect.W) && point.Y >= float32(rect.Y) && point.Y <= float32(rect.Y+rect.H)
 }
 
+// func (point Point) InsideShape(shape *Shape) bool {
+// 	for _, rect := range shape.Rects {
+// 		if point.Inside(rect) {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
+
+func (point Point) InsideShape(shape *Shape) int {
+	for index, rect := range shape.Rects {
+		if point.Inside(rect) {
+			return index
+		}
+	}
+	return -1
+}
+
 func (point Point) Sub(other Point) Point {
 	return Point{point.X - other.X, point.Y - other.Y}
 }
@@ -487,6 +505,20 @@ func DrawLabel(pos Point, text string) {
 
 	globals.TextRenderer.QuickRenderText(text, Point{pos.X + (textSize.X / 2), pos.Y}, 0.5, getThemeColor(GUIFontColor), AlignCenter)
 
+}
+
+type Shape struct {
+	Rects []*sdl.FRect
+}
+
+func NewShape(rects ...*sdl.FRect) *Shape {
+	shape := &Shape{}
+	shape.SetRects(rects...)
+	return shape
+}
+
+func (shape *Shape) SetRects(rects ...*sdl.FRect) {
+	shape.Rects = rects
 }
 
 // func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {

@@ -1563,7 +1563,7 @@ func (mc *MapContents) Update() {
 		}
 	}
 
-	if mc.Card.Resizing {
+	if mc.Card.Resizing != "" {
 		mc.RecreateTexture()
 		mc.UpdateTexture()
 		mc.LineStart.X = -1
@@ -1611,7 +1611,7 @@ func (mc *MapContents) Update() {
 			globals.State = StateMapEditing
 		}
 
-		if !mc.Card.Resizing {
+		if mc.Card.Resizing == "" {
 
 			if globals.Keybindings.Pressed(KBPickColor) {
 
