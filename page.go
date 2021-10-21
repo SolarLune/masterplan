@@ -144,6 +144,7 @@ type Page struct {
 	depth        int
 	UpdateStacks bool
 	Drawables    []*Drawable
+	ToRaise      []*Card
 
 	Linking              *Card
 	DeserializationLinks []int64
@@ -159,6 +160,7 @@ func NewPage(pageFolder *PageFolder, project *Project) *Page {
 		name:      "New Page",
 		depth:     0,
 		Drawables: []*Drawable{},
+		ToRaise:   []*Card{},
 	}
 
 	page.depth = pageFolder.depth + 1
@@ -194,6 +196,9 @@ func (page *Page) Update() {
 		}
 
 		page.UpdateStacks = false
+
+		page.SendMessage(NewMessage(MessageStacksUpdated, nil, nil))
+
 	}
 
 }
@@ -245,8 +250,20 @@ func (page *Page) Draw() {
 		toRestore.Valid = true
 	}
 
+	for _, toRaise := range page.ToRaise {
+
+		for index, other := range page.Cards {
+			if other == toRaise {
+				page.Cards = append(page.Cards[:index], append(page.Cards[index+1:], toRaise)...)
+				break
+			}
+		}
+
+	}
+
 	page.ToDelete = []*Card{}
 	page.ToRestore = []*Card{}
+	page.ToRaise = []*Card{}
 
 	page.UpdateLinks()
 
@@ -450,16 +467,7 @@ func (page *Page) Raise(card *Card) {
 		return
 	}
 
-	for index, other := range page.Cards {
-
-		if other == card {
-
-			page.Cards = append(page.Cards[:index], append(page.Cards[index+1:], card)...)
-			return
-
-		}
-
-	}
+	page.ToRaise = append(page.ToRaise, card)
 
 }
 

@@ -4,6 +4,17 @@ import (
 	"sort"
 )
 
+type StackNumber []int
+
+func (number StackNumber) IsParentOf(other StackNumber) bool {
+	for i := 0; i < len(number); i++ {
+		if len(other) < len(number) || other[i] != number[i] {
+			return false
+		}
+	}
+	return true
+}
+
 type Stack struct {
 	// Cards []*Card
 	Card *Card
@@ -14,7 +25,7 @@ type Stack struct {
 	Below     *Card
 	PrevBelow *Card
 
-	Number []int
+	Number StackNumber
 }
 
 func NewStack(card *Card) *Stack {
@@ -143,6 +154,18 @@ func (stack *Stack) Tail() []*Card {
 		below = below.Stack.Below
 	}
 	return rest
+}
+
+func (stack *Stack) Children() []*Card {
+	children := []*Card{}
+	for _, c := range stack.Tail() {
+		if stack.Number.IsParentOf(c.Stack.Number) {
+			children = append(children, c)
+		} else {
+			break
+		}
+	}
+	return children
 }
 
 func (stack *Stack) Top() *Card {

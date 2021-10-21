@@ -112,10 +112,12 @@ func (card *Card) Update() {
 		}
 	}
 
+	rectSize := float32(8)
+
 	card.ResizeShape.SetRects(
-		&sdl.FRect{card.Rect.X, card.Rect.Y + card.Rect.H, card.Rect.W, 16},
-		&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + card.Rect.H, 16, 16},
-		&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y, 16, card.Rect.H},
+		&sdl.FRect{card.Rect.X + rectSize, card.Rect.Y + card.Rect.H, card.Rect.W - rectSize, rectSize},
+		&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + card.Rect.H, rectSize, rectSize},
+		&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + rectSize, rectSize, card.Rect.H - rectSize},
 	)
 
 	if card.Resizing != "" {
@@ -135,10 +137,18 @@ func (card *Card) Update() {
 		if card.LockResizingAspectRatio > 0 {
 			h = w * card.LockResizingAspectRatio
 		}
-		card.Recreate(w, h)
+
+		for card := range card.Page.Selection.Cards {
+			card.Recreate(w, h)
+		}
+
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
 			card.StopResizing()
+			for card := range card.Page.Selection.Cards {
+				card.StopResizing()
+			}
 		}
+
 	}
 
 	softness := float32(0.4)
@@ -231,38 +241,31 @@ func (card *Card) Update() {
 				globals.Mouse.SetCursor(side)
 
 				if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+					if !card.Selected && !globals.Keybindings.Pressed(KBAddToSelection) {
+						card.Page.Selection.Clear()
+					}
+					card.Page.Selection.Add(card)
 					card.Resizing = side
 					globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 				}
 
-			} else if ClickedInRect(card.Rect, true) {
+			} else if globals.Mouse.CurrentCursor == "normal" && ClickedInRect(card.Rect, true) {
 
 				selection := card.Page.Selection
-
-				if !card.Selected {
-					card.Page.Raise(card)
-				}
 
 				if globals.Keybindings.Pressed(KBRemoveFromSelection) {
 
 					if card.Selected {
-						card.Deselect()
 						selection.Remove(card)
 					}
 
 				} else {
 
 					if !card.Selected && !globals.Keybindings.Pressed(KBAddToSelection) {
-
-						for card := range selection.Cards {
-							card.Deselect()
-						}
-
 						selection.Clear()
 					}
 
 					selection.Add(card)
-					card.Select()
 
 					for card := range selection.Cards {
 						card.StartDragging()
@@ -584,11 +587,16 @@ func (card *Card) CompletionLevel() float32 {
 
 func (card *Card) MaximumCompletionLevel() float32 {
 	if card.ContentType == ContentTypeCheckbox {
-		return 1
+		return card.Contents.(*CheckboxContents).MaximumCompletionLevel()
 	} else if card.ContentType == ContentTypeNumbered {
 		return card.Contents.(*NumberedContents).MaximumCompletionLevel()
 	}
 	return 0
+}
+
+func (card *Card) Completed() bool {
+	max := card.MaximumCompletionLevel()
+	return max > 0 && card.CompletionLevel() >= max
 }
 
 func (card *Card) Serialize() string {

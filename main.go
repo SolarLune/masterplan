@@ -1490,7 +1490,7 @@ func ConstructMenus() {
 				completionLevel += i.CompletionLevel()
 
 				totalCompletable++
-				if i.MaximumCompletionLevel() > 0 && i.CompletionLevel() >= i.MaximumCompletionLevel() {
+				if i.Completed() {
 					completedCards++
 				}
 

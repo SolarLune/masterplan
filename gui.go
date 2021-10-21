@@ -255,14 +255,16 @@ func (iconButton *IconButton) SetRectangle(rect *sdl.FRect) {
 type Checkbox struct {
 	IconButton
 	// Checked bool
-	Property *Property
-	Rect     *sdl.FRect
-	Checked  bool
+	Property  *Property
+	Rect      *sdl.FRect
+	Checked   bool
+	Clickable bool
 }
 
 func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 	checkbox := &Checkbox{
 		IconButton: *NewIconButton(x, y, &sdl.Rect{48, 160, 32, 32}, worldSpace, nil),
+		Clickable:  true,
 	}
 
 	r := *checkbox.IconButton.Rect
@@ -271,6 +273,10 @@ func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 	checkbox.Property = property
 
 	checkbox.OnPressed = func() {
+
+		if !checkbox.Clickable {
+			return
+		}
 
 		if checkbox.Property != nil {
 			checkbox.Property.Set(!checkbox.Property.AsBool())

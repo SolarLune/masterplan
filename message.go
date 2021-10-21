@@ -3,13 +3,13 @@ package main
 const (
 	MessageSelect          = "MessageSelect"
 	MessageResizeCompleted = "MessageResizeCompleted"
-	MessageDragCompleted   = "MessageDragCompleted"
 	MessageCardDeleted     = "MessageCardDeleted"
 	MessageCardRestored    = "MessageCardRestored"
 	MessageContentSwitched = "MessageContentSwitched"
 	MessageThemeChange     = "MessageThemeChange"
 	MessageUndoRedo        = "MessageUndoRedo"
 	MessageVolumeChange    = "MessageVolumeChange"
+	MessageStacksUpdated   = "MessageStacksUpdated"
 )
 
 type Message struct {

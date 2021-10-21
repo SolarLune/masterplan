@@ -60,6 +60,9 @@ func (selection *Selection) Update() {
 }
 
 func (selection *Selection) Add(card *Card) {
+	if !card.Selected {
+		card.Page.Raise(card)
+	}
 	card.Select()
 	selection.Cards[card] = true
 }

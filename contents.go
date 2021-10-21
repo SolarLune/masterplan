@@ -67,8 +67,10 @@ func (dc *DefaultContents) ReceiveMessage(msg *Message) {}
 
 type CheckboxContents struct {
 	DefaultContents
-	Label    *Label
-	Checkbox *Checkbox
+	Label                        *Label
+	Checkbox                     *Checkbox
+	ParentOf                     []*Card
+	PercentageOfChildrenComplete float32
 }
 
 func NewCheckboxContents(card *Card) *CheckboxContents {
@@ -123,12 +125,65 @@ func (cc *CheckboxContents) Update() {
 
 }
 
+func (cc *CheckboxContents) Draw() {
+
+	completed := float32(0)
+	maximum := float32(0)
+
+	if len(cc.ParentOf) > 0 {
+
+		for _, c := range cc.ParentOf {
+			if c.Numberable() {
+				maximum++
+			}
+			if c.Completed() {
+				completed++
+			}
+		}
+
+		cc.Card.Properties.Get("checked").Set(completed >= maximum)
+
+		if maximum > 0 {
+			p := completed / maximum
+			cc.PercentageOfChildrenComplete += (p - cc.PercentageOfChildrenComplete) * 6 * globals.DeltaTime
+
+			src := &sdl.Rect{0, 0, int32(cc.Card.Rect.W * cc.PercentageOfChildrenComplete), int32(cc.Card.Rect.H)}
+			dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
+			dst.X = cc.Card.DisplayRect.X
+			dst.Y = cc.Card.DisplayRect.Y
+			dst = cc.Card.Page.Project.Camera.TranslateRect(dst)
+			cc.Card.Result.Texture.SetColorMod(getThemeColor(GUICompletedColor).RGB())
+			globals.Renderer.CopyF(cc.Card.Result.Texture, src, dst)
+
+		}
+
+	}
+
+	cc.DefaultContents.Draw()
+
+	cc.Checkbox.Clickable = len(cc.ParentOf) == 0
+
+	if len(cc.ParentOf) > 0 {
+		dstPoint := Point{cc.Card.DisplayRect.X + cc.Card.DisplayRect.W - 32, cc.Card.DisplayRect.Y}
+		DrawLabel(cc.Card.Page.Project.Camera.TranslatePoint(dstPoint), fmt.Sprintf("%d/%d", int(completed), int(maximum)))
+	}
+
+}
+
 func (cc *CheckboxContents) Color() Color {
 
 	color := getThemeColor(GUICheckboxColor)
 
-	if cc.Card.Properties.Get("checked").AsBool() {
-		color = getThemeColor(GUICompletedColor)
+	if len(cc.ParentOf) > 0 {
+
+		if cc.PercentageOfChildrenComplete >= 0.99 {
+			color = getThemeColor(GUICompletedColor)
+		}
+
+	} else {
+		if cc.Card.Properties.Get("checked").AsBool() {
+			color = getThemeColor(GUICompletedColor)
+		}
 	}
 
 	return color
@@ -154,10 +209,41 @@ func (cc *CheckboxContents) Trigger(triggerType string) {
 }
 
 func (cc *CheckboxContents) CompletionLevel() float32 {
+
+	if len(cc.ParentOf) > 0 {
+		comp := float32(0)
+		for _, c := range cc.ParentOf {
+			comp += c.CompletionLevel()
+		}
+		return comp
+	}
+
 	if cc.Card.Properties.Get("checked").AsBool() {
 		return 1
 	}
+
 	return 0
+
+}
+
+func (cc *CheckboxContents) MaximumCompletionLevel() float32 {
+
+	if len(cc.ParentOf) > 0 {
+		comp := float32(0)
+		for _, c := range cc.ParentOf {
+			comp += c.MaximumCompletionLevel()
+		}
+		return comp
+	}
+
+	return 1 // A non-parent Checkbox can only be done or not, so the maximum completion is 1
+
+}
+
+func (cc *CheckboxContents) ReceiveMessage(msg *Message) {
+	if msg.Type == MessageStacksUpdated {
+		cc.ParentOf = cc.Card.Stack.Children()
+	}
 }
 
 type NumberedContents struct {
@@ -247,7 +333,7 @@ func (numbered *NumberedContents) Draw() {
 		p = float32(numbered.Current.Property.AsFloat()) / float32(numbered.Max.Property.AsFloat())
 		f.W *= p
 
-		numbered.PercentageComplete += (p - numbered.PercentageComplete) * 0.1
+		numbered.PercentageComplete += (p - numbered.PercentageComplete) * 6 * globals.DeltaTime
 
 		src := &sdl.Rect{0, 0, int32(numbered.Card.Rect.W * numbered.PercentageComplete), int32(numbered.Card.Rect.H)}
 		dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
@@ -1151,7 +1237,7 @@ func (tc *TimerContents) Draw() {
 		}
 
 	}
-	tc.PercentageComplete += (p - tc.PercentageComplete) * 0.1
+	tc.PercentageComplete += (p - tc.PercentageComplete) * 6 * globals.DeltaTime
 
 	if tc.PercentageComplete < 0 {
 		tc.PercentageComplete = 0
