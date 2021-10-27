@@ -70,6 +70,7 @@ type CheckboxContents struct {
 	Label                        *Label
 	Checkbox                     *Checkbox
 	ParentOf                     []*Card
+	Linked                       []*Card
 	PercentageOfChildrenComplete float32
 }
 
@@ -130,9 +131,12 @@ func (cc *CheckboxContents) Draw() {
 	completed := float32(0)
 	maximum := float32(0)
 
-	if len(cc.ParentOf) > 0 {
+	dependentCards := cc.DependentCards()
+	cc.Checkbox.MultiCheckbox = len(dependentCards) > 0
 
-		for _, c := range cc.ParentOf {
+	if len(dependentCards) > 0 {
+
+		for _, c := range dependentCards {
 			if c.Numberable() {
 				maximum++
 			}
@@ -146,6 +150,9 @@ func (cc *CheckboxContents) Draw() {
 		if maximum > 0 {
 			p := completed / maximum
 			cc.PercentageOfChildrenComplete += (p - cc.PercentageOfChildrenComplete) * 6 * globals.DeltaTime
+			if cc.PercentageOfChildrenComplete > 1 {
+				cc.PercentageOfChildrenComplete = 1
+			}
 
 			src := &sdl.Rect{0, 0, int32(cc.Card.Rect.W * cc.PercentageOfChildrenComplete), int32(cc.Card.Rect.H)}
 			dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
@@ -161,9 +168,9 @@ func (cc *CheckboxContents) Draw() {
 
 	cc.DefaultContents.Draw()
 
-	cc.Checkbox.Clickable = len(cc.ParentOf) == 0
+	cc.Checkbox.Clickable = len(dependentCards) == 0
 
-	if len(cc.ParentOf) > 0 {
+	if len(dependentCards) > 0 {
 		dstPoint := Point{cc.Card.DisplayRect.X + cc.Card.DisplayRect.W - 32, cc.Card.DisplayRect.Y}
 		DrawLabel(cc.Card.Page.Project.Camera.TranslatePoint(dstPoint), fmt.Sprintf("%d/%d", int(completed), int(maximum)))
 	}
@@ -174,7 +181,7 @@ func (cc *CheckboxContents) Color() Color {
 
 	color := getThemeColor(GUICheckboxColor)
 
-	if len(cc.ParentOf) > 0 {
+	if len(cc.DependentCards()) > 0 {
 
 		if cc.PercentageOfChildrenComplete >= 0.99 {
 			color = getThemeColor(GUICompletedColor)
@@ -210,9 +217,9 @@ func (cc *CheckboxContents) Trigger(triggerType string) {
 
 func (cc *CheckboxContents) CompletionLevel() float32 {
 
-	if len(cc.ParentOf) > 0 {
+	if len(cc.DependentCards()) > 0 {
 		comp := float32(0)
-		for _, c := range cc.ParentOf {
+		for _, c := range cc.DependentCards() {
 			comp += c.CompletionLevel()
 		}
 		return comp
@@ -228,9 +235,9 @@ func (cc *CheckboxContents) CompletionLevel() float32 {
 
 func (cc *CheckboxContents) MaximumCompletionLevel() float32 {
 
-	if len(cc.ParentOf) > 0 {
+	if len(cc.DependentCards()) > 0 {
 		comp := float32(0)
-		for _, c := range cc.ParentOf {
+		for _, c := range cc.DependentCards() {
 			comp += c.MaximumCompletionLevel()
 		}
 		return comp
@@ -243,7 +250,63 @@ func (cc *CheckboxContents) MaximumCompletionLevel() float32 {
 func (cc *CheckboxContents) ReceiveMessage(msg *Message) {
 	if msg.Type == MessageStacksUpdated {
 		cc.ParentOf = cc.Card.Stack.Children()
+	} else if msg.Type == MessageLinkCreated || msg.Type == MessageLinkDeleted || msg.Type == MessageContentSwitched {
+		cc.Linked = []*Card{}
+
+		isCycle := func(card *Card) bool {
+
+			checked := map[*Card]bool{
+				card: true,
+			}
+			toCheck := []*Card{}
+
+			for _, link := range card.Links {
+				if link.End != card {
+					toCheck = append(toCheck, link.End)
+				}
+			}
+
+			for len(toCheck) > 0 {
+
+				top := toCheck[0]
+				toCheck = toCheck[1:]
+
+				if _, exists := checked[top]; !exists {
+
+					checked[top] = true
+
+					for _, link := range top.Links {
+
+						if link.End != top {
+							toCheck = append(toCheck, link.End)
+						}
+
+					}
+
+				} else {
+					return true
+				}
+
+			}
+
+			return false
+
+		}
+
+		for _, link := range cc.Card.Links {
+
+			if link.End != cc.Card && !isCycle(link.End) && link.End.Numberable() {
+				cc.Linked = append(cc.Linked, link.End)
+			}
+
+		}
 	}
+}
+
+func (cc *CheckboxContents) DependentCards() []*Card {
+	cards := append([]*Card{}, cc.ParentOf...)
+	cards = append(cards, cc.Linked...)
+	return cards
 }
 
 type NumberedContents struct {
@@ -312,6 +375,7 @@ func (numbered *NumberedContents) Update() {
 	numbered.DefaultContents.Update()
 
 	rect := numbered.Label.Rectangle()
+	rect.W = numbered.Container.Rect.W - 32
 	rect.H = numbered.Container.Rect.H - 32
 	if rect.H < 32 {
 		rect.H = 32
@@ -1044,6 +1108,7 @@ func NewTimerContents(card *Card) *TimerContents {
 
 	tc.Name.Property = card.Properties.Get("description")
 
+	tc.ClockMaxTime.Property = card.Properties.Get("max time")
 	tc.ClockMaxTime.RegexString = RegexOnlyDigitsAndColon()
 	tc.ClockMaxTime.MaxLength = 8
 
@@ -1071,12 +1136,8 @@ func NewTimerContents(card *Card) *TimerContents {
 	tc.Mode = NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, true, func(index int) {
 		tc.Running = false
 		if index == 0 {
-			tc.ClockMaxTime.SetRectangle(&sdl.FRect{0, 0, 0, 0})
-			tc.ClockMaxTime.Editable = false
 			globals.EventLog.Log("Timer Mode changed to Stopwatch.")
 		} else {
-			tc.ClockMaxTime.SetRectangle(&sdl.FRect{0, 0, 128, 32})
-			tc.ClockMaxTime.Editable = true
 			globals.EventLog.Log("Timer Mode changed to Countdown.")
 		}
 	}, card.Properties.Get("mode group"),
@@ -1154,23 +1215,6 @@ func (tc *TimerContents) Update() {
 	}
 	tc.Name.SetRectangle(r)
 
-	tc.DefaultContents.Update()
-
-	if tc.Card.Selected {
-
-		if globals.State == StateNeutral && globals.Keybindings.Pressed(KBTimerStartStop) {
-			tc.Running = !tc.Running
-		}
-
-		description := tc.Card.Properties.Get("description")
-		if tc.Name.Editing {
-			description.Set(tc.Name.TextAsString())
-		} else {
-			tc.Name.SetText([]rune(description.AsString()))
-		}
-
-	}
-
 	tc.StartButton.IconSrc.X = 112
 
 	if tc.Running {
@@ -1179,7 +1223,9 @@ func (tc *TimerContents) Update() {
 		tc.TimerValue += time.Duration(globals.DeltaTime * float32(time.Second))
 		tc.Pie.FillPercent += globals.DeltaTime
 
-		if tc.TimerValue > tc.MaxTime && tc.Mode.ChosenIndex == 1 {
+		triggerMode := int(tc.Card.Properties.Get("trigger mode").AsFloat())
+
+		if tc.TimerValue > tc.MaxTime && triggerMode == 1 {
 
 			elapsedMessage := "Timer [" + tc.Name.TextAsString() + "] elapsed."
 
@@ -1189,9 +1235,9 @@ func (tc *TimerContents) Update() {
 			tc.TimerValue = 0
 
 			triggerType := TriggerTypeToggle
-			if tc.TriggerMode.ChosenIndex == 1 {
+			if triggerMode == 1 {
 				triggerType = TriggerTypeSet
-			} else if tc.TriggerMode.ChosenIndex == 2 {
+			} else if triggerMode == 2 {
 				triggerType = TriggerTypeClear
 			}
 
@@ -1221,7 +1267,34 @@ func (tc *TimerContents) Update() {
 
 	}
 
+	modeGroup := tc.Card.Properties.Get("mode group").AsFloat()
+
+	if modeGroup == 0 {
+		tc.ClockMaxTime.SetRectangle(&sdl.FRect{0, 0, 0, 0})
+		tc.ClockMaxTime.Editable = false
+	} else {
+		tc.ClockMaxTime.SetRectangle(&sdl.FRect{0, 0, 128, 32})
+		tc.ClockMaxTime.Editable = true
+	}
+
 	tc.ClockLabel.SetText([]rune(formatTime(tc.TimerValue, false)))
+
+	if tc.Card.Selected {
+
+		if globals.State == StateNeutral && globals.Keybindings.Pressed(KBTimerStartStop) {
+			tc.Running = !tc.Running
+		}
+
+		description := tc.Card.Properties.Get("description")
+		if tc.Name.Editing {
+			description.Set(tc.Name.TextAsString())
+		} else {
+			tc.Name.SetText([]rune(description.AsString()))
+		}
+
+	}
+
+	tc.DefaultContents.Update()
 
 }
 
@@ -1230,7 +1303,7 @@ func (tc *TimerContents) Draw() {
 	p := float32(0)
 
 	// Numbered mode
-	if tc.Mode.ChosenIndex != 0 && tc.MaxTime > 0 {
+	if int(tc.Card.Properties.Get("mode group").AsFloat()) != 0 && tc.MaxTime > 0 {
 
 		if tc.TimerValue > 0 {
 			p = float32(tc.TimerValue) / float32(tc.MaxTime)

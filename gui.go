@@ -255,10 +255,11 @@ func (iconButton *IconButton) SetRectangle(rect *sdl.FRect) {
 type Checkbox struct {
 	IconButton
 	// Checked bool
-	Property  *Property
-	Rect      *sdl.FRect
-	Checked   bool
-	Clickable bool
+	Property      *Property
+	Rect          *sdl.FRect
+	Checked       bool
+	Clickable     bool
+	MultiCheckbox bool
 }
 
 func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
@@ -296,7 +297,6 @@ func (checkbox *Checkbox) Update() {
 	checkbox.IconButton.Update()
 
 	if checkbox.Property != nil {
-
 		if checkbox.Property.AsBool() {
 			checkbox.IconSrc.X = 48
 		} else {
@@ -309,6 +309,10 @@ func (checkbox *Checkbox) Update() {
 		} else {
 			checkbox.IconSrc.X = 80
 		}
+	}
+
+	if checkbox.MultiCheckbox {
+		checkbox.IconSrc.X += 64
 	}
 
 }
@@ -863,13 +867,12 @@ func (bg *ButtonGroup) Destroy() {
 }
 
 type IconButtonGroup struct {
-	ChosenIndex int
-	Buttons     []*IconButton
-	Rect        *sdl.FRect
-	Icons       []*sdl.Rect
-	OnChoose    func(index int)
-	Property    *Property
-	WorldSpace  bool
+	Buttons    []*IconButton
+	Rect       *sdl.FRect
+	Icons      []*sdl.Rect
+	OnChoose   func(index int)
+	Property   *Property
+	WorldSpace bool
 }
 
 func NewIconButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index int), property *Property, icons ...*sdl.Rect) *IconButtonGroup {
@@ -908,9 +911,11 @@ func (bg *IconButtonGroup) SetButtons(icons ...*sdl.Rect) {
 
 		index := i
 		bg.Buttons = append(bg.Buttons, NewIconButton(0, 0, src, bg.WorldSpace, func() {
-			bg.ChosenIndex = index
 			if bg.OnChoose != nil {
 				bg.OnChoose(index)
+			}
+			if bg.Property != nil {
+				bg.Property.Set(float64(index))
 			}
 		}))
 
@@ -931,14 +936,17 @@ func (bg *IconButtonGroup) Update() {
 		r.Y = rect.Y
 		b.SetRectangle(r)
 		b.Update()
+
 	}
 
 }
 
 func (bg *IconButtonGroup) Draw() {
 
+	chosenIndex := int(bg.Property.AsFloat())
+
 	for i, b := range bg.Buttons {
-		b.AlwaysHighlight = bg.ChosenIndex == i
+		b.AlwaysHighlight = chosenIndex == i
 		b.Draw()
 	}
 

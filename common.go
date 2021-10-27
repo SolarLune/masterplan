@@ -177,6 +177,21 @@ func (point Point) Rounded() Point {
 	return Point{float32(math.Round(float64(point.X))), float32(math.Round(float64(point.Y)))}
 }
 
+func (point Point) LockToGrid() Point {
+	return Point{
+		X: float32(math.Round(float64(point.X/globals.GridSize)) * float64(globals.GridSize)),
+		Y: float32(math.Round(float64(point.Y/globals.GridSize)) * float64(globals.GridSize)),
+	}
+}
+
+func (point Point) Angle() float32 {
+	return float32(math.Atan2(-float64(point.Y), float64(point.X)))
+}
+
+func (point Point) Negated() Point {
+	return Point{-point.X, -point.Y}
+}
+
 func ClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
 	if worldSpace {
 		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.WorldPosition().Inside(rect)

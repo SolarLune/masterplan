@@ -80,7 +80,7 @@ func NewProject() *Project {
 
 	project.CreateGridTexture()
 
-	cardID = 0
+	globalCardID = 0
 
 	return project
 
@@ -204,6 +204,7 @@ func (project *Project) Draw() {
 
 	project.CurrentPage.Draw()
 
+	// We want this here so anything else can intercept a mouse button click (for example, a button drawn from a Card).
 	project.MouseActions()
 
 }
@@ -368,6 +369,8 @@ func (project *Project) MouseActions() {
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) && globals.Settings.Get(SettingsDoubleClickCreatesCard).AsBool() {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
+			project.CurrentPage.Selection.BoxSelecting = false
 
 			cardType := ContentTypeCheckbox
 			if globals.Settings.Get(SettingsSaveLastCardType).AsBool() {

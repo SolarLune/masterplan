@@ -1,26 +1,21 @@
 package main
 
+import (
+	"fmt"
+)
+
 // HISTORY    v
-// TASK #0  -------O-XO
-// TASK #1  --O--OO----
-// TASK #2  XO-O----O--
-// TASK #3  ---XO-O---O
+// CARD #0  --------C-0X
+// CARD #1  --C--OO-----
+// CARD #2  CO-O--O--O--
+// CARD #3  ----C-OX----
 //
-// Basic idea for new UndoBuffer; each Buffer contains lanes, one for each Task created. When you first create a Task,
+// Basic idea for new UndoBuffer; each Buffer contains lanes, one for each Card created. When you first create a Card,
 // it creates a non-existent step, and an existent step for it. Any change creates a step. Undoing or redoing pushes
-// the "frame" forward or back a step, and it sets all Tasks to the last key, looking back from the frame, in their
-// respective lanes.
-// Anything that can be serialized and deserialized can be undo-able, not just Tasks.
+// the "frame" forward or back a step, and it sets all Cards to the next availale key, looking forwards or backwards
+// from the current frame, in their respective lanes.
 
-//       0, 1, 2
-//
-// Task: A, B,
-
-// type Undoable interface {
-// 	Serialize() string
-// 	Deserialize(string)
-// }
-
+// Note that this could be easily transformed to work with any undoable objects, not just Cards.
 type UndoHistory struct {
 	Frames       []*UndoFrame
 	CurrentFrame *UndoFrame
@@ -45,42 +40,27 @@ func NewUndoHistory() *UndoHistory {
 // Capture captures the created UndoState and adds it to the UndoHistory if it's a unique UndoState (and not a duplicate of any other State in either the current frame, or
 // the previous frame). previousState indicates whether to place the new UndoState in the previous frame or not - this is useful specifically for undoing swapping Tasks, where
 // we need both an old state (where it was previously), and a new State (where it's been moved).
-func (history *UndoHistory) Capture(newState *UndoState, previousState bool) {
+func (history *UndoHistory) Capture(undoState *UndoState) {
 
 	if !history.On {
 		return
 	}
 
-	if existingState, exists := history.CurrentFrame.States[newState.Card]; exists && existingState.SameAs(newState) {
-		return
-	}
+	if len(history.Frames) > 0 {
 
-	if len(history.Frames) > 0 && history.Index > 0 {
-
-		prevFrame := history.Frames[history.Index-1]
-
-		if existingState, exists := prevFrame.States[newState.Card]; exists && existingState.SameAs(newState) {
-			return
-		}
-
-		// TODO: Review this, this seems odd???
 		for i := history.Index - 1; i >= 0; i-- {
-			if olderState, exists := history.Frames[i].States[newState.Card]; exists {
-				if olderState.SameAs(newState) {
-					prevFrame.States[newState.Card] = newState
+			if prevState, exists := history.Frames[i].States[undoState.Card]; exists {
+				if undoState.SameAs(prevState) {
 					return
+				} else {
+					break
 				}
-				break
 			}
 		}
 
 	}
 
-	if previousState && len(history.Frames) > 0 && history.Index > 0 {
-		history.Frames[history.Index-1].States[newState.Card] = newState
-	} else {
-		history.CurrentFrame.States[newState.Card] = newState
-	}
+	history.CurrentFrame.States[undoState.Card] = undoState
 
 	history.Changed = true
 
@@ -94,23 +74,37 @@ func (history *UndoHistory) Undo() bool {
 
 		globals.EventLog.On = false
 
+		affectedUndos := []*Card{}
+
 		for _, state := range history.Frames[history.Index-1].States {
-			state.Exit(-1)
+			affectedUndos = append(affectedUndos, state.Card)
 		}
 
 		history.Index--
 
-		if history.Index > 0 {
+		for _, affected := range affectedUndos {
 
-			for _, state := range history.Frames[history.Index-1].States {
-				state.Apply()
+			foundState := false
+
+			for i := history.Index; i > 0; i-- {
+
+				if state, exists := history.Frames[i-1].States[affected]; exists {
+					state.Apply()
+					foundState = true
+					break
+				}
+
+			}
+
+			if !foundState {
+				affected.Page.DeleteCards(affected)
 			}
 
 		}
 
-		// for _, board := range currentProject.Boards {
-		// 	board.TaskChanged = true
-		// }
+		for _, page := range globals.Project.RootFolder.Pages() {
+			page.UpdateStacks = true
+		}
 
 		globals.EventLog.On = true
 
@@ -135,23 +129,31 @@ func (history *UndoHistory) Redo() bool {
 
 		globals.EventLog.On = false
 
+		affected := []*Card{}
+
 		for _, state := range history.Frames[history.Index].States {
-			state.Exit(1)
+			affected = append(affected, state.Card)
 		}
 
 		history.Index++
 
-		for _, state := range history.Frames[history.Index-1].States {
-			state.Apply()
+		for _, affected := range affected {
+
+			if state, exists := history.Frames[history.Index-1].States[affected]; exists {
+				state.Apply()
+			} else {
+				affected.Page.DeleteCards(affected)
+			}
+
+		}
+
+		for _, page := range globals.Project.RootFolder.Pages() {
+			page.UpdateStacks = true
 		}
 
 		globals.EventLog.On = true
 
 		globals.EventLog.Log("Redo event triggered.")
-
-		// for _, board := range currentProject.Boards {
-		// 	board.TaskChanged = true
-		// }
 
 		history.On = true
 
@@ -179,6 +181,11 @@ func (history *UndoHistory) Update() {
 
 		history.Index = len(history.Frames)
 
+		// Clear terminal on Linux
+		// cmd := exec.Command("clear")
+		// cmd.Stdout = os.Stdout
+		// cmd.Run()
+
 		// for i, frame := range history.Frames {
 		// 	fmt.Println("frame #", i)
 		// 	fmt.Println("states:")
@@ -196,21 +203,6 @@ func (history *UndoHistory) Update() {
 		history.Changed = false
 
 	}
-
-	// if rl.IsKeyPressed(rl.KeyRightBracket) {
-	// file, _ := os.Create(LocalPath("undo.history"))
-	// defer file.Close()
-	// str := ""
-	// for i, frame := range history.Frames {
-	// str += "frame #" + strconv.Itoa(i) + ":\n"
-	// for _, state := range frame.States {
-	// str += "\t" + state.Serialized + "\n"
-	// }
-	// }
-	// file.WriteString(str)
-	//
-	// fmt.Println("Undo history written to file.")
-	// }
 
 }
 
@@ -231,65 +223,38 @@ func NewUndoFrame() *UndoFrame {
 type UndoState struct {
 	Card       *Card
 	Serialized string
-	Creation   bool
 	Deletion   bool
 }
 
 func NewUndoState(card *Card) *UndoState {
 
-	state := card.Serialize()
-	// state, _ = sjson.Delete(state, "Selected")
-
-	// The undo system doesn't need to know about the creation or completion of Tasks, as this
-	// data is set as a result of the Task's state, so it's removed before state creation.
-	// state, _ = sjson.Delete(state, "CreationTime")
-	// state, _ = sjson.Delete(state, "CompletionTime")
-
-	return &UndoState{
+	state := &UndoState{
 		Card:       card,
-		Serialized: state,
+		Serialized: card.Serialize(),
 	}
+
+	return state
 
 }
 
-func (state *UndoState) Apply() {
-	state.Card.Deserialize(state.Serialized)
-	state.Card.CreateUndoState = false
-	state.Card.UndoCreation = false
-	state.Card.UndoDeletion = false
-	state.Card.ReceiveMessage(NewMessage(MessageUndoRedo, state.Card, nil))
+func (undoState *UndoState) String() string {
+	return undoState.Serialized + fmt.Sprintf(" Deletion: %t", undoState.Deletion)
 }
 
-func (state *UndoState) Exit(direction int) {
-
-	if direction > 0 {
-		if state.Creation {
-			state.Card.Page.RestoreCards(state.Card)
-		} else if state.Deletion {
-			state.Card.Page.DeleteCards(state.Card)
-		}
-	} else if direction < 0 {
-		if state.Creation {
-			state.Card.Page.DeleteCards(state.Card)
-		} else if state.Deletion {
-			state.Card.Page.RestoreCards(state.Card)
-		}
-	}
-
-	state.Card.CreateUndoState = false
-	state.Card.UndoCreation = false
-	state.Card.UndoDeletion = false
-
+func (undoState *UndoState) SameAs(other *UndoState) bool {
+	return undoState.Serialized == other.Serialized && other.Deletion == undoState.Deletion
 }
 
-func (state *UndoState) SameAs(otherState *UndoState) bool {
+func (undoState *UndoState) Apply() {
 
-	if state.Deletion != otherState.Deletion {
-		return false
+	undoState.Card.Deserialize(undoState.Serialized)
+	undoState.Card.ReceiveMessage(NewMessage(MessageUndoRedo, undoState.Card, nil))
+	undoState.Card.CreateUndoState = false
+
+	if undoState.Deletion {
+		undoState.Card.Page.DeleteCards(undoState.Card)
+	} else if !undoState.Card.Valid {
+		undoState.Card.Page.RestoreCards(undoState.Card)
 	}
-
-	// It's faster to compare strings that a map of string to interface{}
-	// (which is how I was doing this previously).
-	return state.Serialized == otherState.Serialized
 
 }

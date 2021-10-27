@@ -88,7 +88,7 @@ func init() {
 	globals.Resources = NewResourceBank()
 	globals.GridSize = 32
 	globals.InputText = []rune{}
-	globals.CopyBuffer = []string{}
+	globals.CopyBuffer = NewCopyBuffer()
 	globals.State = StateNeutral
 	globals.GrabClient = grab.NewClient()
 	globals.MenuSystem = NewMenuSystem()
@@ -202,6 +202,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "2")
 
 	// Should default to hardware accelerators, if available
 	renderer, err := sdl.CreateRenderer(window, 0, sdl.RENDERER_ACCELERATED+sdl.RENDERER_SOFTWARE)
@@ -1381,7 +1383,7 @@ func ConstructMenus() {
 	}
 
 	var caseSensitiveButton *IconButton
-	caseSensitiveButton = NewIconButton(0, 0, &sdl.Rect{112, 160, 32, 32}, false, func() {
+	caseSensitiveButton = NewIconButton(0, 0, &sdl.Rect{112, 224, 32, 32}, false, func() {
 		caseSensitive = !caseSensitive
 		if caseSensitive {
 			caseSensitiveButton.IconSrc.X = 144

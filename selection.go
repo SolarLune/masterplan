@@ -72,6 +72,15 @@ func (selection *Selection) Remove(card *Card) {
 	delete(selection.Cards, card)
 }
 
+func (selection *Selection) Has(card *Card) bool {
+	for c := range selection.Cards {
+		if card == c {
+			return true
+		}
+	}
+	return false
+}
+
 func (selection *Selection) AsSlice() []*Card {
 	cards := []*Card{}
 	for card := range selection.Cards {

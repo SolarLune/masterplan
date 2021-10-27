@@ -57,8 +57,9 @@ func (resourceBank ResourceBank) Destroy() {
 }
 
 type Resource struct {
-	Name          string      // The ID / name identifying the Resource; for offline files, this is the same as LocalFilepath
-	LocalFilepath string      // The actual path to the file on-disk; for
+	Name          string // The ID / name identifying the Resource; for offline files, this is the same as LocalFilepath
+	LocalFilepath string // The actual path to the file on-disk
+	Extension     string
 	Data          interface{} // The data the resource represents; this might be an image, a sound stream, etc.
 	MimeType      string
 	Response      *grab.Response
@@ -75,6 +76,7 @@ func NewResource(resourcePath string) (*Resource, error) {
 	if _, err := os.ReadFile(resourcePath); err == nil {
 
 		resource.LocalFilepath = resourcePath
+		resource.Extension = filepath.Ext(resourcePath)
 		resource.Parse()
 
 	} else {
@@ -93,6 +95,7 @@ func NewResource(resourcePath string) (*Resource, error) {
 			unescapedPath, _ := url.QueryUnescape(req.URL().Path)
 			req.Filename = filepath.Join(destDir, filepath.FromSlash(req.URL().Hostname()+"/"+unescapedPath))
 			resource.LocalFilepath = req.Filename
+			resource.Extension = filepath.Ext(resourcePath)
 			resource.Response = globals.GrabClient.Do(req)
 
 			if resource.Response.IsComplete() && resource.Response.Err() != nil {
@@ -133,7 +136,9 @@ func (resource *Resource) Parse() {
 	// 	resource.MimeType = mimetype.Detect(data).String()
 	// }
 
-	if strings.Contains(resource.MimeType, "image") {
+	isTGA := resource.Extension == ".tga"
+
+	if isTGA || strings.Contains(resource.MimeType, "image") {
 
 		if strings.Contains(resource.MimeType, "gif") {
 
@@ -206,7 +211,7 @@ func (resource *Resource) FinishedDownloading() bool {
 func (resource *Resource) IsTexture() bool {
 	if resource.FinishedDownloading() {
 		resource.Parse()
-		return resource.MimeType != "image/gif" && strings.Contains(resource.MimeType, "image")
+		return resource.Extension == ".tga" || resource.MimeType != "image/gif" && strings.Contains(resource.MimeType, "image")
 	}
 	return false
 }

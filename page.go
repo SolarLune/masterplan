@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -147,7 +148,7 @@ type Page struct {
 	ToRaise      []*Card
 
 	Linking              *Card
-	DeserializationLinks []int64
+	DeserializationLinks []string
 }
 
 func NewPage(pageFolder *PageFolder, project *Project) *Page {
@@ -231,7 +232,6 @@ func (page *Page) Draw() {
 	page.Selection.Draw()
 
 	for _, toDelete := range page.ToDelete {
-		toDelete.ReceiveMessage(NewMessage(MessageCardDeleted, toDelete, nil))
 		page.Selection.Remove(toDelete)
 		for index, card := range page.Cards {
 			if card == toDelete {
@@ -244,8 +244,7 @@ func (page *Page) Draw() {
 	}
 
 	for _, toRestore := range page.ToRestore {
-		toRestore.ReceiveMessage(NewMessage(MessageCardDeleted, toRestore, nil))
-		page.Selection.Add(toRestore)
+		// page.Selection.Add(toRestore)
 		page.Cards = append(page.Cards, toRestore)
 		toRestore.Valid = true
 	}
@@ -303,32 +302,6 @@ func (page *Page) Deserialize(data string) {
 
 	}
 
-	// if page.Project.Loading {
-
-	// 	for i := 0; i < len(page.DeserializationLinks); i += 2 {
-
-	// 		for _, card := range page.Cards {
-	// 			linked := false
-	// 			if card.ID == page.DeserializationLinks[i] {
-	// 				for _, other := range page.Cards {
-	// 					if other.ID == page.DeserializationLinks[i+1] {
-	// 						card.Link(other)
-	// 						linked = true
-	// 						continue
-	// 					}
-	// 				}
-	// 			}
-	// 			if linked {
-	// 				continue
-	// 			}
-	// 		}
-
-	// 	}
-
-	// 	page.DeserializationLinks = []int64{}
-
-	// }
-
 }
 
 func (page *Page) AddDrawable(drawable *Drawable) {
@@ -347,34 +320,26 @@ func (page *Page) RemoveDrawable(drawable *Drawable) {
 
 func (page *Page) UpdateLinks() {
 
-	for i := 0; i < len(page.DeserializationLinks); i += 2 {
+	for _, linkString := range page.DeserializationLinks {
 
-		start := page.CardByID(page.DeserializationLinks[i])
-		end := page.CardByID(page.DeserializationLinks[i+1])
+		start := page.CardByID(gjson.Get(linkString, "start").Int())
+		end := page.CardByID(gjson.Get(linkString, "end").Int())
 
 		if start != nil && end != nil {
-			start.Link(end)
+			link := start.Link(end)
+			joints := gjson.Get(linkString, "joints").Array()
+			if link != nil {
+				link.Joints = []*LinkJoint{}
+				for _, joint := range joints {
+					jm := joint.Map()
+					link.Joints = append(link.Joints, NewLinkJoint(float32(jm["X"].Float()), float32(jm["Y"].Float())))
+				}
+			}
 		}
-
-		// for _, card := range page.Cards {
-		// 	linked := false
-		// 	if card.ID == page.DeserializationLinks[i] {
-		// 		for _, other := range page.Cards {
-		// 			if other.ID == page.DeserializationLinks[i+1] {
-		// 				card.Link(other)
-		// 				linked = true
-		// 				continue
-		// 			}
-		// 		}
-		// 	}
-		// 	if linked {
-		// 		continue
-		// 	}
-		// }
 
 	}
 
-	page.DeserializationLinks = []int64{}
+	page.DeserializationLinks = []string{}
 
 }
 
@@ -385,13 +350,14 @@ func (page *Page) CreateNewCard(contentType string) *Card {
 	}
 
 	newCard := NewCard(page, contentType)
-	newCard.CreateUndoState = true
-	newCard.UndoCreation = true
 	newCard.Rect.X = globals.Mouse.WorldPosition().X - (newCard.Rect.W / 2)
 	newCard.Rect.Y = globals.Mouse.WorldPosition().Y - (newCard.Rect.H / 2)
 	newCard.LockPosition()
 	page.Cards = append(page.Cards, newCard)
 	newCard.Valid = true
+
+	page.Project.UndoHistory.Capture(NewUndoState(newCard))
+
 	globals.EventLog.Log("Created new Card.")
 	return newCard
 
@@ -408,40 +374,73 @@ func (page *Page) CardByID(id int64) *Card {
 
 func (page *Page) DeleteCards(cards ...*Card) {
 	globals.EventLog.Log("Deleted %d Cards.", len(cards))
+	deletion := NewMessage(MessageCardDeleted, nil, nil)
 	for _, card := range cards {
-		card.CreateUndoState = true
-		card.UndoDeletion = true
+		card.Valid = false
+		card.ReceiveMessage(deletion)
 	}
 	page.ToDelete = append(page.ToDelete, cards...)
 }
 
 func (page *Page) RestoreCards(cards ...*Card) {
+	restoration := NewMessage(MessageCardRestored, nil, nil)
 	for _, card := range cards {
-		card.CreateUndoState = true
-		card.UndoCreation = true
+		card.Valid = true
+		card.ReceiveMessage(restoration)
 	}
 	page.ToRestore = append(page.ToRestore, cards...)
 }
 
 func (page *Page) CopySelectedCards() {
-	globals.CopyBuffer = []string{}
+	globals.CopyBuffer.Clear()
 	for card := range page.Selection.Cards {
-		globals.CopyBuffer = append(globals.CopyBuffer, card.Serialize())
+		globals.CopyBuffer.Copy(card)
 	}
+	globals.EventLog.Log("Copied %d Cards.", len(globals.CopyBuffer.Cards))
 }
 
 func (page *Page) PasteCards() {
 
+	globals.EventLog.On = false
+
 	newCards := []*Card{}
+	oldToNew := map[*Card]*Card{}
 
 	page.Selection.Clear()
 
-	for _, cardData := range globals.CopyBuffer {
+	for i := 0; i < len(globals.CopyBuffer.Cards); i++ {
 		newCard := page.CreateNewCard(ContentTypeCheckbox)
-		newCard.Deserialize(cardData)
 		newCards = append(newCards, newCard)
+		oldToNew[globals.CopyBuffer.Cards[i]] = newCard
+	}
+
+	for i, card := range globals.CopyBuffer.Cards {
+
+		serialized := globals.CopyBuffer.CardsToSerialized[card]
+		serialized, _ = sjson.Set(serialized, "id", oldToNew[card].ID)
+
+		if links := gjson.Get(serialized, "links"); links.Exists() {
+			for linkIndex, link := range links.Array() {
+
+				for old, new := range oldToNew {
+					if old.ID == link.Get("start").Int() {
+						serialized, _ = sjson.Set(serialized, "links."+strconv.Itoa(linkIndex)+".start", new.ID)
+					}
+					if old.ID == link.Get("end").Int() {
+						serialized, _ = sjson.Set(serialized, "links."+strconv.Itoa(linkIndex)+".end", new.ID)
+					}
+				}
+
+			}
+		}
+
+		newCard := newCards[i]
+		newCard.Deserialize(serialized)
 		page.Selection.Add(newCard)
 	}
+
+	// We do this because otherwise when creating an undo state below, the links wouldn't be included
+	page.UpdateLinks()
 
 	offset := Point{}
 
@@ -456,8 +455,20 @@ func (page *Page) PasteCards() {
 	for _, card := range newCards {
 		card.Rect.X += offset.X
 		card.Rect.Y += offset.Y
+		card.DisplayRect.X = card.Rect.X
+		card.DisplayRect.Y = card.Rect.Y
+		card.DisplayRect.W = card.Rect.W
+		card.DisplayRect.H = card.Rect.H
 		card.LockPosition()
 	}
+
+	for _, card := range globals.CopyBuffer.Cards {
+		page.Project.UndoHistory.Capture(NewUndoState(oldToNew[card]))
+	}
+
+	globals.EventLog.On = true
+
+	globals.EventLog.Log("Pasted %d Cards.", len(globals.CopyBuffer.Cards))
 
 }
 
@@ -476,19 +487,13 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 	mime, _ := mimetype.DetectFile(filePath)
 	mimeType := mime.String()
 
-	if strings.Contains(mimeType, "image") {
-		card := page.CreateNewCard(ContentTypeCheckbox)
-		card.Properties.Get("filepath").Set(filePath)
-		card.SetContents(ContentTypeImage)
-		card.Contents.(*ImageContents).FilepathLabel.SetText([]rune(filePath))
+	// We check for tga specifically because the mimetype doesn't seem to detect this properly.
+	if strings.Contains(mimeType, "image") || filepath.Ext(filePath) == ".tga" {
+		card := page.CreateNewCard(ContentTypeImage)
+		card.Contents.(*ImageContents).LoadFileFrom(filePath)
 	} else if strings.Contains(mimeType, "audio") {
-		card := page.CreateNewCard(ContentTypeCheckbox)
-		card.Properties.Get("filepath").Set(filePath)
-		card.SetContents(ContentTypeSound)
-		contents := card.Contents.(*SoundContents)
-		defaultSize := contents.DefaultSize()
-		card.Recreate(defaultSize.X, defaultSize.Y)
-		card.Contents.(*SoundContents).FilepathLabel.SetText([]rune(filePath))
+		card := page.CreateNewCard(ContentTypeSound)
+		card.Contents.(*SoundContents).LoadFileFrom(filePath)
 	} else {
 
 		if filepath.Ext(filePath) == ".plan" {
@@ -536,17 +541,15 @@ func (page *Page) HandleExternalPaste() {
 
 		if res := globals.Resources.Get(text); res != nil && res.MimeType != "" {
 
-			if strings.Contains(res.MimeType, "image") {
+			if strings.Contains(res.MimeType, "image") || res.Extension == ".tga" {
 
 				card := page.CreateNewCard(ContentTypeImage)
-				contents := card.Contents.(*ImageContents)
-				contents.LoadFileFrom(text)
+				card.Contents.(*ImageContents).LoadFileFrom(text)
 
 			} else if strings.Contains(res.MimeType, "audio") {
 
 				card := page.CreateNewCard(ContentTypeSound)
-				contents := card.Contents.(*SoundContents)
-				contents.LoadFileFrom(text)
+				card.Contents.(*SoundContents).LoadFileFrom(text)
 
 			}
 
@@ -557,69 +560,106 @@ func (page *Page) HandleExternalPaste() {
 			textLines := strings.Split(text, "\n")
 
 			// Get rid of empty starting and ending
-			for strings.TrimSpace(textLines[0]) == "" && len(textLines) > 0 {
-				textLines = textLines[1:]
+
+			tl := []string{}
+
+			for _, t := range textLines {
+				if len(strings.TrimSpace(t)) > 0 {
+					tl = append(tl, t)
+				}
 			}
 
-			for strings.TrimSpace(textLines[len(textLines)-1]) == "" && len(textLines) > 0 {
-				textLines = textLines[:len(textLines)-1]
+			// for strings.TrimSpace(textLines[0]) == "" && len(textLines) > 0 {
+			// 	textLines = textLines[1:]
+			// }
+
+			// for strings.TrimSpace(textLines[len(textLines)-1]) == "" && len(textLines) > 0 {
+			// 	textLines = textLines[:len(textLines)-1]
+			// }
+
+			if len(tl) == 0 {
+				return
 			}
 
-			todoList := strings.HasPrefix(textLines[0], "[")
+			todoList := strings.HasPrefix(tl[0], "[")
 
 			if todoList {
 
-				lines := []string{}
 				linesOut := []string{}
 
-				for i, clipLine := range textLines {
+				for _, clipLine := range tl {
 
 					if len(clipLine) == 0 {
 						continue
 					}
 
-					if len(lines) == 0 || clipLine[0] != '[' {
-
-						lines = append(lines, clipLine)
-
+					if clipLine[0] != '[' {
+						linesOut[len(linesOut)-1] += "\n" + clipLine
 					} else {
-
-						linesOut = append(linesOut, strings.Join(lines, "\n"))
-
-						lines = []string{clipLine}
-
-						if i == len(textLines)-1 {
-							linesOut = append(linesOut, clipLine)
-						}
-
+						linesOut = append(linesOut, clipLine)
 					}
 
 				}
 
 				globals.EventLog.On = false
 
-				y := float32(0)
+				pos := globals.Mouse.WorldPosition().LockToGrid()
 
 				for _, taskLine := range linesOut {
 
-					card := page.CreateNewCard(ContentTypeCheckbox)
-					card.Move(0, y)
+					var card *Card
 
-					completed := taskLine[:3] != "[ ]"
+					if taskLine[1] == 'x' || taskLine[1] == 'o' || taskLine[1] == ' ' {
 
-					taskLine = taskLine[3:]
-					taskLine = strings.Replace(taskLine, "[o]", "", 1)
-					taskLine = strings.TrimSpace(taskLine)
+						card = page.CreateNewCard(ContentTypeCheckbox)
+						card.Rect.X = pos.X
+						card.Rect.Y = pos.Y
+						card.LockPosition()
 
-					card.Recreate(globals.TextRenderer.MeasureText([]rune(taskLine), 1).X+(globals.GridSize*2), card.Rect.H)
+						completed := taskLine[:3] != "[ ]"
 
-					card.Properties.Get("description").Set(taskLine)
+						taskLine = taskLine[3:]
+						taskLine = strings.TrimSpace(taskLine)
 
-					if completed {
-						card.Properties.Get("checked").Set(true)
+						textMeasure := globals.TextRenderer.MeasureText([]rune(taskLine), 1)
+						card.Recreate(textMeasure.X+(globals.GridSize*2), textMeasure.Y+(card.Contents.DefaultSize().Y-globals.GridSize))
+
+						card.Properties.Get("description").Set(taskLine)
+
+						if completed {
+							card.Properties.Get("checked").Set(true)
+						}
+
+					} else {
+
+						card = page.CreateNewCard(ContentTypeNumbered)
+						card.Rect.X = pos.X
+						card.Rect.Y = pos.Y
+						card.LockPosition()
+
+						endingBracket := strings.Index(taskLine, "]")
+
+						taskLineText := taskLine[endingBracket+1:]
+						taskLineText = strings.TrimSpace(taskLineText)
+
+						slashIndex := strings.IndexAny(taskLine, `/\`)
+
+						if slashIndex > 0 {
+							current, _ := strconv.ParseFloat(taskLine[1:slashIndex], 64)
+							max, _ := strconv.ParseFloat(taskLine[slashIndex+1:endingBracket], 64)
+
+							card.Properties.Get("current").Set(current)
+							card.Properties.Get("maximum").Set(max)
+						}
+
+						textMeasure := globals.TextRenderer.MeasureText([]rune(taskLineText), 1)
+						card.Recreate(textMeasure.X+(globals.GridSize*2), textMeasure.Y+(card.Contents.DefaultSize().Y-globals.GridSize))
+
+						card.Properties.Get("description").Set(taskLineText)
+
 					}
 
-					y += card.Rect.H
+					pos.Y += card.Rect.H
 
 				}
 

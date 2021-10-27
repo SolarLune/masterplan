@@ -2,7 +2,6 @@ package main
 
 import (
 	"math"
-	"math/rand"
 	"sort"
 	"strconv"
 
@@ -20,9 +19,216 @@ const (
 	ResizeVertical   = "resizevertical"
 )
 
+type LinkJoint struct {
+	Position   Point
+	Dragging   bool
+	DragOffset Point
+}
+
+func NewLinkJoint(x, y float32) *LinkJoint {
+	return &LinkJoint{
+		Position: Point{x, y},
+	}
+}
+
+func (joint *LinkJoint) StartDragging() {
+	if !joint.Dragging {
+		joint.Dragging = true
+		joint.DragOffset = joint.Position.Sub(globals.Mouse.WorldPosition())
+	}
+}
+
 type LinkEnding struct {
-	Start *Card
-	End   *Card
+	Start    *Card
+	End      *Card
+	Joints   []*LinkJoint
+	GUIImage Image
+}
+
+func NewLinkEnding(start, end *Card) *LinkEnding {
+	return &LinkEnding{
+		Start:    start,
+		End:      end,
+		Joints:   []*LinkJoint{},
+		GUIImage: globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage(),
+	}
+}
+
+func (le *LinkEnding) Update() {
+
+	if len(le.Joints) > 0 {
+
+		removeJoint := -1
+
+		for i, joint := range le.Joints {
+
+			if le.Start.Dragging && le.End.Dragging {
+
+				joint.StartDragging()
+
+			} else {
+
+				jointSize := float32(24)
+
+				r := &sdl.FRect{joint.Position.X - (jointSize / 2), joint.Position.Y - (jointSize / 2), jointSize, jointSize}
+
+				if ClickedInRect(r, true) {
+
+					if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
+						removeJoint = i
+					} else {
+						joint.StartDragging()
+					}
+
+					globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+				}
+
+			}
+
+			if joint.Dragging {
+
+				joint.Position = globals.Mouse.WorldPosition().Add(joint.DragOffset)
+
+				if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
+					joint.Position.X = float32(math.Round(float64(joint.Position.X/globals.GridSize)) * float64(globals.GridSize))
+					joint.Position.Y = float32(math.Round(float64(joint.Position.Y/globals.GridSize)) * float64(globals.GridSize))
+					joint.Dragging = false
+					le.Start.CreateUndoState = true
+				}
+
+			}
+
+		}
+
+		if removeJoint >= 0 {
+			le.Joints = append(le.Joints[:removeJoint], le.Joints[removeJoint+1:]...)
+		}
+
+	}
+
+}
+
+func (le *LinkEnding) Draw() {
+
+	if le.Start != nil && le.Start.Valid && le.Start.Contents != nil {
+
+		thickness := int32(4)
+		outlineColor := getThemeColor(GUIFontColor)
+		camera := le.Start.Page.Project.Camera
+		mainColor := le.Start.Contents.Color()
+
+		if mainColor[3] == 0 {
+			mainColor = ColorWhite
+		}
+
+		points := []Point{}
+		if len(le.Joints) == 0 {
+			points = append(points, le.Start.NearestPointInRect(le.End.Center()), le.End.NearestPointInRect(le.Start.Center()))
+		} else {
+			points = append(points, le.Start.NearestPointInRect(le.Joints[0].Position))
+
+			for _, joint := range le.Joints {
+				points = append(points, joint.Position)
+			}
+
+			points = append(points, le.End.NearestPointInRect(le.Joints[len(le.Joints)-1].Position))
+		}
+
+		// delta := points[len(points)-1].Sub(le.End.Center())
+		// px = px.Add(delta.Normalized().Mult(16))
+
+		le.GUIImage.Texture.SetColorMod(getThemeColor(GUIFontColor).RGB())
+		le.GUIImage.Texture.SetAlphaMod(255)
+		delta := points[len(points)-1].Sub(points[len(points)-2])
+		px := points[len(points)-1].Sub(delta.Normalized().Mult(16))
+		px = le.Start.Page.Project.Camera.TranslatePoint(px)
+		dir := (delta.Angle() + (math.Pi)) / (math.Pi * 2) * 360
+
+		globals.Renderer.CopyExF(le.GUIImage.Texture, &sdl.Rect{208, 0, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+
+		for i := 0; i < len(points)-1; i++ {
+
+			start := points[i]
+			end := points[i+1]
+			if i == len(points)-2 {
+				off := start.Sub(end).Normalized()
+				end = end.Add(off.Mult(16))
+			}
+
+			ThickLine(camera.TranslatePoint(start), camera.TranslatePoint(end), thickness+2, outlineColor)
+			ThickLine(camera.TranslatePoint(start), camera.TranslatePoint(end), thickness, mainColor)
+
+			center := start.Add(end).Div(2)
+
+			jointSize := float32(24)
+			r := &sdl.FRect{center.X - (jointSize / 2), center.Y - (jointSize / 2), jointSize, jointSize}
+
+			if ClickedInRect(r, true) {
+
+				lj := NewLinkJoint(center.X, center.Y)
+				lj.Dragging = true
+
+				joints := append([]*LinkJoint{}, le.Joints[:i]...)
+				joints = append(joints, lj)
+				joints = append(joints, le.Joints[i:]...)
+				le.Joints = joints
+
+				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+				le.Start.CreateUndoState = true
+
+			}
+
+			dist := (center.Distance(globals.Mouse.WorldPosition()) - 32) / 4
+
+			if dist < 1 {
+				dist = 1
+			}
+
+			le.DrawJoint(center, uint8(192/dist), false)
+
+		}
+
+	}
+
+	for _, joint := range le.Joints {
+		le.DrawJoint(joint.Position, 255, true)
+	}
+
+}
+
+func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
+
+	if alpha <= 10 {
+		return
+	}
+
+	point = le.Start.Page.Project.Camera.TranslatePoint(point)
+	icon := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
+	dst := &sdl.FRect{point.X - 16, point.Y - 16, 32, 32}
+	outlineColor := getThemeColor(GUIFontColor)
+
+	icon.Texture.SetColorMod(outlineColor.RGB())
+	icon.Texture.SetAlphaMod(alpha)
+
+	src := &sdl.Rect{208, 96, 32, 32}
+	globals.Renderer.CopyF(icon.Texture, src, dst)
+
+	if le.Start.Contents != nil {
+		color := le.Start.Contents.Color()
+		if color[3] == 0 {
+			color = ColorWhite
+		}
+
+		icon.Texture.SetColorMod(color.RGB())
+		icon.Texture.SetAlphaMod(color[3])
+	}
+
+	if fixed {
+		src.Y += src.H
+	} else {
+		src.Y += src.H * 2
+	}
+	globals.Renderer.CopyF(icon.Texture, src, dst)
 }
 
 type Card struct {
@@ -39,15 +245,11 @@ type Card struct {
 	Draggable               bool
 	DragStart               Point
 	DragStartOffset         Point
-	Occupying               []Point
 	ID                      int64
-	RandomValue             float32
 	Resizing                string
 	ResizeShape             *Shape
 	LockResizingAspectRatio float32
 	CreateUndoState         bool
-	UndoCreation            bool
-	UndoDeletion            bool
 	Depth                   int
 	Valid                   bool
 
@@ -60,11 +262,11 @@ type Card struct {
 
 	Highlighter *Highlighter
 
-	Links              []LinkEnding
+	Links              []*LinkEnding
 	LinkRectPercentage float32
 }
 
-var cardID = int64(0)
+var globalCardID = int64(0)
 
 func NewCard(page *Page, contentType string) *Card {
 
@@ -73,12 +275,11 @@ func NewCard(page *Page, contentType string) *Card {
 		DisplayRect:     &sdl.FRect{},
 		Page:            page,
 		ContentsLibrary: map[string]Contents{},
-		ID:              cardID,
-		RandomValue:     rand.Float32(),
+		ID:              globalCardID,
 		Highlighter:     NewHighlighter(&sdl.FRect{0, 0, 32, 32}, true),
 		Collapsed:       CollapsedNone,
 		Draggable:       true,
-		Links:           []LinkEnding{},
+		Links:           []*LinkEnding{},
 		ResizeShape:     NewShape(),
 	}
 
@@ -86,10 +287,12 @@ func NewCard(page *Page, contentType string) *Card {
 
 	card.Stack = NewStack(card)
 
+	card.Page.AddDrawable(card.Drawable)
+
 	card.Properties = NewProperties()
 	card.Properties.OnChange = func(property *Property) { card.CreateUndoState = true }
 
-	cardID++
+	globalCardID++
 
 	card.SetContents(contentType)
 
@@ -112,7 +315,7 @@ func (card *Card) Update() {
 		}
 	}
 
-	rectSize := float32(8)
+	rectSize := float32(16)
 
 	card.ResizeShape.SetRects(
 		&sdl.FRect{card.Rect.X + rectSize, card.Rect.Y + card.Rect.H, card.Rect.W - rectSize, rectSize},
@@ -281,6 +484,10 @@ func (card *Card) Update() {
 
 	}
 
+	for _, link := range card.Links {
+		link.Update()
+	}
+
 	// We can't do this because this makes dragging multiple Cards impossible.
 	// if globals.Mouse.WorldPosition().Inside(card.Rect) {
 	// 	globals.Mouse.Hidden = true
@@ -297,25 +504,28 @@ func (card *Card) IsLinkedTo(other *Card) bool {
 	return false
 }
 
-func (card *Card) Link(other *Card) {
+func (card *Card) Link(other *Card) *LinkEnding {
 
 	if other == card {
-		return
+		return nil
 	}
 
 	for _, link := range card.Links {
 		if (link.Start == card && link.End == other) || (link.Start == other && link.End == card) {
-			return
+			return link
 		}
 	}
 
-	ending := LinkEnding{
-		Start: card,
-		End:   other,
-	}
+	ending := NewLinkEnding(card, other)
 
 	card.Links = append(card.Links, ending)
 	other.Links = append(other.Links, ending)
+
+	linkCreated := NewMessage(MessageLinkCreated, nil, nil)
+	card.ReceiveMessage(linkCreated)
+	other.ReceiveMessage(linkCreated)
+
+	return ending
 
 }
 
@@ -325,6 +535,7 @@ func (card *Card) Unlink(other *Card) {
 	}
 	for i, link := range card.Links {
 		if link.End == other || link.Start == other {
+			card.Links[i] = nil
 			card.Links = append(card.Links[:i], card.Links[i+1:]...)
 			break
 		}
@@ -332,18 +543,16 @@ func (card *Card) Unlink(other *Card) {
 
 	for i, link := range other.Links {
 		if link.End == card || link.Start == card {
+			other.Links[i] = nil
 			other.Links = append(other.Links[:i], other.Links[i+1:]...)
 			break
 		}
 	}
 
-}
+	linkDissolved := NewMessage(MessageLinkDeleted, nil, nil)
+	card.ReceiveMessage(linkDissolved)
+	other.ReceiveMessage(linkDissolved)
 
-func (card *Card) UnlinkAll() {
-	for _, link := range card.Links {
-		card.Unlink(link.Start)
-		card.Unlink(link.End)
-	}
 }
 
 func (card *Card) DrawShadow() {
@@ -374,88 +583,43 @@ func (card *Card) DrawShadow() {
 
 func (card *Card) NearestPointInRect(in Point) Point {
 
-	cp := card.Center()
+	out := card.Center()
 
-	hw := card.DisplayRect.W / 2
-	hh := card.DisplayRect.H / 2
+	angle := in.Sub(out).Angle()
 
-	if in.X < cp.X-hw {
-		cp.X -= hw
-	} else if in.X > cp.X+hw {
-		cp.X += hw
-		// } else {
-		// 	cp.X = in.X
+	if angle < math.Pi/4 && angle > -math.Pi/4 {
+		out.X += card.DisplayRect.W / 2
+	} else if angle < math.Pi/4*3 && angle > 0 {
+		out.Y -= card.DisplayRect.H / 2
+	} else if angle > -math.Pi/4*3 && angle < 0 {
+		out.Y += card.DisplayRect.H / 2
+	} else {
+		out.X -= card.DisplayRect.W / 2
 	}
 
-	if in.Y < cp.Y-hh {
-		cp.Y -= hh
-	} else if in.Y > cp.Y+hh {
-		cp.Y += hh
-		// } else {
-		// 	cp.Y = in.Y
-	}
+	// if in.X < card.DisplayRect.X {
+	// 	in.X = card.DisplayRect.X
+	// } else if in.X > card.DisplayRect.X+card.DisplayRect.W {
+	// 	in.X = card.DisplayRect.X + card.DisplayRect.W
+	// }
 
-	return cp
+	// if in.Y < card.DisplayRect.Y {
+	// 	in.Y = card.DisplayRect.Y
+	// } else if in.Y > card.DisplayRect.Y+card.DisplayRect.H {
+	// 	in.Y = card.DisplayRect.Y + card.DisplayRect.H
+	// }
 
-}
-
-func (card *Card) DrawLines() {
-
-	// color = getThemeColor(GUIMenuColor)
-	color := card.Contents.Color()
-
-	if color[3] <= 0 {
-		color = getThemeColor(GUIMenuColor)
-	}
-
-	outlineColor := getThemeColor(GUIFontColor)
-
-	translatedStart := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)})
-
-	thickness := int32(4)
-
-	for _, link := range card.Links {
-
-		if link.Start == card && link.End.Valid {
-
-			translatedStart = card.Page.Project.Camera.TranslatePoint(card.NearestPointInRect(link.End.Center()))
-
-			camera := card.Page.Project.Camera
-			translatedEnd := camera.TranslatePoint(link.End.NearestPointInRect(card.Center()))
-
-			ThickLine(translatedStart, translatedEnd, thickness+2, outlineColor)
-			ThickLine(translatedStart, translatedEnd, thickness, color)
-
-			halfThickness := float32(thickness / 2)
-
-			globals.Renderer.SetDrawColor(outlineColor.RGBA())
-
-			dirCount := float32(8)
-
-			dir := translatedEnd.Sub(translatedStart)
-
-			step := dir.Mult(1 / (dirCount + 1))
-
-			translatedStart = translatedStart.Add(step.Mult(card.LinkRectPercentage))
-
-			for i := 0; i < int(dirCount); i++ {
-
-				translatedStart = translatedStart.Add(step)
-
-				rect := &sdl.FRect{translatedStart.X - halfThickness, translatedStart.Y - halfThickness, float32(thickness), float32(thickness)}
-
-				globals.Renderer.FillRectF(rect)
-			}
-
-		}
-
-	}
+	return out
 
 }
 
 func (card *Card) DrawCard() {
 
-	card.DrawLines()
+	for _, link := range card.Links {
+		if link.Start == card && link.End.Valid {
+			link.Draw()
+		}
+	}
 
 	tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
 
@@ -489,13 +653,11 @@ func (card *Card) DrawContents() {
 	}
 
 	if card.CreateUndoState {
-		newState := NewUndoState(card)
-		newState.Creation = card.UndoCreation
-		newState.Deletion = card.UndoDeletion
-		card.Page.Project.UndoHistory.Capture(newState, false)
+
+		card.Page.Project.UndoHistory.Capture(NewUndoState(card))
+
 		card.CreateUndoState = false
-		card.UndoCreation = false
-		card.UndoDeletion = false
+
 	}
 
 }
@@ -508,7 +670,7 @@ func (card *Card) PostDraw() {
 		color := card.Contents.Color()
 
 		if color[3] <= 0 {
-			color = getThemeColor(GUIMenuColor)
+			color = ColorWhite
 		}
 
 		outlineColor := getThemeColor(GUIFontColor)
@@ -610,15 +772,33 @@ func (card *Card) Serialize() string {
 
 	if len(card.Links) > 0 {
 
-		existingLinks := []int64{}
+		existingLinks := "["
 
 		for _, link := range card.Links {
-			if link.End.Valid {
-				existingLinks = append(existingLinks, link.Start.ID, link.End.ID)
+
+			if link.End.Valid && link.Start == card {
+
+				dataOut := "{}"
+				dataOut, _ = sjson.Set(dataOut, "start", link.Start.ID)
+				dataOut, _ = sjson.Set(dataOut, "end", link.End.ID)
+				jointPos := []Point{}
+				for _, p := range link.Joints {
+					jointPos = append(jointPos, p.Position)
+				}
+				dataOut, _ = sjson.Set(dataOut, "joints", jointPos)
+				existingLinks += dataOut + ","
+
 			}
+
 		}
 
-		data, _ = sjson.Set(data, "links", existingLinks)
+		// It's easiest to simply remove the last "," after the fact than
+		// detect to see if we're done or not
+		existingLinks = existingLinks[:len(existingLinks)-1] + "]"
+
+		if len(existingLinks) > 2 {
+			data, _ = sjson.SetRaw(data, "links", existingLinks)
+		}
 
 	}
 
@@ -634,23 +814,36 @@ func (card *Card) Deserialize(data string) {
 
 	if gjson.Get(data, "id").Exists() {
 		card.ID = gjson.Get(data, "id").Int()
-		if card.ID+1 > cardID {
-			cardID = card.ID + 1
-		}
 	}
 
-	card.UnlinkAll()
+	linkedTo := []int64{}
 
 	if gjson.Get(data, "links").Exists() {
 
-		links := []int64{}
+		links := []string{}
 
 		for _, linkEnd := range gjson.Get(data, "links").Array() {
-			links = append(links, linkEnd.Int())
+			linkedTo = append(linkedTo, gjson.Get(linkEnd.String(), "end").Int())
+			linkEndString, _ := sjson.Set(linkEnd.String(), "start", card.ID)
+			links = append(links, linkEndString)
 		}
 
 		card.Page.DeserializationLinks = append(card.Page.DeserializationLinks, links...)
 
+	}
+
+	for _, link := range card.Links {
+		found := false
+		for _, gl := range linkedTo {
+			if gl == link.End.ID {
+				found = true
+				break
+			}
+		}
+		// Unlink Cards that are no longer linked to according to the deserialized data
+		if !found {
+			card.Unlink(link.End)
+		}
 	}
 
 	// Set Rect Position and Size before deserializing properties and setting contents so the contents can know the actual correct, current size of the Card (important for Map Contents)
@@ -671,6 +864,9 @@ func (card *Card) Deserialize(data string) {
 }
 
 func (card *Card) Select() {
+	if !card.Selected {
+		card.Page.Raise(card)
+	}
 	card.Selected = true
 }
 
@@ -962,6 +1158,16 @@ func (card *Card) ReceiveMessage(message *Message) {
 		card.Page.RemoveDrawable(card.Drawable)
 		card.Page.Grid.Remove(card)
 		card.Page.UpdateStacks = true
+
+		state := NewUndoState(card)
+		state.Deletion = true
+		card.Page.Project.UndoHistory.Capture(state)
+
+	} else if message.Type == MessageCardRestored {
+		card.Page.AddDrawable(card.Drawable)
+		card.Page.Grid.Put(card)
+		card.Page.UpdateStacks = true
+		card.Page.Project.UndoHistory.Capture(NewUndoState(card))
 	}
 
 }
@@ -1021,14 +1227,6 @@ func (card *Card) SetContents(contentType string) {
 	card.Contents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
 
 	card.ContentType = contentType
-
-	// All Cards should have the drawable because they could theoretically be part of a stack.
-	// if card.Numberable() {
-	card.Page.AddDrawable(card.Drawable)
-	// } else {
-	// 	card.Page.RemoveDrawable(card.Drawable)
-	// }
-
 }
 
 func (card *Card) Collapse() {

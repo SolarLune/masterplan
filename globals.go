@@ -30,7 +30,7 @@ type Globals struct {
 	Frame          int64
 	GridSize       float32
 	ScreenSize     Point
-	CopyBuffer     []string
+	CopyBuffer     *CopyBuffer
 	Version        semver.Version
 	State          string
 	Resources      ResourceBank

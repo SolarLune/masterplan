@@ -10,6 +10,8 @@ const (
 	MessageUndoRedo        = "MessageUndoRedo"
 	MessageVolumeChange    = "MessageVolumeChange"
 	MessageStacksUpdated   = "MessageStacksUpdated"
+	MessageLinkCreated     = "MessageLinkCreated"
+	MessageLinkDeleted     = "MessageLinkDeleted"
 )
 
 type Message struct {

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -71,14 +72,15 @@ func build(baseDir string, releaseMode bool, targetOS string) {
 		// This is done using go generate with goversioninfo downloaded and "// go:generate goversioninfo -64=true" in main.go.
 		copyTo(filepath.Join("other_sources", "resource.syso"), "resource.syso")
 
-		// Copy in the SDL requirements
-		copyTo(filepath.Join("other_sources", "SDL2.dll"), filepath.Join(baseDir, "SDL2.dll"))
-		copyTo(filepath.Join("other_sources", "SDL2_image.dll"), filepath.Join(baseDir, "SDL2_image.dll"))
-		copyTo(filepath.Join("other_sources", "SDL2_ttf.dll"), filepath.Join(baseDir, "SDL2_ttf.dll"))
-		copyTo(filepath.Join("other_sources", "SDL2_gfx.dll"), filepath.Join(baseDir, "SDL2_gfx.dll"))
-		copyTo(filepath.Join("other_sources", "libfreetype-6.dll"), filepath.Join(baseDir, "libfreetype-6.dll"))
-		copyTo(filepath.Join("other_sources", "libpng16-16.dll"), filepath.Join(baseDir, "libpng16-16.dll"))
-		copyTo(filepath.Join("other_sources", "zlib1.dll"), filepath.Join(baseDir, "zlib1.dll"))
+		// Copy in the SDL requirements (.dll files)
+		filepath.Walk(filepath.Join("other_sources"), func(path string, info fs.FileInfo, err error) error {
+			_, filename := filepath.Split(path)
+			if filepath.Ext(path) == ".dll" {
+				copyTo(path, filepath.Join(baseDir, filename))
+			}
+			return nil
+		})
+
 	}
 
 	var c *exec.Cmd
