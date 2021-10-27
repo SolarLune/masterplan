@@ -1508,19 +1508,19 @@ func (label *Label) Draw() {
 
 		thickness := float32(2)
 
-		start := Point{label.Rect.X, label.Rect.Y + label.RendererResult.TextSize.Y + thickness}
+		lineY := float32(0)
+		if nextBreak := strings.Index(label.TextAsString(), "\n"); nextBreak >= 0 {
+			lineY = label.IndexToWorld(nextBreak).Y + globals.GridSize
+		} else {
+			lineY = label.Rect.Y + label.RendererResult.TextSize.Y + thickness
+		}
+
+		start := Point{label.Rect.X, lineY + thickness}
 		end := start.AddF(label.Rect.W-8, 0)
 		if label.WorldSpace {
 			start = globals.Project.Camera.TranslatePoint(start)
 			end = globals.Project.Camera.TranslatePoint(end)
 		}
-
-		// start := Point{label.Rect.X, label.Rect.Y + label.RendererResult.TextSize.Y + thickness}
-		// end := start.AddF(label.RendererResult.TextSize.X, 0)
-		// if label.WorldSpace {
-		// 	start = globals.Project.Camera.TranslatePoint(start)
-		// 	end = globals.Project.Camera.TranslatePoint(end)
-		// }
 
 		ThickLine(start, end, int32(thickness), getThemeColor(GUIFontColor))
 	}
@@ -1658,7 +1658,12 @@ func (label *Label) SetTextRaw(text []rune) {
 
 }
 
+// NextAutobreak returns the index of the next automatic break in the text.
 func (label *Label) NextAutobreak(startPoint int) int {
+
+	if len(label.RendererResult.TextLines) <= 1 {
+		return -1
+	}
 
 	i := 0
 	breaks := []int{}
@@ -1666,7 +1671,7 @@ func (label *Label) NextAutobreak(startPoint int) int {
 
 	for lineIndex, line := range label.RendererResult.TextLines {
 		i += len(line)
-		if currentLine < 0 && i > label.Selection.CaretPos {
+		if currentLine < 0 && i > startPoint {
 			currentLine = lineIndex
 		}
 		breaks = append(breaks, i)
@@ -1682,13 +1687,17 @@ func (label *Label) NextAutobreak(startPoint int) int {
 
 func (label *Label) PrevAutobreak(startPoint int) int {
 
+	if len(label.RendererResult.TextLines) <= 1 {
+		return -1
+	}
+
 	i := 0
 	breaks := []int{}
 	currentLine := -1
 
 	for lineIndex, line := range label.RendererResult.TextLines {
 		i += len(line)
-		if currentLine < 0 && i > label.Selection.CaretPos {
+		if currentLine < 0 && i > startPoint {
 			currentLine = lineIndex
 		}
 		breaks = append(breaks, i)
