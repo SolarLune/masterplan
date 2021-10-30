@@ -155,7 +155,7 @@ func (le *LinkEnding) Draw() {
 				end = end.Add(off.Mult(16))
 			}
 
-			ThickLine(camera.TranslatePoint(start), camera.TranslatePoint(end), thickness+2, outlineColor)
+			ThickLine(camera.TranslatePoint(start), camera.TranslatePoint(end), thickness+4, outlineColor)
 			ThickLine(camera.TranslatePoint(start), camera.TranslatePoint(end), thickness, mainColor)
 
 			center := start.Add(end).Div(2)

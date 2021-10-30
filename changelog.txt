@@ -1,5 +1,65 @@
 -------
 
+v0.8.0-alpha2
+
+-------
+
+Note: The saving and loading system for lines have been reworked, and so you will need to recreate any lines between Cards on your projects after loading in alpha 2. Apologies!
+
+- Adding ability to create joints in links between Cards.
+  To create joints, click on the circle at the center of a link. To delete a joint, double-click on one. You can move all joints in a link by simply moving both cards at the ends of the link.
+- Lines have been visually simplified; they no longer have "dots" traveling from start to end, but are rather simply lines that have arrows that point to the ending Card.
+- You can now indicate dependency with links between Cards.
+  For example, you can link a Checkbox to a Numbered Card to indicate that the Checkbox will be completed when the Numbered Card is completed.
+- Adding ability to resize menus and Cards from bottom and right, in addition to just the bottom-right corner.
+- Adjusting area around Cards for resizing. Previously it wrapped around the Card's right and bottom completely; now, it leaves a small gap at the left and top edge, allowing for the resize border of a neighboring card to be easily reachable. Conclusion: It's now easier to consistently resize cards that are in a stack, despite the area being smaller overall.
+- Adding option to reverse panning in the Input menu.
+- Re-implementation: Whatever card you previously created will be what is created when double-clicking.
+- Adding setting to turn this off - if off, double-clicking will always create a Checkbox card.
+- It's now possible to resize multiple cards by simply selecting multiple cards and then resizing one of them. The others will copy the one you're resizing.
+- The line underneath text (editable text, specifically) now draws underneath the first line of text. By entering a newline, you can create a "title" that sits on the line.
+- Selecting Cards by any means will raise them now, not only by directly clicking on them.
+- Messages now take longer to display in proportion to their length, making them easier to read.
+- RE-IMPLEMENTATION: You can now use a custom font for use in MasterPlan by specifying a .ttf or .otf file.
+  Note that doing this rebuilds the font glyphs used for displaying text, and so text may not display correctly until restarting MasterPlan. 
+  This is planned to be improved, though it's not a pressing issue.
+- RE-IMPLEMENTATION: Checkboxes are now able to serve as parent Tasks / Cards by having them at the head of a stack. 
+  An indicator of its childrens' completion will appear at the right-hand side, and the icon for the parent Card will change to a set of squares. 
+  All children and grand-children are included in the count.
+- RE-IMPLEMENTATION: You can now properly paste todo lists in as plain text and paste them into MasterPlan as Cards. 
+  For Checkbox Cards, use [ ] at the beginning of the list. 
+  For Numbered Cards, use the same format, but with numbers inside ( like [13/209] ).
+- CHANGE: Reworking the Checkbox icon for the umpteenth time.
+- CHANGE: Resizing rectangle size is now 16 pixels large; it was previously 32 pixels large.
+- CHANGE: Linking cards now uses the color white as opposed to the menu color if the linking card has no color (like images).
+- CHANGE: Lines are now a smidge thicker.
+- FIX: Panning has been fixed. Previously, it was both way too sensitive or not sensitive enough depending on how slowly or quickly you moved the mouse.
+- FIX: Lines anchor to Cards more naturally.
+- FIX: Lines are now copied properly when copying Cards.
+- FIX: Lines between Cards should be tied together properly now.
+- FIX: The Numbered Card's text is now properly centered.
+- FIX: Undoing and redoing handles card link creation or deletion properly.
+- FIX: Pasting a Card with a filled background bar (like a Numbered card or a parented Checkbox card) no longer has the bar start at an infinite length.
+- FIX: Cards no longer draw their number even if they're deleted.
+- FIX: Targa (.tga) image files are now properly loaded and displayed.
+- FIX: MasterPlan no longer crashes when loading JPEG files on Windows - this was due to a missing DLL file (libjpeg-9.dll).
+- FIX: MasterPlan should no longer crash when loading TIFF files on Windows - if it was happening, it was probably due to a missing DLL file (libtiff-9.dll).
+- FIX: Timers should trigger properly now.
+- FIX: Timer mode, trigger mode, and maximum time are now properly saved.
+
+-------
+
+v0.8.0-alpha1.2
+
+-------
+
+- Replacing Quicksand with NotoSans font for clarity / increased character count (so now extended latin characters like "αβχδεφγηιγη" can be used).
+- Time estimation now takes into account maximum number of steps in Numbered tasks (i.e. more steps = a longer task, with each step taking the amount of time in the time estimation panel).
+- FIX: Textures becoming invisible when resizing the window on Windows. This happens specifically when changing / resetting the SDL context.
+- FIX: Panning is now consistent regardless of zoom.
+
+-------
+
 v0.8.0-alpha1
 
 -------

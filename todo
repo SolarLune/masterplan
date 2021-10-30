@@ -1,40 +1,45 @@
 TO FIX IMMEDIATELY:
 
-- Re-implement URL parsing
-- Hovering over a website should open a little card linking to the website, with additional information (favicon, hostname (e.g. google.com), and description). See how Google Sheets does it.
-- [x] Re-add Paste Content command
-- [ ] Re-implement pasting lists as a sequence of Cards in MasterPlan
-- [ ] Re-implement pasting Cards as a text list outside of MasterPlan
-- [x] Consume shortcut after saving
-- [x] Lines should be one color, no outline (not sure about either of these), have arrows pointing towards the other end, rather than the current sloppy implementation. They should draw before or after shadows (test it). They should draw on top of maps.
-- [ ] Edit Menu > Set Size, Align Cards for consistency
-- [ ] Alignment options for cards on the board (i.e. center, align vertically, spread, etc)
-- [ ] Alignment options for text in Cards (not quite sure how to do this yet)
-- [ ] System notification when something happens (a timer elapsing, for example) in MasterPlan. See: https://github.com/gen2brain/beeep or https://github.com/0xAX/notificator
-- [x] Disable Grid setting
-- [x] Implement searching again
+[ ] Re-implement URL parsing
+[ ] Hovering over a website should open a little card linking to the website, with additional information (favicon, hostname (e.g. google.com), and description). See how Google Sheets does it.
+[x] Re-add Paste Content command
+[x] Re-implement pasting lists as a sequence of Cards in MasterPlan
+[ ] Re-implement pasting Cards as a text list outside of MasterPlan
+[x] Consume shortcut after saving
+[x] Lines should be one color, no outline (not sure about either of these), have arrows pointing towards the other end, rather than the current sloppy implementation. They should draw before or after shadows (test it). They should draw on top of maps.
+[ ] Edit Menu > Set Size, Align Cards for consistency
+[ ] Alignment options for cards on the board (i.e. center, align vertically, spread, etc)
+[ ] Alignment options for text in Cards (not quite sure how to do this yet)
+[x] System notification when something happens (a timer elapsing, for example) in MasterPlan. See: https://github.com/gen2brain/beeep or https://github.com/0xAX/notificator
+[x] Disable Grid setting
+[x] Implement searching again
+[x] Reimplement custom fonts.
+[ ] Autosave
+[ ] Rethink RenderTexture system - it'd be cool if it worked with reloading fonts (which means text can be different sizes, and the TextRenderer.RenderText() function would inform this; perhaps
+    the RenderTexture system should return a RenderTexture if given something that implements an interface somehow? It needs more flexibility, I think, is what I'm saying.)
 
-Labels NEED To be able to scroll. There's not really a good way around this, it's highly necessary.
-
-Tabbing around menus / boards
-Re-add Recent Files list
-Buttons should close menus
-Lock zoom / camera render position
-See about fixing font up to be EVEN smoother
-Trim whitespace before loading image path
-Images don't load if they contain special characters (Russian, for example?)
-Downloading / loading images might not be multithreaded??? Seems like it pauses loading a project to have images in them.
-Split shortcut - use this when editing textboxes to split a Note, Checkbox, etc. Card into two between the cursor.
-Draw shadow underneath Map
-Note card becoming too large crashes due to exceeding graphics card texture limits
-
-Line for editable text goes underneath first line for title?
+[x] Line for editable text goes underneath first line for title?
 Number top-level tasks option
 Save pan position
 Fix map rotation icons
 Loading doesn't link properly: https://discord.com/channels/339550825154347008/900240962792620052/902289884541239306
 Fix checker pattern
 Add size un-lock to grid option
+Labels NEED To be able to scroll. There's not really a good way around this, it's highly necessary.
+GUI cutting off in Input Options
+Tie icons into themes
+
+Tabbing around menus / boards
+Re-add Recent Files list
+Buttons should close menus
+Lock zoom / camera render position
+See about fixing font up to be EVEN smoother
+Trim whitespace before loading image pa>th
+Images don't load if they contain special characters (Russian, for example?)
+Downloading / loading images might not be multithreaded??? Seems like it pauses loading a project to have images in them.
+Split shortcut - use this when editing textboxes to split a Note, Checkbox, etc. Card into two between the cursor.
+Draw shadow underneath Map
+Note card becoming too large crashes due to exceeding graphics card texture limits
 
 - [ ] Card movement!
 - [ ] Execution of files somehow (either through evaluating text as a file link, or through a Card that accepts a path that will open it with the default application). It'd
