@@ -426,11 +426,13 @@ func (menu *Menu) Recreate(newW, newH float32) {
 
 	if menu.BGTexture == nil {
 
-		NewRenderTexture(int32(menu.Rect.W), int32(menu.Rect.H), func(rt *RenderTexture) {
+		menu.BGTexture = NewRenderTexture()
 
-			rt.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+		menu.BGTexture.RenderFunc = func() {
 
-			menu.BGTexture = rt
+			menu.BGTexture.Recreate(int32(menu.Rect.W), int32(menu.Rect.H))
+
+			menu.BGTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 			color := getThemeColor(GUIMenuColor)
 
@@ -495,11 +497,11 @@ func (menu *Menu) Recreate(newW, newH float32) {
 
 			globals.Renderer.SetRenderTarget(nil)
 
-		})
+		}
 
-	} else {
-		menu.BGTexture.Rerender(int32(menu.Rect.W), int32(menu.Rect.H))
 	}
+
+	menu.BGTexture.RenderFunc()
 
 }
 

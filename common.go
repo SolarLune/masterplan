@@ -341,37 +341,68 @@ func WriteImageToTemp(clipboardImg []byte) (string, error) {
 
 }
 
-func ReloadFonts() {
+func HandleFontReload() {
 
-	fontPath := LocalRelativePath("assets/NotoSans-Bold.ttf")
+	if globals.TriggerReloadFonts {
 
-	customFontPath := globals.Settings.Get(SettingsCustomFontPath).AsString()
-	if customFontPath != "" && FileExists(customFontPath) {
-		fontPath = customFontPath
-	}
+		fontPath := LocalRelativePath("assets/NotoSans-Bold.ttf")
 
-	if globals.LoadedFontPath != fontPath {
-
-		// The Basic Multilingual Plane, or BMP, contains characters for almost all modern languages, and consistutes the first 65,472 code points of the first 163 Unicode blocks.
-		// See: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
-
-		// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
-
-		// loadedFont, err := ttf.OpenFont(fontPath, int(globals.Settings.Get(SettingsFontSize).AsFloat()))
-		loadedFont, err := ttf.OpenFont(fontPath, 48)
-
-		loadedFont.SetKerning(true) // I don't think this really will do anything for us here, as we're rendering text using individual characters, not strings.
-
-		loadedFont.SetHinting(ttf.HINTING_NORMAL)
-
-		if err != nil {
-			panic(err)
+		customFontPath := globals.Settings.Get(SettingsCustomFontPath).AsString()
+		if customFontPath != "" {
+			if FileExists(customFontPath) {
+				fontPath = customFontPath
+			} else {
+				globals.EventLog.Log(`ERROR: Custom font "%s" doesn't exist. Please check path.`, customFontPath)
+			}
 		}
 
-		globals.Font = loadedFont
+		if globals.LoadedFontPath != fontPath {
 
-		globals.LoadedFontPath = fontPath
+			if globals.LoadedFontPath != "" {
+				if customFontPath != "" {
+					globals.EventLog.Log("Custom font [%s] set.\nIt may not display correctly until after restarting MasterPlan.", customFontPath)
+				} else {
+					globals.EventLog.Log("Custom font un-set.\nOriginal font will be used. It may not display correctly until after restarting MasterPlan.")
+				}
+			}
 
+			// The Basic Multilingual Plane, or BMP, contains characters for almost all modern languages, and consistutes the first 65,472 code points of the first 163 Unicode blocks.
+			// See: https://en.wikipedia.org/wiki/Plane_(Unicode)#Basic_Multilingual_Plane
+
+			// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
+
+			// loadedFont, err := ttf.OpenFont(fontPath, int(globals.Settings.Get(SettingsFontSize).AsFloat()))
+			loadedFont, err := ttf.OpenFont(fontPath, 48)
+
+			loadedFont.SetKerning(true) // I don't think this really will do anything for us here, as we're rendering text using individual characters, not strings.
+
+			loadedFont.SetHinting(ttf.HINTING_NORMAL)
+
+			if err != nil {
+				panic(err)
+			}
+
+			globals.Font = loadedFont
+
+			globals.LoadedFontPath = fontPath
+
+			globals.TextRenderer.DestroyGlyphs()
+
+			RefreshRenderTextures()
+
+		}
+
+		globals.TriggerReloadFonts = false
+
+	}
+
+}
+
+func RefreshRenderTextures() {
+
+	for _, renderTexture := range renderTextures {
+		renderTexture.Texture = nil
+		renderTexture.RenderFunc()
 	}
 
 }

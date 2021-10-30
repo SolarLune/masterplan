@@ -1113,6 +1113,7 @@ func NewTimerContents(card *Card) *TimerContents {
 	tc.ClockMaxTime.MaxLength = 8
 
 	tc.ClockMaxTime.OnClickOut = func() {
+
 		text := tc.ClockMaxTime.TextAsString()
 		if !strings.Contains(text, ":") {
 			tc.ClockMaxTime.SetTextRaw([]rune("00:" + text))
@@ -1127,7 +1128,7 @@ func NewTimerContents(card *Card) *TimerContents {
 			minutes++
 		}
 
-		tc.ClockMaxTime.SetText([]rune(fmt.Sprintf("%02d", minutes) + ":" + fmt.Sprintf("%02d", seconds)))
+		tc.ClockMaxTime.SetTextRaw([]rune(fmt.Sprintf("%02d", minutes) + ":" + fmt.Sprintf("%02d", seconds)))
 
 		tc.MaxTime = time.Duration((minutes * int(time.Minute)) + (seconds * int(time.Second)))
 
@@ -1223,9 +1224,9 @@ func (tc *TimerContents) Update() {
 		tc.TimerValue += time.Duration(globals.DeltaTime * float32(time.Second))
 		tc.Pie.FillPercent += globals.DeltaTime
 
-		triggerMode := int(tc.Card.Properties.Get("trigger mode").AsFloat())
+		modeGroup := int(tc.Card.Properties.Get("mode group").AsFloat())
 
-		if tc.TimerValue > tc.MaxTime && triggerMode == 1 {
+		if tc.TimerValue > tc.MaxTime && modeGroup == 1 {
 
 			elapsedMessage := "Timer [" + tc.Name.TextAsString() + "] elapsed."
 
@@ -1234,17 +1235,19 @@ func (tc *TimerContents) Update() {
 			tc.Pie.FillPercent = 0
 			tc.TimerValue = 0
 
-			triggerType := TriggerTypeToggle
+			triggerMode := int(tc.Card.Properties.Get("trigger mode").AsFloat())
+
+			tt := TriggerTypeToggle
 			if triggerMode == 1 {
-				triggerType = TriggerTypeSet
+				tt = TriggerTypeSet
 			} else if triggerMode == 2 {
-				triggerType = TriggerTypeClear
+				tt = TriggerTypeClear
 			}
 
 			for _, link := range tc.Card.Links {
 
 				if link.End.Contents != nil {
-					link.End.Contents.Trigger(triggerType)
+					link.End.Contents.Trigger(tt)
 				}
 			}
 
@@ -1529,12 +1532,12 @@ const (
 
 type MapContents struct {
 	DefaultContents
-	Tool        int
-	Texture     *Image
-	Buttons     []*IconButton
-	LineStart   Point
-	PaletteMenu *Menu
-	MapData     *MapData
+	Tool          int
+	RenderTexture *RenderTexture
+	Buttons       []*IconButton
+	LineStart     Point
+	PaletteMenu   *Menu
+	MapData       *MapData
 
 	DrawingColor  int
 	PaletteColors []Color
@@ -1961,7 +1964,7 @@ func (mc *MapContents) Draw() {
 
 	}
 
-	if mc.Texture != nil {
+	if mc.RenderTexture != nil {
 
 		dst := &sdl.FRect{mc.Card.DisplayRect.X, mc.Card.DisplayRect.Y, mc.Card.Rect.W, mc.Card.Rect.H}
 		dst = globals.Project.Camera.TranslateRect(dst)
@@ -1969,8 +1972,8 @@ func (mc *MapContents) Draw() {
 		if mc.Tool != MapEditToolNone {
 			alpha = 200 // Slightly transparent to show things behind the map when it's being edited and is in front
 		}
-		mc.Texture.Texture.SetAlphaMod(alpha)
-		globals.Renderer.CopyF(mc.Texture.Texture, nil, dst)
+		mc.RenderTexture.Texture.SetAlphaMod(alpha)
+		globals.Renderer.CopyF(mc.RenderTexture.Texture, nil, dst)
 
 		if mc.UsingLineTool() && (mc.LineStart.X >= 0 || mc.LineStart.Y >= 0) {
 
@@ -2069,11 +2072,11 @@ func (mc *MapContents) GridCursorPosition() Point {
 		mp.Y = 0
 	}
 
-	if mp.X > (mc.Texture.Size.X/globals.GridSize)-1 {
-		mp.X = (mc.Texture.Size.X / globals.GridSize) - 1
+	if mp.X > (mc.RenderTexture.Size.X/globals.GridSize)-1 {
+		mp.X = (mc.RenderTexture.Size.X / globals.GridSize) - 1
 	}
-	if mp.Y > (mc.Texture.Size.Y/globals.GridSize)-1 {
-		mp.Y = (mc.Texture.Size.Y / globals.GridSize) - 1
+	if mp.Y > (mc.RenderTexture.Size.Y/globals.GridSize)-1 {
+		mp.Y = (mc.RenderTexture.Size.Y / globals.GridSize) - 1
 	}
 
 	return mp
@@ -2088,34 +2091,31 @@ func (mc *MapContents) RecreateTexture() {
 		rectSize = mc.DefaultSize()
 	}
 
-	if mc.Texture == nil || (mc.Texture != nil && !mc.Texture.Size.Equals(rectSize)) {
+	if mc.RenderTexture == nil || (mc.RenderTexture != nil && !mc.RenderTexture.Size.Equals(rectSize)) {
 
-		NewRenderTexture(int32(rectSize.X), int32(rectSize.Y), func(rt *RenderTexture) {
+		mc.RenderTexture = NewRenderTexture()
 
-			rt.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+		mc.RenderTexture.RenderFunc = func() {
 
-			if mc.Texture != nil {
-				mc.Texture.Texture.Destroy()
-			}
+			mc.RenderTexture.Recreate(int32(rectSize.X), int32(rectSize.Y))
 
-			mc.Texture = &Image{
-				Texture: rt.Texture,
-				Size:    rectSize,
-			}
+			mc.RenderTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
-		})
+		}
 
 	}
 
-	mc.MapData.Resize(int(mc.Texture.Size.X/globals.GridSize), int(mc.Texture.Size.Y/globals.GridSize))
+	mc.RenderTexture.RenderFunc()
+
+	mc.MapData.Resize(int(mc.RenderTexture.Size.X/globals.GridSize), int(mc.RenderTexture.Size.Y/globals.GridSize))
 
 }
 
 func (mc *MapContents) UpdateTexture() {
 
-	if mc.Texture != nil {
+	if mc.RenderTexture != nil {
 
-		globals.Renderer.SetRenderTarget(mc.Texture.Texture)
+		globals.Renderer.SetRenderTarget(mc.RenderTexture.Texture)
 
 		globals.Renderer.SetDrawColor(getThemeColor(GUIMapColor).RGBA())
 		globals.Renderer.FillRect(nil)

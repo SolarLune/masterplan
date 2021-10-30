@@ -57,6 +57,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsShowAboutDialogOnStart).Set(true)
 	props.Get(SettingsReversePan).Set(false)
 	props.Get(SettingsSaveLastCardType).Set(true)
+	props.Get(SettingsCustomFontPath).Set("")
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 

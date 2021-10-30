@@ -70,23 +70,32 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 func (glyph *Glyph) Width() int32 {
 	asr := float64(glyph.Image.Size.X / glyph.Image.Size.Y)
 	return int32(math.Ceil(float64(glyph.Height()) * asr))
-	// return int32(glyph.Image.Size.X)
 }
 
 func (glyph *Glyph) Height() int32 {
 	return int32(globals.GridSize)
-	// return int32(glyph.Image.Size.Y)
+}
+
+func (glyph *Glyph) Destroy() {
+	if glyph.Image.Texture != nil {
+		glyph.Image.Texture.Destroy()
+		glyph.Image.Texture = nil
+		glyph.Image.Size = Point{}
+	}
 }
 
 type TextRendererResult struct {
-	Image           *Image
+	Image           *RenderTexture
 	TextLines       [][]rune
 	AlignmentOffset Point
 	TextSize        Point
 }
 
 func (trr *TextRendererResult) Destroy() {
-	trr.Image.Texture.Destroy()
+	if trr.Image.Texture != nil {
+		trr.Image.Texture.Destroy()
+		trr.Image.Texture = nil
+	}
 }
 
 type TextRenderer struct {
@@ -160,68 +169,69 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 
 	result := &TextRendererResult{}
 
-	lineskip := int(globals.GridSize)
+	renderTexture := NewRenderTexture()
 
-	textLines := [][]rune{{}}
+	result.Image = renderTexture
 
-	perLine := strings.Split(text, "\n")
+	renderTexture.RenderFunc = func() {
 
-	lineWidths := []int32{}
+		lineskip := int(globals.GridSize)
 
-	if len(perLine) == 0 {
-		lineWidths = append(lineWidths, 0)
-	}
+		textLines := [][]rune{{}}
 
-	for _, line := range perLine {
+		perLine := strings.Split(text, "\n")
 
-		lineWidth := int32(0)
+		lineWidths := []int32{}
 
-		for _, glyph := range tr.GlyphsForRunes([]rune(line)) {
-			lineWidth += glyph.Width()
+		if len(perLine) == 0 {
+			lineWidths = append(lineWidths, 0)
 		}
 
-		lineWidths = append(lineWidths, lineWidth)
+		for _, line := range perLine {
 
-	}
+			lineWidth := int32(0)
 
-	w := int32(0)
-	h := int32(0)
-
-	if wordWrapMax.X > 0 && wordWrapMax.Y > 0 {
-		w = int32(wordWrapMax.X)
-		h = int32(wordWrapMax.Y)
-	} else {
-
-		// If wordwrap's X or Y value are less than 0, then there will be no wrapping, and the size of the texture will just the necessary rectangle to display the full textbox.
-		// TODO: Make this handle \n characters
-
-		for lineIndex := range perLine {
-			if w < lineWidths[lineIndex] {
-				w = lineWidths[lineIndex]
+			for _, glyph := range tr.GlyphsForRunes([]rune(line)) {
+				lineWidth += glyph.Width()
 			}
+
+			lineWidths = append(lineWidths, lineWidth)
+
 		}
 
-		h = int32(lineskip * len(perLine))
+		w := int32(0)
+		h := int32(0)
 
-	}
+		if wordWrapMax.X > 0 && wordWrapMax.Y > 0 {
+			w = int32(wordWrapMax.X)
+			h = int32(wordWrapMax.Y)
+		} else {
 
-	// Bare minimum
-	if w <= 0 {
-		w = 32
-	} else if h <= 0 {
-		h = int32(lineskip)
-	}
+			// If wordwrap's X or Y value are less than 0, then there will be no wrapping, and the size of the texture will just the necessary rectangle to display the full textbox.
+			// TODO: Make this handle \n characters
 
-	NewRenderTexture(w, h, func(rt *RenderTexture) {
+			for lineIndex := range perLine {
+				if w < lineWidths[lineIndex] {
+					w = lineWidths[lineIndex]
+				}
+			}
 
-		result.Image = &Image{
-			Texture: rt.Texture,
-			Size:    Point{X: float32(w), Y: float32(h)},
+			h = int32(lineskip * len(perLine))
+
 		}
 
-		rt.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+		// Bare minimum
+		if w <= 0 {
+			w = 32
+		} else if h <= 0 {
+			h = int32(lineskip)
+		}
 
-		globals.Renderer.SetRenderTarget(rt.Texture)
+		renderTexture.Recreate(w, h)
+
+		renderTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+
+		globals.Renderer.SetRenderTarget(renderTexture.Texture)
 
 		globals.Renderer.SetDrawColor(0, 0, 0, 0)
 
@@ -339,7 +349,9 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 
 		globals.Renderer.SetRenderTarget(nil)
 
-	})
+	}
+
+	renderTexture.RenderFunc()
 
 	return result
 }
@@ -381,4 +393,11 @@ func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier f
 
 	}
 
+}
+
+func (tr *TextRenderer) DestroyGlyphs() {
+	for _, glyph := range tr.Glyphs {
+		glyph.Destroy()
+	}
+	tr.Glyphs = map[rune]*Glyph{}
 }

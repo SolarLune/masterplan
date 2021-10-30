@@ -1119,6 +1119,8 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 
 func (label *Label) Update() {
 
+	clickedOut := false
+
 	if label.RendererResult != nil {
 
 		activeRect := &sdl.FRect{label.Rect.X + label.Offset.X, label.Rect.Y + label.Offset.Y, label.Rect.W, label.Rect.H}
@@ -1143,9 +1145,7 @@ func (label *Label) Update() {
 					label.Editing = false
 					globals.State = StateNeutral
 					label.Selection.Select(0, 0)
-					if label.OnClickOut != nil {
-						label.OnClickOut()
-					}
+					clickedOut = true
 				}
 
 				if globals.Keyboard.Key(sdl.K_RIGHT).Pressed() {
@@ -1483,6 +1483,14 @@ func (label *Label) Update() {
 
 	}
 
+	// We do this here so the property has been set before we click out
+	if clickedOut && label.OnClickOut != nil {
+		label.OnClickOut()
+		if label.Property != nil {
+			label.Property.Set(label.TextAsString())
+		}
+	}
+
 }
 
 func (label *Label) Draw() {
@@ -1513,6 +1521,10 @@ func (label *Label) Draw() {
 			lineY = label.IndexToWorld(nextBreak).Y + globals.GridSize
 		} else {
 			lineY = label.Rect.Y + label.RendererResult.TextSize.Y + thickness
+		}
+
+		if lineY > label.Rect.Y+label.Rect.H {
+			lineY = label.Rect.Y + label.Rect.H
 		}
 
 		start := Point{label.Rect.X, lineY + thickness}

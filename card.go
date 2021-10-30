@@ -823,7 +823,7 @@ func (card *Card) Deserialize(data string) {
 		links := []string{}
 
 		for _, linkEnd := range gjson.Get(data, "links").Array() {
-			linkedTo = append(linkedTo, gjson.Get(linkEnd.String(), "end").Int())
+			linkedTo = append(linkedTo, gjson.Get(linkEnd.Str, "end").Int())
 			linkEndString, _ := sjson.Set(linkEnd.String(), "start", card.ID)
 			links = append(links, linkEndString)
 		}
@@ -1061,11 +1061,14 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 		card.Rect.H = newHeight
 
 		if card.Result == nil {
-			NewRenderTexture(int32(card.Rect.W), int32(card.Rect.H), func(rt *RenderTexture) {
 
-				card.Result = rt
+			card.Result = NewRenderTexture()
 
-				rt.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+			card.Result.RenderFunc = func() {
+
+				card.Result.Recreate(int32(card.Rect.W), int32(card.Rect.H))
+
+				card.Result.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
 				globals.Renderer.SetRenderTarget(card.Result.Texture)
 
@@ -1137,10 +1140,11 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 				globals.Renderer.SetRenderTarget(nil)
 
-			})
-		} else {
-			card.Result.Rerender(int32(card.Rect.W), int32(card.Rect.H))
+			}
+
 		}
+
+		card.Result.RenderFunc()
 
 		card.LockPosition() // Update Page's Grid.
 

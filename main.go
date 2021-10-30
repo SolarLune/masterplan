@@ -20,6 +20,7 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/hako/durafmt"
+	"github.com/ncruces/zenity"
 	"github.com/pkg/browser"
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/img"
@@ -238,7 +239,8 @@ func main() {
 	globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
 	globals.EventLog = NewEventLog()
 
-	ReloadFonts()
+	globals.TriggerReloadFonts = true
+	HandleFontReload()
 
 	globals.Project = NewProject()
 
@@ -370,6 +372,8 @@ func main() {
 
 		} else {
 
+			// fmt.Println(globals.TextRenderer.MeasureText([]rune("New Project"), 1))
+
 			// if globals.State == StateNeutral && globals.Keybindings.Pressed(KBDebugRestart) {
 			// 	globals.Project = NewProject()
 			// }
@@ -472,7 +476,7 @@ func main() {
 			// y := float32(24)
 
 			msgSize := float32(1)
-			eventY := globals.ScreenSize.Y - (globals.GridSize * msgSize)
+			eventY := globals.ScreenSize.Y
 
 			for _, event := range globals.EventLog.Events {
 
@@ -490,9 +494,10 @@ func main() {
 
 					dst := &sdl.FRect{0, event.Y, textSize.X, textSize.Y}
 					bgColor[3] = fade
-					FillRect(dst.X, dst.Y, dst.W, dst.H, bgColor)
+					fontColor[3] = fade
 
-					globals.TextRenderer.QuickRenderText(event.Text, Point{0, event.Y}, msgSize, fontColor, AlignLeft)
+					FillRect(dst.X, dst.Y-dst.H, dst.W, dst.H, bgColor)
+					globals.TextRenderer.QuickRenderText(event.Text, Point{0, event.Y - dst.H}, msgSize, fontColor, AlignLeft)
 
 					eventY -= dst.H
 
@@ -626,6 +631,8 @@ func main() {
 			globals.DeltaTime = dt
 		}
 
+		HandleFontReload()
+
 	}
 
 	if globals.Settings.Get(SettingsSaveWindowPosition).AsBool() {
@@ -658,7 +665,6 @@ func ConstructMenus() {
 	}))
 
 	row.Add("view menu", NewButton("View", &sdl.FRect{0, 0, 96, 32}, nil, false, func() {
-		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		globals.MenuSystem.Get("view").Open()
 	}))
 
@@ -999,25 +1005,21 @@ func ConstructMenus() {
 	row = root.AddRow(AlignCenter)
 	row.Add("visual options", NewButton("Visual Options", nil, nil, false, func() {
 		settings.SetPage("visual")
-		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	}))
 
 	row = root.AddRow(AlignCenter)
 	row.Add("sound options", NewButton("Sound Options", nil, nil, false, func() {
 		settings.SetPage("sound")
-		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	}))
 
 	row = root.AddRow(AlignCenter)
 	row.Add("input", NewButton("Input", nil, nil, false, func() {
 		settings.SetPage("input")
-		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	}))
 
 	row = root.AddRow(AlignCenter)
 	row.Add("about", NewButton("About", nil, nil, false, func() {
 		settings.SetPage("about")
-		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	}))
 
 	// Sound options
@@ -1120,6 +1122,35 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Show About Dialog On Start:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Custom Font Path:", nil, false, AlignLeft))
+	fontPath := NewLabel("Font path", nil, false, AlignLeft)
+	fontPath.Editable = true
+	fontPath.Property = globals.Settings.Get(SettingsCustomFontPath)
+	fontPath.OnClickOut = func() {
+		globals.TriggerReloadFonts = true
+	}
+	row.Add("", fontPath)
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewButton("Browse", nil, nil, false, func() {
+
+		if path, err := zenity.SelectFile(zenity.Title("Select Custom Font (.ttf, .otf)"), zenity.FileFilter{Name: "Font Files", Patterns: []string{"*.ttf", "*.otf"}}); err == nil {
+			globals.Settings.Get(SettingsCustomFontPath).Set(path)
+			globals.TriggerReloadFonts = true
+		}
+
+	}))
+
+	row.Add("", NewButton("Clear", nil, nil, false, func() {
+		globals.Settings.Get(SettingsCustomFontPath).Set("")
+		globals.TriggerReloadFonts = true
+	}))
+	// row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
 
 	// INPUT PAGE
 

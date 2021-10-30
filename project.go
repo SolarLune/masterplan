@@ -92,26 +92,28 @@ func (project *Project) CreateGridTexture() {
 
 	// project.GridTexture = TileTexture(guiTex, &sdl.Rect{480, 0, 32, 32}, 512, 512)
 
-	w := int32(512)
-	h := int32(512)
 	srcRect := &sdl.Rect{480, 0, 32, 32}
 
 	if project.GridTexture == nil {
 
-		NewRenderTexture(w, h, func(rt *RenderTexture) {
+		project.GridTexture = NewRenderTexture()
+
+		project.GridTexture.RenderFunc = func() {
+
+			project.GridTexture.Recreate(512, 512)
 
 			gridColor := getThemeColor(GUIGridColor)
 			guiTex.Texture.SetColorMod(gridColor.RGB())
 			guiTex.Texture.SetAlphaMod(gridColor[3])
 
-			rt.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+			project.GridTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
-			globals.Renderer.SetRenderTarget(rt.Texture)
+			globals.Renderer.SetRenderTarget(project.GridTexture.Texture)
 
 			dst := &sdl.Rect{0, 0, srcRect.W, srcRect.H}
 
-			for y := int32(0); y < h; y += srcRect.H {
-				for x := int32(0); x < w; x += srcRect.W {
+			for y := int32(0); y < int32(project.GridTexture.Size.Y); y += srcRect.H {
+				for x := int32(0); x < int32(project.GridTexture.Size.X); x += srcRect.W {
 					dst.X = x
 					dst.Y = y
 					globals.Renderer.Copy(guiTex.Texture, srcRect, dst)
@@ -120,13 +122,11 @@ func (project *Project) CreateGridTexture() {
 
 			globals.Renderer.SetRenderTarget(nil)
 
-			project.GridTexture = rt
+		}
 
-		})
-
-	} else {
-		project.GridTexture.Rerender(int32(project.GridTexture.Size.X), int32(project.GridTexture.Size.Y))
 	}
+
+	project.GridTexture.RenderFunc()
 
 }
 

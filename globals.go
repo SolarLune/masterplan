@@ -42,7 +42,8 @@ type Globals struct {
 	Settings    *Properties
 	Keybindings *Keybindings
 
-	DebugMode bool
+	DebugMode          bool
+	TriggerReloadFonts bool
 }
 
 var globals = &Globals{}
