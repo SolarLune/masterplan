@@ -40,9 +40,8 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 
 	for y := 0; y < int(surf.H); y++ {
 		for x := 0; x < int(surf.W); x++ {
-			// c := color.RGBA{}
-			i := int32(y)*newSurf.Pitch + int32(x)*int32(newSurf.Format.BytesPerPixel)
 			// Format seems to be AGBR, not RGBA?
+			i := int32(y)*newSurf.Pitch + int32(x)*int32(newSurf.Format.BytesPerPixel)
 
 			// This would be to get the color unmodified.
 			// return color.RGBA{pixels[i+3], pixels[i+2], pixels[i+1], pixels[i]}
@@ -233,7 +232,9 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 
 		globals.Renderer.SetRenderTarget(renderTexture.Texture)
 
-		globals.Renderer.SetDrawColor(0, 0, 0, 0)
+		// We need to call SetDrawColor() with transparent white because glyphs are opaque white. If we clear with transparent black (all 0's),
+		// the edges of certain glyphs can look really jank.
+		globals.Renderer.SetDrawColor(255, 255, 255, 0)
 
 		globals.Renderer.Clear()
 
@@ -330,8 +331,8 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 
 			// We do this because QuickRenderText() uses the same glyphs, so we have to set the color and alpha mod values again.
 			tex := glyph.Texture()
-			tex.SetColorMod(ColorWhite.RGB())
-			tex.SetAlphaMod(ColorWhite[3])
+			tex.SetColorMod(255, 255, 255)
+			tex.SetAlphaMod(255)
 			globals.Renderer.Copy(tex, nil, dst)
 
 			x += glyph.Width()

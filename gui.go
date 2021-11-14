@@ -651,6 +651,7 @@ type Dropdown struct {
 	OnOpen          func()
 	OnChoose        func(index int)
 	WorldSpace      bool
+	Property        *Property
 }
 
 func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), options ...string) *Dropdown {
@@ -729,9 +730,14 @@ func (dropdown *Dropdown) Update() {
 			y += b.Rect.H
 
 		}
+
 	}
 
 	dropdown.Button.Label.SetText([]rune(dropdown.Options[dropdown.ChosenIndex]))
+
+	if dropdown.Property != nil {
+		dropdown.Property.Set(dropdown.Options[dropdown.ChosenIndex])
+	}
 
 }
 
@@ -1910,6 +1916,7 @@ type ContainerRow struct {
 	HorizontalSpacing float32
 	VerticalSpacing   float32
 	ExpandElements    bool
+	Visible           bool
 }
 
 func NewContainerRow(container *Container, horizontalAlignment string) *ContainerRow {
@@ -1920,6 +1927,7 @@ func NewContainerRow(container *Container, horizontalAlignment string) *Containe
 		Alignment:         horizontalAlignment,
 		HorizontalSpacing: 0,
 		VerticalSpacing:   4,
+		Visible:           true,
 		// InterElementSpacing: -1,
 	}
 
@@ -1996,6 +2004,18 @@ func (row *ContainerRow) Draw() {
 
 }
 
+func (row *ContainerRow) FindElement(name string, wild bool) MenuElement {
+
+	for elementName, element := range row.Elements {
+		if wild && strings.Contains(strings.ToLower(elementName), strings.ToLower(name)) || (!wild && strings.ToLower(elementName) == strings.ToLower(name)) {
+			return element
+		}
+	}
+
+	return nil
+
+}
+
 // Add a MenuElement to the ContainerRow.
 func (row *ContainerRow) Add(name string, element MenuElement) {
 	if name == "" {
@@ -2059,7 +2079,9 @@ func (container *Container) Update() {
 
 	y := float32(-perc * container.Rect.H)
 	for _, row := range container.Rows {
-		y += row.Update(y)
+		if row.Visible {
+			y += row.Update(y)
+		}
 	}
 
 	globals.Mouse.HiddenPosition = false
@@ -2077,6 +2099,11 @@ func (container *Container) Update() {
 
 		container.Scrollbar.Update()
 
+	} else {
+		if container.Scrollbar.Value != 0 {
+			container.Scrollbar.TargetValue = 0
+			container.Scrollbar.Value = 0
+		}
 	}
 
 	if container.OnUpdate != nil {
@@ -2100,7 +2127,9 @@ func (container *Container) Draw() {
 	sort.SliceStable(rows, func(i, j int) bool { return i > j })
 
 	for _, row := range rows {
-		row.Draw()
+		if row.Visible {
+			row.Draw()
+		}
 	}
 
 	globals.Renderer.SetClipRect(nil)
@@ -2118,15 +2147,28 @@ func (container *Container) AddRow(alignment string) *ContainerRow {
 	return newRow
 }
 
-func (container *Container) FindElement(elementName string) MenuElement {
+func (container *Container) FindElement(elementName string, wild bool) MenuElement {
 	for _, row := range container.Rows {
 		for name, element := range row.Elements {
-			if name == elementName {
+			if (wild && strings.Contains(name, elementName)) || (!wild && name == elementName) {
 				return element
 			}
 		}
 	}
 	return nil
+}
+
+func (container *Container) FindRows(elementName string, wild bool) []*ContainerRow {
+	found := []*ContainerRow{}
+	for _, row := range container.Rows {
+		for name := range row.Elements {
+			if (!wild && name == elementName) || (wild && strings.Contains(name, elementName)) {
+				found = append(found, row)
+				break
+			}
+		}
+	}
+	return found
 }
 
 func (container *Container) Clear() {
@@ -2162,6 +2204,10 @@ func (container *Container) IdealSize() Point {
 	size := Point{}
 
 	for _, row := range container.Rows {
+
+		if !row.Visible {
+			continue
+		}
 
 		greatestW := float32(0)
 		greatestH := float32(0)

@@ -1,6 +1,24 @@
-TO FIX IMMEDIATELY:
-
+[x] Fix the text somehow, it still looks bad
+[x] Implement searching shortcuts
+[x] Replace double-click setting with drop-down for nothing, checkbox, last Card type: https://discord.com/channels/339550825154347008/758009278756946040/904827107102851164
+[ ] Re-implement saving the pan location so you can pick up where you left off
+[ ] Re-implement autosave
+[ ] Re-implement automatic backups
+[ ] Re-implement auto-load
+[ ] Re-implement Recent Files list
+[ ] Re-implement Boards
+[ ] Add a manual to look through to see some techniques / information.
+[ ] Optimize CPU execution
+[ ] Optimize GPU execution
+[ ] Transparent window background
+[ ] File filters aren't working on Mac? See: https://discord.com/channels/339550825154347008/900240962792620052/904398152386355210
+[ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
+    That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
+    See: https://discord.com/channels/339550825154347008/758009278756946040/906326736965357628
+[ ] Kapersky detects MP as malware: https://discord.com/channels/339550825154347008/758009278756946040/904661968047198238
+[ ] Edges on cards: https://discord.com/channels/339550825154347008/758009278756946040/904551737355026432
 [ ] Re-implement URL parsing
+[ ] MP4 video support?
 [ ] Hovering over a website should open a little card linking to the website, with additional information (favicon, hostname (e.g. google.com), and description). See how Google Sheets does it.
 [x] Re-add Paste Content command
 [x] Re-implement pasting lists as a sequence of Cards in MasterPlan
@@ -14,7 +32,12 @@ TO FIX IMMEDIATELY:
 [x] Disable Grid setting
 [x] Implement searching again
 [x] Reimplement custom fonts.
-[ ] Autosave
+[ ] Reimplement relative paths to resources (images, sounds) in save files.
+[ ] Implement File Card type - this takes a link to a file on your computer or URL and opens it. Maybe this should be part of URL parsing?
+[ ] Ability to press a Button to Jump to a Card
+[ ] Ability to press a Button to Jump to a Project
+[ ] Add a means to link to locations on your board (this might be better done after Boards have been re-implemented)
+
 [ ] Rethink RenderTexture system - it'd be cool if it worked with reloading fonts (which means text can be different sizes, and the TextRenderer.RenderText() function would inform this; perhaps
     the RenderTexture system should return a RenderTexture if given something that implements an interface somehow? It needs more flexibility, I think, is what I'm saying.)
 
@@ -30,7 +53,6 @@ GUI cutting off in Input Options
 Tie icons into themes
 
 Tabbing around menus / boards
-Re-add Recent Files list
 Buttons should close menus
 Lock zoom / camera render position
 See about fixing font up to be EVEN smoother
@@ -238,7 +260,6 @@ Dialog editor of some description??? Seems like it could be sick to have some ki
 [ ] Fullscreen acts weird if the window isn't maximized first, so that might be a good thing to try to do? Set the window size and then fullscreen it?
 [ ] Investigate pasting images from the clipboard?
 [ ] Panels should be resizeable
-[ ] MP4 video support?
 [ ] A mobile version of MasterPlan, where you can take pictures or record video and have it copy over to your plan somehow (gasp!).
 [ ] Re-make Dino Riki? Aw Nuts!? 7DRL on 3/4/21?!?!?!
 [ ] Time estimations per Task - these can be set as a project-level default (i.e. something like 30 minutes per-Task), and then further specified (maybe specifying something like 3 hours for a specific Task, as an example).

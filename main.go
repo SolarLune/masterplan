@@ -283,7 +283,7 @@ func main() {
 
 	for !quit {
 
-		globals.MenuSystem.Get("main").Pages["root"].FindElement("time label").(*Label).SetText([]rune(time.Now().Format("Mon Jan 2 2006")))
+		globals.MenuSystem.Get("main").Pages["root"].FindElement("time label", false).(*Label).SetText([]rune(time.Now().Format("Mon Jan 2 2006")))
 
 		screenWidth, screenHeight, err := globals.Renderer.GetOutputSize()
 
@@ -1015,6 +1015,7 @@ func ConstructMenus() {
 	row = root.AddRow(AlignCenter)
 	row.Add("input", NewButton("Input", nil, nil, false, func() {
 		settings.SetPage("input")
+		settings.Pages["input"].FindElement("search editable", false).(*Label).SetText([]rune(""))
 	}))
 
 	row = root.AddRow(AlignCenter)
@@ -1214,10 +1215,10 @@ func ConstructMenus() {
 		} else {
 
 			for name, shortcut := range globals.Keybindings.Shortcuts {
-				b := input.FindElement(name + "-b").(*Button)
+				b := input.FindElement(name+"-b", false).(*Button)
 				b.Label.SetText([]rune(shortcut.KeysToString()))
 
-				d := input.FindElement(name + "-d").(*Button)
+				d := input.FindElement(name+"-d", false).(*Button)
 				d.Disabled = shortcut.IsDefault()
 				if d.Disabled {
 					d.Label.SetText([]rune("---"))
@@ -1234,22 +1235,44 @@ func ConstructMenus() {
 	row.Add("input header", NewLabel("-Input-", nil, false, AlignLeft))
 
 	row = input.AddRow(AlignCenter)
-	row.Add("", NewLabel("Double-click to Create Cards: ", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsDoubleClickCreatesCard)))
+	row.Add("", NewLabel("Double-click: ", nil, false, AlignLeft))
+	dropdown := NewDropdown(nil, false, nil, DoubleClickLast, DoubleClickCheckbox, DoubleClickNothing)
+	dropdown.Property = globals.Settings.Get(SettingsDoubleClickMode)
+	row.Add("", dropdown)
 
 	row = input.AddRow(AlignCenter)
 	row.Add("", NewLabel("Reverse panning direction: ", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsReversePan)))
 
 	row = input.AddRow(AlignCenter)
-	row.Add("", NewLabel("Save Last Card Type For Double-click: ", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSaveLastCardType)))
-
-	// row = input.AddRow(AlignCenter)
-	// row.Add("", NewLabel("", nil, false, AlignLeft))
+	row.Add("keybindings header", NewLabel("Keybindings", nil, false, AlignLeft))
 
 	row = input.AddRow(AlignCenter)
-	row.Add("keybindings header", NewLabel("Keybindings", nil, false, AlignLeft))
+	row.Add("search label", NewLabel("Search: ", nil, false, AlignLeft))
+	searchKeybindingsLabel := NewLabel("test", &sdl.FRect{0, 0, 380, 32}, false, AlignLeft)
+	searchKeybindingsLabel.Editable = true
+	// searchKeybindingsLabel.AutoExpand = true
+	searchKeybindingsLabel.OnChange = func() {
+
+		text := strings.TrimSpace(searchKeybindingsLabel.TextAsString())
+		for _, row := range input.FindRows("key-", true) {
+			if text == "" {
+				row.Visible = true
+			} else {
+				if row.FindElement(text, true) != nil {
+					row.Visible = true
+				} else {
+					row.Visible = false
+				}
+			}
+		}
+
+	}
+	row.Add("search editable", searchKeybindingsLabel)
+	row.Add("clear button", NewIconButton(0, 0, &sdl.Rect{176, 0, 32, 32}, false, func() {
+		searchKeybindingsLabel.SetText([]rune(""))
+	}))
+	// row.ExpandElements = true
 
 	row = input.AddRow(AlignCenter)
 	row.Add("reset all to default", NewButton("Reset All Bindings to Default", nil, nil, false, func() {

@@ -25,7 +25,7 @@ const (
 	SettingsRecentPlanList         = "RecentPlanList"
 	SettingsAlwaysShowNumbering    = "AlwaysShowNumbering"
 	SettingsDisplayMessages        = "DisplayMessages"
-	SettingsDoubleClickCreatesCard = "DoubleClickCreatesCard"
+	SettingsDoubleClickMode        = "DoubleClickMode"
 	SettingsShowGrid               = "ShowGrid"
 	SettingsFlashSelected          = "FlashSelected"
 	SettingsFocusOnElapsedTimers   = "FocusOnElapsedTimers"
@@ -34,7 +34,10 @@ const (
 	SettingsAudioVolume            = "AudioVolume"
 	SettingsShowAboutDialogOnStart = "ShowAboutDialogOnStart"
 	SettingsReversePan             = "ReversePan"
-	SettingsSaveLastCardType       = "SaveLastCardType"
+
+	DoubleClickLast     = "Creates card of prev. type"
+	DoubleClickCheckbox = "Creates Checkbox card"
+	DoubleClickNothing  = "Does nothing"
 )
 
 func NewProgramSettings() *Properties {
@@ -46,7 +49,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsUnfocusedFPS).Set(60.0)
 	props.Get(SettingsDownloadDirectory).Set("")
 	props.Get(SettingsDisplayMessages).Set(true)
-	props.Get(SettingsDoubleClickCreatesCard).Set(true)
+	props.Get(SettingsDoubleClickMode).Set(DoubleClickLast)
 	props.Get(SettingsShowGrid).Set(true)
 	props.Get(SettingsSaveWindowPosition).Set(true)
 	props.Get(SettingsFlashSelected).Set(true)
@@ -56,7 +59,6 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsAudioVolume).Set(80.0)
 	props.Get(SettingsShowAboutDialogOnStart).Set(true)
 	props.Get(SettingsReversePan).Set(false)
-	props.Get(SettingsSaveLastCardType).Set(true)
 	props.Get(SettingsCustomFontPath).Set("")
 
 	path, _ := xdg.ConfigFile(SettingsPath)

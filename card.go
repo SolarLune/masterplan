@@ -146,6 +146,10 @@ func (le *LinkEnding) Draw() {
 
 		globals.Renderer.CopyExF(le.GUIImage.Texture, &sdl.Rect{208, 0, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 
+		if points[0] == points[len(points)-1] {
+			return
+		}
+
 		for i := 0; i < len(points)-1; i++ {
 
 			start := points[i]
@@ -619,6 +623,12 @@ func (card *Card) DrawCard() {
 		if link.Start == card && link.End.Valid {
 			link.Draw()
 		}
+	}
+
+	area := card.Page.Project.Camera.ViewArea()
+	viewArea := &sdl.FRect{float32(area.X), float32(area.Y), float32(area.W), float32(area.H)}
+	if _, intersect := card.DisplayRect.Intersect(viewArea); !intersect {
+		return
 	}
 
 	tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
@@ -1226,9 +1236,8 @@ func (card *Card) SetContents(contentType string) {
 
 	if prevContents != nil && prevContents != card.Contents {
 		prevContents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
+		card.Contents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
 	}
-
-	card.Contents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
 
 	card.ContentType = contentType
 }

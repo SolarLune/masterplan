@@ -366,14 +366,14 @@ func (project *Project) MouseActions() {
 
 	if globals.State == StateNeutral {
 
-		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) && globals.Settings.Get(SettingsDoubleClickCreatesCard).AsBool() {
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) && globals.Settings.Get(SettingsDoubleClickMode).AsString() != DoubleClickNothing {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
 			project.CurrentPage.Selection.BoxSelecting = false
 
 			cardType := ContentTypeCheckbox
-			if globals.Settings.Get(SettingsSaveLastCardType).AsBool() {
+			if globals.Settings.Get(SettingsDoubleClickMode).AsString() == DoubleClickLast {
 				cardType = project.LastCardType
 			}
 			card := project.CurrentPage.CreateNewCard(cardType)

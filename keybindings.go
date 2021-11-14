@@ -14,7 +14,7 @@ const (
 	// Keyboard Constants
 
 	// KBDebugRestart = "DEBUG: RESTART"
-	KBDebugToggle = "DEBUG: Toggle Debug"
+	KBDebugToggle = "DEBUG: Toggle Debug View"
 
 	KBZoomLevel25   = "Zoom Level 25%"
 	KBZoomLevel50   = "Zoom Level 50%"
@@ -49,7 +49,7 @@ const (
 	KBOpenProject         = "Open Project"
 	KBCopyCards           = "Copy Selected Cards"
 	KBPasteCards          = "Paste Selected Cards"
-	KBExternalPaste       = "External Clipboard Paste"
+	KBExternalPaste       = "Paste From External Clipboard"
 	KBReturnToOrigin      = "Center View to Origin"
 	KBFocusOnCards        = "Focus On Selected Cards"
 	KBOpenContextMenu     = "Open Context Menu"

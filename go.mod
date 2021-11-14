@@ -10,7 +10,7 @@ require (
 	github.com/faiface/beep v1.1.0
 	github.com/frankban/quicktest v1.13.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.0
-	github.com/gen2brain/beeep v0.0.0-20210529141713-5586760f0cc1 // indirect
+	github.com/gen2brain/beeep v0.0.0-20210529141713-5586760f0cc1
 	github.com/godbus/dbus/v5 v5.0.5 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20211014092231-cac8ae8ec3c8 // indirect
@@ -18,14 +18,13 @@ require (
 	github.com/hajimehoshi/oto v1.0.1 // indirect
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/jfreymuth/oggvorbis v1.0.3 // indirect
-	github.com/josephspurrier/goversioninfo v1.3.0 // indirect
 	github.com/mewkiz/pkg v0.0.0-20210827150434-97fe13d38bc8 // indirect
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/ncruces/zenity v0.7.12
 	github.com/nwaples/rardecode v1.1.2 // indirect
 	github.com/otiai10/copy v1.6.0
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
+	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/tanema/gween v0.0.0-20200427131925-c89ae23cc63c
 	github.com/tidwall/gjson v1.9.4
 	github.com/tidwall/sjson v1.2.2
