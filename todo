@@ -1,7 +1,10 @@
 [x] Fix the text somehow, it still looks bad
 [x] Implement searching shortcuts
 [x] Replace double-click setting with drop-down for nothing, checkbox, last Card type: https://discord.com/channels/339550825154347008/758009278756946040/904827107102851164
-[ ] Re-implement saving the pan location so you can pick up where you left off
+[ ] Add Touch support: https://wiki.libsdl.org/SDL_TouchFingerEvent
+[ ] Press the link shortcut to link, rather than holding and clicking to link. This would allow you to put it on a mouse button for ease of link.
+[ ] Transparent window background: Doesn't seem to be possible with SDL, unfortunately. I'll have to see if I can work around this, perhaps with a Shaped window or something???
+[x] Re-implement saving the pan location so you can pick up where you left off
 [ ] Re-implement autosave
 [ ] Re-implement automatic backups
 [ ] Re-implement auto-load
@@ -10,7 +13,7 @@
 [ ] Add a manual to look through to see some techniques / information.
 [ ] Optimize CPU execution
 [ ] Optimize GPU execution
-[ ] Transparent window background
+[ ] GUI scaling (so buttons can become bigger, as an example, for higher-resolution screens / people with visibility issues)
 [ ] File filters aren't working on Mac? See: https://discord.com/channels/339550825154347008/900240962792620052/904398152386355210
 [ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
     That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
@@ -153,7 +156,7 @@ TODO
   [x] Sound Cards
     - Add Seek bar
     - Add Volume bar
-  [ ] Image / GIF Cards
+  [x] Image / GIF Cards
     - Freely rotatable by clicking and dragging outside of the corners
     - Paste images from system clipboard? See: https://github.com/golang-design/clipboard - Probably need to save image in project file itself in this case.
   - Line Tasks no longer exist (for now)
@@ -189,7 +192,6 @@ Font base size “knowledge”
 Text drawing efficiently
 IME support (entry of foreign characters)
 Ideally, different locale support (detection of the name of a key from a different locale, so the Q key becomes the A key on a FR keyboard locale)
-GUI scaling (so buttons can become bigger, as an example, for higher-resolution screens / people with visibility issues)
 
 Dialog editor of some description??? Seems like it could be sick to have some kind of system that would allow you to 
 

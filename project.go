@@ -213,6 +213,9 @@ func (project *Project) Save() {
 
 	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
 
+	saveData, _ = sjson.Set(saveData, "pan", project.Camera.TargetPosition)
+	saveData, _ = sjson.Set(saveData, "zoom", project.Camera.TargetZoom)
+
 	saveData, _ = sjson.SetRaw(saveData, "root", project.RootFolder.Serialize())
 
 	savedImages := map[string]string{}
@@ -301,7 +304,7 @@ func (project *Project) OpenFrom(filename string) {
 	json := string(jsonData)
 
 	if ver, err := semver.Parse(gjson.Get(json, "version").String()); err != nil || ver.Minor < 8 {
-		globals.EventLog.Log("Error: Can't load project as it's a pre-0.8 project.", filename)
+		globals.EventLog.Log("Error: Can't load project [%s] as it's a pre-0.8 project.", filename)
 		globals.EventLog.Log("Pre-0.8 projects will be supported later.")
 	} else {
 
@@ -310,6 +313,16 @@ func (project *Project) OpenFrom(filename string) {
 		newProject := NewProject()
 		newProject.Loading = true
 		newProject.Filepath = filename
+
+		// Re-implemented in v0.8.0-alpha3
+		if gjson.Get(json, "pan").Exists() {
+			pan := gjson.Get(json, "pan").Map()
+			newProject.Camera.TargetPosition.X = float32(pan["X"].Float())
+			newProject.Camera.TargetPosition.Y = float32(pan["Y"].Float())
+			newProject.Camera.Position = newProject.Camera.TargetPosition
+			newProject.Camera.TargetZoom = float32(gjson.Get(json, "zoom").Float())
+			newProject.Camera.Zoom = newProject.Camera.TargetZoom
+		}
 
 		data := gjson.Get(json, "root").String()
 
