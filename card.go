@@ -106,6 +106,50 @@ func (le *LinkEnding) Update() {
 
 	}
 
+	points := []Point{}
+	if len(le.Joints) == 0 {
+		points = append(points, le.Start.NearestPointInRect(le.End.Center()), le.End.NearestPointInRect(le.Start.Center()))
+	} else {
+		points = append(points, le.Start.NearestPointInRect(le.Joints[0].Position))
+
+		for _, joint := range le.Joints {
+			points = append(points, joint.Position)
+		}
+
+		points = append(points, le.End.NearestPointInRect(le.Joints[len(le.Joints)-1].Position))
+	}
+
+	for i := 0; i < len(points)-1; i++ {
+
+		start := points[i]
+		end := points[i+1]
+		if i == len(points)-2 {
+			off := start.Sub(end).Normalized()
+			end = end.Add(off.Mult(16))
+		}
+
+		center := start.Add(end).Div(2)
+
+		jointSize := float32(24)
+		r := &sdl.FRect{center.X - (jointSize / 2), center.Y - (jointSize / 2), jointSize, jointSize}
+
+		if ClickedInRect(r, true) {
+
+			lj := NewLinkJoint(center.X, center.Y)
+			lj.Dragging = true
+
+			joints := append([]*LinkJoint{}, le.Joints[:i]...)
+			joints = append(joints, lj)
+			joints = append(joints, le.Joints[i:]...)
+			le.Joints = joints
+
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+			le.Start.CreateUndoState = true
+
+		}
+
+	}
+
 }
 
 func (le *LinkEnding) Draw() {
@@ -119,6 +163,10 @@ func (le *LinkEnding) Draw() {
 
 		if mainColor[3] == 0 {
 			mainColor = ColorWhite
+		}
+
+		if mainColor.Equals(outlineColor) {
+			outlineColor = ColorBlack
 		}
 
 		points := []Point{}
@@ -137,7 +185,7 @@ func (le *LinkEnding) Draw() {
 		// delta := points[len(points)-1].Sub(le.End.Center())
 		// px = px.Add(delta.Normalized().Mult(16))
 
-		le.GUIImage.Texture.SetColorMod(getThemeColor(GUIFontColor).RGB())
+		le.GUIImage.Texture.SetColorMod(mainColor.RGB())
 		le.GUIImage.Texture.SetAlphaMod(255)
 		delta := points[len(points)-1].Sub(points[len(points)-2])
 		px := points[len(points)-1].Sub(delta.Normalized().Mult(16))
@@ -163,24 +211,6 @@ func (le *LinkEnding) Draw() {
 			ThickLine(camera.TranslatePoint(start), camera.TranslatePoint(end), thickness, mainColor)
 
 			center := start.Add(end).Div(2)
-
-			jointSize := float32(24)
-			r := &sdl.FRect{center.X - (jointSize / 2), center.Y - (jointSize / 2), jointSize, jointSize}
-
-			if ClickedInRect(r, true) {
-
-				lj := NewLinkJoint(center.X, center.Y)
-				lj.Dragging = true
-
-				joints := append([]*LinkJoint{}, le.Joints[:i]...)
-				joints = append(joints, lj)
-				joints = append(joints, le.Joints[i:]...)
-				le.Joints = joints
-
-				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-				le.Start.CreateUndoState = true
-
-			}
 
 			dist := (center.Distance(globals.Mouse.WorldPosition()) - 32) / 4
 
@@ -209,7 +239,19 @@ func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
 	point = le.Start.Page.Project.Camera.TranslatePoint(point)
 	icon := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
 	dst := &sdl.FRect{point.X - 16, point.Y - 16, 32, 32}
+
 	outlineColor := getThemeColor(GUIFontColor)
+	fillColor := ColorWhite
+
+	if le.Start.Contents != nil {
+		fillColor = le.Start.Contents.Color()
+		if fillColor[3] == 0 {
+			fillColor = ColorWhite
+			if fillColor.Equals(outlineColor) {
+				outlineColor = ColorBlack
+			}
+		}
+	}
 
 	icon.Texture.SetColorMod(outlineColor.RGB())
 	icon.Texture.SetAlphaMod(alpha)
@@ -218,13 +260,8 @@ func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
 	globals.Renderer.CopyF(icon.Texture, src, dst)
 
 	if le.Start.Contents != nil {
-		color := le.Start.Contents.Color()
-		if color[3] == 0 {
-			color = ColorWhite
-		}
-
-		icon.Texture.SetColorMod(color.RGB())
-		icon.Texture.SetAlphaMod(color[3])
+		icon.Texture.SetColorMod(fillColor.RGB())
+		icon.Texture.SetAlphaMod(fillColor[3])
 	}
 
 	if fixed {
@@ -486,10 +523,6 @@ func (card *Card) Update() {
 
 		}
 
-	}
-
-	for _, link := range card.Links {
-		link.Update()
 	}
 
 	// We can't do this because this makes dragging multiple Cards impossible.

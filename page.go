@@ -180,6 +180,19 @@ func (page *Page) Update() {
 		return j < i
 	})
 
+	// We update links out here so they take priority in clicking over the cards themselves. TODO: Optimize this, as this doesn't really need to be done every frame
+	if globals.Project.CurrentPage == page {
+
+		for _, card := range reversed {
+
+			for _, link := range card.Links {
+				link.Update()
+			}
+
+		}
+
+	}
+
 	for _, card := range reversed {
 		card.Update()
 	}
@@ -497,7 +510,10 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 	} else {
 
 		if filepath.Ext(filePath) == ".plan" {
-			page.Project.OpenFrom(filePath)
+			globals.Project.LoadConfirmationTo = filePath
+			loadConfirm := globals.MenuSystem.Get("confirm load")
+			loadConfirm.Center()
+			loadConfirm.Open()
 		} else {
 
 			text, err := os.ReadFile(filePath)

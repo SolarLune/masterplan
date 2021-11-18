@@ -1,6 +1,7 @@
 [x] Fix the text somehow, it still looks bad
 [x] Implement searching shortcuts
 [x] Replace double-click setting with drop-down for nothing, checkbox, last Card type: https://discord.com/channels/339550825154347008/758009278756946040/904827107102851164
+[ ] Fix inability to click nodes on top of other Cards
 [ ] Add Touch support: https://wiki.libsdl.org/SDL_TouchFingerEvent
 [ ] Press the link shortcut to link, rather than holding and clicking to link. This would allow you to put it on a mouse button for ease of link.
 [ ] Transparent window background: Doesn't seem to be possible with SDL, unfortunately. I'll have to see if I can work around this, perhaps with a Shaped window or something???
@@ -8,8 +9,9 @@
 [ ] Re-implement autosave
 [ ] Re-implement automatic backups
 [ ] Re-implement auto-load
-[ ] Re-implement Recent Files list
+[x] Re-implement Recent Files list
 [ ] Re-implement Boards
+[ ] Make it so non-active Boards update rarely (maybe once every second, for example).
 [ ] Add a manual to look through to see some techniques / information.
 [ ] Optimize CPU execution
 [ ] Optimize GPU execution

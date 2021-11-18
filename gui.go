@@ -545,8 +545,8 @@ func (button *Button) Update() {
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.CurrentCursor == "normal" {
 			if button.OnPressed != nil {
-				button.OnPressed()
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+				button.OnPressed()
 			}
 		}
 
@@ -2176,6 +2176,13 @@ func (container *Container) Clear() {
 	// for _, row := range container.Rows {
 	// 	row.Destroy()
 	// }
+	container.Rows = []*ContainerRow{}
+}
+
+func (container *Container) Destroy() {
+	for _, row := range container.Rows {
+		row.Destroy()
+	}
 	container.Rows = []*ContainerRow{}
 }
 

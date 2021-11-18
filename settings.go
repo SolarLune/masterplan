@@ -22,7 +22,6 @@ const (
 	SettingsUnfocusedFPS           = "UnfocusedFPS"
 	SettingsDisableSplashscreen    = "DisableSplashscreen"
 	SettingsBorderlessWindow       = "BorderlessWindow"
-	SettingsRecentPlanList         = "RecentPlanList"
 	SettingsAlwaysShowNumbering    = "AlwaysShowNumbering"
 	SettingsDisplayMessages        = "DisplayMessages"
 	SettingsDoubleClickMode        = "DoubleClickMode"
@@ -74,6 +73,14 @@ func NewProgramSettings() *Properties {
 
 		props.Deserialize(data)
 
+		recentFiles := gjson.Get(string(jsonData), "recent files")
+		if recentFiles.Exists() {
+			array := recentFiles.Array()
+			for i := 0; i < len(array); i++ {
+				globals.RecentFiles = append(globals.RecentFiles, array[i].String())
+			}
+		}
+
 		globals.Keybindings.Deserialize(string(jsonData))
 
 	}
@@ -92,6 +99,8 @@ func SaveSettings() {
 	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
 
 	saveData, _ = sjson.SetRaw(saveData, "properties", globals.Settings.Serialize())
+
+	saveData, _ = sjson.Set(saveData, "recent files", globals.RecentFiles)
 
 	saveData, _ = sjson.SetRaw(saveData, "keybindings", globals.Keybindings.Serialize())
 

@@ -41,6 +41,7 @@ type Globals struct {
 
 	Settings    *Properties
 	Keybindings *Keybindings
+	RecentFiles []string
 
 	DebugMode          bool
 	TriggerReloadFonts bool

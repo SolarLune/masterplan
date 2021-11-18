@@ -308,7 +308,7 @@ func handleEvents() {
 			}
 
 		case *sdl.QuitEvent:
-			confirmQuit := globals.MenuSystem.Get("confirmquit")
+			confirmQuit := globals.MenuSystem.Get("confirm quit")
 			if confirmQuit.Opened {
 				quit = true
 			}

@@ -62,6 +62,8 @@ type Project struct {
 	UndoHistory    *UndoHistory
 	LastCardType   string
 	Modified       bool
+
+	LoadConfirmationTo string
 }
 
 func NewProject() *Project {
@@ -289,7 +291,10 @@ func (project *Project) Open() {
 
 	if filename, err := zenity.SelectFile(zenity.Title("Select MasterPlan Project to Open..."), zenity.FileFilter{Name: "Project File (*.plan)", Patterns: []string{"*.plan"}}); err == nil {
 
-		project.OpenFrom(filename)
+		project.LoadConfirmationTo = filename
+		loadConfirm := globals.MenuSystem.Get("confirm load")
+		loadConfirm.Center()
+		loadConfirm.Open()
 
 	} else if err != zenity.ErrCanceled {
 		panic(err)
@@ -310,6 +315,22 @@ func (project *Project) OpenFrom(filename string) {
 		globals.EventLog.Log("Error: Can't load project [%s] as it's a pre-0.8 project.", filename)
 		globals.EventLog.Log("Pre-0.8 projects will be supported later.")
 	} else {
+
+		// Limit the length of the recent files list to 10 (this is arbitrary, but should be good enough)
+		if len(globals.RecentFiles) > 10 {
+			globals.RecentFiles = globals.RecentFiles[:10]
+		}
+
+		for i := 0; i < len(globals.RecentFiles); i++ {
+			if globals.RecentFiles[i] == filename {
+				globals.RecentFiles = append(globals.RecentFiles[:i], globals.RecentFiles[i+1:]...)
+				break
+			}
+		}
+
+		globals.RecentFiles = append([]string{filename}, globals.RecentFiles...)
+
+		SaveSettings()
 
 		globals.EventLog.On = false
 

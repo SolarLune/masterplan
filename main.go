@@ -94,6 +94,7 @@ func init() {
 	globals.GrabClient = grab.NewClient()
 	globals.MenuSystem = NewMenuSystem()
 	globals.Keybindings = NewKeybindings()
+	globals.RecentFiles = []string{}
 	globals.Settings = NewProgramSettings()
 
 }
@@ -679,7 +680,7 @@ func ConstructMenus() {
 	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() {
 
 		if globals.Project.Modified {
-			confirmNewProject := globals.MenuSystem.Get("confirmNewProject")
+			confirmNewProject := globals.MenuSystem.Get("confirm new project")
 			confirmNewProject.Center()
 			confirmNewProject.Open()
 		} else {
@@ -694,6 +695,18 @@ func ConstructMenus() {
 		globals.Project.Open()
 		fileMenu.Close()
 	}))
+
+	loadRecentButton := NewButton("Load Recent...", nil, nil, false, nil)
+	loadRecentButton.OnPressed = func() {
+		loadRecent := globals.MenuSystem.Get("load recent")
+		loadRecent.Rect.Y = loadRecentButton.Rect.Y
+		loadRecent.Rect.X = fileMenu.Rect.X + fileMenu.Rect.W
+		loadRecent.Open()
+		// globals.Project.Open()
+		// fileMenu.Close()
+	}
+	root.AddRow(AlignCenter).Add("Load Recent", loadRecentButton)
+
 	root.AddRow(AlignCenter).Add("Save Project", NewButton("Save Project", nil, nil, false, func() {
 
 		if globals.Project.Filepath != "" {
@@ -713,7 +726,7 @@ func ConstructMenus() {
 		fileMenu.Close()
 	}))
 	root.AddRow(AlignCenter).Add("Quit", NewButton("Quit", nil, nil, false, func() {
-		confirmQuit := globals.MenuSystem.Get("confirmquit")
+		confirmQuit := globals.MenuSystem.Get("confirm quit")
 		confirmQuit.Center()
 		confirmQuit.Open()
 		fileMenu.Close()
@@ -752,6 +765,45 @@ func ConstructMenus() {
 		globals.MenuSystem.Get("stats").Open()
 		viewMenu.Close()
 	}))
+
+	loadRecent := globals.MenuSystem.Add(NewMenu(&sdl.FRect{128, 96, 512, 128}, true), "load recent", false)
+	loadRecent.OnOpen = func() {
+
+		root = loadRecent.Pages["root"]
+		root.Destroy()
+
+		if len(globals.RecentFiles) == 0 {
+			row = root.AddRow(AlignCenter)
+			row.Add("no recent files", NewLabel("No Recent Files", nil, false, AlignLeft))
+		} else {
+
+			for i, recentName := range globals.RecentFiles {
+				recent := recentName // We have to do this so it points to the correct variable, again
+				row = root.AddRow(AlignLeft)
+				_, filename := filepath.Split(recent)
+				row.Add("", NewButton(strconv.Itoa(i+1)+": "+filename, nil, nil, false, func() {
+					globals.Project.LoadConfirmationTo = recent
+					loadConfirm := globals.MenuSystem.Get("confirm load")
+					loadConfirm.Center()
+					loadConfirm.Open()
+					loadRecent.Close()
+				}))
+			}
+
+			row = root.AddRow(AlignLeft)
+			row.Add("", NewButton("Clear Recent Files", nil, nil, false, func() {
+				globals.RecentFiles = []string{}
+				loadRecent.Close()
+				SaveSettings()
+			}))
+
+		}
+
+		idealSize := root.IdealSize()
+		rect := loadRecent.Rectangle()
+		loadRecent.Recreate(rect.W, idealSize.Y+16)
+
+	}
 
 	// Create Menu
 
@@ -979,9 +1031,9 @@ func ConstructMenus() {
 	commonMenu.Resizeable = true
 	commonMenu.CloseButtonEnabled = true
 
-	// Confirm Quit Menu
+	// Confirmation Menus
 
-	confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirmquit", true)
+	confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirm quit", true)
 	confirmQuit.Draggable = true
 	root = confirmQuit.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to quit?", nil, false, AlignCenter))
@@ -991,7 +1043,7 @@ func ConstructMenus() {
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
 	confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
 
-	confirmNewProject := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirmNewProject", true)
+	confirmNewProject := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirm new project", true)
 	confirmNewProject.Draggable = true
 	root = confirmNewProject.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Create a new project?", nil, false, AlignCenter))
@@ -1005,9 +1057,22 @@ func ConstructMenus() {
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmNewProject.Close() }))
 	confirmNewProject.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
 
+	confirmLoad := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirm load", true)
+	confirmLoad.Draggable = true
+	root = confirmLoad.Pages["root"]
+	root.AddRow(AlignCenter).Add("label", NewLabel("Load this project?", nil, false, AlignCenter))
+	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
+	row = root.AddRow(AlignCenter)
+	row.Add("yes", NewButton("Yes", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
+		globals.Project.OpenFrom(globals.Project.LoadConfirmationTo)
+		confirmLoad.Close()
+	}))
+	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmLoad.Close() }))
+	confirmLoad.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
+
 	// // Confirm Load Menu - do this after Project.Modified works again.
 
-	// confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirmquit", true)
+	// confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirm quit", true)
 	// confirmQuit.Draggable = true
 
 	// root = confirmQuit.Pages["root"]

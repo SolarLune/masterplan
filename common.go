@@ -477,6 +477,13 @@ func (color Color) Invert() Color {
 
 }
 
+func (color Color) Equals(other Color) bool {
+	return color[0] == other[0] &&
+		color[1] == other[1] &&
+		color[2] == other[2] &&
+		color[3] == other[3]
+}
+
 func (color Color) Clone() Color {
 	return NewColor(color.RGBA())
 }
