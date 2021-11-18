@@ -594,14 +594,14 @@ func main() {
 
 		title := "MasterPlan v" + globals.Version.String() + demoMode
 
-		// if currentProject.FilePath != "" {
-		// 	_, fileName := filepath.Split(currentProject.FilePath)
-		// 	title += fmt.Sprintf(" - %s", fileName)
-		// }
+		if globals.Project.Filepath != "" {
+			_, fileName := filepath.Split(globals.Project.Filepath)
+			title += " - " + fileName
+		}
 
-		// if currentProject.Modified {
-		// 	title += " *"
-		// }
+		if globals.Project.Modified {
+			title += " [MODIFIED]"
+		}
 
 		if windowTitle != title {
 			window.SetTitle(title)
@@ -677,16 +677,33 @@ func ConstructMenus() {
 	root = fileMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() {
-		globals.Project.LoadingProject = NewProject()
-		globals.EventLog.Log("New project created.")
+
+		if globals.Project.Modified {
+			confirmNewProject := globals.MenuSystem.Get("confirmNewProject")
+			confirmNewProject.Center()
+			confirmNewProject.Open()
+		} else {
+			globals.Project.LoadingProject = NewProject()
+			globals.EventLog.Log("New project created.")
+		}
+
+		fileMenu.Close()
+
 	}))
-	root.AddRow(AlignCenter).Add("Load Project", NewButton("Load Project", nil, nil, false, func() { globals.Project.Open() }))
+	root.AddRow(AlignCenter).Add("Load Project", NewButton("Load Project", nil, nil, false, func() {
+		globals.Project.Open()
+		fileMenu.Close()
+	}))
 	root.AddRow(AlignCenter).Add("Save Project", NewButton("Save Project", nil, nil, false, func() {
+
 		if globals.Project.Filepath != "" {
 			globals.Project.Save()
 		} else {
 			globals.Project.SaveAs()
 		}
+
+		fileMenu.Close()
+
 	}))
 	root.AddRow(AlignCenter).Add("Save Project As...", NewButton("Save Project As...", &sdl.FRect{0, 0, 256, 32}, nil, false, func() { globals.Project.SaveAs() }))
 	root.AddRow(AlignCenter).Add("Settings", NewButton("Settings", nil, nil, false, func() {
@@ -966,15 +983,27 @@ func ConstructMenus() {
 
 	confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirmquit", true)
 	confirmQuit.Draggable = true
-
 	root = confirmQuit.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to quit?", nil, false, AlignCenter))
-	root.AddRow(AlignCenter).Add("label", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
+	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
 	row = root.AddRow(AlignCenter)
 	row.Add("yes", NewButton("Yes, Quit", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { quit = true }))
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
-
 	confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
+
+	confirmNewProject := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirmNewProject", true)
+	confirmNewProject.Draggable = true
+	root = confirmNewProject.Pages["root"]
+	root.AddRow(AlignCenter).Add("label", NewLabel("Create a new project?", nil, false, AlignCenter))
+	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
+	row = root.AddRow(AlignCenter)
+	row.Add("yes", NewButton("Yes", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
+		globals.Project.LoadingProject = NewProject()
+		globals.EventLog.Log("New project created.")
+		confirmNewProject.Close()
+	}))
+	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmNewProject.Close() }))
+	confirmNewProject.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
 
 	// // Confirm Load Menu - do this after Project.Modified works again.
 

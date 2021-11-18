@@ -200,6 +200,10 @@ func (history *UndoHistory) Update() {
 
 		// fmt.Println("______")
 
+		if !globals.Project.Loading {
+			globals.Project.Modified = true
+		}
+
 		history.Changed = false
 
 	}

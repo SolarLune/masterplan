@@ -61,6 +61,7 @@ type Project struct {
 	Loading        bool
 	UndoHistory    *UndoHistory
 	LastCardType   string
+	Modified       bool
 }
 
 func NewProject() *Project {
@@ -261,6 +262,8 @@ func (project *Project) Save() {
 
 	globals.EventLog.Log("Project saved successfully.")
 
+	project.Modified = false
+
 }
 
 func (project *Project) SaveAs() {
@@ -361,7 +364,15 @@ func (project *Project) OpenFrom(filename string) {
 
 		project.LoadingProject = newProject
 
-		project.LoadingProject.UndoHistory.MinimumFrame = 1
+		// Settle the elements in - we do this twice because it seems like things might take two steps (create card, set properties)
+		for i := 0; i < 2; i++ {
+			newProject.RootFolder.Update()
+			newProject.CurrentPage.Draw()
+		}
+
+		newProject.UndoHistory.Update()
+
+		newProject.UndoHistory.MinimumFrame = newProject.UndoHistory.Index
 
 		globals.EventLog.On = true
 
