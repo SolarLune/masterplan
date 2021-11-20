@@ -1,5 +1,27 @@
 -------
 
+v0.8.0-alpha3
+
+-------
+
+Double-click settings (save previous task type, double-click to create a card) have been combined into a single dropdown.
+Adding option to search for keybindings.
+Rewording some shortcuts.
+Adding confirmation on quit, new project, or load project.
+RE-IMPLEMENTATION: Saving includes the camera location and zoom.
+RE-IMPLEMENTATION: Adding project name and "MODIFIED" status to titlebar. The modified status is set when something in the project changes that necessitates the creation of an undo state.
+RE-IMPLEMENTATION: Adding Load Recent... menu.
+FIX: Links between cards that are directly next to each other no longer glitch out and point to the top-left infinitely.
+FIX: Text on cards no longer looks like crap on edges for some characters (this was due to clearing the renderer result buffer using transparent black instead of transparent white).
+FIX: Switching from one content type to another no longer deselects the current tool for Maps.
+FIX: You can no longer undo the loading of a project.
+FIX: Lines that have no color (like from images) now have black outlines.
+FIX: You can now more easily click on line endings or nodes that are on top of Cards.
+CHANGE: Line arrows are now colored instead of white.
+FIX: You no longer accidentally click on something in the background by clicking on a button in a menu that then closes.
+
+-------
+
 v0.8.0-alpha2
 
 -------
