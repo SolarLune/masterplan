@@ -2,11 +2,13 @@
 [x] Implement searching shortcuts
 [x] Replace double-click setting with drop-down for nothing, checkbox, last Card type: https://discord.com/channels/339550825154347008/758009278756946040/904827107102851164
 [x] Fix inability to click nodes on top of other Cards
+[x] Loading doesn't link properly: https://discord.com/channels/339550825154347008/900240962792620052/902289884541239306
 [ ] Add Touch support: https://wiki.libsdl.org/SDL_TouchFingerEvent
 [ ] Press the link shortcut to link, rather than holding and clicking to link. This would allow you to put it on a mouse button for ease of link.
 [ ] Transparent window background: Doesn't seem to be possible with SDL, unfortunately. I'll have to see if I can work around this, perhaps with a Shaped window or something???
 [x] Re-implement saving the pan location so you can pick up where you left off
 [ ] Re-implement autosave
+[ ] The line underneath text COULD appear under each new empty line / after two empty lines?
 [ ] Re-implement automatic backups
 [ ] Re-implement auto-load
 [x] Re-implement Recent Files list
@@ -16,6 +18,7 @@
 [ ] Optimize CPU execution
 [ ] Optimize GPU execution
 [ ] GUI scaling (so buttons can become bigger, as an example, for higher-resolution screens / people with visibility issues)
+[ ] Text scaling (so text can be smaller for people who want it to be smaller to fit more onscreen???)
 [ ] File filters aren't working on Mac? See: https://discord.com/channels/339550825154347008/900240962792620052/904398152386355210
 [ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
     That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
@@ -50,7 +53,6 @@
 Number top-level tasks option
 Save pan position
 Fix map rotation icons
-Loading doesn't link properly: https://discord.com/channels/339550825154347008/900240962792620052/902289884541239306
 Fix checker pattern
 Add size un-lock to grid option
 Labels NEED To be able to scroll. There's not really a good way around this, it's highly necessary.

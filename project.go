@@ -337,6 +337,7 @@ func (project *Project) OpenFrom(filename string) {
 		newProject := NewProject()
 		newProject.Loading = true
 		newProject.Filepath = filename
+		project.LoadingProject = newProject
 
 		// Re-implemented in v0.8.0-alpha3
 		if gjson.Get(json, "pan").Exists() {
@@ -372,18 +373,19 @@ func (project *Project) OpenFrom(filename string) {
 		for _, page := range newProject.RootFolder.Pages() {
 
 			for _, card := range page.Cards {
+
 				if card.Properties.Has("saveimage") {
 					card.Contents.(*ImageContents).LoadFileFrom(savedImageFileNames[card.Properties.Get("filepath").AsString()]) // Reload the file
 				}
+
 			}
 
 			page.UpdateLinks()
+
 		}
 
 		newProject.CurrentPage = newProject.RootFolder.Pages()[1]
 		newProject.RootFolder.Remove(newProject.RootFolder.Contents[0])
-
-		project.LoadingProject = newProject
 
 		// Settle the elements in - we do this twice because it seems like things might take two steps (create card, set properties)
 		for i := 0; i < 2; i++ {

@@ -287,6 +287,7 @@ type Card struct {
 	DragStart               Point
 	DragStartOffset         Point
 	ID                      int64
+	LoadedID                int64
 	Resizing                string
 	ResizeShape             *Shape
 	LockResizingAspectRatio float32
@@ -819,7 +820,7 @@ func (card *Card) Serialize() string {
 
 		for _, link := range card.Links {
 
-			if link.End.Valid && link.Start == card {
+			if link.End.Valid && link.Start.Valid {
 
 				dataOut := "{}"
 				dataOut, _ = sjson.Set(dataOut, "start", link.Start.ID)
@@ -855,8 +856,8 @@ func (card *Card) Deserialize(data string) {
 	card.Rect.X = float32(rect.Get("X").Float())
 	card.Rect.Y = float32(rect.Get("Y").Float())
 
-	if gjson.Get(data, "id").Exists() {
-		card.ID = gjson.Get(data, "id").Int()
+	if card.Page.Project.Loading && gjson.Get(data, "id").Exists() {
+		card.LoadedID = gjson.Get(data, "id").Int()
 	}
 
 	linkedTo := []int64{}
@@ -867,8 +868,7 @@ func (card *Card) Deserialize(data string) {
 
 		for _, linkEnd := range gjson.Get(data, "links").Array() {
 			linkedTo = append(linkedTo, gjson.Get(linkEnd.Str, "end").Int())
-			linkEndString, _ := sjson.Set(linkEnd.String(), "start", card.ID)
-			links = append(links, linkEndString)
+			links = append(links, linkEnd.String())
 		}
 
 		card.Page.DeserializationLinks = append(card.Page.DeserializationLinks, links...)
@@ -1206,6 +1206,14 @@ func (card *Card) ReceiveMessage(message *Message) {
 		card.Page.Grid.Remove(card)
 		card.Page.UpdateStacks = true
 
+		for _, c := range card.Links {
+			if c.Start == card {
+				card.Unlink(c.End)
+			} else {
+				card.Unlink(c.Start)
+			}
+		}
+
 		state := NewUndoState(card)
 		state.Deletion = true
 		card.Page.Project.UndoHistory.Capture(state)
@@ -1214,6 +1222,8 @@ func (card *Card) ReceiveMessage(message *Message) {
 		card.Page.AddDrawable(card.Drawable)
 		card.Page.Grid.Put(card)
 		card.Page.UpdateStacks = true
+		card.Page.Project.UndoHistory.Capture(NewUndoState(card))
+	} else if message.Type == MessageLinkDeleted {
 		card.Page.Project.UndoHistory.Capture(NewUndoState(card))
 	}
 

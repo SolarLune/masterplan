@@ -335,8 +335,15 @@ func (page *Page) UpdateLinks() {
 
 	for _, linkString := range page.DeserializationLinks {
 
-		start := page.CardByID(gjson.Get(linkString, "start").Int())
-		end := page.CardByID(gjson.Get(linkString, "end").Int())
+		var start, end *Card
+
+		if page.Project.Loading {
+			start = page.CardByLoadedID(gjson.Get(linkString, "start").Int())
+			end = page.CardByLoadedID(gjson.Get(linkString, "end").Int())
+		} else {
+			start = page.CardByID(gjson.Get(linkString, "start").Int())
+			end = page.CardByID(gjson.Get(linkString, "end").Int())
+		}
 
 		if start != nil && end != nil {
 			link := start.Link(end)
@@ -379,6 +386,15 @@ func (page *Page) CreateNewCard(contentType string) *Card {
 func (page *Page) CardByID(id int64) *Card {
 	for _, card := range page.Cards {
 		if card.ID == id {
+			return card
+		}
+	}
+	return nil
+}
+
+func (page *Page) CardByLoadedID(id int64) *Card {
+	for _, card := range page.Cards {
+		if card.LoadedID == id {
 			return card
 		}
 	}
@@ -434,7 +450,6 @@ func (page *Page) PasteCards() {
 
 		if links := gjson.Get(serialized, "links"); links.Exists() {
 			for linkIndex, link := range links.Array() {
-
 				for old, new := range oldToNew {
 					if old.ID == link.Get("start").Int() {
 						serialized, _ = sjson.Set(serialized, "links."+strconv.Itoa(linkIndex)+".start", new.ID)
