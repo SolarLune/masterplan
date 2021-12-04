@@ -89,7 +89,11 @@ func (stack *Stack) PostUpdate() {
 			stack.Number = numbers
 		} else {
 
-			indentation := stack.Top().Rect.X
+			if stack.TopNumberable() == nil {
+				return
+			}
+
+			indentation := stack.TopNumberable().Rect.X
 
 			topHalf := append(stack.Head(), stack.Card)
 
@@ -161,11 +165,28 @@ func (stack *Stack) Children() []*Card {
 	for _, c := range stack.Tail() {
 		if stack.Number.IsParentOf(c.Stack.Number) {
 			children = append(children, c)
-		} else {
-			break
 		}
 	}
 	return children
+}
+
+func (stack *Stack) TopNumberable() *Card {
+
+	cards := stack.Head()
+
+	for i := len(cards) - 1; i >= 0; i-- {
+		if cards[i].Numberable() {
+			return cards[i]
+		}
+	}
+
+	// No head of stack; one card alone
+
+	if stack.Card.Numberable() {
+		return stack.Card
+	}
+	return nil
+
 }
 
 func (stack *Stack) Top() *Card {

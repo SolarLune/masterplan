@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"strconv"
@@ -159,7 +160,7 @@ func (le *LinkEnding) Draw() {
 		thickness := int32(4)
 		outlineColor := getThemeColor(GUIFontColor)
 		camera := le.Start.Page.Project.Camera
-		mainColor := le.Start.Contents.Color()
+		mainColor := le.Start.Color()
 
 		if mainColor[3] == 0 {
 			mainColor = ColorWhite
@@ -185,7 +186,7 @@ func (le *LinkEnding) Draw() {
 		// delta := points[len(points)-1].Sub(le.End.Center())
 		// px = px.Add(delta.Normalized().Mult(16))
 
-		le.GUIImage.Texture.SetColorMod(mainColor.RGB())
+		le.GUIImage.Texture.SetColorMod(outlineColor.RGB())
 		le.GUIImage.Texture.SetAlphaMod(255)
 		delta := points[len(points)-1].Sub(points[len(points)-2])
 		px := points[len(points)-1].Sub(delta.Normalized().Mult(16))
@@ -244,7 +245,7 @@ func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
 	fillColor := ColorWhite
 
 	if le.Start.Contents != nil {
-		fillColor = le.Start.Contents.Color()
+		fillColor = le.Start.Color()
 		if fillColor[3] == 0 {
 			fillColor = ColorWhite
 			if fillColor.Equals(outlineColor) {
@@ -294,6 +295,7 @@ type Card struct {
 	CreateUndoState         bool
 	Depth                   int
 	Valid                   bool
+	CustomColor             Color
 
 	GridExtents GridSelection
 	Stack       *Stack
@@ -600,11 +602,7 @@ func (card *Card) DrawShadow() {
 	tp.X += 8
 	tp.Y += 8
 
-	color := NewColor(255, 255, 255, 255)
-
-	if card.Contents != nil {
-		color = card.Contents.Color()
-	}
+	color := card.Color()
 
 	if color[3] > 0 {
 
@@ -667,11 +665,8 @@ func (card *Card) DrawCard() {
 
 	tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
 
-	color := NewColor(255, 255, 255, 255)
+	color := card.Color()
 
-	if card.Contents != nil {
-		color = card.Contents.Color()
-	}
 	if card.Selected && globals.Settings.Get(SettingsFlashSelected).AsBool() {
 		color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
 	}
@@ -683,6 +678,16 @@ func (card *Card) DrawCard() {
 	}
 
 	card.DrawContents()
+
+}
+
+func (card *Card) Color() Color {
+
+	if card.Contents != nil {
+		return card.Contents.Color()
+	}
+
+	return ColorWhite.Clone()
 
 }
 
@@ -711,7 +716,7 @@ func (card *Card) PostDraw() {
 	if card.Page.Linking == card {
 
 		translatedStart := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)})
-		color := card.Contents.Color()
+		color := card.Color()
 
 		if color[3] <= 0 {
 			color = ColorWhite
@@ -812,6 +817,9 @@ func (card *Card) Serialize() string {
 
 	data, _ = sjson.Set(data, "rect", card.Rect)
 	data, _ = sjson.Set(data, "contents", card.ContentType)
+	if card.CustomColor != nil {
+		data, _ = sjson.Set(data, "custom color", card.CustomColor.ToHexString())
+	}
 	data, _ = sjson.SetRaw(data, "properties", card.Properties.Serialize())
 
 	if len(card.Links) > 0 {
@@ -873,6 +881,14 @@ func (card *Card) Deserialize(data string) {
 
 		card.Page.DeserializationLinks = append(card.Page.DeserializationLinks, links...)
 
+	}
+
+	if gjson.Get(data, "custom color").Exists() {
+		cc := gjson.Get(data, "custom color")
+		fmt.Println(cc)
+		card.CustomColor = ColorFromHexString(cc.String())
+	} else {
+		card.CustomColor = nil
 	}
 
 	for _, link := range card.Links {

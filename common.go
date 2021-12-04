@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -421,6 +422,39 @@ func NewColor(r, g, b, a uint8) Color {
 	return Color{r, g, b, a}
 }
 
+// Cribbed from: https://github.com/lucasb-eyer/go-colorful/blob/master/colors.go
+func NewColorFromHSV(h, s, v float64) Color {
+	Hp := h / 60.0
+	C := v * s
+	X := C * (1.0 - math.Abs(math.Mod(Hp, 2.0)-1.0))
+
+	m := v - C
+	r, g, b := 0.0, 0.0, 0.0
+
+	switch {
+	case 0.0 <= Hp && Hp < 1.0:
+		r = C
+		g = X
+	case 1.0 <= Hp && Hp < 2.0:
+		r = X
+		g = C
+	case 2.0 <= Hp && Hp < 3.0:
+		g = C
+		b = X
+	case 3.0 <= Hp && Hp < 4.0:
+		g = X
+		b = C
+	case 4.0 <= Hp && Hp < 5.0:
+		r = X
+		b = C
+	case 5.0 <= Hp && Hp < 6.0:
+		r = C
+		b = X
+	}
+
+	return Color{uint8((m + r) * 255), uint8((m + g) * 255), uint8((m + b) * 255), 255}
+}
+
 func (color Color) RGBA() (uint8, uint8, uint8, uint8) {
 	return color[0], color[1], color[2], color[3]
 }
@@ -465,6 +499,20 @@ func (color Color) Sub(value uint8) Color {
 
 }
 
+func (color Color) Mult(scalar float32) Color {
+
+	newColor := NewColor(color.RGBA())
+
+	for i, _ := range newColor[:3] {
+
+		newColor[i] = uint8(float32(newColor[i]) * scalar)
+
+	}
+
+	return newColor
+
+}
+
 func (color Color) Invert() Color {
 
 	newColor := NewColor(color.RGBA())
@@ -492,9 +540,70 @@ func (color Color) SDLColor() sdl.Color {
 	return sdl.Color{color[0], color[1], color[2], color[3]}
 }
 
+func (color Color) ToHexString() string {
+	return fmt.Sprintf("%.2X%.2X%.2X%.2X", color[0], color[1], color[2], color[3])
+}
+
+// Also cribbed from: https://github.com/lucasb-eyer/go-colorful/blob/master/colors.go
+func (color Color) HSV() (float64, float64, float64) {
+
+	r := float64(color[0]) / 255
+	g := float64(color[1]) / 255
+	b := float64(color[2]) / 255
+
+	min := math.Min(math.Min(r, g), b)
+	v := math.Max(math.Max(r, g), b)
+	C := v - min
+
+	s := 0.0
+	if v != 0.0 {
+		s = C / v
+	}
+
+	h := 0.0 // We use 0 instead of undefined as in wp.
+	if min != v {
+		if v == r {
+			h = math.Mod((g-b)/C, 6.0)
+		}
+		if v == g {
+			h = (b-r)/C + 2.0
+		}
+		if v == b {
+			h = (r-g)/C + 4.0
+		}
+		h *= 60.0
+		if h < 0.0 {
+			h += 360.0
+		}
+	}
+	return h, s, v
+}
+
+func ColorFromHexString(hex string) Color {
+
+	c := NewColor(0, 0, 0, 255)
+	for i := 0; i < len(hex); i += 2 {
+		v, _ := strconv.ParseInt(hex[i:i+2], 16, 32)
+		c[i/2] = uint8(v)
+	}
+
+	return c
+
+}
+
 var ColorTransparent = NewColor(0, 0, 0, 0)
 var ColorWhite = NewColor(255, 255, 255, 255)
 var ColorBlack = NewColor(0, 0, 0, 255)
+
+func ColorAt(surface *sdl.Surface, x, y int32) (r, g, b, a uint8) {
+
+	// Format seems to be AGBR, not RGBA?
+	pixels := surface.Pixels()
+	bpp := int32(surface.Format.BytesPerPixel)
+	i := (y * surface.Pitch) + (x * bpp)
+	return pixels[i+2], pixels[i+1], pixels[i+0], 255
+
+}
 
 func SmoothLerpTowards(target, current, softness float32) float32 {
 	diff := (target - current) * softness
@@ -687,4 +796,8 @@ func RegexOnlyDigits() string {
 
 func RegexOnlyDigitsAndColon() string {
 	return `[\d:]`
+}
+
+func RegexHex() string {
+	return `[#a-fA-F\d]`
 }

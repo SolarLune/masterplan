@@ -159,7 +159,11 @@ func (cc *CheckboxContents) Draw() {
 			dst.X = cc.Card.DisplayRect.X
 			dst.Y = cc.Card.DisplayRect.Y
 			dst = cc.Card.Page.Project.Camera.TranslateRect(dst)
-			cc.Card.Result.Texture.SetColorMod(getThemeColor(GUICompletedColor).RGB())
+			color := getThemeColor(GUICompletedColor)
+			if cc.Card.CustomColor != nil {
+				color = cc.Card.CustomColor.Add(40)
+			}
+			cc.Card.Result.Texture.SetColorMod(color.RGB())
 			globals.Renderer.CopyF(cc.Card.Result.Texture, src, dst)
 
 		}
@@ -180,17 +184,21 @@ func (cc *CheckboxContents) Draw() {
 func (cc *CheckboxContents) Color() Color {
 
 	color := getThemeColor(GUICheckboxColor)
+	completedColor := getThemeColor(GUICompletedColor)
+
+	if cc.Card.CustomColor != nil {
+		color = cc.Card.CustomColor
+		completedColor = cc.Card.CustomColor.Add(40)
+	}
 
 	if len(cc.DependentCards()) > 0 {
 
 		if cc.PercentageOfChildrenComplete >= 0.99 {
-			color = getThemeColor(GUICompletedColor)
+			color = completedColor
 		}
 
-	} else {
-		if cc.Card.Properties.Get("checked").AsBool() {
-			color = getThemeColor(GUICompletedColor)
-		}
+	} else if cc.Card.Properties.Get("checked").AsBool() {
+		color = completedColor
 	}
 
 	return color
@@ -356,76 +364,91 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	return numbered
 }
 
-func (numbered *NumberedContents) Update() {
+func (nc *NumberedContents) Update() {
 
-	if numbered.Card.Selected && globals.State == StateNeutral {
+	if nc.Card.Selected && globals.State == StateNeutral {
 
 		if globals.Keybindings.Pressed(KBNumberedIncrement) {
-			current := numbered.Card.Properties.Get("current")
-			current.Set(numbered.Current.EnforceCaps(current.AsFloat() + 1))
+			current := nc.Card.Properties.Get("current")
+			current.Set(nc.Current.EnforceCaps(current.AsFloat() + 1))
 		}
 
 		if globals.Keybindings.Pressed(KBNumberedDecrement) {
-			current := numbered.Card.Properties.Get("current")
-			current.Set(numbered.Current.EnforceCaps(current.AsFloat() - 1))
+			current := nc.Card.Properties.Get("current")
+			current.Set(nc.Current.EnforceCaps(current.AsFloat() - 1))
 		}
 
 	}
 
-	numbered.DefaultContents.Update()
+	nc.DefaultContents.Update()
 
-	rect := numbered.Label.Rectangle()
-	rect.W = numbered.Container.Rect.W - 32
-	rect.H = numbered.Container.Rect.H - 32
+	rect := nc.Label.Rectangle()
+	rect.W = nc.Container.Rect.W - 32
+	rect.H = nc.Container.Rect.H - 32
 	if rect.H < 32 {
 		rect.H = 32
 	}
-	numbered.Label.SetRectangle(rect)
+	nc.Label.SetRectangle(rect)
 
-	numbered.Current.MaxValue = numbered.Max.Property.AsFloat()
-	numbered.Max.MinValue = numbered.Current.Property.AsFloat()
+	nc.Current.MaxValue = nc.Max.Property.AsFloat()
+	nc.Max.MinValue = nc.Current.Property.AsFloat()
 
 }
 
-func (numbered *NumberedContents) Draw() {
+func (nc *NumberedContents) Draw() {
 
-	f := &sdl.FRect{0, 0, numbered.Card.Rect.W, numbered.Card.Rect.H}
+	f := &sdl.FRect{0, 0, nc.Card.Rect.W, nc.Card.Rect.H}
 
 	p := float32(0)
 
-	if numbered.Max.Property.AsFloat() > 0 {
-		p = float32(numbered.Current.Property.AsFloat()) / float32(numbered.Max.Property.AsFloat())
+	if nc.Max.Property.AsFloat() > 0 {
+		p = float32(nc.Current.Property.AsFloat()) / float32(nc.Max.Property.AsFloat())
 		f.W *= p
 
-		numbered.PercentageComplete += (p - numbered.PercentageComplete) * 6 * globals.DeltaTime
+		nc.PercentageComplete += (p - nc.PercentageComplete) * 6 * globals.DeltaTime
 
-		src := &sdl.Rect{0, 0, int32(numbered.Card.Rect.W * numbered.PercentageComplete), int32(numbered.Card.Rect.H)}
+		src := &sdl.Rect{0, 0, int32(nc.Card.Rect.W * nc.PercentageComplete), int32(nc.Card.Rect.H)}
 		dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
-		dst.X = numbered.Card.DisplayRect.X
-		dst.Y = numbered.Card.DisplayRect.Y
-		dst = numbered.Card.Page.Project.Camera.TranslateRect(dst)
-		numbered.Card.Result.Texture.SetColorMod(getThemeColor(GUICompletedColor).RGB())
-		globals.Renderer.CopyF(numbered.Card.Result.Texture, src, dst)
+		dst.X = nc.Card.DisplayRect.X
+		dst.Y = nc.Card.DisplayRect.Y
+		dst = nc.Card.Page.Project.Camera.TranslateRect(dst)
+
+		completionColor := getThemeColor(GUICompletedColor)
+		if nc.Card.CustomColor != nil {
+			completionColor = nc.Card.CustomColor
+		}
+
+		nc.Card.Result.Texture.SetColorMod(completionColor.RGB())
+		globals.Renderer.CopyF(nc.Card.Result.Texture, src, dst)
 
 	}
 
-	numbered.DefaultContents.Draw()
+	nc.DefaultContents.Draw()
 
-	if numbered.Max.Property.AsFloat() > 0 {
+	if nc.Max.Property.AsFloat() > 0 {
 
-		dstPoint := Point{numbered.Card.DisplayRect.X + numbered.Card.DisplayRect.W - 32, numbered.Card.DisplayRect.Y}
+		dstPoint := Point{nc.Card.DisplayRect.X + nc.Card.DisplayRect.W - 32, nc.Card.DisplayRect.Y}
 		perc := strconv.FormatFloat(float64(p*100), 'f', 0, 32) + "%"
-		DrawLabel(numbered.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+		DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
 
 	}
 
 }
 
-func (numbered *NumberedContents) Color() Color {
-	if numbered.PercentageComplete >= 0.99 {
-		return getThemeColor(GUICompletedColor)
+func (nc *NumberedContents) Color() Color {
+
+	color := getThemeColor(GUINumberColor)
+	completedColor := getThemeColor(GUICompletedColor)
+
+	if nc.Card.CustomColor != nil {
+		color = nc.Card.CustomColor
+		completedColor = nc.Card.CustomColor.Add(40)
+	}
+
+	if nc.PercentageComplete >= 0.99 {
+		return completedColor
 	} else {
-		return getThemeColor(GUINumberColor)
+		return color
 	}
 }
 
@@ -450,17 +473,17 @@ func (nc *NumberedContents) Trigger(triggerType string) {
 
 }
 
-func (numbered *NumberedContents) DefaultSize() Point {
+func (nc *NumberedContents) DefaultSize() Point {
 	gs := globals.GridSize
 	return Point{gs * 8, gs * 2}
 }
 
-func (numbered *NumberedContents) CompletionLevel() float32 {
-	return float32(numbered.Card.Properties.Get("current").AsFloat())
+func (nc *NumberedContents) CompletionLevel() float32 {
+	return float32(nc.Card.Properties.Get("current").AsFloat())
 }
 
-func (numbered *NumberedContents) MaximumCompletionLevel() float32 {
-	return float32(numbered.Card.Properties.Get("maximum").AsFloat())
+func (nc *NumberedContents) MaximumCompletionLevel() float32 {
+	return float32(nc.Card.Properties.Get("maximum").AsFloat())
 }
 
 type NoteContents struct {
@@ -506,7 +529,12 @@ func (nc *NoteContents) Update() {
 
 }
 
-func (nc *NoteContents) Color() Color { return getThemeColor(GUINoteColor) }
+func (nc *NoteContents) Color() Color {
+	if nc.Card.CustomColor != nil {
+		return nc.Card.CustomColor
+	}
+	return getThemeColor(GUINoteColor)
+}
 
 func (nc *NoteContents) DefaultSize() Point {
 	return Point{globals.GridSize * 8, globals.GridSize * 4}
@@ -788,7 +816,12 @@ func (sc *SoundContents) Trigger(triggerMode string) {
 // We don't want to delete the sound on switch from SoundContents to another content type or on Card destruction because you could undo / switch back, which would require recreating the Sound, which seems unnecessary...?
 // func (sc *SoundContents) ReceiveMessage(msg *Message) {}
 
-func (sc *SoundContents) Color() Color { return getThemeColor(GUISoundColor) }
+func (sc *SoundContents) Color() Color {
+	if sc.Card.CustomColor != nil {
+		return sc.Card.CustomColor
+	}
+	return getThemeColor(GUISoundColor)
+}
 
 func (sc *SoundContents) DefaultSize() Point {
 	return Point{globals.GridSize * 10, globals.GridSize * 4}
@@ -1175,7 +1208,7 @@ func NewTimerContents(card *Card) *TimerContents {
 
 	tc.StartButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() { tc.Running = !tc.Running })
 	tc.RestartButton = NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, true, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 })
-	tc.Pie = NewPie(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color(), true)
+	tc.Pie = NewPie(&sdl.FRect{0, 0, 64, 64}, tc.Card.Color().Sub(80), tc.Card.Color(), true)
 
 	tc.Name.Editable = true
 	// tc.Name.AutoExpand = true
@@ -1326,7 +1359,13 @@ func (tc *TimerContents) Draw() {
 	dst.X = tc.Card.DisplayRect.X
 	dst.Y = tc.Card.DisplayRect.Y
 	dst = tc.Card.Page.Project.Camera.TranslateRect(dst)
-	tc.Card.Result.Texture.SetColorMod(getThemeColor(GUITimerColor).RGB())
+
+	barColor := getThemeColor(GUITimerColor)
+	if tc.Card.CustomColor != nil {
+		barColor = tc.Card.CustomColor
+	}
+	tc.Card.Result.Texture.SetColorMod(barColor.RGB())
+
 	tc.Card.Result.Texture.SetAlphaMod(255)
 	globals.Renderer.CopyF(tc.Card.Result.Texture, src, dst)
 
@@ -1349,8 +1388,8 @@ func (tc *TimerContents) Trigger(triggerType string) {
 
 func (tc *TimerContents) ReceiveMessage(msg *Message) {
 	if msg.Type == MessageThemeChange {
-		tc.Pie.EdgeColor = tc.Color().Sub(80)
-		tc.Pie.FillColor = tc.Color()
+		tc.Pie.EdgeColor = tc.Card.Color().Sub(80)
+		tc.Pie.FillColor = tc.Card.Color()
 	} else if msg.Type == MessageVolumeChange {
 		if tc.AlarmSound != nil {
 			tc.AlarmSound.UpdateVolume()
@@ -1359,6 +1398,10 @@ func (tc *TimerContents) ReceiveMessage(msg *Message) {
 }
 
 func (tc *TimerContents) Color() Color {
+
+	if tc.Card.CustomColor != nil {
+		return tc.Card.CustomColor.Sub(40)
+	}
 
 	return getThemeColor(GUITimerColor).Sub(40)
 

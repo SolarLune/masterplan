@@ -603,7 +603,7 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if globals.Keybindings.Pressed(KBPasteCards) {
-			project.CurrentPage.PasteCards()
+			project.CurrentPage.PasteCards(Point{})
 			globals.Keybindings.Shortcuts[KBPasteCards].ConsumeKeys()
 		}
 

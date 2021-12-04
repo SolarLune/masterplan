@@ -428,7 +428,7 @@ func (page *Page) CopySelectedCards() {
 	globals.EventLog.Log("Copied %d Cards.", len(globals.CopyBuffer.Cards))
 }
 
-func (page *Page) PasteCards() {
+func (page *Page) PasteCards(offset Point) {
 
 	globals.EventLog.On = false
 
@@ -470,8 +470,6 @@ func (page *Page) PasteCards() {
 	// We do this because otherwise when creating an undo state below, the links wouldn't be included
 	page.UpdateLinks()
 
-	offset := Point{}
-
 	for _, card := range newCards {
 		offset = offset.Add(Point{card.Rect.X + (card.Rect.W / 2), card.Rect.Y + (card.Rect.H / 2)})
 	}
@@ -490,8 +488,8 @@ func (page *Page) PasteCards() {
 		card.LockPosition()
 	}
 
-	for _, card := range globals.CopyBuffer.Cards {
-		page.Project.UndoHistory.Capture(NewUndoState(oldToNew[card]))
+	for _, card := range newCards {
+		page.Project.UndoHistory.Capture(NewUndoState(card))
 	}
 
 	globals.EventLog.On = true

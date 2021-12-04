@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"image/color"
 	"log"
 	"math"
 	"math/rand"
@@ -1445,9 +1446,16 @@ func (label *Label) Update() {
 
 				enter := globals.Keyboard.Key(sdl.K_KP_ENTER).Pressed() || globals.Keyboard.Key(sdl.K_RETURN).Pressed() || globals.Keyboard.Key(sdl.K_RETURN2).Pressed()
 				if enter {
-					label.DeleteSelectedChars()
-					label.InsertRunesAtIndex([]rune{'\n'}, label.Selection.CaretPos)
-					label.Selection.AdvanceCaret(1)
+					if label.NewlinesAllowed() {
+						label.DeleteSelectedChars()
+						label.InsertRunesAtIndex([]rune{'\n'}, label.Selection.CaretPos)
+						label.Selection.AdvanceCaret(1)
+					} else {
+						label.Editing = false
+						globals.State = StateNeutral
+						label.Selection.Select(0, 0)
+						clickedOut = true
+					}
 				}
 
 				// Typing
@@ -1784,7 +1792,7 @@ func (label *Label) DeleteChars(start, end int) {
 
 func (label *Label) InsertRunesAtIndex(text []rune, index int) {
 
-	if label.MaxLength >= 0 && len(label.Text) > label.MaxLength {
+	if label.MaxLength >= 0 && len(label.Text) >= label.MaxLength {
 		return
 	}
 
@@ -1806,6 +1814,14 @@ func (label *Label) InsertRunesAtIndex(text []rune, index int) {
 
 	label.SetText(newText)
 
+}
+
+func (label *Label) NewlinesAllowed() bool {
+	match, err := regexp.Match(label.RegexString, []byte("\n"))
+	if err == nil && match {
+		return true
+	}
+	return false
 }
 
 func (label *Label) IndexToWorld(index int) Point {
@@ -2479,6 +2495,236 @@ func (pie *Pie) SetRectangle(rect *sdl.FRect) {
 }
 
 func (pie *Pie) Destroy() {}
+
+type ColorWheel struct {
+	Rect          *sdl.FRect
+	HueStrip      *sdl.Surface
+	ValueStrip    *sdl.Surface
+	HueTexture    *sdl.Texture
+	ValueTexture  *sdl.Texture
+	HueSampling   bool
+	ValueSampling bool
+
+	SampledPosX int32
+	SampledPosY int32
+
+	SampledColor Color
+	SampledHue   Color
+	SampledValue float32
+
+	OnColorChange func()
+}
+
+func NewColorWheel() *ColorWheel {
+
+	// hue = 192
+	// value = 32
+	// color preview = 32
+
+	hueSurf, err := sdl.CreateRGBSurface(0, 192, 192, 32, 0, 0, 0, 0)
+	if err != nil {
+		panic(err)
+	}
+
+	valueSurf, err := sdl.CreateRGBSurface(0, 192, 32, 32, 0, 0, 0, 0)
+	if err != nil {
+		panic(err)
+	}
+
+	cw := &ColorWheel{
+		Rect:         &sdl.FRect{0, 0, 192, 192 + 64},
+		HueStrip:     hueSurf,
+		ValueStrip:   valueSurf,
+		SampledHue:   NewColor(255, 0, 0, 255),
+		SampledValue: 1,
+	}
+
+	cw.UpdateColorSurfaces()
+	return cw
+}
+
+func (cw *ColorWheel) UpdateColorSurfaces() {
+
+	for x := 0; x < int(cw.HueStrip.W); x++ {
+		for y := 0; y < int(cw.HueStrip.H); y++ {
+			c := NewColorFromHSV(float64(x)/float64(cw.HueStrip.W)*360, float64(y)/float64(cw.HueStrip.H), 1)
+			r, g, b, _ := c.RGBA()
+			cw.HueStrip.Set(x, y, color.RGBA{
+				R: r,
+				G: g,
+				B: b,
+				A: 255,
+			})
+		}
+	}
+
+	tex, err := globals.Renderer.CreateTextureFromSurface(cw.HueStrip)
+	if err != nil {
+		panic(err)
+	}
+
+	if cw.HueTexture != nil {
+		cw.HueTexture.Destroy()
+	}
+
+	cw.HueTexture = tex
+
+	// Value
+
+	for x := 0; x < int(cw.ValueStrip.W); x++ {
+		for y := 0; y < int(cw.ValueStrip.H); y++ {
+			v := uint8(float64(x) / float64(cw.ValueStrip.W) * 255)
+			cw.ValueStrip.Set(x, y, color.RGBA{
+				R: v,
+				G: v,
+				B: v,
+				A: 255,
+			})
+		}
+	}
+
+	tex, err = globals.Renderer.CreateTextureFromSurface(cw.ValueStrip)
+	if err != nil {
+		panic(err)
+	}
+
+	if cw.ValueTexture != nil {
+		cw.ValueTexture.Destroy()
+	}
+
+	cw.ValueTexture = tex
+
+}
+
+func (cw *ColorWheel) Update() {
+
+	mousePos := globals.Mouse.Position()
+
+	hueRect := *cw.Rect
+	hueRect.H = float32(cw.HueStrip.H)
+
+	valueRect := hueRect
+	valueRect.Y = hueRect.Y + hueRect.H
+	valueRect.H = 32
+
+	if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && mousePos.Inside(&hueRect) {
+		cw.HueSampling = true
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	} else if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && mousePos.Inside(&valueRect) {
+		cw.ValueSampling = true
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	}
+
+	if cw.HueSampling {
+
+		mpX := int(mousePos.X - cw.Rect.X)
+		mpY := int(mousePos.Y - cw.Rect.Y)
+
+		if mpX < 0 {
+			mpX = 0
+		} else if mpX > int(cw.HueStrip.W)-1 {
+			mpX = int(cw.HueStrip.W) - 1
+		}
+
+		if mpY < 0 {
+			mpY = 0
+		} else if mpY > int(cw.HueStrip.H)-1 {
+			mpY = int(cw.HueStrip.H) - 1
+		}
+
+		cw.SampledPosX = int32(mpX)
+		cw.SampledPosY = int32(mpY)
+
+		r, g, b, _ := ColorAt(cw.HueStrip, int32(mpX), int32(mpY))
+
+		cw.SampledHue = NewColor(r, g, b, 255)
+
+		if cw.OnColorChange != nil {
+			cw.OnColorChange()
+		}
+
+	}
+
+	if cw.ValueSampling {
+
+		mpX := int(mousePos.X - cw.Rect.X)
+
+		if mpX < 0 {
+			mpX = 0
+		} else if mpX > int(cw.ValueStrip.W)-1 {
+			mpX = int(cw.ValueStrip.W) - 1
+		}
+
+		// The offset makes it easier to hit full 100% or 0%, rather than being a pixel off
+		cw.SampledValue = float32(mpX-1) / float32(cw.ValueStrip.W-2)
+		if cw.SampledValue < 0 {
+			cw.SampledValue = 0
+		} else if cw.SampledValue > 1 {
+			cw.SampledValue = 1
+		}
+
+		if cw.OnColorChange != nil {
+			cw.OnColorChange()
+		}
+
+	}
+
+	cw.SampledColor = cw.SampledHue.Mult(cw.SampledValue)
+
+	if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
+		cw.HueSampling = false
+		cw.ValueSampling = false
+	}
+
+}
+
+func (cw *ColorWheel) Draw() {
+
+	hueRect := *cw.Rect
+	hueRect.H = float32(cw.HueStrip.H)
+	globals.Renderer.CopyExF(cw.HueTexture, nil, &hueRect, 0, nil, 0)
+
+	valueRect := hueRect
+	valueRect.Y = hueRect.Y + hueRect.H
+	valueRect.H = float32(cw.ValueStrip.H)
+	globals.Renderer.CopyExF(cw.ValueTexture, nil, &valueRect, 0, nil, 0)
+
+	guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
+	guiTex.SetAlphaMod(255)
+	src := &sdl.Rect{0, 240, 8, 8}
+	dst := &sdl.Rect{int32(cw.Rect.X) + cw.SampledPosX - 4, int32(cw.Rect.Y) + cw.SampledPosY - 4, 8, 8}
+	globals.Renderer.Copy(guiTex, src, dst)
+
+	ThickRect(int32(cw.Rect.X), int32(cw.Rect.Y), int32(cw.Rect.W), int32(cw.Rect.H), 2, getThemeColor(GUIFontColor))
+
+	ThickLine(Point{cw.Rect.X + (cw.SampledValue * float32(cw.ValueStrip.W)), cw.Rect.Y + float32(cw.HueStrip.H)},
+		Point{cw.Rect.X + (cw.SampledValue * float32(cw.ValueStrip.W)), cw.Rect.Y + float32(cw.HueStrip.H) + float32(cw.ValueStrip.H)},
+		4, ColorBlack,
+	)
+
+	ThickLine(Point{valueRect.X + (cw.SampledValue * valueRect.W), valueRect.Y},
+		Point{valueRect.X + (cw.SampledValue * valueRect.W), valueRect.Y + valueRect.H},
+		2, ColorWhite,
+	)
+
+	// Color preview
+	globals.Renderer.SetDrawColor(cw.SampledColor.RGBA())
+	globals.Renderer.FillRectF(&sdl.FRect{valueRect.X, valueRect.Y + valueRect.H, valueRect.W, 32})
+
+}
+
+func (cw *ColorWheel) SetRectangle(rect *sdl.FRect) {
+	cw.Rect.X = rect.X
+	cw.Rect.Y = rect.Y
+	cw.Rect.W = rect.W
+	cw.Rect.H = rect.H
+}
+
+func (cw *ColorWheel) Rectangle() *sdl.FRect {
+	return cw.Rect
+}
+
+func (cw *ColorWheel) Destroy() {}
 
 const (
 	HighlightColor = "HighlightColor"

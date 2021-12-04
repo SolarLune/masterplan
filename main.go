@@ -861,13 +861,74 @@ func ConstructMenus() {
 	editMenu.Orientation = MenuOrientationVertical
 
 	root = editMenu.Pages["root"]
-	root.AddRow(AlignCenter).Add("edit label", NewLabel("-Edit-", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
-	root.AddRow(AlignCenter).Add("set type", NewButton("Set Type", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
+	root.AddRow(AlignCenter).Add("edit label", NewLabel("Edit", nil, false, AlignCenter))
+	root.AddRow(AlignCenter).Add("set color", NewButton("Set Color", nil, nil, false, func() {
+		editMenu.SetPage("set color")
+	}))
+	root.AddRow(AlignCenter).Add("set type", NewButton("Set Type", nil, nil, false, func() {
 		editMenu.SetPage("set type")
 	}))
 
+	setColor := editMenu.AddPage("set color")
+	setColor.AddRow(AlignCenter).Add("label", NewLabel("Set Color", nil, false, AlignCenter))
+
+	var hexText *Label
+
+	colorWheel := NewColorWheel()
+	colorWheel.OnColorChange = func() {
+		color := colorWheel.SampledColor
+		hexText.SetText([]rune("#" + color.ToHexString()[:6]))
+	}
+	setColor.AddRow(AlignCenter).Add("color wheel", colorWheel)
+
+	hexText = NewLabel("#FFFFFF", &sdl.FRect{0, 0, 192, 32}, false, AlignCenter)
+	hexText.Editable = true
+	hexText.OnClickOut = func() {
+
+		text := hexText.TextAsString()
+		for i := len(text); i < 7; i++ {
+			text += "0"
+		}
+
+		if !strings.Contains(text, "#") {
+			text = "#" + text[:6]
+		}
+
+		text = strings.ToUpper(text)
+
+		hexText.SetTextRaw([]rune(text))
+
+		hexText := string(hexText.Text[1:])
+		color := ColorFromHexString(hexText)
+		h, s, v := color.HSV()
+		colorWheel.SampledHue = NewColorFromHSV(h, s, v)
+		colorWheel.SampledValue = float32(v)
+
+	}
+	hexText.MaxLength = 7
+	hexText.RegexString = RegexHex()
+	setColor.AddRow(AlignCenter).Add("hex text", hexText)
+
+	setColor.AddRow(AlignCenter).Add("apply", NewButton("Apply to Selected", nil, nil, false, func() {
+		selectedCards := globals.Project.CurrentPage.Selection.Cards
+		for card := range selectedCards {
+			card.CustomColor = colorWheel.SampledColor.Clone()
+			card.CreateUndoState = true
+		}
+		globals.EventLog.Log("Color applied for %d card(s).", len(selectedCards))
+	}))
+
+	setColor.AddRow(AlignCenter).Add("default", NewButton("Reset to Default", nil, nil, false, func() {
+		selectedCards := globals.Project.CurrentPage.Selection.Cards
+		for card := range selectedCards {
+			card.CustomColor = nil
+			card.CreateUndoState = true
+		}
+		globals.EventLog.Log("Color reset to default for %d card(s).", len(selectedCards))
+	}))
+
 	setType := editMenu.AddPage("set type")
-	setType.AddRow(AlignCenter).Add("label", NewLabel("Set Type:", &sdl.FRect{0, 0, 192, 32}, false, AlignCenter))
+	setType.AddRow(AlignCenter).Add("label", NewLabel("Set Type", &sdl.FRect{0, 0, 192, 32}, false, AlignCenter))
 
 	setType.AddRow(AlignCenter).Add("set checkbox content type", NewButton("Checkbox", nil, &sdl.Rect{48, 32, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
@@ -1021,8 +1082,9 @@ func ConstructMenus() {
 	}))
 
 	root.AddRow(AlignCenter).Add("paste cards", NewButton("Paste Cards", &sdl.FRect{0, 0, 192, 32}, nil, false, func() {
-		page := globals.Project.CurrentPage
-		page.PasteCards()
+		menuPos := Point{globals.MenuSystem.Get("context").Rect.X, globals.MenuSystem.Get("context").Rect.Y}
+		offset := globals.Mouse.Position().Sub(menuPos)
+		globals.Project.CurrentPage.PasteCards(offset)
 		contextMenu.Close()
 	}))
 
@@ -1326,7 +1388,7 @@ func ConstructMenus() {
 	}
 
 	row = input.AddRow(AlignCenter)
-	row.Add("input header", NewLabel("-Input-", nil, false, AlignLeft))
+	row.Add("input header", NewLabel("Input", nil, false, AlignLeft))
 
 	row = input.AddRow(AlignCenter)
 	row.Add("", NewLabel("Double-click: ", nil, false, AlignLeft))
