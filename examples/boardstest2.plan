@@ -1,0 +1,97 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": 142.07994,
+    "Y": 65.28001
+  },
+  "zoom": 1,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "Root",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "1st",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": -160,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "First!",
+              "filepath": ""
+            }
+          }
+        ]
+      },
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "Second~",
+        "cards": [
+          {
+            "id": 1,
+            "rect": {
+              "X": -224,
+              "Y": -96,
+              "W": 256,
+              "H": 64
+            },
+            "contents": "Number",
+            "properties": {
+              "description": "New Numbered",
+              "current": 0,
+              "maximum": 0,
+              "filepath": ""
+            }
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": 224,
+              "Y": 32,
+              "W": 256,
+              "H": 128
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "New Note",
+              "filepath": ""
+            }
+          }
+        ]
+      },
+      {
+        "pagecontenttype": "PageContentFolder",
+        "name": "New Folder",
+        "contents": [
+          {
+            "pagecontenttype": "PageContentPage",
+            "name": "Third.",
+            "cards": [
+              {
+                "id": 3,
+                "rect": {
+                  "X": 32,
+                  "Y": 0,
+                  "W": 320,
+                  "H": 128
+                },
+                "contents": "Sound",
+                "properties": {
+                  "filepath": ""
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

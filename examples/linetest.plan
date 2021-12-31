@@ -1,0 +1,92 @@
+{
+  "version": "0.8.0-alpha.1-2",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": -576,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox"
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 1,
+                "joints": [
+                  {
+                    "X": -224,
+                    "Y": -160
+                  },
+                  {
+                    "X": 160,
+                    "Y": -96
+                  },
+                  {
+                    "X": -320,
+                    "Y": 128
+                  },
+                  {
+                    "X": 64,
+                    "Y": 288
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": 160,
+              "Y": 0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox"
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 1,
+                "joints": [
+                  {
+                    "X": -224,
+                    "Y": -160
+                  },
+                  {
+                    "X": 160,
+                    "Y": -96
+                  },
+                  {
+                    "X": -320,
+                    "Y": 128
+                  },
+                  {
+                    "X": 64,
+                    "Y": 288
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

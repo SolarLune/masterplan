@@ -1,0 +1,132 @@
+{
+  "version":"0.8.0",
+  "root":{
+  "pagecontenttype": "PageContentFolder",
+  "name": "New Folder",
+  "contents": [
+    {
+      "pagecontenttype": "PageContentPage",
+      "name": "New Page",
+      "cards": [
+        {
+          "rect": {
+            "X": -384,
+            "Y": -160,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "First",
+            "checked": false
+          }
+        }, 
+        {
+          "rect": {
+            "X": -384,
+            "Y": -128,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "Second",
+            "checked": false
+          }
+        }, 
+        {
+          "rect": {
+            "X": -384,
+            "Y": -96,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "Third",
+            "checked": false
+          }
+        }, 
+        {
+          "rect": {
+            "X": -352,
+            "Y": 32,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "Fourth",
+            "checked": false
+          }
+        }, 
+        {
+          "rect": {
+            "X": -320,
+            "Y": 64,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "Fifth",
+            "checked": false
+          }
+        }, 
+        {
+          "rect": {
+            "X": -320,
+            "Y": 96,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "Sixth",
+            "checked": false
+          }
+        }, 
+        {
+          "rect": {
+            "X": -320,
+            "Y": 128,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "Seventh",
+            "checked": false
+          }
+        }, 
+        {
+          "rect": {
+            "X": -288,
+            "Y": 160,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "Eighth",
+            "checked": false
+          }
+        }, 
+        {
+          "rect": {
+            "X": -320,
+            "Y": 192,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "Ninth",
+            "checked": false
+          }
+        }
+      ]
+    }
+  ]
+}
+}

@@ -1,0 +1,98 @@
+{
+  "version": "0.8.0-alpha.2",
+  "pan": {
+    "X": 657.11993,
+    "Y": 434.4
+  },
+  "zoom": 4,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": 320,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "First"
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 1,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": 704,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Second"
+            },
+            "links": [
+              {
+                "start": 2,
+                "end": 1,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": 352,
+              "Y": 512,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox"
+            }
+          },
+          {
+            "id": 3,
+            "rect": {
+              "X": 704,
+              "Y": 544,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Third"
+            },
+            "links": [
+              {
+                "start": 3,
+                "end": 1,
+                "joints": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

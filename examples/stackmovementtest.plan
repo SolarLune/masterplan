@@ -1,0 +1,183 @@
+{
+  "version": "0.8.0",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": 256,
+              "Y": -160,
+              "W": 96,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "A",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 0,
+            "rect": {
+              "X": -192,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "1",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 1,
+            "rect": {
+              "X": -160,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "2",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 2,
+            "rect": {
+              "X": -192,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "3",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 0,
+            "rect": {
+              "X": 256,
+              "Y": -64,
+              "W": 96,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "B",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 3,
+            "rect": {
+              "X": -160,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "4",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 4,
+            "rect": {
+              "X": -160,
+              "Y": 0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "5",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 5,
+            "rect": {
+              "X": -128,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "6",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 6,
+            "rect": {
+              "X": -192,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "7",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 0,
+            "rect": {
+              "X": 256,
+              "Y": 64,
+              "W": 96,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "C",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 7,
+            "rect": {
+              "X": -192,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "8",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 8,
+            "rect": {
+              "X": -192,
+              "Y": 192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "Interjector",
+              "checked": false
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

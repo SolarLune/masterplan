@@ -1,0 +1,121 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": 88.6476,
+    "Y": 88.15288
+  },
+  "zoom": 0.948785126209259,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 4,
+            "rect": {
+              "X": 32,
+              "Y": -160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Something else"
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 32,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "0 (link root)",
+              "filepath": ""
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 1,
+                "joints": []
+              },
+              {
+                "start": 0,
+                "end": 2,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": -320,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "2 (linked)",
+              "filepath": ""
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 1,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": -320,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "3 (linked)",
+              "filepath": ""
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 2,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "rect": {
+              "X": -320,
+              "Y": 256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "3 duplicate",
+              "filepath": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

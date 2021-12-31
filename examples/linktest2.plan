@@ -1,0 +1,111 @@
+{
+  "version": "0.8.0-alpha.2",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 3,
+            "rect": {
+              "X": 224,
+              "Y": -320,
+              "W": 256,
+              "H": 192
+            },
+            "contents": "Timer",
+            "properties": {
+              "description": "New Timer",
+              "max time": "00:00",
+              "mode group": 0,
+              "trigger mode": 0
+            }
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": -96,
+              "Y": -256,
+              "W": 256,
+              "H": 256
+            },
+            "contents": "Map",
+            "properties": {
+              "contents": "{\"contents\":[]}"
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -480,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox"
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 1,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "rect": {
+              "X": -64,
+              "Y": 96,
+              "W": 448,
+              "H": 256
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "/home/solarlune/software_rendering_2.gif"
+            },
+            "links": [
+              {
+                "start": 4,
+                "end": 2,
+                "joints": []
+              },
+              {
+                "start": 4,
+                "end": 3,
+                "joints": []
+              },
+              {
+                "start": 4,
+                "end": 1,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": -384,
+              "Y": 224,
+              "W": 256,
+              "H": 64
+            },
+            "contents": "Number",
+            "properties": {
+              "description": "New Numbered",
+              "current": 0,
+              "maximum": 0
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

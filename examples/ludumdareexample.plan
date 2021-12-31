@@ -1,0 +1,116 @@
+{
+  "version": "0.8.0-alpha.1",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 12,
+            "rect": {
+              "X": -288,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Design Player"
+            }
+          },
+          {
+            "id": 14,
+            "rect": {
+              "X": -288,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Write Plot"
+            }
+          },
+          {
+            "id": 13,
+            "rect": {
+              "X": -288,
+              "Y": -192,
+              "W": 288,
+              "H": 96
+            },
+            "contents": "Number",
+            "properties": {
+              "description": "Animate Sprites",
+              "current": 0,
+              "maximum": 4
+            }
+          },
+          {
+            "id": 17,
+            "rect": {
+              "X": -288,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Create Title Music"
+            }
+          },
+          {
+            "id": 16,
+            "rect": {
+              "X": -288,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Create Level Music"
+            }
+          },
+          {
+            "id": 10,
+            "rect": {
+              "X": -288,
+              "Y": -32,
+              "W": 256,
+              "H": 64
+            },
+            "contents": "Number",
+            "properties": {
+              "description": "Create Levels",
+              "current": 0,
+              "maximum": 5
+            }
+          },
+          {
+            "id": 9,
+            "rect": {
+              "X": -288,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Playtest"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

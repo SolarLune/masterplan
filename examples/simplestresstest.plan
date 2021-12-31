@@ -1,0 +1,5056 @@
+{
+  "version": "0.8.0-alpha.1-2",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": -1920,
+              "Y": -1088,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1184,
+              "Y": -1088,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -416,
+              "Y": -1088,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 320,
+              "Y": -1088,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1056,
+              "Y": -1088,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1792,
+              "Y": -1088,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": -1024,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": -1024,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": -1024,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": -1024,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": -1024,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": -1024,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": -960,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": -960,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": -960,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": -960,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": -960,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": -960,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1920,
+              "Y": -896,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1184,
+              "Y": -896,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -416,
+              "Y": -896,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 320,
+              "Y": -896,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1056,
+              "Y": -896,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1792,
+              "Y": -896,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": -832,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": -832,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": -832,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": -832,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": -832,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": -832,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1920,
+              "Y": -768,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1184,
+              "Y": -768,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -416,
+              "Y": -768,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 320,
+              "Y": -768,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1056,
+              "Y": -768,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1792,
+              "Y": -768,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": -704,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": -704,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": -704,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": -704,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": -704,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": -704,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1920,
+              "Y": -576,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": -576,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -416,
+              "Y": -576,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": -576,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1056,
+              "Y": -576,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": -576,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": -512,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": -512,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": -512,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": -512,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": -512,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": -512,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": -448,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": -448,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": -448,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": -448,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": -448,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": -448,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1920,
+              "Y": -384,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": -384,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -416,
+              "Y": -384,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": -384,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1056,
+              "Y": -384,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": -384,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": -320,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": -320,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": -320,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": -320,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": -320,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": -320,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1920,
+              "Y": -256,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": -256,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -416,
+              "Y": -256,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": -256,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1056,
+              "Y": -256,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": -256,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": -192,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": -192,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": -192,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": -192,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": -192,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": -192,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": -96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": -96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": -96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": -96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": -96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": -96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": -32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": -32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": -32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": -32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": -32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": -32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 32,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": 96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": 96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": 96,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 160,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 160,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 160,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 160,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 160,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 160,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 224,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": 224,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 224,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": 224,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 224,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": 224,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 288,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 288,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 288,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 288,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 288,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 288,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 416,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 416,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 416,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 416,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 416,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 416,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 480,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 480,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 480,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 480,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 480,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 480,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 544,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 544,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 544,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 544,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 544,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 544,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 608,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 608,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 608,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 608,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 608,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 608,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 672,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 672,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 672,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 672,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 672,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 672,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 736,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 736,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 736,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 736,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 736,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 736,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 800,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 800,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 800,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 800,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 800,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 800,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": 928,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": 928,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 928,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": 928,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 928,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": 928,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 992,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": 992,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 992,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 992,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 992,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 992,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 1056,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": 1056,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 1056,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 1056,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 1056,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 1056,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": 1120,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": 1120,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 1120,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": 1120,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 1120,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": 1120,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 1184,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": 1184,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 1184,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 1184,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 1184,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 1184,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": 1248,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1152,
+              "Y": 1248,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 1248,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 352,
+              "Y": 1248,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 1248,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1824,
+              "Y": 1248,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 1312,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": 1312,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 1312,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 1312,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 1312,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 1312,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": 1440,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": 1440,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 1440,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 1440,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 1440,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 1440,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 1504,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 1504,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 1504,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 1504,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 1504,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 1504,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 1568,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 1568,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 1568,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 1568,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 1568,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 1568,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": 1632,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": 1632,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 1632,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 1632,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 1632,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 1632,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 1696,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 1696,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 1696,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 1696,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 1696,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 1696,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1888,
+              "Y": 1760,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1120,
+              "Y": 1760,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -384,
+              "Y": 1760,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 1760,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1088,
+              "Y": 1760,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 1760,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1856,
+              "Y": 1824,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 1824,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 1824,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 1824,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 1824,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 1824,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 1920,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 1920,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 1920,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 1920,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 1920,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 1920,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1792,
+              "Y": 1984,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 1984,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": 1984,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 1984,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1152,
+              "Y": 1984,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 1984,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1792,
+              "Y": 2048,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 2048,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": 2048,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 2048,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1152,
+              "Y": 2048,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 2048,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 2112,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 2112,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 2112,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 2112,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 2112,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 2112,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1792,
+              "Y": 2176,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 2176,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": 2176,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 2176,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1152,
+              "Y": 2176,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 2176,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 2240,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1088,
+              "Y": 2240,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 2240,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 384,
+              "Y": 2240,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 2240,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1856,
+              "Y": 2240,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1792,
+              "Y": 2304,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 2304,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": 2304,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 2304,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1152,
+              "Y": 2304,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 2304,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 2432,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 2432,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 2432,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 2432,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 2432,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 2432,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1792,
+              "Y": 2496,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1024,
+              "Y": 2496,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": 2496,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 448,
+              "Y": 2496,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1152,
+              "Y": 2496,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1920,
+              "Y": 2496,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1792,
+              "Y": 2560,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1024,
+              "Y": 2560,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": 2560,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 448,
+              "Y": 2560,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1152,
+              "Y": 2560,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1920,
+              "Y": 2560,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 2624,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 2624,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 2624,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 2624,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 2624,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 2624,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1792,
+              "Y": 2688,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1024,
+              "Y": 2688,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": 2688,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 448,
+              "Y": 2688,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1152,
+              "Y": 2688,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1920,
+              "Y": 2688,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1824,
+              "Y": 2752,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1056,
+              "Y": 2752,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -352,
+              "Y": 2752,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 416,
+              "Y": 2752,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1120,
+              "Y": 2752,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1888,
+              "Y": 2752,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1792,
+              "Y": 2816,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -1024,
+              "Y": 2816,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": 2816,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 448,
+              "Y": 2816,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1152,
+              "Y": 2816,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": 1920,
+              "Y": 2816,
+              "W": 640,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "Some kind of mildly long checkbox that contains some text that needs to be typed out.",
+              "filepath": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

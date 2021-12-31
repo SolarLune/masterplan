@@ -1,0 +1,94 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": -79.68,
+    "Y": 61.92
+  },
+  "zoom": 1.7037899494171143,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": 32,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "0",
+              "filepath": ""
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 2,
+                "joints": []
+              },
+              {
+                "start": 0,
+                "end": 3,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": -320,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "2",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 3,
+            "rect": {
+              "X": -320,
+              "Y": 260,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "3 duplicate",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 3,
+            "rect": {
+              "X": -320,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "3",
+              "filepath": ""
+            }
+          }
+          
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

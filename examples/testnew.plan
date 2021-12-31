@@ -1,0 +1,29 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": 0,
+    "Y": 0
+  },
+  "zoom": 1,
+  "pages": [
+    {
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": 0,
+            "Y": 0,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "Testing?"
+          }
+        }
+      ]
+    }
+  ],
+  "savedimages": {}
+}

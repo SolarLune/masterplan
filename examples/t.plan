@@ -1,0 +1,64 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": 0,
+    "Y": 0
+  },
+  "zoom": 1,
+  "pages": [
+    {
+      "type": "Folder",
+      "name": "New Folder",
+      "id": 0,
+      "children": [1, 3]
+    },
+    {
+      "type": "Page",
+      "name": "New Page",
+      "id": 1
+    },
+    {
+      "type": "Folder",
+      "name": "New Folder",
+      "id": 3,
+      "children": [2]
+    },
+    {
+      "type": "Page",
+      "name": "Where",
+      "id": 2
+    }
+  ],
+  "cards": [
+    {
+      "id": 0,
+      "rect": {
+        "X": 0,
+        "Y": 32,
+        "W": 288,
+        "H": 32
+      },
+      "contents": "Checkbox",
+      "page": 2,
+      "properties": {
+        "checked": false,
+        "description": "New Checkbox"
+      }
+    },
+    {
+      "id": 1,
+      "rect": {
+        "X": 0,
+        "Y": 96,
+        "W": 256,
+        "H": 128
+      },
+      "contents": "Note",
+      "page": 2,
+      "properties": {
+        "description": "My cards."
+      }
+    }
+  ],
+  "savedimages": {}
+}

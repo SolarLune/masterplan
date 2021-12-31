@@ -1,0 +1,99 @@
+{
+  "version": "0.8.0",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "0",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 1,
+            "rect": {
+              "X": -320,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "1",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 2,
+            "rect": {
+              "X": -320,
+              "Y": 0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "2",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 3,
+            "rect": {
+              "X": -320,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "3",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 4,
+            "rect": {
+              "X": -320,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "4",
+              "checked": false
+            }
+          }, 
+          {
+            "id": 5,
+            "rect": {
+              "X": -320,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "5",
+              "checked": false
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

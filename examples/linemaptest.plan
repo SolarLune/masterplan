@@ -1,0 +1,208 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": 56.39202,
+    "Y": 97.62656
+  },
+  "zoom": 2,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 9,
+            "rect": {
+              "X": -576,
+              "Y": -160,
+              "W": 352,
+              "H": 544
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "Galleria\n\nGalleria is a relatively small island in the far north; few people make their homes here due to the frigid weather and unkind fauna.\n\nYet, there is tale told of a treasure, hidden there centuries ago by a nameless pirate, one who ransacked galleon after galleon and disappeared without a trace after hiding his stash."
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -192,
+              "Y": -96,
+              "W": 832,
+              "H": 416
+            },
+            "contents": "Map",
+            "properties": {
+              "contents": "{\"contents\":[[0,0,0,0,41,41,41,41,41,41,41,41,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,11,11,11,0,0,0,0,0,0,2,2,2,0,0,2,0,2,2,2,2,0,0,0,0],[0,11,11,11,11,11,11,0,0,2,2,2,2,2,2,2,2,2,2,2,2,2,28,11,0,0],[0,0,11,11,11,10,10,11,11,2,2,2,28,28,2,2,2,28,28,28,28,28,28,11,11,0],[0,0,11,11,11,10,10,10,11,11,2,11,28,28,28,28,28,28,28,10,28,10,10,11,11,0],[0,0,0,0,11,11,10,10,10,11,11,11,11,28,28,28,28,28,10,10,28,10,10,11,11,0],[0,0,0,0,11,11,11,10,10,10,10,10,11,28,28,28,28,28,10,28,28,10,10,10,11,0],[0,11,0,0,0,0,11,11,11,11,10,11,11,11,28,28,28,28,10,28,28,10,10,10,41,0],[0,11,11,0,0,11,11,11,11,11,11,11,10,11,28,28,11,11,10,28,28,10,10,11,41,0],[0,0,11,11,11,11,11,11,11,11,11,10,10,10,28,28,11,10,10,11,28,11,11,11,0,0],[0,0,0,11,11,11,11,11,11,11,10,10,10,10,10,11,11,10,11,11,11,11,11,0,0,0],[0,0,0,0,0,11,11,0,11,11,11,10,10,10,10,11,11,10,11,11,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,11,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]}"
+            }
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": -64,
+              "Y": 0,
+              "W": 32,
+              "H": 32
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "/home/solarlune/Documents/Projects/Go/adventure/assets/gfx/player.png"
+            },
+            "links": [
+              {
+                "start": 1,
+                "end": 4,
+                "joints": []
+              },
+              {
+                "start": 1,
+                "end": 3,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": 512,
+              "Y": 0,
+              "W": 32,
+              "H": 32
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "/home/solarlune/Documents/Projects/Go/adventure/assets/gfx/player.png"
+            },
+            "links": [
+              {
+                "start": 2,
+                "end": 7,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "rect": {
+              "X": 224,
+              "Y": 32,
+              "W": 32,
+              "H": 32
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "/home/solarlune/Documents/Projects/Go/adventure/assets/gfx/player.png"
+            },
+            "links": [
+              {
+                "start": 3,
+                "end": 2,
+                "joints": []
+              },
+              {
+                "start": 3,
+                "end": 5,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "rect": {
+              "X": 128,
+              "Y": 160,
+              "W": 32,
+              "H": 32
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "/home/solarlune/Documents/Projects/Go/adventure/assets/gfx/player.png"
+            },
+            "links": [
+              {
+                "start": 4,
+                "end": 8,
+                "joints": []
+              },
+              {
+                "start": 4,
+                "end": 3,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "rect": {
+              "X": 352,
+              "Y": 160,
+              "W": 32,
+              "H": 32
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "/home/solarlune/Documents/Projects/Go/adventure/assets/gfx/player.png"
+            },
+            "links": [
+              {
+                "start": 5,
+                "end": 2,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "rect": {
+              "X": -96,
+              "Y": 192,
+              "W": 32,
+              "H": 32
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "/home/solarlune/Documents/Projects/Go/adventure/assets/gfx/player.png"
+            }
+          },
+          {
+            "id": 7,
+            "rect": {
+              "X": 512,
+              "Y": 192,
+              "W": 32,
+              "H": 32
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "/home/solarlune/Documents/Projects/Go/adventure/assets/gfx/player.png"
+            }
+          },
+          {
+            "id": 8,
+            "rect": {
+              "X": 64,
+              "Y": 256,
+              "W": 32,
+              "H": 32
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "/home/solarlune/Documents/Projects/Go/adventure/assets/gfx/player.png"
+            },
+            "links": [
+              {
+                "start": 8,
+                "end": 6,
+                "joints": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

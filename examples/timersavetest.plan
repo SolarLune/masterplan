@@ -1,0 +1,32 @@
+{
+  "version": "0.8.0-alpha.1-2",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": -224,
+              "Y": -64,
+              "W": 256,
+              "H": 192
+            },
+            "contents": "Timer",
+            "properties": {
+              "description": "New Timer",
+              "mode group": 1,
+              "trigger mode": 2,
+              "max time": "03:11"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

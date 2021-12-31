@@ -1,0 +1,61 @@
+{
+  "pagecontenttype": "PageContentFolder",
+  "name": "New Folder",
+  "contents": [
+    {
+      "pagecontenttype": "PageContentPage",
+      "name": "New Page",
+      "cards": [
+        {
+          "rect": {
+            "X": -448,
+            "Y": -96,
+            "W": 256,
+            "H": 256
+          },
+          "contents": "Map",
+          "properties": {
+            "contents": "{\"contents\":[[0,0,0,0,0,0,0,0],[0,0,1,1,0,0,0,0],[0,0,1,1,1,1,0,0],[0,0,0,1,1,1,1,1],[0,0,0,1,1,1,0,0],[0,0,0,0,1,1,1,1],[0,0,0,0,0,1,1,0],[0,0,0,0,0,0,0,0]]}"
+          }
+        }, 
+        {
+          "rect": {
+            "X": -320,
+            "Y": -32,
+            "W": 128,
+            "H": 64
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "description": "Player Start",
+            "checked": false
+          }
+        }, 
+        {
+          "rect": {
+            "X": -416,
+            "Y": 32,
+            "W": 32,
+            "H": 32
+          },
+          "contents": "Image",
+          "properties": {
+            "filepath": "/home/solarlune/Documents/Projects/Go/LodeRunnerLike/assets/gfx/ladder.png"
+          }
+        }, 
+        {
+          "rect": {
+            "X": -416,
+            "Y": 64,
+            "W": 32,
+            "H": 32
+          },
+          "contents": "Image",
+          "properties": {
+            "filepath": "/home/solarlune/Documents/Projects/Go/LodeRunnerLike/assets/gfx/ladder.png"
+          }
+        }
+      ]
+    }
+  ]
+}

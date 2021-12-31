@@ -1,0 +1,69 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": -34.740337,
+    "Y": 242.53467
+  },
+  "zoom": 1,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": -544,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "custom color": "A39DFDFF",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": -544,
+              "Y": 96,
+              "W": 256,
+              "H": 64
+            },
+            "contents": "Number",
+            "custom color": "FDBE46FF",
+            "properties": {
+              "description": "New Numbered",
+              "current": 0,
+              "maximum": 0,
+              "filepath": ""
+            }
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": -448,
+              "Y": 224,
+              "W": 256,
+              "H": 128
+            },
+            "contents": "Note",
+            "custom color": "31A4FDFF",
+            "properties": {
+              "description": "New Note",
+              "filepath": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

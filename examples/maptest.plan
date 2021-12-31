@@ -1,0 +1,154 @@
+{
+  "version": "0.8.0",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "rect": {
+              "X": -256,
+              "Y": -544,
+              "W": 608,
+              "H": 320
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "The Palid Groves were once a verdant marsh of life, containing flora and fauna so diverse as to be called a civilization of its own.\n\nNow, due to the change in atmospheric conditions, it's mostly dead; decay spreading rapidly as it all struggles to breathe. The only remaining beings scavenge to survive, looking for precious gases to convert into breathable air."
+            }
+          }, 
+          {
+            "rect": {
+              "X": -704,
+              "Y": -352,
+              "W": 416,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "Design world",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -672,
+              "Y": -320,
+              "W": 320,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "Palid Groves (green)",
+              "checked": true
+            }
+          }, 
+          {
+            "rect": {
+              "X": -672,
+              "Y": -288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "The Echos (purple)",
+              "checked": true
+            }
+          }, 
+          {
+            "rect": {
+              "X": -672,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "The Wastes (white)",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -672,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "Subites (blue)",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -704,
+              "Y": -192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "Create Enemies",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -352,
+              "Y": -192,
+              "W": 256,
+              "H": 512
+            },
+            "contents": "Map",
+            "properties": {
+              "contents": "{\"contents\":[[0,0,1,0,0,0,0,0,0],[0,1,1,1,0,0,0,0,0],[0,0,11,0,11,11,11,11,0],[0,11,11,11,11,0,0,0,0],[11,11,11,11,13,13,13,0,0],[0,0,11,0,0,13,13,13,0],[0,10,10,10,10,0,0,13,0],[0,0,0,10,10,23,13,13,0],[0,0,0,10,10,0,13,13,0],[0,10,10,10,10,0,13,13,0],[0,10,10,0,0,0,13,0,0],[0,10,10,0,0,0,13,0,0],[0,10,10,0,13,13,13,13,0],[0,0,10,0,0,13,13,13,0],[0,10,10,10,10,0,0,0,0],[0,0,0,0,0,0,0,0,0]]}"
+            }
+          }, 
+          {
+            "rect": {
+              "X": -96,
+              "Y": -192,
+              "W": 576,
+              "H": 256
+            },
+            "contents": "Map",
+            "properties": {
+              "contents": "{\"contents\":[[11,11,0,0,11,11,0,0,0,0,0,1,1,1,0,0,0,0],[0,11,11,11,11,11,11,11,0,0,0,1,1,1,0,0,0,0],[11,11,11,0,0,11,11,11,0,0,0,0,1,0,0,0,0,0],[0,11,11,11,0,0,23,0,0,0,10,10,10,10,10,0,0,0],[0,0,11,0,0,10,10,0,0,0,10,10,10,0,10,10,10,10],[0,0,1,0,10,10,10,10,10,10,10,0,0,0,10,10,10,10],[0,0,1,2,10,10,10,10,0,0,0,0,0,0,0,10,0,0],[0,0,0,0,0,10,10,0,0,0,0,0,0,0,10,10,0,0]]}"
+            }
+          }, 
+          {
+            "rect": {
+              "X": -672,
+              "Y": -160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -96,
+              "Y": 64,
+              "W": 256,
+              "H": 256
+            },
+            "contents": "Map",
+            "properties": {
+              "contents": "{\"contents\":[[0,0,23,0,0,41,0,0],[0,0,13,0,0,41,0,0],[0,13,13,0,0,41,0,0],[0,13,13,0,0,41,0,0],[13,13,13,0,0,41,0,0],[0,0,13,0,0,41,0,0],[0,13,13,41,41,41,0,0],[0,13,0,0,0,0,0,0]]}"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

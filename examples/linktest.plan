@@ -1,0 +1,112 @@
+{
+  "version": "0.8.0-alpha.1-2",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": -480,
+              "Y": -128,
+              "W": 256,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 7,
+            "rect": {
+              "X": 512,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox",
+              "filepath": ""
+            },
+            "links": [
+              {
+                "start": 7,
+                "end": 0,
+                "joints": [
+                  {
+                    "X": -32,
+                    "Y": 32
+                  },
+                  {
+                    "X": -288,
+                    "Y": 32
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": 192,
+              "Y": 96,
+              "W": 320,
+              "H": 64
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox",
+              "filepath": ""
+            },
+            "links": [
+              {
+                "start": 1,
+                "end": 0,
+                "joints": [
+                  {
+                    "X": -96,
+                    "Y": 96
+                  },
+                  {
+                    "X": -288,
+                    "Y": 32
+                  }
+                ]
+              },
+              {
+                "start": 1,
+                "end": 3,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "rect": {
+              "X": -512,
+              "Y": 160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

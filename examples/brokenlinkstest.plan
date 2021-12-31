@@ -1,0 +1,193 @@
+{
+  "version": "0.8.0-alpha.2",
+  "pan": {
+    "X": 0,
+    "Y": 0
+  },
+  "zoom": 1,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": -192,
+              "Y": -608,
+              "W": 448,
+              "H": 288
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "Umbracorp uses many cover companies to disguise their illicit activities as well as remain in the shadows and unknown to the rest of the galaxy.\nAdditionally, every cover company has, itself, several cover companies to cover up their ties, ultimately, to Umbracorp.",
+              "filepath": ""
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 2,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": 1056,
+              "Y": -384,
+              "W": 256,
+              "H": 64
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "Cerberus\nDivision of R\u0026D",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": -128,
+              "Y": -192,
+              "W": 256,
+              "H": 256
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "C:\\Users\\hahli\\Google Drive\\RPG\\Arts\\Icon\\Umbra00.png"
+            },
+            "links": [
+              {
+                "start": 2,
+                "end": 8,
+                "joints": []
+              },
+              {
+                "start": 2,
+                "end": 5,
+                "joints": []
+              },
+              {
+                "start": 2,
+                "end": 6,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "rect": {
+              "X": 672,
+              "Y": -192,
+              "W": 256,
+              "H": 256
+            },
+            "contents": "Image",
+            "properties": {
+              "filepath": "C:\\Users\\hahli\\Google Drive\\RPG\\Arts\\Icon\\Umbra01.png"
+            },
+            "links": [
+              {
+                "start": 3,
+                "end": 7,
+                "joints": []
+              },
+              {
+                "start": 3,
+                "end": 4,
+                "joints": []
+              },
+              {
+                "start": 3,
+                "end": 1,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "rect": {
+              "X": 1056,
+              "Y": -160,
+              "W": 256,
+              "H": 128
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "New Note",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 5,
+            "rect": {
+              "X": -512,
+              "Y": -128,
+              "W": 256,
+              "H": 128
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "Strike branch",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 6,
+            "rect": {
+              "X": 256,
+              "Y": -128,
+              "W": 256,
+              "H": 128
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "R&D branch",
+              "filepath": ""
+            },
+            "links": [
+              {
+                "start": 6,
+                "end": 3,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "rect": {
+              "X": 1056,
+              "Y": 64,
+              "W": 256,
+              "H": 128
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "New Note",
+              "filepath": ""
+            }
+          },
+          {
+            "id": 8,
+            "rect": {
+              "X": -128,
+              "Y": 192,
+              "W": 256,
+              "H": 128
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "PR Branch",
+              "filepath": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

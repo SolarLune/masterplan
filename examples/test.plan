@@ -1,0 +1,100 @@
+{
+  "version": "0.8.0-alpha.1-2",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 3,
+            "rect": {
+              "X": 320,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": true,
+              "description": "New Checkbox"
+            },
+            "links": [
+              {
+                "start": 3,
+                "end": 2,
+                "joints": [
+                  {
+                    "X": 704,
+                    "Y": -96
+                  },
+                  {
+                    "X": 736,
+                    "Y": 32
+                  }
+                ]
+              },
+              {
+                "start": 3,
+                "end": 1,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -128,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": true,
+              "description": "New Checkbox"
+            },
+            "links": [
+              {
+                "start": 0,
+                "end": 1,
+                "joints": []
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": 352,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": true,
+              "description": "New Checkbox"
+            }
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": -96,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "checked": true,
+              "description": "New Checkbox"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

@@ -1,0 +1,19 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": 0,
+    "Y": 0
+  },
+  "zoom": 1,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New t",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page"
+      }
+    ]
+  },
+  "savedimages": {}
+}

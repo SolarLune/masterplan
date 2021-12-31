@@ -1,0 +1,4175 @@
+{
+  "version": "0.8.0",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -192,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": -32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": -0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": -0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": -0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": -0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 0,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 32,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 128,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 160,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 224,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 256,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 288,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 320,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 352,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 384,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 416,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 448,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 480,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 512,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 512,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 512,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 512,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 512,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 512,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 512,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 512,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 576,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 576,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 576,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 576,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 576,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 576,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 576,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 576,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 608,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 608,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 608,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 608,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 608,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 608,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 608,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 608,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 640,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 640,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 640,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 640,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 640,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 640,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 640,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 640,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 672,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 672,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 672,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 672,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 672,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 672,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 672,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 672,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 704,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 704,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 704,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 704,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 704,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 704,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 704,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 704,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 736,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 736,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 736,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 736,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 736,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 736,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 736,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 736,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 768,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 768,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 768,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 768,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 768,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 768,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 768,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 768,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 800,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 800,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 800,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 800,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 800,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 800,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 800,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 800,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 832,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 832,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 832,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 832,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 832,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 832,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 832,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 832,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1568,
+              "Y": 864,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -1248,
+              "Y": 864,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -928,
+              "Y": 864,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -608,
+              "Y": 864,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": -288,
+              "Y": 864,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 32,
+              "Y": 864,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 352,
+              "Y": 864,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }, 
+          {
+            "rect": {
+              "X": 672,
+              "Y": 864,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "New Checkbox",
+              "checked": false
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": 0,
+    "Y": 0
+  },
+  "zoom": 1,
+  "pages": [
+    {
+      "name": "New Page",
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": -160,
+            "Y": -192,
+            "W": 256,
+            "H": 128
+          },
+          "contents": "Note",
+          "properties": {
+            "description": "Something important?",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 1,
+          "rect": {
+            "X": -128,
+            "Y": -32,
+            "W": 224,
+            "H": 64
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "TO THE FIRST",
+            "subpage": 1,
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "TO THE FIRST",
+      "cards": [
+        {
+          "id": 2,
+          "rect": {
+            "X": -128,
+            "Y": -160,
+            "W": 256,
+            "H": 128
+          },
+          "contents": "Note",
+          "properties": {
+            "description": "Anyway, this is the core idea.",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 3,
+          "rect": {
+            "X": -128,
+            "Y": 32,
+            "W": 224,
+            "H": 64
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "New Sub-Page",
+            "subpage": 2,
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Second",
+      "cards": [
+        {
+          "id": 4,
+          "rect": {
+            "X": 288,
+            "Y": -96,
+            "W": 224,
+            "H": 64
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "New Sub-Page",
+            "subpage": 3,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 5,
+          "rect": {
+            "X": -128,
+            "Y": 32,
+            "W": 256,
+            "H": 288
+          },
+          "contents": "Note",
+          "properties": {
+            "description": "You can just keep going as long as you like, creating sub-pages to spatially, hierarchically, \"physically\" separate and plan your project.",
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Third",
+      "cards": [
+        {
+          "id": 6,
+          "rect": {
+            "X": -192,
+            "Y": -128,
+            "W": 256,
+            "H": 320
+          },
+          "contents": "Note",
+          "properties": {
+            "description": "If you don't need the cards in a sub-page, you can just delete the sub-page card itself to remove all the cards it contains when you save the project.",
+            "filepath": ""
+          }
+        }
+      ]
+    }
+  ],
+  "savedimages": {}
+}

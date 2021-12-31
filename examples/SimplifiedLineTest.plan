@@ -1,0 +1,59 @@
+{
+  "version": "0.8.0",
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 9,
+            "rect": {
+              "X": -160,
+              "Y": -96,
+              "W": 64,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "0",
+              "checked": false
+            },
+            "links": [9, 12]
+          }, 
+          {
+            "id": 12,
+            "rect": {
+              "X": -288,
+              "Y": 64,
+              "W": 64,
+              "H": 32
+            },
+            "contents": "Note",
+            "properties": {
+              "description": "1"
+            },
+            "links": [9, 12, 12, 11]
+          }, 
+          {
+            "id": 11,
+            "rect": {
+              "X": 32,
+              "Y": 128,
+              "W": 64,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "properties": {
+              "description": "2",
+              "checked": false
+            },
+            "links": [12, 11]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": 116,
+    "Y": -8
+  },
+  "zoom": 1,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "Root",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "Premise",
+        "cards": [
+          {
+            "id": 5,
+            "rect": {
+              "X": 256,
+              "Y": -320,
+              "W": 256,
+              "H": 32
+            },
+            "contents": "Note",
+            "custom color": "FF3D3DFF",
+            "properties": {
+              "description": "New Note"
+            }
+          },
+          {
+            "id": 6,
+            "rect": {
+              "X": 256,
+              "Y": -288,
+              "W": 256,
+              "H": 32
+            },
+            "contents": "Note",
+            "custom color": "FFCF42FF",
+            "properties": {
+              "description": "New Note"
+            }
+          },
+          {
+            "id": 7,
+            "rect": {
+              "X": 256,
+              "Y": -256,
+              "W": 256,
+              "H": 32
+            },
+            "contents": "Note",
+            "custom color": "9AFF41FF",
+            "properties": {
+              "description": "New Note"
+            }
+          },
+          {
+            "id": 8,
+            "rect": {
+              "X": 256,
+              "Y": -224,
+              "W": 256,
+              "H": 32
+            },
+            "contents": "Note",
+            "custom color": "49FFC0FF",
+            "properties": {
+              "description": "New Note"
+            }
+          },
+          {
+            "id": 9,
+            "rect": {
+              "X": 256,
+              "Y": -192,
+              "W": 256,
+              "H": 32
+            },
+            "contents": "Note",
+            "custom color": "41A0FFFF",
+            "properties": {
+              "description": "New Note"
+            }
+          },
+          {
+            "id": 10,
+            "rect": {
+              "X": 256,
+              "Y": -160,
+              "W": 256,
+              "H": 32
+            },
+            "contents": "Note",
+            "custom color": "2749FFFF",
+            "properties": {
+              "description": "New Note"
+            }
+          },
+          {
+            "id": 2,
+            "rect": {
+              "X": -320,
+              "Y": -96,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "custom color": "D57929FF",
+            "properties": {
+              "checked": false,
+              "description": "New Checkbox"
+            }
+          },
+          {
+            "id": 0,
+            "rect": {
+              "X": -320,
+              "Y": -64,
+              "W": 288,
+              "H": 32
+            },
+            "contents": "Checkbox",
+            "custom color": "D57929FF",
+            "properties": {
+              "checked": true,
+              "description": "New Checkbox"
+            }
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": 0,
+              "Y": 32,
+              "W": 256,
+              "H": 64
+            },
+            "contents": "Number",
+            "custom color": "C91313FF",
+            "properties": {
+              "description": "New Numbered",
+              "current": 0,
+              "maximum": 3
+            }
+          },
+          {
+            "id": 3,
+            "rect": {
+              "X": 0,
+              "Y": 96,
+              "W": 256,
+              "H": 64
+            },
+            "contents": "Number",
+            "custom color": "C91313FF",
+            "properties": {
+              "description": "New Numbered",
+              "current": 2,
+              "maximum": 3
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}
