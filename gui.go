@@ -50,6 +50,7 @@ const (
 	GUITimerColor      = "Timer Color"
 	GUIBlankImageColor = "Blank Image Color"
 	GUIMapColor        = "Map Color"
+	GUISubBoardColor   = "Sub-Page Color"
 )
 
 var availableThemes []string = []string{}
@@ -206,9 +207,9 @@ func (iconButton *IconButton) Draw() {
 
 	drawSrc := func(src *sdl.Rect, x, y float32, color Color, flip sdl.RendererFlip) {
 
-		guiTex.SetColorMod(color.Sub(uint8(iconButton.HighlightingTargetColor * 255)).RGB())
-		// alpha := uint8(iconButton.Alpha * float32(color[3]))
-		guiTex.SetAlphaMod(color[3])
+		guiTex.SetColorMod(color.RGB())
+		guiTex.SetAlphaMod(color[3] - uint8(iconButton.HighlightingTargetColor*255))
+
 		r := *rect
 		r.X += x
 		r.Y += y
@@ -220,7 +221,6 @@ func (iconButton *IconButton) Draw() {
 		drawSrc(iconButton.BGIconSrc, 0, 0, NewColor(255, 255, 255, 255), 0)
 	}
 
-	drawSrc(iconButton.IconSrc, 2, 2, NewColor(0, 0, 0, 64), iconButton.Flip)
 	drawSrc(iconButton.IconSrc, 0, 0, iconButton.Tint, iconButton.Flip)
 
 	iconButton.Highlighter.SetRect(iconButton.Rect)
@@ -265,7 +265,7 @@ type Checkbox struct {
 
 func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 	checkbox := &Checkbox{
-		IconButton: *NewIconButton(x, y, &sdl.Rect{48, 160, 32, 32}, worldSpace, nil),
+		IconButton: *NewIconButton(x, y, &sdl.Rect{48, 0, 32, 32}, worldSpace, nil),
 		Clickable:  true,
 	}
 
@@ -299,21 +299,22 @@ func (checkbox *Checkbox) Update() {
 
 	if checkbox.Property != nil {
 		if checkbox.Property.AsBool() {
-			checkbox.IconSrc.X = 48
+			checkbox.IconSrc.Y = 32
 		} else {
-			checkbox.IconSrc.X = 80
+			checkbox.IconSrc.Y = 0
 		}
 	} else {
 
 		if checkbox.Checked {
-			checkbox.IconSrc.X = 48
+			checkbox.IconSrc.Y = 32
 		} else {
-			checkbox.IconSrc.X = 80
+			checkbox.IconSrc.Y = 0
 		}
 	}
 
+	checkbox.IconSrc.X = 48
 	if checkbox.MultiCheckbox {
-		checkbox.IconSrc.X += 64
+		checkbox.IconSrc.X += 32
 	}
 
 }
@@ -357,7 +358,7 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 
 	spinner.Label = NewLabel("0", nil, worldSpace, AlignCenter)
 
-	spinner.Label.RegexString = RegexOnlyDigits()
+	spinner.Label.RegexString = RegexOnlyDigits
 	spinner.Label.Editable = true
 	spinner.Label.OnClickOut = func() {
 		spinner.Property.Set(spinner.EnforceCaps(float64(spinner.Label.TextAsInt())))
@@ -413,6 +414,9 @@ func (spinner *NumberSpinner) Update() {
 }
 
 func (spinner *NumberSpinner) Draw() {
+
+	spinner.Increase.Tint = getThemeColor(GUIFontColor)
+	spinner.Decrease.Tint = getThemeColor(GUIFontColor)
 
 	spinner.Label.Draw()
 	spinner.Increase.Draw()
@@ -1065,8 +1069,9 @@ type Label struct {
 	RendererResult *TextRendererResult
 	WorldSpace     bool
 
-	Editable bool
-	Editing  bool
+	Editable           bool
+	Editing            bool
+	DrawLineUnderTitle bool
 
 	Selection *TextSelection
 
@@ -1099,6 +1104,7 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 		Highlighter:         NewHighlighter(&sdl.FRect{}, worldSpace),
 		RegexString:         "",
 		MaxLength:           -1,
+		DrawLineUnderTitle:  true,
 	}
 
 	label.Highlighter.HighlightMode = HighlightColor
@@ -1528,27 +1534,32 @@ func (label *Label) Draw() {
 	if label.Editable && label.RendererResult != nil {
 		label.Highlighter.Draw()
 
-		thickness := float32(2)
+		if label.DrawLineUnderTitle {
 
-		lineY := float32(0)
-		if nextBreak := strings.Index(label.TextAsString(), "\n"); nextBreak >= 0 {
-			lineY = label.IndexToWorld(nextBreak).Y + globals.GridSize
-		} else {
-			lineY = label.Rect.Y + label.RendererResult.TextSize.Y + thickness
+			thickness := float32(2)
+
+			lineY := float32(0)
+			if nextBreak := strings.Index(label.TextAsString(), "\n"); nextBreak >= 0 {
+				lineY = label.IndexToWorld(nextBreak).Y + globals.GridSize
+			} else {
+				lineY = label.Rect.Y + label.RendererResult.TextSize.Y + thickness
+			}
+
+			if lineY > label.Rect.Y+label.Rect.H {
+				lineY = label.Rect.Y + label.Rect.H
+			}
+
+			start := Point{label.Rect.X, lineY + thickness}
+			end := start.AddF(label.Rect.W-8, 0)
+			if label.WorldSpace {
+				start = globals.Project.Camera.TranslatePoint(start)
+				end = globals.Project.Camera.TranslatePoint(end)
+			}
+
+			ThickLine(start, end, int32(thickness), getThemeColor(GUIFontColor))
+
 		}
 
-		if lineY > label.Rect.Y+label.Rect.H {
-			lineY = label.Rect.Y + label.Rect.H
-		}
-
-		start := Point{label.Rect.X, lineY + thickness}
-		end := start.AddF(label.Rect.W-8, 0)
-		if label.WorldSpace {
-			start = globals.Project.Camera.TranslatePoint(start)
-			end = globals.Project.Camera.TranslatePoint(end)
-		}
-
-		ThickLine(start, end, int32(thickness), getThemeColor(GUIFontColor))
 	}
 
 	// We need this to be on if we are going to draw a blended alpha rectangle; this should be on automatically, but it seems like gfx functions may turn it off if you draw an opaque shape.
@@ -1933,6 +1944,7 @@ type ContainerRow struct {
 	VerticalSpacing   float32
 	ExpandElements    bool
 	Visible           bool
+	ForcedSize        Point
 }
 
 func NewContainerRow(container *Container, horizontalAlignment string) *ContainerRow {
@@ -1966,13 +1978,20 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 	maxWidth := row.Container.Rect.W
 	yHeight := float32(0)
 
-	for _, element := range row.Elements {
+	if row.ForcedSize.Y != 0 {
+		usedWidth = row.ForcedSize.X
+		yHeight = row.ForcedSize.Y
+	} else {
 
-		rect := element.Rectangle()
-		usedWidth += rect.W
-		if yHeight < rect.H {
-			yHeight = rect.H
+		for _, element := range row.Elements {
+
+			rect := element.Rectangle()
+			usedWidth += rect.W
+			if yHeight < rect.H {
+				yHeight = rect.H
+			}
 		}
+
 	}
 
 	diff := (maxWidth - usedWidth)
@@ -2256,14 +2275,16 @@ func (container *Container) IdealSize() Point {
 
 }
 
-type Icon struct {
+type GUIImage struct {
+	Texture    *sdl.Texture
 	Rect       *sdl.FRect
 	SrcRect    *sdl.Rect
 	WorldSpace bool
+	Border     bool
 }
 
-func NewIcon(rect *sdl.FRect, srcRect *sdl.Rect, worldSpace bool) *Icon {
-	icon := &Icon{Rect: rect, SrcRect: srcRect, WorldSpace: worldSpace}
+func NewGUIImage(rect *sdl.FRect, srcRect *sdl.Rect, texture *sdl.Texture, worldSpace bool) *GUIImage {
+	icon := &GUIImage{Rect: rect, SrcRect: srcRect, Texture: texture, WorldSpace: worldSpace}
 	if icon.Rect == nil {
 		icon.Rect = &sdl.FRect{
 			W: float32(srcRect.W),
@@ -2273,34 +2294,49 @@ func NewIcon(rect *sdl.FRect, srcRect *sdl.Rect, worldSpace bool) *Icon {
 	return icon
 }
 
-func (icon *Icon) Update() {}
-func (icon *Icon) Draw() {
+func (image *GUIImage) Update() {}
+
+func (image *GUIImage) Draw() {
 	color := getThemeColor(GUIFontColor)
 
-	guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
-	guiTexture.SetColorMod(color.RGB())
-	guiTexture.SetAlphaMod(color[3])
+	image.Texture.SetColorMod(color.RGB())
+	image.Texture.SetAlphaMod(color[3])
 
-	rect := icon.Rect
+	rect := image.Rect
 
-	if icon.WorldSpace {
+	if image.WorldSpace {
 		rect = globals.Project.Camera.TranslateRect(rect)
 	}
 
-	globals.Renderer.CopyF(guiTexture, icon.SrcRect, rect)
+	globals.Renderer.CopyF(image.Texture, image.SrcRect, rect)
+
+	if image.Border {
+		globals.Renderer.SetDrawColor(getThemeColor(GUIFontColor).RGBA())
+		globals.Renderer.DrawRectF(rect)
+	}
+
+	if globals.DebugMode {
+		dst := &sdl.FRect{image.Rect.X, image.Rect.Y, image.Rect.W, image.Rect.H}
+		if image.WorldSpace {
+			dst = globals.Project.Camera.TranslateRect(dst)
+		}
+
+		globals.Renderer.SetDrawColor(255, 0, 255, 255)
+		globals.Renderer.FillRectF(dst)
+	}
 
 }
-func (icon *Icon) Rectangle() *sdl.FRect {
-	return &sdl.FRect{icon.Rect.X, icon.Rect.Y, icon.Rect.W, icon.Rect.H}
+func (image *GUIImage) Rectangle() *sdl.FRect {
+	return &sdl.FRect{image.Rect.X, image.Rect.Y, image.Rect.W, image.Rect.H}
 }
-func (icon *Icon) SetRectangle(rect *sdl.FRect) {
-	icon.Rect.X = rect.X
-	icon.Rect.Y = rect.Y
-	icon.Rect.W = rect.W
-	icon.Rect.H = rect.H
+func (image *GUIImage) SetRectangle(rect *sdl.FRect) {
+	image.Rect.X = rect.X
+	image.Rect.Y = rect.Y
+	image.Rect.W = rect.W
+	image.Rect.H = rect.H
 }
 
-func (icon *Icon) Destroy() {}
+func (image *GUIImage) Destroy() {}
 
 type Scrollbar struct {
 	Rect        *sdl.FRect

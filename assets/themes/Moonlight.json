@@ -10,5 +10,6 @@
     "Sound Color": [170, 139, 230, 255],
     "Blank Image Color": [140, 139, 219, 255],
     "Timer Color": [138, 161, 246, 255],
-    "Map Color": [50, 55, 60, 255]
+    "Map Color": [50, 55, 60, 255],
+    "Sub-Page Color": [180, 180, 200, 255]
 }

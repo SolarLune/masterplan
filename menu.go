@@ -16,6 +16,10 @@ const (
 
 	MenuSpacingNone   = "menu spacing none"
 	MenuSpacingSpread = "menu spacing fill"
+
+	MenuCloseNone = iota
+	MenuCloseClickOut
+	MenuCloseButton
 )
 
 type MenuSystem struct {
@@ -124,11 +128,10 @@ type Menu struct {
 	BGTexture   *RenderTexture
 	Spacing     string
 
-	Openable           bool
-	Opened             bool
-	CloseButtonEnabled bool
-	closeButtonButton  *Button
-	BackButton         *Button
+	CloseMethod       int
+	Opened            bool
+	closeButtonButton *Button
+	BackButton        *Button
 
 	Draggable  bool
 	Dragging   bool
@@ -145,13 +148,13 @@ type Menu struct {
 	OnClose func()
 }
 
-func NewMenu(rect *sdl.FRect, openable bool) *Menu {
+func NewMenu(rect *sdl.FRect, closeMethod int) *Menu {
 
 	menu := &Menu{
 		Rect:        &sdl.FRect{rect.X, rect.Y, 0, 0},
 		MinSize:     Point{32, 32},
 		Pages:       map[string]*Container{},
-		Openable:    openable,
+		CloseMethod: closeMethod,
 		ResizeShape: NewShape(),
 		Spacing:     MenuSpacingNone,
 		Draggable:   false,
@@ -175,7 +178,7 @@ func (menu *Menu) Update() {
 		return
 	}
 
-	if !menu.Openable || menu.Opened {
+	if menu.Opened {
 
 		if globals.Mouse.Position().Inside(menu.Rect) {
 			globals.Mouse.SetCursor("normal")
@@ -240,7 +243,7 @@ func (menu *Menu) Update() {
 			pageRect.W -= buttonPadding * 4 // X button at top-right
 			pageRect.X += buttonPadding * 2 // Back button
 		}
-		if menu.CloseButtonEnabled {
+		if menu.CloseMethod == MenuCloseButton {
 			pageRect.X += buttonPadding * 2
 			pageRect.W -= buttonPadding * 4 // X button at top-right
 		}
@@ -249,13 +252,13 @@ func (menu *Menu) Update() {
 
 		menu.Pages[menu.CurrentPage].Update()
 
-		if !menu.CloseButtonEnabled && menu.Openable && !globals.Mouse.Position().Inside(menu.Rect) && (globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() || globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed()) {
+		if menu.CloseMethod == MenuCloseClickOut && !globals.Mouse.Position().Inside(menu.Rect) && (globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() || globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed()) {
 			menu.Close()
 		}
 
 		button := globals.Mouse.Button(sdl.BUTTON_LEFT)
 
-		if menu.CloseButtonEnabled {
+		if menu.CloseMethod == MenuCloseButton {
 			rect := menu.closeButtonButton.Rectangle()
 			rect.X = menu.Rect.X + menu.Rect.W - menu.closeButtonButton.Rect.W - buttonPadding
 			rect.Y = menu.Rect.Y + buttonPadding
@@ -361,7 +364,7 @@ func (menu *Menu) Update() {
 
 func (menu *Menu) Draw() {
 
-	if menu.Openable && !menu.Opened {
+	if !menu.Opened {
 		return
 	}
 
@@ -371,7 +374,7 @@ func (menu *Menu) Draw() {
 		menu.Pages[menu.CurrentPage].Draw()
 	}
 
-	if menu.CloseButtonEnabled {
+	if menu.CloseMethod == MenuCloseButton {
 		menu.closeButtonButton.Draw()
 	}
 
@@ -506,22 +509,18 @@ func (menu *Menu) Recreate(newW, newH float32) {
 }
 
 func (menu *Menu) Open() {
-	if menu.Openable {
-		menu.Opened = true
-		if menu.OnOpen != nil {
-			menu.OnOpen()
-		}
+	menu.Opened = true
+	if menu.OnOpen != nil {
+		menu.OnOpen()
 	}
 }
 
 func (menu *Menu) Close() {
-	if menu.Openable {
-		menu.Opened = false
-		menu.PageThread = []string{}
-		menu.SetPage("root")
-		if menu.OnClose != nil {
-			menu.OnClose()
-		}
+	menu.Opened = false
+	menu.PageThread = []string{}
+	menu.SetPage("root")
+	if menu.OnClose != nil {
+		menu.OnClose()
 	}
 }
 

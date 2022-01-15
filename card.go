@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"sort"
 	"strconv"
@@ -281,7 +280,7 @@ type Card struct {
 	ContentType             string
 	ContentsLibrary         map[string]Contents
 	Properties              *Properties
-	Selected                bool
+	selected                bool
 	Result                  *RenderTexture
 	Dragging                bool
 	Draggable               bool
@@ -304,7 +303,8 @@ type Card struct {
 	Collapsed       string
 	UncollapsedSize Point
 
-	Highlighter *Highlighter
+	Highlighter     *Highlighter
+	DrawHighlighter bool
 
 	Links              []*LinkEnding
 	LinkRectPercentage float32
@@ -325,6 +325,7 @@ func NewCard(page *Page, contentType string) *Card {
 		Draggable:       true,
 		Links:           []*LinkEnding{},
 		ResizeShape:     NewShape(),
+		DrawHighlighter: true,
 	}
 
 	card.Drawable = NewDrawable(card.PostDraw)
@@ -346,181 +347,189 @@ func NewCard(page *Page, contentType string) *Card {
 
 func (card *Card) Update() {
 
-	card.LinkRectPercentage += globals.DeltaTime
-	for card.LinkRectPercentage >= 1 {
-		card.LinkRectPercentage--
-	}
+	if card.Page.IsCurrent() {
 
-	if card.Dragging {
-		card.Rect.X = -card.DragStartOffset.X + globals.Mouse.WorldPosition().X
-		card.Rect.Y = -card.DragStartOffset.Y + globals.Mouse.WorldPosition().Y
-		if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
-			card.StopDragging()
-		}
-	}
-
-	rectSize := float32(16)
-
-	card.ResizeShape.SetRects(
-		&sdl.FRect{card.Rect.X + rectSize, card.Rect.Y + card.Rect.H, card.Rect.W - rectSize, rectSize},
-		&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + card.Rect.H, rectSize, rectSize},
-		&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + rectSize, rectSize, card.Rect.H - rectSize},
-	)
-
-	if card.Resizing != "" {
-		globals.Mouse.SetCursor(card.Resizing)
-
-		w := card.Rect.W
-		h := card.Rect.H
-
-		if card.Resizing == ResizeHorizontal || card.Resizing == ResizeCorner {
-			w = globals.Mouse.WorldPosition().X - card.Rect.X - card.ResizeShape.Rects[1].W
+		card.LinkRectPercentage += globals.DeltaTime
+		for card.LinkRectPercentage >= 1 {
+			card.LinkRectPercentage--
 		}
 
-		if card.Resizing == ResizeVertical || card.Resizing == ResizeCorner {
-			h = globals.Mouse.WorldPosition().Y - card.Rect.Y - card.ResizeShape.Rects[1].H
-		}
-
-		if card.LockResizingAspectRatio > 0 {
-			h = w * card.LockResizingAspectRatio
-		}
-
-		for card := range card.Page.Selection.Cards {
-			card.Recreate(w, h)
-		}
-
-		if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
-			card.StopResizing()
-			for card := range card.Page.Selection.Cards {
-				card.StopResizing()
+		if card.Dragging {
+			card.Rect.X = -card.DragStartOffset.X + globals.Mouse.WorldPosition().X
+			card.Rect.Y = -card.DragStartOffset.Y + globals.Mouse.WorldPosition().Y
+			if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
+				card.StopDragging()
 			}
 		}
 
+		rectSize := float32(16)
+
+		card.ResizeShape.SetRects(
+			&sdl.FRect{card.Rect.X + rectSize, card.Rect.Y + card.Rect.H, card.Rect.W - rectSize, rectSize},
+			&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + card.Rect.H, rectSize, rectSize},
+			&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + rectSize, rectSize, card.Rect.H - rectSize},
+		)
+
+		if card.Resizing != "" {
+			globals.Mouse.SetCursor(card.Resizing)
+
+			w := card.Rect.W
+			h := card.Rect.H
+
+			if card.Resizing == ResizeHorizontal || card.Resizing == ResizeCorner {
+				w = globals.Mouse.WorldPosition().X - card.Rect.X - card.ResizeShape.Rects[1].W
+			}
+
+			if card.Resizing == ResizeVertical || card.Resizing == ResizeCorner {
+				h = globals.Mouse.WorldPosition().Y - card.Rect.Y - card.ResizeShape.Rects[1].H
+			}
+
+			if card.LockResizingAspectRatio > 0 {
+				h = w * card.LockResizingAspectRatio
+			}
+
+			for card := range card.Page.Selection.Cards {
+				card.Recreate(w, h)
+			}
+
+			if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
+				card.StopResizing()
+				for card := range card.Page.Selection.Cards {
+					card.StopResizing()
+				}
+			}
+
+		}
+
+		softness := float32(0.4)
+
+		card.DisplayRect.X += SmoothLerpTowards(card.Rect.X, card.DisplayRect.X, softness)
+		card.DisplayRect.Y += SmoothLerpTowards(card.Rect.Y, card.DisplayRect.Y, softness)
+		card.DisplayRect.W += SmoothLerpTowards(card.Rect.W, card.DisplayRect.W, softness)
+		card.DisplayRect.H += SmoothLerpTowards(card.Rect.H, card.DisplayRect.H, softness)
+
+		card.Highlighter.SetRect(card.DisplayRect)
+
+		card.LockResizingAspectRatio = 0
+
 	}
-
-	softness := float32(0.4)
-
-	card.DisplayRect.X += SmoothLerpTowards(card.Rect.X, card.DisplayRect.X, softness)
-	card.DisplayRect.Y += SmoothLerpTowards(card.Rect.Y, card.DisplayRect.Y, softness)
-	card.DisplayRect.W += SmoothLerpTowards(card.Rect.W, card.DisplayRect.W, softness)
-	card.DisplayRect.H += SmoothLerpTowards(card.Rect.H, card.DisplayRect.H, softness)
-
-	card.Highlighter.SetRect(card.DisplayRect)
-
-	card.LockResizingAspectRatio = 0
 
 	if card.Contents != nil {
 		card.Contents.Update()
 	}
 
-	if globals.Keybindings.Pressed(KBLinkCard) && (globals.State == StateNeutral || globals.State == StateCardLinking) {
+	if card.Page.IsCurrent() {
 
-		globals.State = StateCardLinking
-		globals.Mouse.SetCursor("link")
+		if globals.Keybindings.Pressed(KBLinkCard) && (globals.State == StateNeutral || globals.State == StateCardLinking) {
 
-		if ClickedInRect(card.Rect, true) && card.Page.Linking == nil {
-			card.Page.Linking = card
-			// We create an undo state before having created the link so we can undo to before it, natch
-			card.CreateUndoState = true
-		}
+			globals.State = StateCardLinking
+			globals.Mouse.SetCursor("link")
 
-		if card.Page.Linking == card {
-
-			released := globals.Mouse.Button(sdl.BUTTON_LEFT).Released()
-
-			reversed := append([]*Card{}, card.Page.Cards...)
-
-			sort.SliceStable(reversed, func(i, j int) bool {
-				return j < i
-			})
-			for _, possibleCard := range reversed {
-
-				if possibleCard == card {
-					continue
-				}
-
-				if globals.Mouse.WorldPosition().Inside(possibleCard.Rect) && released {
-
-					if possibleCard.IsLinkedTo(possibleCard.Page.Linking) {
-						card.Unlink(possibleCard)
-					} else {
-						card.Link(possibleCard)
-					}
-
-					card.CreateUndoState = true
-					possibleCard.CreateUndoState = true
-					break
-
-				}
-
-			}
-
-			if released {
-				card.Page.Linking = nil
-			}
-
-		}
-
-	} else {
-
-		if globals.State == StateCardLinking {
-			globals.State = StateNeutral
-			card.Page.Linking = nil
-		}
-
-		if globals.State == StateNeutral {
-
-			if card.Selected && globals.Keybindings.Pressed(KBCollapseCard) {
-				card.Collapse()
+			if ClickedInRect(card.Rect, true) && card.Page.Linking == nil {
+				card.Page.Linking = card
+				// We create an undo state before having created the link so we can undo to before it, natch
 				card.CreateUndoState = true
 			}
 
-			if i := globals.Mouse.WorldPosition().InsideShape(card.ResizeShape); i >= 0 && card.Resizing == "" {
+			if card.Page.Linking == card {
 
-				side := "resizevertical"
+				released := globals.Mouse.Button(sdl.BUTTON_LEFT).Released()
 
-				if i == 1 {
-					side = "resizecorner"
-				} else if i == 2 {
-					side = "resizehorizontal"
+				reversed := append([]*Card{}, card.Page.Cards...)
+
+				sort.SliceStable(reversed, func(i, j int) bool {
+					return j < i
+				})
+				for _, possibleCard := range reversed {
+
+					if possibleCard == card {
+						continue
+					}
+
+					if globals.Mouse.WorldPosition().Inside(possibleCard.Rect) && released {
+
+						if possibleCard.IsLinkedTo(possibleCard.Page.Linking) {
+							card.Unlink(possibleCard)
+						} else {
+							card.Link(possibleCard)
+						}
+
+						card.CreateUndoState = true
+						possibleCard.CreateUndoState = true
+						break
+
+					}
+
 				}
 
-				globals.Mouse.SetCursor(side)
+				if released {
+					card.Page.Linking = nil
+				}
 
-				if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
-					if !card.Selected && !globals.Keybindings.Pressed(KBAddToSelection) {
-						card.Page.Selection.Clear()
+			}
+
+		} else {
+
+			if globals.State == StateCardLinking {
+				globals.State = StateNeutral
+				card.Page.Linking = nil
+			}
+
+			if globals.State == StateNeutral {
+
+				if card.selected && globals.Keybindings.Pressed(KBCollapseCard) {
+					card.Collapse()
+					card.CreateUndoState = true
+				}
+
+				if i := globals.Mouse.WorldPosition().InsideShape(card.ResizeShape); i >= 0 && card.Resizing == "" {
+
+					side := "resizevertical"
+
+					if i == 1 {
+						side = "resizecorner"
+					} else if i == 2 {
+						side = "resizehorizontal"
 					}
-					card.Page.Selection.Add(card)
-					card.Resizing = side
+
+					globals.Mouse.SetCursor(side)
+
+					if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+						if !card.selected && !globals.Keybindings.Pressed(KBAddToSelection) {
+							card.Page.Selection.Clear()
+						}
+						card.Page.Selection.Add(card)
+						card.Resizing = side
+						globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+					}
+
+				} else if globals.Mouse.CurrentCursor == "normal" && ClickedInRect(card.Rect, true) {
+
+					selection := card.Page.Selection
+
+					if globals.Keybindings.Pressed(KBRemoveFromSelection) {
+
+						if card.selected {
+							selection.Remove(card)
+						}
+
+					} else {
+
+						if !card.selected && !globals.Keybindings.Pressed(KBAddToSelection) {
+							selection.Clear()
+						}
+
+						selection.Add(card)
+
+						for card := range selection.Cards {
+							card.StartDragging()
+						}
+
+					}
+
 					globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-				}
-
-			} else if globals.Mouse.CurrentCursor == "normal" && ClickedInRect(card.Rect, true) {
-
-				selection := card.Page.Selection
-
-				if globals.Keybindings.Pressed(KBRemoveFromSelection) {
-
-					if card.Selected {
-						selection.Remove(card)
-					}
-
-				} else {
-
-					if !card.Selected && !globals.Keybindings.Pressed(KBAddToSelection) {
-						selection.Clear()
-					}
-
-					selection.Add(card)
-
-					for card := range selection.Cards {
-						card.StartDragging()
-					}
 
 				}
-
-				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
 			}
 
@@ -528,11 +537,10 @@ func (card *Card) Update() {
 
 	}
 
-	// We can't do this because this makes dragging multiple Cards impossible.
-	// if globals.Mouse.WorldPosition().Inside(card.Rect) {
-	// 	globals.Mouse.Hidden = true
-	// }
+}
 
+func (card *Card) IsSelected() bool {
+	return card.selected && card.Page.IsCurrent() && card.Page.Valid
 }
 
 func (card *Card) IsLinkedTo(other *Card) bool {
@@ -667,7 +675,7 @@ func (card *Card) DrawCard() {
 
 	color := card.Color()
 
-	if card.Selected && globals.Settings.Get(SettingsFlashSelected).AsBool() {
+	if card.selected && globals.Settings.Get(SettingsFlashSelected).AsBool() {
 		color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
 	}
 
@@ -693,7 +701,7 @@ func (card *Card) Color() Color {
 
 func (card *Card) DrawContents() {
 
-	card.Highlighter.Highlighting = card.Selected
+	card.Highlighter.Highlighting = card.selected
 
 	card.Highlighter.Draw()
 
@@ -736,7 +744,7 @@ func (card *Card) PostDraw() {
 	alwaysShowNumbering := globals.Settings.Get(SettingsAlwaysShowNumbering).AsBool()
 	numberableCards := card.Stack.Any(func(card *Card) bool { return card.Numberable() })
 
-	if card.Stack.Numerous() && numberableCards && (alwaysShowNumbering || card.Stack.Any(func(card *Card) bool { return card.Selected })) {
+	if card.Stack.Numerous() && numberableCards && (alwaysShowNumbering || card.Stack.Any(func(card *Card) bool { return card.selected })) {
 
 		// Top card handles drawing everything
 		if card.Stack.Below != nil && card.Stack.Above == nil {
@@ -885,7 +893,6 @@ func (card *Card) Deserialize(data string) {
 
 	if gjson.Get(data, "custom color").Exists() {
 		cc := gjson.Get(data, "custom color")
-		fmt.Println(cc)
 		card.CustomColor = ColorFromHexString(cc.String())
 	} else {
 		card.CustomColor = nil
@@ -923,14 +930,14 @@ func (card *Card) Deserialize(data string) {
 }
 
 func (card *Card) Select() {
-	if !card.Selected {
+	if !card.selected {
 		card.Page.Raise(card)
 	}
-	card.Selected = true
+	card.selected = true
 }
 
 func (card *Card) Deselect() {
-	card.Selected = false
+	card.selected = false
 }
 
 func (card *Card) StartDragging() {
@@ -1272,6 +1279,8 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewTimerContents(card)
 		case ContentTypeMap:
 			card.Contents = NewMapContents(card)
+		case ContentTypeSubpage:
+			card.Contents = NewSubPageContents(card)
 		default:
 			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}

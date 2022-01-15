@@ -35,6 +35,14 @@ func (camera *Camera) Update() {
 	camera.Position = camera.Position.Add(camera.TargetPosition.Sub(camera.Position).Mult(softness))
 }
 
+func (camera *Camera) JumpTo(pos Point, zoom float32) {
+	camera.TargetPosition = pos
+	camera.Position = pos
+	camera.TargetZoom = zoom
+	camera.Zoom = zoom
+	camera.Update()
+}
+
 func (camera *Camera) SetZoom(targetZoom float32) {
 
 	if targetZoom < 0.25 {
@@ -105,14 +113,38 @@ func (camera *Camera) FocusOn(cards ...*Card) {
 		return
 	}
 
-	px := Point{}
+	topLeft := Point{math.MaxFloat32, math.MaxFloat32}
+	bottomRight := Point{-math.MaxFloat32, -math.MaxFloat32}
 
 	for _, c := range cards {
-		px = px.Add(c.Center())
+
+		if c.Rect.X < topLeft.X {
+			topLeft.X = c.Rect.X
+		}
+		if c.Rect.Y < topLeft.Y {
+			topLeft.Y = c.Rect.Y
+		}
+
+		if c.Rect.X+c.Rect.W > bottomRight.X {
+			bottomRight.X = c.Rect.X + c.Rect.W
+		}
+		if c.Rect.Y+c.Rect.H > bottomRight.Y {
+			bottomRight.Y = c.Rect.Y + c.Rect.H
+		}
+
 	}
 
-	px = px.Div(float32(len(cards)))
+	diff := bottomRight.Sub(topLeft)
 
-	camera.TargetPosition = px
+	camera.TargetPosition = topLeft.Add(diff.Div(2))
+
+	zx := globals.ScreenSize.X / diff.X
+	zy := globals.ScreenSize.Y / diff.Y
+
+	if zy > zx {
+		camera.SetZoom(zx * 0.8)
+	} else {
+		camera.SetZoom(zy * 0.8)
+	}
 
 }

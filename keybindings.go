@@ -39,6 +39,7 @@ const (
 	KBNewImageCard    = "New Image Card"
 	KBNewTimerCard    = "New Timer Card"
 	KBNewMapCard      = "New Map Card"
+	KBNewSubpageCard  = "New Sub-Page Card"
 
 	KBAddToSelection      = "Add to Selection Modifier"
 	KBRemoveFromSelection = "Remove From Selection Modifier"
@@ -92,6 +93,8 @@ const (
 	KBFindPrev = "Find: Prev. Card"
 
 	KBTimerStartStop = "Timer: Start / Stop Timer"
+
+	KBSubpageOpen = "Sub-Page: Open / Close"
 
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -414,6 +417,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBNewImageCard, sdl.K_5, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewTimerCard, sdl.K_6, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewMapCard, sdl.K_7, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewSubpageCard, sdl.K_8, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
@@ -463,6 +467,8 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBFind, sdl.K_f, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBFindNext, sdl.K_f, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBFindPrev, sdl.K_f, sdl.K_LCTRL, sdl.K_LSHIFT)
+
+	kb.DefineKeyShortcut(KBSubpageOpen, sdl.K_BACKQUOTE)
 
 	kb.UpdateShortcutFamilies()
 

@@ -60,7 +60,7 @@ func (selection *Selection) Update() {
 }
 
 func (selection *Selection) Add(card *Card) {
-	if !card.Selected {
+	if !card.selected {
 		card.Page.Raise(card)
 	}
 	card.Select()

@@ -12,6 +12,7 @@ const (
 	MessageStacksUpdated   = "MessageStacksUpdated"
 	MessageLinkCreated     = "MessageLinkCreated"
 	MessageLinkDeleted     = "MessageLinkDeleted"
+	MessagePageChanged     = "MessagePageChanged"
 )
 
 type Message struct {

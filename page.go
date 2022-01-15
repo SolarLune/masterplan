@@ -13,158 +13,46 @@ import (
 	"golang.design/x/clipboard"
 )
 
-const (
-	PageContentFolder = "PageContentFolder"
-	PageContentPage   = "PageContentPage"
-)
-
-type PageContent interface {
-	Type() string
-	Name() string
-	Depth() int
-	Update()
-	Serialize() string
-}
-
-type PageFolder struct {
-	Folder   *PageFolder
-	Project  *Project
-	Contents []PageContent
-	ToRemove []PageContent
-	name     string
-	depth    int
-	Expanded bool
-}
-
-func NewPageFolder(owningFolder *PageFolder, project *Project) *PageFolder {
-	pf := &PageFolder{
-		Folder:   owningFolder,
-		Project:  project,
-		Contents: []PageContent{},
-		name:     "New Folder",
-		Expanded: true,
-	}
-
-	if owningFolder != nil {
-		pf.depth = owningFolder.depth + 1
-	}
-
-	return pf
-}
-
-func (pf *PageFolder) Add(element PageContent) {
-	pf.Contents = append(pf.Contents, element)
-}
-
-func (pf *PageFolder) Remove(element PageContent) {
-	pf.ToRemove = append(pf.ToRemove, element)
-}
-
-func (pf *PageFolder) Update() {
-
-	for _, content := range pf.Contents {
-		content.Update()
-	}
-
-	for _, element := range pf.ToRemove {
-		for i, content := range pf.Contents {
-			if element == content {
-				pf.Contents[i] = nil
-				pf.Contents = append(pf.Contents[:i], pf.Contents[i+1:]...)
-				break
-			}
-		}
-	}
-	pf.ToRemove = []PageContent{}
-
-}
-
-func (pf *PageFolder) Pages() []*Page {
-	pages := []*Page{}
-	for _, content := range pf.Contents {
-		if content.Type() == PageContentPage {
-			pg := content.(*Page)
-			pages = append(pages, pg)
-		}
-	}
-	return pages
-}
-
-func (pf *PageFolder) Type() string { return PageContentFolder }
-
-func (pf *PageFolder) Depth() int { return pf.depth }
-
-func (pf *PageFolder) Name() string { return pf.name }
-
-func (pf *PageFolder) Serialize() string {
-	data := "{}"
-	data, _ = sjson.Set(data, "pagecontenttype", PageContentFolder)
-	data, _ = sjson.Set(data, "name", pf.name)
-
-	contents := "["
-	for i, element := range pf.Contents {
-		contents += element.Serialize()
-		if i < len(pf.Contents)-1 {
-			contents += ","
-		}
-	}
-	contents += "]"
-
-	data, _ = sjson.SetRaw(data, "contents", contents)
-
-	return data
-}
-
-func (pf *PageFolder) Deserialize(data string) {
-
-	pf.name = gjson.Get(data, "name").String()
-
-	for _, c := range gjson.Get(data, "contents").Array() {
-		if c.Get("pagecontenttype").String() == PageContentFolder {
-			newPF := NewPageFolder(pf, pf.Project)
-			pf.Add(newPF)
-			newPF.Deserialize(c.String())
-		} else {
-			newPage := NewPage(pf, pf.Project)
-			pf.Add(newPage)
-			newPage.Deserialize(c.String())
-		}
-	}
-
-}
-
 type Page struct {
+	ID           uint64
 	Project      *Project
-	Folder       *PageFolder // The folder that "owns" the page
+	Valid        bool
+	UpwardPage   *Page
 	Grid         *Grid
 	Cards        []*Card
 	ToDelete     []*Card
 	ToRestore    []*Card
 	Selection    *Selection
-	name         string
-	depth        int
+	Name         string
 	UpdateStacks bool
 	Drawables    []*Drawable
 	ToRaise      []*Card
+
+	IgnoreWritePan bool
+	Pan            Point
+	Zoom           float32
 
 	Linking              *Card
 	DeserializationLinks []string
 }
 
-func NewPage(pageFolder *PageFolder, project *Project) *Page {
+var globalPageID = uint64(0)
+
+func NewPage(project *Project) *Page {
 
 	page := &Page{
+		ID:        globalPageID,
 		Project:   project,
-		Folder:    pageFolder,
+		Valid:     true,
 		Grid:      NewGrid(),
 		Cards:     []*Card{},
-		name:      "New Page",
-		depth:     0,
+		Name:      "New Page",
 		Drawables: []*Drawable{},
 		ToRaise:   []*Card{},
+		Zoom:      1,
 	}
 
-	page.depth = pageFolder.depth + 1
+	globalPageID++
 
 	page.Selection = NewSelection(page)
 
@@ -181,7 +69,7 @@ func (page *Page) Update() {
 	})
 
 	// We update links out here so they take priority in clicking over the cards themselves. TODO: Optimize this, as this doesn't really need to be done every frame
-	if globals.Project.CurrentPage == page {
+	if page.IsCurrent() {
 
 		for _, card := range reversed {
 
@@ -197,24 +85,38 @@ func (page *Page) Update() {
 		card.Update()
 	}
 
-	if page.UpdateStacks {
+	if page.IsCurrent() {
 
-		// In this loop, the Stacks are subject to change.
-		for _, card := range page.Cards {
-			card.Stack.Update()
+		// We only want to set the pan and zoom of a page if it's not loading the project (as it sets the page to be current to take screenshots for subpages).
+		if !page.Project.Loading && !page.IgnoreWritePan {
+			page.Pan = page.Project.Camera.Position
+			page.Zoom = page.Project.Camera.Zoom
 		}
 
-		// From this point, the Stacks should be accurate and usable again.
-		for _, card := range page.Cards {
-			card.Stack.PostUpdate()
+		if page.UpdateStacks {
+
+			// In this loop, the Stacks are subject to change.
+			for _, card := range page.Cards {
+				card.Stack.Update()
+			}
+
+			// From this point, the Stacks should be accurate and usable again.
+			for _, card := range page.Cards {
+				card.Stack.PostUpdate()
+			}
+
+			page.UpdateStacks = false
+
+			page.SendMessage(NewMessage(MessageStacksUpdated, nil, nil))
+
 		}
-
-		page.UpdateStacks = false
-
-		page.SendMessage(NewMessage(MessageStacksUpdated, nil, nil))
 
 	}
 
+}
+
+func (page *Page) IsCurrent() bool {
+	return page.Project.CurrentPage == page
 }
 
 func (page *Page) Draw() {
@@ -285,8 +187,10 @@ func (page *Page) Serialize() string {
 
 	pageData := "{}"
 
-	pageData, _ = sjson.Set(pageData, "pagecontenttype", PageContentPage)
-	pageData, _ = sjson.Set(pageData, "name", page.name)
+	pageData, _ = sjson.Set(pageData, "name", page.Name)
+	pageData, _ = sjson.Set(pageData, "id", page.ID)
+	pageData, _ = sjson.Set(pageData, "pan", page.Pan)
+	pageData, _ = sjson.Set(pageData, "zoom", page.Zoom)
 
 	// Sort the cards by their position so the serialization is more stable. (Otherwise, clicking on
 	// a Card adjusts the sort order, and therefore the order in which Cards are serialized.)
@@ -306,7 +210,18 @@ func (page *Page) Serialize() string {
 
 func (page *Page) Deserialize(data string) {
 
-	page.name = gjson.Get(data, "name").String()
+	page.Name = gjson.Get(data, "name").String()
+	if id := gjson.Get(data, "id"); id.Exists() {
+		page.ID = id.Uint()
+	}
+
+	lp := gjson.Get(data, "pan").Map()
+	page.Pan.X = float32(lp["X"].Float())
+	page.Pan.Y = float32(lp["Y"].Float())
+	page.Zoom = float32(gjson.Get(data, "zoom").Float())
+	if page.Zoom == 0 {
+		page.Zoom = 1
+	}
 
 	for _, cardData := range gjson.Get(data, "cards").Array() {
 
@@ -720,14 +635,6 @@ func (page *Page) SendMessage(msg *Message) {
 	}
 
 }
-
-func (page *Page) Type() string {
-	return PageContentPage
-}
-
-func (page *Page) Depth() int { return page.depth }
-
-func (page *Page) Name() string { return page.name }
 
 // import (
 // 	"fmt"

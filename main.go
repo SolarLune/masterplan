@@ -77,7 +77,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.8.0-alpha.3")
+	globals.Version = semver.MustParse("0.8.0-alpha.4")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -220,6 +220,10 @@ func main() {
 	// 	h = int32(globals.OldProgramSettings.WindowPosition.H)
 	// }
 
+	if err := img.Init(img.INIT_JPG | img.INIT_PNG | img.INIT_TIF | img.INIT_WEBP); err != nil {
+		panic(err)
+	}
+
 	LoadCursors()
 
 	icon, err := img.Load(LocalRelativePath("assets/window_icon.png"))
@@ -290,6 +294,11 @@ func main() {
 
 		if err != nil {
 			panic(err)
+		}
+
+		globals.ScreenSizeChanged = false
+		if screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y) {
+			globals.ScreenSizeChanged = true
 		}
 
 		globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
@@ -657,7 +666,8 @@ func ConstructMenus() {
 
 	// Main Menu
 
-	mainMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 800, 48}, false), "main", false)
+	mainMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 800, 48}, MenuCloseNone), "main", false)
+	mainMenu.Opened = true
 	root := mainMenu.Pages["root"]
 
 	row := root.AddRow(AlignCenter)
@@ -674,7 +684,7 @@ func ConstructMenus() {
 
 	// File Menu
 
-	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 300}, true), "file", false)
+	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 300}, MenuCloseClickOut), "file", false)
 	root = fileMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() {
@@ -734,7 +744,7 @@ func ConstructMenus() {
 
 	// View Menu
 
-	viewMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 200}, true), "view", false)
+	viewMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 200}, MenuCloseClickOut), "view", false)
 	root = viewMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("Create Menu", NewButton("Create", nil, nil, false, func() {
@@ -747,15 +757,6 @@ func ConstructMenus() {
 		viewMenu.Close()
 	}))
 
-	// root.AddRow(AlignCenter).Add("Board Menu", NewButton("Boards", nil, nil, false, func() {
-	// 	boardMenu := globals.MenuSystem.Get("boards")
-	// 	// boardMenu.Center()
-	// 	boardMenu.Rect.X = globals.ScreenSize.X - boardMenu.Rect.W
-	// 	boardMenu.Rect.Y = 0
-	// 	boardMenu.Open()
-	// 	viewMenu.Close()
-	// }))
-
 	root.AddRow(AlignCenter).Add("Find Menu", NewButton("Find", nil, nil, false, func() {
 		globals.MenuSystem.Get("search").Open()
 		viewMenu.Close()
@@ -766,7 +767,7 @@ func ConstructMenus() {
 		viewMenu.Close()
 	}))
 
-	loadRecent := globals.MenuSystem.Add(NewMenu(&sdl.FRect{128, 96, 512, 128}, true), "load recent", false)
+	loadRecent := globals.MenuSystem.Add(NewMenu(&sdl.FRect{128, 96, 512, 128}, MenuCloseClickOut), "load recent", false)
 	loadRecent.OnOpen = func() {
 
 		root = loadRecent.Pages["root"]
@@ -807,15 +808,14 @@ func ConstructMenus() {
 
 	// Create Menu
 
-	createMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X, globals.ScreenSize.Y, 250, 320}, true), "create", false)
+	createMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X, globals.ScreenSize.Y, 32, 32}, MenuCloseButton), "create", false)
 	createMenu.Draggable = true
 	createMenu.Resizeable = true
-	createMenu.CloseButtonEnabled = true
 	createMenu.Orientation = MenuOrientationVertical
 	createMenu.Open()
 
 	root = createMenu.Pages["root"]
-	root.AddRow(AlignCenter).Add("create label", NewLabel("-Create-", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
+	root.AddRow(AlignCenter).Add("create label", NewLabel("Create", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
 
 	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, &sdl.Rect{48, 32, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
@@ -827,12 +827,12 @@ func ConstructMenus() {
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, &sdl.Rect{80, 0, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, &sdl.Rect{112, 160, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNote)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, &sdl.Rect{80, 32, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, &sdl.Rect{144, 160, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSound)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 	}))
@@ -852,12 +852,18 @@ func ConstructMenus() {
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 	}))
 
+	root.AddRow(AlignCenter).Add("create new subpage", NewButton("Sub-Page", nil, &sdl.Rect{48, 256, 32, 32}, false, func() {
+		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSubpage)
+		card.SetCenter(globals.Project.Camera.TargetPosition)
+	}))
+
+	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+48, createMenu.Pages["root"].IdealSize().Y+16)
+
 	// Edit Menu
 
-	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 2, globals.ScreenSize.Y / 2, 300, 400}, true), "edit", false)
+	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 2, globals.ScreenSize.Y / 2, 300, 400}, MenuCloseButton), "edit", false)
 	editMenu.Draggable = true
 	editMenu.Resizeable = true
-	editMenu.CloseButtonEnabled = true
 	editMenu.Orientation = MenuOrientationVertical
 
 	root = editMenu.Pages["root"]
@@ -906,7 +912,7 @@ func ConstructMenus() {
 
 	}
 	hexText.MaxLength = 7
-	hexText.RegexString = RegexHex()
+	hexText.RegexString = RegexHex
 	setColor.AddRow(AlignCenter).Add("hex text", hexText)
 
 	setColor.AddRow(AlignCenter).Add("apply", NewButton("Apply to Selected", nil, nil, false, func() {
@@ -972,94 +978,15 @@ func ConstructMenus() {
 		}
 	}))
 
-	// Board Menu
-
-	boardMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 256, 512}, true), "boards", false)
-	boardMenu.CloseButtonEnabled = true
-	boardMenu.Resizeable = true
-	boardMenu.Draggable = true
-	boardMenu.OnOpen = func() {
-		root := boardMenu.Pages["root"]
-		root.Clear()
-
-		root.AddRow(AlignCenter).Add("title", NewLabel("~Board~", nil, false, AlignCenter))
-		root.AddRow(AlignCenter).Add("spacer", NewSpacer(nil))
-
-		row := root.AddRow(AlignCenter)
-
-		row.Add("add page", NewButton("Page", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
-			globals.Project.RootFolder.Add(NewPage(globals.Project.RootFolder, globals.Project))
-			boardMenu.Open()
-		}))
-
-		row.Add("add folder", NewButton("Folder", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
-			globals.Project.RootFolder.Add(NewPageFolder(globals.Project.RootFolder, globals.Project))
-			boardMenu.Open()
-		}))
-
-		root.AddRow(AlignCenter).Add("spacer", NewSpacer(nil))
-
-		var createButtonsForBoardMenu func(PageContent)
-
-		createButtonsForBoardMenu = func(element PageContent) {
-
-			localElement := element
-
-			name := ""
-
-			for i := 0; i < localElement.Depth(); i++ {
-				name += "   "
-			}
-
-			name += localElement.Name()
-
-			if globals.Project.CurrentPage == localElement {
-				name = "> " + name
-			}
-
-			icon := &sdl.Rect{176, 64, 32, 32}
-
-			if localElement.Type() == PageContentFolder {
-				icon.X = 112
-			}
-
-			root.AddRow(AlignLeft).Add(name, NewButton(name, nil, icon, false, func() {
-				if localElement.Type() == PageContentPage {
-					globals.Project.CurrentPage = localElement.(*Page)
-					boardMenu.Open()
-				} else {
-					folder := localElement.(*PageFolder)
-					folder.Expanded = !folder.Expanded
-					boardMenu.Open()
-				}
-			}))
-
-			if localElement.Type() == PageContentFolder {
-
-				folder := localElement.(*PageFolder)
-
-				if folder.Expanded {
-
-					for _, content := range localElement.(*PageFolder).Contents {
-						// We have to make a local copy so that calling createButtonsForBoardMenu() works in this for loop on each element in the loop
-						localContent := content
-						createButtonsForBoardMenu(localContent)
-					}
-				}
-
-			}
-
+	setType.AddRow(AlignCenter).Add("set sub-page content type", NewButton("Sub-Page", nil, &sdl.Rect{112, 96, 32, 32}, false, func() {
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			card.SetContents(ContentTypeSubpage)
 		}
-
-		createButtonsForBoardMenu(globals.Project.RootFolder)
-
-	}
-	root = boardMenu.Pages["root"]
-	root.AddRow(AlignLeft).Add("0", NewButton("Page 1", nil, nil, false, func() {}))
+	}))
 
 	// Context Menu
 
-	contextMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 256, 256}, true), "context", false)
+	contextMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 256, 256}, MenuCloseClickOut), "context", false)
 	contextMenu.OnOpen = func() { globals.State = StateContextMenu }
 	contextMenu.OnClose = func() { globals.State = StateNeutral }
 	root = contextMenu.Pages["root"]
@@ -1088,14 +1015,13 @@ func ConstructMenus() {
 		contextMenu.Close()
 	}))
 
-	commonMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 128}, true), "common", false)
+	commonMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 128}, MenuCloseButton), "common", false)
 	commonMenu.Draggable = true
 	commonMenu.Resizeable = true
-	commonMenu.CloseButtonEnabled = true
 
 	// Confirmation Menus
 
-	confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirm quit", true)
+	confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm quit", true)
 	confirmQuit.Draggable = true
 	root = confirmQuit.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to quit?", nil, false, AlignCenter))
@@ -1105,7 +1031,7 @@ func ConstructMenus() {
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
 	confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
 
-	confirmNewProject := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirm new project", true)
+	confirmNewProject := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm new project", true)
 	confirmNewProject.Draggable = true
 	root = confirmNewProject.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Create a new project?", nil, false, AlignCenter))
@@ -1119,7 +1045,7 @@ func ConstructMenus() {
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmNewProject.Close() }))
 	confirmNewProject.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
 
-	confirmLoad := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, true), "confirm load", true)
+	confirmLoad := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm load", true)
 	confirmLoad.Draggable = true
 	root = confirmLoad.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Load this project?", nil, false, AlignCenter))
@@ -1130,7 +1056,7 @@ func ConstructMenus() {
 		confirmLoad.Close()
 	}))
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmLoad.Close() }))
-	confirmLoad.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
+	confirmLoad.Recreate(root.IdealSize().X+48, root.IdealSize().Y+16)
 
 	// // Confirm Load Menu - do this after Project.Modified works again.
 
@@ -1148,8 +1074,7 @@ func ConstructMenus() {
 
 	// Settings Menu
 
-	settings := NewMenu(&sdl.FRect{0, 0, 800, 512}, true)
-	settings.CloseButtonEnabled = true
+	settings := NewMenu(&sdl.FRect{0, 0, 800, 512}, MenuCloseButton)
 	settings.Draggable = true
 	settings.Resizeable = true
 	globals.MenuSystem.Add(settings, "settings", true)
@@ -1500,9 +1425,8 @@ func ConstructMenus() {
 
 	// Search Menu
 
-	search := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 512, 96}, true), "search", false)
+	search := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 512, 96}, MenuCloseButton), "search", false)
 	search.Center()
-	search.CloseButtonEnabled = true
 	search.Draggable = true
 	search.Resizeable = true
 
@@ -1511,7 +1435,7 @@ func ConstructMenus() {
 	row.Add("", NewLabel("Find:", nil, false, AlignCenter))
 	searchLabel := NewLabel("Text", &sdl.FRect{0, 0, 256, 32}, false, AlignLeft)
 	searchLabel.Editable = true
-	searchLabel.RegexString = RegexNoNewlines()
+	searchLabel.RegexString = RegexNoNewlines
 
 	foundLabel := NewLabel("0 of 0", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter)
 	foundCards := []*Card{}
@@ -1626,18 +1550,40 @@ func ConstructMenus() {
 		findFunc()
 	}))
 
+	// Previous sub-page menu
+
+	prevSubPageMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 256, 96}, MenuCloseNone), "prev sub page", false)
+	prevSubPageMenu.Opened = false
+	rect := prevSubPageMenu.Rectangle()
+	rect.X = globals.ScreenSize.X/2 - (rect.W / 2)
+	prevSubPageMenu.SetRectangle(rect)
+	prevSubPageMenu.Draggable = true
+
+	row = prevSubPageMenu.Pages["root"].AddRow(AlignCenter)
+	subName := NewLabel("sub page name", nil, false, AlignCenter)
+	subName.AutoExpand = true
+	row.Add("name", subName)
+
+	prevSubPageMenu.Pages["root"].OnUpdate = func() {
+		subName.SetText([]rune("Sub-Page: " + globals.Project.CurrentPage.Name))
+		prevSubPageMenu.Recreate(prevSubPageMenu.Pages["root"].IdealSize().X+32, prevSubPageMenu.Rect.H)
+	}
+
+	row = prevSubPageMenu.Pages["root"].AddRow(AlignCenter)
+	row.Add("go up", NewButton("Go Up", nil, nil, false, func() {
+		globals.Project.GoUpFromSubpage()
+	}))
 	// Stats Menu
 
-	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 700, 128}, true), "stats", false)
+	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 700, 274}, MenuCloseButton), "stats", false)
 	stats.Center()
 	stats.Draggable = true
-	stats.CloseButtonEnabled = true
 	stats.Resizeable = true
 
 	root = stats.Pages["root"]
 
 	row = root.AddRow(AlignCenter)
-	row.Add("", NewLabel("-Stats-", nil, false, AlignCenter))
+	row.Add("", NewLabel("Stats", nil, false, AlignCenter))
 
 	row = root.AddRow(AlignLeft)
 	maxLabel := NewLabel("so many cards existing", nil, false, AlignLeft)
@@ -1656,7 +1602,7 @@ func ConstructMenus() {
 
 	timeNumber := NewLabel("15", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter)
 	timeNumber.Editable = true
-	timeNumber.RegexString = RegexOnlyDigits()
+	timeNumber.RegexString = RegexOnlyDigits
 	row.Add("", timeNumber)
 
 	timeUnitChoices := []string{

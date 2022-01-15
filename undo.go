@@ -102,7 +102,7 @@ func (history *UndoHistory) Undo() bool {
 
 		}
 
-		for _, page := range globals.Project.RootFolder.Pages() {
+		for _, page := range globals.Project.Pages {
 			page.UpdateStacks = true
 		}
 
@@ -147,7 +147,7 @@ func (history *UndoHistory) Redo() bool {
 
 		}
 
-		for _, page := range globals.Project.RootFolder.Pages() {
+		for _, page := range globals.Project.Pages {
 			page.UpdateStacks = true
 		}
 

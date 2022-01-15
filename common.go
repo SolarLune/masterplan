@@ -185,6 +185,13 @@ func (point Point) LockToGrid() Point {
 	}
 }
 
+func (point Point) CeilToGrid() Point {
+	return Point{
+		X: float32(math.Ceil(float64(point.X/globals.GridSize)) * float64(globals.GridSize)),
+		Y: float32(math.Ceil(float64(point.Y/globals.GridSize)) * float64(globals.GridSize)),
+	}
+}
+
 func (point Point) Angle() float32 {
 	return float32(math.Atan2(-float64(point.Y), float64(point.X)))
 }
@@ -786,18 +793,7 @@ func FilesInDirectory(dir string, prefix string) []string {
 
 }
 
-func RegexNoNewlines() string {
-	return `[^\n]`
-}
-
-func RegexOnlyDigits() string {
-	return `[\d]`
-}
-
-func RegexOnlyDigitsAndColon() string {
-	return `[\d:]`
-}
-
-func RegexHex() string {
-	return `[#a-fA-F\d]`
-}
+var RegexNoNewlines = `[^\n]`
+var RegexOnlyDigits = `[\d]`
+var RegexOnlyDigitsAndColon = `[\d:]`
+var RegexHex = `[#a-fA-F\d]`

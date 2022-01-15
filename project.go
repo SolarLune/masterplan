@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/blang/semver"
 	"github.com/ncruces/zenity"
@@ -50,9 +51,8 @@ const (
 )
 
 type Project struct {
-	// Pages            []*Page
+	Pages []*Page
 	// CurrentPageIndex int
-	RootFolder     *PageFolder
 	CurrentPage    *Page
 	Camera         *Camera
 	GridTexture    *RenderTexture
@@ -75,11 +75,9 @@ func NewProject() *Project {
 		LastCardType: ContentTypeCheckbox,
 	}
 
-	project.RootFolder = NewPageFolder(nil, project)
-	newPage := NewPage(project.RootFolder, project)
-	project.RootFolder.Add(newPage)
+	globalPageID = 0
 
-	project.CurrentPage = newPage
+	project.CurrentPage = project.AddPage()
 
 	project.CreateGridTexture()
 
@@ -87,6 +85,33 @@ func NewProject() *Project {
 
 	return project
 
+}
+
+func (project *Project) AddPage() *Page {
+	page := NewPage(project)
+	project.Pages = append(project.Pages, page)
+	return page
+}
+
+func (project *Project) RemovePage(page *Page) {
+
+	for i, p := range project.Pages {
+		if p == page {
+			project.Pages[i] = nil
+			project.Pages = append(project.Pages[:i], project.Pages[i+1:]...)
+			break
+		}
+	}
+
+}
+
+func (project *Project) PageIndex(page *Page) int {
+	for i, p := range project.Pages {
+		if p == page {
+			return i
+		}
+	}
+	return -1
 }
 
 func (project *Project) CreateGridTexture() {
@@ -143,11 +168,9 @@ func (project *Project) Update() {
 
 	globals.Mouse.SetCursor("normal")
 
-	project.RootFolder.Update()
-
-	// for _, page := range project.Pages {
-	// 	page.Update()
-	// }
+	for _, page := range project.Pages {
+		page.Update()
+	}
 
 	globals.Mouse.HiddenPosition = false
 
@@ -182,6 +205,16 @@ func (project *Project) Draw() {
 		halfH := float32(project.Camera.ViewArea().H / 2)
 		ThickLine(project.Camera.TranslatePoint(Point{project.Camera.Position.X - halfW, 0}), project.Camera.TranslatePoint(Point{project.Camera.Position.X + halfW, 0}), 2, getThemeColor(GUIGridColor))
 		ThickLine(project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y - halfH}), project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y + halfH}), 2, getThemeColor(GUIGridColor))
+	}
+
+	if project.CurrentPage.UpwardPage != nil {
+
+		text := project.CurrentPage.Name
+		textSize := globals.TextRenderer.MeasureText([]rune(text), 1).CeilToGrid()
+		globals.Renderer.SetDrawColor(getThemeColor(GUIGridColor).RGBA())
+		globals.Renderer.FillRectF(project.Camera.TranslateRect(&sdl.FRect{0, -globals.GridSize, textSize.X, textSize.Y}))
+		globals.TextRenderer.QuickRenderText(text, project.Camera.TranslatePoint(Point{textSize.X / 2, -globals.GridSize}), 1, getThemeColor(GUIBGColor), AlignCenter)
+
 	}
 
 	// gridPieceToScreenW := globals.ScreenSize.X / project.GridTexture.Size.X / project.Camera.TargetZoom
@@ -219,11 +252,41 @@ func (project *Project) Save() {
 	saveData, _ = sjson.Set(saveData, "pan", project.Camera.TargetPosition)
 	saveData, _ = sjson.Set(saveData, "zoom", project.Camera.TargetZoom)
 
-	saveData, _ = sjson.SetRaw(saveData, "root", project.RootFolder.Serialize())
-
 	savedImages := map[string]string{}
 
-	for _, page := range project.RootFolder.Pages() {
+	pageData := "["
+
+	pagesToSave := []uint64{0}
+
+	var searchForLiveSubpages func(page *Page)
+
+	searchForLiveSubpages = func(page *Page) {
+		for _, card := range page.Cards {
+			if card.ContentType == ContentTypeSubpage {
+				subpage := uint64(card.Properties.Get("subpage").AsFloat())
+				pagesToSave = append(pagesToSave, subpage)
+				searchForLiveSubpages(project.Pages[subpage])
+			}
+		}
+	}
+
+	searchForLiveSubpages(project.Pages[0])
+
+	sort.SliceStable(pagesToSave, func(i, j int) bool { return pagesToSave[i] < pagesToSave[j] })
+
+	for i := range pagesToSave {
+		page := project.Pages[pagesToSave[i]]
+		pageData += page.Serialize()
+		if i < len(pagesToSave)-1 {
+			pageData += ", "
+		}
+	}
+
+	pageData += "]"
+
+	saveData, _ = sjson.SetRaw(saveData, "pages", pageData)
+
+	for _, page := range project.Pages {
 
 		for _, card := range page.Cards {
 
@@ -339,18 +402,6 @@ func (project *Project) OpenFrom(filename string) {
 		newProject.Filepath = filename
 		project.LoadingProject = newProject
 
-		// Re-implemented in v0.8.0-alpha3
-		if gjson.Get(json, "pan").Exists() {
-			pan := gjson.Get(json, "pan").Map()
-			newProject.Camera.TargetPosition.X = float32(pan["X"].Float())
-			newProject.Camera.TargetPosition.Y = float32(pan["Y"].Float())
-			newProject.Camera.Position = newProject.Camera.TargetPosition
-			newProject.Camera.TargetZoom = float32(gjson.Get(json, "zoom").Float())
-			newProject.Camera.Zoom = newProject.Camera.TargetZoom
-		}
-
-		data := gjson.Get(json, "root").String()
-
 		savedImageFileNames := map[string]string{}
 
 		for fpName, imgData := range gjson.Get(json, "savedimages").Map() {
@@ -368,11 +419,33 @@ func (project *Project) OpenFrom(filename string) {
 
 		}
 
-		newProject.RootFolder.Deserialize(data)
+		if ver.LTE(semver.MustParse("0.8.0-alpha.3")) {
+			page := gjson.Get(json, "root.contents").Array()[0]
+			newProject.Pages[0].Deserialize(page.String())
+		} else {
 
-		for _, page := range newProject.RootFolder.Pages() {
+			// v0.8.0-alpha.3 and below just had one page, but organized into a folder; this is no longer done.
+			for i := 0; i < len(gjson.Get(json, "pages").Array())-1; i++ {
+				newProject.AddPage()
+			}
+
+			for p, pageData := range gjson.Get(json, "pages").Array() {
+				page := newProject.Pages[p]
+				page.Deserialize(pageData.String())
+				if globalPageID < page.ID {
+					globalPageID = page.ID + 1
+				}
+			}
+		}
+
+		for _, page := range newProject.Pages {
 
 			for _, card := range page.Cards {
+
+				card.DisplayRect.X = card.Rect.X
+				card.DisplayRect.Y = card.Rect.Y
+				card.DisplayRect.W = card.Rect.W
+				card.DisplayRect.H = card.Rect.H
 
 				if card.Properties.Has("saveimage") {
 					card.Contents.(*ImageContents).LoadFileFrom(savedImageFileNames[card.Properties.Get("filepath").AsString()]) // Reload the file
@@ -384,14 +457,18 @@ func (project *Project) OpenFrom(filename string) {
 
 		}
 
-		newProject.CurrentPage = newProject.RootFolder.Pages()[1]
-		newProject.RootFolder.Remove(newProject.RootFolder.Contents[0])
+		// newProject.Camera.Update()
 
 		// Settle the elements in - we do this twice because it seems like things might take two steps (create card, set properties)
+		globals.Renderer.SetClipRect(nil)
 		for i := 0; i < 2; i++ {
-			newProject.RootFolder.Update()
-			newProject.CurrentPage.Draw()
+			for _, page := range newProject.Pages {
+				newProject.CurrentPage = page
+				page.Update()
+			}
 		}
+
+		newProject.SetPage(newProject.Pages[0])
 
 		newProject.UndoHistory.Update()
 
@@ -471,7 +548,7 @@ func (project *Project) SendMessage(msg *Message) {
 		panic("ERROR: Message has no type.")
 	}
 
-	for _, page := range project.RootFolder.Pages() {
+	for _, page := range project.Pages {
 		page.SendMessage(msg)
 	}
 
@@ -576,6 +653,11 @@ func (project *Project) GlobalShortcuts() {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeMap)
 			globals.Keybindings.Shortcuts[KBNewMapCard].ConsumeKeys()
 
+		} else if globals.Keybindings.Pressed(KBNewSubpageCard) {
+
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeSubpage)
+			globals.Keybindings.Shortcuts[KBNewSubpageCard].ConsumeKeys()
+
 		}
 
 		if newCard != nil {
@@ -645,6 +727,29 @@ func (project *Project) GlobalShortcuts() {
 			project.Camera.FocusOn(project.CurrentPage.Selection.AsSlice()...)
 		}
 
+		if globals.Keybindings.Pressed(KBSubpageOpen) {
+			project.GoUpFromSubpage()
+		}
+
 	}
 
+}
+
+func (project *Project) GoUpFromSubpage() {
+
+	if project.CurrentPage.UpwardPage != nil {
+		project.SetPage(project.CurrentPage.UpwardPage)
+	}
+
+}
+
+func (project *Project) SetPage(page *Page) {
+	project.CurrentPage = page
+	project.Camera.JumpTo(page.Pan, page.Zoom)
+	page.SendMessage(NewMessage(MessagePageChanged, nil, nil))
+	if page.UpwardPage == nil {
+		globals.MenuSystem.Get("prev sub page").Close()
+	} else {
+		globals.MenuSystem.Get("prev sub page").Open()
+	}
 }
