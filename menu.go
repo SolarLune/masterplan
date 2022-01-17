@@ -382,7 +382,10 @@ func (menu *Menu) Draw() {
 		menu.BackButton.Draw()
 	}
 
-	menu.CurrentPage = menu.NextPage
+	if menu.CurrentPage != menu.NextPage {
+		menu.CurrentPage = menu.NextPage
+		menu.Pages[menu.CurrentPage].Open()
+	}
 
 }
 

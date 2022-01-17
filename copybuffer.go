@@ -1,7 +1,6 @@
 package main
 
 type CopyBuffer struct {
-	// Cards []string
 	Cards             []*Card
 	CardsToSerialized map[*Card]string
 }

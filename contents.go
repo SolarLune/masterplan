@@ -2324,7 +2324,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 		&sdl.FRect{0, 0, sb.ScreenshotSize.X, sb.ScreenshotSize.Y},
 		&sdl.Rect{0, 0, srcW, srcH},
 		sb.SubpageScreenshot, true)
-
+	sb.ScreenshotImage.TintByFontColor = false
 	sb.ScreenshotImage.Border = true
 
 	row := sb.Container.AddRow(AlignCenter)
@@ -2399,7 +2399,7 @@ func (sb *SubPageContents) OpenSubpage() {
 
 func (sb *SubPageContents) ReceiveMessage(msg *Message) {
 
-	if msg.Type == MessagePageChanged && sb.Card.Page.IsCurrent() {
+	if (msg.Type == MessagePageChanged || msg.Type == MessageThemeChange) && sb.Card.Page.IsCurrent() {
 
 		sb.TakeScreenshot()
 

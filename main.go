@@ -138,10 +138,6 @@ func main() {
 		}
 	}()
 
-	// settingsLoaded := globals.ProgramSettings.Load()
-
-	settingsLoaded := true
-
 	fmt.Println("Release mode:", releaseMode)
 
 	loadThemes()
@@ -353,28 +349,32 @@ func main() {
 
 			if attemptAutoload == 0 {
 
-				// If the settings aren't successfully loaded, it's safe to assume it's because they don't exist, because the program is first loading.
-				if !settingsLoaded {
+				// Either you're possibly passing the filename by double-clicking on a project, or you're possibly autoloading
+				loading := len(os.Args) > 1 || (globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0)
 
+				// If the settings aren't successfully loaded, it's safe to assume it's because they don't exist, because the program is first loading.
+				if !globals.SettingsLoaded {
+
+					// Load help plan
 					// if loaded := LoadProject(LocalPath("assets", "help_manual.plan")); loaded != nil {
 					// 	currentProject = loaded
 					// }
 
-				} else {
+				} else if loading {
 
 					//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
 
-					// var loaded *Project
+					loaded := NewProject()
 
-					// if len(os.Args) > 1 {
-					// 	loaded = LoadProject(os.Args[1])
-					// } else if programSettings.AutoloadLastPlan && len(programSettings.RecentPlanList) > 0 {
-					// 	loaded = LoadProject(programSettings.RecentPlanList[0])
-					// }
+					if len(os.Args) > 1 {
+						loaded.OpenFrom(os.Args[1])
+					} else if globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0 {
+						loaded.OpenFrom(globals.RecentFiles[0])
+					}
 
-					// if loaded != nil {
-					// 	currentProject = loaded
-					// }
+					original := globals.Project
+					globals.Project.LoadingProject = loaded
+					original.Destroy()
 
 				}
 
@@ -1084,6 +1084,11 @@ func ConstructMenus() {
 	row.Add("header", NewLabel("Settings", nil, false, AlignCenter))
 
 	row = root.AddRow(AlignCenter)
+	row.Add("general options", NewButton("General Options", nil, nil, false, func() {
+		settings.SetPage("general")
+	}))
+
+	row = root.AddRow(AlignCenter)
 	row.Add("visual options", NewButton("Visual Options", nil, nil, false, func() {
 		settings.SetPage("visual")
 	}))
@@ -1124,11 +1129,39 @@ func ConstructMenus() {
 	}
 	row.Add("", number)
 
+	// General options
+
+	general := settings.AddPage("general")
+	general.DefaultExpand = true
+
+	row = general.AddRow(AlignCenter)
+	row.Add("header", NewLabel("General Settings", nil, false, AlignCenter))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Auto Load Last Project:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAutoLoadLastProject)))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Save Window Position:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSaveWindowPosition)))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Focus on Elapsed Timers:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnElapsedTimers)))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Notify on Elapsed Timers:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNotifyOnElapsedTimers)))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Show About Dialog On Start:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
+
 	// Visual options
 
 	visual := settings.AddPage("visual")
 
-	visual.OnUpdate = func() {
+	visual.OnOpen = func() {
 		// Refresh themes
 		loadThemes()
 		refreshThemes()
@@ -1186,24 +1219,8 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowGrid)))
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Save Window Position:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSaveWindowPosition)))
-
-	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Flash Selected Cards:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFlashSelected)))
-
-	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Focus on Elapsed Timers:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnElapsedTimers)))
-
-	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Notify on Elapsed Timers:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNotifyOnElapsedTimers)))
-
-	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Show About Dialog On Start:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))

@@ -40,9 +40,10 @@ type Globals struct {
 	EventLog          *EventLog
 	WindowFlags       uint32
 
-	Settings    *Properties
-	Keybindings *Keybindings
-	RecentFiles []string
+	Settings       *Properties
+	SettingsLoaded bool
+	Keybindings    *Keybindings
+	RecentFiles    []string
 
 	DebugMode          bool
 	TriggerReloadFonts bool

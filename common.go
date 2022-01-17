@@ -263,65 +263,6 @@ func formatTime(t time.Duration, showMilliseconds bool) string {
 
 }
 
-// func IsColorLight(color rl.Color) bool {
-// 	return color.R > 128 || color.G > 128 || color.B > 128
-// }
-
-// func ColorAdd(color rl.Color, value int32) rl.Color {
-
-// 	v := uint8(math.Abs(float64(value)))
-
-// 	if value > 0 {
-
-// 		if color.R < 255-v {
-// 			color.R += v
-// 		} else {
-// 			color.R = 255
-// 		}
-
-// 		if color.G < 255-v {
-// 			color.G += v
-// 		} else {
-// 			color.G = 255
-// 		}
-
-// 		if color.B < 255-v {
-// 			color.B += v
-// 		} else {
-// 			color.B = 255
-// 		}
-
-// 	} else {
-
-// 		if color.R > v {
-// 			color.R -= v
-// 		} else {
-// 			color.R = 0
-// 		}
-
-// 		if color.G > v {
-// 			color.G -= v
-// 		} else {
-// 			color.G = 0
-// 		}
-
-// 		if color.B > v {
-// 			color.B -= v
-// 		} else {
-// 			color.B = 0
-// 		}
-
-// 	}
-
-// 	return color
-// }
-
-// func GUIFontSize() float32 {
-// 	guiFontSizeString := strings.Split(programSettings.GUIFontSizeMultiplier, "%")[0]
-// 	i, _ := strconv.Atoi(guiFontSizeString)
-// 	return float32(programSettings.FontSize) * (float32(i) / 100)
-// }
-
 func WriteImageToTemp(clipboardImg []byte) (string, error) {
 
 	var file *os.File

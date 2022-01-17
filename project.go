@@ -71,9 +71,10 @@ func NewProject() *Project {
 	project := &Project{
 		Camera: NewCamera(),
 		// Pages:           []*Page{},
-		UndoHistory:  NewUndoHistory(),
 		LastCardType: ContentTypeCheckbox,
 	}
+
+	project.UndoHistory = NewUndoHistory(project)
 
 	globalPageID = 0
 
@@ -459,12 +460,16 @@ func (project *Project) OpenFrom(filename string) {
 
 		// newProject.Camera.Update()
 
-		// Settle the elements in - we do this twice because it seems like things might take two steps (create card, set properties)
+		// Settle the elements in - we do this a few times because it seems like things might take two steps (create card, set properties, create links, etc)
 		globals.Renderer.SetClipRect(nil)
-		for i := 0; i < 2; i++ {
+		for i := 0; i < 3; i++ {
 			for _, page := range newProject.Pages {
 				newProject.CurrentPage = page
 				page.Update()
+				for _, card := range page.Cards {
+					card.CreateUndoState = false
+				}
+				page.Draw()
 			}
 		}
 
@@ -472,8 +477,8 @@ func (project *Project) OpenFrom(filename string) {
 
 		newProject.UndoHistory.Update()
 
-		newProject.UndoHistory.MinimumFrame = newProject.UndoHistory.Index
-
+		newProject.Modified = false
+		newProject.UndoHistory.MinimumFrame = newProject.UndoHistory.Index + 1
 		globals.EventLog.On = true
 
 		globals.EventLog.Log("Project loaded successfully.")

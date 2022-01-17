@@ -33,6 +33,7 @@ const (
 	SettingsAudioVolume            = "AudioVolume"
 	SettingsShowAboutDialogOnStart = "ShowAboutDialogOnStart"
 	SettingsReversePan             = "ReversePan"
+	SettingsAutoLoadLastProject    = "AutoLoadLastProject"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"
@@ -59,6 +60,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsShowAboutDialogOnStart).Set(true)
 	props.Get(SettingsReversePan).Set(false)
 	props.Get(SettingsCustomFontPath).Set("")
+	props.Get(SettingsAutoLoadLastProject).Set(false)
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 
@@ -68,6 +70,8 @@ func NewProgramSettings() *Properties {
 		if err != nil {
 			panic(err)
 		}
+
+		globals.SettingsLoaded = true
 
 		data := gjson.Get(string(jsonData), "properties").String()
 

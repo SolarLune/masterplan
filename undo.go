@@ -17,6 +17,7 @@ import (
 
 // Note that this could be easily transformed to work with any undoable objects, not just Cards.
 type UndoHistory struct {
+	Project      *Project
 	Frames       []*UndoFrame
 	CurrentFrame *UndoFrame
 	On           bool
@@ -25,9 +26,10 @@ type UndoHistory struct {
 	MinimumFrame int
 }
 
-func NewUndoHistory() *UndoHistory {
+func NewUndoHistory(project *Project) *UndoHistory {
 
 	history := &UndoHistory{
+		Project:      project,
 		On:           true,
 		Frames:       []*UndoFrame{},
 		CurrentFrame: NewUndoFrame(),
@@ -102,7 +104,7 @@ func (history *UndoHistory) Undo() bool {
 
 		}
 
-		for _, page := range globals.Project.Pages {
+		for _, page := range history.Project.Pages {
 			page.UpdateStacks = true
 		}
 
@@ -111,6 +113,8 @@ func (history *UndoHistory) Undo() bool {
 		globals.EventLog.Log("Undo event triggered.")
 
 		history.On = true
+
+		history.Project.Modified = true
 
 		return true
 
@@ -147,7 +151,7 @@ func (history *UndoHistory) Redo() bool {
 
 		}
 
-		for _, page := range globals.Project.Pages {
+		for _, page := range history.Project.Pages {
 			page.UpdateStacks = true
 		}
 
@@ -156,6 +160,8 @@ func (history *UndoHistory) Redo() bool {
 		globals.EventLog.Log("Redo event triggered.")
 
 		history.On = true
+
+		history.Project.Modified = true
 
 		return true
 
@@ -181,32 +187,36 @@ func (history *UndoHistory) Update() {
 
 		history.Index = len(history.Frames)
 
-		// Clear terminal on Linux
-		// cmd := exec.Command("clear")
-		// cmd.Stdout = os.Stdout
-		// cmd.Run()
-
-		// for i, frame := range history.Frames {
-		// 	fmt.Println("frame #", i)
-		// 	fmt.Println("states:")
-		// 	for _, state := range frame.States {
-		// 		fmt.Println("     ", state)
-		// 	}
-		// }
-
-		// fmt.Println("______")
-
-		// fmt.Println("index: ", history.Index)
-
-		// fmt.Println("______")
-
-		if !globals.Project.Loading {
-			globals.Project.Modified = true
+		if !history.Project.Loading {
+			history.Project.Modified = true
 		}
 
 		history.Changed = false
 
 	}
+
+}
+
+func (history *UndoHistory) Print() {
+
+	// Clear terminal on Linux
+	// cmd := exec.Command("clear")
+	// cmd.Stdout = os.Stdout
+	// cmd.Run()
+
+	for i, frame := range history.Frames {
+		fmt.Println("frame #", i)
+		fmt.Println("states:")
+		for _, state := range frame.States {
+			fmt.Println("     ", state)
+		}
+	}
+
+	fmt.Println("______")
+
+	fmt.Println("index: ", history.Index)
+
+	fmt.Println("______")
 
 }
 
