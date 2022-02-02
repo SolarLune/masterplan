@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cavaliercoder/grab"
+	"github.com/cavaliergopher/grab/v3"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/flac"
 	"github.com/faiface/beep/mp3"
@@ -194,7 +194,7 @@ func (resource *Resource) Parse() {
 func (resource *Resource) DownloadPercentage() float64 {
 	if resource.Response == nil {
 		return 1
-	} else if resource.Response.Size > 0 {
+	} else if resource.Response.Size() > 0 {
 		return resource.Response.Progress()
 	} else if resource.Response.IsComplete() {
 		return 1

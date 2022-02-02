@@ -1,8 +1,10 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/blang/semver"
-	"github.com/cavaliercoder/grab"
+	"github.com/cavaliergopher/grab/v3"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
@@ -44,6 +46,7 @@ type Globals struct {
 	SettingsLoaded bool
 	Keybindings    *Keybindings
 	RecentFiles    []string
+	HTTPClient     *http.Client
 
 	DebugMode          bool
 	TriggerReloadFonts bool

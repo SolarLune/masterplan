@@ -3,13 +3,13 @@
     "Grid Color":[190, 180, 180, 255],
     "Menu Color":[220, 220, 220, 255],
     "Font Color":[40, 20, 20, 255],
-    "Checkbox Color": [240, 200, 200, 255],
-    "Number Color": [220, 180, 140, 255],
-    "Completed Color": [220, 130, 80, 255],
-    "Note Color": [160, 100, 90, 255],
+    "Checkbox Color": [220, 170, 150, 255],
+    "Number Color": [220, 160, 120, 255],
+    "Completed Color": [240, 160, 110, 255],
+    "Note Color": [180, 120, 110, 255],
     "Sound Color": [170, 170, 170, 255],
     "Blank Image Color": [140, 140, 140, 255],
     "Timer Color": [180, 160, 160, 255],
     "Map Color": [50, 55, 60, 255],
-    "Sub-Page Color": [220, 190, 160, 255]
+    "Sub-Page Color": [240, 210, 180, 255]
 }

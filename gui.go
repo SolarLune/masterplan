@@ -459,38 +459,6 @@ func (spinner *NumberSpinner) SetRectangle(rect *sdl.FRect) {
 
 }
 
-// func ImmediateButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool) bool {
-
-// 	clickInside := false
-
-// 	mp := globals.Mouse.Position()
-// 	rect := &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)}
-// 	if worldSpace {
-// 		mp = globals.Mouse.WorldPosition()
-// 	}
-
-// 	color := sdl.Color{220, 220, 220, 255}
-// 	if mp.Inside(rect) {
-// 		color.R = 255
-// 		color.G = 255
-// 		color.B = 255
-// 	}
-
-// 	guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage().Texture
-// 	guiTex.SetColorMod(color.R, color.G, color.B)
-// 	guiTex.SetAlphaMod(color.A)
-
-// 	if ClickedInRect(rect, worldSpace) {
-// 		clickInside = true
-// 	}
-
-// 	if worldSpace {
-// 		rect = globals.Project.Camera.TranslateRect(rect)
-// 	}
-// 	globals.Renderer.CopyF(guiTex, iconSrc, rect)
-
-// 	return clickInside
-// }
 type Button struct {
 	Label           *Label
 	BackgroundColor Color
@@ -506,8 +474,14 @@ type Button struct {
 
 func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, worldSpace bool, pressedFunc func()) *Button {
 
+	buttonAlignment := AlignCenter
+
+	if iconSrcRect != nil {
+		buttonAlignment = AlignLeft
+	}
+
 	button := &Button{
-		Label:           NewLabel(labelText, rect, worldSpace, AlignCenter),
+		Label:           NewLabel(labelText, rect, worldSpace, buttonAlignment),
 		Rect:            &sdl.FRect{},
 		IconSrc:         iconSrcRect,
 		OnPressed:       pressedFunc,
@@ -605,6 +579,8 @@ func (button *Button) Draw() {
 		guiTexture.SetColorMod(color.RGB())
 		guiTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
 		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, float32(button.IconSrc.W), float32(button.IconSrc.H)}
+		// textHalfWidth := button.Label.RendererResult.TextSize.X / 2
+		// dst := &sdl.FRect{button.Rect.X + (button.Rect.W / 2) - float32(button.IconSrc.W) - textHalfWidth, button.Rect.Y, float32(button.IconSrc.W), float32(button.IconSrc.H)}
 
 		if button.WorldSpace {
 			dst = globals.Project.Camera.TranslateRect(dst)
@@ -637,7 +613,7 @@ func (button *Button) SetRectangle(rect *sdl.FRect) {
 	button.Rect.W = rect.W
 	button.Rect.H = rect.H
 	if button.IconSrc != nil && len(button.Label.Text) > 0 {
-		rect.X += float32(button.IconSrc.W) / 2
+		rect.X += float32(button.IconSrc.W)
 	}
 	button.Label.SetRectangle(rect)
 }
@@ -827,12 +803,13 @@ func (bg *ButtonGroup) SetChoices(choices ...string) {
 
 	for i, c := range choices {
 		index := i
-		bg.Buttons = append(bg.Buttons, NewButton(c, nil, nil, bg.WorldSpace, func() {
+		newButton := NewButton(c, nil, nil, bg.WorldSpace, func() {
 			bg.ChosenIndex = index
 			if bg.OnChoose != nil {
 				bg.OnChoose(index)
 			}
-		}))
+		})
+		bg.Buttons = append(bg.Buttons, newButton)
 	}
 
 }
@@ -1075,9 +1052,6 @@ type Label struct {
 
 	Selection *TextSelection
 
-	Scrollable   bool
-	ScrollAmount float32
-
 	RegexString string
 
 	HorizontalAlignment string
@@ -1087,7 +1061,7 @@ type Label struct {
 	OnClickOut          func()
 	textChanged         bool
 	Highlighter         *Highlighter
-	AutoExpand          bool
+	maxSize             Point
 	Property            *Property
 	MaxLength           int
 }
@@ -1134,11 +1108,17 @@ func (label *Label) Update() {
 
 	clickedOut := false
 
+	if label.HorizontalAlignment == AlignCenter {
+		label.Offset.X = (label.Rect.W - label.RendererResult.TextSize.X) / 2
+	} else if label.HorizontalAlignment == AlignRight {
+		label.Offset.X = (label.Rect.W - label.RendererResult.TextSize.X)
+	}
+
 	if label.RendererResult != nil {
 
-		activeRect := &sdl.FRect{label.Rect.X + label.Offset.X, label.Rect.Y + label.Offset.Y, label.Rect.W, label.Rect.H}
-		activeRect.W = label.RendererResult.Image.Size.X
-		activeRect.H = label.RendererResult.Image.Size.Y
+		activeRect := &sdl.FRect{label.Rect.X, label.Rect.Y, label.Rect.W, label.Rect.H}
+		// activeRect.W = label.RendererResult.Image.Size.X
+		// activeRect.H = label.RendererResult.Image.Size.Y
 
 		if label.Editable {
 
@@ -1202,7 +1182,7 @@ func (label *Label) Update() {
 						start := label.Selection.CaretPos
 						offset := 0
 
-						if start > 0 && label.Text[start-1] == ' ' || label.Text[start-1] == '\n' {
+						if start > 0 && (label.Text[start-1] == ' ' || label.Text[start-1] == '\n') {
 							start--
 							offset = 1
 						}
@@ -1307,7 +1287,8 @@ func (label *Label) Update() {
 
 					if button.Pressed() || button.Held() || button.Released() {
 
-						pos := Point{label.Rect.X + label.RendererResult.AlignmentOffset.X, label.Rect.Y + globals.GridSize/2 + label.RendererResult.AlignmentOffset.Y}
+						pos := Point{label.Rect.X + label.Offset.X, label.Rect.Y + label.Offset.Y + globals.GridSize/2}
+						// pos := Point{label.Rect.X + label.RendererResult.AlignmentOffset.X, label.Rect.Y + globals.GridSize/2 + label.RendererResult.AlignmentOffset.Y}
 
 						cIndex := 0
 						dist := float32(-1)
@@ -1473,10 +1454,14 @@ func (label *Label) Update() {
 
 			} else {
 				label.Highlighter.SetRect(label.Rect)
-				if label.WorldSpace && globals.Mouse.CurrentCursor == "normal" {
-					label.Highlighter.Highlighting = globals.Mouse.WorldPosition().Inside(label.Rect)
-				} else {
-					label.Highlighter.Highlighting = globals.Mouse.Position().Inside(label.Rect)
+				if globals.Mouse.CurrentCursor == "normal" {
+
+					if label.WorldSpace {
+						label.Highlighter.Highlighting = globals.Mouse.WorldPosition().Inside(label.Rect)
+					} else {
+						label.Highlighter.Highlighting = globals.Mouse.Position().Inside(label.Rect)
+					}
+
 				}
 			}
 
@@ -1603,8 +1588,8 @@ func (label *Label) Draw() {
 			pos = globals.Project.Camera.TranslatePoint(pos)
 		}
 
-		if math.Sin(globals.Time*(math.Pi*2)) > 0 {
-			ThickLine(pos, pos.Add(Point{0, globals.GridSize}), 2, getThemeColor(GUIFontColor))
+		if math.Sin(globals.Time*(math.Pi*4)) > 0 {
+			ThickLine(pos, pos.Add(Point{0, globals.GridSize}), 4, getThemeColor(GUIFontColor))
 		}
 
 		if mousePos.Inside(label.Rect) {
@@ -1649,13 +1634,6 @@ func (label *Label) Draw() {
 		globals.Renderer.CopyF(label.RendererResult.Image.Texture, src, newRect)
 
 	}
-
-	// if label.Editing {
-	// 	color := getThemeColor(GUIFontColor)
-	// 	globals.Renderer.SetDrawColor(color.R, color.G, color.B, color.A)
-	// 	transformed := globals.Project.Camera.Translate(&sdl.FRect{label.Rect.X, label.Rect.Y + label.Rect.H + 1, label.Rect.X + label.Rect.W, label.Rect.Y + label.Rect.H + 1})
-	// 	globals.Renderer.DrawLineF(transformed.X, transformed.Y, transformed.X+transformed.W, transformed.Y)
-	// }
 
 	if globals.DebugMode {
 		dst := &sdl.FRect{label.Rect.X, label.Rect.Y, label.Rect.W, label.Rect.H}
@@ -1754,20 +1732,30 @@ func (label *Label) RecreateTexture() {
 		label.RendererResult.Destroy()
 	}
 
-	if label.AutoExpand {
-		label.Rect.W = -1
-		label.Rect.H = -1
+	label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), label.maxSize, label.HorizontalAlignment)
+
+	if label.maxSize.X > 0 {
+		label.Rect.W = label.maxSize.X
+	} else if label.Rect.W < 0 {
+		label.Rect.W = label.RendererResult.TextSize.X
 	}
 
-	label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), Point{label.Rect.W, label.Rect.H}, label.HorizontalAlignment)
-
-	if label.Rect.W < 0 || label.Rect.H < 0 {
-		label.Rect.W = label.RendererResult.Image.Size.X
-		label.Rect.H = label.RendererResult.Image.Size.Y
+	if label.maxSize.Y > 0 {
+		label.Rect.H = label.maxSize.Y
+	} else if label.Rect.H < 0 {
+		label.Rect.H = label.RendererResult.TextSize.Y
 	}
 
 	label.TextureDirty = false
 
+}
+
+func (label *Label) SetMaxSize(width, height float32) {
+	if label.maxSize.X != width || label.maxSize.Y != height {
+		label.maxSize.X = width
+		label.maxSize.Y = height
+		label.RecreateTexture()
+	}
 }
 
 func (label *Label) TextAsString() string { return string(label.Text) }
@@ -1837,7 +1825,11 @@ func (label *Label) NewlinesAllowed() bool {
 
 func (label *Label) IndexToWorld(index int) Point {
 
-	point := label.RendererResult.AlignmentOffset
+	point := Point{}
+
+	if index > len(label.Text) {
+		index = len(label.Text)
+	}
 
 	for _, line := range label.RendererResult.TextLines {
 
@@ -1868,8 +1860,8 @@ func (label *Label) IndexToWorld(index int) Point {
 
 	}
 
-	point.X += label.Rect.X
-	point.Y += label.Rect.Y
+	point.X += label.Rect.X + label.Offset.X
+	point.Y += label.Rect.Y + label.Offset.Y
 
 	// if label.RendererResult != nil {
 	// 	point = point.Add(label.RendererResult.AlignmentOffset)

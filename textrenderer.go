@@ -86,8 +86,8 @@ func (glyph *Glyph) Destroy() {
 type TextRendererResult struct {
 	Image           *RenderTexture
 	TextLines       [][]rune
-	AlignmentOffset Point
 	TextSize        Point
+	AlignmentOffset Point
 }
 
 func (trr *TextRendererResult) Destroy() {
@@ -164,7 +164,7 @@ func (tr *TextRenderer) MeasureText(word []rune, sizeMultiplier float32) Point {
 
 }
 
-func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAlignment string) *TextRendererResult {
+func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignment string) *TextRendererResult {
 
 	result := &TextRendererResult{}
 
@@ -174,118 +174,36 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 
 	renderTexture.RenderFunc = func() {
 
-		lineskip := int(globals.GridSize)
+		finalW := globals.GridSize
 
-		textLines := [][]rune{{}}
+		x := 0
+		y := 0
 
-		perLine := strings.Split(text, "\n")
+		result.TextLines = [][]rune{}
 
-		lineWidths := []int32{}
+		line := []rune{}
 
-		if len(perLine) == 0 {
-			lineWidths = append(lineWidths, 0)
+		type renderPair struct {
+			Glyph *Glyph
+			Rect  *sdl.Rect
 		}
 
-		for _, line := range perLine {
-
-			lineWidth := int32(0)
-
-			for _, glyph := range tr.GlyphsForRunes([]rune(line)) {
-				lineWidth += glyph.Width()
-			}
-
-			lineWidths = append(lineWidths, lineWidth)
-
-		}
-
-		w := int32(0)
-		h := int32(0)
-
-		if wordWrapMax.X > 0 && wordWrapMax.Y > 0 {
-			w = int32(wordWrapMax.X)
-			h = int32(wordWrapMax.Y)
-		} else {
-
-			// If wordwrap's X or Y value are less than 0, then there will be no wrapping, and the size of the texture will just the necessary rectangle to display the full textbox.
-			// TODO: Make this handle \n characters
-
-			for lineIndex := range perLine {
-				if w < lineWidths[lineIndex] {
-					w = lineWidths[lineIndex]
-				}
-			}
-
-			h = int32(lineskip * len(perLine))
-
-		}
-
-		// Bare minimum
-		if w <= 0 {
-			w = 32
-		} else if h <= 0 {
-			h = int32(lineskip)
-		}
-
-		renderTexture.Recreate(w, h)
-
-		renderTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
-
-		globals.Renderer.SetRenderTarget(renderTexture.Texture)
-
-		// We need to call SetDrawColor() with transparent white because glyphs are opaque white. If we clear with transparent black (all 0's),
-		// the edges of certain glyphs can look really jank.
-		globals.Renderer.SetDrawColor(255, 255, 255, 0)
-
-		globals.Renderer.Clear()
-
-		x, y := int32(0), int32(-lineskip)
-
-		internalLineIndex := -1
-
-		updateLineStartingGlyphXY := func() {
-
-			internalLineIndex++
-
-			switch horizontalAlignment {
-
-			case AlignLeft:
-				x = 0
-			case AlignCenter:
-				if internalLineIndex < len(lineWidths) {
-					x = (w / 2) - (lineWidths[internalLineIndex] / 2)
-				}
-			case AlignRight:
-				if internalLineIndex < len(lineWidths) {
-					x = w - (lineWidths[internalLineIndex])
-				}
-
-			}
-
-			y += int32(lineskip)
-
-		}
-
-		updateLineStartingGlyphXY()
-
-		result.AlignmentOffset.X = float32(x)
+		toRender := []*renderPair{}
 
 		for i, c := range text {
 
-			glyph := tr.Glyph(c)
+			line = append(line, c)
 
 			if c == '\n' {
-				textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
-				textLines = append(textLines, []rune{})
-				updateLineStartingGlyphXY()
+				x = 0
+				y += int(globals.GridSize)
+				result.TextLines = append(result.TextLines, line)
+				line = []rune{}
+				toRender = append(toRender, nil)
 				continue
-			} else if glyph == nil {
-				continue
-			}
+			} else {
 
-			// Wordwrapping
-			if wordWrapMax.X > 0 && wordWrapMax.Y > 0 {
-
-				if c == ' ' {
+				if c == ' ' && maxSize.X > 0 {
 
 					end := strings.IndexAny(text[i+1:], " \n")
 					if len(text)-i < end || end < 0 {
@@ -307,48 +225,266 @@ func (tr *TextRenderer) RenderText(text string, wordWrapMax Point, horizontalAli
 
 					wordWidth := int32(tr.MeasureText([]rune(nextWord), 1).X)
 
-					if float32(x+wordWidth) > wordWrapMax.X {
+					if float32(x+int(wordWidth)) > maxSize.X {
 
-						updateLineStartingGlyphXY()
-
-						textLines[len(textLines)-1] = append(textLines[len(textLines)-1], '\n')
-						textLines = append(textLines, []rune{})
+						x = 0
+						y += int(globals.GridSize)
+						toRender = append(toRender, nil)
+						line = append(line[:len(line)-1], '\n') // Swap out the space for a newline character
+						result.TextLines = append(result.TextLines, line)
+						line = []rune{}
 						continue
 
 					}
-
-				} else if x+glyph.Width() > int32(wordWrapMax.X) {
-
-					updateLineStartingGlyphXY()
-
-					textLines = append(textLines, []rune{})
 
 				}
 
 			}
 
-			dst := &sdl.Rect{x, y, glyph.Width(), glyph.Height()}
+			glyph := tr.Glyph(c)
+			glyph.Texture().SetColorMod(255, 255, 255)
+			glyph.Texture().SetAlphaMod(255)
 
-			// We do this because QuickRenderText() uses the same glyphs, so we have to set the color and alpha mod values again.
-			tex := glyph.Texture()
-			tex.SetColorMod(255, 255, 255)
-			tex.SetAlphaMod(255)
-			globals.Renderer.Copy(tex, nil, dst)
+			toRender = append(toRender, &renderPair{
+				Glyph: glyph,
+				Rect:  &sdl.Rect{int32(x), int32(y), glyph.Width(), glyph.Height()},
+			})
 
-			x += glyph.Width()
-			textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
-
-			if result.TextSize.X < float32(x) {
-				result.TextSize.X = float32(x)
+			x += int(glyph.Width())
+			if float32(x) > finalW {
+				finalW = float32(x)
 			}
 
 		}
 
-		result.TextSize.Y = float32(lineskip * len(textLines))
+		result.TextLines = append(result.TextLines, line)
+		result.TextSize.X = finalW
+		result.TextSize.Y = float32(math.Max(float64(globals.GridSize), float64(len(result.TextLines)*int(globals.GridSize))))
 
-		result.TextLines = textLines
+		lineWidths := []float32{}
+		maxLineWidth := float32(0)
 
-		globals.Renderer.SetRenderTarget(nil)
+		for _, l := range result.TextLines {
+			width := tr.MeasureText(l, 1).X
+			lineWidths = append(lineWidths, width)
+			if maxLineWidth < width {
+				maxLineWidth = width
+			}
+		}
+
+		lineIndex := 0
+
+		var lw int32
+
+		for _, ch := range toRender {
+			if ch == nil {
+				lineIndex++
+				continue
+			}
+
+			if horizontalAlignment == AlignCenter {
+				lw = int32((finalW - lineWidths[lineIndex]) / 2)
+			} else if horizontalAlignment == AlignRight {
+				lw = int32(finalW - lineWidths[lineIndex])
+			}
+
+			ch.Rect.X += lw
+
+		}
+
+		result.AlignmentOffset.X = float32(lw)
+
+		// Now render
+
+		renderTexture.Recreate(int32(result.TextSize.X), int32(result.TextSize.Y))
+
+		renderTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+
+		globals.Renderer.SetRenderTarget(renderTexture.Texture)
+		defer globals.Renderer.SetRenderTarget(nil)
+
+		for _, r := range toRender {
+			if r == nil {
+				continue
+			}
+			globals.Renderer.Copy(r.Glyph.Texture(), nil, r.Rect)
+		}
+
+		// lineskip := int(globals.GridSize)
+
+		// textLines := [][]rune{{}}
+
+		// perLine := strings.Split(text, "\n")
+
+		// lineWidths := []int32{}
+
+		// if len(perLine) == 0 {
+		// 	lineWidths = append(lineWidths, 0)
+		// }
+
+		// for _, line := range perLine {
+
+		// 	lineWidth := int32(0)
+
+		// 	for _, glyph := range tr.GlyphsForRunes([]rune(line)) {
+		// 		lineWidth += glyph.Width()
+		// 	}
+
+		// 	lineWidths = append(lineWidths, lineWidth)
+
+		// }
+
+		// w := int32(0)
+		// h := int32(0)
+
+		// if wordWrapMax.X > 0 && wordWrapMax.Y > 0 {
+		// 	w = int32(wordWrapMax.X)
+		// 	h = int32(wordWrapMax.Y)
+		// } else {
+
+		// 	// If wordwrap's X or Y value are less than 0, then there will be no wrapping, and the size of the texture will just the necessary rectangle to display the full textbox.
+		// 	// TODO: Make this handle \n characters
+
+		// 	for lineIndex := range perLine {
+		// 		if w < lineWidths[lineIndex] {
+		// 			w = lineWidths[lineIndex]
+		// 		}
+		// 	}
+
+		// 	h = int32(lineskip * len(perLine))
+
+		// }
+
+		// // Bare minimum
+		// if w <= 0 {
+		// 	w = 32
+		// } else if h <= 0 {
+		// 	h = int32(lineskip)
+		// }
+
+		// renderTexture.Recreate(w, h)
+
+		// renderTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+
+		// globals.Renderer.SetRenderTarget(renderTexture.Texture)
+
+		// // We need to call SetDrawColor() with transparent white because glyphs are opaque white. If we clear with transparent black (all 0's),
+		// // the edges of certain glyphs can look really jank.
+		// globals.Renderer.SetDrawColor(255, 255, 255, 0)
+
+		// globals.Renderer.Clear()
+
+		// x, y := int32(0), int32(-lineskip)
+
+		// internalLineIndex := -1
+
+		// updateLineStartingGlyphXY := func() {
+
+		// 	internalLineIndex++
+
+		// 	switch horizontalAlignment {
+
+		// 	case AlignLeft:
+		// 		x = 0
+		// 	case AlignCenter:
+		// 		if internalLineIndex < len(lineWidths) {
+		// 			x = (w / 2) - (lineWidths[internalLineIndex] / 2)
+		// 		}
+		// 	case AlignRight:
+		// 		if internalLineIndex < len(lineWidths) {
+		// 			x = w - (lineWidths[internalLineIndex])
+		// 		}
+
+		// 	}
+
+		// 	y += int32(lineskip)
+
+		// }
+
+		// updateLineStartingGlyphXY()
+
+		// result.AlignmentOffset.X = float32(x)
+
+		// for i, c := range text {
+
+		// 	glyph := tr.Glyph(c)
+
+		// 	if c == '\n' {
+		// 		textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
+		// 		textLines = append(textLines, []rune{})
+		// 		updateLineStartingGlyphXY()
+		// 		continue
+		// 	} else if glyph == nil {
+		// 		continue
+		// 	}
+
+		// 	// Wordwrapping
+		// 	if wordWrapMax.X > 0 && wordWrapMax.Y > 0 {
+
+		// 		if c == ' ' {
+
+		// 			end := strings.IndexAny(text[i+1:], " \n")
+		// 			if len(text)-i < end || end < 0 {
+		// 				end = len(text) - i
+		// 			}
+
+		// 			nextStart := i
+		// 			nextEnd := nextStart + end + 1
+
+		// 			if nextStart > len(text) {
+		// 				nextStart = len(text)
+		// 			}
+
+		// 			if nextEnd > len(text) {
+		// 				nextEnd = len(text)
+		// 			}
+
+		// 			nextWord := text[nextStart:nextEnd]
+
+		// 			wordWidth := int32(tr.MeasureText([]rune(nextWord), 1).X)
+
+		// 			if float32(x+wordWidth) > wordWrapMax.X {
+
+		// 				updateLineStartingGlyphXY()
+
+		// 				textLines[len(textLines)-1] = append(textLines[len(textLines)-1], '\n')
+		// 				textLines = append(textLines, []rune{})
+		// 				continue
+
+		// 			}
+
+		// 		} else if x+glyph.Width() > int32(wordWrapMax.X) {
+
+		// 			updateLineStartingGlyphXY()
+
+		// 			textLines = append(textLines, []rune{})
+
+		// 		}
+
+		// 	}
+
+		// 	dst := &sdl.Rect{x, y, glyph.Width(), glyph.Height()}
+
+		// 	// We do this because QuickRenderText() uses the same glyphs, so we have to set the color and alpha mod values again.
+		// 	tex := glyph.Texture()
+		// 	tex.SetColorMod(255, 255, 255)
+		// 	tex.SetAlphaMod(255)
+		// 	globals.Renderer.Copy(tex, nil, dst)
+
+		// 	x += glyph.Width()
+		// 	textLines[len(textLines)-1] = append(textLines[len(textLines)-1], c)
+
+		// 	if result.TextSize.X < float32(x) {
+		// 		result.TextSize.X = float32(x)
+		// 	}
+
+		// }
+
+		// result.TextSize.Y = float32(lineskip * len(textLines))
+
+		// result.TextLines = textLines
+
+		// globals.Renderer.SetRenderTarget(nil)
 
 	}
 

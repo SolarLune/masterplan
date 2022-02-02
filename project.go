@@ -170,7 +170,9 @@ func (project *Project) Update() {
 	globals.Mouse.SetCursor("normal")
 
 	for _, page := range project.Pages {
-		page.Update()
+		if page.Valid {
+			page.Update()
+		}
 	}
 
 	globals.Mouse.HiddenPosition = false
@@ -401,6 +403,7 @@ func (project *Project) OpenFrom(filename string) {
 		newProject := NewProject()
 		newProject.Loading = true
 		newProject.Filepath = filename
+		newProject.UndoHistory.On = false
 		project.LoadingProject = newProject
 
 		savedImageFileNames := map[string]string{}
@@ -466,10 +469,25 @@ func (project *Project) OpenFrom(filename string) {
 			for _, page := range newProject.Pages {
 				newProject.CurrentPage = page
 				page.Update()
-				for _, card := range page.Cards {
-					card.CreateUndoState = false
-				}
 				page.Draw()
+			}
+		}
+
+		// for _, page := range newProject.Pages {
+		// 	newProject.CurrentPage = page
+		// 	for _, card := range page.Cards {
+		// 		card.CreateUndoState = true
+		// 	}
+		// 	page.Update()
+		// 	page.Draw()
+		// }
+
+		newProject.UndoHistory.On = true
+
+		for _, page := range newProject.Pages {
+			for _, card := range page.Cards {
+				card.CreateUndoState = false
+				card.Page.Project.UndoHistory.Capture(NewUndoState(card))
 			}
 		}
 
@@ -478,7 +496,7 @@ func (project *Project) OpenFrom(filename string) {
 		newProject.UndoHistory.Update()
 
 		newProject.Modified = false
-		newProject.UndoHistory.MinimumFrame = newProject.UndoHistory.Index + 1
+		newProject.UndoHistory.MinimumFrame = 1
 		globals.EventLog.On = true
 
 		globals.EventLog.Log("Project loaded successfully.")
@@ -516,7 +534,7 @@ func (project *Project) MouseActions() {
 
 		}
 
-		if globals.Keybindings.Pressed(KBOpenContextMenu) {
+		if globals.Keybindings.Pressed(KBOpenContextMenu) && !globals.MenuSystem.ExclusiveMenuOpen() {
 			contextMenu := globals.MenuSystem.Get("context")
 			contextMenu.Rect.X = globals.Mouse.Position().X
 			contextMenu.Rect.Y = globals.Mouse.Position().Y
@@ -560,6 +578,16 @@ func (project *Project) SendMessage(msg *Message) {
 }
 
 func (project *Project) GlobalShortcuts() {
+
+	if globals.State != StateCardLinking {
+
+		if globals.Keybindings.Pressed(KBUndo) {
+			project.UndoHistory.Undo()
+		} else if globals.Keybindings.Pressed(KBRedo) {
+			project.UndoHistory.Redo()
+		}
+
+	}
 
 	if globals.State == StateNeutral || globals.State == StateMapEditing {
 
@@ -716,12 +744,6 @@ func (project *Project) GlobalShortcuts() {
 			project.Open()
 		}
 
-		if globals.Keybindings.Pressed(KBUndo) {
-			project.UndoHistory.Undo()
-		} else if globals.Keybindings.Pressed(KBRedo) {
-			project.UndoHistory.Redo()
-		}
-
 		if globals.Keybindings.Pressed(KBFind) {
 			if !globals.MenuSystem.Get("search").Opened {
 				globals.MenuSystem.Get("search").Open()
@@ -749,12 +771,14 @@ func (project *Project) GoUpFromSubpage() {
 }
 
 func (project *Project) SetPage(page *Page) {
-	project.CurrentPage = page
-	project.Camera.JumpTo(page.Pan, page.Zoom)
-	page.SendMessage(NewMessage(MessagePageChanged, nil, nil))
-	if page.UpwardPage == nil {
-		globals.MenuSystem.Get("prev sub page").Close()
-	} else {
-		globals.MenuSystem.Get("prev sub page").Open()
+	if project.CurrentPage != page {
+		project.CurrentPage = page
+		project.Camera.JumpTo(page.Pan, page.Zoom)
+		page.SendMessage(NewMessage(MessagePageChanged, nil, nil))
+		if page.UpwardPage == nil {
+			globals.MenuSystem.Get("prev sub page").Close()
+		} else {
+			globals.MenuSystem.Get("prev sub page").Open()
+		}
 	}
 }

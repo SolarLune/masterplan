@@ -1,15 +1,12 @@
-[ ] Fix color picker not being able to be held outside of the color edit menu
-[ ] Fix sub-page not being colorable
-Shortcuts can trigger even if the page isn't active
-Things that modify cards (undo / redo, timer elapsing, find) activates that page
-Deleting a sub-page card invalidates that page so find doesn't find it; it should no longer be updated
-Each Sub-page should have its own pan location
-Saving should save the current sub-page
+[x] Fix color picker not being able to be held outside of the color edit menu
+[x] Things that modify cards (undo / redo, timer elapsing, find) activates that page
+[x] Deleting a sub-page card invalidates that page so find doesn't find it; it should no longer be updated
+Add (?) bubbles that you can hover over to get some text / information. This would probably best be done with a GUI element to 
 
 [ ] PDF / PNG output (See: https://github.com/signintech/gopdf)
 [x] Fix the text somehow, it still looks bad
 [x] Implement searching shortcuts
-[x] Replace double-click setting with drop-down for nothing, checkbox, last Card type: https://discord.com/channels/339550825154347008/758009278756946040/904827107102851164
+[x] Replace double-click setting with drop-down for nothing, checkbox, last Card type: https://discord.com/channels/339550825154347008/758009278756946040/90482710  7102851164
 [x] Fix inability to click nodes on top of other Cards
 [x] Loading doesn't link properly: https://discord.com/channels/339550825154347008/900240962792620052/902289884541239306
 [ ] Add Touch support: https://wiki.libsdl.org/SDL_TouchFingerEvent
@@ -21,7 +18,7 @@ Saving should save the current sub-page
 [ ] Re-implement autosave
 [ ] Re-implement help / manual (this might be better done via pages you can click through?)
 [ ] Re-implement automatic backups
-[ ] Re-implement auto-load
+[x] Re-implement auto-load
 [ ] Fix save overwrite not prompting if the filename is different from an existing file + ".plan", even though we add that later
 [ ] Fix images not loading properly on project load
 [x] Re-implement Recent Files list

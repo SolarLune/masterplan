@@ -76,15 +76,21 @@ func (history *UndoHistory) Undo() bool {
 
 		globals.EventLog.On = false
 
-		affectedUndos := []*Card{}
+		affected := []*Card{}
 
 		for _, state := range history.Frames[history.Index-1].States {
-			affectedUndos = append(affectedUndos, state.Card)
+			affected = append(affected, state.Card)
+		}
+
+		if affected[0].Page != history.Project.CurrentPage {
+			history.Project.SetPage(affected[0].Page)
+			history.On = true
+			return false
 		}
 
 		history.Index--
 
-		for _, affected := range affectedUndos {
+		for _, affected := range affected {
 
 			foundState := false
 
@@ -137,6 +143,12 @@ func (history *UndoHistory) Redo() bool {
 
 		for _, state := range history.Frames[history.Index].States {
 			affected = append(affected, state.Card)
+		}
+
+		if affected[0].Page != history.Project.CurrentPage {
+			history.Project.SetPage(affected[0].Page)
+			history.On = true
+			return false
 		}
 
 		history.Index++

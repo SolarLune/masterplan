@@ -1,110 +1,201 @@
 package main
 
-// import (
-// 	"strings"
-// 	"time"
+import (
+	"strings"
 
-// 	rl "github.com/gen2brain/raylib-go/raylib"
-// 	"github.com/goware/urlx"
-// 	"github.com/pkg/browser"
-// )
+	"github.com/PuerkitoBio/goquery"
+	"github.com/goware/urlx"
+	"github.com/veandco/go-sdl2/sdl"
+)
 
-// type URLButton struct {
-// 	Pos  rl.Vector2
-// 	Text string
-// 	Link string
-// 	Size rl.Vector2
-// }
+type ParsedResult struct {
+	Title       string
+	Description string
+	FavIcon     *Resource
+}
 
-// type URLButtons struct {
-// 	Task        *Task
-// 	Buttons     []URLButton
-// 	ScannedText string
-// }
+func NewParsedResult(title, desc string) *ParsedResult {
+	return &ParsedResult{
+		Title:       title,
+		Description: desc,
+	}
+}
 
-// func NewURLButtons(task *Task) *URLButtons {
+type URLButton struct {
+	URLButtons *URLButtons
+	Pos        Point
+	Size       Point
+	Text       string
+	Link       string
+	Result     *ParsedResult
+}
 
-// 	buttons := &URLButtons{Task: task}
-// 	return buttons
+func (urlButton *URLButton) MousedOver() bool {
+	rect := &sdl.FRect{
+		urlButton.Pos.X,
+		urlButton.Pos.Y,
+		urlButton.Size.X,
+		urlButton.Size.Y,
+	}
+	rect = urlButton.URLButtons.Card.Page.Project.Camera.TranslateRect(rect)
+	return globals.Mouse.Position().Inside(rect)
+}
 
-// }
+func (urlButton *URLButton) Parse() {
 
-// func (buttons *URLButtons) ScanText(text string) {
+	result := NewParsedResult("---", "---")
 
-// 	if buttons.ScannedText == text {
-// 		return
-// 	}
+	resp, err := globals.HTTPClient.Get(urlButton.Link)
+	if err != nil {
+		globals.EventLog.Log(err.Error())
+	} else {
 
-// 	buttons.Buttons = []URLButton{}
+		doc, _ := goquery.NewDocumentFromReader(resp.Body)
+		if t := doc.Find("title"); t.Length() > 0 {
+			result.Title = t.Text()
+		}
 
-// 	currentURLButton := URLButton{}
-// 	wordStart := rl.Vector2{}
+		doc.Find("meta").Each(func(i int, s *goquery.Selection) {
+			if name, exists := s.Attr("name"); exists && name == "description" {
+				t, _ := s.Attr("content")
+				result.Description = t
+				return
+			}
+		})
 
-// 	for i, letter := range []rune(text) {
+		// doc.Find("link").Each(func(i int, s *goquery.Selection) {
+		// 	fmt.Println("link", s, s.Text())
+		// 	if rel, exists := s.Attr("rel"); exists && strings.Contains(rel, "icon") {
+		// 		fmt.Println("found favicon")
+		// 		fmt.Println(s.Attr("href"))
+		// 		return
+		// 	}
+		// })
 
-// 		validRune := true
+	}
 
-// 		if letter != ' ' && letter != '\n' {
+	parsedURL, err := urlx.Parse(urlButton.Link)
 
-// 			if validRune {
-// 				currentURLButton.Text += string(letter)
-// 			}
-// 			wordStart.X += rl.MeasureTextEx(font, string(letter), float32(programSettings.FontSize), spacing).X + 1
+	if err == nil {
 
-// 		}
+		result.FavIcon = globals.Resources.Get("http://icons.duckduckgo.com/ip3/" + parsedURL.Host + ".ico")
 
-// 		if letter == ' ' || letter == '\n' || i == len(text)-1 {
+		// faviconData, err := globals.HTTPClient.Get("http://icons.duckduckgo.com/ip3/" + parsedURL.Host + ".ico")
 
-// 			if len(currentURLButton.Text) > 0 {
-// 				currentURLButton.Size.X = rl.MeasureTextEx(font, currentURLButton.Text, float32(programSettings.FontSize), spacing).X
-// 				currentURLButton.Size.Y, _ = TextHeight("A", false)
+		// if err == nil {
 
-// 				urlText := strings.Trim(strings.Trim(strings.TrimSpace(currentURLButton.Text), "."), ":")
+		// 	imgData, err := io.ReadAll(faviconData.Body)
 
-// 				if strings.Contains(urlText, ".") || strings.Contains(urlText, ":") {
+		// 	if err == nil {
+		// 		fmt.Println(imgData)
+		// 	}
 
-// 					if url, err := urlx.Parse(urlText); err == nil && url.Host != "" && url.Scheme != "" {
-// 						currentURLButton.Link = url.String()
-// 						buttons.Buttons = append(buttons.Buttons, currentURLButton)
-// 					}
+		// }
 
-// 				}
+	}
 
-// 			}
+	urlButton.Result = result
 
-// 			if letter == '\n' {
-// 				height, _ := TextHeight("A", false)
-// 				wordStart.Y += height
-// 				wordStart.X = 0
-// 			} else if letter == ' ' {
-// 				wordStart.X += rl.MeasureTextEx(font, " ", float32(programSettings.FontSize), spacing).X + 1
-// 			}
+}
 
-// 			currentURLButton = URLButton{}
-// 			currentURLButton.Pos = wordStart
+type URLButtons struct {
+	Card        *Card
+	Buttons     []URLButton
+	ScannedText string
+}
 
-// 		}
+func NewURLButtons(card *Card) *URLButtons {
 
-// 	}
+	buttons := &URLButtons{Card: card}
+	return buttons
 
-// 	buttons.ScannedText = text
+}
 
-// }
+func (buttons *URLButtons) ScanText(text string) {
 
-// func (buttons *URLButtons) Draw(pos rl.Vector2) {
+	if buttons.ScannedText == text {
+		return
+	}
 
-// 	worldGUI = true
+	buttons.Buttons = []URLButton{}
 
-// 	project := buttons.Task.Board.Project
+	currentURLButton := URLButton{
+		URLButtons: buttons,
+	}
+	wordStart := Point{}
+
+	for i, letter := range []rune(text) {
+
+		validRune := true
+
+		if letter != ' ' && letter != '\n' {
+
+			if validRune {
+				currentURLButton.Text += string(letter)
+			}
+			// wordStart.X += rl.MeasureTextEx(font, string(letter), float32(programSettings.FontSize), spacing).X + 1
+			wordStart.X += globals.TextRenderer.MeasureText([]rune{letter}, 1).X + 1
+
+		}
+
+		if letter == ' ' || letter == '\n' || i == len(text)-1 {
+
+			if len(currentURLButton.Text) > 0 {
+
+				size := globals.TextRenderer.MeasureText([]rune(currentURLButton.Text), 1)
+
+				currentURLButton.Size.X = size.X
+				currentURLButton.Size.Y = size.Y
+
+				urlText := strings.Trim(strings.Trim(strings.TrimSpace(currentURLButton.Text), "."), ":")
+
+				if strings.Contains(urlText, ".") || strings.Contains(urlText, ":") {
+
+					if url, err := urlx.Parse(urlText); err == nil && url.Host != "" && url.Scheme != "" {
+
+						currentURLButton.Link = url.String()
+						currentURLButton.Parse()
+						buttons.Buttons = append(buttons.Buttons, currentURLButton)
+
+					}
+
+				}
+
+			}
+
+			if letter == '\n' {
+				height := globals.TextRenderer.MeasureText([]rune{'A'}, 1).Y
+				wordStart.Y += height
+				wordStart.X = 0
+			} else if letter == ' ' {
+				wordStart.X += globals.TextRenderer.MeasureText([]rune{letter}, 1).X + 1
+			}
+
+			currentURLButton = URLButton{
+				URLButtons: buttons,
+			}
+			currentURLButton.Pos = wordStart
+
+		}
+
+	}
+
+	buttons.ScannedText = text
+
+}
+
+// func (buttons *URLButtons) Draw(pos Point) {
+
+// 	// project := buttons.Card.Page.Project
 
 // 	for _, urlButton := range buttons.Buttons {
 
-// 		if project.IsInNeutralState() && (project.AlwaysShowURLButtons.Checked || programSettings.Keybindings.On(KBURLButton)) {
+// 		// if project.IsInNeutralState() && (project.AlwaysShowURLButtons.Checked || globals.Keybindings.Pressed(KBURLButton)) {
+// 		if globals.State == StateNeutral {
 
-// 			margin := float32(2)
-// 			dst := rl.Rectangle{pos.X + urlButton.Pos.X - margin, pos.Y + urlButton.Pos.Y, urlButton.Size.X + (margin * 2), urlButton.Size.Y}
+// 			if ImmediateButton(pos.X+urlButton.Pos.X, pos.Y+urlButton.Pos.Y, urlButton.Text) {
 
-// 			if ImmediateButton(dst, urlButton.Text, false) {
+// 				fmt.Println("click?")
 
 // 				// We delay opening the URL by a few milliseconds to try to ensure you have time to let go of the mouse button
 // 				go func() {
@@ -117,7 +208,5 @@ package main
 // 		}
 
 // 	}
-
-// 	worldGUI = false
 
 // }

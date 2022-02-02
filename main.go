@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -16,7 +17,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/blang/semver"
-	"github.com/cavaliercoder/grab"
+	"github.com/cavaliergopher/grab/v3"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/hako/durafmt"
@@ -96,6 +97,9 @@ func init() {
 	globals.Keybindings = NewKeybindings()
 	globals.RecentFiles = []string{}
 	globals.Settings = NewProgramSettings()
+	globals.HTTPClient = &http.Client{
+		Timeout: time.Second * 10,
+	}
 
 }
 
@@ -281,6 +285,20 @@ func main() {
 	// }()
 
 	fullscreen := false
+
+	go func() {
+		for {
+
+			settings := globals.MenuSystem.Get("settings")
+
+			if settings.Opened && settings.CurrentPage == "visual" {
+				loadThemes()
+			}
+
+			time.Sleep(time.Second)
+
+		}
+	}()
 
 	for !quit {
 
@@ -671,11 +689,13 @@ func ConstructMenus() {
 	root := mainMenu.Pages["root"]
 
 	row := root.AddRow(AlignCenter)
-	row.Add("file menu", NewButton("File", &sdl.FRect{0, 0, 96, 32}, &sdl.Rect{144, 0, 32, 32}, false, func() {
+	row.Add("file menu", NewButton("File", nil, &sdl.Rect{144, 0, 32, 32}, false, func() {
 		globals.MenuSystem.Get("file").Open()
 	}))
 
-	row.Add("view menu", NewButton("View", &sdl.FRect{0, 0, 96, 32}, nil, false, func() {
+	row.Add("", NewSpacer(&sdl.FRect{0, 0, 64, 32}))
+
+	row.Add("view menu", NewButton("View", nil, nil, false, func() {
 		globals.MenuSystem.Get("view").Open()
 	}))
 
@@ -1019,6 +1039,28 @@ func ConstructMenus() {
 	commonMenu.Draggable = true
 	commonMenu.Resizeable = true
 
+	// urlMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, globals.ScreenSize.X / 4, globals.ScreenSize.Y / 8}, MenuCloseNone), "url menu", false)
+	// urlMenu.Draggable = true
+	// urlMenu.Resizeable = true
+	// urlMenu.Center()
+
+	// root = urlMenu.Pages["root"]
+
+	// row = root.AddRow(AlignLeft)
+	// row.Add("favicon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{0, 0, 32, 32}, nil, false))
+	// tl := NewLabel("---", nil, false, AlignLeft)
+	// // tl.AutoExpand = true
+	// row.Add("title", tl)
+	// row = root.AddRow(AlignLeft)
+	// dl := NewLabel("---", nil, false, AlignLeft)
+	// // dl.ExpandMode = true
+	// row.Add("description", dl)
+
+	// root.OnUpdate = func() {
+	// 	tl.SetMaxSize(urlMenu.Rect.W-48, float32(len(tl.RendererResult.TextLines))*globals.GridSize)
+	// 	dl.SetMaxSize(urlMenu.Rect.W-48, float32(len(dl.RendererResult.TextLines))*globals.GridSize)
+	// }
+
 	// Confirmation Menus
 
 	confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm quit", true)
@@ -1043,7 +1085,7 @@ func ConstructMenus() {
 		confirmNewProject.Close()
 	}))
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmNewProject.Close() }))
-	confirmNewProject.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
+	confirmNewProject.Recreate(root.IdealSize().X+48, root.IdealSize().Y+32)
 
 	confirmLoad := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm load", true)
 	confirmLoad.Draggable = true
@@ -1193,6 +1235,9 @@ func ConstructMenus() {
 	}
 
 	row.Add("theme dropdown", drop)
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("theme info", NewLabel("While Visual Settings menu is open,\nthemes will be automatically hotloaded.", nil, false, AlignCenter))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Always Show Numbering:", nil, false, AlignLeft))
@@ -1569,7 +1614,7 @@ func ConstructMenus() {
 
 	// Previous sub-page menu
 
-	prevSubPageMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 256, 96}, MenuCloseNone), "prev sub page", false)
+	prevSubPageMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 512, 96}, MenuCloseNone), "prev sub page", false)
 	prevSubPageMenu.Opened = false
 	rect := prevSubPageMenu.Rectangle()
 	rect.X = globals.ScreenSize.X/2 - (rect.W / 2)
@@ -1578,12 +1623,13 @@ func ConstructMenus() {
 
 	row = prevSubPageMenu.Pages["root"].AddRow(AlignCenter)
 	subName := NewLabel("sub page name", nil, false, AlignCenter)
-	subName.AutoExpand = true
 	row.Add("name", subName)
 
-	prevSubPageMenu.Pages["root"].OnUpdate = func() {
+	root = prevSubPageMenu.Pages["root"]
+	root.OnUpdate = func() {
 		subName.SetText([]rune("Sub-Page: " + globals.Project.CurrentPage.Name))
-		prevSubPageMenu.Recreate(prevSubPageMenu.Pages["root"].IdealSize().X+32, prevSubPageMenu.Rect.H)
+		subName.SetMaxSize(512, subName.RendererResult.TextSize.Y)
+		prevSubPageMenu.Recreate(512, prevSubPageMenu.Rect.H)
 	}
 
 	row = prevSubPageMenu.Pages["root"].AddRow(AlignCenter)

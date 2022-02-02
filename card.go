@@ -614,9 +614,7 @@ func (card *Card) DrawShadow() {
 
 	if color[3] > 0 {
 
-		color = color.Sub(80)
-		color[3] = 192
-
+		color = color.Sub(40)
 		card.Result.Texture.SetColorMod(color.RGB())
 		card.Result.Texture.SetAlphaMod(color[3])
 		globals.Renderer.CopyF(card.Result.Texture, nil, tp)
@@ -916,6 +914,8 @@ func (card *Card) Deserialize(data string) {
 	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
 
 	card.Properties.Deserialize(gjson.Get(data, "properties").Raw)
+
+	// card.ReceiveMessage(NewMessage(MessageCardDeserialized, nil, nil))
 
 	card.SetContents(gjson.Get(data, "contents").String())
 

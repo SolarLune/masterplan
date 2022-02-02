@@ -13,6 +13,7 @@ const (
 	MessageLinkCreated     = "MessageLinkCreated"
 	MessageLinkDeleted     = "MessageLinkDeleted"
 	MessagePageChanged     = "MessagePageChanged"
+	// MessageCardDeserialized = "MessageCardDeserialized"
 )
 
 type Message struct {

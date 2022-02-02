@@ -75,12 +75,14 @@ type CheckboxContents struct {
 	ParentOf                     []*Card
 	Linked                       []*Card
 	PercentageOfChildrenComplete float32
+	// URLButtons                   *URLButtons
 }
 
 func NewCheckboxContents(card *Card) *CheckboxContents {
 
 	cc := &CheckboxContents{
 		DefaultContents: newDefaultContents(card),
+		// URLButtons:      NewURLButtons(card),
 	}
 
 	cc.Checkbox = NewCheckbox(0, 0, true, card.Properties.Get("checked"))
@@ -100,6 +102,8 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 					cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
 				}
 			}
+
+			// cc.URLButtons.ScanText(cc.Label.TextAsString())
 		}
 
 	}
@@ -119,10 +123,12 @@ func (cc *CheckboxContents) Update() {
 		prop.Set(!prop.AsBool())
 	}
 
-	rect := cc.Label.Rectangle()
-	rect.W = cc.Container.Rect.W - rect.X + cc.Container.Rect.X
-	rect.H = cc.Container.Rect.H - rect.Y + cc.Container.Rect.Y
-	cc.Label.SetRectangle(rect)
+	cc.Label.SetMaxSize(cc.Container.Rect.W-32, cc.Container.Rect.H)
+
+	// rect := cc.Label.Rectangle()
+	// rect.W = cc.Container.Rect.W - rect.X + cc.Container.Rect.X
+	// rect.H = cc.Container.Rect.H - rect.Y + cc.Container.Rect.Y
+	// cc.Label.SetRectangle(rect)
 
 	// Put the update here so the label gets updated after setting the description
 	cc.DefaultContents.Update()
@@ -181,6 +187,33 @@ func (cc *CheckboxContents) Draw() {
 		dstPoint := Point{cc.Card.DisplayRect.X + cc.Card.DisplayRect.W - 32, cc.Card.DisplayRect.Y}
 		DrawLabel(cc.Card.Page.Project.Camera.TranslatePoint(dstPoint), fmt.Sprintf("%d/%d", int(completed), int(maximum)))
 	}
+
+	// for _, button := range cc.URLButtons.Buttons {
+	// 	button.Pos.X += cc.Card.DisplayRect.X + globals.GridSize
+	// 	button.Pos.Y += cc.Card.DisplayRect.Y
+	// 	if button.MousedOver() {
+
+	// 		if result := button.Result; result != nil {
+
+	// 			menu := globals.MenuSystem.Get("url menu")
+	// 			menu.Open()
+
+	// 			root := menu.Pages["root"]
+
+	// 			title := root.FindElement("title", false).(*Label)
+	// 			title.SetText([]rune(result.Title))
+
+	// 			desc := root.FindElement("description", false).(*Label)
+	// 			desc.SetText([]rune(result.Description))
+
+	// 			icon := root.FindElement("favicon", false).(*GUIImage)
+	// 			icon.Texture = result.FavIcon.AsImage().Texture
+
+	// 		}
+
+	// 	}
+
+	// }
 
 }
 
@@ -311,6 +344,8 @@ func (cc *CheckboxContents) ReceiveMessage(msg *Message) {
 			}
 
 		}
+		// } else if msg.Type == MessageCardDeserialized {
+		// 	cc.URLButtons.ScanText(cc.Card.Properties.Get("description").AsString())
 	}
 }
 
@@ -525,10 +560,7 @@ func (nc *NoteContents) Update() {
 
 	nc.DefaultContents.Update()
 
-	rect := nc.Label.Rectangle()
-	rect.W = nc.Container.Rect.W - rect.X + nc.Container.Rect.X
-	rect.H = nc.Container.Rect.H - rect.Y + nc.Container.Rect.Y
-	nc.Label.SetRectangle(rect)
+	nc.Label.SetMaxSize(nc.Container.Rect.W-32, nc.Container.Rect.H)
 
 }
 
@@ -567,7 +599,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 	soundContents.SeekBar.Soft = false
 
-	soundContents.SoundNameLabel.AutoExpand = true
+	soundContents.SoundNameLabel.SetMaxSize(999999, -1)
 
 	soundContents.SeekBar.OnRelease = func() {
 		if soundContents.Sound != nil {
@@ -591,7 +623,7 @@ func NewSoundContents(card *Card) *SoundContents {
 	})
 
 	soundContents.PlaybackLabel = NewLabel("", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft)
-	soundContents.PlaybackLabel.AutoExpand = true
+	soundContents.PlaybackLabel.SetMaxSize(999999, -1)
 
 	firstRow := soundContents.Container.AddRow(AlignLeft)
 	firstRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{144, 160, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true))
@@ -2400,9 +2432,19 @@ func (sb *SubPageContents) OpenSubpage() {
 func (sb *SubPageContents) ReceiveMessage(msg *Message) {
 
 	if (msg.Type == MessagePageChanged || msg.Type == MessageThemeChange) && sb.Card.Page.IsCurrent() {
-
 		sb.TakeScreenshot()
+	}
 
+	if msg.Type == MessageUndoRedo {
+		sb.NameLabel.OnClickOut() // Call OnClickOut() so that the name is updated to the property accordingly
+	}
+
+	if sb.SubPage != nil {
+		if msg.Type == MessageCardDeleted {
+			sb.SubPage.Valid = false
+		} else if msg.Type == MessageCardRestored {
+			sb.SubPage.Valid = true
+		}
 	}
 
 }
@@ -2440,7 +2482,14 @@ func (sb *SubPageContents) TakeScreenshot() {
 }
 
 func (sb *SubPageContents) Color() Color {
-	return getThemeColor(GUISubBoardColor)
+
+	color := getThemeColor(GUISubBoardColor)
+
+	if sb.Card.CustomColor != nil {
+		color = sb.Card.CustomColor
+	}
+
+	return color
 }
 
 func (sb *SubPageContents) DefaultSize() Point {

@@ -130,7 +130,7 @@ type Menu struct {
 
 	CloseMethod       int
 	Opened            bool
-	closeButtonButton *Button
+	closeButtonButton *IconButton
 	BackButton        *Button
 
 	Draggable  bool
@@ -160,7 +160,7 @@ func NewMenu(rect *sdl.FRect, closeMethod int) *Menu {
 		Draggable:   false,
 	}
 
-	menu.closeButtonButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{176, 0, 32, 32}, false, func() { menu.Close() })
+	menu.closeButtonButton = NewIconButton(0, 0, &sdl.Rect{176, 0, 32, 32}, false, func() { menu.Close() })
 	menu.BackButton = NewButton("", &sdl.FRect{0, 0, 32, 32}, &sdl.Rect{208, 0, 32, 32}, false, func() { menu.SetPrevPage() })
 
 	menu.AddPage("root")
