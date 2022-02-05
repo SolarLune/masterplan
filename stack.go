@@ -193,7 +193,7 @@ func (stack *Stack) Top() *Card {
 	if len(stack.Head()) == 0 {
 		return stack.Card
 	}
-	return stack.Head()[len(stack.Head())-1]
+	return stack.Head()[0]
 }
 
 func (stack *Stack) Bottom() *Card {

@@ -74,6 +74,7 @@ const (
 	KBNumberedIncrement        = "Numbered: Increment Value"
 	KBNumberedDecrement        = "Numbered: Decrement Value"
 	KBSoundPlay                = "Sound: Toggle Playback"
+	KBSoundStopAll             = "Sound: Stop All Playback"
 	KBSoundJumpForward         = "Sound: Jump Forward 1s"
 	KBSoundJumpBackward        = "Sound: Jump Backward 1s"
 
@@ -451,6 +452,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBNumberedIncrement, sdl.K_SPACE)
 	kb.DefineKeyShortcut(KBNumberedDecrement, sdl.K_SPACE, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBSoundPlay, sdl.K_SPACE)
+	kb.DefineKeyShortcut(KBSoundStopAll, sdl.K_SPACE, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBSoundJumpForward, sdl.K_RIGHT, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBSoundJumpBackward, sdl.K_LEFT, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBTimerStartStop, sdl.K_SPACE)

@@ -623,7 +623,6 @@ func NewSoundContents(card *Card) *SoundContents {
 	})
 
 	soundContents.PlaybackLabel = NewLabel("", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft)
-	soundContents.PlaybackLabel.SetMaxSize(999999, -1)
 
 	firstRow := soundContents.Container.AddRow(AlignLeft)
 	firstRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{144, 160, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true))
@@ -712,6 +711,10 @@ func (sc *SoundContents) Update() {
 
 		}
 
+		if globals.Keybindings.Pressed(KBSoundStopAll) {
+			sc.StopPlayback()
+		}
+
 		if sc.Resource.FinishedDownloading() {
 
 			if !sc.Resource.IsSound() {
@@ -721,12 +724,48 @@ func (sc *SoundContents) Update() {
 			} else if sc.Sound == nil || sc.Sound.Empty {
 				if sc.Sound != nil {
 					sc.Sound.Destroy()
+
+					if sc.Sound.Empty {
+						// Playback finished
+
+						if len(sc.Card.Links) > 0 {
+
+							for _, link := range sc.Card.Links {
+
+								if link.End != sc.Card && link.End.Contents != nil {
+									link.End.Contents.Trigger(TriggerTypeToggle)
+								}
+
+								sc.Playing = false
+
+							}
+
+						}
+
+					}
+
 				}
+
 				sc.Sound = sc.Resource.AsNewSound()
 				sc.SeekBar.SetValue(0)
+
+				var nextInLoop *Card
+
+				if below := sc.Card.Stack.Below; below != nil && below.Contents != nil {
+					nextInLoop = sc.Card.Stack.Below
+				} else if top := sc.Card.Stack.Top(); top != nil && top != sc.Card && top.Contents != nil {
+					nextInLoop = top
+				}
+
+				if nextInLoop != nil {
+					nextInLoop.Contents.Trigger(TriggerTypeSet)
+					sc.Playing = false
+				}
+
 				if sc.Playing {
 					sc.Sound.Play()
 				}
+
 			}
 
 			if sc.Sound != nil {
@@ -749,6 +788,8 @@ func (sc *SoundContents) Update() {
 
 				if sc.Playing {
 					sc.PlayButton.IconSrc.X = 144
+				} else {
+					sc.PlayButton.IconSrc.X = 112
 				}
 
 			}
@@ -807,20 +848,14 @@ func (sc *SoundContents) TogglePlayback() {
 
 }
 
-func (sc *SoundContents) Draw() {
+func (sc *SoundContents) StopPlayback() {
 
-	// tp := sc.Card.Page.Project.Camera.Translate(sc.Card.DisplayRect)
-	// tp.W = 32
-	// tp.H = 32
-	// src := &sdl.Rect{80, 32, 32, 32}
-	// color := getThemeColor(GUIFontColor)
-	// sc.Card.Page.Project.GUITexture.SetColorMod(color.RGB())
-	// sc.Card.Page.Project.GUITexture.SetAlphaMod(color[3])
-	// globals.Renderer.CopyF(sc.Card.Page.Project.GUITexture, src, tp)
+	if sc.Resource == nil || sc.Sound == nil {
+		return
+	}
 
-	sc.DefaultContents.Draw()
-
-	// sc.Label.Draw()
+	sc.Sound.Pause()
+	sc.Playing = false
 
 }
 

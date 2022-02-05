@@ -2347,7 +2347,7 @@ type Scrollbar struct {
 	Rect        *sdl.FRect
 	Value       float32
 	TargetValue float32
-	Soft        bool
+	Soft        bool // Controls if sliding the scrollbar is smooth or not
 	WorldSpace  bool
 	OnValueSet  func()
 	OnRelease   func()

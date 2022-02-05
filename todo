@@ -3,6 +3,14 @@
 [x] Deleting a sub-page card invalidates that page so find doesn't find it; it should no longer be updated
 Add (?) bubbles that you can hover over to get some text / information. This would probably best be done with a GUI element to 
 
+[ ] Focus on Timer should be disabled, I think? Zooming in seems to be annoying.
+[ ] Focus on Timer should just switch to its page?
+[ ] Don't number top-level numbering
+[ ] Numbering options?
+[ ] Search for keybindings by key name, not just shortcut name
+[ ] Manual / documentation for v0.8
+[ ] Copy shapes in maps
+[ ] Resize Cards from left and top
 [ ] PDF / PNG output (See: https://github.com/signintech/gopdf)
 [x] Fix the text somehow, it still looks bad
 [x] Implement searching shortcuts
