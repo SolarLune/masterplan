@@ -14,19 +14,19 @@ import (
 )
 
 type Page struct {
-	ID           uint64
-	Project      *Project
-	Valid        bool
-	UpwardPage   *Page
-	Grid         *Grid
-	Cards        []*Card
-	ToDelete     []*Card
-	ToRestore    []*Card
-	Selection    *Selection
-	Name         string
-	UpdateStacks bool
-	Drawables    []*Drawable
-	ToRaise      []*Card
+	ID             uint64
+	Project        *Project
+	ReferenceCount int
+	UpwardPage     *Page
+	Grid           *Grid
+	Cards          []*Card
+	ToDelete       []*Card
+	ToRestore      []*Card
+	Selection      *Selection
+	Name           string
+	UpdateStacks   bool
+	Drawables      []*Drawable
+	ToRaise        []*Card
 
 	IgnoreWritePan bool
 	Pan            Point
@@ -41,15 +41,15 @@ var globalPageID = uint64(0)
 func NewPage(project *Project) *Page {
 
 	page := &Page{
-		ID:        globalPageID,
-		Project:   project,
-		Valid:     true,
-		Grid:      NewGrid(),
-		Cards:     []*Card{},
-		Name:      "New Page",
-		Drawables: []*Drawable{},
-		ToRaise:   []*Card{},
-		Zoom:      1,
+		ID:             globalPageID,
+		Project:        project,
+		ReferenceCount: 1,
+		Grid:           NewGrid(),
+		Cards:          []*Card{},
+		Name:           "New Page",
+		Drawables:      []*Drawable{},
+		ToRaise:        []*Card{},
+		Zoom:           1,
 	}
 
 	globalPageID++

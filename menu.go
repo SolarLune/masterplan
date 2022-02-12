@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -109,6 +110,10 @@ func (ms *MenuSystem) Get(name string) *Menu {
 
 }
 
+func (ms *MenuSystem) Has(name string) bool {
+	return ms.Get(name) != nil
+}
+
 func (ms *MenuSystem) ExclusiveMenuOpen() bool {
 	for _, menu := range ms.ExclusiveMenus {
 		if menu.Opened {
@@ -138,11 +143,12 @@ type Menu struct {
 	DragStart  Point
 	DragOffset Point
 
-	Resizeable  bool
-	Resizing    string
-	ResizeShape *Shape
-	ResizeStart Point
-	PageThread  []string
+	Resizeable   bool
+	Resizing     string
+	ResizingRect CorrectingRect
+	ResizeShape  *Shape
+	ResizeStart  Point
+	PageThread   []string
 
 	OnOpen  func()
 	OnClose func()
@@ -155,7 +161,7 @@ func NewMenu(rect *sdl.FRect, closeMethod int) *Menu {
 		MinSize:     Point{32, 32},
 		Pages:       map[string]*Container{},
 		CloseMethod: closeMethod,
-		ResizeShape: NewShape(),
+		ResizeShape: NewShape(8),
 		Spacing:     MenuSpacingNone,
 		Draggable:   false,
 	}
@@ -276,27 +282,58 @@ func (menu *Menu) Update() {
 
 		if menu.Resizeable {
 
-			menu.ResizeShape.SetRects(
-				&sdl.FRect{menu.Rect.X, menu.Rect.Y + menu.Rect.H, menu.Rect.W, 16},
-				&sdl.FRect{menu.Rect.X + menu.Rect.W, menu.Rect.Y + menu.Rect.H, 16, 16},
-				&sdl.FRect{menu.Rect.X + menu.Rect.W, menu.Rect.Y, 16, menu.Rect.H},
+			rectSize := float32(16)
+
+			menu.ResizeShape.SetSizes(
+
+				// Topleft corner
+				menu.Rect.X-rectSize, menu.Rect.Y-rectSize, rectSize, rectSize,
+				menu.Rect.X, menu.Rect.Y-rectSize, menu.Rect.W, rectSize,
+
+				// Topright corner
+				menu.Rect.X+menu.Rect.W, menu.Rect.Y-rectSize, rectSize, rectSize,
+				menu.Rect.X+menu.Rect.W, menu.Rect.Y, rectSize, menu.Rect.H,
+
+				// Bottomright corner
+				menu.Rect.X+menu.Rect.W, menu.Rect.Y+menu.Rect.H, rectSize, rectSize,
+				menu.Rect.X, menu.Rect.Y+menu.Rect.H, menu.Rect.W, rectSize,
+
+				// Bottomleft corner
+				menu.Rect.X-rectSize, menu.Rect.Y+menu.Rect.H, rectSize, rectSize,
+				menu.Rect.X-rectSize, menu.Rect.Y, rectSize, menu.Rect.H,
 			)
 
 			if i := globals.Mouse.Position().InsideShape(menu.ResizeShape); i >= 0 {
 
-				side := "resizevertical"
-				if i == 1 {
-					side = "resizecorner"
-				} else if i == 2 {
-					side = "resizehorizontal"
+				sides := []string{
+					"resizecorner_ul",
+					"resizevertical_u",
+					"resizecorner_ur",
+					"resizehorizontal_r",
+					"resizecorner_dr",
+					"resizevertical_d",
+					"resizecorner_dl",
+					"resizehorizontal_l",
 				}
 
-				globals.Mouse.SetCursor(side)
+				side := sides[i%len(sides)]
+
+				cursorName := strings.Split(side, "_")[0]
+
+				if i == 2 || i == 6 {
+					cursorName += "_flipped"
+				}
+
+				globals.Mouse.SetCursor(cursorName)
 
 				if button.Pressed() {
 					button.Consume()
 					menu.Resizing = side
-					menu.ResizeStart = globals.Mouse.Position()
+					menu.ResizingRect.X1 = menu.Rect.X
+					menu.ResizingRect.Y1 = menu.Rect.Y
+					menu.ResizingRect.X2 = menu.Rect.X + menu.Rect.W
+					menu.ResizingRect.Y2 = menu.Rect.Y + menu.Rect.H
+					globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 				}
 
 			}
@@ -305,29 +342,60 @@ func (menu *Menu) Update() {
 
 				globals.Mouse.SetCursor("resize")
 
-				w := menu.Rect.W
-				h := menu.Rect.H
+				switch menu.Resizing {
+				case ResizeR:
+					menu.ResizingRect.X2 = globals.Mouse.Position().X
+				case ResizeL:
+					menu.ResizingRect.X1 = globals.Mouse.Position().X
+				case ResizeD:
+					menu.ResizingRect.Y2 = globals.Mouse.Position().Y
+				case ResizeU:
+					menu.ResizingRect.Y1 = globals.Mouse.Position().Y
 
-				if menu.Resizing == ResizeHorizontal || menu.Resizing == ResizeCorner {
-					w = globals.Mouse.Position().X - menu.Rect.X
-				}
-				if menu.Resizing == ResizeVertical || menu.Resizing == ResizeCorner {
-					h = globals.Mouse.Position().Y - menu.Rect.Y
+				case ResizeUR:
+					menu.ResizingRect.X2 = globals.Mouse.Position().X
+					menu.ResizingRect.Y1 = globals.Mouse.Position().Y
+				case ResizeUL:
+					menu.ResizingRect.X1 = globals.Mouse.Position().X
+					menu.ResizingRect.Y1 = globals.Mouse.Position().Y
+				case ResizeDR:
+					menu.ResizingRect.X2 = globals.Mouse.Position().X
+					menu.ResizingRect.Y2 = globals.Mouse.Position().Y
+				case ResizeDL:
+					menu.ResizingRect.X1 = globals.Mouse.Position().X
+					menu.ResizingRect.Y2 = globals.Mouse.Position().Y
+
 				}
 
-				if w < menu.MinSize.X {
-					w = menu.MinSize.X
-				} else if w >= globals.ScreenSize.X-32 {
-					w = globals.ScreenSize.X - 32
+				rect := menu.ResizingRect.SDLRect()
+
+				if rect.X < 0 {
+					rect.X = 0
+				} else if rect.X >= globals.ScreenSize.X-32 {
+					rect.X = globals.ScreenSize.X - 32
 				}
 
-				if h < menu.MinSize.Y {
-					h = menu.MinSize.Y
-				} else if h >= globals.ScreenSize.Y-32 {
-					h = globals.ScreenSize.Y - 32
+				if rect.Y < 0 {
+					rect.Y = 0
+				} else if rect.Y >= globals.ScreenSize.Y-32 {
+					rect.Y = globals.ScreenSize.Y - 32
 				}
 
-				menu.Recreate(w, h)
+				if rect.W < menu.MinSize.X {
+					rect.W = menu.MinSize.X
+				} else if rect.W >= globals.ScreenSize.X-32 {
+					rect.W = globals.ScreenSize.X - 32
+				}
+
+				if rect.H < menu.MinSize.Y {
+					rect.H = menu.MinSize.Y
+				} else if rect.H >= globals.ScreenSize.Y-32 {
+					rect.H = globals.ScreenSize.Y - 32
+				}
+
+				menu.Rect.X = rect.X
+				menu.Rect.Y = rect.Y
+				menu.Recreate(rect.W, rect.H)
 
 				if button.Released() {
 					menu.Resizing = ""
@@ -367,6 +435,8 @@ func (menu *Menu) Draw() {
 	if !menu.Opened {
 		return
 	}
+
+	menu.closeButtonButton.Tint = getThemeColor(GUIFontColor)
 
 	globals.Renderer.CopyF(menu.BGTexture.Texture, nil, menu.Rect)
 

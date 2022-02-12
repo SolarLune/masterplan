@@ -4,6 +4,9 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"log"
 	"math"
 	"net/http"
@@ -233,6 +236,10 @@ func main() {
 	window.SetIcon(icon)
 	window.SetPosition(x, y)
 	window.SetSize(w, h)
+
+	borderless := globals.Settings.Get(SettingsBorderlessWindow).AsBool()
+	window.SetBordered(!borderless)
+
 	sdl.SetHint(sdl.HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0")
 	sdl.SetHint(sdl.HINT_RENDER_BATCHING, "1")
 	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "0")
@@ -253,7 +260,6 @@ func main() {
 
 	// renderer.SetLogicalSize(960, 540)
 
-	attemptAutoload := 5
 	showedAboutDialog := false
 	splashScreenTime := float32(0)
 	// splashScreen := rl.LoadTexture(LocalPath("assets", "splashscreen.png"))
@@ -299,6 +305,19 @@ func main() {
 
 		}
 	}()
+
+	// Either you're possibly passing the filename by double-clicking on a project, or you're possibly autoloading
+	if len(os.Args) > 1 || (globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0) {
+
+		//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
+
+		if len(os.Args) > 1 {
+			OpenProjectFrom(os.Args[1])
+		} else if globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0 {
+			OpenProjectFrom(globals.RecentFiles[0])
+		}
+
+	}
 
 	for !quit {
 
@@ -361,244 +380,248 @@ func main() {
 		renderer.SetDrawColor(clearColor.RGBA())
 		renderer.Clear()
 
-		if attemptAutoload > 0 {
+		// fmt.Println(globals.TextRenderer.MeasureText([]rune("New Project"), 1))
 
-			attemptAutoload--
+		// if globals.State == StateNeutral && globals.Keybindings.Pressed(KBDebugRestart) {
+		// 	globals.Project = NewProject()
+		// }
 
-			if attemptAutoload == 0 {
+		if globals.Keybindings.Pressed(KBDebugToggle) {
+			globals.DebugMode = !globals.DebugMode
+		}
 
-				// Either you're possibly passing the filename by double-clicking on a project, or you're possibly autoloading
-				loading := len(os.Args) > 1 || (globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0)
+		if globals.Keyboard.Key(sdl.K_F5).Pressed() {
+			profileCPU()
+		}
 
-				// If the settings aren't successfully loaded, it's safe to assume it's because they don't exist, because the program is first loading.
-				if !globals.SettingsLoaded {
+		// if rl.WindowShouldClose() {
+		// 	currentProject.PromptQuit()
+		// }
 
-					// Load help plan
-					// if loaded := LoadProject(LocalPath("assets", "help_manual.plan")); loaded != nil {
-					// 	currentProject = loaded
-					// }
+		if !showedAboutDialog {
+			showedAboutDialog = true
+			if globals.Settings.Get(SettingsShowAboutDialogOnStart).AsBool() {
+				settings := globals.MenuSystem.Get("settings")
+				settings.Center()
+				settings.Open()
+				settings.SetPage("about")
+			}
+		}
 
-				} else if loading {
+		globals.MenuSystem.Update()
 
-					//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
+		globals.Project.Update()
 
-					loaded := NewProject()
+		globals.Keybindings.On = true
 
-					if len(os.Args) > 1 {
-						loaded.OpenFrom(os.Args[1])
-					} else if globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0 {
-						loaded.OpenFrom(globals.RecentFiles[0])
+		if windowFocused {
+
+			globals.Project.Draw()
+
+			globals.Renderer.SetScale(1, 1)
+
+			globals.MenuSystem.Draw()
+
+			if globals.DebugMode {
+				fps, _ := gfx.GetFramerate(fpsManager)
+				s := strconv.FormatFloat(float64(fps), 'f', 0, 64)
+				globals.TextRenderer.QuickRenderText(s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, AlignRight)
+			}
+
+		}
+
+		if globals.NextProject != nil {
+			globals.Project.Destroy()
+			globals.Project = globals.NextProject
+			globals.NextProject = nil
+		}
+
+		// y := int32(0)
+
+		// for _, event := range eventLogBuffer {
+		// 	src := &sdl.Rect{0, 0, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
+		// 	dst := &sdl.Rect{0, y, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
+		// 	globals.Renderer.Copy(event.Texture.Image.Texture, src, dst)
+		// 	y += src.H
+		// }
+
+		// rl.EndMode2D()
+
+		// color := getThemeColor(GUI_FONT_COLOR)
+		// color.A = 128
+
+		// x := float32(0)
+		// // x := float32(rl.GetScreenWidth() - 8)
+		// v := ""
+
+		// if currentProject.LockProject.Checked {
+		// 	if currentProject.Locked {
+		// 		v += "Project Lock Engaged"
+		// 	} else {
+		// 		v += "Project Lock Present"
+		// 	}
+		// } else if currentProject.AutoSave.Checked {
+		// 	if currentProject.FilePath == "" {
+		// 		v += "Please Manually Save Project"
+		// 		color.R = 255
+		// 	} else {
+		// 		v += "Autosave On"
+		// 	}
+		// } else if currentProject.Modified {
+		// 	v += "Modified"
+		// }
+
+		// if len(v) > 0 {
+		// 	size, _ := TextSize(v, true)
+		// 	x -= size.X
+		// 	// DrawGUITextColored(rl.Vector2{x, 8}, color, v)
+		// }
+
+		// color = rl.White
+		// bgColor := rl.Black
+
+		// y := float32(24)
+
+		msgSize := float32(1)
+		eventY := globals.ScreenSize.Y
+
+		for _, event := range globals.EventLog.Events {
+
+			bgColor := getThemeColor(GUIMenuColor)
+			fontColor := getThemeColor(GUIFontColor)
+			fadeValue, _, _ := event.Tween.Update(globals.DeltaTime)
+
+			if globals.Settings.Get(SettingsDisplayMessages).AsBool() {
+
+				event.Y += (eventY - event.Y) * 0.2
+
+				fade := uint8(float32(fontColor[3]) * fadeValue)
+
+				m := ""
+
+				if event.Multiplier > 0 {
+					m = " (x" + strconv.Itoa(event.Multiplier+1) + ")"
+				}
+
+				text := event.Time + " " + event.Text + m
+
+				textSize := globals.TextRenderer.MeasureText([]rune(text), msgSize)
+
+				dst := &sdl.FRect{0, event.Y, textSize.X, textSize.Y}
+				bgColor[3] = fade
+				fontColor[3] = fade
+
+				FillRect(dst.X, dst.Y-dst.H, dst.W, dst.H, bgColor)
+				globals.TextRenderer.QuickRenderText(text, Point{0, event.Y - dst.H}, msgSize, fontColor, AlignLeft)
+
+				eventY -= dst.H
+
+			}
+
+		}
+
+		globals.EventLog.CleanUpDeadEvents()
+
+		// if !programSettings.DisableMessageLog {
+
+		// 	for i := 0; i < len(eventLogBuffer); i++ {
+
+		// 		msg := eventLogBuffer[i]
+
+		// 		text := "- " + msg.Time.Format("15:04:05") + " : " + msg.Text
+		// 		text = strings.ReplaceAll(text, "\n", "\n                    ")
+
+		// 		alpha, done := msg.Tween.Update(1 / float32(programSettings.TargetFPS))
+
+		// 		if strings.HasPrefix(msg.Text, "ERROR") {
+		// 			color = rl.Red
+		// 		} else if strings.HasPrefix(msg.Text, "WARNING") {
+		// 			color = rl.Yellow
+		// 		} else {
+		// 			color = rl.White
+		// 		}
+
+		// 		color.A = uint8(alpha)
+		// 		bgColor.A = color.A
+
+		// 		textSize := rl.MeasureTextEx(font, text, float32(GUIFontSize()), 1)
+		// 		lineHeight, _ := TextHeight(text, true)
+		// 		textPos := rl.Vector2{8, y}
+		// 		rectPos := textPos
+
+		// 		rectPos.X--
+		// 		rectPos.Y--
+		// 		textSize.X += 2
+		// 		textSize.Y = lineHeight
+
+		// 		rl.DrawRectangleV(textPos, textSize, bgColor)
+		// 		DrawGUITextColored(textPos, color, text)
+
+		// 		if done {
+		// 			eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
+		// 			i--
+		// 		}
+
+		// 		y += lineHeight
+
+		// 	}
+
+		// }
+
+		if globals.Keybindings.Pressed(KBTakeScreenshot) {
+			// This is here because you can trigger a screenshot from the context menu as well.
+			takeScreenshot = true
+		}
+
+		if takeScreenshot {
+			// Use the current time for screenshot names; ".00" adds the fractional second
+			screenshotFileName := fmt.Sprintf("screenshot_%s.png", time.Now().Format(FileTimeFormat+".00"))
+			screenshotPath := LocalRelativePath(screenshotFileName)
+			if projectScreenshotsPath := globals.Settings.Get(SettingsScreenshotPath).AsString(); projectScreenshotsPath != "" {
+				if _, err := os.Stat(projectScreenshotsPath); err == nil {
+					screenshotPath = filepath.Join(projectScreenshotsPath, screenshotFileName)
+				}
+			}
+			// rl.TakeScreenshot(screenshotPath)
+
+			surf, err := sdl.CreateRGBSurfaceWithFormat(0, int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y), 32, sdl.PIXELFORMAT_ARGB8888)
+			if err != nil {
+				globals.EventLog.Log(err.Error())
+			} else {
+				defer surf.Free()
+
+				if err := globals.Renderer.ReadPixels(nil, surf.Format.Format, surf.Data(), int(surf.Pitch)); err != nil {
+					globals.EventLog.Log(err.Error())
+				}
+
+				screenshotFile, err := os.Create(screenshotPath)
+				if err != nil {
+					globals.EventLog.Log(err.Error())
+				} else {
+					defer screenshotFile.Close()
+
+					image := image.NewRGBA(image.Rect(0, 0, int(globals.ScreenSize.X), int(globals.ScreenSize.Y)))
+					for y := 0; y < int(globals.ScreenSize.Y); y++ {
+						for x := 0; x < int(globals.ScreenSize.X); x++ {
+							r, g, b, a := ColorAt(surf, int32(x), int32(y))
+							image.Set(x, y, color.RGBA{r, g, b, a})
+						}
 					}
 
-					original := globals.Project
-					globals.Project.LoadingProject = loaded
-					original.Destroy()
+					err := png.Encode(screenshotFile, image)
+
+					if err != nil {
+						globals.EventLog.Log(err.Error())
+					} else {
+						screenshotFile.Sync()
+						globals.EventLog.Log("Screenshot saved successfully to %s.", screenshotPath)
+					}
 
 				}
 
 			}
 
-		} else {
-
-			// fmt.Println(globals.TextRenderer.MeasureText([]rune("New Project"), 1))
-
-			// if globals.State == StateNeutral && globals.Keybindings.Pressed(KBDebugRestart) {
-			// 	globals.Project = NewProject()
-			// }
-
-			if globals.Keybindings.Pressed(KBDebugToggle) {
-				globals.DebugMode = !globals.DebugMode
-			}
-
-			if globals.Keyboard.Key(sdl.K_F5).Pressed() {
-				profileCPU()
-			}
-
-			// if rl.WindowShouldClose() {
-			// 	currentProject.PromptQuit()
-			// }
-
-			if !showedAboutDialog {
-				showedAboutDialog = true
-				if globals.Settings.Get(SettingsShowAboutDialogOnStart).AsBool() {
-					settings := globals.MenuSystem.Get("settings")
-					settings.Center()
-					settings.Open()
-					settings.SetPage("about")
-				}
-			}
-
-			globals.MenuSystem.Update()
-
-			globals.Project.Update()
-
-			globals.Keybindings.On = true
-
-			if windowFocused {
-
-				globals.Project.Draw()
-
-				globals.Renderer.SetScale(1, 1)
-
-				globals.MenuSystem.Draw()
-
-				if globals.DebugMode {
-					fps, _ := gfx.GetFramerate(fpsManager)
-					s := strconv.FormatFloat(float64(fps), 'f', 0, 64)
-					globals.TextRenderer.QuickRenderText(s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, AlignRight)
-				}
-
-			}
-
-			if globals.Project.LoadingProject != nil {
-				original := globals.Project
-				loading := globals.Project.LoadingProject
-				globals.Project = loading
-				original.Destroy()
-			}
-
-			// y := int32(0)
-
-			// for _, event := range eventLogBuffer {
-			// 	src := &sdl.Rect{0, 0, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
-			// 	dst := &sdl.Rect{0, y, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
-			// 	globals.Renderer.Copy(event.Texture.Image.Texture, src, dst)
-			// 	y += src.H
-			// }
-
-			// rl.EndMode2D()
-
-			// color := getThemeColor(GUI_FONT_COLOR)
-			// color.A = 128
-
-			// x := float32(0)
-			// // x := float32(rl.GetScreenWidth() - 8)
-			// v := ""
-
-			// if currentProject.LockProject.Checked {
-			// 	if currentProject.Locked {
-			// 		v += "Project Lock Engaged"
-			// 	} else {
-			// 		v += "Project Lock Present"
-			// 	}
-			// } else if currentProject.AutoSave.Checked {
-			// 	if currentProject.FilePath == "" {
-			// 		v += "Please Manually Save Project"
-			// 		color.R = 255
-			// 	} else {
-			// 		v += "Autosave On"
-			// 	}
-			// } else if currentProject.Modified {
-			// 	v += "Modified"
-			// }
-
-			// if len(v) > 0 {
-			// 	size, _ := TextSize(v, true)
-			// 	x -= size.X
-			// 	// DrawGUITextColored(rl.Vector2{x, 8}, color, v)
-			// }
-
-			// color = rl.White
-			// bgColor := rl.Black
-
-			// y := float32(24)
-
-			msgSize := float32(1)
-			eventY := globals.ScreenSize.Y
-
-			for _, event := range globals.EventLog.Events {
-
-				bgColor := getThemeColor(GUIMenuColor)
-				fontColor := getThemeColor(GUIFontColor)
-				fadeValue, _, _ := event.Tween.Update(globals.DeltaTime)
-
-				if globals.Settings.Get(SettingsDisplayMessages).AsBool() {
-
-					event.Y += (eventY - event.Y) * 0.2
-
-					fade := uint8(float32(fontColor[3]) * fadeValue)
-
-					textSize := globals.TextRenderer.MeasureText([]rune(event.Text), msgSize)
-
-					dst := &sdl.FRect{0, event.Y, textSize.X, textSize.Y}
-					bgColor[3] = fade
-					fontColor[3] = fade
-
-					FillRect(dst.X, dst.Y-dst.H, dst.W, dst.H, bgColor)
-					globals.TextRenderer.QuickRenderText(event.Text, Point{0, event.Y - dst.H}, msgSize, fontColor, AlignLeft)
-
-					eventY -= dst.H
-
-				}
-
-			}
-
-			globals.EventLog.CleanUpDeadEvents()
-
-			// if !programSettings.DisableMessageLog {
-
-			// 	for i := 0; i < len(eventLogBuffer); i++ {
-
-			// 		msg := eventLogBuffer[i]
-
-			// 		text := "- " + msg.Time.Format("15:04:05") + " : " + msg.Text
-			// 		text = strings.ReplaceAll(text, "\n", "\n                    ")
-
-			// 		alpha, done := msg.Tween.Update(1 / float32(programSettings.TargetFPS))
-
-			// 		if strings.HasPrefix(msg.Text, "ERROR") {
-			// 			color = rl.Red
-			// 		} else if strings.HasPrefix(msg.Text, "WARNING") {
-			// 			color = rl.Yellow
-			// 		} else {
-			// 			color = rl.White
-			// 		}
-
-			// 		color.A = uint8(alpha)
-			// 		bgColor.A = color.A
-
-			// 		textSize := rl.MeasureTextEx(font, text, float32(GUIFontSize()), 1)
-			// 		lineHeight, _ := TextHeight(text, true)
-			// 		textPos := rl.Vector2{8, y}
-			// 		rectPos := textPos
-
-			// 		rectPos.X--
-			// 		rectPos.Y--
-			// 		textSize.X += 2
-			// 		textSize.Y = lineHeight
-
-			// 		rl.DrawRectangleV(textPos, textSize, bgColor)
-			// 		DrawGUITextColored(textPos, color, text)
-
-			// 		if done {
-			// 			eventLogBuffer = append(eventLogBuffer[:i], eventLogBuffer[i+1:]...)
-			// 			i--
-			// 		}
-
-			// 		y += lineHeight
-
-			// 	}
-
-			// }
-
-			// if globals.ProgramSettings.Keybindings.On(KBTakeScreenshot) {
-			// 	// This is here because you can trigger a screenshot from the context menu as well.
-			// 	takeScreenshot = true
-			// }
-
-			// if takeScreenshot {
-			// 	// Use the current time for screenshot names; ".00" adds the fractional second
-			// 	screenshotFileName := fmt.Sprintf("screenshot_%s.png", time.Now().Format(FileTimeFormat+".00"))
-			// 	screenshotPath := LocalPath(screenshotFileName)
-			// 	if projectScreenshotsPath := currentProject.ScreenshotsPath.Text(); projectScreenshotsPath != "" {
-			// 		if _, err := os.Stat(projectScreenshotsPath); err == nil {
-			// 			screenshotPath = filepath.Join(projectScreenshotsPath, screenshotFileName)
-			// 		}
-			// 	}
-			// 	rl.TakeScreenshot(screenshotPath)
-			// 	currentProject.Log("Screenshot saved successfully to %s.", screenshotPath)
-			// 	takeScreenshot = false
-			// }
+			takeScreenshot = false
 		}
 
 		splashScreenTime += globals.DeltaTime
@@ -704,7 +727,7 @@ func ConstructMenus() {
 
 	// File Menu
 
-	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 300}, MenuCloseClickOut), "file", false)
+	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 350}, MenuCloseClickOut), "file", false)
 	root = fileMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() {
@@ -714,7 +737,7 @@ func ConstructMenus() {
 			confirmNewProject.Center()
 			confirmNewProject.Open()
 		} else {
-			globals.Project.LoadingProject = NewProject()
+			globals.NextProject = NewProject()
 			globals.EventLog.Log("New project created.")
 		}
 
@@ -754,6 +777,9 @@ func ConstructMenus() {
 		settings.Center()
 		settings.Open()
 		fileMenu.Close()
+	}))
+	root.AddRow(AlignCenter).Add("Help", NewButton("Help", nil, nil, false, func() {
+		browser.OpenURL("https://github.com/SolarLune/masterplan/wiki")
 	}))
 	root.AddRow(AlignCenter).Add("Quit", NewButton("Quit", nil, nil, false, func() {
 		confirmQuit := globals.MenuSystem.Get("confirm quit")
@@ -1080,7 +1106,7 @@ func ConstructMenus() {
 	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
 	row = root.AddRow(AlignCenter)
 	row.Add("yes", NewButton("Yes", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
-		globals.Project.LoadingProject = NewProject()
+		globals.NextProject = NewProject()
 		globals.EventLog.Log("New project created.")
 		confirmNewProject.Close()
 	}))
@@ -1094,7 +1120,7 @@ func ConstructMenus() {
 	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
 	row = root.AddRow(AlignCenter)
 	row.Add("yes", NewButton("Yes", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
-		globals.Project.OpenFrom(globals.Project.LoadConfirmationTo)
+		OpenProjectFrom(globals.Project.LoadConfirmationTo)
 		confirmLoad.Close()
 	}))
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmLoad.Close() }))
@@ -1199,6 +1225,31 @@ func ConstructMenus() {
 	row.Add("", NewLabel("Show About Dialog On Start:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
 
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Borderless Window:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsBorderlessWindow)))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Custom Screenshot Path:", nil, false, AlignLeft))
+	screenshotPath := NewLabel("Screenshot path", nil, false, AlignLeft)
+	screenshotPath.Editable = true
+	screenshotPath.RegexString = RegexNoNewlines
+	screenshotPath.Property = globals.Settings.Get(SettingsScreenshotPath)
+	row.Add("", screenshotPath)
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewButton("Browse", nil, nil, false, func() {
+
+		if path, err := zenity.SelectFile(zenity.Title("Select Screenshot Directory"), zenity.Directory()); err == nil {
+			globals.Settings.Get(SettingsScreenshotPath).Set(path)
+		}
+
+	}))
+
+	row.Add("", NewButton("Clear", nil, nil, false, func() {
+		globals.Settings.Get(SettingsScreenshotPath).Set("")
+	}))
+
 	// Visual options
 
 	visual := settings.AddPage("visual")
@@ -1274,6 +1325,7 @@ func ConstructMenus() {
 	row.Add("", NewLabel("Custom Font Path:", nil, false, AlignLeft))
 	fontPath := NewLabel("Font path", nil, false, AlignLeft)
 	fontPath.Editable = true
+	fontPath.RegexString = RegexNoNewlines
 	fontPath.Property = globals.Settings.Get(SettingsCustomFontPath)
 	fontPath.OnClickOut = func() {
 		globals.TriggerReloadFonts = true
@@ -1294,6 +1346,7 @@ func ConstructMenus() {
 		globals.Settings.Get(SettingsCustomFontPath).Set("")
 		globals.TriggerReloadFonts = true
 	}))
+
 	// row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
 
 	// INPUT PAGE
@@ -1466,22 +1519,14 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 
 	row = about.AddRow(AlignCenter)
-	row.Add("", NewLabel("This is an alpha of the next update, v0.8.0. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet.", &sdl.FRect{0, 0, 512, 96}, false, AlignLeft))
-
-	row = about.AddRow(AlignCenter)
-	row.Add("", NewSpacer(nil))
+	row.Add("", NewLabel("This is an alpha of the next update, v0.8.0. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet.", &sdl.FRect{0, 0, 512, 128}, false, AlignLeft))
 
 	row = about.AddRow(AlignCenter)
 	row.Add("", NewLabel("That said, I think this is already FAR better than v0.7 and am very excited to get people using it and get some feedback on the new changes. Please do let me know your thoughts! (And don't forget to do frequent back-ups!) ~ SolarLune", &sdl.FRect{0, 0, 512, 160}, false, AlignLeft))
 
 	row = about.AddRow(AlignCenter)
-	row.Add("", NewSpacer(nil))
-
-	row = about.AddRow(AlignCenter)
 	row.ExpandElements = false
 	row.Add("", NewButton("Discord", nil, &sdl.Rect{48, 224, 32, 32}, false, func() { browser.OpenURL("https://discord.gg/tRVf7qd") }))
-	row.Add("", NewSpacer(nil))
-	row.Add("", NewButton("Overview Devlog", nil, nil, false, func() { browser.OpenURL("https://youtu.be/43sotReXnGA") }))
 	row.Add("", NewSpacer(nil))
 	row.Add("", NewButton("Twitter", nil, &sdl.Rect{80, 224, 32, 32}, false, func() { browser.OpenURL("https://twitter.com/MasterPlanApp") }))
 
@@ -1759,6 +1804,112 @@ func ConstructMenus() {
 		}
 
 	}
+
+	// Map palette menu
+
+	paletteMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 200, 560}, MenuCloseButton), "map palette menu", false)
+	paletteMenu.Center()
+	paletteMenu.Draggable = true
+	paletteMenu.Resizeable = true
+
+	root = paletteMenu.Pages["root"]
+
+	root.AddRow(AlignCenter).Add("color label", NewLabel("Colors", nil, false, AlignCenter))
+
+	row = root.AddRow(AlignCenter)
+
+	for i, color := range MapPaletteColors {
+
+		if i%4 == 0 && i > 0 {
+			row = root.AddRow(AlignCenter)
+		}
+		index := i
+		iconButton := NewIconButton(0, 0, &sdl.Rect{48, 128, 32, 32}, false, func() { MapDrawingColor = index + 1 })
+		iconButton.BGIconSrc = &sdl.Rect{144, 96, 32, 32}
+		iconButton.Tint = color
+		row.Add("paletteColor"+strconv.Itoa(i), iconButton)
+	}
+
+	root.AddRow(AlignCenter).Add("pattern label", NewLabel("Patterns", nil, false, AlignCenter))
+
+	button := NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { MapPattern = MapPatternSolid })
+	row = root.AddRow(AlignCenter)
+	row.Add("pattern solid", button)
+
+	row = root.AddRow(AlignCenter)
+	button = NewButton("Crossed", nil, &sdl.Rect{80, 128, 32, 32}, false, func() { MapPattern = MapPatternCrossed })
+	row.Add("pattern crossed", button)
+
+	button = NewButton("Dotted", nil, &sdl.Rect{112, 128, 32, 32}, false, func() { MapPattern = MapPatternDotted })
+	row = root.AddRow(AlignCenter)
+	row.Add("pattern dotted", button)
+
+	button = NewButton("Checked", nil, &sdl.Rect{144, 128, 32, 32}, false, func() { MapPattern = MapPatternChecked })
+	row = root.AddRow(AlignCenter)
+	row.Add("pattern checked", button)
+
+	root.AddRow(AlignCenter).Add("shift label", NewLabel("Shift", nil, false, AlignCenter))
+
+	number = NewNumberSpinner(&sdl.FRect{0, 0, 128, 32}, false, nil)
+	number.SetLimits(1, math.MaxFloat64)
+	root.AddRow(AlignCenter).Add("shift number", number)
+
+	left := NewButton("Left", nil, nil, false, func() {
+
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			if card.ContentType == ContentTypeMap {
+				card.Contents.(*MapContents).MapData.Push(-int(number.Value), 0)
+			}
+		}
+		globals.EventLog.Log("Map shifted by %d to the left.", int(number.Value))
+
+	})
+
+	right := NewButton("Right", nil, nil, false, func() {
+
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			if card.ContentType == ContentTypeMap {
+				card.Contents.(*MapContents).MapData.Push(int(number.Value), 0)
+			}
+		}
+		globals.EventLog.Log("Map shifted by %d to the right.", int(number.Value))
+
+	})
+
+	up := NewButton("Up", nil, nil, false, func() {
+
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			if card.ContentType == ContentTypeMap {
+				card.Contents.(*MapContents).MapData.Push(0, -int(number.Value))
+			}
+		}
+
+		globals.EventLog.Log("Map shifted by %d upward.", int(number.Value))
+
+	})
+
+	down := NewButton("Down", nil, nil, false, func() {
+
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			if card.ContentType == ContentTypeMap {
+				card.Contents.(*MapContents).MapData.Push(0, int(number.Value))
+			}
+		}
+
+		globals.EventLog.Log("Map shifted by %d downward.", int(number.Value))
+
+	})
+
+	row = root.AddRow(AlignCenter)
+	row.Add("shift up", up)
+
+	row = root.AddRow(AlignCenter)
+	row.Add("shift left", left)
+	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
+	row.Add("shift right", right)
+
+	row = root.AddRow(AlignCenter)
+	row.Add("shift down", down)
 
 }
 

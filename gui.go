@@ -174,7 +174,7 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked f
 
 func (iconButton *IconButton) Update() {
 
-	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil {
+	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && globals.Mouse.CurrentCursor == "normal" {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		iconButton.OnPressed()
 	}
@@ -339,6 +339,7 @@ type NumberSpinner struct {
 	Increase *IconButton
 	Decrease *IconButton
 	Property *Property
+	Value    float64
 	MaxValue float64
 	MinValue float64
 	OnChange func()
@@ -349,6 +350,7 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 	spinner := &NumberSpinner{
 		Rect:     rect,
 		Property: property,
+		MinValue: -math.MaxFloat32,
 		MaxValue: math.MaxFloat32,
 	}
 
@@ -361,23 +363,35 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 	spinner.Label.RegexString = RegexOnlyDigits
 	spinner.Label.Editable = true
 	spinner.Label.OnClickOut = func() {
-		spinner.Property.Set(spinner.EnforceCaps(float64(spinner.Label.TextAsInt())))
+		if spinner.Property != nil {
+			spinner.Property.Set(spinner.EnforceCaps(float64(spinner.Label.TextAsInt())))
+		} else {
+			spinner.Value = spinner.EnforceCaps(float64(spinner.Label.TextAsInt()))
+		}
 		if spinner.OnChange != nil {
 			spinner.OnChange()
 		}
 	}
 
 	spinner.Increase = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, worldSpace, func() {
-		f := spinner.Property.AsFloat()
-		spinner.Property.Set(spinner.EnforceCaps(f + 1))
+		if spinner.Property != nil {
+			f := spinner.Property.AsFloat()
+			spinner.Property.Set(spinner.EnforceCaps(f + 1))
+		} else {
+			spinner.Value = spinner.EnforceCaps(float64(spinner.Value + 1))
+		}
 		if spinner.OnChange != nil {
 			spinner.OnChange()
 		}
 	})
 
 	spinner.Decrease = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, worldSpace, func() {
-		f := spinner.Property.AsFloat()
-		spinner.Property.Set(spinner.EnforceCaps(f - 1))
+		if spinner.Property != nil {
+			f := spinner.Property.AsFloat()
+			spinner.Property.Set(spinner.EnforceCaps(f - 1))
+		} else {
+			spinner.Value = spinner.EnforceCaps(float64(spinner.Value - 1))
+		}
 		if spinner.OnChange != nil {
 			spinner.OnChange()
 		}
@@ -385,6 +399,12 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 
 	return spinner
 
+}
+
+func (spinner *NumberSpinner) SetLimits(min, max float64) {
+	spinner.MinValue = min
+	spinner.MaxValue = max
+	spinner.Value = spinner.EnforceCaps(spinner.Value)
 }
 
 func (spinner *NumberSpinner) EnforceCaps(v float64) float64 {
@@ -398,13 +418,15 @@ func (spinner *NumberSpinner) EnforceCaps(v float64) float64 {
 
 func (spinner *NumberSpinner) Update() {
 
-	// spinner.Increase.Tint = getThemeColor(GUIFontColor)
-	// spinner.Decrease.Tint = getThemeColor(GUIFontColor)
-
 	if !spinner.Label.Editing {
-		v := spinner.Property.AsFloat()
-		str := strconv.FormatFloat(v, 'f', 0, 64)
-		spinner.Label.SetText([]rune(str))
+		if spinner.Property != nil {
+			v := spinner.Property.AsFloat()
+			str := strconv.FormatFloat(v, 'f', 0, 64)
+			spinner.Label.SetText([]rune(str))
+		} else {
+			str := strconv.FormatFloat(spinner.Value, 'f', 0, 64)
+			spinner.Label.SetText([]rune(str))
+		}
 	}
 
 	spinner.Label.Update()
@@ -1120,15 +1142,15 @@ func (label *Label) Update() {
 		// activeRect.W = label.RendererResult.Image.Size.X
 		// activeRect.H = label.RendererResult.Image.Size.Y
 
-		if label.Editable {
+		label.Highlighter.Highlighting = false
+
+		if label.Editable && (globals.State == StateNeutral || (globals.State == StateTextEditing && label.Editing)) {
 
 			if !label.Editing && ClickedInRect(activeRect, label.WorldSpace) && globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 				label.Editing = true
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 				label.Selection.SelectAll()
 			}
-
-			label.Highlighter.Highlighting = false
 
 			if label.Editing {
 
@@ -1288,7 +1310,6 @@ func (label *Label) Update() {
 					if button.Pressed() || button.Held() || button.Released() {
 
 						pos := Point{label.Rect.X + label.Offset.X, label.Rect.Y + label.Offset.Y + globals.GridSize/2}
-						// pos := Point{label.Rect.X + label.RendererResult.AlignmentOffset.X, label.Rect.Y + globals.GridSize/2 + label.RendererResult.AlignmentOffset.Y}
 
 						cIndex := 0
 						dist := float32(-1)
@@ -1315,7 +1336,7 @@ func (label *Label) Update() {
 
 							}
 
-							pos.X = label.Rect.X
+							pos.X = label.Rect.X + label.Offset.X
 							pos.Y += float32(globals.GridSize)
 
 						}
@@ -1732,7 +1753,13 @@ func (label *Label) RecreateTexture() {
 		label.RendererResult.Destroy()
 	}
 
-	label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), label.maxSize, label.HorizontalAlignment)
+	// If there's no max size limit, then the size should be the label's rect width and height
+	size := label.maxSize
+	if size.X <= 0 && size.Y <= 0 {
+		size = Point{label.Rect.W, label.Rect.H}
+	}
+
+	label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), size, label.HorizontalAlignment)
 
 	if label.maxSize.X > 0 {
 		label.Rect.W = label.maxSize.X
@@ -2040,6 +2067,18 @@ func (row *ContainerRow) FindElement(name string, wild bool) MenuElement {
 	}
 
 	return nil
+
+}
+
+func (row *ContainerRow) FindElementName(element MenuElement) string {
+
+	for elementName, e := range row.Elements {
+		if e == element {
+			return elementName
+		}
+	}
+
+	return ""
 
 }
 

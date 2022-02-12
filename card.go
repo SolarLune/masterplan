@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -14,9 +15,14 @@ const (
 	CollapsedNone  = "CollapsedNone"
 	CollapsedShade = "CollapsedShade"
 
-	ResizeCorner     = "resizecorner"
-	ResizeHorizontal = "resizehorizontal"
-	ResizeVertical   = "resizevertical"
+	ResizeUR = "resizecorner_ur"
+	ResizeR  = "resizehorizontal_r"
+	ResizeDR = "resizecorner_dr"
+	ResizeD  = "resizevertical_d"
+	ResizeDL = "resizecorner_dl"
+	ResizeL  = "resizehorizontal_l"
+	ResizeUL = "resizecorner_ul"
+	ResizeU  = "resizevertical_u"
 )
 
 type LinkJoint struct {
@@ -163,9 +169,6 @@ func (le *LinkEnding) Draw() {
 
 		if mainColor[3] == 0 {
 			mainColor = ColorWhite
-		}
-
-		if mainColor.Equals(outlineColor) {
 			outlineColor = ColorBlack
 		}
 
@@ -185,7 +188,7 @@ func (le *LinkEnding) Draw() {
 		// delta := points[len(points)-1].Sub(le.End.Center())
 		// px = px.Add(delta.Normalized().Mult(16))
 
-		le.GUIImage.Texture.SetColorMod(outlineColor.RGB())
+		le.GUIImage.Texture.SetColorMod(mainColor.RGB())
 		le.GUIImage.Texture.SetAlphaMod(255)
 		delta := points[len(points)-1].Sub(points[len(points)-2])
 		px := points[len(points)-1].Sub(delta.Normalized().Mult(16))
@@ -289,6 +292,8 @@ type Card struct {
 	ID                      int64
 	LoadedID                int64
 	Resizing                string
+	ResizingRect            CorrectingRect
+	ResizeClickOffset       Point
 	ResizeShape             *Shape
 	LockResizingAspectRatio float32
 	CreateUndoState         bool
@@ -324,7 +329,7 @@ func NewCard(page *Page, contentType string) *Card {
 		Collapsed:       CollapsedNone,
 		Draggable:       true,
 		Links:           []*LinkEnding{},
-		ResizeShape:     NewShape(),
+		ResizeShape:     NewShape(8),
 		DrawHighlighter: true,
 	}
 
@@ -364,39 +369,74 @@ func (card *Card) Update() {
 
 		rectSize := float32(16)
 
-		card.ResizeShape.SetRects(
-			&sdl.FRect{card.Rect.X + rectSize, card.Rect.Y + card.Rect.H, card.Rect.W - rectSize, rectSize},
-			&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + card.Rect.H, rectSize, rectSize},
-			&sdl.FRect{card.Rect.X + card.Rect.W, card.Rect.Y + rectSize, rectSize, card.Rect.H - rectSize},
+		card.ResizeShape.SetSizes(
+
+			// Topleft corner
+			card.Rect.X-rectSize, card.Rect.Y-rectSize, rectSize, rectSize,
+			card.Rect.X, card.Rect.Y-rectSize, card.Rect.W, rectSize,
+
+			// Topright corner
+			card.Rect.X+card.Rect.W, card.Rect.Y-rectSize, rectSize, rectSize,
+			card.Rect.X+card.Rect.W, card.Rect.Y, rectSize, card.Rect.H,
+
+			// Bottomright corner
+			card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H, rectSize, rectSize,
+			card.Rect.X, card.Rect.Y+card.Rect.H, card.Rect.W, rectSize,
+
+			// Bottomleft corner
+			card.Rect.X-rectSize, card.Rect.Y+card.Rect.H, rectSize, rectSize,
+			card.Rect.X-rectSize, card.Rect.Y, rectSize, card.Rect.H,
 		)
 
 		if card.Resizing != "" {
+
 			globals.Mouse.SetCursor(card.Resizing)
 
-			w := card.Rect.W
-			h := card.Rect.H
+			mousePos := globals.Mouse.WorldPosition().Sub(card.ResizeClickOffset)
 
-			if card.Resizing == ResizeHorizontal || card.Resizing == ResizeCorner {
-				w = globals.Mouse.WorldPosition().X - card.Rect.X - card.ResizeShape.Rects[1].W
+			switch card.Resizing {
+			case ResizeR:
+				card.ResizingRect.X2 = mousePos.X
+			case ResizeL:
+				card.ResizingRect.X1 = mousePos.X
+			case ResizeD:
+				card.ResizingRect.Y2 = mousePos.Y
+			case ResizeU:
+				card.ResizingRect.Y1 = mousePos.Y
+
+			case ResizeUR:
+				card.ResizingRect.X2 = mousePos.X
+				card.ResizingRect.Y1 = mousePos.Y
+			case ResizeUL:
+				card.ResizingRect.X1 = mousePos.X
+				card.ResizingRect.Y1 = mousePos.Y
+			case ResizeDR:
+				card.ResizingRect.X2 = mousePos.X
+				card.ResizingRect.Y2 = mousePos.Y
+			case ResizeDL:
+				card.ResizingRect.X1 = mousePos.X
+				card.ResizingRect.Y2 = mousePos.Y
+
 			}
 
-			if card.Resizing == ResizeVertical || card.Resizing == ResizeCorner {
-				h = globals.Mouse.WorldPosition().Y - card.Rect.Y - card.ResizeShape.Rects[1].H
-			}
+			card.ResizingRect.X1 = float32(math.Round(float64(card.ResizingRect.X1/globals.GridSize)) * float64(globals.GridSize))
+			card.ResizingRect.Y1 = float32(math.Round(float64(card.ResizingRect.Y1/globals.GridSize)) * float64(globals.GridSize))
+			card.ResizingRect.X2 = float32(math.Round(float64(card.ResizingRect.X2/globals.GridSize)) * float64(globals.GridSize))
+			card.ResizingRect.Y2 = float32(math.Round(float64(card.ResizingRect.Y2/globals.GridSize)) * float64(globals.GridSize))
+
+			rect := card.ResizingRect.SDLRect()
 
 			if card.LockResizingAspectRatio > 0 {
-				h = w * card.LockResizingAspectRatio
+				rect.H = rect.W * card.LockResizingAspectRatio
 			}
 
-			for card := range card.Page.Selection.Cards {
-				card.Recreate(w, h)
-			}
+			card.Rect.X = rect.X
+			card.Rect.Y = rect.Y
+
+			card.Recreate(rect.W, rect.H)
 
 			if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
 				card.StopResizing()
-				for card := range card.Page.Selection.Cards {
-					card.StopResizing()
-				}
 			}
 
 		}
@@ -482,28 +522,49 @@ func (card *Card) Update() {
 					card.CreateUndoState = true
 				}
 
-				if i := globals.Mouse.WorldPosition().InsideShape(card.ResizeShape); i >= 0 && card.Resizing == "" {
+				if card.selected {
 
-					side := "resizevertical"
+					if i := globals.Mouse.WorldPosition().InsideShape(card.ResizeShape); i >= 0 && card.Resizing == "" {
 
-					if i == 1 {
-						side = "resizecorner"
-					} else if i == 2 {
-						side = "resizehorizontal"
-					}
-
-					globals.Mouse.SetCursor(side)
-
-					if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
-						if !card.selected && !globals.Keybindings.Pressed(KBAddToSelection) {
-							card.Page.Selection.Clear()
+						sides := []string{
+							"resizecorner_ul",
+							"resizevertical_u",
+							"resizecorner_ur",
+							"resizehorizontal_r",
+							"resizecorner_dr",
+							"resizevertical_d",
+							"resizecorner_dl",
+							"resizehorizontal_l",
 						}
-						card.Page.Selection.Add(card)
-						card.Resizing = side
-						globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
+						side := sides[i%len(sides)]
+
+						cursorName := strings.Split(side, "_")[0]
+
+						if i == 2 || i == 6 {
+							cursorName += "_flipped"
+						}
+
+						globals.Mouse.SetCursor(cursorName)
+
+						if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+							if !card.selected && !globals.Keybindings.Pressed(KBAddToSelection) {
+								card.Page.Selection.Clear()
+							}
+							card.Page.Selection.Add(card)
+
+							for card := range card.Page.Selection.Cards {
+								card.StartResizing(card.ResizeShape.Rects[i], side)
+							}
+
+							globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+						}
+
 					}
 
-				} else if globals.Mouse.CurrentCursor == "normal" && ClickedInRect(card.Rect, true) {
+				}
+
+				if card.Resizing == "" && globals.Mouse.CurrentCursor == "normal" && ClickedInRect(card.Rect, true) {
 
 					selection := card.Page.Selection
 
@@ -540,7 +601,7 @@ func (card *Card) Update() {
 }
 
 func (card *Card) IsSelected() bool {
-	return card.selected && card.Page.IsCurrent() && card.Page.Valid
+	return card.selected && card.Page.IsCurrent() && card.Page.ReferenceCount > 0
 }
 
 func (card *Card) IsLinkedTo(other *Card) bool {
@@ -954,6 +1015,18 @@ func (card *Card) StopDragging() {
 	card.LockPosition()
 
 	card.CreateUndoState = true
+}
+
+func (card *Card) StartResizing(rect *sdl.FRect, side string) {
+
+	card.Resizing = side
+	card.ResizingRect.X1 = card.Rect.X
+	card.ResizingRect.Y1 = card.Rect.Y
+	card.ResizingRect.X2 = card.Rect.X + card.Rect.W
+	card.ResizingRect.Y2 = card.Rect.Y + card.Rect.H
+	card.ResizeClickOffset = globals.Mouse.WorldPosition().Sub(Point{rect.X, rect.Y})
+	card.ReceiveMessage(NewMessage(MessageResizeStart, card, nil))
+
 }
 
 func (card *Card) StopResizing() {

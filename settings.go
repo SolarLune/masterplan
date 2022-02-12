@@ -34,6 +34,7 @@ const (
 	SettingsShowAboutDialogOnStart = "ShowAboutDialogOnStart"
 	SettingsReversePan             = "ReversePan"
 	SettingsAutoLoadLastProject    = "AutoLoadLastProject"
+	SettingsScreenshotPath         = "ScreenshotPath"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"
@@ -53,14 +54,23 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsShowGrid).Set(true)
 	props.Get(SettingsSaveWindowPosition).Set(true)
 	props.Get(SettingsFlashSelected).Set(true)
-	props.Get(SettingsFocusOnElapsedTimers).Set(true)
+	props.Get(SettingsFocusOnElapsedTimers).Set(false)
 	props.Get(SettingsNotifyOnElapsedTimers).Set(true)
 	props.Get(SettingsPlayAlarmSound).Set(true)
 	props.Get(SettingsAudioVolume).Set(80.0)
 	props.Get(SettingsShowAboutDialogOnStart).Set(true)
 	props.Get(SettingsReversePan).Set(false)
 	props.Get(SettingsCustomFontPath).Set("")
+	props.Get(SettingsScreenshotPath).Set("")
 	props.Get(SettingsAutoLoadLastProject).Set(false)
+
+	borderless := props.Get(SettingsBorderlessWindow)
+	borderless.Set(false)
+	borderless.OnChange = func() {
+		if globals.Window != nil {
+			globals.Window.SetBordered(!borderless.AsBool())
+		}
+	}
 
 	path, _ := xdg.ConfigFile(SettingsPath)
 

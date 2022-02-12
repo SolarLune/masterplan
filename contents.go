@@ -1516,6 +1516,45 @@ func (mapData *MapData) Resize(w, h int) {
 
 }
 
+func (mapData *MapData) Push(dx, dy int) {
+
+	newData := [][]int{}
+
+	for y := 0; y < len(mapData.Data); y++ {
+		newData = append(newData, []int{})
+		for x := 0; x < len(mapData.Data[y]); x++ {
+
+			cy := y - dy
+			for cy >= len(mapData.Data) {
+				cy -= len(mapData.Data)
+			}
+			for cy < 0 {
+				cy += len(mapData.Data)
+			}
+
+			cx := x - dx
+			for cx >= len(mapData.Data[cy]) {
+				cx -= len(mapData.Data[cy])
+			}
+			for cx < 0 {
+				cx += len(mapData.Data[cy])
+			}
+
+			newData[y] = append(newData[y], mapData.Data[cy][cx])
+		}
+	}
+
+	mapData.Data = newData
+
+	contents := mapData.Contents.Card.Properties.Get("contents")
+	contents.SetRaw(mapData.Serialize())
+
+	mapData.Contents.Card.CreateUndoState = true
+
+	mapData.Contents.UpdateTexture()
+
+}
+
 func (mapData *MapData) Clear() {
 	for y := 0; y < mapData.Height; y++ {
 		for x := 0; x < mapData.Width; x++ {
@@ -1645,19 +1684,35 @@ const (
 
 type MapContents struct {
 	DefaultContents
-	Tool          int
-	RenderTexture *RenderTexture
-	Buttons       []*IconButton
-	LineStart     Point
-	PaletteMenu   *Menu
-	MapData       *MapData
-
-	DrawingColor  int
-	PaletteColors []Color
-	Pattern       int
-
-	ColorButtons   []*IconButton
+	Tool           int
+	RenderTexture  *RenderTexture
+	Buttons        []*IconButton
+	LineStart      Point
+	MapData        *MapData
 	PatternButtons map[int]*Button
+}
+
+var MapDrawingColor = 1
+var MapPattern = MapPatternSolid
+var MapPaletteColors = []Color{
+	NewColor(250, 240, 240, 255),
+	NewColor(150, 150, 150, 255),
+	NewColor(110, 110, 110, 255),
+	NewColor(40, 40, 40, 255),
+
+	NewColor(241, 100, 31, 255),
+	NewColor(178, 82, 102, 255),
+	NewColor(225, 191, 137, 255),
+	NewColor(110, 90, 90, 255),
+
+	NewColor(115, 239, 232, 255),
+	NewColor(39, 137, 205, 255),
+	NewColor(196, 241, 41, 255),
+	NewColor(72, 104, 89, 255),
+
+	NewColor(206, 170, 237, 255),
+	NewColor(120, 100, 198, 255),
+	NewColor(230, 128, 187, 255),
 }
 
 func NewMapContents(card *Card) *MapContents {
@@ -1665,82 +1720,10 @@ func NewMapContents(card *Card) *MapContents {
 	mc := &MapContents{
 		DefaultContents: newDefaultContents(card),
 		Buttons:         []*IconButton{},
-		PaletteMenu:     NewMenu(&sdl.FRect{0, 0, 320, 340}, MenuCloseButton),
-		DrawingColor:    1,
-		Pattern:         MapPatternSolid,
-
-		ColorButtons:   []*IconButton{},
-		PatternButtons: map[int]*Button{},
+		PatternButtons:  map[int]*Button{},
 	}
 
 	mc.MapData = NewMapData(mc)
-
-	mc.PaletteMenu.Draggable = true
-	mc.PaletteMenu.Center()
-
-	globals.MenuSystem.Add(mc.PaletteMenu, "", false)
-
-	root := mc.PaletteMenu.Pages["root"]
-
-	root.AddRow(AlignCenter).Add("color label", NewLabel("Colors", nil, false, AlignCenter))
-
-	mc.PaletteColors = []Color{
-		NewColor(236, 235, 231, 255),
-		NewColor(166, 158, 154, 255),
-		NewColor(94, 113, 142, 255),
-		NewColor(70, 71, 98, 255),
-
-		NewColor(241, 100, 31, 255),
-		NewColor(178, 82, 102, 255),
-		NewColor(225, 191, 137, 255),
-		NewColor(89, 77, 77, 255),
-
-		NewColor(115, 239, 232, 255),
-		NewColor(39, 137, 205, 255),
-		NewColor(196, 241, 41, 255),
-		NewColor(72, 104, 89, 255),
-
-		NewColor(206, 170, 237, 255),
-		NewColor(120, 100, 198, 255),
-		NewColor(212, 128, 187, 255),
-	}
-
-	row := root.AddRow(AlignCenter)
-
-	for i, color := range mc.PaletteColors {
-
-		if i%4 == 0 && i > 0 {
-			row = root.AddRow(AlignCenter)
-		}
-		index := i
-		iconButton := NewIconButton(0, 0, &sdl.Rect{48, 128, 32, 32}, false, func() { mc.DrawingColor = index + 1 })
-		iconButton.BGIconSrc = &sdl.Rect{144, 96, 32, 32}
-		iconButton.Tint = color
-		row.Add("", iconButton)
-		mc.ColorButtons = append(mc.ColorButtons, iconButton)
-	}
-
-	root.AddRow(AlignCenter).Add("pattern label", NewLabel("Patterns", nil, false, AlignCenter))
-
-	button := NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { mc.Pattern = MapPatternSolid })
-	row = root.AddRow(AlignCenter)
-	row.Add("pattern solid", button)
-	mc.PatternButtons[MapPatternSolid] = button
-
-	row = root.AddRow(AlignCenter)
-	button = NewButton("Crossed", nil, &sdl.Rect{80, 128, 32, 32}, false, func() { mc.Pattern = MapPatternCrossed })
-	row.Add("pattern hashed", button)
-	mc.PatternButtons[MapPatternCrossed] = button
-
-	button = NewButton("Dotted", nil, &sdl.Rect{112, 128, 32, 32}, false, func() { mc.Pattern = MapPatternDotted })
-	row = root.AddRow(AlignCenter)
-	row.Add("pattern dotted", button)
-	mc.PatternButtons[MapPatternDotted] = button
-
-	button = NewButton("Checked", nil, &sdl.Rect{144, 128, 32, 32}, false, func() { mc.Pattern = MapPatternChecked })
-	row = root.AddRow(AlignCenter)
-	row.Add("pattern checked", button)
-	mc.PatternButtons[MapPatternChecked] = button
 
 	toolButtons := []*sdl.Rect{
 		{368, 0, 32, 32},   // MapEditToolNone
@@ -1757,7 +1740,7 @@ func NewMapContents(card *Card) *MapContents {
 			if i != MapEditToolColors {
 				mc.Tool = i
 			} else {
-				mc.PaletteMenu.Open()
+				globals.MenuSystem.Get("map palette menu").Open()
 			}
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		})
@@ -1791,6 +1774,12 @@ func NewMapContents(card *Card) *MapContents {
 		mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
 	}
 
+	paletteMenu := globals.MenuSystem.Get("map palette menu")
+	mc.PatternButtons[MapPatternSolid] = paletteMenu.Pages["root"].FindElement("pattern solid", false).(*Button)
+	mc.PatternButtons[MapPatternDotted] = paletteMenu.Pages["root"].FindElement("pattern dotted", false).(*Button)
+	mc.PatternButtons[MapPatternChecked] = paletteMenu.Pages["root"].FindElement("pattern checked", false).(*Button)
+	mc.PatternButtons[MapPatternCrossed] = paletteMenu.Pages["root"].FindElement("pattern crossed", false).(*Button)
+
 	mc.RecreateTexture()
 	mc.UpdateTexture()
 
@@ -1811,8 +1800,18 @@ func (mc *MapContents) Update() {
 
 	changed := false
 
-	for index, button := range mc.ColorButtons {
-		if mc.DrawingColor == index+1 {
+	colorButtons := []*IconButton{}
+
+	for _, row := range globals.MenuSystem.Get("map palette menu").Pages["root"].Rows {
+		for _, element := range row.ElementOrder {
+			if strings.Contains(row.FindElementName(element), "paletteColor") {
+				colorButtons = append(colorButtons, element.(*IconButton))
+			}
+		}
+	}
+
+	for index, button := range colorButtons {
+		if MapDrawingColor == index+1 {
 			button.IconSrc.Y = 160
 		} else {
 			button.IconSrc.Y = 128
@@ -1820,7 +1819,7 @@ func (mc *MapContents) Update() {
 	}
 
 	for patternType, button := range mc.PatternButtons {
-		if mc.Pattern == patternType {
+		if MapPattern == patternType {
 			button.IconSrc.X = 48
 			button.IconSrc.Y = 160
 		} else {
@@ -1837,7 +1836,8 @@ func (mc *MapContents) Update() {
 		}
 	}
 
-	if mc.Card.Resizing != "" {
+	if mc.Card.Resizing != "" && int(mc.Card.Rect.W) != mc.MapData.Width*int(globals.GridSize) || int(mc.Card.Rect.H) != mc.MapData.Height*int(globals.GridSize) {
+
 		mc.RecreateTexture()
 		mc.UpdateTexture()
 		mc.LineStart.X = -1
@@ -1867,10 +1867,11 @@ func (mc *MapContents) Update() {
 			mc.Card.Page.Selection.Clear()
 			mc.Card.Page.Selection.Add(mc.Card)
 		} else if globals.Keybindings.Pressed(KBMapPalette) && mc.Card.IsSelected() && len(mc.Card.Page.Selection.Cards) == 1 {
-			if mc.PaletteMenu.Opened {
-				mc.PaletteMenu.Close()
+			paletteMenu := globals.MenuSystem.Get("map palette menu")
+			if paletteMenu.Opened {
+				paletteMenu.Close()
 			} else {
-				mc.PaletteMenu.Open()
+				paletteMenu.Open()
 			}
 		}
 
@@ -1894,8 +1895,8 @@ func (mc *MapContents) Update() {
 
 				if leftMB.Held() {
 					value := mc.MapData.Get(gp)
-					mc.DrawingColor = mc.ColorIndexToColor(value)
-					mc.Pattern = mc.ColorIndexToPattern(value)
+					MapDrawingColor = mc.ColorIndexToColor(value)
+					MapPattern = mc.ColorIndexToPattern(value)
 				}
 
 			} else {
@@ -2049,7 +2050,7 @@ func (mc *MapContents) Update() {
 		}
 
 	} else {
-		mc.PaletteMenu.Close()
+
 		if mc.Tool != MapEditToolNone {
 			globals.State = StateNeutral
 			mc.Tool = MapEditToolNone
@@ -2146,7 +2147,7 @@ func (mc *MapContents) UsingLineTool() bool {
 }
 
 func (mc *MapContents) ColorIndex() int {
-	return mc.DrawingColor | mc.Pattern
+	return MapDrawingColor | MapPattern
 }
 
 func (mc *MapContents) ColorIndexToPattern(index int) int {
@@ -2256,7 +2257,7 @@ func (mc *MapContents) UpdateTexture() {
 					// Color value is the value contained in the grid without the pattern bits
 					colorValue := mc.ColorIndexToColor(value)
 
-					color = mc.PaletteColors[colorValue-1]
+					color = MapPaletteColors[colorValue-1]
 
 					src.X = 240
 					src.Y = 0
@@ -2334,13 +2335,13 @@ func (mc *MapContents) UpdateTexture() {
 
 func (mc *MapContents) ReceiveMessage(msg *Message) {
 
-	if msg.Type == MessageThemeChange {
+	if msg.Type == MessageThemeChange || msg.Type == MessageRenderTextureRefresh {
 		mc.UpdateTexture()
 	} else if msg.Type == MessageUndoRedo || msg.Type == MessageResizeCompleted {
 		// Recreate texture first so the MapData has the correct size before deserialization
 		mc.RecreateTexture()
 		if msg.Type == MessageUndoRedo {
-			mc.MapData.Clip()
+			mc.MapData.Clip() // We call Clip() here so if you undo or redo and the size changes, values outside of that range are deleted
 		}
 		mc.MapData.Deserialize(mc.Card.Properties.Get("contents").AsString())
 		mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
@@ -2348,6 +2349,8 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 	} else if msg.Type == MessageContentSwitched {
 		mc.Card.Draggable = true
 		mc.Tool = MapEditToolNone
+	} else if msg.Type == MessageSelect && !mc.Card.selected {
+		globals.MenuSystem.Get("map palette menu").Close()
 	}
 
 }
@@ -2476,9 +2479,9 @@ func (sb *SubPageContents) ReceiveMessage(msg *Message) {
 
 	if sb.SubPage != nil {
 		if msg.Type == MessageCardDeleted {
-			sb.SubPage.Valid = false
+			sb.SubPage.ReferenceCount--
 		} else if msg.Type == MessageCardRestored {
-			sb.SubPage.Valid = true
+			sb.SubPage.ReferenceCount++
 		}
 	}
 

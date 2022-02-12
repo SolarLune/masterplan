@@ -1,18 +1,20 @@
 package main
 
 const (
-	MessageSelect          = "MessageSelect"
-	MessageResizeCompleted = "MessageResizeCompleted"
-	MessageCardDeleted     = "MessageCardDeleted"
-	MessageCardRestored    = "MessageCardRestored"
-	MessageContentSwitched = "MessageContentSwitched"
-	MessageThemeChange     = "MessageThemeChange"
-	MessageUndoRedo        = "MessageUndoRedo"
-	MessageVolumeChange    = "MessageVolumeChange"
-	MessageStacksUpdated   = "MessageStacksUpdated"
-	MessageLinkCreated     = "MessageLinkCreated"
-	MessageLinkDeleted     = "MessageLinkDeleted"
-	MessagePageChanged     = "MessagePageChanged"
+	MessageSelect               = "MessageSelect"
+	MessageResizeCompleted      = "MessageResizeCompleted"
+	MessageResizeStart          = "MessageResizeStart"
+	MessageCardDeleted          = "MessageCardDeleted"
+	MessageCardRestored         = "MessageCardRestored"
+	MessageContentSwitched      = "MessageContentSwitched"
+	MessageThemeChange          = "MessageThemeChange"
+	MessageUndoRedo             = "MessageUndoRedo"
+	MessageVolumeChange         = "MessageVolumeChange"
+	MessageStacksUpdated        = "MessageStacksUpdated"
+	MessageLinkCreated          = "MessageLinkCreated"
+	MessageLinkDeleted          = "MessageLinkDeleted"
+	MessagePageChanged          = "MessagePageChanged"
+	MessageRenderTextureRefresh = "MessageRenderTextureRefresh"
 	// MessageCardDeserialized = "MessageCardDeserialized"
 )
 

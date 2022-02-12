@@ -337,7 +337,13 @@ func HandleFontReload() {
 
 			globals.TextRenderer.DestroyGlyphs()
 
+			// We have to refresh the font RenderTextures
 			RefreshRenderTextures()
+
+			if globals.Project != nil {
+				// We call this specifically because reloading fonts causes textures to be recreated, meaning Map images turn blank after changing fonts
+				globals.Project.SendMessage(NewMessage(MessageRenderTextureRefresh, nil, nil))
+			}
 
 		}
 
@@ -350,6 +356,7 @@ func HandleFontReload() {
 func RefreshRenderTextures() {
 
 	for _, renderTexture := range renderTextures {
+		renderTexture.Destroy()
 		renderTexture.Texture = nil
 		renderTexture.RenderFunc()
 	}
@@ -549,7 +556,7 @@ func ColorAt(surface *sdl.Surface, x, y int32) (r, g, b, a uint8) {
 	pixels := surface.Pixels()
 	bpp := int32(surface.Format.BytesPerPixel)
 	i := (y * surface.Pitch) + (x * bpp)
-	return pixels[i+2], pixels[i+1], pixels[i+0], 255
+	return pixels[i+2], pixels[i+1], pixels[i+0], pixels[i+3] // BGRA???
 
 }
 
@@ -621,14 +628,21 @@ type Shape struct {
 	Rects []*sdl.FRect
 }
 
-func NewShape(rects ...*sdl.FRect) *Shape {
+func NewShape(rectCount int) *Shape {
 	shape := &Shape{}
-	shape.SetRects(rects...)
+	for i := 0; i < rectCount; i++ {
+		shape.Rects = append(shape.Rects, &sdl.FRect{})
+	}
 	return shape
 }
 
-func (shape *Shape) SetRects(rects ...*sdl.FRect) {
-	shape.Rects = rects
+func (shape *Shape) SetSizes(xywh ...float32) {
+	for i := 0; i < len(xywh); i += 4 {
+		shape.Rects[i/4].X = xywh[i]
+		shape.Rects[i/4].Y = xywh[i+1]
+		shape.Rects[i/4].W = xywh[i+2]
+		shape.Rects[i/4].H = xywh[i+3]
+	}
 }
 
 // func DrawRectExpanded(r rl.Rectangle, thickness float32, color rl.Color) {

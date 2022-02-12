@@ -1,7 +1,7 @@
 {
-    "Background Color":[25, 22, 20, 255],
+    "Background Color":[20, 22, 25, 255],
     "Grid Color":[45, 40, 40, 255],
-    "Menu Color":[30, 30, 35, 255],
+    "Menu Color":[40, 40, 45, 255],
     "Font Color":[240, 240, 240, 255],
     "Checkbox Color": [30, 60, 50, 255],
     "Number Color": [80, 100, 80, 255],

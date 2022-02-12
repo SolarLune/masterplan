@@ -9,9 +9,11 @@ import (
 )
 
 type Event struct {
-	Text  string
-	Y     float32
-	Tween *gween.Sequence
+	Text       string
+	Time       string
+	Multiplier int
+	Y          float32
+	Tween      *gween.Sequence
 }
 
 func (event *Event) Done() bool {
@@ -40,20 +42,36 @@ func (eventLog *EventLog) Log(text string, variables ...interface{}) {
 		output = fmt.Sprintf(text, variables...)
 	}
 
-	output = time.Now().Format("15:04:05") + " " + output
+	var pastEvent *Event
 
-	time := float32(len(text)) * 0.05
+	if len(eventLog.Events) > 0 {
 
-	eventLog.Events = append(eventLog.Events, &Event{
-		Text: output,
-		Tween: gween.NewSequence(
-			gween.New(0, 1, 0.5, ease.Linear),
-			gween.New(1, 1, time, ease.Linear),
-			gween.New(1, 0, 0.5, ease.Linear),
-		),
-		// Texture: globals.TextRenderer.RenderText(output, Point{}, AlignLeft),
-		Y: globals.ScreenSize.Y,
-	})
+		if pe := eventLog.Events[len(eventLog.Events)-1]; pe.Text == output {
+			pastEvent = pe
+			if pastEvent.Tween.Index() >= 1 {
+				pastEvent.Tween.SetIndex(1)
+				pastEvent.Tween.Tweens[pastEvent.Tween.Index()].Reset()
+			}
+			pastEvent.Multiplier++
+		}
+
+	}
+
+	if pastEvent == nil {
+
+		eventLog.Events = append(eventLog.Events, &Event{
+			Text: output,
+			Time: time.Now().Format("15:04:05"),
+			Tween: gween.NewSequence(
+				gween.New(0, 1, 0.5, ease.Linear),
+				gween.New(1, 1, float32(len(output))*0.05, ease.Linear),
+				gween.New(1, 0, 0.5, ease.Linear),
+			),
+			// Texture: globals.TextRenderer.RenderText(output, Point{}, AlignLeft),
+			Y: globals.ScreenSize.Y,
+		})
+
+	}
 
 }
 

@@ -20,6 +20,13 @@ type RenderTexture struct {
 // 	rt.Texture.Destroy()
 // }
 
+func (rt *RenderTexture) Destroy() {
+	if rt.Texture != nil {
+		rt.Texture.Destroy()
+	}
+	rt.Image.Texture = nil
+}
+
 func (rt *RenderTexture) Recreate(newW, newH int32) {
 
 	rt.Size.X = float32(newW)

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image/color"
+
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -213,11 +215,7 @@ func (mouse Mouse) WorldPosition() Point {
 }
 
 func (mouse *Mouse) SetCursor(cursorName string) {
-	if !globals.MenuSystem.ExclusiveMenuOpen() {
-		mouse.NextCursor = cursorName
-	} else {
-		mouse.NextCursor = "normal"
-	}
+	mouse.NextCursor = cursorName
 }
 
 func (mouse *Mouse) ApplyCursor() {
@@ -258,7 +256,7 @@ func (mouse *Mouse) HeldButtons() []uint8 {
 
 func LoadCursors() {
 
-	createCursor := func(srcX, srcY int32) *sdl.Cursor {
+	createCursor := func(srcX, srcY int32, flipHorizontal bool) *sdl.Cursor {
 
 		cursorImg, err := img.Load(LocalRelativePath("assets/gui.png"))
 		if err != nil {
@@ -272,22 +270,35 @@ func LoadCursors() {
 
 		cursorImg.SetBlendMode(sdl.BLENDMODE_BLEND)
 		cursorSurf.SetBlendMode(sdl.BLENDMODE_BLEND)
-		cursorImg.Blit(&sdl.Rect{srcX, srcY, 48, 48}, cursorSurf, nil)
+
+		if flipHorizontal {
+
+			for y := 0; y < 48; y++ {
+				for x := 0; x < 48; x++ {
+					r, g, b, a := ColorAt(cursorImg, srcX+int32(x), srcY+int32(y))
+					cursorSurf.Set(47-x, y, color.RGBA{r, g, b, a})
+				}
+			}
+
+		} else {
+			cursorImg.Blit(&sdl.Rect{srcX, srcY, 48, 48}, cursorSurf, nil)
+		}
 
 		return sdl.CreateColorCursor(cursorSurf, 24, 24)
 
 	}
 
-	globals.Mouse.Cursors["normal"] = createCursor(432, 0)
-	globals.Mouse.Cursors["resizecorner"] = createCursor(432, 48)
-	globals.Mouse.Cursors["resizehorizontal"] = createCursor(432, 368)
-	globals.Mouse.Cursors["resizevertical"] = createCursor(432, 416)
-	globals.Mouse.Cursors["text caret"] = createCursor(432, 96)
-	globals.Mouse.Cursors["pencil"] = createCursor(432, 144)
-	globals.Mouse.Cursors["eyedropper"] = createCursor(432, 192)
-	globals.Mouse.Cursors["bucket"] = createCursor(432, 240)
-	globals.Mouse.Cursors["eraser"] = createCursor(432, 272)
-	globals.Mouse.Cursors["link"] = createCursor(432, 320)
+	globals.Mouse.Cursors["normal"] = createCursor(432, 0, false)
+	globals.Mouse.Cursors["resizecorner"] = createCursor(432, 48, false)
+	globals.Mouse.Cursors["resizecorner_flipped"] = createCursor(432, 48, true)
+	globals.Mouse.Cursors["resizehorizontal"] = createCursor(432, 368, false)
+	globals.Mouse.Cursors["resizevertical"] = createCursor(432, 416, false)
+	globals.Mouse.Cursors["text caret"] = createCursor(432, 96, false)
+	globals.Mouse.Cursors["pencil"] = createCursor(432, 144, false)
+	globals.Mouse.Cursors["eyedropper"] = createCursor(432, 192, false)
+	globals.Mouse.Cursors["bucket"] = createCursor(432, 240, false)
+	globals.Mouse.Cursors["eraser"] = createCursor(432, 272, false)
+	globals.Mouse.Cursors["link"] = createCursor(432, 320, false)
 
 	globals.Mouse.SetCursor("normal")
 
@@ -355,6 +366,7 @@ func handleEvents() {
 			// If the render targets reset, re-render all render textures
 			if event.Type == sdl.RENDER_TARGETS_RESET || event.Type == sdl.RENDER_DEVICE_RESET {
 				RefreshRenderTextures()
+				globals.Project.SendMessage(NewMessage(MessageRenderTextureRefresh, nil, nil))
 			}
 
 		}

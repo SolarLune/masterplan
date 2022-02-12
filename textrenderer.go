@@ -303,6 +303,12 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 		globals.Renderer.SetRenderTarget(renderTexture.Texture)
 		defer globals.Renderer.SetRenderTarget(nil)
 
+		// We need to call SetDrawColor() with transparent white because glyphs are opaque white. If we clear with transparent black (all 0's),
+		// the edges of certain glyphs can look really jank.
+		globals.Renderer.SetDrawColor(255, 255, 255, 0)
+
+		globals.Renderer.Clear()
+
 		for _, r := range toRender {
 			if r == nil {
 				continue

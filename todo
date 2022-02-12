@@ -2,8 +2,14 @@
 [x] Things that modify cards (undo / redo, timer elapsing, find) activates that page
 [x] Deleting a sub-page card invalidates that page so find doesn't find it; it should no longer be updated
 Add (?) bubbles that you can hover over to get some text / information. This would probably best be done with a GUI element to 
+[x] Unlock Aspect Ratio isn't working
+[ ] FIX: Saving while an expanded card is collapsed will save it as collapsed
+[ ] Dragging objects, it's possible to misdrop them onto nearby cells instead of their exact, correct cell
+[ ] Update text rendering; it's bad with light text, particularly
+[ ] Open different projects as tabs
 
-[ ] Focus on Timer should be disabled, I think? Zooming in seems to be annoying.
+[ ] Replace img usage with go, see if that allows for Mac M1 builds
+[x] Focus on Timer should be disabled, I think? Zooming in seems to be annoying.
 [ ] Focus on Timer should just switch to its page?
 [ ] Don't number top-level numbering
 [ ] Numbering options?

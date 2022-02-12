@@ -19,6 +19,7 @@ const (
 
 type Globals struct {
 	Project           *Project
+	NextProject       *Project
 	Window            *sdl.Window
 	Renderer          *sdl.Renderer
 	Font              *ttf.Font

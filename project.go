@@ -53,15 +53,14 @@ const (
 type Project struct {
 	Pages []*Page
 	// CurrentPageIndex int
-	CurrentPage    *Page
-	Camera         *Camera
-	GridTexture    *RenderTexture
-	Filepath       string
-	LoadingProject *Project // A reference to the "next" Project when opening another one
-	Loading        bool
-	UndoHistory    *UndoHistory
-	LastCardType   string
-	Modified       bool
+	CurrentPage  *Page
+	Camera       *Camera
+	GridTexture  *RenderTexture
+	Filepath     string
+	Loading      bool
+	UndoHistory  *UndoHistory
+	LastCardType string
+	Modified     bool
 
 	LoadConfirmationTo string
 }
@@ -170,7 +169,7 @@ func (project *Project) Update() {
 	globals.Mouse.SetCursor("normal")
 
 	for _, page := range project.Pages {
-		if page.Valid {
+		if page.ReferenceCount > 0 {
 			page.Update()
 		}
 	}
@@ -267,6 +266,20 @@ func (project *Project) Save() {
 		for _, card := range page.Cards {
 			if card.ContentType == ContentTypeSubpage {
 				subpage := uint64(card.Properties.Get("subpage").AsFloat())
+
+				// It's possible to copy a Sub-Page Card, so we'll keep it being a reference, I think?
+				existsAlready := false
+				for _, p := range pagesToSave {
+					if p == subpage {
+						existsAlready = true
+						break
+					}
+				}
+
+				if existsAlready {
+					continue
+				}
+
 				pagesToSave = append(pagesToSave, subpage)
 				searchForLiveSubpages(project.Pages[subpage])
 			}
@@ -368,138 +381,142 @@ func (project *Project) Open() {
 
 }
 
-func (project *Project) OpenFrom(filename string) {
+func OpenProjectFrom(filename string) {
 
 	jsonData, err := os.ReadFile(filename)
 	if err != nil {
-		panic(err)
-	}
-
-	json := string(jsonData)
-
-	if ver, err := semver.Parse(gjson.Get(json, "version").String()); err != nil || ver.Minor < 8 {
-		globals.EventLog.Log("Error: Can't load project [%s] as it's a pre-0.8 project.", filename)
-		globals.EventLog.Log("Pre-0.8 projects will be supported later.")
+		globals.EventLog.Log("Error: %s", err.Error())
 	} else {
 
-		// Limit the length of the recent files list to 10 (this is arbitrary, but should be good enough)
-		if len(globals.RecentFiles) > 10 {
-			globals.RecentFiles = globals.RecentFiles[:10]
-		}
+		json := string(jsonData)
 
-		for i := 0; i < len(globals.RecentFiles); i++ {
-			if globals.RecentFiles[i] == filename {
-				globals.RecentFiles = append(globals.RecentFiles[:i], globals.RecentFiles[i+1:]...)
-				break
-			}
-		}
-
-		globals.RecentFiles = append([]string{filename}, globals.RecentFiles...)
-
-		SaveSettings()
-
-		globals.EventLog.On = false
-
-		newProject := NewProject()
-		newProject.Loading = true
-		newProject.Filepath = filename
-		newProject.UndoHistory.On = false
-		project.LoadingProject = newProject
-
-		savedImageFileNames := map[string]string{}
-
-		for fpName, imgData := range gjson.Get(json, "savedimages").Map() {
-
-			imgOut := []byte{}
-
-			for _, c := range imgData.String() {
-				imgOut = append(imgOut, byte(c))
-			}
-
-			newFName, _ := WriteImageToTemp(imgOut)
-			savedImageFileNames[fpName] = newFName
-
-			globals.Resources.Get(newFName).TempFile = true
-
-		}
-
-		if ver.LTE(semver.MustParse("0.8.0-alpha.3")) {
-			page := gjson.Get(json, "root.contents").Array()[0]
-			newProject.Pages[0].Deserialize(page.String())
+		if ver, err := semver.Parse(gjson.Get(json, "version").String()); err != nil || ver.Minor < 8 {
+			globals.EventLog.Log("Error: Can't load project [%s] as it's a pre-0.8 project.", filename)
+			globals.EventLog.Log("Pre-0.8 projects will be supported later.")
 		} else {
 
-			// v0.8.0-alpha.3 and below just had one page, but organized into a folder; this is no longer done.
-			for i := 0; i < len(gjson.Get(json, "pages").Array())-1; i++ {
-				newProject.AddPage()
+			// Limit the length of the recent files list to 10 (this is arbitrary, but should be good enough)
+			if len(globals.RecentFiles) > 10 {
+				globals.RecentFiles = globals.RecentFiles[:10]
 			}
 
-			for p, pageData := range gjson.Get(json, "pages").Array() {
-				page := newProject.Pages[p]
-				page.Deserialize(pageData.String())
-				if globalPageID < page.ID {
-					globalPageID = page.ID + 1
+			for i := 0; i < len(globals.RecentFiles); i++ {
+				if globals.RecentFiles[i] == filename {
+					globals.RecentFiles = append(globals.RecentFiles[:i], globals.RecentFiles[i+1:]...)
+					break
 				}
 			}
-		}
 
-		for _, page := range newProject.Pages {
+			globals.RecentFiles = append([]string{filename}, globals.RecentFiles...)
 
-			for _, card := range page.Cards {
+			SaveSettings()
 
-				card.DisplayRect.X = card.Rect.X
-				card.DisplayRect.Y = card.Rect.Y
-				card.DisplayRect.W = card.Rect.W
-				card.DisplayRect.H = card.Rect.H
+			globals.EventLog.On = false
 
-				if card.Properties.Has("saveimage") {
-					card.Contents.(*ImageContents).LoadFileFrom(savedImageFileNames[card.Properties.Get("filepath").AsString()]) // Reload the file
+			newProject := NewProject()
+			newProject.Loading = true
+			newProject.Filepath = filename
+			newProject.UndoHistory.On = false
+			globals.NextProject = newProject
+
+			savedImageFileNames := map[string]string{}
+
+			for fpName, imgData := range gjson.Get(json, "savedimages").Map() {
+
+				imgOut := []byte{}
+
+				for _, c := range imgData.String() {
+					imgOut = append(imgOut, byte(c))
 				}
+
+				newFName, _ := WriteImageToTemp(imgOut)
+				savedImageFileNames[fpName] = newFName
+
+				globals.Resources.Get(newFName).TempFile = true
 
 			}
 
-			page.UpdateLinks()
+			if ver.LTE(semver.MustParse("0.8.0-alpha.3")) {
+				page := gjson.Get(json, "root.contents").Array()[0]
+				newProject.Pages[0].Deserialize(page.String())
+			} else {
 
-		}
+				// v0.8.0-alpha.3 and below just had one page, but organized into a folder; this is no longer done.
+				for i := 0; i < len(gjson.Get(json, "pages").Array())-1; i++ {
+					newProject.AddPage()
+				}
 
-		// newProject.Camera.Update()
+				for p, pageData := range gjson.Get(json, "pages").Array() {
+					page := newProject.Pages[p]
+					page.Deserialize(pageData.String())
+					if globalPageID < page.ID {
+						globalPageID = page.ID + 1
+					}
+				}
+			}
 
-		// Settle the elements in - we do this a few times because it seems like things might take two steps (create card, set properties, create links, etc)
-		globals.Renderer.SetClipRect(nil)
-		for i := 0; i < 3; i++ {
 			for _, page := range newProject.Pages {
-				newProject.CurrentPage = page
-				page.Update()
-				page.Draw()
+
+				for _, card := range page.Cards {
+
+					card.DisplayRect.X = card.Rect.X
+					card.DisplayRect.Y = card.Rect.Y
+					card.DisplayRect.W = card.Rect.W
+					card.DisplayRect.H = card.Rect.H
+
+					if card.Properties.Has("saveimage") {
+						card.Contents.(*ImageContents).LoadFileFrom(savedImageFileNames[card.Properties.Get("filepath").AsString()]) // Reload the file
+					}
+
+				}
+
+				page.UpdateLinks()
+
 			}
-		}
 
-		// for _, page := range newProject.Pages {
-		// 	newProject.CurrentPage = page
-		// 	for _, card := range page.Cards {
-		// 		card.CreateUndoState = true
-		// 	}
-		// 	page.Update()
-		// 	page.Draw()
-		// }
+			// newProject.Camera.Update()
 
-		newProject.UndoHistory.On = true
-
-		for _, page := range newProject.Pages {
-			for _, card := range page.Cards {
-				card.CreateUndoState = false
-				card.Page.Project.UndoHistory.Capture(NewUndoState(card))
+			// Settle the elements in - we do this a few times because it seems like things might take two steps (create card, set properties, create links, etc)
+			globals.Renderer.SetClipRect(nil)
+			for i := 0; i < 3; i++ {
+				for _, page := range newProject.Pages {
+					newProject.CurrentPage = page
+					page.Update()
+					page.Draw()
+				}
 			}
+
+			// for _, page := range newProject.Pages {
+			// 	newProject.CurrentPage = page
+			// 	for _, card := range page.Cards {
+			// 		card.CreateUndoState = true
+			// 	}
+			// 	page.Update()
+			// 	page.Draw()
+			// }
+
+			newProject.UndoHistory.On = true
+
+			for _, page := range newProject.Pages {
+				for _, card := range page.Cards {
+					card.CreateUndoState = false
+					card.Page.Project.UndoHistory.Capture(NewUndoState(card))
+				}
+			}
+
+			newProject.SetPage(newProject.Pages[0])
+
+			newProject.Camera.JumpTo(newProject.Pages[0].Pan, newProject.Pages[0].Zoom)
+
+			newProject.UndoHistory.Update()
+
+			newProject.Modified = false
+			newProject.UndoHistory.MinimumFrame = 1
+			globals.EventLog.On = true
+
+			globals.EventLog.Log("Project loaded successfully.")
+
 		}
-
-		newProject.SetPage(newProject.Pages[0])
-
-		newProject.UndoHistory.Update()
-
-		newProject.Modified = false
-		newProject.UndoHistory.MinimumFrame = 1
-		globals.EventLog.On = true
-
-		globals.EventLog.Log("Project loaded successfully.")
 
 	}
 

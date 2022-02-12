@@ -53,6 +53,7 @@ const (
 	KBExternalPaste       = "Paste From External Clipboard"
 	KBReturnToOrigin      = "Center View to Origin"
 	KBFocusOnCards        = "Focus On Selected Cards"
+	KBTakeScreenshot      = "Take Screenshot"
 	KBOpenContextMenu     = "Open Context Menu"
 
 	KBCollapseCard = "Card: Collapse"
@@ -391,8 +392,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBZoomIn, sdl.K_KP_PLUS)
 	kb.DefineKeyShortcut(KBZoomOut, sdl.K_KP_MINUS)
 	// kb.Define(KBShowFPS, sdl.K_F12)
-	// kb.Define(KBToggleFullscreen, sdl.K_F4)
-	// kb.Define(KBTakeScreenshot, sdl.K_F11)
+	kb.DefineKeyShortcut(KBTakeScreenshot, sdl.K_F11)
 
 	kb.DefineKeyShortcut(KBSaveProject, sdl.K_s, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBSaveProjectAs, sdl.K_s, sdl.K_LCTRL, sdl.K_LSHIFT)
@@ -431,7 +431,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBExternalPaste, sdl.K_v, sdl.K_LCTRL, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBReturnToOrigin, sdl.K_BACKSPACE)
-	kb.DefineKeyShortcut(KBFocusOnCards, sdl.K_f)
+	kb.DefineKeyShortcut(KBFocusOnCards, sdl.K_f, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBCopyText, sdl.K_c, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBCutText, sdl.K_x, sdl.K_LCTRL)
@@ -445,8 +445,8 @@ func (kb *Keybindings) Default() {
 
 	kb.DefineKeyShortcut(KBWindowSizeSmall, sdl.K_F2)
 	kb.DefineKeyShortcut(KBWindowSizeNormal, sdl.K_F3)
-	kb.DefineKeyShortcut(KBToggleFullscreen, sdl.K_F11)
-	kb.DefineKeyShortcut(KBUnlockImageASR, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBToggleFullscreen, sdl.K_F4)
+	kb.DefineKeyShortcut(KBUnlockImageASR, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
 	kb.DefineKeyShortcut(KBCheckboxToggleCompletion, sdl.K_SPACE)
 	kb.DefineKeyShortcut(KBNumberedIncrement, sdl.K_SPACE)
