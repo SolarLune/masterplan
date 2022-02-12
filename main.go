@@ -36,7 +36,6 @@ import (
 var releaseMode = "false"
 var demoMode = "" // If set to something other than "", it's a demo
 
-var drawFPS = false
 var takeScreenshot = false
 
 var windowTitle = "MasterPlan"
@@ -51,11 +50,7 @@ func init() {
 
 		// Redirect STDERR and STDOUT to log.txt in release mode
 
-		existingLogs := []string{}
-
-		for _, file := range FilesInDirectory(filepath.Join(xdg.ConfigHome, "MasterPlan"), "log") {
-			existingLogs = append(existingLogs, file)
-		}
+		existingLogs := FilesInDirectory(filepath.Join(xdg.ConfigHome, "MasterPlan"), "log")
 
 		// Destroy old logs; max is 20 (for now)
 		for len(existingLogs) > 20 {
@@ -118,9 +113,7 @@ func main() {
 			panicOut := recover()
 			if panicOut != nil {
 
-				log.Print(
-					"# ERROR START #\n",
-				)
+				text := "# ERROR START #\n"
 
 				stackContinue := true
 				i := 0 // We can skip the first few crash lines, as they reach up through the main
@@ -130,18 +123,20 @@ func main() {
 					_, fn, line, ok := runtime.Caller(i)
 					stackContinue = ok
 					if ok {
-						fmt.Print("\n", fn, ":", line)
+						text += "\n" + fn + ":" + strconv.Itoa(line)
 						if i == 0 {
-							fmt.Print(" | ", "Error: ", panicOut)
+							text += " | " + "Error: " + fmt.Sprintf("%v", panicOut)
 						}
 						i++
 					}
 				}
 
-				fmt.Print(
-					"\n\n# ERROR END #\n",
-				)
+				text += "\n\n# ERROR END #\n"
+
+				log.Print(text)
+
 			}
+			os.Stdout.Close()
 		}
 	}()
 

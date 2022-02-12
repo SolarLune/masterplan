@@ -1,0 +1,86 @@
+name: Build MasterPlan
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ sdl-rework ]
+  # pull_request:
+  #   branches: [ sdl-rework ]
+
+jobs:
+
+  buildLinux:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Download Pre-reqs
+      run: |
+        sudo apt update
+        sudo apt-get install libsdl2-dev -y
+        sudo apt-get install libsdl2-image-dev -y
+        sudo apt-get install libsdl2-mixer-dev -y
+        sudo apt-get install libsdl2-ttf-dev -y
+        sudo apt-get install libsdl2-gfx-dev -y
+
+    - name: Build
+      run: go run ./build_script/main.go -b -c
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: _GH-Actions-MasterPlan-Linux-v0.8.0.a4
+        path: ./bin/linux-0.8-Release-64.tar.gz
+
+
+
+  buildWindows:
+    runs-on: windows-2019
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: git
+
+    - name: Download SDL2 Dependencies
+      run: pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2{,_image,_ttf,_gfx} mingw-w64-x86_64-go --noconfirm
+
+    - name: Build
+      run: go run ./build_script/main.go -b -c
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: _GH-Actions-MasterPlan-Windows-v0.8.0.a4
+        path: ./bin/windows-0.8-Release-64.zip
+
+
+
+  buildMac:
+    runs-on: macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Download Pre-reqs
+      run: brew install sdl2{,_image,_mixer,_ttf,_gfx} pkg-config
+
+    - name: Build
+      run: go run ./build_script/main.go -b -c
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: _GH-Actions-MasterPlan-MacOS-v0.8.0.a4
+        path: bin/macos-0.8-Release-64.tar.gz

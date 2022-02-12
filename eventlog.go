@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/tanema/gween"
@@ -56,6 +57,9 @@ func (eventLog *EventLog) Log(text string, variables ...interface{}) {
 		}
 
 	}
+
+	// Log the event so that it goes to the log file in addition to the messages at the bottom-left
+	log.Println(output)
 
 	if pastEvent == nil {
 

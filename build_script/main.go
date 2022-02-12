@@ -16,7 +16,107 @@ import (
 
 func build(baseDir string, releaseMode bool, targetOS string) {
 
-	fmt.Println(`< Beginning build to "/` + baseDir + `" for ` + targetOS + `. >`)
+	fmt.Println(`< Beginning build to "` + baseDir + `" for ` + targetOS + `. >`)
+
+	forWin := strings.Contains(targetOS, "windows")
+	forMac := strings.Contains(targetOS, "darwin")
+
+	copyTo := func(src, dest string) {
+		if err := copy.Copy(src, dest); err != nil {
+			panic(err)
+		}
+	}
+
+	// Note that this script is meant to be run from a terminal at the project root.
+	// It is specifically NOT meant to be built into an executable and run by double-clicking in
+	// Finder, on Mac OS.
+
+	// We always remove any pre-existing platform directory before building to ensure it's fresh.
+	if err := os.RemoveAll(baseDir); err != nil {
+		panic(err)
+	}
+
+	copyTo("changelog.txt", filepath.Join(baseDir, "changelog.txt"))
+
+	if forMac {
+		baseDir = filepath.Join(baseDir, "MasterPlan.app", "Contents", "MacOS")
+	}
+
+	// Copy the assets folder to the bin directory
+
+	copyTo("assets", filepath.Join(baseDir, "assets"))
+
+	fmt.Println("<Assets copied.>")
+
+	filename := filepath.Join(baseDir, "MasterPlan")
+
+	releaseString := `-X main.releaseMode=false`
+
+	if releaseMode {
+		releaseString = `-X main.releaseMode=true`
+	}
+
+	if forWin {
+
+		filename += ".exe"
+
+		// Copy the resources.syso so the executable has the generated icon and executable properties compiled in.
+		// This is done using go generate with goversioninfo downloaded and "// go:generate goversioninfo -64=true" in main.go.
+		copyTo(filepath.Join("other_sources", "resource.syso"), "resource.syso")
+
+		// Copy in the SDL requirements (.dll files)
+		filepath.Walk(filepath.Join("other_sources"), func(path string, info fs.FileInfo, err error) error {
+			_, filename := filepath.Split(path)
+			if filepath.Ext(path) == ".dll" {
+				copyTo(path, filepath.Join(baseDir, filename))
+			}
+			return nil
+		})
+
+	}
+
+	args := []string{`env`, `CGO_ENABLED=1 GOOS=` + targetOS + ` GOARCH=amd64 CGO_LDFLAGS=-lSDL2 -lSDL2_gfx`, `go`, `build`, `-ldflags=` + releaseString, `-o`, filename, `./`}
+
+	var c *exec.Cmd
+	var err error
+	// Default building for the current OS
+	c = exec.Command(args[0], args[1:]...)
+
+	fmt.Println("<Building binary with args: ", c.Args, ".>")
+
+	_, err = c.CombinedOutput()
+
+	// result, err := exec.Command("go", args...).CombinedOutput()
+
+	if err != nil {
+		fmt.Println("<ERROR: ", string(err.Error())+">")
+	}
+
+	// Add the stuff for Mac
+	if forMac {
+		baseDir = filepath.Clean(filepath.Join(baseDir, ".."))
+		copyTo(filepath.Join("other_sources", "Info.plist"), filepath.Join(baseDir, "Info.plist"))
+		copyTo(filepath.Join("other_sources", "macicons.icns"), filepath.Join(baseDir, "Resources", "macicons.icns"))
+	}
+
+	// The final executable should be, well, executable for everybody. 0777 should do it for Mac and Linux.
+	os.Chmod(filename, 0777)
+
+	if err == nil {
+		fmt.Println("<Build complete!>")
+		fmt.Println("")
+	}
+
+	if forWin {
+		// Remove Resources; we don't need it in the root directory anymore after building.
+		os.Remove("resource.syso")
+	}
+
+}
+
+func oldBuild(baseDir string, releaseMode bool, targetOS string) {
+
+	fmt.Println(`< Beginning build to "` + baseDir + `" for ` + targetOS + `. >`)
 
 	forWin := strings.Contains(targetOS, "windows")
 	forMac := strings.Contains(targetOS, "darwin")
@@ -52,11 +152,15 @@ func build(baseDir string, releaseMode bool, targetOS string) {
 
 	filename := filepath.Join(baseDir, "MasterPlan")
 
-	ldFlags := "-X main.releaseMode=false"
+	ldFlags := `"`
 
 	if releaseMode {
-		ldFlags = "-X main.releaseMode=true"
+		ldFlags += `-X main.releaseMode=true`
+	} else {
+		ldFlags += `-X main.releaseMode=false`
 	}
+
+	static := ``
 
 	if forWin {
 
@@ -66,22 +170,26 @@ func build(baseDir string, releaseMode bool, targetOS string) {
 		// open while MasterPlan is running. It has to be only if you're building on Windows because this flag
 		// gets passed to the compiler and XCode wouldn't build if on Mac I leave it in there.
 
-		ldFlags += " -H=windowsgui"
+		ldFlags += `-H=windowsgui '-extldflags -static'`
 
 		// Copy the resources.syso so the executable has the generated icon and executable properties compiled in.
 		// This is done using go generate with goversioninfo downloaded and "// go:generate goversioninfo -64=true" in main.go.
 		copyTo(filepath.Join("other_sources", "resource.syso"), "resource.syso")
 
 		// Copy in the SDL requirements (.dll files)
-		filepath.Walk(filepath.Join("other_sources"), func(path string, info fs.FileInfo, err error) error {
-			_, filename := filepath.Split(path)
-			if filepath.Ext(path) == ".dll" {
-				copyTo(path, filepath.Join(baseDir, filename))
-			}
-			return nil
-		})
+		// filepath.Walk(filepath.Join("other_sources"), func(path string, info fs.FileInfo, err error) error {
+		// 	_, filename := filepath.Split(path)
+		// 	if filepath.Ext(path) == ".dll" {
+		// 		copyTo(path, filepath.Join(baseDir, filename))
+		// 	}
+		// 	return nil
+		// })
+
+		static = `-tags static`
 
 	}
+
+	ldFlags += `"`
 
 	var c *exec.Cmd
 	var err error
@@ -114,7 +222,7 @@ func build(baseDir string, releaseMode bool, targetOS string) {
 				`-o`, filename, `./`,
 			)
 
-		} else {
+			// } else {
 
 			// No command for building from some other OSes to Linux.
 
@@ -125,12 +233,13 @@ func build(baseDir string, releaseMode bool, targetOS string) {
 	} else {
 
 		// Default building for the current OS
-		c = exec.Command(
-			`env`,
+		c = exec.Command(`env`, `CGO_ENABLED=1`,
 			`GOOS=`+targetOS,
 			`GOARCH=amd64`,
-			`go`, `build`, `-ldflags`, ldFlags, `-o`, filename, `./`)
-
+			// `CGO_LDFLAGS=-lmingw32 -lSDL2 -lSDL2_gfx`,
+			`CGO_LDFLAGS=-lSDL2 -lSDL2_gfx`,
+			static,
+			`go`, `build`, `-o`, filename, `./`)
 	}
 
 	fmt.Println("Building binary with args: ", c.Args, " ...")
@@ -169,6 +278,8 @@ func build(baseDir string, releaseMode bool, targetOS string) {
 // services (like Appveyor) can be done after building in the build service's configuration.
 func compress() {
 
+	fmt.Println("<Compressing build...>")
+
 	onWin := strings.Contains(runtime.GOOS, "windows")
 	ending := ".tar.gz"
 	if onWin {
@@ -199,7 +310,7 @@ func compress() {
 		archiver.Archive([]string{version}, version+ending)
 	}
 
-	fmt.Println("Build successfully compressed!")
+	fmt.Println("<Build successfully compressed!>")
 
 }
 
@@ -237,32 +348,36 @@ func publishToItch() {
 
 func main() {
 
-	buildMP := flag.String("b", "", "Build MasterPlan into the bin directory.")
+	buildMP := flag.Bool("b", false, "Build MasterPlan into the bin directory.")
+	osFlag := flag.String("os", "", "What target OS to build MasterPlan for. Omitting this flag will build MasterPlan for the current operating system.")
 	compressMP := flag.Bool("c", false, "Compress build output.")
 	itch := flag.Bool("i", false, "Upload build to itch.io.")
 
 	flag.Parse()
 
-	if *buildMP != "" {
-		if *buildMP == "all" {
-			build(filepath.Join("bin", "linux-amd64-0.8-Release"), true, "linux")
-			build(filepath.Join("bin", "windows-amd64-0.8-Release"), true, "windows")
-			build(filepath.Join("bin", "macos-amd64-0.8-Release"), true, "darwin")
+	if *buildMP {
+		if *osFlag == "all" {
+			build(filepath.Join("bin", "linux-0.8-Release-64"), true, "linux")
+			build(filepath.Join("bin", "windows-0.8-Release-64"), true, "windows")
+			build(filepath.Join("bin", "macos-0.8-Release-64"), true, "darwin")
 		} else {
-			target := strings.ReplaceAll(*buildMP, "/", "-")
-			build(filepath.Join("bin", target+"-amd64-0.8-Release"), true, target)
+			targetName := runtime.GOOS
+			if strings.Contains(targetName, "darwin") {
+				targetName = "macos"
+			}
+			build(filepath.Join("bin", targetName+"-0.8-Release-64"), true, runtime.GOOS)
 		}
 		// Demo builds are paused until MasterPlan v0.8 is the main version.
 		// build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Demo", target)), "-X main.releaseMode=true -X main.demoMode=DEMO", *targetOS)
 	}
 	if *compressMP {
-		compress()
+		compress() // Compresses all built binary folders in the ./bin folder
 	}
 	if *itch {
 		publishToItch()
 	}
 
-	if *buildMP == "" && !*compressMP && !*itch {
+	if !*buildMP && !*compressMP && !*itch {
 
 		fmt.Println(
 			"MASTERPLAN BUILD SCRIPT:\n",
