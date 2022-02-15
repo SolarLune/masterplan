@@ -6,7 +6,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/adrg/xdg v0.4.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cavaliergopher/grab v3.0.1+incompatible
 	github.com/cavaliergopher/grab/v3 v3.0.1
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/faiface/beep v1.1.0
@@ -41,6 +40,3 @@ require (
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
 )
 
-// The below line replaces the normal raylib-go dependency with my branch that has the config.h tweaked to
-// remove screenshot-taking because we're do it manually in MasterPlan.
-replace github.com/gen2brain/raylib-go => github.com/solarlune/raylib-go v0.0.0-20210122080031-04529085ce96

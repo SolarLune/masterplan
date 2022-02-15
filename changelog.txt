@@ -1,5 +1,50 @@
 -------
 
+v0.8.0-alpha4
+
+-------
+
+IMPROVEMENT: Adding sub-pages. A sub-page is a card that allows you to access another page, thereby giving you more means of planning and organizing your project.
+IMPROVEMENT: Adding a "Help" link to File menu. The help link takes you to a wiki, located on the Github repo for MasterPlan. The Help wiki will serve as a useful online central reference on using MasterPlan, and will be updated as MasterPlan grows.
+IMPROVEMENT: Adding customizeable colors. Cards' colors can now be customized using the Edit > Set Color menu.
+IMPROVEMENT: Sounds can now trigger other Cards on playback completion when placed in a vertical stack, or when connected via links.
+IMPROVEMENT: Line arrowheads now will have a black outline if they have a white fill color (like images).
+IMPROVEMENT: Adding buttons to shift map elements around from the palette menu.
+IMPROVEMENT: Adding Stop All Sounds keybinding.
+IMPROVEMENT: Shadows are no longer transparent and aren't as dark.
+RE-IMPLEMENTATION: Reimplementing the ability to take screenshots (defaults to F11).
+RE-IMPLEMENTATION: Reimplementing the borderless window option.
+RE-IMPLEMENTATION: Reimplementing the option to automatically load the last opened project.
+RE-IMPLEMENTATION: Reimplementing loading a plan from file system by double-clicking on it in Windows (I believe) or by passing in the path to the plan as the first argument when starting MasterPlan.
+QoL: Cards and menus are now resizeable from all sides, not just the right and bottom.
+QoL: Cards can now only be resized when selected (which makes selecting cards easier, since you no longer have to worry about accidentally resizing a card when you mean to click on it).
+QoL: Messages that repeat are now combined (i.e. spamming Ctrl+Z becomes "Undo event triggered. x10" instead of creating 10 individual "Undo event triggered" messages).
+QoL: Line arrowheads now use the main color, rather than the outline color (again).
+Reeeeeeeeal quick QoL: Resizing multiple cards now requires holding the new resize cards shortcut (left-shift by default), which means moving multiple cards is easier.
+QoL: Adding Deselect all cards shortcut (Left Ctrl + Left Shift + A).
+CHANGE: Focus on Cards now defaults to Left Shift + F.
+CHANGE: Removing overview devlog button (as the overview video is old).
+CHANGE: Adding Moss, Terra Cotta, and NS-DOSS themes.
+CHANGE: Focusing on Cards now zooms into the Card as well.
+FIX: Sound play button now properly changes back to play when the Sound is stopped.
+FIX: Changing fonts no longer causes maps to turn invisible.
+FIX: MasterPlan internally refreshing textures (i.e. when resizing the window on Windows or changing fonts) no longer leaks RAM / VRAM like a son of a gun.
+FIX: Short messages (that appear at the bottom-left) now appear long enough and are timed properly.
+FIX: The keybinding to unlock the aspect ratio when scaling an image now properly works when holding the key.
+FIX: The Menu close button no longer is always white, but rather changes color according to the theme.
+FIX: Maps no longer internally each create their own palette menu (whoops). They share one menu now, of course, thereby lowering memory usage.
+FIX: Undoing now works correctly when loading projects.
+FIX: You can no longer open the context menu (right click) while a fullscreen prompt is open.
+FIX: You can now undo and redo while editing text or with the context menu open.
+FIX: Themes refresh every second when the Visual Settings menu is open.
+FIX: Loading projects should no longer set the project's modified status.
+FIX: Pasting cards from the context menu pastes them from where the menu opens, rather than from where you click on the "Paste Cards" menu.
+FIX: Numbering is no longer broken, displaying a variety of 0's, for when a card is underneath a non-numberable card (like a Note).
+FIX: Non-numberable cards (like Notes) placed between a parent and its numberable children no longer break dependency in a stack.
+FIX: Projects should no longer save links between cards incorrectly. Again. Internally, this was because it was previously possible to create cards that shared IDs, thereby making them link incorrectly when the project is loaded. This should fix the issue. (Although you will need to re-create the previously broken links and resave your project. Sorry!)
+
+-------
+
 v0.8.0-alpha3
 
 -------

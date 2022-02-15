@@ -14,7 +14,7 @@ import (
 	"github.com/otiai10/copy"
 )
 
-func build(baseDir string, releaseMode bool, targetOS string) {
+func build(baseDir string, releaseMode string, targetOS string) {
 
 	fmt.Println(`< Beginning build to "` + baseDir + `" for ` + targetOS + `. >`)
 
@@ -50,12 +50,6 @@ func build(baseDir string, releaseMode bool, targetOS string) {
 
 	filename := filepath.Join(baseDir, "MasterPlan")
 
-	releaseString := `-X main.releaseMode=false`
-
-	if releaseMode {
-		releaseString = `-X main.releaseMode=true`
-	}
-
 	if forWin {
 
 		filename += ".exe"
@@ -75,18 +69,33 @@ func build(baseDir string, releaseMode bool, targetOS string) {
 
 	}
 
-	args := []string{`env`, `CGO_ENABLED=1 GOOS=` + targetOS + ` GOARCH=amd64 CGO_LDFLAGS=-lSDL2 -lSDL2_gfx`, `go`, `build`, `-ldflags=` + releaseString, `-o`, filename, `./`}
+	// We should compile statically at some point, but it's broken currently, it seems? See: https://github.com/veandco/go-sdl2/issues/507
+	// So for the meantime, we'll just build dynamically and bundle the dependencies on Windows and Mac. On Linux, usually users have the dependencies (SDL2, basically) installed already.
+
+	// The below string cross-compiles by setting CC to an 64-bit Windows version of MinGW
+	// CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc GOOS=` + targetOS + ` GOARCH=amd64 CGO_LDFLAGS="-lSDL2 -lSDL2_gfx" go build -tags ` + releaseMode + ` -ldflags "-s -w -H=windowsgui" -o ` + filename + ` ./`
 
 	var c *exec.Cmd
 	var err error
+
+	os.Setenv("CGO_ENABLED", "1")
+	os.Setenv(`GOOS`, targetOS)
+	os.Setenv(`GOARCH`, "amd64")
+	os.Setenv(`CGO_LDFLAGS`, "-lSDL2 -lSDL2_gfx")
+	os.Setenv("CC", "gcc")
+	// cross-compile:
+	// os.Setenv("CC", "x86_64-w64-mingw32-gcc")
+
 	// Default building for the current OS
-	c = exec.Command(args[0], args[1:]...)
+	if forWin {
+		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w -H windowsgui`, `-tags`, releaseMode, `-o`, filename, `./`)
+	} else {
+		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w`, `-tags`, releaseMode, `-o`, filename, `./`)
+	}
 
 	fmt.Println("<Building binary with args: ", c.Args, ".>")
 
 	_, err = c.CombinedOutput()
-
-	// result, err := exec.Command("go", args...).CombinedOutput()
 
 	if err != nil {
 		fmt.Println("<ERROR: ", string(err.Error())+">")
@@ -356,16 +365,23 @@ func main() {
 	flag.Parse()
 
 	if *buildMP {
+		fmt.Println(*osFlag)
 		if *osFlag == "all" {
-			build(filepath.Join("bin", "linux-0.8-Release-64"), true, "linux")
-			build(filepath.Join("bin", "windows-0.8-Release-64"), true, "windows")
-			build(filepath.Join("bin", "macos-0.8-Release-64"), true, "darwin")
+			build(filepath.Join("bin", "linux-0.8-Release-64"), "release", "linux")
+			build(filepath.Join("bin", "windows-0.8-Release-64"), "release", "windows")
+			build(filepath.Join("bin", "macos-0.8-Release-64"), "release", "darwin")
+		} else if *osFlag != "" {
+			targetName := *osFlag
+			if strings.Contains(targetName, "darwin") {
+				targetName = "macos"
+			}
+			build(filepath.Join("bin", targetName+"-0.8-Release-64"), "release", *osFlag)
 		} else {
 			targetName := runtime.GOOS
 			if strings.Contains(targetName, "darwin") {
 				targetName = "macos"
 			}
-			build(filepath.Join("bin", targetName+"-0.8-Release-64"), true, runtime.GOOS)
+			build(filepath.Join("bin", targetName+"-0.8-Release-64"), "release", runtime.GOOS)
 		}
 		// Demo builds are paused until MasterPlan v0.8 is the main version.
 		// build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Demo", target)), "-X main.releaseMode=true -X main.demoMode=DEMO", *targetOS)

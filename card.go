@@ -367,7 +367,7 @@ func (card *Card) Update() {
 			}
 		}
 
-		rectSize := float32(16)
+		rectSize := float32(8)
 
 		card.ResizeShape.SetSizes(
 
@@ -522,7 +522,7 @@ func (card *Card) Update() {
 					card.CreateUndoState = true
 				}
 
-				if card.selected {
+				if card.selected && (len(card.Page.Selection.Cards) == 1 || globals.Keybindings.Pressed(KBResizeMultiple)) {
 
 					if i := globals.Mouse.WorldPosition().InsideShape(card.ResizeShape); i >= 0 && card.Resizing == "" {
 

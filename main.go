@@ -32,9 +32,8 @@ import (
 	"github.com/veandco/go-sdl2/ttf"
 )
 
-// Build-time variable
-var releaseMode = "false"
-var demoMode = "" // If set to something other than "", it's a demo
+// Build-time variables; set by modeDemo.go and modeRelease.go.
+var releaseMode = "dev"
 
 var takeScreenshot = false
 
@@ -46,7 +45,7 @@ var cpuProfileStart = time.Time{}
 
 func init() {
 
-	if releaseMode == "true" {
+	if releaseMode != "dev" {
 
 		// Redirect STDERR and STDOUT to log.txt in release mode
 
@@ -109,7 +108,7 @@ func main() {
 	// using runtime.Caller().
 
 	defer func() {
-		if releaseMode == "true" {
+		if releaseMode != "dev" {
 			panicOut := recover()
 			if panicOut != nil {
 
@@ -143,10 +142,6 @@ func main() {
 	fmt.Println("Release mode:", releaseMode)
 
 	loadThemes()
-
-	if demoMode != "" {
-		demoMode = " " + demoMode
-	}
 
 	// windowFlags := byte(rl.FlagWindowResizable)
 
@@ -638,7 +633,13 @@ func main() {
 
 		renderer.Present()
 
-		title := "MasterPlan v" + globals.Version.String() + demoMode
+		demoText := ""
+
+		if releaseMode == "demo" {
+			demoText = "[DEMO]"
+		}
+
+		title := "MasterPlan v" + globals.Version.String() + demoText
 
 		if globals.Project.Filepath != "" {
 			_, fileName := filepath.Split(globals.Project.Filepath)
@@ -1092,7 +1093,7 @@ func ConstructMenus() {
 	row = root.AddRow(AlignCenter)
 	row.Add("yes", NewButton("Yes, Quit", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { quit = true }))
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
-	confirmQuit.Recreate(root.IdealSize().X+32, root.IdealSize().Y+32)
+	confirmQuit.Recreate(root.IdealSize().X+48, root.IdealSize().Y+32)
 
 	confirmNewProject := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm new project", true)
 	confirmNewProject.Draggable = true

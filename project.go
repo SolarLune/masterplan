@@ -726,7 +726,11 @@ func (project *Project) GlobalShortcuts() {
 			}
 
 			globals.Keybindings.Shortcuts[KBSelectAllCards].ConsumeKeys()
+		}
 
+		if globals.Keybindings.Pressed(KBDeselectAllCards) {
+			project.CurrentPage.Selection.Clear()
+			globals.Keybindings.Shortcuts[KBDeselectAllCards].ConsumeKeys()
 		}
 
 		if globals.Keybindings.Pressed(KBCopyCards) {

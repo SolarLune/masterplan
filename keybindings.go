@@ -45,6 +45,7 @@ const (
 	KBRemoveFromSelection = "Remove From Selection Modifier"
 	KBDeleteCards         = "Delete Selected Cards"
 	KBSelectAllCards      = "Select All Cards"
+	KBDeselectAllCards    = "Deselect All Cards"
 	KBSaveProject         = "Save Project"
 	KBSaveProjectAs       = "Save Project As"
 	KBOpenProject         = "Open Project"
@@ -55,6 +56,7 @@ const (
 	KBFocusOnCards        = "Focus On Selected Cards"
 	KBTakeScreenshot      = "Take Screenshot"
 	KBOpenContextMenu     = "Open Context Menu"
+	KBResizeMultiple      = "Resize Multiple (Hold)"
 
 	KBCollapseCard = "Card: Collapse"
 	KBLinkCard     = "Card: Link With Line"
@@ -79,7 +81,7 @@ const (
 	KBSoundJumpForward         = "Sound: Jump Forward 1s"
 	KBSoundJumpBackward        = "Sound: Jump Backward 1s"
 
-	KBUnlockImageASR = "Image: Unlock Aspect Ratio Modifier"
+	KBUnlockImageASR = "Image: Unlock Aspect Ratio (Hold)"
 
 	KBPickColor        = "Map: Pick Color"
 	KBMapNoTool        = "Map: Pointer Tool"
@@ -425,6 +427,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBLinkCard, sdl.K_z).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBDeleteCards, sdl.K_DELETE)
 	kb.DefineKeyShortcut(KBSelectAllCards, sdl.K_a, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBDeselectAllCards, sdl.K_a, sdl.K_LCTRL, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBCopyCards, sdl.K_c, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBPasteCards, sdl.K_v, sdl.K_LCTRL)
@@ -471,6 +474,8 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBFindPrev, sdl.K_f, sdl.K_LCTRL, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBSubpageOpen, sdl.K_BACKQUOTE)
+
+	kb.DefineKeyShortcut(KBResizeMultiple, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
 	kb.UpdateShortcutFamilies()
 
