@@ -1,5 +1,26 @@
 -------
 
+v0.8.0-alpha4.1
+
+-------
+
+QoL: Menus can now be anchored. By dragging them to a side or corner of the screen, they will stay there even after resizing MasterPlan's window.
+QoL: The main menu can now be moved from the top-left corner and positioned wherever you want.
+QoL: Either of the Find Next or Find Prev. keybindings now open the Find menu. Related to this, there is no longer a need for the keybinding to summon the Find Menu, specifically, and so it has been removed.
+QoL: Using Find Next or Find Prev. to cycle through found Cards now highlights the text to search for, making it easier to quickly look for several cards in sequence.
+QoL: Adding keybinding to remove all links from the currently selected Card.
+FIX: Removing a joint in a link now properly generates an undo state.
+FIX: Creating a joint just creates one undo state (after dropping it).
+FIX: Some menus' buttons were largely invisible with some themes (internally, this was due to IconButtons defaulting to white). This is now resolved.
+FIX: MP no longer crashes when presing the Clear button in the Find menu when first summoning it.
+FIX: Find menu now properly loops through all found Cards when searching (previously, it would loop erratically, sometimes selecting the same Card twice).
+FIX / QoL: You can now use the Find menu to search sub-pages (previously, it only searched the current page).
+FIX: MasterPlan no longer crashes when loading projects featuring subpages that were created out of order (i.e. if you created two subpages, deleted them, created one more, and then saved the project).
+FIX: MasterPlan no longer crashes if a card was in a stack when linking (via a line) to another card above in that stack.
+FIX: Don't log "Deleted 0 Cards." when pressing delete without having a card selected.
+
+-------
+
 v0.8.0-alpha4
 
 -------
