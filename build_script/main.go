@@ -82,9 +82,13 @@ func build(baseDir string, releaseMode string, targetOS string) {
 	os.Setenv(`GOOS`, targetOS)
 	os.Setenv(`GOARCH`, "amd64")
 	os.Setenv(`CGO_LDFLAGS`, "-lSDL2 -lSDL2_gfx")
-	os.Setenv("CC", "gcc")
+
 	// cross-compile:
-	// os.Setenv("CC", "x86_64-w64-mingw32-gcc")
+	if forWin && runtime.GOOS == "linux" {
+		os.Setenv("CC", "x86_64-w64-mingw32-gcc")
+	} else {
+		os.Setenv("CC", "gcc")
+	}
 
 	// Default building for the current OS
 	if forWin {
@@ -289,12 +293,6 @@ func compress() {
 
 	fmt.Println("<Compressing build...>")
 
-	onWin := strings.Contains(runtime.GOOS, "windows")
-	ending := ".tar.gz"
-	if onWin {
-		ending = ".zip"
-	}
-
 	// Archive in .tar.gz because AppVeyor doesn't handle execution bits properly and I don't want to add a ton to the source code
 	// just to box the output up into a .tar.gz.
 
@@ -307,14 +305,22 @@ func compress() {
 		dirCount := len(strings.Split(path, string(os.PathSeparator)))
 
 		if info.IsDir() && dirCount == 1 && path != "." {
-			versions = append(versions, path)
+
+			ending := ".tar.gz"
+			if strings.Contains(path, "windows") {
+				ending = ".zip"
+			}
+
+			versions = append(versions, path, ending)
 		}
 
 		return nil
 
 	})
 
-	for _, version := range versions {
+	for i := 0; i < len(versions); i += 2 {
+		version := versions[i]
+		ending := versions[i+1]
 		// We want to create separate archives for each version (e.g. release and demo)
 		archiver.Archive([]string{version}, version+ending)
 	}

@@ -37,30 +37,31 @@ jobs:
         path: ./bin/linux-0.8-Release-64.tar.gz
 
 
+  # For some reason, building on Windows creates a terminal window despite specifying -H=windowsgui in the build settings. For now, I'll crosscompile on my machine.
 
-  buildWindows:
-    runs-on: windows-2019
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-    - uses: actions/checkout@v2
-    - uses: msys2/setup-msys2@v2
-      with:
-        msystem: MINGW64
-        update: true
-        install: git
+  # buildWindows:
+  #   runs-on: windows-2019
+  #   defaults:
+  #     run:
+  #       shell: msys2 {0}
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - uses: msys2/setup-msys2@v2
+  #     with:
+  #       msystem: MINGW64
+  #       update: true
+  #       install: git
 
-    - name: Download SDL2 Dependencies
-      run: pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2{,_image,_ttf,_gfx} mingw-w64-x86_64-go --noconfirm
+  #   - name: Download SDL2 Dependencies
+  #     run: pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2{,_image,_ttf,_gfx} mingw-w64-x86_64-go --noconfirm
 
-    - name: Build
-      run: go run ./build_script/main.go -b -c
+  #   - name: Build
+  #     run: go run ./build_script/main.go -b -c
 
-    - uses: actions/upload-artifact@v2
-      with:
-        name: _GH-Actions-MasterPlan-Windows-v0.8.0.a4
-        path: ./bin/windows-0.8-Release-64.zip
+  #   - uses: actions/upload-artifact@v2
+  #     with:
+  #       name: _GH-Actions-MasterPlan-Windows-v0.8.0.a4
+  #       path: ./bin/windows-0.8-Release-64.zip
 
 
 
