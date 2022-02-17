@@ -108,6 +108,7 @@ func (le *LinkEnding) Update() {
 
 		if removeJoint >= 0 {
 			le.Joints = append(le.Joints[:removeJoint], le.Joints[removeJoint+1:]...)
+			le.Start.CreateUndoState = true
 		}
 
 	}
@@ -150,7 +151,6 @@ func (le *LinkEnding) Update() {
 			le.Joints = joints
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-			le.Start.CreateUndoState = true
 
 		}
 
@@ -454,11 +454,16 @@ func (card *Card) Update() {
 
 	}
 
+	// We want the contents to update regardless of if the page is current
 	if card.Contents != nil {
 		card.Contents.Update()
 	}
 
 	if card.Page.IsCurrent() {
+
+		if card.selected && globals.Keybindings.Pressed(KBUnlinkCard) && globals.State == StateNeutral {
+			card.UnlinkAll()
+		}
 
 		if globals.Keybindings.Pressed(KBLinkCard) && (globals.State == StateNeutral || globals.State == StateCardLinking) {
 
@@ -613,15 +618,17 @@ func (card *Card) IsLinkedTo(other *Card) bool {
 	return false
 }
 
-func (card *Card) Link(other *Card) *LinkEnding {
+// Link creates a link between the current Card and the other, provided Card, and returns it, along with a boolean indicating if the link was just created.
+// If a link is already formed between the Cards, it will return that LinkEnding, along with false as the second boolean.
+func (card *Card) Link(other *Card) (*LinkEnding, bool) {
 
 	if other == card {
-		return nil
+		return nil, false
 	}
 
 	for _, link := range card.Links {
 		if (link.Start == card && link.End == other) || (link.Start == other && link.End == card) {
-			return link
+			return link, false
 		}
 	}
 
@@ -634,7 +641,7 @@ func (card *Card) Link(other *Card) *LinkEnding {
 	card.ReceiveMessage(linkCreated)
 	other.ReceiveMessage(linkCreated)
 
-	return ending
+	return ending, true
 
 }
 
@@ -661,6 +668,18 @@ func (card *Card) Unlink(other *Card) {
 	linkDissolved := NewMessage(MessageLinkDeleted, nil, nil)
 	card.ReceiveMessage(linkDissolved)
 	other.ReceiveMessage(linkDissolved)
+
+}
+
+func (card *Card) UnlinkAll() {
+
+	for _, link := range append([]*LinkEnding{}, card.Links...) {
+		if link.Start == card {
+			card.Unlink(link.End)
+		} else {
+			card.Unlink(link.Start)
+		}
+	}
 
 }
 
@@ -895,7 +914,7 @@ func (card *Card) Serialize() string {
 
 		for _, link := range card.Links {
 
-			if link.End.Valid && link.Start.Valid {
+			if link.End.Valid && link.Start.Valid && link.Start == card {
 
 				dataOut := "{}"
 				dataOut, _ = sjson.Set(dataOut, "start", link.Start.ID)
@@ -927,6 +946,12 @@ func (card *Card) Serialize() string {
 
 func (card *Card) Deserialize(data string) {
 
+	for _, link := range append([]*LinkEnding{}, card.Links...) {
+		if link.Start == card {
+			card.Unlink(link.End)
+		}
+	}
+
 	rect := gjson.Get(data, "rect")
 	card.Rect.X = float32(rect.Get("X").Float())
 	card.Rect.Y = float32(rect.Get("Y").Float())
@@ -957,19 +982,19 @@ func (card *Card) Deserialize(data string) {
 		card.CustomColor = nil
 	}
 
-	for _, link := range card.Links {
-		found := false
-		for _, gl := range linkedTo {
-			if gl == link.End.ID {
-				found = true
-				break
-			}
-		}
-		// Unlink Cards that are no longer linked to according to the deserialized data
-		if !found {
-			card.Unlink(link.End)
-		}
-	}
+	// for _, link := range card.Links {
+	// 	found := false
+	// 	// for _, gl := range linkedTo {
+	// 	// 	if gl == link.End.ID {
+	// 	// 		found = true
+	// 	// 		break
+	// 	// 	}
+	// 	// }
+	// 	// Unlink Cards that are no longer linked to according to the deserialized data
+	// 	if !found {
+	// 		card.Unlink(link.End)
+	// 	}
+	// }
 
 	// Set Rect Position and Size before deserializing properties and setting contents so the contents can know the actual correct, current size of the Card (important for Map Contents)
 	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))

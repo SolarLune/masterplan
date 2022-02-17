@@ -265,9 +265,10 @@ func (page *Page) UpdateLinks() {
 		}
 
 		if start != nil && end != nil {
-			link := start.Link(end)
+			link, fresh := start.Link(end)
 			joints := gjson.Get(linkString, "joints").Array()
-			if link != nil {
+			// If the link wasn't freshly created, then the joints should have been set already
+			if link != nil && fresh {
 				link.Joints = []*LinkJoint{}
 				for _, joint := range joints {
 					jm := joint.Map()
