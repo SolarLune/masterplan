@@ -317,13 +317,16 @@ func (page *Page) CardByLoadedID(id int64) *Card {
 }
 
 func (page *Page) DeleteCards(cards ...*Card) {
-	globals.EventLog.Log("Deleted %d Cards.", len(cards))
-	deletion := NewMessage(MessageCardDeleted, nil, nil)
-	for _, card := range cards {
-		card.Valid = false
-		card.ReceiveMessage(deletion)
+	// no need to log "Deleted 0 cards"
+	if len(cards) > 0 {
+		globals.EventLog.Log("Deleted %d Cards.", len(cards))
+		deletion := NewMessage(MessageCardDeleted, nil, nil)
+		for _, card := range cards {
+			card.Valid = false
+			card.ReceiveMessage(deletion)
+		}
+		page.ToDelete = append(page.ToDelete, cards...)
 	}
-	page.ToDelete = append(page.ToDelete, cards...)
 }
 
 func (page *Page) RestoreCards(cards ...*Card) {
