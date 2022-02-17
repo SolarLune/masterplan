@@ -161,7 +161,6 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked f
 		Rect:                    &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)},
 		IconSrc:                 iconSrc,
 		WorldSpace:              worldSpace,
-		Tint:                    NewColor(255, 255, 255, 255),
 		OnPressed:               onClicked,
 		HighlightingTargetColor: 1,
 		FadeOnInactive:          true,
@@ -221,7 +220,12 @@ func (iconButton *IconButton) Draw() {
 		drawSrc(iconButton.BGIconSrc, 0, 0, NewColor(255, 255, 255, 255), 0)
 	}
 
-	drawSrc(iconButton.IconSrc, 0, 0, iconButton.Tint, iconButton.Flip)
+	tint := iconButton.Tint
+	if tint == nil {
+		tint = getThemeColor(GUIFontColor)
+	}
+
+	drawSrc(iconButton.IconSrc, 0, 0, tint, iconButton.Flip)
 
 	iconButton.Highlighter.SetRect(iconButton.Rect)
 	iconButton.Highlighter.Highlighting = iconButton.AlwaysHighlight || mp.Inside(iconButton.Rect)
@@ -292,8 +296,6 @@ func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 }
 
 func (checkbox *Checkbox) Update() {
-
-	checkbox.Tint = getThemeColor(GUIFontColor)
 
 	checkbox.IconButton.Update()
 
@@ -436,9 +438,6 @@ func (spinner *NumberSpinner) Update() {
 }
 
 func (spinner *NumberSpinner) Draw() {
-
-	spinner.Increase.Tint = getThemeColor(GUIFontColor)
-	spinner.Decrease.Tint = getThemeColor(GUIFontColor)
 
 	spinner.Label.Draw()
 	spinner.Increase.Draw()
@@ -940,7 +939,6 @@ func (bg *IconButtonGroup) Update() {
 
 	for i, b := range bg.Buttons {
 
-		// b.Tint = getThemeColor(GUIFontColor)
 		r := b.Rectangle()
 		r.X = rect.X + (w * float32(i))
 		r.Y = rect.Y
@@ -1050,7 +1048,13 @@ func (ts *TextSelection) Length() int {
 
 func (ts *TextSelection) ContiguousRange() (int, int) {
 	start := ts.Start
+	if start > len(ts.Label.Text) {
+		start = len(ts.Label.Text)
+	}
 	end := ts.End
+	if end > len(ts.Label.Text) {
+		end = len(ts.Label.Text)
+	}
 	if start > end {
 		return end, start
 	}

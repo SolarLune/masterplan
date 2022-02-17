@@ -208,7 +208,7 @@ func (page *Page) Serialize() string {
 
 }
 
-func (page *Page) Deserialize(data string) {
+func (page *Page) DeserializePageData(data string) {
 
 	page.Name = gjson.Get(data, "name").String()
 	if id := gjson.Get(data, "id"); id.Exists() {
@@ -222,6 +222,10 @@ func (page *Page) Deserialize(data string) {
 	if page.Zoom == 0 {
 		page.Zoom = 1
 	}
+
+}
+
+func (page *Page) DeserializeCards(data string) {
 
 	for _, cardData := range gjson.Get(data, "cards").Array() {
 

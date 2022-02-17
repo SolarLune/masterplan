@@ -1359,7 +1359,7 @@ func (tc *TimerContents) Update() {
 			}
 
 			if globals.Settings.Get(SettingsFocusOnElapsedTimers).AsBool() {
-				tc.Card.Page.Project.Camera.FocusOn(tc.Card)
+				tc.Card.Page.Project.Camera.FocusOn(false, tc.Card)
 			}
 			if globals.Settings.Get(SettingsNotifyOnElapsedTimers).AsBool() && globals.WindowFlags&sdl.WINDOW_INPUT_FOCUS == 0 {
 				beeep.Notify("MasterPlan", elapsedMessage, "")
@@ -2409,7 +2409,13 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	project := sb.Card.Page.Project
 
 	if sb.Card.Properties.Has("subpage") {
-		sb.SubPage = project.Pages[int(sb.Card.Properties.Get("subpage").AsFloat())]
+		spID := uint64(sb.Card.Properties.Get("subpage").AsFloat())
+		for _, page := range project.Pages {
+			if page.ID == spID {
+				sb.SubPage = page
+				break
+			}
+		}
 	} else {
 		sb.SubPage = project.AddPage()
 		index := project.PageIndex(sb.SubPage)

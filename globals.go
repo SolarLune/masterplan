@@ -33,6 +33,7 @@ type Globals struct {
 	Frame             int64
 	GridSize          float32
 	ScreenSize        Point
+	ScreenSizePrev    Point
 	ScreenSizeChanged bool
 	CopyBuffer        *CopyBuffer
 	Version           semver.Version

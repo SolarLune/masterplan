@@ -438,7 +438,8 @@ func OpenProjectFrom(filename string) {
 
 			if ver.LTE(semver.MustParse("0.8.0-alpha.3")) {
 				page := gjson.Get(json, "root.contents").Array()[0]
-				newProject.Pages[0].Deserialize(page.String())
+				newProject.Pages[0].DeserializePageData(page.String())
+				newProject.Pages[0].DeserializeCards(page.String())
 			} else {
 
 				// v0.8.0-alpha.3 and below just had one page, but organized into a folder; this is no longer done.
@@ -448,11 +449,16 @@ func OpenProjectFrom(filename string) {
 
 				for p, pageData := range gjson.Get(json, "pages").Array() {
 					page := newProject.Pages[p]
-					page.Deserialize(pageData.String())
+					page.DeserializePageData(pageData.String())
 					if globalPageID < page.ID {
 						globalPageID = page.ID + 1
 					}
 				}
+
+				for p, pageData := range gjson.Get(json, "pages").Array() {
+					newProject.Pages[p].DeserializeCards(pageData.String())
+				}
+
 			}
 
 			for _, page := range newProject.Pages {
@@ -765,14 +771,14 @@ func (project *Project) GlobalShortcuts() {
 			project.Open()
 		}
 
-		if globals.Keybindings.Pressed(KBFind) {
-			if !globals.MenuSystem.Get("search").Opened {
-				globals.MenuSystem.Get("search").Open()
+		if globals.Keybindings.Pressed(KBFindNext) || globals.Keybindings.Pressed(KBFindPrev) {
+			if !globals.MenuSystem.Get("find").Opened {
+				globals.MenuSystem.Get("find").Open()
 			}
 		}
 
 		if globals.Keybindings.Pressed(KBFocusOnCards) {
-			project.Camera.FocusOn(project.CurrentPage.Selection.AsSlice()...)
+			project.Camera.FocusOn(true, project.CurrentPage.Selection.AsSlice()...)
 		}
 
 		if globals.Keybindings.Pressed(KBSubpageOpen) {

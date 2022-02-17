@@ -319,9 +319,18 @@ func main() {
 			panic(err)
 		}
 
+		if globals.Keybindings.Pressed(KBWindowSizeSmall) {
+			window.SetSize(960, 540)
+		}
+
+		if globals.Keybindings.Pressed(KBWindowSizeNormal) {
+			window.SetSize(1920, 1080)
+		}
+
 		globals.ScreenSizeChanged = false
 		if screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y) {
 			globals.ScreenSizeChanged = true
+			globals.ScreenSizePrev = globals.ScreenSize
 		}
 
 		globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
@@ -342,14 +351,6 @@ func main() {
 		// if globals.ProgramSettings.Keybindings.On(KBShowFPS) {
 		// 	drawFPS = !drawFPS
 		// }
-
-		if globals.Keybindings.Pressed(KBWindowSizeSmall) {
-			window.SetSize(960, 540)
-		}
-
-		if globals.Keybindings.Pressed(KBWindowSizeNormal) {
-			window.SetSize(1920, 1080)
-		}
 
 		if globals.Keybindings.Pressed(KBToggleFullscreen) {
 			fullscreen = !fullscreen
@@ -705,18 +706,43 @@ func ConstructMenus() {
 
 	mainMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 800, 48}, MenuCloseNone), "main", false)
 	mainMenu.Opened = true
+	mainMenu.Draggable = true
+	mainMenu.AnchorMode = MenuAnchorTopLeft
 	root := mainMenu.Pages["root"]
 
 	row := root.AddRow(AlignCenter)
-	row.Add("file menu", NewButton("File", nil, &sdl.Rect{144, 0, 32, 32}, false, func() {
-		globals.MenuSystem.Get("file").Open()
-	}))
+
+	var fileButton *Button
+
+	fileButton = NewButton("File", nil, &sdl.Rect{144, 0, 32, 32}, false, func() {
+		fileMenu := globals.MenuSystem.Get("file")
+		fileMenu.Rect.X = fileButton.Rect.X - 48
+		if mainMenu.Rect.Y > globals.ScreenSize.Y/2 {
+			fileMenu.Rect.Y = fileButton.Rect.Y - fileMenu.Rect.H
+		} else {
+			fileMenu.Rect.Y = fileButton.Rect.Y + 32
+		}
+		fileMenu.Open()
+	})
+
+	row.Add("file menu", fileButton)
 
 	row.Add("", NewSpacer(&sdl.FRect{0, 0, 64, 32}))
 
-	row.Add("view menu", NewButton("View", nil, nil, false, func() {
-		globals.MenuSystem.Get("view").Open()
-	}))
+	var viewButton *Button
+
+	viewButton = NewButton("View", nil, nil, false, func() {
+		viewMenu := globals.MenuSystem.Get("view")
+		viewMenu.Rect.X = viewButton.Rect.X - 48
+		if mainMenu.Rect.Y > globals.ScreenSize.Y/2 {
+			viewMenu.Rect.Y = viewButton.Rect.Y - viewMenu.Rect.H
+		} else {
+			viewMenu.Rect.Y = viewButton.Rect.Y + 32
+		}
+		viewMenu.Open()
+	})
+
+	row.Add("view menu", viewButton)
 
 	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 256, 32}))
 	row.Add("time label", NewLabel(time.Now().Format("Mon Jan 2 2006"), &sdl.FRect{0, 0, 256, 32}, false, AlignCenter))
@@ -800,7 +826,7 @@ func ConstructMenus() {
 	}))
 
 	root.AddRow(AlignCenter).Add("Find Menu", NewButton("Find", nil, nil, false, func() {
-		globals.MenuSystem.Get("search").Open()
+		globals.MenuSystem.Get("find").Open()
 		viewMenu.Close()
 	}))
 
@@ -851,6 +877,7 @@ func ConstructMenus() {
 	// Create Menu
 
 	createMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X, globals.ScreenSize.Y, 32, 32}, MenuCloseButton), "create", false)
+	createMenu.AnchorMode = MenuAnchorBottomRight
 	createMenu.Draggable = true
 	createMenu.Resizeable = true
 	createMenu.Orientation = MenuOrientationVertical
@@ -903,9 +930,10 @@ func ConstructMenus() {
 
 	// Edit Menu
 
-	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 2, globals.ScreenSize.Y / 2, 300, 400}, MenuCloseButton), "edit", false)
+	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, globals.ScreenSize.Y/2 - (450 / 2), 300, 450}, MenuCloseButton), "edit", false)
 	editMenu.Draggable = true
 	editMenu.Resizeable = true
+	editMenu.AnchorMode = MenuAnchorLeft
 	editMenu.Orientation = MenuOrientationVertical
 
 	root = editMenu.Pages["root"]
@@ -1528,12 +1556,12 @@ func ConstructMenus() {
 
 	// Search Menu
 
-	search := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 512, 96}, MenuCloseButton), "search", false)
-	search.Center()
-	search.Draggable = true
-	search.Resizeable = true
+	find := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 9999, 512, 96}, MenuCloseButton), "find", false)
+	find.AnchorMode = MenuAnchorTopRight
+	find.Draggable = true
+	find.Resizeable = true
 
-	root = search.Pages["root"]
+	root = find.Pages["root"]
 	row = root.AddRow(AlignCenter)
 	row.Add("", NewLabel("Find:", nil, false, AlignCenter))
 	searchLabel := NewLabel("Text", &sdl.FRect{0, 0, 256, 32}, false, AlignLeft)
@@ -1548,8 +1576,6 @@ func ConstructMenus() {
 
 	findFunc := func() {
 
-		page := globals.Project.CurrentPage
-		page.Selection.Clear()
 		foundCards = []*Card{}
 
 		if len(searchLabel.Text) == 0 {
@@ -1557,24 +1583,30 @@ func ConstructMenus() {
 			return
 		}
 
-		for _, card := range page.Cards {
+		for _, page := range globals.Project.Pages {
 
-			for propName, prop := range card.Properties.Props {
+			page.Selection.Clear()
 
-				if (propName == "description" || propName == "filepath") && prop.InUse && prop.IsString() {
+			for _, card := range page.Cards {
 
-					propString := prop.AsString()
-					searchString := searchLabel.TextAsString()
+				for propName, prop := range card.Properties.Props {
 
-					if !caseSensitive {
-						propString = strings.ToLower(prop.AsString())
-						searchString = strings.ToLower(searchString)
+					if (propName == "description" || propName == "filepath") && prop.InUse && prop.IsString() {
+
+						propString := prop.AsString()
+						searchString := searchLabel.TextAsString()
+
+						if !caseSensitive {
+							propString = strings.ToLower(prop.AsString())
+							searchString = strings.ToLower(searchString)
+						}
+
+						if strings.Contains(propString, searchString) {
+							foundCards = append(foundCards, card)
+							continue
+						}
 					}
 
-					if strings.Contains(propString, searchString) {
-						foundCards = append(foundCards, card)
-						continue
-					}
 				}
 
 			}
@@ -1588,9 +1620,11 @@ func ConstructMenus() {
 		}
 
 		if len(foundCards) > 0 {
-			page.Selection.Add(foundCards[foundIndex])
+			foundCard := foundCards[foundIndex]
+			foundCard.selected = true // Hack to make sure the selected Card isn't raised, as that changes the order of the Cards, thereby making it impossible to jump from card to card easily.
+			foundCard.Page.Selection.Add(foundCard)
 			foundLabel.SetText([]rune(fmt.Sprintf("%d of %d", foundIndex+1, len(foundCards))))
-			globals.Project.Camera.FocusOn(foundCards[foundIndex])
+			globals.Project.Camera.FocusOn(false, foundCard)
 		} else {
 			foundLabel.SetText([]rune("0 of 0"))
 		}
@@ -1607,14 +1641,18 @@ func ConstructMenus() {
 		if globals.Keybindings.Pressed(KBFindNext) {
 			foundIndex++
 			findFunc()
+			searchLabel.Editing = true
+			searchLabel.Selection.SelectAll()
 		} else if globals.Keybindings.Pressed(KBFindPrev) {
 			foundIndex--
 			findFunc()
+			searchLabel.Editing = true
+			searchLabel.Selection.SelectAll()
 		}
 
 	}
 
-	search.OnOpen = func() {
+	find.OnOpen = func() {
 		searchLabel.Editing = true
 		searchLabel.Selection.SelectAll()
 	}
@@ -1657,9 +1695,7 @@ func ConstructMenus() {
 
 	prevSubPageMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 512, 96}, MenuCloseNone), "prev sub page", false)
 	prevSubPageMenu.Opened = false
-	rect := prevSubPageMenu.Rectangle()
-	rect.X = globals.ScreenSize.X/2 - (rect.W / 2)
-	prevSubPageMenu.SetRectangle(rect)
+	prevSubPageMenu.Center()
 	prevSubPageMenu.Draggable = true
 
 	row = prevSubPageMenu.Pages["root"].AddRow(AlignCenter)
@@ -1679,10 +1715,10 @@ func ConstructMenus() {
 	}))
 	// Stats Menu
 
-	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 700, 274}, MenuCloseButton), "stats", false)
-	stats.Center()
+	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), "stats", false)
 	stats.Draggable = true
 	stats.Resizeable = true
+	stats.AnchorMode = MenuAnchorBottom
 
 	root = stats.Pages["root"]
 

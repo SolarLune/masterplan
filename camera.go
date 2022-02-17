@@ -107,11 +107,14 @@ func (camera *Camera) ViewArea() *sdl.Rect {
 
 }
 
-func (camera *Camera) FocusOn(cards ...*Card) {
+func (camera *Camera) FocusOn(zoom bool, cards ...*Card) {
 
 	if len(cards) == 0 {
 		return
 	}
+
+	// Focus on the first page of the card
+	globals.Project.SetPage(cards[0].Page)
 
 	topLeft := Point{math.MaxFloat32, math.MaxFloat32}
 	bottomRight := Point{-math.MaxFloat32, -math.MaxFloat32}
@@ -138,13 +141,17 @@ func (camera *Camera) FocusOn(cards ...*Card) {
 
 	camera.TargetPosition = topLeft.Add(diff.Div(2))
 
-	zx := globals.ScreenSize.X / diff.X
-	zy := globals.ScreenSize.Y / diff.Y
+	if zoom {
 
-	if zy > zx {
-		camera.SetZoom(zx * 0.8)
-	} else {
-		camera.SetZoom(zy * 0.8)
+		zx := globals.ScreenSize.X / diff.X
+		zy := globals.ScreenSize.Y / diff.Y
+
+		if zy > zx {
+			camera.SetZoom(zx * 0.8)
+		} else {
+			camera.SetZoom(zy * 0.8)
+		}
+
 	}
 
 }

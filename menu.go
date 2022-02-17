@@ -123,6 +123,18 @@ func (ms *MenuSystem) ExclusiveMenuOpen() bool {
 	return false
 }
 
+const (
+	MenuAnchorNone = iota
+	MenuAnchorBottomLeft
+	MenuAnchorBottom
+	MenuAnchorBottomRight
+	MenuAnchorRight
+	MenuAnchorTopRight
+	MenuAnchorTop
+	MenuAnchorTopLeft
+	MenuAnchorLeft
+)
+
 type Menu struct {
 	Rect        *sdl.FRect
 	MinSize     Point
@@ -150,8 +162,9 @@ type Menu struct {
 	ResizeStart  Point
 	PageThread   []string
 
-	OnOpen  func()
-	OnClose func()
+	OnOpen     func()
+	OnClose    func()
+	AnchorMode int
 }
 
 func NewMenu(rect *sdl.FRect, closeMethod int) *Menu {
@@ -207,6 +220,41 @@ func (menu *Menu) Update() {
 		sizeChanged := false
 
 		if menu.Draggable {
+
+			switch menu.AnchorMode {
+			case MenuAnchorTopLeft:
+				menu.Rect.X = 0
+				menu.Rect.Y = 0
+			case MenuAnchorTop:
+				menu.Rect.Y = 0
+				if globals.ScreenSizeChanged {
+					menu.Rect.X *= globals.ScreenSize.X / globals.ScreenSizePrev.X
+				}
+			case MenuAnchorTopRight:
+				menu.Rect.X = globals.ScreenSize.X - menu.Rect.W
+				menu.Rect.Y = 0
+			case MenuAnchorRight:
+				menu.Rect.X = globals.ScreenSize.X - menu.Rect.W
+				if globals.ScreenSizeChanged {
+					menu.Rect.Y *= globals.ScreenSize.Y / globals.ScreenSizePrev.Y
+				}
+			case MenuAnchorBottomRight:
+				menu.Rect.X = globals.ScreenSize.X - menu.Rect.W
+				menu.Rect.Y = globals.ScreenSize.Y - menu.Rect.H
+			case MenuAnchorBottom:
+				menu.Rect.Y = globals.ScreenSize.Y - menu.Rect.H
+				if globals.ScreenSizeChanged {
+					menu.Rect.X *= globals.ScreenSize.X / globals.ScreenSizePrev.X
+				}
+			case MenuAnchorBottomLeft:
+				menu.Rect.X = 0
+				menu.Rect.Y = globals.ScreenSize.Y - menu.Rect.H
+			case MenuAnchorLeft:
+				menu.Rect.X = 0
+				if globals.ScreenSizeChanged {
+					menu.Rect.Y *= globals.ScreenSize.Y / globals.ScreenSizePrev.Y
+				}
+			}
 
 			if menu.Rect.Y+menu.Rect.H > globals.ScreenSize.Y {
 				menu.Rect.Y = globals.ScreenSize.Y - menu.Rect.H
@@ -410,10 +458,14 @@ func (menu *Menu) Update() {
 			if button.Pressed() && globals.Mouse.Position().Inside(menu.Rect) {
 				button.Consume()
 				menu.Dragging = true
+				menu.AnchorMode = MenuAnchorNone
 				menu.DragStart = globals.Mouse.Position()
 				menu.DragOffset = globals.Mouse.Position().Sub(Point{menu.Rect.X, menu.Rect.Y})
 			}
 			if button.Released() {
+
+				menu.UpdateAnchor()
+
 				menu.Dragging = false
 			}
 
@@ -428,6 +480,40 @@ func (menu *Menu) Update() {
 		menu.Resizing = ""
 	}
 
+}
+
+func (menu *Menu) UpdateAnchor() {
+	atRight := menu.Rect.X+menu.Rect.W >= globals.ScreenSize.X-16
+	atLeft := menu.Rect.X <= 16
+
+	atBottom := menu.Rect.Y+menu.Rect.H >= globals.ScreenSize.Y-16
+	atTop := menu.Rect.Y <= 16
+
+	menu.AnchorMode = MenuAnchorNone
+
+	if atRight {
+		if atTop {
+			menu.AnchorMode = MenuAnchorTopRight
+		} else if atBottom {
+			menu.AnchorMode = MenuAnchorBottomRight
+		} else {
+			menu.AnchorMode = MenuAnchorRight
+		}
+	} else if atLeft {
+		if atTop {
+			menu.AnchorMode = MenuAnchorTopLeft
+		} else if atBottom {
+			menu.AnchorMode = MenuAnchorBottomLeft
+		} else {
+			menu.AnchorMode = MenuAnchorLeft
+		}
+	} else {
+		if atTop {
+			menu.AnchorMode = MenuAnchorTop
+		} else if atBottom {
+			menu.AnchorMode = MenuAnchorBottom
+		}
+	}
 }
 
 func (menu *Menu) Draw() {
