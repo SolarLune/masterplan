@@ -224,6 +224,15 @@ func (stack *Stack) All() []*Card {
 	return append(append(stack.Head(), stack.Card), stack.Tail()...)
 }
 
+func (stack *Stack) Contains(card *Card) bool {
+	for _, c := range stack.All() {
+		if c == card {
+			return true
+		}
+	}
+	return false
+}
+
 // func (stack *Stack) Add(card *Card) {
 // 	for _, c := range stack.Cards {
 // 		if card == c {

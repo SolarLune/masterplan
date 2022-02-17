@@ -351,7 +351,11 @@ func (cc *CheckboxContents) ReceiveMessage(msg *Message) {
 
 func (cc *CheckboxContents) DependentCards() []*Card {
 	cards := append([]*Card{}, cc.ParentOf...)
-	cards = append(cards, cc.Linked...)
+	for _, card := range cc.Linked {
+		if !cc.Card.Stack.Contains(card) {
+			cards = append(cards, card)
+		}
+	}
 	return cards
 }
 
