@@ -173,7 +173,8 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 	result.Image = renderTexture
 
 	renderTexture.RenderFunc = func() {
-
+		hint := sdl.GetHint(sdl.HINT_RENDER_SCALE_QUALITY)
+		sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "2")
 		finalW := globals.GridSize
 
 		x := 0
@@ -257,6 +258,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 		}
 
+		sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, hint)
 		result.TextLines = append(result.TextLines, line)
 		result.TextSize.X = finalW
 		result.TextSize.Y = float32(math.Max(float64(globals.GridSize), float64(len(result.TextLines)*int(globals.GridSize))))

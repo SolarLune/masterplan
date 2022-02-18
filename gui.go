@@ -1640,7 +1640,9 @@ func (label *Label) Draw() {
 		}
 
 		src := &sdl.Rect{0, 0, w, h}
-		newRect := &sdl.FRect{label.Rect.X + label.Offset.X, label.Rect.Y + label.Offset.Y, float32(w), float32(h)}
+
+		// Floor the rectangle to avoid aliasing artifacts when rendering with nearest neighbour
+		newRect := &sdl.FRect{float32(math.Floor(float64(label.Rect.X + label.Offset.X))), float32(math.Floor(float64(label.Rect.Y + label.Offset.Y))), float32(w), float32(h)}
 
 		// newRect.Y -= baseline // Center it
 
