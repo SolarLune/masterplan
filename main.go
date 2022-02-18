@@ -727,7 +727,6 @@ func unambiguousPathName(path string, paths []string) string {
 
 			otherPathSliced := strings.Join(otherPathSplit[otherTail:], string(os.PathSeparator))
 			if currentPath == otherPathSliced {
-				fmt.Printf("Same path: %v %v", currentPath, otherPathSliced)
 				found = true
 			}
 		}
