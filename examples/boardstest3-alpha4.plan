@@ -1,0 +1,250 @@
+{
+  "version": "0.8.0-alpha.4",
+  "pan": {
+    "X": 0,
+    "Y": 0
+  },
+  "zoom": 1,
+  "pages": [
+    {
+      "name": "Premise",
+      "id": 0,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": 256,
+            "Y": -320,
+            "W": 256,
+            "H": 32
+          },
+          "contents": "Note",
+          "custom color": "FF3D3DFF",
+          "properties": {
+            "description": "New Note",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 1,
+          "rect": {
+            "X": 256,
+            "Y": -288,
+            "W": 256,
+            "H": 32
+          },
+          "contents": "Note",
+          "custom color": "FFCF42FF",
+          "properties": {
+            "description": "New Note",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 2,
+          "rect": {
+            "X": 256,
+            "Y": -256,
+            "W": 256,
+            "H": 32
+          },
+          "contents": "Note",
+          "custom color": "9AFF41FF",
+          "properties": {
+            "description": "New Note",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 3,
+          "rect": {
+            "X": 256,
+            "Y": -224,
+            "W": 256,
+            "H": 32
+          },
+          "contents": "Note",
+          "custom color": "49FFC0FF",
+          "properties": {
+            "description": "New Note",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 4,
+          "rect": {
+            "X": 256,
+            "Y": -192,
+            "W": 256,
+            "H": 32
+          },
+          "contents": "Note",
+          "custom color": "41A0FFFF",
+          "properties": {
+            "description": "New Note",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 8,
+          "rect": {
+            "X": 1120,
+            "Y": -192,
+            "W": 224,
+            "H": 64
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "New Sub-Page",
+            "subpage": 1,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 5,
+          "rect": {
+            "X": 256,
+            "Y": -160,
+            "W": 256,
+            "H": 32
+          },
+          "contents": "Note",
+          "custom color": "2749FFFF",
+          "properties": {
+            "description": "New Note",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 6,
+          "rect": {
+            "X": -320,
+            "Y": -96,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "custom color": "D57929FF",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 7,
+          "rect": {
+            "X": -320,
+            "Y": -64,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "custom color": "D57929FF",
+          "properties": {
+            "checked": true,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 9,
+          "rect": {
+            "X": -320,
+            "Y": 32,
+            "W": 256,
+            "H": 64
+          },
+          "contents": "Number",
+          "properties": {
+            "description": "New Numbered",
+            "current": 0,
+            "maximum": 0,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 10,
+          "rect": {
+            "X": 0,
+            "Y": 32,
+            "W": 256,
+            "H": 64
+          },
+          "contents": "Number",
+          "custom color": "C91313FF",
+          "properties": {
+            "description": "New Numbered",
+            "current": 0,
+            "maximum": 3,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 11,
+          "rect": {
+            "X": 0,
+            "Y": 96,
+            "W": 256,
+            "H": 64
+          },
+          "contents": "Number",
+          "custom color": "C91313FF",
+          "properties": {
+            "description": "New Numbered",
+            "current": 2,
+            "maximum": 3,
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "New Sub-Page",
+      "id": 1,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 12,
+          "rect": {
+            "X": 0,
+            "Y": 0,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 13,
+          "rect": {
+            "X": 32,
+            "Y": 32,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        }
+      ]
+    }
+  ],
+  "savedimages": {}
+}

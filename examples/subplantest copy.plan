@@ -1,0 +1,479 @@
+{
+  "version": "0.8.0-alpha.4",
+  "pan": {
+    "X": 1015.6486,
+    "Y": 582.06616
+  },
+  "zoom": 1,
+  "pages": [
+    {
+      "name": "New Page",
+      "id": 0,
+      "pan": {
+        "X": 1015.6486,
+        "Y": 582.06616
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": 128,
+            "Y": 64,
+            "W": 320,
+            "H": 128
+          },
+          "contents": "Sound",
+          "properties": {
+            "filepath": "/home/solarlune/Documents/Projects/Songs/Samples/AmigaDrums/wavs/Amiga-DR-Bass (SH).wav"
+          }
+        },
+        {
+          "id": 1,
+          "rect": {
+            "X": -544,
+            "Y": 160,
+            "W": 320,
+            "H": 128
+          },
+          "contents": "Sound",
+          "properties": {
+            "filepath": "/home/solarlune/Documents/Projects/Songs/Samples/AmigaDrums/wavs/Amiga-DR-Bass (SH).wav"
+          }
+        },
+        {
+          "id": 2,
+          "rect": {
+            "X": -544,
+            "Y": 288,
+            "W": 320,
+            "H": 128
+          },
+          "contents": "Sound",
+          "properties": {
+            "filepath": "/home/solarlune/Documents/Projects/Songs/Samples/AmigaDrums/wavs/Amiga-DR-Clap (DS).wav"
+          }
+        },
+        {
+          "id": 3,
+          "rect": {
+            "X": 160,
+            "Y": 320,
+            "W": 128,
+            "H": 128
+          },
+          "contents": "Image",
+          "properties": {
+            "filepath": ""
+          }
+        },
+        {
+          "id": 4,
+          "rect": {
+            "X": 480,
+            "Y": 352,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "Castle Watchmark",
+            "subpage": 2,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 5,
+          "rect": {
+            "X": 768,
+            "Y": 352,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "Orion",
+            "subpage": 1,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 6,
+          "rect": {
+            "X": 1056,
+            "Y": 352,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "New Sub-Page",
+            "subpage": 3,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 7,
+          "rect": {
+            "X": -96,
+            "Y": 512,
+            "W": 320,
+            "H": 128
+          },
+          "contents": "Sound",
+          "properties": {
+            "filepath": "/home/solarlune/Documents/Projects/Songs/Samples/AmigaDrums/wavs/Amiga-DR-Bass (SH).wav"
+          },
+          "links": [
+            {
+              "start": 7,
+              "end": 10,
+              "joints": [
+                {
+                  "X": 352,
+                  "Y": 576
+                },
+                {
+                  "X": 352,
+                  "Y": 800
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "rect": {
+            "X": -512,
+            "Y": 640,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 9,
+          "rect": {
+            "X": -544,
+            "Y": 736,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "Create a game",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 10,
+          "rect": {
+            "X": -96,
+            "Y": 736,
+            "W": 320,
+            "H": 128
+          },
+          "contents": "Sound",
+          "properties": {
+            "filepath": "/home/solarlune/Documents/Projects/Songs/Samples/AmigaDrums/wavs/Amiga-DR-Clap (DS).wav"
+          },
+          "links": [
+            {
+              "start": 7,
+              "end": 10,
+              "joints": [
+                {
+                  "X": 352,
+                  "Y": 576
+                },
+                {
+                  "X": 352,
+                  "Y": 800
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "rect": {
+            "X": -544,
+            "Y": 768,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "Design Player",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 12,
+          "rect": {
+            "X": 736,
+            "Y": 768,
+            "W": 288,
+            "H": 96
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "itch.io\nsecond?\nThird?",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 13,
+          "rect": {
+            "X": 1088,
+            "Y": 768,
+            "W": 288,
+            "H": 160
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "When we wrap text, the newline doesn't work properly. We keep losing letters? It seems odd.",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 14,
+          "rect": {
+            "X": -512,
+            "Y": 800,
+            "W": 288,
+            "H": 64
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "Design player interactions",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 15,
+          "rect": {
+            "X": -512,
+            "Y": 864,
+            "W": 256,
+            "H": 64
+          },
+          "contents": "Number",
+          "properties": {
+            "description": "Create Levels",
+            "current": 5,
+            "maximum": 8,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 16,
+          "rect": {
+            "X": 448,
+            "Y": 896,
+            "W": 256,
+            "H": 192
+          },
+          "contents": "Timer",
+          "properties": {
+            "description": "New Timer",
+            "max time": "00:00",
+            "mode group": 0,
+            "trigger mode": 0,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 17,
+          "rect": {
+            "X": -544,
+            "Y": 928,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "Play-test",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 18,
+          "rect": {
+            "X": -544,
+            "Y": 960,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 19,
+          "rect": {
+            "X": 0,
+            "Y": 1056,
+            "W": 256,
+            "H": 128
+          },
+          "contents": "Note",
+          "properties": {
+            "description": "New Note",
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orion",
+      "id": 1,
+      "pan": {
+        "X": 7.99994,
+        "Y": 61.24898
+      },
+      "zoom": 4,
+      "cards": [
+        {
+          "id": 20,
+          "rect": {
+            "X": 704,
+            "Y": -576,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 21,
+          "rect": {
+            "X": -128,
+            "Y": 0,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 22,
+          "rect": {
+            "X": -128,
+            "Y": 32,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 23,
+          "rect": {
+            "X": -96,
+            "Y": 64,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 24,
+          "rect": {
+            "X": -96,
+            "Y": 96,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": true,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 25,
+          "rect": {
+            "X": -1120,
+            "Y": 768,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Castle Watchmark",
+      "id": 2,
+      "pan": {
+        "X": -403.19397,
+        "Y": 333.05447
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 26,
+          "rect": {
+            "X": -32,
+            "Y": 0,
+            "W": 256,
+            "H": 128
+          },
+          "contents": "Note",
+          "properties": {
+            "description": "Castle Watchmark should be this one.",
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "New Sub-Page",
+      "id": 3,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1
+    }
+  ],
+  "savedimages": {}
+}

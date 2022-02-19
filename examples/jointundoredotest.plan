@@ -1,0 +1,109 @@
+{
+  "version": "0.8.0-alpha.4",
+  "pan": {
+    "X": 0,
+    "Y": 0
+  },
+  "zoom": 1,
+  "pages": [
+    {
+      "name": "New Page",
+      "id": 0,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": -160,
+            "Y": -128,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          },
+          "links": [
+            {
+              "start": 0,
+              "end": 1,
+              "joints": [
+                {
+                  "X": -160,
+                  "Y": -32
+                }
+              ]
+            },
+            {
+              "start": 0,
+              "end": 3,
+              "joints": []
+            },
+            {
+              "start": 0,
+              "end": 2,
+              "joints": [
+                {
+                  "X": 128,
+                  "Y": -32
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 1,
+          "rect": {
+            "X": -384,
+            "Y": 32,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 2,
+          "rect": {
+            "X": 32,
+            "Y": 32,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 3,
+          "rect": {
+            "X": -160,
+            "Y": 128,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        }
+      ]
+    }
+  ],
+  "savedimages": {}
+}
