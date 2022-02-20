@@ -699,6 +699,45 @@ func main() {
 
 }
 
+func unambiguousPathName(path string, paths []string) string {
+	splitPath := strings.Split(path, string(os.PathSeparator))
+	currentPath := ""
+
+	// Avoid exact same path `path` in `paths` list
+	var newPaths []string
+	for _, otherPath := range paths {
+		if path != otherPath {
+			newPaths = append(newPaths, otherPath)
+		}
+	}
+
+	for at := range splitPath {
+		myTail := len(splitPath)-at
+		currentPath = strings.Join(splitPath[myTail:], string(os.PathSeparator))
+		found := false
+
+		for _, otherPath := range newPaths {
+
+			otherPathSplit := strings.Split(otherPath, string(os.PathSeparator))
+			otherTail := len(otherPathSplit)-at
+			if otherTail < 0 {
+				continue
+			}
+
+			otherPathSliced := strings.Join(otherPathSplit[otherTail:], string(os.PathSeparator))
+			if currentPath == otherPathSliced {
+				found = true
+			}
+		}
+
+		if !found {
+			break
+		}
+	}
+	return currentPath
+}
+
+
 func ConstructMenus() {
 
 	// Main Menu
@@ -848,8 +887,9 @@ func ConstructMenus() {
 			for i, recentName := range globals.RecentFiles {
 				recent := recentName // We have to do this so it points to the correct variable, again
 				row = root.AddRow(AlignLeft)
-				_, filename := filepath.Split(recent)
-				row.Add("", NewButton(strconv.Itoa(i+1)+": "+filename, nil, nil, false, func() {
+				path := unambiguousPathName(recentName, globals.RecentFiles)
+
+				row.Add("", NewButton(strconv.Itoa(i+1)+": "+path, nil, nil, false, func() {
 					globals.Project.LoadConfirmationTo = recent
 					loadConfirm := globals.MenuSystem.Get("confirm load")
 					loadConfirm.Center()
