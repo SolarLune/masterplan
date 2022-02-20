@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -249,6 +250,11 @@ func (project *Project) Draw() {
 
 func (project *Project) Save() {
 
+	if globals.ReleaseMode == "demo" {
+		globals.EventLog.Log("Cannot save in demo mode of MasterPlan.", true)
+		return
+	}
+
 	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
 
 	saveData, _ = sjson.Set(saveData, "pan", project.Camera.TargetPosition)
@@ -281,7 +287,13 @@ func (project *Project) Save() {
 				}
 
 				pagesToSave = append(pagesToSave, subpage)
-				searchForLiveSubpages(project.Pages[subpage])
+
+				for _, page := range project.Pages {
+					if page.ID == subpage {
+						searchForLiveSubpages(page)
+						break
+					}
+				}
 			}
 		}
 	}
@@ -290,8 +302,14 @@ func (project *Project) Save() {
 
 	sort.SliceStable(pagesToSave, func(i, j int) bool { return pagesToSave[i] < pagesToSave[j] })
 
-	for i := range pagesToSave {
-		page := project.Pages[pagesToSave[i]]
+	for i, toSaveID := range pagesToSave {
+		var page *Page
+		for _, p := range project.Pages {
+			if p.ID == toSaveID {
+				page = p
+				break
+			}
+		}
 		pageData += page.Serialize()
 		if i < len(pagesToSave)-1 {
 			pageData += ", "
@@ -305,6 +323,8 @@ func (project *Project) Save() {
 	for _, page := range project.Pages {
 
 		for _, card := range page.Cards {
+
+			fmt.Println("serialize ", card.ID)
 
 			fp := card.Properties.Get("filepath").AsString()
 
@@ -341,7 +361,7 @@ func (project *Project) Save() {
 		file.Close()
 	}
 
-	globals.EventLog.Log("Project saved successfully.")
+	globals.EventLog.Log("Project saved successfully.", false)
 
 	project.Modified = false
 
@@ -385,14 +405,14 @@ func OpenProjectFrom(filename string) {
 
 	jsonData, err := os.ReadFile(filename)
 	if err != nil {
-		globals.EventLog.Log("Error: %s", err.Error())
+		globals.EventLog.Log("Error: %s", true, err.Error())
 	} else {
 
 		json := string(jsonData)
 
 		if ver, err := semver.Parse(gjson.Get(json, "version").String()); err != nil || ver.Minor < 8 {
-			globals.EventLog.Log("Error: Can't load project [%s] as it's a pre-0.8 project.", filename)
-			globals.EventLog.Log("Pre-0.8 projects will be supported later.")
+			globals.EventLog.Log("Error: Can't load project [%s] as it's a pre-0.8 project.", true, filename)
+			globals.EventLog.Log("Pre-0.8 projects will be supported later.", true)
 		} else {
 
 			// Limit the length of the recent files list to 10 (this is arbitrary, but should be good enough)
@@ -520,7 +540,7 @@ func OpenProjectFrom(filename string) {
 			newProject.UndoHistory.MinimumFrame = 1
 			globals.EventLog.On = true
 
-			globals.EventLog.Log("Project loaded successfully.")
+			globals.EventLog.Log("Project loaded successfully.", false)
 
 		}
 

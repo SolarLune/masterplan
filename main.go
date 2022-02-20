@@ -33,7 +33,6 @@ import (
 )
 
 // Build-time variables; set by modeDemo.go and modeRelease.go.
-var releaseMode = "dev"
 
 var takeScreenshot = false
 
@@ -44,34 +43,6 @@ var targetFPS = 60
 var cpuProfileStart = time.Time{}
 
 func init() {
-
-	if releaseMode != "dev" {
-
-		// Redirect STDERR and STDOUT to log.txt in release mode
-
-		existingLogs := FilesInDirectory(filepath.Join(xdg.ConfigHome, "MasterPlan"), "log")
-
-		// Destroy old logs; max is 20 (for now)
-		for len(existingLogs) > 20 {
-			os.Remove(existingLogs[0])
-			existingLogs = existingLogs[1:]
-		}
-
-		logPath, err := xdg.ConfigFile("MasterPlan/log_" + time.Now().Format(FileTimeFormat) + ".txt")
-		if err != nil {
-			panic(err)
-		}
-		f, err := os.Create(logPath)
-		if err != nil {
-			panic(err)
-		}
-
-		os.Stderr = f
-		os.Stdout = f
-
-		log.SetOutput(f)
-
-	}
 
 	runtime.LockOSThread()
 
@@ -102,13 +73,42 @@ func init() {
 
 func main() {
 
+	// We want this here because releaseMode can change because of build tags, so we want to be sure all init() functions run to ensure the releaseMode variable is accurate
+	if globals.ReleaseMode != "dev" {
+
+		// Redirect STDERR and STDOUT to log.txt in release mode
+
+		existingLogs := FilesInDirectory(filepath.Join(xdg.ConfigHome, "MasterPlan"), "log")
+
+		// Destroy old logs; max is 20 (for now)
+		for len(existingLogs) > 20 {
+			os.Remove(existingLogs[0])
+			existingLogs = existingLogs[1:]
+		}
+
+		logPath, err := xdg.ConfigFile("MasterPlan/log_" + time.Now().Format(FileTimeFormat) + ".txt")
+		if err != nil {
+			panic(err)
+		}
+		f, err := os.Create(logPath)
+		if err != nil {
+			panic(err)
+		}
+
+		os.Stderr = f
+		os.Stdout = f
+
+		log.SetOutput(f)
+
+	}
+
 	// We want to defer a function to recover out of a crash if in release mode.
 	// We do this because by default, Go's stderr points directly to the OS's syserr buffer.
 	// By deferring this function and recovering out of the crash, we can grab the crashlog by
 	// using runtime.Caller().
 
 	defer func() {
-		if releaseMode != "dev" {
+		if globals.ReleaseMode != "dev" {
 			panicOut := recover()
 			if panicOut != nil {
 
@@ -139,7 +139,7 @@ func main() {
 		}
 	}()
 
-	fmt.Println("Release mode:", releaseMode)
+	fmt.Println("Release mode:", globals.ReleaseMode)
 
 	loadThemes()
 
@@ -482,32 +482,31 @@ func main() {
 			fontColor := getThemeColor(GUIFontColor)
 			fadeValue, _, _ := event.Tween.Update(globals.DeltaTime)
 
-			if globals.Settings.Get(SettingsDisplayMessages).AsBool() {
+			// Status message display is always on now; it's just a matter of if low-priority messages are logged or not
+			// if globals.Settings.Get(SettingsDisplayMessages).AsBool() {
 
-				event.Y += (eventY - event.Y) * 0.2
+			event.Y += (eventY - event.Y) * 0.2
 
-				fade := uint8(float32(fontColor[3]) * fadeValue)
+			fade := uint8(float32(fontColor[3]) * fadeValue)
 
-				m := ""
+			m := ""
 
-				if event.Multiplier > 0 {
-					m = " (x" + strconv.Itoa(event.Multiplier+1) + ")"
-				}
-
-				text := event.Time + " " + event.Text + m
-
-				textSize := globals.TextRenderer.MeasureText([]rune(text), msgSize)
-
-				dst := &sdl.FRect{0, event.Y, textSize.X, textSize.Y}
-				bgColor[3] = fade
-				fontColor[3] = fade
-
-				FillRect(dst.X, dst.Y-dst.H, dst.W, dst.H, bgColor)
-				globals.TextRenderer.QuickRenderText(text, Point{0, event.Y - dst.H}, msgSize, fontColor, AlignLeft)
-
-				eventY -= dst.H
-
+			if event.Multiplier > 0 {
+				m = " (x" + strconv.Itoa(event.Multiplier+1) + ")"
 			}
+
+			text := event.Time + " " + event.Text + m
+
+			textSize := globals.TextRenderer.MeasureText([]rune(text), msgSize)
+
+			dst := &sdl.FRect{0, event.Y, textSize.X, textSize.Y}
+			bgColor[3] = fade
+			fontColor[3] = fade
+
+			FillRect(dst.X, dst.Y-dst.H, dst.W, dst.H, bgColor)
+			globals.TextRenderer.QuickRenderText(text, Point{0, event.Y - dst.H}, msgSize, fontColor, AlignLeft)
+
+			eventY -= dst.H
 
 		}
 
@@ -577,17 +576,17 @@ func main() {
 
 			surf, err := sdl.CreateRGBSurfaceWithFormat(0, int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y), 32, sdl.PIXELFORMAT_ARGB8888)
 			if err != nil {
-				globals.EventLog.Log(err.Error())
+				globals.EventLog.Log(err.Error(), false)
 			} else {
 				defer surf.Free()
 
 				if err := globals.Renderer.ReadPixels(nil, surf.Format.Format, surf.Data(), int(surf.Pitch)); err != nil {
-					globals.EventLog.Log(err.Error())
+					globals.EventLog.Log(err.Error(), false)
 				}
 
 				screenshotFile, err := os.Create(screenshotPath)
 				if err != nil {
-					globals.EventLog.Log(err.Error())
+					globals.EventLog.Log(err.Error(), false)
 				} else {
 					defer screenshotFile.Close()
 
@@ -602,10 +601,10 @@ func main() {
 					err := png.Encode(screenshotFile, image)
 
 					if err != nil {
-						globals.EventLog.Log(err.Error())
+						globals.EventLog.Log(err.Error(), false)
 					} else {
 						screenshotFile.Sync()
-						globals.EventLog.Log("Screenshot saved successfully to %s.", screenshotPath)
+						globals.EventLog.Log("Screenshot saved successfully to %s.", false, screenshotPath)
 					}
 
 				}
@@ -636,8 +635,8 @@ func main() {
 
 		demoText := ""
 
-		if releaseMode == "demo" {
-			demoText = "[DEMO]"
+		if globals.ReleaseMode == "demo" {
+			demoText = " [DEMO]"
 		}
 
 		title := "MasterPlan v" + globals.Version.String() + demoText
@@ -760,7 +759,7 @@ func ConstructMenus() {
 			confirmNewProject.Open()
 		} else {
 			globals.NextProject = NewProject()
-			globals.EventLog.Log("New project created.")
+			globals.EventLog.Log("New project created.", false)
 		}
 
 		fileMenu.Close()
@@ -991,7 +990,7 @@ func ConstructMenus() {
 			card.CustomColor = colorWheel.SampledColor.Clone()
 			card.CreateUndoState = true
 		}
-		globals.EventLog.Log("Color applied for %d card(s).", len(selectedCards))
+		globals.EventLog.Log("Color applied for %d card(s).", false, len(selectedCards))
 	}))
 
 	setColor.AddRow(AlignCenter).Add("default", NewButton("Reset to Default", nil, nil, false, func() {
@@ -1000,7 +999,7 @@ func ConstructMenus() {
 			card.CustomColor = nil
 			card.CreateUndoState = true
 		}
-		globals.EventLog.Log("Color reset to default for %d card(s).", len(selectedCards))
+		globals.EventLog.Log("Color reset to default for %d card(s).", false, len(selectedCards))
 	}))
 
 	setType := editMenu.AddPage("set type")
@@ -1131,7 +1130,7 @@ func ConstructMenus() {
 	row = root.AddRow(AlignCenter)
 	row.Add("yes", NewButton("Yes", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
 		globals.NextProject = NewProject()
-		globals.EventLog.Log("New project created.")
+		globals.EventLog.Log("New project created.", false)
 		confirmNewProject.Close()
 	}))
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmNewProject.Close() }))
@@ -1543,7 +1542,11 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 
 	row = about.AddRow(AlignCenter)
-	row.Add("", NewLabel("This is an alpha of the next update, v0.8.0. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet.", &sdl.FRect{0, 0, 512, 128}, false, AlignLeft))
+	if globals.ReleaseMode == "demo" {
+		row.Add("", NewLabel("This is a demo of the next update, v0.8.0. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet. Being in demo mode means you can't save, but you can still get a feel for using the program.", &sdl.FRect{0, 0, 512, 200}, false, AlignLeft))
+	} else {
+		row.Add("", NewLabel("This is an alpha of the next update, v0.8.0. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet.", &sdl.FRect{0, 0, 512, 128}, false, AlignLeft))
+	}
 
 	row = about.AddRow(AlignCenter)
 	row.Add("", NewLabel("That said, I think this is already FAR better than v0.7 and am very excited to get people using it and get some feedback on the new changes. Please do let me know your thoughts! (And don't forget to do frequent back-ups!) ~ SolarLune", &sdl.FRect{0, 0, 512, 160}, false, AlignLeft))
@@ -1893,7 +1896,7 @@ func ConstructMenus() {
 				card.Contents.(*MapContents).MapData.Push(-int(number.Value), 0)
 			}
 		}
-		globals.EventLog.Log("Map shifted by %d to the left.", int(number.Value))
+		globals.EventLog.Log("Map shifted by %d to the left.", false, int(number.Value))
 
 	})
 
@@ -1904,7 +1907,7 @@ func ConstructMenus() {
 				card.Contents.(*MapContents).MapData.Push(int(number.Value), 0)
 			}
 		}
-		globals.EventLog.Log("Map shifted by %d to the right.", int(number.Value))
+		globals.EventLog.Log("Map shifted by %d to the right.", false, int(number.Value))
 
 	})
 
@@ -1916,7 +1919,7 @@ func ConstructMenus() {
 			}
 		}
 
-		globals.EventLog.Log("Map shifted by %d upward.", int(number.Value))
+		globals.EventLog.Log("Map shifted by %d upward.", false, int(number.Value))
 
 	})
 
@@ -1928,7 +1931,7 @@ func ConstructMenus() {
 			}
 		}
 
-		globals.EventLog.Log("Map shifted by %d downward.", int(number.Value))
+		globals.EventLog.Log("Map shifted by %d downward.", false, int(number.Value))
 
 	})
 
@@ -1954,7 +1957,7 @@ func profileCPU() {
 		log.Fatal("Could not create CPU Profile: ", err)
 	}
 	pprof.StartCPUProfile(cpuProfFile)
-	globals.EventLog.Log("CPU Profiling begun.")
+	globals.EventLog.Log("CPU Profiling begun.", false)
 
 	time.AfterFunc(time.Second*2, func() {
 		cpuProfileStart = time.Time{}

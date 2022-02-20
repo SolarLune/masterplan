@@ -31,9 +31,9 @@ func NewEventLog() *EventLog {
 	return &EventLog{Events: []*Event{}, On: true}
 }
 
-func (eventLog *EventLog) Log(text string, variables ...interface{}) {
+func (eventLog *EventLog) Log(text string, force bool, variables ...interface{}) {
 
-	if !eventLog.On {
+	if !force && (!eventLog.On || !globals.Settings.Get(SettingsDisplayMessages).AsBool()) {
 		return
 	}
 

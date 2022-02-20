@@ -298,7 +298,7 @@ func (page *Page) CreateNewCard(contentType string) *Card {
 
 	page.Project.UndoHistory.Capture(NewUndoState(newCard))
 
-	globals.EventLog.Log("Created new Card.")
+	globals.EventLog.Log("Created new Card.", false)
 	return newCard
 
 }
@@ -324,7 +324,7 @@ func (page *Page) CardByLoadedID(id int64) *Card {
 func (page *Page) DeleteCards(cards ...*Card) {
 	// no need to log "Deleted 0 cards"
 	if len(cards) > 0 {
-		globals.EventLog.Log("Deleted %d Cards.", len(cards))
+		globals.EventLog.Log("Deleted %d Cards.", false, len(cards))
 		deletion := NewMessage(MessageCardDeleted, nil, nil)
 		for _, card := range cards {
 			card.Valid = false
@@ -348,7 +348,7 @@ func (page *Page) CopySelectedCards() {
 	for card := range page.Selection.Cards {
 		globals.CopyBuffer.Copy(card)
 	}
-	globals.EventLog.Log("Copied %d Cards.", len(globals.CopyBuffer.Cards))
+	globals.EventLog.Log("Copied %d Cards.", false, len(globals.CopyBuffer.Cards))
 }
 
 func (page *Page) PasteCards(offset Point) {
@@ -417,7 +417,7 @@ func (page *Page) PasteCards(offset Point) {
 
 	globals.EventLog.On = true
 
-	globals.EventLog.Log("Pasted %d Cards.", len(globals.CopyBuffer.Cards))
+	globals.EventLog.Log("Pasted %d Cards.", false, len(globals.CopyBuffer.Cards))
 
 }
 
@@ -454,7 +454,7 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 
 			text, err := os.ReadFile(filePath)
 			if err != nil {
-				globals.EventLog.Log(err.Error())
+				globals.EventLog.Log(err.Error(), false)
 			} else {
 				card := page.CreateNewCard(ContentTypeCheckbox)
 				card.Properties.Get("description").Set(string(text))
@@ -473,7 +473,7 @@ func (page *Page) HandleExternalPaste() {
 	if clipboardImg := clipboard.Read(clipboard.FmtImage); clipboardImg != nil {
 
 		if filePath, err := WriteImageToTemp(clipboardImg); err != nil {
-			globals.EventLog.Log(err.Error())
+			globals.EventLog.Log(err.Error(), false)
 		} else {
 
 			globals.Resources.Get(filePath).TempFile = true
@@ -617,7 +617,7 @@ func (page *Page) HandleExternalPaste() {
 
 				globals.EventLog.On = true
 
-				globals.EventLog.Log("Pasted %d new Checkbox Tasks from clipboard content.", len(linesOut))
+				globals.EventLog.Log("Pasted %d new Checkbox Tasks from clipboard content.", false, len(linesOut))
 
 			} else {
 

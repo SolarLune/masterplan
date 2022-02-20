@@ -43,6 +43,7 @@ type Globals struct {
 	MenuSystem        *MenuSystem
 	EventLog          *EventLog
 	WindowFlags       uint32
+	ReleaseMode       string
 
 	Settings       *Properties
 	SettingsLoaded bool
@@ -54,4 +55,6 @@ type Globals struct {
 	TriggerReloadFonts bool
 }
 
-var globals = &Globals{}
+var globals = &Globals{
+	ReleaseMode: "dev",
+}

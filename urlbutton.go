@@ -47,7 +47,7 @@ func (urlButton *URLButton) Parse() {
 
 	resp, err := globals.HTTPClient.Get(urlButton.Link)
 	if err != nil {
-		globals.EventLog.Log(err.Error())
+		globals.EventLog.Log(err.Error(), true)
 	} else {
 
 		doc, _ := goquery.NewDocumentFromReader(resp.Body)

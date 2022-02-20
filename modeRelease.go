@@ -3,5 +3,5 @@
 package main
 
 func init() {
-	releaseMode = "release"
+	globals.ReleaseMode = "release"
 }

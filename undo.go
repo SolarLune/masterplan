@@ -116,7 +116,7 @@ func (history *UndoHistory) Undo() bool {
 
 		globals.EventLog.On = true
 
-		globals.EventLog.Log("Undo event triggered.")
+		globals.EventLog.Log("Undo event triggered.", false)
 
 		history.On = true
 
@@ -169,7 +169,7 @@ func (history *UndoHistory) Redo() bool {
 
 		globals.EventLog.On = true
 
-		globals.EventLog.Log("Redo event triggered.")
+		globals.EventLog.Log("Redo event triggered.", false)
 
 		history.On = true
 

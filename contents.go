@@ -170,7 +170,8 @@ func (cc *CheckboxContents) Draw() {
 			dst = cc.Card.Page.Project.Camera.TranslateRect(dst)
 			color := getThemeColor(GUICompletedColor)
 			if cc.Card.CustomColor != nil {
-				color = cc.Card.CustomColor.Add(40)
+				h, s, v := cc.Card.CustomColor.HSV()
+				color = NewColorFromHSV(h+30, s-0.2, v+0.2)
 			}
 			cc.Card.Result.Texture.SetColorMod(color.RGB())
 			globals.Renderer.CopyF(cc.Card.Result.Texture, src, dst)
@@ -224,7 +225,8 @@ func (cc *CheckboxContents) Color() Color {
 
 	if cc.Card.CustomColor != nil {
 		color = cc.Card.CustomColor
-		completedColor = cc.Card.CustomColor.Add(40)
+		h, s, v := cc.Card.CustomColor.HSV()
+		completedColor = NewColorFromHSV(h+30, s-0.2, v+0.2)
 	}
 
 	if len(cc.DependentCards()) > 0 {
@@ -457,7 +459,8 @@ func (nc *NumberedContents) Draw() {
 
 		completionColor := getThemeColor(GUICompletedColor)
 		if nc.Card.CustomColor != nil {
-			completionColor = nc.Card.CustomColor
+			h, s, v := nc.Card.CustomColor.HSV()
+			completionColor = NewColorFromHSV(h+30, s-0.2, v+0.2)
 		}
 
 		nc.Card.Result.Texture.SetColorMod(completionColor.RGB())
@@ -484,7 +487,8 @@ func (nc *NumberedContents) Color() Color {
 
 	if nc.Card.CustomColor != nil {
 		color = nc.Card.CustomColor
-		completedColor = nc.Card.CustomColor.Add(40)
+		h, s, v := nc.Card.CustomColor.HSV()
+		completedColor = NewColorFromHSV(h+30, s-0.2, v+0.2)
 	}
 
 	if nc.PercentageComplete >= 0.99 {
@@ -647,7 +651,7 @@ func NewSoundContents(card *Card) *SoundContents {
 		"browse button", NewButton("Browse", nil, nil, true, func() {
 			filepath, err := zenity.SelectFile(zenity.Title("Select audio file..."), zenity.FileFilters{{Name: "Audio files", Patterns: []string{"*.wav", "*.ogg", "*.oga", "*.mp3", "*.flac"}}})
 			if err != nil {
-				globals.EventLog.Log(err.Error())
+				globals.EventLog.Log(err.Error(), false)
 			} else {
 				soundContents.LoadFileFrom(filepath)
 			}
@@ -722,7 +726,7 @@ func (sc *SoundContents) Update() {
 		if sc.Resource.FinishedDownloading() {
 
 			if !sc.Resource.IsSound() {
-				globals.EventLog.Log("Error: Couldn't load [%s] as sound resource", sc.Resource.Name)
+				globals.EventLog.Log("Error: Couldn't load [%s] as sound resource", false, sc.Resource.Name)
 				sc.Resource = nil
 				return
 			} else if sc.Sound == nil || sc.Sound.Empty {
@@ -956,7 +960,7 @@ func NewImageContents(card *Card) *ImageContents {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			filepath, err := zenity.SelectFile(zenity.Title("Select image file..."), zenity.FileFilters{{Name: "Image files", Patterns: []string{"*.bmp", "*.gif", "*.png", "*.jpeg", "*.jpg"}}})
 			if err != nil {
-				globals.EventLog.Log(err.Error())
+				globals.EventLog.Log(err.Error(), false)
 			} else {
 				imageContents.LoadFileFrom(filepath)
 			}
@@ -1244,9 +1248,9 @@ func NewTimerContents(card *Card) *TimerContents {
 	tc.Mode = NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, true, func(index int) {
 		tc.Running = false
 		if index == 0 {
-			globals.EventLog.Log("Timer Mode changed to Stopwatch.")
+			globals.EventLog.Log("Timer Mode changed to Stopwatch.", false)
 		} else {
-			globals.EventLog.Log("Timer Mode changed to Countdown.")
+			globals.EventLog.Log("Timer Mode changed to Countdown.", false)
 		}
 	}, card.Properties.Get("mode group"),
 		&sdl.Rect{48, 192, 32, 32},
@@ -1255,11 +1259,11 @@ func NewTimerContents(card *Card) *TimerContents {
 
 	tc.TriggerMode = NewIconButtonGroup(&sdl.FRect{0, 0, 96, 32}, true, func(index int) {
 		if index == 0 {
-			globals.EventLog.Log("Timer Trigger Mode changed to Toggle.")
+			globals.EventLog.Log("Timer Trigger Mode changed to Toggle.", false)
 		} else if index == 1 {
-			globals.EventLog.Log("Timer Trigger Mode changed to Set.")
+			globals.EventLog.Log("Timer Trigger Mode changed to Set.", false)
 		} else {
-			globals.EventLog.Log("Timer Trigger Mode changed to Clear.")
+			globals.EventLog.Log("Timer Trigger Mode changed to Clear.", false)
 		}
 	}, card.Properties.Get("trigger mode"),
 		&sdl.Rect{112, 192, 32, 32},
@@ -1338,7 +1342,7 @@ func (tc *TimerContents) Update() {
 			elapsedMessage := "Timer [" + tc.Name.TextAsString() + "] elapsed."
 
 			tc.Running = false
-			globals.EventLog.Log(elapsedMessage)
+			globals.EventLog.Log(elapsedMessage, false)
 			tc.Pie.FillPercent = 0
 			tc.TimerValue = 0
 

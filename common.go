@@ -83,7 +83,7 @@ func LocalRelativePath(localPath string) string {
 
 	workingDirectory := filepath.Dir(exePath)
 
-	if releaseMode == "dev" {
+	if globals.ReleaseMode == "dev" {
 		// Not in release mode, so current working directory is the root.
 		workingDirectory, _ = os.Getwd()
 	}
@@ -273,7 +273,7 @@ func WriteImageToTemp(clipboardImg []byte) (string, error) {
 
 	if err = os.Mkdir(mpTmpDir, os.ModeDir+os.ModeAppend+os.ModePerm); err != nil {
 		// We're going to continue past any error from os.Mkdir, if there is one, as that just means the folder must exist already.
-		globals.EventLog.Log(err.Error())
+		globals.EventLog.Log(err.Error(), false)
 	}
 
 	file, err = os.CreateTemp(mpTmpDir, "screenshot_*.png")
@@ -301,7 +301,7 @@ func HandleFontReload() {
 			if FileExists(customFontPath) {
 				fontPath = customFontPath
 			} else {
-				globals.EventLog.Log(`ERROR: Custom font "%s" doesn't exist. Please check path.`, customFontPath)
+				globals.EventLog.Log(`ERROR: Custom font "%s" doesn't exist. Please check path.`, false, customFontPath)
 			}
 		}
 
@@ -309,9 +309,9 @@ func HandleFontReload() {
 
 			if globals.LoadedFontPath != "" {
 				if customFontPath != "" {
-					globals.EventLog.Log("Custom font [%s] set.\nIt may not display correctly until after restarting MasterPlan.", customFontPath)
+					globals.EventLog.Log("Custom font [%s] set.\nIt may not display correctly until after restarting MasterPlan.", false, customFontPath)
 				} else {
-					globals.EventLog.Log("Custom font un-set.\nOriginal font will be used. It may not display correctly until after restarting MasterPlan.")
+					globals.EventLog.Log("Custom font un-set.\nOriginal font will be used. It may not display correctly until after restarting MasterPlan.", false)
 				}
 			}
 
@@ -379,6 +379,30 @@ func NewColor(r, g, b, a uint8) Color {
 
 // Cribbed from: https://github.com/lucasb-eyer/go-colorful/blob/master/colors.go
 func NewColorFromHSV(h, s, v float64) Color {
+
+	capValue := func(value, cap float64) float64 {
+		if value > cap {
+			value -= cap
+		}
+		if value < 0 {
+			value += cap
+		}
+		return value
+	}
+
+	h = capValue(h, 360)
+	if s > 1 {
+		s = 1
+	} else if s < 0 {
+		s = 0
+	}
+
+	if v > 1 {
+		v = 1
+	} else if v < 0 {
+		v = 0
+	}
+
 	Hp := h / 60.0
 	C := v * s
 	X := C * (1.0 - math.Abs(math.Mod(Hp, 2.0)-1.0))

@@ -374,20 +374,25 @@ func main() {
 		fmt.Println(*osFlag)
 		if *osFlag == "all" {
 			build(filepath.Join("bin", "linux-0.8-Release-64"), "release", "linux")
+			build(filepath.Join("bin", "linux-0.8-Demo-64"), "demo", "linux")
 			build(filepath.Join("bin", "windows-0.8-Release-64"), "release", "windows")
+			build(filepath.Join("bin", "windows-0.8-Demo-64"), "demo", "windows")
 			build(filepath.Join("bin", "macos-0.8-Release-64"), "release", "darwin")
+			build(filepath.Join("bin", "macos-0.8-Demo-64"), "demo", "darwin")
 		} else if *osFlag != "" {
 			targetName := *osFlag
 			if strings.Contains(targetName, "darwin") {
 				targetName = "macos"
 			}
 			build(filepath.Join("bin", targetName+"-0.8-Release-64"), "release", *osFlag)
+			build(filepath.Join("bin", targetName+"-0.8-Demo-64"), "demo", *osFlag)
 		} else {
 			targetName := runtime.GOOS
 			if strings.Contains(targetName, "darwin") {
 				targetName = "macos"
 			}
 			build(filepath.Join("bin", targetName+"-0.8-Release-64"), "release", runtime.GOOS)
+			build(filepath.Join("bin", targetName+"-0.8-Demo-64"), "demo", runtime.GOOS)
 		}
 		// Demo builds are paused until MasterPlan v0.8 is the main version.
 		// build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Demo", target)), "-X main.releaseMode=true -X main.demoMode=DEMO", *targetOS)
