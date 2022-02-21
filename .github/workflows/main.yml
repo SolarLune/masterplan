@@ -33,8 +33,13 @@ jobs:
 
     - uses: actions/upload-artifact@v2
       with:
-        name: _GH-Actions-MasterPlan-Linux-v0.8.0.a4
+        name: _GH-Actions-MasterPlan-Linux-Release-v0.8.0.a4
         path: ./bin/linux-0.8-Release-64.tar.gz
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: _GH-Actions-MasterPlan-Linux-Demo-v0.8.0.a4
+        path: ./bin/linux-0.8-Demo-64.tar.gz
 
 
   # For some reason, building on Windows creates a terminal window despite specifying -H=windowsgui in the build settings. For now, I'll crosscompile on my machine.
@@ -60,9 +65,13 @@ jobs:
 
   #   - uses: actions/upload-artifact@v2
   #     with:
-  #       name: _GH-Actions-MasterPlan-Windows-v0.8.0.a4
+  #       name: _GH-Actions-MasterPlan-Windows-Release-v0.8.0.a4
   #       path: ./bin/windows-0.8-Release-64.zip
 
+  #   - uses: actions/upload-artifact@v2
+  #     with:
+  #       name: _GH-Actions-MasterPlan-Windows-Demo-v0.8.0.a4
+  #       path: ./bin/windows-0.8-Demo-64.zip
 
 
   buildMac:
@@ -89,5 +98,10 @@ jobs:
 
     - uses: actions/upload-artifact@v2
       with:
-        name: _GH-Actions-MasterPlan-MacOS-v0.8.0.a4
+        name: _GH-Actions-MasterPlan-MacOS-Release-v0.8.0.a4
         path: bin/macos-0.8-Release-64.tar.gz
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: _GH-Actions-MasterPlan-MacOS-Demo-v0.8.0.a4
+        path: bin/macos-0.8-Demo-64.tar.gz
