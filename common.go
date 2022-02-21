@@ -511,6 +511,14 @@ func (color Color) Equals(other Color) bool {
 		color[3] == other[3]
 }
 
+func (color Color) Mix(other Color, percentage float64) Color {
+	newColor := NewColor(color.RGBA())
+	for i := range other {
+		newColor[i] += uint8((float64(other[i]) - float64(newColor[i])) * percentage)
+	}
+	return newColor
+}
+
 func (color Color) Clone() Color {
 	return NewColor(color.RGBA())
 }

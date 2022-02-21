@@ -35,6 +35,7 @@ const (
 	SettingsReversePan             = "ReversePan"
 	SettingsAutoLoadLastProject    = "AutoLoadLastProject"
 	SettingsScreenshotPath         = "ScreenshotPath"
+	SettingsSmoothMovement         = "SmoothMovement"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"
@@ -42,6 +43,8 @@ const (
 )
 
 func NewProgramSettings() *Properties {
+
+	// We're setting the defaults here; after setting them, we'll attempt to load settings from a preferences file below
 
 	props := NewProperties()
 	props.Get(SettingsTheme).Set("Moonlight")
@@ -63,6 +66,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsCustomFontPath).Set("")
 	props.Get(SettingsScreenshotPath).Set("")
 	props.Get(SettingsAutoLoadLastProject).Set(false)
+	props.Get(SettingsSmoothMovement).Set(true)
 
 	borderless := props.Get(SettingsBorderlessWindow)
 	borderless.Set(false)

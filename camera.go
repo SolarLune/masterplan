@@ -24,6 +24,10 @@ func (camera *Camera) Update() {
 
 	softness := float32(0.2)
 
+	if !globals.Settings.Get(SettingsSmoothMovement).AsBool() {
+		softness = 1
+	}
+
 	camera.Zoom += (camera.TargetZoom - camera.Zoom) * softness
 
 	if math.Abs(float64(camera.TargetZoom-camera.Zoom)) < 0.01 {

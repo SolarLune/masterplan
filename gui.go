@@ -1086,10 +1086,10 @@ type Label struct {
 	OnChange            func()
 	OnClickOut          func()
 	textChanged         bool
-	Highlighter         *Highlighter
 	maxSize             Point
 	Property            *Property
 	MaxLength           int
+	MousedOver          bool
 }
 
 // NewLabel creates a new Label object. a rect of nil means the Label will default to a rectangle of the necessary size to fully display the text given.
@@ -1101,14 +1101,10 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 		WorldSpace:          worldSpace,
 		HorizontalAlignment: horizontalAlignment,
 		Alpha:               1,
-		Highlighter:         NewHighlighter(&sdl.FRect{}, worldSpace),
 		RegexString:         "",
 		MaxLength:           -1,
 		DrawLineUnderTitle:  true,
 	}
-
-	label.Highlighter.HighlightMode = HighlightColor
-	label.Highlighter.Color = getThemeColor(GUIFontColor)
 
 	if rect == nil {
 		// A rect width or height of -1, -1 means the Label's rect's size should expand to fill as necessary
@@ -1146,7 +1142,7 @@ func (label *Label) Update() {
 		// activeRect.W = label.RendererResult.Image.Size.X
 		// activeRect.H = label.RendererResult.Image.Size.Y
 
-		label.Highlighter.Highlighting = false
+		label.MousedOver = false
 
 		if label.Editable && (globals.State == StateNeutral || (globals.State == StateTextEditing && label.Editing)) {
 
@@ -1477,17 +1473,14 @@ func (label *Label) Update() {
 					label.Selection.AdvanceCaret(len(globals.InputText))
 				}
 
-			} else {
-				label.Highlighter.SetRect(label.Rect)
-				if globals.Mouse.CurrentCursor == "normal" {
+			} else if globals.Mouse.CurrentCursor == "normal" {
 
-					if label.WorldSpace {
-						label.Highlighter.Highlighting = globals.Mouse.WorldPosition().Inside(label.Rect)
-					} else {
-						label.Highlighter.Highlighting = globals.Mouse.Position().Inside(label.Rect)
-					}
-
+				if label.WorldSpace {
+					label.MousedOver = globals.Mouse.WorldPosition().Inside(label.Rect)
+				} else {
+					label.MousedOver = globals.Mouse.Position().Inside(label.Rect)
 				}
+
 			}
 
 		}
@@ -1542,7 +1535,6 @@ func (label *Label) Draw() {
 	}
 
 	if label.Editable && label.RendererResult != nil {
-		label.Highlighter.Draw()
 
 		if label.DrawLineUnderTitle {
 
@@ -1652,8 +1644,9 @@ func (label *Label) Draw() {
 
 		color := getThemeColor(GUIFontColor)
 
-		if label.Highlighter.Highlighting {
-			color = color.Invert()
+		if label.MousedOver {
+			t := (1 + math.Sin(globals.Time*math.Pi*2)) * 0.5
+			color = color.Mix(color.Invert(), t*0.75)
 		}
 		label.RendererResult.Image.Texture.SetColorMod(color.RGB())
 		label.RendererResult.Image.Texture.SetAlphaMod(uint8(label.Alpha * 255))
@@ -2446,7 +2439,7 @@ func (scrollbar *Scrollbar) Update() {
 
 	}
 
-	if scrollbar.Soft {
+	if scrollbar.Soft && globals.Settings.Get(SettingsSmoothMovement).AsBool() {
 		scrollbar.Value += (scrollbar.TargetValue - scrollbar.Value) * 12 * globals.DeltaTime
 	} else {
 		scrollbar.Value = scrollbar.TargetValue

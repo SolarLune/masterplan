@@ -712,14 +712,14 @@ func unambiguousPathName(path string, paths []string) string {
 	}
 
 	for at := range splitPath {
-		myTail := len(splitPath)-at
+		myTail := len(splitPath) - at
 		currentPath = strings.Join(splitPath[myTail:], string(os.PathSeparator))
 		found := false
 
 		for _, otherPath := range newPaths {
 
 			otherPathSplit := strings.Split(otherPath, string(os.PathSeparator))
-			otherTail := len(otherPathSplit)-at
+			otherTail := len(otherPathSplit) - at
 			if otherTail < 0 {
 				continue
 			}
@@ -736,7 +736,6 @@ func unambiguousPathName(path string, paths []string) string {
 	}
 	return currentPath
 }
-
 
 func ConstructMenus() {
 
@@ -1380,6 +1379,10 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Flash Selected Cards:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFlashSelected)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Smooth movement:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSmoothMovement)))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
