@@ -1,5 +1,18 @@
 -------
 
+v0.8.0-alpha4.2
+
+-------
+
+RE-IMPLEMENTATION: Adding movement smoothing. Defaults to on; turning it off makes movement, zooming, and scrolling absolute, rather than smoothed.
+QoL: Removing "colored area" around editable text labels.
+QoL: Fix text rendering artifacts on menus. (Thanks, @ishidex2!)
+QOL: If path names in the Open Recent menu have the same filename, more of the path will be displayed to make it unambiguous. (Thanks, @ishidex2!)
+FIX: The completion color for custom colored Cards is now tweaked slightly for enhanced visibility.
+FIX: MasterPlan no longer crashes when saving pages when subpages were created out of order.
+
+-------
+
 v0.8.0-alpha4.1
 
 -------
