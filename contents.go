@@ -393,6 +393,8 @@ func NewNumberedContents(card *Card) *NumberedContents {
 
 	current := card.Properties.Get("current")
 	numbered.Current = NewNumberSpinner(nil, true, current)
+	// Don't allow negative numbers of tasks completed
+	numbered.Current.SetLimits(0, math.MaxFloat64)
 
 	max := card.Properties.Get("maximum")
 	numbered.Max = NewNumberSpinner(nil, true, max)
