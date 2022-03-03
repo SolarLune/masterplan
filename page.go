@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -14,19 +15,19 @@ import (
 )
 
 type Page struct {
-	ID             uint64
-	Project        *Project
-	ReferenceCount int
-	UpwardPage     *Page
-	Grid           *Grid
-	Cards          []*Card
-	ToDelete       []*Card
-	ToRestore      []*Card
-	Selection      *Selection
-	Name           string
-	UpdateStacks   bool
-	Drawables      []*Drawable
-	ToRaise        []*Card
+	ID                  uint64
+	Project             *Project
+	UpwardPage          *Page
+	PointingSubpageCard *Card
+	Grid                *Grid
+	Cards               []*Card
+	ToDelete            []*Card
+	ToRestore           []*Card
+	Selection           *Selection
+	UpdateStacks        bool
+	Drawables           []*Drawable
+	ToRaise             []*Card
+	Valid               bool
 
 	IgnoreWritePan bool
 	Pan            Point
@@ -41,16 +42,16 @@ var globalPageID = uint64(0)
 func NewPage(project *Project) *Page {
 
 	page := &Page{
-		ID:             globalPageID,
-		Project:        project,
-		ReferenceCount: 1,
-		Grid:           NewGrid(),
-		Cards:          []*Card{},
-		Name:           "New Page",
-		Drawables:      []*Drawable{},
-		ToRaise:        []*Card{},
-		Zoom:           1,
+		ID:        globalPageID,
+		Project:   project,
+		Cards:     []*Card{},
+		Drawables: []*Drawable{},
+		ToRaise:   []*Card{},
+		Zoom:      1,
+		Valid:     true,
 	}
+
+	page.Grid = NewGrid(page)
 
 	globalPageID++
 
@@ -183,11 +184,17 @@ func (page *Page) Draw() {
 
 }
 
+func (page *Page) Name() string {
+	if page.PointingSubpageCard != nil {
+		return page.PointingSubpageCard.Properties.Get("description").AsString()
+	}
+	return "Root"
+}
+
 func (page *Page) Serialize() string {
 
 	pageData := "{}"
 
-	pageData, _ = sjson.Set(pageData, "name", page.Name)
 	pageData, _ = sjson.Set(pageData, "id", page.ID)
 	pageData, _ = sjson.Set(pageData, "pan", page.Pan)
 	pageData, _ = sjson.Set(pageData, "zoom", page.Zoom)
@@ -210,10 +217,11 @@ func (page *Page) Serialize() string {
 
 func (page *Page) DeserializePageData(data string) {
 
-	page.Name = gjson.Get(data, "name").String()
 	if id := gjson.Get(data, "id"); id.Exists() {
 		page.ID = id.Uint()
 	}
+
+	log.Println("Deserializing page ", page.ID)
 
 	lp := gjson.Get(data, "pan").Map()
 	page.Pan.X = float32(lp["X"].Float())
@@ -223,11 +231,17 @@ func (page *Page) DeserializePageData(data string) {
 		page.Zoom = 1
 	}
 
+	if globalPageID < page.ID {
+		globalPageID = page.ID + 1
+	}
+
 }
 
 func (page *Page) DeserializeCards(data string) {
 
 	for _, cardData := range gjson.Get(data, "cards").Array() {
+
+		log.Println("Deserializing card ", cardData.Get("id").Int())
 
 		newCard := page.CreateNewCard(ContentTypeCheckbox)
 		newCard.Deserialize(cardData.Raw)
@@ -348,7 +362,9 @@ func (page *Page) CopySelectedCards() {
 	for card := range page.Selection.Cards {
 		globals.CopyBuffer.Copy(card)
 	}
-	globals.EventLog.Log("Copied %d Cards.", false, len(globals.CopyBuffer.Cards))
+	if len(globals.CopyBuffer.Cards) > 0 {
+		globals.EventLog.Log("Copied %d Cards.", false, len(globals.CopyBuffer.Cards))
+	}
 }
 
 func (page *Page) PasteCards(offset Point) {
@@ -417,7 +433,9 @@ func (page *Page) PasteCards(offset Point) {
 
 	globals.EventLog.On = true
 
-	globals.EventLog.Log("Pasted %d Cards.", false, len(globals.CopyBuffer.Cards))
+	if len(globals.CopyBuffer.Cards) > 0 {
+		globals.EventLog.Log("Pasted %d Cards.", false, len(globals.CopyBuffer.Cards))
+	}
 
 }
 

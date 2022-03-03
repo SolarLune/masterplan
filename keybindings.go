@@ -98,7 +98,8 @@ const (
 
 	KBTimerStartStop = "Timer: Start / Stop Timer"
 
-	KBSubpageOpen = "Sub-Page: Open / Close"
+	KBSubpageOpen  = "Sub-Page: Open"
+	KBSubpageClose = "Sub-Page: Close"
 
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -474,6 +475,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBFindPrev, sdl.K_f, sdl.K_LCTRL, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBSubpageOpen, sdl.K_BACKQUOTE)
+	kb.DefineKeyShortcut(KBSubpageClose, sdl.K_BACKQUOTE)
 
 	kb.DefineKeyShortcut(KBResizeMultiple, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 

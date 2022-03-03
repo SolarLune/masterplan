@@ -95,11 +95,12 @@ func LocalRelativePath(localPath string) string {
 }
 
 func FileExists(filepath string) bool {
-	_, err := os.Stat(filepath)
+	fsInfo, err := os.Stat(filepath)
 
-	if err != nil && !os.IsExist(err) {
+	if (err != nil && !os.IsExist(err)) || fsInfo.IsDir() {
 		return false
 	}
+
 	return true
 }
 
@@ -323,13 +324,13 @@ func HandleFontReload() {
 			// loadedFont, err := ttf.OpenFont(fontPath, int(globals.Settings.Get(SettingsFontSize).AsFloat()))
 			loadedFont, err := ttf.OpenFont(fontPath, 48)
 
-			loadedFont.SetKerning(true) // I don't think this really will do anything for us here, as we're rendering text using individual characters, not strings.
-
-			loadedFont.SetHinting(ttf.HINTING_NORMAL)
-
 			if err != nil {
 				panic(err)
 			}
+
+			loadedFont.SetKerning(true) // I don't think this really will do anything for us here, as we're rendering text using individual characters, not strings.
+
+			loadedFont.SetHinting(ttf.HINTING_NORMAL)
 
 			globals.Font = loadedFont
 

@@ -11,6 +11,7 @@ const (
 	MessageUndoRedo             = "MessageUndoRedo"
 	MessageVolumeChange         = "MessageVolumeChange"
 	MessageStacksUpdated        = "MessageStacksUpdated"
+	MessageCollisionGridResized = "MessageCollisionGridResized"
 	MessageLinkCreated          = "MessageLinkCreated"
 	MessageLinkDeleted          = "MessageLinkDeleted"
 	MessagePageChanged          = "MessagePageChanged"

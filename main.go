@@ -130,9 +130,7 @@ func main() {
 					}
 				}
 
-				text += "\n\n# ERROR END #\n"
-
-				log.Print(text)
+				text += "\n\n# ERROR END #\n\nOS: " + runtime.GOOS
 
 			}
 			os.Stdout.Close()
@@ -1631,6 +1629,10 @@ func ConstructMenus() {
 
 		for _, page := range globals.Project.Pages {
 
+			if !page.Valid {
+				continue
+			}
+
 			page.Selection.Clear()
 
 			for _, card := range page.Cards {
@@ -1750,7 +1752,7 @@ func ConstructMenus() {
 
 	root = prevSubPageMenu.Pages["root"]
 	root.OnUpdate = func() {
-		subName.SetText([]rune("Sub-Page: " + globals.Project.CurrentPage.Name))
+		subName.SetText([]rune("Sub-Page: " + globals.Project.CurrentPage.Name()))
 		subName.SetMaxSize(512, subName.RendererResult.TextSize.Y)
 		prevSubPageMenu.Recreate(512, prevSubPageMenu.Rect.H)
 	}

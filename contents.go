@@ -2369,6 +2369,9 @@ func (mc *MapContents) Color() Color {
 
 func (mc *MapContents) DefaultSize() Point { return Point{globals.GridSize * 8, globals.GridSize * 8} }
 
+var SubpageScreenshotSize = Point{256, 256}
+var SubpageScreenshotZoom = 0.5
+
 type SubPageContents struct {
 	DefaultContents
 	SubPage           *Page
@@ -2376,18 +2379,16 @@ type SubPageContents struct {
 	SubpageScreenshot *sdl.Texture
 	ScreenshotImage   *GUIImage
 	ScreenshotRow     *ContainerRow
-	ScreenshotSize    Point
 }
 
 func NewSubPageContents(card *Card) *SubPageContents {
 
 	sb := &SubPageContents{
 		DefaultContents: newDefaultContents(card),
-		ScreenshotSize:  Point{256, 256},
 	}
 
-	srcW := int32(sb.ScreenshotSize.X)
-	srcH := int32(sb.ScreenshotSize.Y)
+	srcW := int32(SubpageScreenshotSize.X)
+	srcH := int32(SubpageScreenshotSize.Y)
 
 	scrsh, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, srcW, srcH)
 	if err != nil {
@@ -2399,7 +2400,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	sb.SubpageScreenshot = scrsh
 
 	sb.ScreenshotImage = NewGUIImage(
-		&sdl.FRect{0, 0, sb.ScreenshotSize.X, sb.ScreenshotSize.Y},
+		&sdl.FRect{0, 0, SubpageScreenshotSize.X, SubpageScreenshotSize.Y},
 		&sdl.Rect{0, 0, srcW, srcH},
 		sb.SubpageScreenshot, true)
 	sb.ScreenshotImage.TintByFontColor = false
@@ -2415,26 +2416,25 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	if sb.Card.Properties.Has("subpage") {
 		spID := uint64(sb.Card.Properties.Get("subpage").AsFloat())
 		for _, page := range project.Pages {
-			if page.ID == spID {
+			// If our desired backing page already exists and is not already being pointed to by another subpage card, then we set this subpage card to point to it
+			if page.ID == spID && page.PointingSubpageCard == nil {
 				sb.SubPage = page
 				break
 			}
 		}
-	} else {
-		sb.SubPage = project.AddPage()
-		index := project.PageIndex(sb.SubPage)
-		sb.Card.Properties.Get("subpage").Set(float64(index)) // We have to set as a float because JSON only has floats as numbers, not ints
+
 	}
+
+	if sb.SubPage == nil {
+		sb.SubPage = project.AddPage()
+	}
+
+	sb.SubPage.PointingSubpageCard = card
+	sb.Card.Properties.Get("subpage").Set(float64(project.PageIndex(sb.SubPage))) // We have to set as a float because JSON only has floats as numbers, not ints
 	sb.SubPage.UpwardPage = sb.Card.Page
 
-	sb.NameLabel.OnClickOut = func() {
-		if sb.SubPage != nil {
-			sb.SubPage.Name = sb.NameLabel.TextAsString()
-		}
-	}
 	sb.NameLabel.Property = card.Properties.Get("description")
-	sb.NameLabel.Update()     // Update so it sets the text according to the property
-	sb.NameLabel.OnClickOut() // Call OnClickOut() so that the name is updated to the property accordingly
+	sb.NameLabel.Update() // Update so it sets the text according to the property
 
 	sb.NameLabel.RegexString = RegexNoNewlines
 	sb.NameLabel.Editable = true
@@ -2442,7 +2442,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 	sb.ScreenshotRow = sb.Container.AddRow(AlignCenter)
 	sb.ScreenshotRow.Add("screenshot", sb.ScreenshotImage)
-	sb.ScreenshotRow.ForcedSize = sb.ScreenshotSize
+	sb.ScreenshotRow.ForcedSize = SubpageScreenshotSize
 
 	sb.Container.AddRow(AlignCenter).Add("open", NewButton("Open", nil, nil, true, func() {
 		sb.OpenSubpage()
@@ -2465,8 +2465,8 @@ func (sb *SubPageContents) Update() {
 	h := sb.Container.Rect.H - 64
 	if h < 0 {
 		h = 0
-	} else if h > sb.ScreenshotSize.Y {
-		h = sb.ScreenshotSize.Y
+	} else if h > SubpageScreenshotSize.Y {
+		h = SubpageScreenshotSize.Y
 	}
 
 	sb.ScreenshotImage.SrcRect.H = int32(h)
@@ -2487,15 +2487,11 @@ func (sb *SubPageContents) ReceiveMessage(msg *Message) {
 		sb.TakeScreenshot()
 	}
 
-	if msg.Type == MessageUndoRedo {
-		sb.NameLabel.OnClickOut() // Call OnClickOut() so that the name is updated to the property accordingly
-	}
-
 	if sb.SubPage != nil {
 		if msg.Type == MessageCardDeleted {
-			sb.SubPage.ReferenceCount--
+			sb.SubPage.Valid = false
 		} else if msg.Type == MessageCardRestored {
-			sb.SubPage.ReferenceCount++
+			sb.SubPage.Valid = true
 		}
 	}
 
@@ -2514,7 +2510,8 @@ func (sb *SubPageContents) TakeScreenshot() {
 	originalPos := camera.Position
 	originalZoom := camera.Zoom
 
-	camera.JumpTo(globals.ScreenSize.Sub(sb.ScreenshotSize), 0.5)
+	ssPos := globals.ScreenSize
+	camera.JumpTo(ssPos, float32(SubpageScreenshotZoom))
 
 	prevPage := sb.SubPage.Project.CurrentPage
 	sb.SubPage.Project.CurrentPage = sb.SubPage

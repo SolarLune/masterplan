@@ -606,7 +606,7 @@ func (card *Card) Update() {
 }
 
 func (card *Card) IsSelected() bool {
-	return card.selected && card.Page.IsCurrent() && card.Page.ReferenceCount > 0
+	return card.selected && card.Page.IsCurrent() && card.Page.Valid
 }
 
 func (card *Card) IsLinkedTo(other *Card) bool {
@@ -1267,6 +1267,9 @@ func (card *Card) ReceiveMessage(message *Message) {
 		card.Page.Project.UndoHistory.Capture(NewUndoState(card))
 	} else if message.Type == MessageLinkDeleted {
 		card.Page.Project.UndoHistory.Capture(NewUndoState(card))
+	} else if message.Type == MessageCollisionGridResized {
+		card.Page.Grid.Put(card)
+		card.Page.UpdateStacks = true
 	}
 
 }

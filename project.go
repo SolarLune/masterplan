@@ -170,7 +170,7 @@ func (project *Project) Update() {
 	globals.Mouse.SetCursor("normal")
 
 	for _, page := range project.Pages {
-		if page.ReferenceCount > 0 {
+		if page.Valid {
 			page.Update()
 		}
 	}
@@ -208,15 +208,27 @@ func (project *Project) Draw() {
 		halfH := float32(project.Camera.ViewArea().H / 2)
 		ThickLine(project.Camera.TranslatePoint(Point{project.Camera.Position.X - halfW, 0}), project.Camera.TranslatePoint(Point{project.Camera.Position.X + halfW, 0}), 2, getThemeColor(GUIGridColor))
 		ThickLine(project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y - halfH}), project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y + halfH}), 2, getThemeColor(GUIGridColor))
-	}
 
-	if project.CurrentPage.UpwardPage != nil {
+		if project.CurrentPage.UpwardPage != nil {
 
-		text := project.CurrentPage.Name
-		textSize := globals.TextRenderer.MeasureText([]rune(text), 1).CeilToGrid()
-		globals.Renderer.SetDrawColor(getThemeColor(GUIGridColor).RGBA())
-		globals.Renderer.FillRectF(project.Camera.TranslateRect(&sdl.FRect{0, -globals.GridSize, textSize.X, textSize.Y}))
-		globals.TextRenderer.QuickRenderText(text, project.Camera.TranslatePoint(Point{textSize.X / 2, -globals.GridSize}), 1, getThemeColor(GUIBGColor), AlignCenter)
+			gridColor := getThemeColor(GUIGridColor)
+
+			text := project.CurrentPage.PointingSubpageCard.Properties.Get("description").AsString()
+			textSize := globals.TextRenderer.MeasureText([]rune(text), 1).CeilToGrid()
+			globals.Renderer.SetDrawColor(gridColor.RGBA())
+			globals.Renderer.FillRectF(project.Camera.TranslateRect(&sdl.FRect{0, -globals.GridSize, textSize.X, textSize.Y}))
+			globals.TextRenderer.QuickRenderText(text, project.Camera.TranslatePoint(Point{textSize.X / 2, -globals.GridSize}), 1, getThemeColor(GUIBGColor), AlignCenter)
+
+			// globals.Renderer.DrawRectF(project.Camera.TranslateRect(&sdl.FRect{0, 0, SubpageScreenshotSize.X, SubpageScreenshotSize.Y}))
+
+			ssRect := project.Camera.TranslateRect(&sdl.FRect{0, 0, SubpageScreenshotSize.X / float32(SubpageScreenshotZoom), SubpageScreenshotSize.Y / float32(SubpageScreenshotZoom)}) // Screenshot zoom
+			ThickRect(int32(ssRect.X), int32(ssRect.Y), int32(ssRect.W), int32(ssRect.H), 2, gridColor)
+			guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
+			guiTex.Texture.SetColorMod(gridColor.RGB())
+			guiTex.Texture.SetAlphaMod(gridColor[3])
+			globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{80, 256, 32, 32}, &sdl.FRect{ssRect.X, ssRect.Y, 32, 32})
+
+		}
 
 	}
 
@@ -264,52 +276,17 @@ func (project *Project) Save() {
 
 	pageData := "["
 
-	pagesToSave := []uint64{0}
+	pagesToSave := []*Page{}
 
-	var searchForLiveSubpages func(page *Page)
-
-	searchForLiveSubpages = func(page *Page) {
-		for _, card := range page.Cards {
-			if card.ContentType == ContentTypeSubpage {
-				subpage := uint64(card.Properties.Get("subpage").AsFloat())
-
-				// It's possible to copy a Sub-Page Card, so we'll keep it being a reference, I think?
-				existsAlready := false
-				for _, p := range pagesToSave {
-					if p == subpage {
-						existsAlready = true
-						break
-					}
-				}
-
-				if existsAlready {
-					continue
-				}
-
-				pagesToSave = append(pagesToSave, subpage)
-
-				for _, page := range project.Pages {
-					if page.ID == subpage {
-						searchForLiveSubpages(page)
-						break
-					}
-				}
-			}
+	for _, page := range project.Pages {
+		if page.Valid {
+			pagesToSave = append(pagesToSave, page)
 		}
 	}
 
-	searchForLiveSubpages(project.Pages[0])
+	sort.SliceStable(pagesToSave, func(i, j int) bool { return pagesToSave[i].ID < pagesToSave[j].ID })
 
-	sort.SliceStable(pagesToSave, func(i, j int) bool { return pagesToSave[i] < pagesToSave[j] })
-
-	for i, toSaveID := range pagesToSave {
-		var page *Page
-		for _, p := range project.Pages {
-			if p.ID == toSaveID {
-				page = p
-				break
-			}
-		}
+	for i, page := range pagesToSave {
 		pageData += page.Serialize()
 		if i < len(pagesToSave)-1 {
 			pageData += ", "
@@ -408,6 +385,8 @@ func OpenProjectFrom(filename string) {
 		globals.EventLog.Log("Error: %s", true, err.Error())
 	} else {
 
+		log.Println("Load started.")
+
 		json := string(jsonData)
 
 		if ver, err := semver.Parse(gjson.Get(json, "version").String()); err != nil || ver.Minor < 8 {
@@ -430,6 +409,8 @@ func OpenProjectFrom(filename string) {
 			globals.RecentFiles = append([]string{filename}, globals.RecentFiles...)
 
 			SaveSettings()
+
+			log.Println("Recent files list updated...")
 
 			globals.EventLog.On = false
 
@@ -456,6 +437,10 @@ func OpenProjectFrom(filename string) {
 
 			}
 
+			log.Println("Any saved images loaded.")
+
+			log.Println("Loading pages...")
+
 			if ver.LTE(semver.MustParse("0.8.0-alpha.3")) {
 				page := gjson.Get(json, "root.contents").Array()[0]
 				newProject.Pages[0].DeserializePageData(page.String())
@@ -470,9 +455,6 @@ func OpenProjectFrom(filename string) {
 				for p, pageData := range gjson.Get(json, "pages").Array() {
 					page := newProject.Pages[p]
 					page.DeserializePageData(pageData.String())
-					if globalPageID < page.ID {
-						globalPageID = page.ID + 1
-					}
 				}
 
 				for p, pageData := range gjson.Get(json, "pages").Array() {
@@ -801,7 +783,7 @@ func (project *Project) GlobalShortcuts() {
 			project.Camera.FocusOn(true, project.CurrentPage.Selection.AsSlice()...)
 		}
 
-		if globals.Keybindings.Pressed(KBSubpageOpen) {
+		if globals.Keybindings.Pressed(KBSubpageClose) {
 			project.GoUpFromSubpage()
 		}
 

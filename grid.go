@@ -113,18 +113,38 @@ func (selection GridSelection) Cells() []*GridCell {
 
 }
 
+func (selection GridSelection) OutsideGrid() bool {
+
+	offsetY := len(selection.Grid.Cells) / 2
+	offsetX := len(selection.Grid.Cells[0]) / 2
+
+	startY := int(selection.Start.Y) + offsetY
+	endY := int(selection.End.Y) + offsetY
+
+	startX := int(selection.Start.X) + offsetX
+	endX := int(selection.End.X) + offsetX
+
+	if startY < 0 || endY > len(selection.Grid.Cells) || startX < 0 || endX > len(selection.Grid.Cells[0]) {
+		return true
+	}
+
+	return false
+
+}
+
 func (selection GridSelection) Valid() bool {
 	return selection.Grid != nil
 }
 
 type Grid struct {
 	// Cells map[Point][]*Card
+	Page  *Page
 	Cells [][]*GridCell
 }
 
-func NewGrid() *Grid {
+func NewGrid(page *Page) *Grid {
 	grid := &Grid{
-		// Spaces: map[Point][]*Card{},
+		Page:  page,
 		Cells: [][]*GridCell{},
 	}
 	grid.Resize(1000, 1000) // For now, this will do
@@ -153,6 +173,20 @@ func (grid *Grid) Put(card *Card) {
 	grid.Remove(card)
 
 	card.GridExtents = grid.Select(card.Rect)
+
+	if card.GridExtents.OutsideGrid() {
+		maxW := math.Max(math.Abs(float64(card.GridExtents.Start.X)), math.Abs(float64(card.GridExtents.End.X)))
+		maxH := math.Max(math.Abs(float64(card.GridExtents.Start.Y)), math.Abs(float64(card.GridExtents.End.Y)))
+		maxDim := math.Max(maxW, maxH)
+		grid.Resize(int(maxDim*4), int(maxDim*4)) // *2 is just enough because it's centered on the grid
+		for _, c := range card.Page.Cards {
+			if c == card {
+				continue
+			}
+			c.ReceiveMessage(NewMessage(MessageCollisionGridResized, nil, nil)) // All cards need to re-Put themselves
+		}
+
+	}
 
 	card.GridExtents.Add(card)
 
