@@ -21,7 +21,8 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [ ] Open different projects as tabs
 [ ] Update text rendering; it's bad with light text, particularly
 [ ] GUI scaling (so buttons can become bigger, as an example, for higher-resolution screens / people with visibility issues)
-[ ] Fix crashing if a theme lacks a color for a specific card type; it should instead log the problem and return an ugly color, so it's usable, but not just BAD
+[x] Fix crashing if a theme lacks a color for a specific card type; it should instead log the problem and return an ugly color, so it's usable, but not just BAD
+[ ] Fix text in keybindings section
 [ ] Reimplement relative paths to resources (images, sounds) in save files.
 
 [ ] Replace img usage with go, see if that allows for Mac M1 builds

@@ -57,10 +57,24 @@ var availableThemes []string = []string{}
 var guiColors map[string]map[string]Color
 
 func getThemeColor(colorConstant string) Color {
-	color, exists := guiColors[globals.Settings.Get(SettingsTheme).AsString()][colorConstant]
-	if !exists {
-		log.Println("ERROR: Color doesn't exist for the current theme: ", colorConstant)
+
+	currentTheme := globals.Settings.Get(SettingsTheme).AsString()
+
+	if _, exists := guiColors[currentTheme]; !exists {
+		globals.Settings.Get(SettingsTheme).Set("Sunlight")
+		globals.EventLog.Log("WARNING: Theme [%s] no longer exists in themes directory. Defaulting to 'Sunlight' theme.", true, currentTheme)
+		currentTheme = "Sunlight"
 	}
+
+	theme := guiColors[currentTheme]
+	color, exists := theme[colorConstant]
+
+	if !exists {
+		globals.EventLog.Log("WARNING: The color for element [%s] doesn't exist for the current theme [%s].", true, colorConstant, currentTheme)
+		theme[colorConstant] = NewColor(255, 0, 255, 255)
+		color = theme[colorConstant] // Bright pink for maximum "YOU HAVE TO IMPLEMENT THIS" energy
+	}
+
 	return color.Clone()
 }
 
