@@ -804,6 +804,7 @@ func (project *Project) SetPage(page *Page) {
 		project.CurrentPage = page
 		project.Camera.JumpTo(page.Pan, page.Zoom)
 		page.SendMessage(NewMessage(MessagePageChanged, nil, nil))
+		globals.State = StateNeutral
 		if page.UpwardPage == nil {
 			globals.MenuSystem.Get("prev sub page").Close()
 		} else {

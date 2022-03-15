@@ -751,11 +751,11 @@ func ConstructMenus() {
 
 	fileButton = NewButton("File", nil, &sdl.Rect{144, 0, 32, 32}, false, func() {
 		fileMenu := globals.MenuSystem.Get("file")
-		fileMenu.Rect.X = fileButton.Rect.X - 48
+		fileMenu.Rect.X = fileButton.Rectangle().X - 48
 		if mainMenu.Rect.Y > globals.ScreenSize.Y/2 {
-			fileMenu.Rect.Y = fileButton.Rect.Y - fileMenu.Rect.H
+			fileMenu.Rect.Y = fileButton.Rectangle().Y - fileMenu.Rect.H
 		} else {
-			fileMenu.Rect.Y = fileButton.Rect.Y + 32
+			fileMenu.Rect.Y = fileButton.Rectangle().Y + 32
 		}
 		fileMenu.Open()
 	})
@@ -768,11 +768,11 @@ func ConstructMenus() {
 
 	viewButton = NewButton("View", nil, nil, false, func() {
 		viewMenu := globals.MenuSystem.Get("view")
-		viewMenu.Rect.X = viewButton.Rect.X - 48
+		viewMenu.Rect.X = viewButton.Rectangle().X - 48
 		if mainMenu.Rect.Y > globals.ScreenSize.Y/2 {
-			viewMenu.Rect.Y = viewButton.Rect.Y - viewMenu.Rect.H
+			viewMenu.Rect.Y = viewButton.Rectangle().Y - viewMenu.Rect.H
 		} else {
-			viewMenu.Rect.Y = viewButton.Rect.Y + 32
+			viewMenu.Rect.Y = viewButton.Rectangle().Y + 32
 		}
 		viewMenu.Open()
 	})
@@ -809,7 +809,7 @@ func ConstructMenus() {
 	loadRecentButton := NewButton("Load Recent...", nil, nil, false, nil)
 	loadRecentButton.OnPressed = func() {
 		loadRecent := globals.MenuSystem.Get("load recent")
-		loadRecent.Rect.Y = loadRecentButton.Rect.Y
+		loadRecent.Rect.Y = loadRecentButton.Rectangle().Y
 		loadRecent.Rect.X = fileMenu.Rect.X + fileMenu.Rect.W
 		loadRecent.Open()
 		// globals.Project.Open()
@@ -962,7 +962,7 @@ func ConstructMenus() {
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 	}))
 
-	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+48, createMenu.Pages["root"].IdealSize().Y+16)
+	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+64, createMenu.Pages["root"].IdealSize().Y+16)
 
 	// Edit Menu
 
@@ -1202,7 +1202,7 @@ func ConstructMenus() {
 
 	// Settings Menu
 
-	settings := NewMenu(&sdl.FRect{0, 0, 800, 512}, MenuCloseButton)
+	settings := NewMenu(&sdl.FRect{0, 0, 850, 512}, MenuCloseButton)
 	settings.Draggable = true
 	settings.Resizeable = true
 	globals.MenuSystem.Add(settings, "settings", true)
@@ -1514,12 +1514,20 @@ func ConstructMenus() {
 	// searchKeybindingsLabel.AutoExpand = true
 	searchKeybindingsLabel.OnChange = func() {
 
-		text := strings.TrimSpace(searchKeybindingsLabel.TextAsString())
+		searchText := strings.ToLower(strings.TrimSpace(searchKeybindingsLabel.TextAsString()))
 		for _, row := range input.FindRows("key-", true) {
-			if text == "" {
+			if searchText == "" {
 				row.Visible = true
 			} else {
-				if row.FindElement(text, true) != nil {
+				shortcutLabelFound := row.FindElement(searchText, true) != nil
+				shortcutKeyFound := false
+				if button := row.FindElement("-b", true); button != nil {
+					if strings.Contains(strings.ToLower(button.(*Button).Label.TextAsString()), searchText) {
+						shortcutKeyFound = true
+					}
+				}
+
+				if shortcutLabelFound || shortcutKeyFound {
 					row.Visible = true
 				} else {
 					row.Visible = false
@@ -1548,8 +1556,11 @@ func ConstructMenus() {
 		shortcut := s
 
 		row = input.AddRow(AlignCenter)
+		row.AlternateBGColor = true
 
-		row.Add("key-"+shortcut.Name, NewLabel(shortcut.Name, nil, false, AlignLeft))
+		shortcutName := NewLabel(shortcut.Name, nil, false, AlignLeft)
+
+		row.Add("key-"+shortcut.Name, shortcutName)
 		row.ExpandElements = true
 
 		redefineButton := NewButton(shortcut.KeysToString(), nil, nil, false, nil)

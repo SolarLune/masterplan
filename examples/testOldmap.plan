@@ -1,0 +1,50 @@
+{
+  "version": "0.8.0-alpha.3",
+  "pan": {
+    "X": 0,
+    "Y": 0
+  },
+  "zoom": 1,
+  "root": {
+    "pagecontenttype": "PageContentFolder",
+    "name": "New Folder",
+    "contents": [
+      {
+        "pagecontenttype": "PageContentPage",
+        "name": "New Page",
+        "cards": [
+          {
+            "id": 0,
+            "rect": {
+              "X": -224,
+              "Y": 32,
+              "W": 256,
+              "H": 192
+            },
+            "contents": "Timer",
+            "properties": {
+              "description": "New Timer",
+              "max time": "00:00",
+              "mode group": 0,
+              "trigger mode": 0
+            }
+          },
+          {
+            "id": 1,
+            "rect": {
+              "X": 160,
+              "Y": 64,
+              "W": 256,
+              "H": 256
+            },
+            "contents": "Map",
+            "properties": {
+              "contents": "{\"contents\":[[0,0,0,0,0,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,1,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]}"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "savedimages": {}
+}

@@ -497,7 +497,6 @@ func (spinner *NumberSpinner) SetRectangle(rect *sdl.FRect) {
 type Button struct {
 	Label           *Label
 	BackgroundColor Color
-	Rect            *sdl.FRect
 	IconSrc         *sdl.Rect
 	LineWidth       float32
 	Disabled        bool
@@ -509,15 +508,8 @@ type Button struct {
 
 func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, worldSpace bool, pressedFunc func()) *Button {
 
-	buttonAlignment := AlignCenter
-
-	if iconSrcRect != nil {
-		buttonAlignment = AlignLeft
-	}
-
 	button := &Button{
-		Label:           NewLabel(labelText, rect, worldSpace, buttonAlignment),
-		Rect:            &sdl.FRect{},
+		Label:           NewLabel(labelText, rect, worldSpace, AlignCenter),
 		IconSrc:         iconSrcRect,
 		OnPressed:       pressedFunc,
 		WorldSpace:      worldSpace,
@@ -555,7 +547,9 @@ func (button *Button) Update() {
 	alphaTarget := float32(1)
 	lineTarget := float32(1)
 
-	if mousePos.Inside(button.Rect) && !button.Disabled {
+	buttonRect := button.Rectangle()
+
+	if mousePos.Inside(buttonRect) && !button.Disabled {
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.CurrentCursor == "normal" {
 			if button.OnPressed != nil {
@@ -580,12 +574,14 @@ func (button *Button) Update() {
 
 func (button *Button) Draw() {
 
+	buttonRect := button.Rectangle()
+
 	if button.BackgroundColor[3] > 0 {
 		guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
 		guiTexture.SetBlendMode(sdl.BLENDMODE_NONE)
 		guiTexture.SetColorMod(button.BackgroundColor.RGB())
 		guiTexture.SetAlphaMod(1)
-		globals.Renderer.CopyF(guiTexture, &sdl.Rect{240, 128, 32, 32}, button.Rect)
+		globals.Renderer.CopyF(guiTexture, &sdl.Rect{240, 128, 32, 32}, buttonRect)
 		guiTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
 	}
 
@@ -599,9 +595,9 @@ func (button *Button) Draw() {
 		mousePos = globals.Mouse.WorldPosition()
 	}
 
-	button.Highlighter.Highlighting = mousePos.Inside(button.Rect) || !button.FadeOnInactive
+	button.Highlighter.Highlighting = mousePos.Inside(buttonRect) || !button.FadeOnInactive
 
-	button.Highlighter.SetRect(button.Rect)
+	button.Highlighter.SetRect(buttonRect)
 	button.Highlighter.Draw()
 
 	color := getThemeColor(GUIFontColor)
@@ -613,9 +609,13 @@ func (button *Button) Draw() {
 		guiTexture.SetAlphaMod(uint8(button.Label.Alpha * 255))
 		guiTexture.SetColorMod(color.RGB())
 		guiTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
-		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, float32(button.IconSrc.W), float32(button.IconSrc.H)}
+		tx := float32(0)
+		if button.Label.RendererResult != nil {
+			tx = button.Label.RendererResult.TextSize.X
+		}
+		dst := &sdl.FRect{buttonRect.X + (buttonRect.W / 2) - (tx / 2) - float32(button.IconSrc.W), buttonRect.Y, float32(button.IconSrc.W), float32(button.IconSrc.H)}
 		// textHalfWidth := button.Label.RendererResult.TextSize.X / 2
-		// dst := &sdl.FRect{button.Rect.X + (button.Rect.W / 2) - float32(button.IconSrc.W) - textHalfWidth, button.Rect.Y, float32(button.IconSrc.W), float32(button.IconSrc.H)}
+		// dst := &sdl.FRect{buttonRect.X + (buttonRect.W / 2) - float32(button.IconSrc.W) - textHalfWidth, buttonRect.Y, float32(button.IconSrc.W), float32(button.IconSrc.H)}
 
 		if button.WorldSpace {
 			dst = globals.Project.Camera.TranslateRect(dst)
@@ -626,7 +626,7 @@ func (button *Button) Draw() {
 	}
 
 	if globals.DebugMode {
-		dst := &sdl.FRect{button.Rect.X, button.Rect.Y, button.Rect.W, button.Rect.H}
+		dst := &sdl.FRect{buttonRect.X, buttonRect.Y, buttonRect.W, buttonRect.H}
 		if button.WorldSpace {
 			dst = globals.Project.Camera.TranslateRect(dst)
 		}
@@ -638,18 +638,10 @@ func (button *Button) Draw() {
 }
 
 func (button *Button) Rectangle() *sdl.FRect {
-	rect := *button.Rect
-	return &rect
+	return button.Label.Rectangle()
 }
 
 func (button *Button) SetRectangle(rect *sdl.FRect) {
-	button.Rect.X = rect.X
-	button.Rect.Y = rect.Y
-	button.Rect.W = rect.W
-	button.Rect.H = rect.H
-	if button.IconSrc != nil && len(button.Label.Text) > 0 {
-		rect.X += float32(button.IconSrc.W)
-	}
 	button.Label.SetRectangle(rect)
 }
 
@@ -725,8 +717,10 @@ func (dropdown *Dropdown) Update() {
 		c.BackgroundColor = bgColor
 	}
 
+	buttonRect := dropdown.Button.Rectangle()
+
 	dropdown.Button.Update()
-	y := float32(dropdown.Button.Rect.H)
+	y := float32(buttonRect.H)
 
 	if dropdown.Open {
 
@@ -737,13 +731,13 @@ func (dropdown *Dropdown) Update() {
 			}
 
 			r := b.Rectangle()
-			r.X = dropdown.Button.Rect.X + (dropdown.Button.Rect.W / 2) - (r.W / 2)
-			r.Y = dropdown.Button.Rect.Y + y
-			r.W = dropdown.Button.Rect.W
+			r.X = buttonRect.X + (buttonRect.W / 2) - (r.W / 2)
+			r.Y = buttonRect.Y + y
+			r.W = buttonRect.W
 
 			b.SetRectangle(r)
 			b.Update()
-			y += b.Rect.H
+			y += b.Rectangle().H
 
 		}
 
@@ -774,11 +768,11 @@ func (dropdown *Dropdown) Draw() {
 
 func (dropdown *Dropdown) Rectangle() *sdl.FRect {
 	if dropdown.Open {
-		r := *dropdown.Button.Rect
+		r := dropdown.Button.Rectangle()
 		r.H += float32(len(dropdown.Choices)-1) * r.H
-		return &r
+		return r
 	} else {
-		return dropdown.Button.Rect
+		return dropdown.Button.Rectangle()
 	}
 }
 
@@ -1157,6 +1151,10 @@ func (label *Label) Update() {
 		// activeRect.H = label.RendererResult.Image.Size.Y
 
 		label.MousedOver = false
+
+		if globals.State != StateTextEditing {
+			label.Editing = false
+		}
 
 		if label.Editable && (globals.State == StateNeutral || (globals.State == StateTextEditing && label.Editing)) {
 
@@ -1782,7 +1780,7 @@ func (label *Label) RecreateTexture() {
 
 	if label.maxSize.Y > 0 {
 		label.Rect.H = label.maxSize.Y
-	} else if label.Rect.H < 0 {
+	} else {
 		label.Rect.H = label.RendererResult.TextSize.Y
 	}
 
@@ -1977,6 +1975,9 @@ type ContainerRow struct {
 	ExpandElements    bool
 	Visible           bool
 	ForcedSize        Point
+	Index             int
+	AlternateBGColor  bool
+	rect              *sdl.FRect
 }
 
 func NewContainerRow(container *Container, horizontalAlignment string) *ContainerRow {
@@ -1988,6 +1989,7 @@ func NewContainerRow(container *Container, horizontalAlignment string) *Containe
 		HorizontalSpacing: 0,
 		VerticalSpacing:   4,
 		Visible:           true,
+		rect:              &sdl.FRect{},
 		// InterElementSpacing: -1,
 	}
 
@@ -2005,6 +2007,9 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 
 	x := row.Container.Rect.X
 	y := row.Container.Rect.Y + float32(yPos)
+
+	row.rect.X = x - 32
+	row.rect.Y = y
 
 	usedWidth := float32(0)
 	maxWidth := row.Container.Rect.W
@@ -2052,11 +2057,23 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		x += rect.W + row.HorizontalSpacing
 	}
 
+	row.rect.W = row.Container.Rect.W + 32
+	row.rect.H = yHeight
+
 	return yHeight + row.VerticalSpacing
 
 }
 
 func (row *ContainerRow) Draw() {
+
+	if row.AlternateBGColor {
+		if row.Index%2 == 0 {
+			globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).Add(20).RGBA())
+		} else {
+			globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
+		}
+		globals.Renderer.FillRectF(row.rect)
+	}
 
 	for _, element := range row.Elements {
 		rect := element.Rectangle()
@@ -2222,6 +2239,7 @@ func (container *Container) Draw() {
 
 func (container *Container) AddRow(alignment string) *ContainerRow {
 	newRow := NewContainerRow(container, alignment)
+	newRow.Index = len(container.Rows)
 	newRow.ExpandElements = container.DefaultExpand
 	container.Rows = append(container.Rows, newRow)
 	return newRow

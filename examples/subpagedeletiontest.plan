@@ -1,0 +1,87 @@
+{
+  "version": "0.8.0-alpha.4.2",
+  "pan": {
+    "X": 224.22636,
+    "Y": -39.99714
+  },
+  "zoom": 1,
+  "pages": [
+    {
+      "name": "New Page",
+      "id": 0,
+      "pan": {
+        "X": 224.22636,
+        "Y": -39.99714
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": -384,
+            "Y": -160,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "First",
+            "subpage": 1,
+            "filepath": ""
+          }
+        },
+        {
+          "id": 1,
+          "rect": {
+            "X": 128,
+            "Y": -128,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "Second",
+            "subpage": 2,
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "First",
+      "id": 1,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 2,
+          "rect": {
+            "X": 32,
+            "Y": 64,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Second",
+      "id": 2,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1
+    }
+  ],
+  "savedimages": {}
+}

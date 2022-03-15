@@ -1,0 +1,116 @@
+{
+  "version": "0.8.0-alpha.4.2",
+  "pan": {
+    "X": 0,
+    "Y": 0
+  },
+  "zoom": 1,
+  "pages": [
+    {
+      "name": "New Page",
+      "id": 0,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": -160,
+            "Y": -160,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "subpage": 1,
+            "description": "First"
+          }
+        },
+        {
+          "id": 1,
+          "rect": {
+            "X": 320,
+            "Y": -96,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "Second?",
+            "subpage": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "First",
+      "id": 1,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 2,
+          "rect": {
+            "X": 32,
+            "Y": 64,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Second?",
+      "id": 2,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 3,
+          "rect": {
+            "X": 32,
+            "Y": 64,
+            "W": 256,
+            "H": 64
+          },
+          "contents": "Number",
+          "properties": {
+            "description": "New Numbered",
+            "current": 0,
+            "maximum": 0
+          }
+        },
+        {
+          "id": 4,
+          "rect": {
+            "X": 32,
+            "Y": 224,
+            "W": 256,
+            "H": 64
+          },
+          "contents": "Number",
+          "properties": {
+            "description": "New Numbered",
+            "current": 0,
+            "maximum": 0
+          }
+        }
+      ]
+    }
+  ],
+  "savedimages": {}
+}
