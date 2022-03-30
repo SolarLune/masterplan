@@ -106,9 +106,9 @@ func (page *Page) Update() {
 				card.Stack.PostUpdate()
 			}
 
-			page.UpdateStacks = false
-
 			page.SendMessage(NewMessage(MessageStacksUpdated, nil, nil))
+
+			page.UpdateStacks = false
 
 		}
 

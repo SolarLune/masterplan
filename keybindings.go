@@ -32,6 +32,20 @@ const (
 	KBFastPan     = "Fast Pan"
 	KBPanModifier = "Pan Modifier"
 
+	KBMoveCardUp    = "Move Card Up"
+	KBMoveCardDown  = "Move Card Down"
+	KBMoveCardRight = "Move Card Right"
+	KBMoveCardLeft  = "Move Card Left"
+
+	KBSelectCardUp     = "Select Card Above"
+	KBSelectCardDown   = "Select Card Below"
+	KBSelectCardRight  = "Select Card to Right"
+	KBSelectCardLeft   = "Select Card to Left"
+	KBSelectCardTop    = "Select Card At Top of Stack"
+	KBSelectCardBottom = "Select Card At Bottom of Stack"
+	KBSelectCardNext   = "Select Next Card"
+	KBSelectCardPrev   = "Select Prev Card"
+
 	KBNewCheckboxCard = "New Checkbox Card"
 	KBNewNumberCard   = "New Number Card"
 	KBNewNoteCard     = "New Note Card"
@@ -409,6 +423,20 @@ func (kb *Keybindings) Default() {
 	kb.DefineMouseShortcut(KBPanModifier, sdl.BUTTON_MIDDLE).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBFastPan, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
+	kb.DefineKeyShortcut(KBMoveCardDown, sdl.K_DOWN, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBMoveCardUp, sdl.K_UP, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBMoveCardRight, sdl.K_RIGHT, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBMoveCardLeft, sdl.K_LEFT, sdl.K_LCTRL)
+
+	kb.DefineKeyShortcut(KBSelectCardDown, sdl.K_DOWN)
+	kb.DefineKeyShortcut(KBSelectCardUp, sdl.K_UP)
+	kb.DefineKeyShortcut(KBSelectCardRight, sdl.K_RIGHT)
+	kb.DefineKeyShortcut(KBSelectCardLeft, sdl.K_LEFT)
+	kb.DefineKeyShortcut(KBSelectCardTop, sdl.K_PAGEUP)
+	kb.DefineKeyShortcut(KBSelectCardBottom, sdl.K_PAGEDOWN)
+	kb.DefineKeyShortcut(KBSelectCardNext, sdl.K_TAB)
+	kb.DefineKeyShortcut(KBSelectCardPrev, sdl.K_TAB, sdl.K_LSHIFT)
+
 	// kb.Define(KBFastPanUp, sdl.K_w, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	// kb.Define(KBFastPanLeft, sdl.K_a, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	// kb.Define(KBFastPanDown, sdl.K_s, sdl.K_LSHIFT).triggerMode = TriggerModeHold
@@ -436,7 +464,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBExternalPaste, sdl.K_v, sdl.K_LCTRL, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBReturnToOrigin, sdl.K_BACKSPACE)
-	kb.DefineKeyShortcut(KBFocusOnCards, sdl.K_f, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBFocusOnCards, sdl.K_f, sdl.K_LSHIFT) // Shift + F because F is fill for maps
 
 	kb.DefineKeyShortcut(KBCopyText, sdl.K_c, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBCutText, sdl.K_x, sdl.K_LCTRL)
@@ -469,7 +497,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBMapFillTool, sdl.K_f)
 	kb.DefineKeyShortcut(KBMapLineTool, sdl.K_v)
 	kb.DefineKeyShortcut(KBMapQuickLineTool, sdl.K_LSHIFT).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBMapPalette, sdl.K_TAB)
+	kb.DefineKeyShortcut(KBMapPalette, sdl.K_g)
 
 	kb.DefineKeyShortcut(KBFindNext, sdl.K_f, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBFindPrev, sdl.K_f, sdl.K_LCTRL, sdl.K_LSHIFT)

@@ -297,6 +297,10 @@ func main() {
 	// Either you're possibly passing the filename by double-clicking on a project, or you're possibly autoloading
 	if len(os.Args) > 1 || (globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0) {
 
+		// Call this here to make sure we don't refresh the texture right after creating the project; this fixes the issue
+		// where the map card is blank on autoload on Windows.
+		handleEvents()
+
 		//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
 
 		if len(os.Args) > 1 {
@@ -493,7 +497,7 @@ func main() {
 				m = " (x" + strconv.Itoa(event.Multiplier+1) + ")"
 			}
 
-			text := event.Time + " " + event.Text + m
+			text := event.Time + ": " + event.Text + m
 
 			textSize := globals.TextRenderer.MeasureText([]rune(text), msgSize)
 
@@ -707,6 +711,11 @@ func unambiguousPathName(path string, paths []string) string {
 		if path != otherPath {
 			newPaths = append(newPaths, otherPath)
 		}
+	}
+
+	// If there's no other paths, then there's no chance of ambiguities, so we can return the original path.
+	if len(newPaths) == 0 {
+		return splitPath[len(splitPath)-1]
 	}
 
 	for at := range splitPath {
@@ -1290,6 +1299,10 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsBorderlessWindow)))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Focus on Cards When Moving or Selecting With Keys:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnSelectingWithKeys)))
+
+	row = general.AddRow(AlignCenter)
 	row.Add("", NewLabel("Custom Screenshot Path:", nil, false, AlignLeft))
 	screenshotPath := NewLabel("Screenshot path", nil, false, AlignLeft)
 	screenshotPath.Editable = true
@@ -1381,6 +1394,10 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Smooth movement:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSmoothMovement)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Number top-level cards:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNumberTopLevelCards)))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
@@ -1548,6 +1565,7 @@ func ConstructMenus() {
 			shortcut.ResetToDefault()
 			globals.Keybindings.UpdateShortcutFamilies()
 		}
+		globals.EventLog.Log("Reset all shortcuts to defaults.", false)
 	}))
 
 	for _, s := range globals.Keybindings.ShortcutsInOrder {

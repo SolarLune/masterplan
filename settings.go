@@ -10,32 +10,34 @@ import (
 )
 
 const (
-	SettingsPath                   = "MasterPlan/settings08.json"
-	SettingsLegacyPath             = "masterplan-settings08.json"
-	SettingsTheme                  = "Theme"
-	SettingsDownloadDirectory      = "DownloadDirectory"
-	SettingsWindowPosition         = "WindowPosition"
-	SettingsSaveWindowPosition     = "SaveWindowPosition"
-	SettingsCustomFontPath         = "CustomFontPath"
-	SettingsFontSize               = "FontSize"
-	SettingsTargetFPS              = "TargetFPS"
-	SettingsUnfocusedFPS           = "UnfocusedFPS"
-	SettingsDisableSplashscreen    = "DisableSplashscreen"
-	SettingsBorderlessWindow       = "BorderlessWindow"
-	SettingsAlwaysShowNumbering    = "AlwaysShowNumbering"
-	SettingsDisplayMessages        = "DisplayMessages"
-	SettingsDoubleClickMode        = "DoubleClickMode"
-	SettingsShowGrid               = "ShowGrid"
-	SettingsFlashSelected          = "FlashSelected"
-	SettingsFocusOnElapsedTimers   = "FocusOnElapsedTimers"
-	SettingsNotifyOnElapsedTimers  = "NotifyOnElapsedTimers"
-	SettingsPlayAlarmSound         = "PlayAlarmSound"
-	SettingsAudioVolume            = "AudioVolume"
-	SettingsShowAboutDialogOnStart = "ShowAboutDialogOnStart"
-	SettingsReversePan             = "ReversePan"
-	SettingsAutoLoadLastProject    = "AutoLoadLastProject"
-	SettingsScreenshotPath         = "ScreenshotPath"
-	SettingsSmoothMovement         = "SmoothMovement"
+	SettingsPath                     = "MasterPlan/settings08.json"
+	SettingsLegacyPath               = "masterplan-settings08.json"
+	SettingsTheme                    = "Theme"
+	SettingsDownloadDirectory        = "DownloadDirectory"
+	SettingsWindowPosition           = "WindowPosition"
+	SettingsSaveWindowPosition       = "SaveWindowPosition"
+	SettingsCustomFontPath           = "CustomFontPath"
+	SettingsFontSize                 = "FontSize"
+	SettingsTargetFPS                = "TargetFPS"
+	SettingsUnfocusedFPS             = "UnfocusedFPS"
+	SettingsDisableSplashscreen      = "DisableSplashscreen"
+	SettingsBorderlessWindow         = "BorderlessWindow"
+	SettingsAlwaysShowNumbering      = "AlwaysShowNumbering"
+	SettingsNumberTopLevelCards      = "NumberTopLevelCards"
+	SettingsDisplayMessages          = "DisplayMessages"
+	SettingsDoubleClickMode          = "DoubleClickMode"
+	SettingsShowGrid                 = "ShowGrid"
+	SettingsFlashSelected            = "FlashSelected"
+	SettingsFocusOnElapsedTimers     = "FocusOnElapsedTimers"
+	SettingsNotifyOnElapsedTimers    = "NotifyOnElapsedTimers"
+	SettingsPlayAlarmSound           = "PlayAlarmSound"
+	SettingsAudioVolume              = "AudioVolume"
+	SettingsShowAboutDialogOnStart   = "ShowAboutDialogOnStart"
+	SettingsReversePan               = "ReversePan"
+	SettingsAutoLoadLastProject      = "AutoLoadLastProject"
+	SettingsScreenshotPath           = "ScreenshotPath"
+	SettingsSmoothMovement           = "SmoothMovement"
+	SettingsFocusOnSelectingWithKeys = "FocusOnSelectingWithKeys"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"
@@ -67,6 +69,8 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsScreenshotPath).Set("")
 	props.Get(SettingsAutoLoadLastProject).Set(false)
 	props.Get(SettingsSmoothMovement).Set(true)
+	props.Get(SettingsNumberTopLevelCards).Set(true)
+	props.Get(SettingsFocusOnSelectingWithKeys).Set(true)
 
 	borderless := props.Get(SettingsBorderlessWindow)
 	borderless.Set(false)

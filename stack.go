@@ -7,11 +7,17 @@ import (
 type StackNumber []int
 
 func (number StackNumber) IsParentOf(other StackNumber) bool {
+
+	if len(other) <= len(number) {
+		return false
+	}
+
 	for i := 0; i < len(number); i++ {
-		if len(other) < len(number) || other[i] != number[i] {
+		if other[i] != number[i] {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -19,11 +25,8 @@ type Stack struct {
 	// Cards []*Card
 	Card *Card
 
-	Above     *Card
-	PrevAbove *Card
-
-	Below     *Card
-	PrevBelow *Card
+	Above *Card
+	Below *Card
 
 	Number StackNumber
 }
@@ -39,8 +42,6 @@ func (stack *Stack) Update() {
 
 	grid := stack.Card.Page.Grid
 
-	stack.PrevAbove = stack.Above
-
 	var above *Card
 
 	if cardsAbove := grid.CardsAbove(stack.Card); len(cardsAbove) > 0 {
@@ -54,8 +55,6 @@ func (stack *Stack) Update() {
 
 	stack.Above = above
 
-	stack.PrevBelow = stack.Below
-
 	var below *Card
 
 	if cardsBelow := grid.CardsBelow(stack.Card); len(cardsBelow) > 0 {
@@ -65,6 +64,16 @@ func (stack *Stack) Update() {
 				break
 			}
 		}
+	}
+
+	// Prevent looping
+
+	if below != nil && (below == above || below == stack.Card) {
+		below = nil
+	}
+
+	if above == stack.Card {
+		above = nil
 	}
 
 	stack.Below = below
@@ -139,8 +148,13 @@ func (stack *Stack) Head() []*Card {
 	rest := []*Card{}
 
 	above := stack.Above
+	tested := map[*Card]bool{}
 	for above != nil {
+		if _, exists := tested[above]; exists {
+			break
+		}
 		rest = append(rest, above)
+		tested[above] = true
 		above = above.Stack.Above
 	}
 
@@ -153,8 +167,13 @@ func (stack *Stack) Head() []*Card {
 func (stack *Stack) Tail() []*Card {
 	rest := []*Card{}
 	below := stack.Below
+	tested := map[*Card]bool{}
 	for below != nil {
+		if _, exists := tested[below]; exists {
+			break
+		}
 		rest = append(rest, below)
+		tested[below] = true
 		below = below.Stack.Below
 	}
 	return rest
@@ -163,6 +182,9 @@ func (stack *Stack) Tail() []*Card {
 func (stack *Stack) Children() []*Card {
 	children := []*Card{}
 	for _, c := range stack.Tail() {
+		if c == stack.Card {
+			continue
+		}
 		if stack.Number.IsParentOf(c.Stack.Number) {
 			children = append(children, c)
 		}
@@ -232,6 +254,47 @@ func (stack *Stack) Contains(card *Card) bool {
 	}
 	return false
 }
+
+// func (stack *Stack) MoveNeighborAboveDown() {
+
+// 	above := stack.Above
+// 	for {
+// 		if above == nil || !above.selected {
+// 			break
+// 		}
+// 		if above.selected {
+// 			above = above.Stack.Above
+// 		}
+// 	}
+
+// 	if above != nil {
+// 		above.Move(0, stack.Card.Rect.H)
+// 	}
+
+// 	stack.Card.Page.ForceUpdateStacks()
+
+// }
+
+// func (stack *Stack) MoveNeighborBelowUp() {
+
+// 	below := stack.Below
+// 	for {
+// 		if below == nil || !below.selected {
+// 			break
+// 		}
+// 		if below.selected {
+// 			below = below.Stack.Below
+// 		}
+
+// 	}
+
+// 	if below != nil {
+// 		below.Move(0, -stack.Card.Rect.H)
+// 	}
+
+// 	stack.Card.Page.ForceUpdateStacks()
+
+// }
 
 // func (stack *Stack) Add(card *Card) {
 // 	for _, c := range stack.Cards {

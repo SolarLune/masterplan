@@ -1,7 +1,6 @@
 package main
 
 const (
-	MessageSelect               = "MessageSelect"
 	MessageResizeCompleted      = "MessageResizeCompleted"
 	MessageResizeStart          = "MessageResizeStart"
 	MessageCardDeleted          = "MessageCardDeleted"

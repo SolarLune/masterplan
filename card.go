@@ -115,15 +115,15 @@ func (le *LinkEnding) Update() {
 
 	points := []Point{}
 	if len(le.Joints) == 0 {
-		points = append(points, le.Start.NearestPointInRect(le.End.Center()), le.End.NearestPointInRect(le.Start.Center()))
+		points = append(points, le.Start.NearestPointInRect(le.End.Center(), true), le.End.NearestPointInRect(le.Start.Center(), true))
 	} else {
-		points = append(points, le.Start.NearestPointInRect(le.Joints[0].Position))
+		points = append(points, le.Start.NearestPointInRect(le.Joints[0].Position, false))
 
 		for _, joint := range le.Joints {
 			points = append(points, joint.Position)
 		}
 
-		points = append(points, le.End.NearestPointInRect(le.Joints[len(le.Joints)-1].Position))
+		points = append(points, le.End.NearestPointInRect(le.Joints[len(le.Joints)-1].Position, false))
 	}
 
 	for i := 0; i < len(points)-1; i++ {
@@ -174,15 +174,15 @@ func (le *LinkEnding) Draw() {
 
 		points := []Point{}
 		if len(le.Joints) == 0 {
-			points = append(points, le.Start.NearestPointInRect(le.End.Center()), le.End.NearestPointInRect(le.Start.Center()))
+			points = append(points, le.Start.NearestPointInRect(le.End.Center(), true), le.End.NearestPointInRect(le.Start.Center(), true))
 		} else {
-			points = append(points, le.Start.NearestPointInRect(le.Joints[0].Position))
+			points = append(points, le.Start.NearestPointInRect(le.Joints[0].Position, false))
 
 			for _, joint := range le.Joints {
 				points = append(points, joint.Position)
 			}
 
-			points = append(points, le.End.NearestPointInRect(le.Joints[len(le.Joints)-1].Position))
+			points = append(points, le.End.NearestPointInRect(le.Joints[len(le.Joints)-1].Position, false))
 		}
 
 		// delta := points[len(points)-1].Sub(le.End.Center())
@@ -388,6 +388,7 @@ func (card *Card) Update() {
 			card.Rect.X-rectSize, card.Rect.Y, rectSize, card.Rect.H,
 		)
 
+		// Card is being resized
 		if card.Resizing != "" {
 
 			globals.Mouse.SetCursor(card.Resizing)
@@ -437,6 +438,105 @@ func (card *Card) Update() {
 
 			if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
 				card.StopResizing()
+			}
+
+		}
+
+		if card.selected && globals.State == StateNeutral {
+
+			kb := globals.Keybindings
+			grid := card.Page.Grid
+
+			if len(card.Page.Cards) > 1 {
+
+				var nextCard *Card
+				selectRange := float32(1024)
+
+				if kb.Pressed(KBSelectCardUp) {
+
+					if neighbors := grid.CardsAbove(card); len(neighbors) > 0 {
+						nextCard = neighbors[0]
+					} else if neighbors := grid.CardsInArea(card.Rect.X, card.Rect.Y-selectRange, card.Rect.W, selectRange); len(neighbors) > 0 {
+						sort.Slice(neighbors, func(i, j int) bool {
+							return neighbors[i].Center().Distance(card.Center()) < neighbors[j].Center().Distance(card.Center())
+						})
+						nextCard = neighbors[0]
+					}
+
+				}
+
+				if kb.Pressed(KBSelectCardDown) {
+
+					if neighbors := grid.CardsBelow(card); len(neighbors) > 0 {
+						nextCard = neighbors[0]
+					} else if neighbors := grid.CardsInArea(card.Rect.X, card.Rect.Y+card.Rect.H, card.Rect.W, selectRange); len(neighbors) > 0 {
+						sort.Slice(neighbors, func(i, j int) bool {
+							return neighbors[i].Center().Distance(card.Center()) < neighbors[j].Center().Distance(card.Center())
+						})
+						nextCard = neighbors[0]
+
+					}
+
+				}
+
+				if kb.Pressed(KBSelectCardRight) {
+
+					if neighbors := grid.CardsInArea(card.Rect.X+card.Rect.W, card.Rect.Y, selectRange, card.Rect.H); len(neighbors) > 0 {
+						sort.Slice(neighbors, func(i, j int) bool {
+							return neighbors[i].Center().Distance(card.Center()) < neighbors[j].Center().Distance(card.Center())
+						})
+						nextCard = neighbors[0]
+					}
+
+				}
+
+				if kb.Pressed(KBSelectCardLeft) {
+
+					if neighbors := grid.CardsInArea(card.Rect.X-selectRange, card.Rect.Y, selectRange, card.Rect.H); len(neighbors) > 0 {
+						sort.Slice(neighbors, func(i, j int) bool {
+							return neighbors[i].Center().Distance(card.Center()) < neighbors[j].Center().Distance(card.Center())
+						})
+						nextCard = neighbors[0]
+					}
+
+				}
+
+				if kb.Pressed(KBSelectCardTop) {
+
+					if head := card.Stack.Head(); len(head) > 0 {
+						nextCard = head[0]
+					}
+
+				}
+
+				if kb.Pressed(KBSelectCardBottom) {
+
+					if tail := card.Stack.Tail(); len(tail) > 0 {
+						nextCard = tail[len(tail)-1]
+					}
+
+				}
+
+				if nextCard != nil {
+
+					if !kb.Pressed(KBAddToSelection) {
+						card.Page.Selection.Clear()
+					}
+
+					card.Page.Selection.Add(nextCard)
+					kb.Shortcuts[KBSelectCardUp].ConsumeKeys()
+					kb.Shortcuts[KBSelectCardRight].ConsumeKeys()
+					kb.Shortcuts[KBSelectCardDown].ConsumeKeys()
+					kb.Shortcuts[KBSelectCardLeft].ConsumeKeys()
+					kb.Shortcuts[KBSelectCardTop].ConsumeKeys()
+					kb.Shortcuts[KBSelectCardBottom].ConsumeKeys()
+
+					if globals.Settings.Get(SettingsFocusOnSelectingWithKeys).AsBool() {
+						card.Page.Project.Camera.FocusOn(false, card.Page.Selection.AsSlice()...)
+					}
+
+				}
+
 			}
 
 		}
@@ -703,32 +803,85 @@ func (card *Card) DrawShadow() {
 
 }
 
-func (card *Card) NearestPointInRect(in Point) Point {
+func (card *Card) NearestPointInRect(in Point, perpendicular bool) Point {
 
-	out := card.Center()
+	out := in
 
-	angle := in.Sub(out).Angle()
+	if perpendicular {
 
-	if angle < math.Pi/4 && angle > -math.Pi/4 {
-		out.X += card.DisplayRect.W / 2
-	} else if angle < math.Pi/4*3 && angle > 0 {
-		out.Y -= card.DisplayRect.H / 2
-	} else if angle > -math.Pi/4*3 && angle < 0 {
-		out.Y += card.DisplayRect.H / 2
+		out = card.Center()
+
+		if in.Y < card.DisplayRect.Y {
+			out.Y = card.DisplayRect.Y
+		} else if in.Y > card.DisplayRect.Y+card.DisplayRect.H {
+			out.Y = card.DisplayRect.Y + card.DisplayRect.H
+		}
+
+		if in.X < card.DisplayRect.X {
+			out.X = card.DisplayRect.X
+		} else if in.X > card.DisplayRect.X+card.DisplayRect.W {
+			out.X = card.DisplayRect.X + card.DisplayRect.W
+		}
+
 	} else {
-		out.X -= card.DisplayRect.W / 2
+
+		if out.X < card.DisplayRect.X {
+			out.X = card.DisplayRect.X
+		} else if out.X > card.DisplayRect.X+card.DisplayRect.W {
+			out.X = card.DisplayRect.X + card.DisplayRect.W
+		}
+
+		if out.Y < card.DisplayRect.Y {
+			out.Y = card.DisplayRect.Y
+		} else if out.Y > card.DisplayRect.Y+card.DisplayRect.H {
+			out.Y = card.DisplayRect.Y + card.DisplayRect.H
+		}
+
 	}
 
-	// if in.X < card.DisplayRect.X {
-	// 	in.X = card.DisplayRect.X
-	// } else if in.X > card.DisplayRect.X+card.DisplayRect.W {
-	// 	in.X = card.DisplayRect.X + card.DisplayRect.W
+	// out := card.Center()
+
+	// linkAngle := in.Sub(out).Angle()
+
+	// piece := math.Pi / 8
+
+	// fmt.Println("math pi piece: ", piece)
+
+	// pieces := []Point{
+	// 	{1, 0},
+	// 	{1, -1},
+	// 	{0, -1},
+	// 	{-1, -1},
+	// 	{-1, 0},
+	// 	{-1, 1},
+	// 	{0, 1},
+	// 	{1, 1},
 	// }
 
-	// if in.Y < card.DisplayRect.Y {
-	// 	in.Y = card.DisplayRect.Y
-	// } else if in.Y > card.DisplayRect.Y+card.DisplayRect.H {
-	// 	in.Y = card.DisplayRect.Y + card.DisplayRect.H
+	// fmt.Println(out)
+
+	// for _, offset := range pieces {
+	// 	angle := offset.Angle()
+	// 	if linkAngle <= angle {
+	// 		fmt.Println(linkAngle, angle)
+	// 		out := card.Center()
+	// 		out.X += offset.X * (card.DisplayRect.W / 2)
+	// 		out.Y += offset.Y * (card.DisplayRect.H / 2)
+	// 	}
+	// }
+
+	// fmt.Println(out)
+
+	// if angle < piece && angle > piece {
+	// 	out.X += card.DisplayRect.W / 2
+	// } else if angle < math.Pi/4 && angle > -math.Pi/4 {
+	// 	out.X += card.DisplayRect.W / 2
+	// } else if angle < math.Pi/4*3 && angle > 0 {
+	// 	out.Y -= card.DisplayRect.H / 2
+	// } else if angle > -math.Pi/4*3 && angle < 0 {
+	// 	out.Y += card.DisplayRect.H / 2
+	// } else {
+	// 	out.X -= card.DisplayRect.W / 2
 	// }
 
 	return out
@@ -852,16 +1005,24 @@ func (card *Card) PostDraw() {
 		if card.Numberable() {
 
 			number := ""
-			for i, n := range card.Stack.Number {
-				number += strconv.Itoa(n)
-				if i < len(card.Stack.Number)-1 {
+			index := 0
+			if !globals.Settings.Get(SettingsNumberTopLevelCards).AsBool() {
+				index++
+			}
+			// for i, n := range card.Stack.Number {
+			for index < len(card.Stack.Number) {
+				number += strconv.Itoa(card.Stack.Number[index])
+				if index < len(card.Stack.Number)-1 {
 					number += "."
 				}
+				index++
 			}
 
 			// numberingStartX := card.DisplayRect.X + card.DisplayRect.W - 16 - textSize.X
 
-			DrawLabel(card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (globals.GridSize * 0.75), card.DisplayRect.Y - 8}), number)
+			if len(number) > 0 {
+				DrawLabel(card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (globals.GridSize * 0.75), card.DisplayRect.Y - 8}), number)
+			}
 
 		}
 
@@ -1106,8 +1267,44 @@ func (card *Card) Move(dx, dy float32) {
 	card.Rect.X += dx
 	card.Rect.Y += dy
 	card.LockPosition()
+	card.CreateUndoState = true
 
 }
+
+// func (card *Card) MoveToEmpty(dx, dy float32) (float32, float32) {
+
+// 	freeSpace := false
+// 	for !freeSpace {
+
+// 		if inSpot := card.Page.Grid.CardsInCardShape(card, dx, dy); len(inSpot) > 0 {
+
+// 			if dx > 0 {
+// 				dx += globals.GridSize
+// 			} else if dx < 0 {
+// 				dx -= globals.GridSize
+// 			}
+
+// 			if dy > 0 {
+// 				dy += globals.GridSize
+// 			} else if dy < 0 {
+// 				dy -= globals.GridSize
+// 			}
+
+// 		} else {
+// 			freeSpace = true
+// 		}
+
+// 	}
+
+// 	card.Rect.X += dx
+// 	card.Rect.Y += dy
+
+// 	card.LockPosition()
+// 	card.CreateUndoState = true
+
+// 	return dx, dy
+
+// }
 
 func (card *Card) SetCenter(position Point) {
 

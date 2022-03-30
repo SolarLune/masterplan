@@ -2359,8 +2359,6 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 	} else if msg.Type == MessageContentSwitched {
 		mc.Card.Draggable = true
 		mc.Tool = MapEditToolNone
-	} else if msg.Type == MessageSelect && !mc.Card.selected {
-		globals.MenuSystem.Get("map palette menu").Close()
 	}
 
 }

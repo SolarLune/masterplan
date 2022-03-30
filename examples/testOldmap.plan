@@ -1,50 +1,439 @@
 {
-  "version": "0.8.0-alpha.3",
+  "version": "0.8.0-alpha.4.2",
   "pan": {
-    "X": 0,
-    "Y": 0
+    "X": -230.5231,
+    "Y": 421.52094
   },
   "zoom": 1,
-  "root": {
-    "pagecontenttype": "PageContentFolder",
-    "name": "New Folder",
-    "contents": [
-      {
-        "pagecontenttype": "PageContentPage",
-        "name": "New Page",
-        "cards": [
-          {
-            "id": 0,
-            "rect": {
-              "X": -224,
-              "Y": 32,
-              "W": 256,
-              "H": 192
-            },
-            "contents": "Timer",
-            "properties": {
-              "description": "New Timer",
-              "max time": "00:00",
-              "mode group": 0,
-              "trigger mode": 0
-            }
+  "pages": [
+    {
+      "id": 0,
+      "pan": {
+        "X": -230.5231,
+        "Y": 421.52094
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": -32,
+            "Y": -256,
+            "W": 288,
+            "H": 32
           },
-          {
-            "id": 1,
-            "rect": {
-              "X": 160,
-              "Y": 64,
-              "W": 256,
-              "H": 256
-            },
-            "contents": "Map",
-            "properties": {
-              "contents": "{\"contents\":[[0,0,0,0,0,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,1,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]}"
-            }
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
           }
-        ]
-      }
-    ]
-  },
+        },
+        {
+          "id": 1,
+          "rect": {
+            "X": 256,
+            "Y": -256,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 2,
+          "rect": {
+            "X": -32,
+            "Y": -224,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 3,
+          "rect": {
+            "X": 128,
+            "Y": -192,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 4,
+          "rect": {
+            "X": 96,
+            "Y": -128,
+            "W": 256,
+            "H": 192
+          },
+          "contents": "Timer",
+          "properties": {
+            "description": "New Timer",
+            "max time": "00:00",
+            "mode group": 0,
+            "trigger mode": 0
+          }
+        },
+        {
+          "id": 5,
+          "rect": {
+            "X": -800,
+            "Y": -64,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          },
+          "links": [
+            {
+              "start": 5,
+              "end": 10,
+              "joints": []
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "rect": {
+            "X": -384,
+            "Y": -64,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 7,
+          "rect": {
+            "X": -352,
+            "Y": -32,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 8,
+          "rect": {
+            "X": -352,
+            "Y": 0,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 9,
+          "rect": {
+            "X": -320,
+            "Y": 32,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 10,
+          "rect": {
+            "X": -800,
+            "Y": 64,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 11,
+          "rect": {
+            "X": -352,
+            "Y": 64,
+            "W": 288,
+            "H": 64
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 12,
+          "rect": {
+            "X": 128,
+            "Y": 64,
+            "W": 256,
+            "H": 256
+          },
+          "contents": "Map",
+          "properties": {
+            "contents": "{\"contents\":[[0,0,0,0,0,0,0,0],[0,1,1,1,0,0,0,0],[0,1,1,1,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]}"
+          }
+        },
+        {
+          "id": 13,
+          "rect": {
+            "X": -1024,
+            "Y": 128,
+            "W": 288,
+            "H": 128
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 14,
+          "rect": {
+            "X": -352,
+            "Y": 128,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 15,
+          "rect": {
+            "X": -320,
+            "Y": 160,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 16,
+          "rect": {
+            "X": -704,
+            "Y": 192,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 17,
+          "rect": {
+            "X": -288,
+            "Y": 192,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 18,
+          "rect": {
+            "X": -704,
+            "Y": 224,
+            "W": 288,
+            "H": 96
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 19,
+          "rect": {
+            "X": -1024,
+            "Y": 256,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 20,
+          "rect": {
+            "X": -1184,
+            "Y": 352,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 21,
+          "rect": {
+            "X": -896,
+            "Y": 352,
+            "W": 64,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 22,
+          "rect": {
+            "X": -320,
+            "Y": 352,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "A",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 23,
+          "rect": {
+            "X": -288,
+            "Y": 384,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "B",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 24,
+          "rect": {
+            "X": -288,
+            "Y": 416,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "New Sub-Page",
+            "subpage": 1
+          }
+        },
+        {
+          "id": 25,
+          "rect": {
+            "X": -1184,
+            "Y": 448,
+            "W": 64,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 26,
+          "rect": {
+            "X": -1120,
+            "Y": 448,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1
+    }
+  ],
   "savedimages": {}
 }

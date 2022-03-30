@@ -57,6 +57,7 @@ func NewGridSelection(x, y, x2, y2 float32, grid *Grid) GridSelection {
 		End:   Point{x2, y2},
 		Grid:  grid,
 	}
+
 	return selection
 }
 
@@ -252,11 +253,11 @@ func (grid *Grid) LockPosition(position float32) float32 {
 // 	return cards
 // }
 
-func (grid *Grid) CardsAbove(card *Card) []*Card {
+func (grid *Grid) CardsInCardShape(card *Card, dx, dy float32) []*Card {
 
 	cards := []*Card{}
 
-	selection := grid.Select(&sdl.FRect{card.Rect.X, card.Rect.Y - globals.GridSize, card.Rect.W, globals.GridSize})
+	selection := grid.Select(&sdl.FRect{card.Rect.X + dx + 2, card.Rect.Y + dy + 2, card.Rect.W - 2, card.Rect.H - 2})
 
 	for _, c := range selection.Cards() {
 		if card != c {
@@ -268,18 +269,15 @@ func (grid *Grid) CardsAbove(card *Card) []*Card {
 
 }
 
+func (grid *Grid) CardsInArea(x, y, w, h float32) []*Card {
+	return grid.Select(&sdl.FRect{x + 1, y + 1, w - 1, h - 1}).Cards()
+
+}
+
+func (grid *Grid) CardsAbove(card *Card) []*Card {
+	return grid.CardsInCardShape(card, 0, -globals.GridSize)
+}
+
 func (grid *Grid) CardsBelow(card *Card) []*Card {
-
-	cards := []*Card{}
-
-	selection := grid.Select(&sdl.FRect{card.Rect.X, card.Rect.Y + card.Rect.H, card.Rect.W, globals.GridSize})
-
-	for _, c := range selection.Cards() {
-		if card != c {
-			cards = append(cards, c)
-		}
-	}
-
-	return cards
-
+	return grid.CardsInCardShape(card, 0, globals.GridSize)
 }

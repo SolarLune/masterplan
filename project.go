@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -300,8 +299,6 @@ func (project *Project) Save() {
 	for _, page := range project.Pages {
 
 		for _, card := range page.Cards {
-
-			fmt.Println("serialize ", card.ID)
 
 			fp := card.Properties.Get("filepath").AsString()
 
@@ -619,22 +616,23 @@ func (project *Project) GlobalShortcuts() {
 		dx := float32(0)
 		dy := float32(0)
 		panSpeed := float32(960) * globals.DeltaTime
+		kb := globals.Keybindings
 
-		if globals.Keybindings.Pressed(KBPanRight) {
+		if kb.Pressed(KBPanRight) {
 			dx = panSpeed
 		}
-		if globals.Keybindings.Pressed(KBPanLeft) {
+		if kb.Pressed(KBPanLeft) {
 			dx = -panSpeed
 		}
 
-		if globals.Keybindings.Pressed(KBPanUp) {
+		if kb.Pressed(KBPanUp) {
 			dy = -panSpeed
 		}
-		if globals.Keybindings.Pressed(KBPanDown) {
+		if kb.Pressed(KBPanDown) {
 			dy = panSpeed
 		}
 
-		if globals.Keybindings.Pressed(KBFastPan) {
+		if kb.Pressed(KBFastPan) {
 			dx *= 2
 			dy *= 2
 		}
@@ -642,79 +640,79 @@ func (project *Project) GlobalShortcuts() {
 		project.Camera.TargetPosition.X += dx / project.Camera.Zoom
 		project.Camera.TargetPosition.Y += dy / project.Camera.Zoom
 
-		if globals.Keybindings.Pressed(KBZoomIn) {
+		if kb.Pressed(KBZoomIn) {
 			project.Camera.AddZoom(project.Camera.Zoom * 0.05)
-			globals.Keybindings.Shortcuts[KBZoomIn].ConsumeKeys()
-		} else if globals.Keybindings.Pressed(KBZoomOut) {
+			kb.Shortcuts[KBZoomIn].ConsumeKeys()
+		} else if kb.Pressed(KBZoomOut) {
 			project.Camera.AddZoom(-project.Camera.Zoom * 0.05)
-			globals.Keybindings.Shortcuts[KBZoomOut].ConsumeKeys()
+			kb.Shortcuts[KBZoomOut].ConsumeKeys()
 		}
 
-		if globals.Keybindings.Pressed(KBZoomLevel25) {
+		if kb.Pressed(KBZoomLevel25) {
 			project.Camera.SetZoom(0.25)
-			globals.Keybindings.Shortcuts[KBZoomLevel25].ConsumeKeys()
-		} else if globals.Keybindings.Pressed(KBZoomLevel50) {
+			kb.Shortcuts[KBZoomLevel25].ConsumeKeys()
+		} else if kb.Pressed(KBZoomLevel50) {
 			project.Camera.SetZoom(0.5)
-			globals.Keybindings.Shortcuts[KBZoomLevel50].ConsumeKeys()
-		} else if globals.Keybindings.Pressed(KBZoomLevel100) {
+			kb.Shortcuts[KBZoomLevel50].ConsumeKeys()
+		} else if kb.Pressed(KBZoomLevel100) {
 			project.Camera.SetZoom(1.0)
-			globals.Keybindings.Shortcuts[KBZoomLevel100].ConsumeKeys()
-		} else if globals.Keybindings.Pressed(KBZoomLevel200) {
+			kb.Shortcuts[KBZoomLevel100].ConsumeKeys()
+		} else if kb.Pressed(KBZoomLevel200) {
 			project.Camera.SetZoom(2.0)
-			globals.Keybindings.Shortcuts[KBZoomLevel200].ConsumeKeys()
-		} else if globals.Keybindings.Pressed(KBZoomLevel400) {
+			kb.Shortcuts[KBZoomLevel200].ConsumeKeys()
+		} else if kb.Pressed(KBZoomLevel400) {
 			project.Camera.SetZoom(4.0)
-			globals.Keybindings.Shortcuts[KBZoomLevel400].ConsumeKeys()
-		} else if globals.Keybindings.Pressed(KBZoomLevel1000) {
+			kb.Shortcuts[KBZoomLevel400].ConsumeKeys()
+		} else if kb.Pressed(KBZoomLevel1000) {
 			project.Camera.SetZoom(10.0)
-			globals.Keybindings.Shortcuts[KBZoomLevel1000].ConsumeKeys()
+			kb.Shortcuts[KBZoomLevel1000].ConsumeKeys()
 		}
 
-		if globals.Keybindings.Pressed(KBReturnToOrigin) {
+		if kb.Pressed(KBReturnToOrigin) {
 			project.Camera.TargetPosition = Point{}
-			globals.Keybindings.Shortcuts[KBReturnToOrigin].ConsumeKeys()
+			kb.Shortcuts[KBReturnToOrigin].ConsumeKeys()
 		}
 
 		var newCard *Card
-		if globals.Keybindings.Pressed(KBNewCheckboxCard) {
+		if kb.Pressed(KBNewCheckboxCard) {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
-			globals.Keybindings.Shortcuts[KBNewCheckboxCard].ConsumeKeys()
+			kb.Shortcuts[KBNewCheckboxCard].ConsumeKeys()
 
-		} else if globals.Keybindings.Pressed(KBNewNumberCard) {
+		} else if kb.Pressed(KBNewNumberCard) {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeNumbered)
-			globals.Keybindings.Shortcuts[KBNewCheckboxCard].ConsumeKeys()
+			kb.Shortcuts[KBNewCheckboxCard].ConsumeKeys()
 
-		} else if globals.Keybindings.Pressed(KBNewNoteCard) {
+		} else if kb.Pressed(KBNewNoteCard) {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeNote)
-			globals.Keybindings.Shortcuts[KBNewNoteCard].ConsumeKeys()
+			kb.Shortcuts[KBNewNoteCard].ConsumeKeys()
 
-		} else if globals.Keybindings.Pressed(KBNewSoundCard) {
+		} else if kb.Pressed(KBNewSoundCard) {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeSound)
-			globals.Keybindings.Shortcuts[KBNewSoundCard].ConsumeKeys()
+			kb.Shortcuts[KBNewSoundCard].ConsumeKeys()
 
-		} else if globals.Keybindings.Pressed(KBNewImageCard) {
+		} else if kb.Pressed(KBNewImageCard) {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeImage)
-			globals.Keybindings.Shortcuts[KBNewImageCard].ConsumeKeys()
+			kb.Shortcuts[KBNewImageCard].ConsumeKeys()
 
-		} else if globals.Keybindings.Pressed(KBNewTimerCard) {
+		} else if kb.Pressed(KBNewTimerCard) {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeTimer)
-			globals.Keybindings.Shortcuts[KBNewTimerCard].ConsumeKeys()
+			kb.Shortcuts[KBNewTimerCard].ConsumeKeys()
 
-		} else if globals.Keybindings.Pressed(KBNewMapCard) {
+		} else if kb.Pressed(KBNewMapCard) {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeMap)
-			globals.Keybindings.Shortcuts[KBNewMapCard].ConsumeKeys()
+			kb.Shortcuts[KBNewMapCard].ConsumeKeys()
 
-		} else if globals.Keybindings.Pressed(KBNewSubpageCard) {
+		} else if kb.Pressed(KBNewSubpageCard) {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeSubpage)
-			globals.Keybindings.Shortcuts[KBNewSubpageCard].ConsumeKeys()
+			kb.Shortcuts[KBNewSubpageCard].ConsumeKeys()
 
 		}
 
@@ -723,68 +721,209 @@ func (project *Project) GlobalShortcuts() {
 			project.CurrentPage.Selection.Add(newCard)
 		}
 
-		if globals.Keybindings.Pressed(KBDeleteCards) {
+		if kb.Pressed(KBDeleteCards) {
 			project.CurrentPage.DeleteCards(project.CurrentPage.Selection.AsSlice()...)
 		}
 
-		if globals.Keybindings.Pressed(KBSelectAllCards) {
+		if kb.Pressed(KBSelectAllCards) {
 			project.CurrentPage.Selection.Clear()
 			for _, card := range project.CurrentPage.Cards {
 				project.CurrentPage.Selection.Add(card)
 			}
 
-			globals.Keybindings.Shortcuts[KBSelectAllCards].ConsumeKeys()
+			kb.Shortcuts[KBSelectAllCards].ConsumeKeys()
 		}
 
-		if globals.Keybindings.Pressed(KBDeselectAllCards) {
+		if kb.Pressed(KBDeselectAllCards) {
 			project.CurrentPage.Selection.Clear()
-			globals.Keybindings.Shortcuts[KBDeselectAllCards].ConsumeKeys()
+			kb.Shortcuts[KBDeselectAllCards].ConsumeKeys()
 		}
 
-		if globals.Keybindings.Pressed(KBCopyCards) {
+		if kb.Pressed(KBCopyCards) {
 			project.CurrentPage.CopySelectedCards()
-			globals.Keybindings.Shortcuts[KBCopyCards].ConsumeKeys()
+			kb.Shortcuts[KBCopyCards].ConsumeKeys()
 		}
 
-		if globals.Keybindings.Pressed(KBPasteCards) {
+		if kb.Pressed(KBPasteCards) {
 			project.CurrentPage.PasteCards(Point{})
-			globals.Keybindings.Shortcuts[KBPasteCards].ConsumeKeys()
+			kb.Shortcuts[KBPasteCards].ConsumeKeys()
 		}
 
-		if globals.Keybindings.Pressed(KBExternalPaste) {
+		if kb.Pressed(KBExternalPaste) {
 			project.CurrentPage.HandleExternalPaste()
-			globals.Keybindings.Shortcuts[KBExternalPaste].ConsumeKeys()
+			kb.Shortcuts[KBExternalPaste].ConsumeKeys()
 		}
 
-		if globals.Keybindings.Pressed(KBSaveProject) {
+		if kb.Pressed(KBSaveProject) {
 
 			if project.Filepath != "" {
 				project.Save()
 			} else {
 				project.SaveAs()
 			}
-			globals.Keybindings.Shortcuts[KBSaveProject].ConsumeKeys()
+			kb.Shortcuts[KBSaveProject].ConsumeKeys()
 
-		} else if globals.Keybindings.Pressed(KBSaveProjectAs) {
-			globals.Keybindings.Shortcuts[KBSaveProjectAs].ConsumeKeys()
+		} else if kb.Pressed(KBSaveProjectAs) {
+			kb.Shortcuts[KBSaveProjectAs].ConsumeKeys()
 			project.SaveAs()
-		} else if globals.Keybindings.Pressed(KBOpenProject) {
-			globals.Keybindings.Shortcuts[KBOpenProject].ConsumeKeys()
+		} else if kb.Pressed(KBOpenProject) {
+			kb.Shortcuts[KBOpenProject].ConsumeKeys()
 			project.Open()
 		}
 
-		if globals.Keybindings.Pressed(KBFindNext) || globals.Keybindings.Pressed(KBFindPrev) {
+		if kb.Pressed(KBFindNext) || kb.Pressed(KBFindPrev) {
 			if !globals.MenuSystem.Get("find").Opened {
 				globals.MenuSystem.Get("find").Open()
 			}
 		}
 
-		if globals.Keybindings.Pressed(KBFocusOnCards) {
+		if kb.Pressed(KBFocusOnCards) {
 			project.Camera.FocusOn(true, project.CurrentPage.Selection.AsSlice()...)
 		}
 
-		if globals.Keybindings.Pressed(KBSubpageClose) {
+		if kb.Pressed(KBSubpageClose) {
 			project.GoUpFromSubpage()
+		}
+
+		if len(project.CurrentPage.Selection.Cards) > 0 {
+
+			// grid := project.CurrentPage.Grid
+
+			dx := float32(0)
+			dy := float32(0)
+
+			if kb.Pressed(KBMoveCardRight) {
+				dx = globals.GridSize
+			} else if kb.Pressed(KBMoveCardLeft) {
+				dx = -globals.GridSize
+			} else if kb.Pressed(KBMoveCardUp) {
+				dy = -globals.GridSize
+			} else if kb.Pressed(KBMoveCardDown) {
+				dy = globals.GridSize
+			}
+
+			selected := project.CurrentPage.Selection.AsSlice()
+
+			if dx != 0 || dy != 0 {
+
+				if dx > 0 {
+					sort.Slice(selected, func(i, j int) bool { return selected[i].Rect.X > selected[j].Rect.X })
+				} else if dx < 0 {
+					sort.Slice(selected, func(i, j int) bool { return selected[i].Rect.X < selected[j].Rect.X })
+				}
+
+				if dy > 0 {
+					sort.Slice(selected, func(i, j int) bool { return selected[i].Rect.Y > selected[j].Rect.Y })
+				} else if dy < 0 {
+					sort.Slice(selected, func(i, j int) bool { return selected[i].Rect.Y < selected[j].Rect.Y })
+				}
+
+				grid := project.CurrentPage.Grid
+
+				for _, card := range selected {
+					swappedWithNeighbor := false
+					for _, neighbor := range grid.CardsInCardShape(card, dx, dy) {
+						if !neighbor.selected {
+
+							if dx > 0 {
+								neighbor.Rect.X = card.Rect.X
+								card.Rect.X = neighbor.Rect.X + neighbor.Rect.W
+							} else if dx < 0 {
+								card.Rect.X = neighbor.Rect.X
+								neighbor.Rect.X = card.Rect.X + card.Rect.W
+							} else if dy > 0 {
+								neighbor.Rect.Y = card.Rect.Y
+								card.Rect.Y = neighbor.Rect.Y + neighbor.Rect.H
+							} else if dy < 0 {
+								card.Rect.Y = neighbor.Rect.Y
+								neighbor.Rect.Y = card.Rect.Y + card.Rect.H
+							}
+
+							neighbor.LockPosition()
+							card.LockPosition()
+
+							neighbor.CreateUndoState = true
+							card.CreateUndoState = true
+
+							swappedWithNeighbor = true
+							break
+
+						}
+					}
+					if !swappedWithNeighbor {
+						card.Move(dx, dy)
+					}
+
+					card.CreateUndoState = true
+
+				}
+
+				if globals.Settings.Get(SettingsFocusOnSelectingWithKeys).AsBool() {
+					project.Camera.FocusOn(false, project.CurrentPage.Selection.AsSlice()...)
+				}
+
+				project.CurrentPage.UpdateStacks = true
+
+			}
+
+		}
+
+		if kb.Pressed(KBSelectCardNext) || kb.Pressed(KBSelectCardPrev) {
+
+			cardList := append([]*Card{}, project.CurrentPage.Cards...)
+
+			if len(cardList) > 0 {
+
+				sort.SliceStable(cardList, func(i, j int) bool {
+					if cardList[i].Rect.Y == cardList[j].Rect.Y {
+						return cardList[i].Rect.X < cardList[j].Rect.X
+					}
+					return cardList[i].Rect.Y < cardList[j].Rect.Y
+				})
+
+				selectionIndex := 0
+
+				prev := false
+				if kb.Pressed(KBSelectCardPrev) {
+					prev = true
+				}
+
+				for i, c := range cardList {
+					if c.selected {
+						if prev {
+							selectionIndex = i - 1
+						} else {
+							selectionIndex = i + 1
+						}
+						break
+					}
+				}
+
+				if selectionIndex < 0 {
+					selectionIndex = 0
+				}
+
+				if selectionIndex >= len(cardList)-1 {
+					selectionIndex = len(cardList) - 1
+				}
+
+				if selectionIndex < len(cardList) {
+					nextCard := cardList[selectionIndex]
+
+					project.CurrentPage.Selection.Clear()
+
+					project.CurrentPage.Selection.Add(nextCard)
+
+					if globals.Settings.Get(SettingsFocusOnSelectingWithKeys).AsBool() {
+						project.Camera.FocusOn(false, project.CurrentPage.Selection.AsSlice()...)
+					}
+
+					kb.Shortcuts[KBSelectCardNext].ConsumeKeys()
+
+				}
+
+			}
+
 		}
 
 	}
