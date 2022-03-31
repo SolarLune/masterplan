@@ -8,9 +8,11 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [x] Fix Map card not showing after autoload on Windows (texture is refreshed before data is written, or something right after autoload?)
 [x] Fix recent files filepath not being complete on Windows
 [x] Card movement!
-[ ] Window Transparency / make window transparent if mouse isn't in window
+[ ] Time unit estimation should be better
+  [ ] Fix time unit estimation to handle large months (i.e. many years) properly
+[x] Window Transparency / make window transparent if mouse isn't in window
 [ ] Ability to point to different cards (maybe this is a specific card type?)
-[ ] Ability to run commands / execute functions?
+  [ ] Ability to run commands / execute functions?
 [ ] Key to jump to ends of arrow cards
 [ ] Ability to search / list Cards by type
 [ ] Ability to edit Card contents using buttons to cycle through the controls

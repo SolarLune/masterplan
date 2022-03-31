@@ -313,6 +313,44 @@ func main() {
 
 	for !quit {
 
+		wtMode := globals.Settings.Get(SettingsWindowTransparencyMode).AsString()
+		wtLevel := globals.Settings.Get(SettingsWindowTransparency).AsFloat()
+
+		if wtLevel < 0.02 {
+			wtLevel = 0
+		} else if wtLevel > 0.98 {
+			wtLevel = 1
+		}
+
+		minimum := 0.25
+		maximum := 1.0 - minimum
+
+		switch wtMode {
+		case WindowTransparencyAlways:
+			globals.WindowTargetTransparency = minimum + (wtLevel * maximum)
+		case WindowTransparencyMouse:
+			if globals.Mouse.InsideWindow {
+				globals.WindowTargetTransparency = 1
+			} else {
+				globals.WindowTargetTransparency = minimum + (wtLevel * maximum)
+			}
+		case WindowTransparencyWindow:
+			if (window.GetFlags()&sdl.WINDOW_INPUT_FOCUS > 0) || (window.GetFlags()&sdl.WINDOW_INPUT_GRABBED > 0) {
+				globals.WindowTargetTransparency = 1
+			} else {
+				globals.WindowTargetTransparency = minimum + (wtLevel * maximum)
+			}
+		default:
+			globals.WindowTargetTransparency = 1
+		}
+
+		diff := (globals.WindowTargetTransparency - globals.WindowTransparency) * 0.2
+
+		if math.Abs(diff) > 0.001 {
+			globals.WindowTransparency += diff
+			globals.Window.SetWindowOpacity(float32(globals.WindowTransparency))
+		}
+
 		globals.MenuSystem.Get("main").Pages["root"].FindElement("time label", false).(*Label).SetText([]rune(time.Now().Format("Mon Jan 2 2006")))
 
 		screenWidth, screenHeight, err := globals.Renderer.GetOutputSize()
@@ -421,6 +459,10 @@ func main() {
 				globals.TextRenderer.QuickRenderText(s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, AlignRight)
 			}
 
+		}
+
+		if globals.Settings.Get(SettingsOutlineWindow).AsBool() {
+			ThickRect(0, 0, screenWidth, screenHeight, 4, getThemeColor(GUICompletedColor))
 		}
 
 		if globals.NextProject != nil {
@@ -1295,10 +1337,6 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
 
 	row = general.AddRow(AlignCenter)
-	row.Add("", NewLabel("Borderless Window:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsBorderlessWindow)))
-
-	row = general.AddRow(AlignCenter)
 	row.Add("", NewLabel("Focus on Cards When Moving or Selecting With Keys:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnSelectingWithKeys)))
 
@@ -1344,7 +1382,7 @@ func ConstructMenus() {
 	drop := NewDropdown(&sdl.FRect{0, 0, 128, 32}, false, func(index int) {
 		globals.Settings.Get(SettingsTheme).Set(availableThemes[index])
 		refreshThemes()
-	}, availableThemes...)
+	}, nil, availableThemes...)
 
 	drop.OnOpen = func() {
 		loadThemes()
@@ -1398,6 +1436,24 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Number top-level cards:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNumberTopLevelCards)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Borderless Window:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsBorderlessWindow)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Outline Window:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsOutlineWindow)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Window Transparency:", nil, false, AlignLeft))
+	row.Add("", NewScrollbar(&sdl.FRect{0, 0, 64, 32}, false, globals.Settings.Get(SettingsWindowTransparency)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Transparency Mode:", nil, false, AlignLeft))
+	transparencyDropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsWindowTransparencyMode), WindowTransparencyAlways, WindowTransparencyMouse, WindowTransparencyWindow)
+	row.Add("", transparencyDropdown)
+	// row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsWindowTransparencyMode)))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
@@ -1513,8 +1569,7 @@ func ConstructMenus() {
 
 	row = input.AddRow(AlignCenter)
 	row.Add("", NewLabel("Double-click: ", nil, false, AlignLeft))
-	dropdown := NewDropdown(nil, false, nil, DoubleClickLast, DoubleClickCheckbox, DoubleClickNothing)
-	dropdown.Property = globals.Settings.Get(SettingsDoubleClickMode)
+	dropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsDoubleClickMode), DoubleClickLast, DoubleClickCheckbox, DoubleClickNothing)
 	row.Add("", dropdown)
 
 	row = input.AddRow(AlignCenter)

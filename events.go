@@ -133,6 +133,7 @@ type Mouse struct {
 	HiddenPosition bool
 	HiddenButtons  bool
 	Dummy          *Mouse
+	InsideWindow   bool
 }
 
 func NewMouse() Mouse {
@@ -149,7 +150,7 @@ func NewMouse() Mouse {
 	}
 }
 
-func (mouse Mouse) Button(buttonIndex uint8) *InputState {
+func (mouse *Mouse) Button(buttonIndex uint8) *InputState {
 
 	if mouse.HiddenButtons {
 		return mouse.Dummy.Button(buttonIndex)
@@ -163,28 +164,28 @@ func (mouse Mouse) Button(buttonIndex uint8) *InputState {
 
 }
 
-func (mouse Mouse) RelativeMovement() Point {
+func (mouse *Mouse) RelativeMovement() Point {
 	if mouse.HiddenPosition {
 		return mouse.Dummy.RelativeMovement()
 	}
 	return mouse.screenPosition.Sub(mouse.prevPosition)
 }
 
-func (mouse Mouse) Wheel() int32 {
+func (mouse *Mouse) Wheel() int32 {
 	if mouse.HiddenButtons {
 		return mouse.Dummy.Wheel()
 	}
 	return mouse.wheel
 }
 
-func (mouse Mouse) Position() Point {
+func (mouse *Mouse) Position() Point {
 	if mouse.HiddenPosition {
 		return mouse.Dummy.Position()
 	}
 	return mouse.screenPosition
 }
 
-func (mouse Mouse) WorldPosition() Point {
+func (mouse *Mouse) WorldPosition() Point {
 
 	if mouse.HiddenPosition {
 		return mouse.Dummy.WorldPosition()
@@ -342,6 +343,11 @@ func handleEvents() {
 
 			globals.Mouse.screenPosition.X = float32(event.X)
 			globals.Mouse.screenPosition.Y = float32(event.Y)
+			if event.X == 0 || event.Y == 0 || event.X == int32(globals.ScreenSize.X-1) || event.Y == int32(globals.ScreenSize.Y-1) {
+				globals.Mouse.InsideWindow = false
+			} else {
+				globals.Mouse.InsideWindow = true
+			}
 
 		case *sdl.MouseButtonEvent:
 

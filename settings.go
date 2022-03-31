@@ -22,6 +22,7 @@ const (
 	SettingsUnfocusedFPS             = "UnfocusedFPS"
 	SettingsDisableSplashscreen      = "DisableSplashscreen"
 	SettingsBorderlessWindow         = "BorderlessWindow"
+	SettingsOutlineWindow            = "OutlineWindow"
 	SettingsAlwaysShowNumbering      = "AlwaysShowNumbering"
 	SettingsNumberTopLevelCards      = "NumberTopLevelCards"
 	SettingsDisplayMessages          = "DisplayMessages"
@@ -38,10 +39,16 @@ const (
 	SettingsScreenshotPath           = "ScreenshotPath"
 	SettingsSmoothMovement           = "SmoothMovement"
 	SettingsFocusOnSelectingWithKeys = "FocusOnSelectingWithKeys"
+	SettingsWindowTransparency       = "Window Transparency"
+	SettingsWindowTransparencyMode   = "Transparency Mode:"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"
 	DoubleClickNothing  = "Does nothing"
+
+	WindowTransparencyAlways = "Always"
+	WindowTransparencyMouse  = "When mouse is outside window"
+	WindowTransparencyWindow = "When window is inactive"
 )
 
 func NewProgramSettings() *Properties {
@@ -71,6 +78,14 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsSmoothMovement).Set(true)
 	props.Get(SettingsNumberTopLevelCards).Set(true)
 	props.Get(SettingsFocusOnSelectingWithKeys).Set(true)
+	props.Get(SettingsOutlineWindow).Set(false)
+
+	transparency := props.Get(SettingsWindowTransparency)
+	transparency.Set(1.0)
+	transparency.OnChange = func() {
+		globals.WindowTargetTransparency = transparency.AsFloat()
+	}
+	props.Get(SettingsWindowTransparencyMode).Set(WindowTransparencyAlways)
 
 	borderless := props.Get(SettingsBorderlessWindow)
 	borderless.Set(false)

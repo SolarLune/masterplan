@@ -609,10 +609,10 @@ func FillRect(x, y, w, h float32, color Color) {
 
 func ThickRect(x, y, w, h, thickness int32, color Color) {
 
-	gfx.ThickLineRGBA(globals.Renderer, x, y, x+w, y, 2, color[0], color[1], color[2], color[3])
-	gfx.ThickLineRGBA(globals.Renderer, x+w, y, x+w, y+h, 2, color[0], color[1], color[2], color[3])
-	gfx.ThickLineRGBA(globals.Renderer, x+w, y+h, x, y+h, 2, color[0], color[1], color[2], color[3])
-	gfx.ThickLineRGBA(globals.Renderer, x, y+h, x, y, 2, color[0], color[1], color[2], color[3])
+	gfx.ThickLineRGBA(globals.Renderer, x, y, x+w, y, thickness, color[0], color[1], color[2], color[3])
+	gfx.ThickLineRGBA(globals.Renderer, x+w, y, x+w, y+h, thickness, color[0], color[1], color[2], color[3])
+	gfx.ThickLineRGBA(globals.Renderer, x+w, y+h, x, y+h, thickness, color[0], color[1], color[2], color[3])
+	gfx.ThickLineRGBA(globals.Renderer, x, y+h, x, y, thickness, color[0], color[1], color[2], color[3])
 
 }
 

@@ -854,6 +854,15 @@ func (project *Project) GlobalShortcuts() {
 						card.Move(dx, dy)
 					}
 
+					// for _, link := range card.Links {
+					// 	if link.Start == card && project.CurrentPage.Selection.Has(link.End) {
+					// 		for _, joint := range link.Joints {
+					// 			joint.Position.X += dx
+					// 			joint.Position.Y += dy
+					// 		}
+					// 	}
+					// }
+
 					card.CreateUndoState = true
 
 				}

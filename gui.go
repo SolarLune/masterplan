@@ -662,12 +662,13 @@ type Dropdown struct {
 	Property        *Property
 }
 
-func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), options ...string) *Dropdown {
+func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), property *Property, options ...string) *Dropdown {
 
 	dropdown := &Dropdown{
 		Choices:    []*Button{},
 		WorldSpace: worldSpace,
 		OnChoose:   onChoose,
+		Property:   property,
 	}
 
 	dropdown.Button = NewButton(options[0], rect, nil, worldSpace, func() {
@@ -680,6 +681,16 @@ func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), opt
 	dropdown.Button.BackgroundColor = getThemeColor(GUIMenuColor)
 
 	dropdown.SetOptions(options...)
+
+	if property != nil {
+		choice := property.AsString()
+		for ci, c := range options {
+			if choice == c {
+				dropdown.ChosenIndex = ci
+				break
+			}
+		}
+	}
 
 	return dropdown
 
@@ -837,6 +848,9 @@ func (bg *ButtonGroup) SetChoices(choices ...string) {
 			if bg.OnChoose != nil {
 				bg.OnChoose(index)
 			}
+			if bg.Property != nil {
+				bg.Property.Set(bg.Buttons[bg.ChosenIndex].Label.TextAsString())
+			}
 		})
 		bg.Buttons = append(bg.Buttons, newButton)
 	}
@@ -852,6 +866,20 @@ func (bg *ButtonGroup) Update() {
 		b.SetRectangle(rect)
 		rect.X += rect.W
 		b.Update()
+	}
+
+	if bg.Property != nil {
+
+		if prop := bg.Property.AsString(); prop != bg.Buttons[bg.ChosenIndex].Label.TextAsString() {
+
+			for i, button := range bg.Buttons {
+				if button.Label.TextAsString() == prop {
+					bg.ChosenIndex = i
+					break
+				}
+			}
+		}
+
 	}
 
 }
@@ -2148,7 +2176,7 @@ func NewContainer(rect *sdl.FRect, worldSpace bool) *Container {
 		Rect:             &sdl.FRect{},
 		Rows:             []*ContainerRow{},
 		WorldSpace:       worldSpace,
-		Scrollbar:        NewScrollbar(&sdl.FRect{0, 0, 32, 32}, worldSpace),
+		Scrollbar:        NewScrollbar(&sdl.FRect{0, 0, 32, 32}, worldSpace, nil),
 		DisplayScrollbar: !worldSpace,
 	}
 
@@ -2423,15 +2451,22 @@ type Scrollbar struct {
 	OnRelease   func()
 	Highlighter *Highlighter
 	Dragging    bool
+	Property    *Property
 }
 
-func NewScrollbar(rect *sdl.FRect, worldSpace bool) *Scrollbar {
-	return &Scrollbar{
+func NewScrollbar(rect *sdl.FRect, worldSpace bool, property *Property) *Scrollbar {
+	scrollbar := &Scrollbar{
 		Rect:        rect,
 		WorldSpace:  worldSpace,
 		Highlighter: NewHighlighter(&sdl.FRect{0, 0, 32, 32}, worldSpace),
 		Soft:        true,
+		Property:    property,
 	}
+	if property != nil {
+		scrollbar.TargetValue = float32(property.AsFloat())
+		scrollbar.Value = float32(property.AsFloat())
+	}
+	return scrollbar
 }
 
 func (scrollbar *Scrollbar) Update() {
@@ -2457,6 +2492,7 @@ func (scrollbar *Scrollbar) Update() {
 	if !button.HeldRaw() {
 		if scrollbar.Dragging && scrollbar.OnRelease != nil {
 			scrollbar.OnRelease()
+
 		}
 		scrollbar.Dragging = false
 	}
@@ -2491,6 +2527,11 @@ func (scrollbar *Scrollbar) SetValue(value float32) {
 	if scrollbar.OnValueSet != nil {
 		scrollbar.OnValueSet()
 	}
+
+	if scrollbar.Property != nil {
+		scrollbar.Property.Set(float64(scrollbar.TargetValue))
+	}
+
 }
 
 func (scrollbar *Scrollbar) Draw() {
@@ -2514,14 +2555,14 @@ func (scrollbar *Scrollbar) Draw() {
 	if scrollbar.Vertical() {
 
 		// head
-		scroll := scrollbar.Rect.H*scrollbar.Value - (8 * scrollbar.Value)
-		FillRect(rect.X+4, rect.Y+2+scroll, rect.W-8, 4, getThemeColor(GUIFontColor))
+		scroll := scrollbar.Rect.H*scrollbar.Value - (12 * scrollbar.Value)
+		FillRect(rect.X+4, rect.Y+4+scroll, rect.W-8, 4, getThemeColor(GUICompletedColor))
 
 	} else {
 
 		// head
-		scroll := scrollbar.Rect.W*scrollbar.Value - (8 * scrollbar.Value)
-		FillRect(rect.X+2+scroll, rect.Y+4, 4, rect.H-8, getThemeColor(GUIFontColor))
+		scroll := scrollbar.Rect.W*scrollbar.Value - (12 * scrollbar.Value)
+		FillRect(rect.X+4+scroll, rect.Y+4, 4, rect.H-8, getThemeColor(GUICompletedColor))
 
 	}
 

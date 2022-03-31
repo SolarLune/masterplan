@@ -206,7 +206,11 @@ func (le *LinkEnding) Draw() {
 			start := points[i]
 			end := points[i+1]
 			if i == len(points)-2 {
-				off := start.Sub(end).Normalized()
+				diff := start.Sub(end)
+				if diff.Length() == 0 {
+					continue
+				}
+				off := diff.Normalized()
 				end = end.Add(off.Mult(16))
 			}
 

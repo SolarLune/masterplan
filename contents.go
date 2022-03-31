@@ -604,7 +604,7 @@ func NewSoundContents(card *Card) *SoundContents {
 	soundContents := &SoundContents{
 		DefaultContents: newDefaultContents(card),
 		SoundNameLabel:  NewLabel("No sound loaded", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft),
-		SeekBar:         NewScrollbar(&sdl.FRect{0, 0, 128, 16}, true),
+		SeekBar:         NewScrollbar(&sdl.FRect{0, 0, 128, 16}, true, nil),
 	}
 
 	soundContents.SeekBar.Soft = false
