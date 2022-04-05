@@ -47,6 +47,7 @@ const (
 	DoubleClickCheckbox = "Creates Checkbox card"
 	DoubleClickNothing  = "Does nothing"
 
+	WindowTransparencyNever  = "Never"
 	WindowTransparencyAlways = "Always"
 	WindowTransparencyMouse  = "When mouse is outside window"
 	WindowTransparencyWindow = "When window is inactive"
@@ -87,7 +88,7 @@ func NewProgramSettings() *Properties {
 	transparency.OnChange = func() {
 		globals.WindowTargetTransparency = transparency.AsFloat()
 	}
-	props.Get(SettingsWindowTransparencyMode).Set(WindowTransparencyAlways)
+	props.Get(SettingsWindowTransparencyMode).Set(WindowTransparencyNever)
 
 	borderless := props.Get(SettingsBorderlessWindow)
 	borderless.Set(false)

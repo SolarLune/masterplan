@@ -566,6 +566,9 @@ func (card *Card) Update() {
 	if card.Page.IsCurrent() {
 
 		if card.selected && globals.Keybindings.Pressed(KBUnlinkCard) && globals.State == StateNeutral {
+			if len(card.Links) > 0 {
+				globals.EventLog.Log("Disconnected all links from currently selected Card(s).", false)
+			}
 			card.UnlinkAll()
 		}
 

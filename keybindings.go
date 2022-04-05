@@ -74,8 +74,8 @@ const (
 	KBResizeMultiple      = "Resize Multiple (Hold)"
 
 	KBCollapseCard = "Card: Collapse"
-	KBLinkCard     = "Card: Link With Arrow"
-	KBUnlinkCard   = "Card: Remove All Arrows"
+	KBLinkCard     = "Card: Connect With Arrow"
+	KBUnlinkCard   = "Card: Disconnect All Arrows"
 
 	KBCopyText      = "Textbox: Copy Selected Text"
 	KBCutText       = "Textbox: Cut Selected Text"
@@ -458,7 +458,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBLinkCard, sdl.K_z).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBUnlinkCard, sdl.K_v, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBUnlinkCard, sdl.K_z, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBDeleteCards, sdl.K_DELETE)
 	kb.DefineKeyShortcut(KBSelectAllCards, sdl.K_a, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBDeselectAllCards, sdl.K_a, sdl.K_LCTRL, sdl.K_LSHIFT)

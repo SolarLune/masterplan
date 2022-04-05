@@ -616,7 +616,7 @@ func (project *Project) GlobalShortcuts() {
 
 	}
 
-	if globals.State == StateNeutral || globals.State == StateMapEditing {
+	if globals.State == StateNeutral || globals.State == StateMapEditing || globals.State == StateCardArrow || globals.State == StateCardLink {
 
 		dx := float32(0)
 		dy := float32(0)
@@ -730,6 +730,12 @@ func (project *Project) GlobalShortcuts() {
 			project.CurrentPage.Selection.Clear()
 			project.CurrentPage.Selection.Add(newCard)
 		}
+
+	}
+
+	if globals.State == StateNeutral || globals.State == StateMapEditing || globals.State == StateCardArrow {
+
+		kb := globals.Keybindings
 
 		if kb.Pressed(KBDeleteCards) {
 			project.CurrentPage.DeleteCards(project.CurrentPage.Selection.AsSlice()...)

@@ -2579,6 +2579,11 @@ func NewLinkContents(card *Card) *LinkContents {
 	lc.Card.Properties.Get("run") // Update it to say it's in use
 	lc.Card.Properties.Get("args")
 	lc.Card.Properties.Get("link mode")
+	// This has to be -1 so the target doesn't get set automatically to the first Card
+	if !lc.Card.Properties.Has("target") {
+		lc.Card.Properties.Get("target").Set(-1.0)
+	}
+	// We Get() "target" either way because we want it to be "registered" as a property that's in use and that should cause undo / redo when changed
 	lc.Card.Properties.Get("target")
 
 	lc.Label.Editable = true

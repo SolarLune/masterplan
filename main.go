@@ -46,7 +46,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.8.0-alpha.4.2")
+	globals.Version = semver.MustParse("0.8.0-alpha.5")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -344,7 +344,7 @@ func main() {
 			globals.WindowTargetTransparency = 1
 		}
 
-		diff := (globals.WindowTargetTransparency - globals.WindowTransparency) * 0.2
+		diff := (globals.WindowTargetTransparency - globals.WindowTransparency) * 0.4
 
 		if math.Abs(diff) > 0.0001 {
 			globals.WindowTransparency += diff
@@ -976,46 +976,64 @@ func ConstructMenus() {
 	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, &sdl.Rect{48, 32, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.CurrentPage.Selection.Clear()
+		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new numbered", NewButton("Numbered", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNumbered)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.CurrentPage.Selection.Clear()
+		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, &sdl.Rect{112, 160, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNote)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.CurrentPage.Selection.Clear()
+		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, &sdl.Rect{144, 160, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSound)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.CurrentPage.Selection.Clear()
+		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new image", NewButton("Image", nil, &sdl.Rect{48, 64, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeImage)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.CurrentPage.Selection.Clear()
+		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new timer", NewButton("Timer", nil, &sdl.Rect{80, 64, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeTimer)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.CurrentPage.Selection.Clear()
+		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new map", NewButton("Map", nil, &sdl.Rect{112, 96, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeMap)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.CurrentPage.Selection.Clear()
+		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new subpage", NewButton("Sub-Page", nil, &sdl.Rect{48, 256, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSubpage)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.CurrentPage.Selection.Clear()
+		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new link", NewButton("Link", nil, &sdl.Rect{112, 256, 32, 32}, false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeLink)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.CurrentPage.Selection.Clear()
+		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+64, createMenu.Pages["root"].IdealSize().Y+16)
@@ -1183,7 +1201,7 @@ func ConstructMenus() {
 		contextMenu.Close()
 	}))
 
-	commonMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 128}, MenuCloseButton), "common", false)
+	commonMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 192}, MenuCloseButton), "common", false)
 	commonMenu.Draggable = true
 	commonMenu.Resizeable = true
 
@@ -1469,7 +1487,7 @@ func ConstructMenus() {
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Transparency Mode:", nil, false, AlignLeft))
-	transparencyDropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsWindowTransparencyMode), WindowTransparencyAlways, WindowTransparencyMouse, WindowTransparencyWindow)
+	transparencyDropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsWindowTransparencyMode), WindowTransparencyNever, WindowTransparencyAlways, WindowTransparencyMouse, WindowTransparencyWindow)
 	row.Add("", transparencyDropdown)
 	// row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsWindowTransparencyMode)))
 

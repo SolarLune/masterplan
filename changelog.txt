@@ -1,6 +1,48 @@
 -------
 
-v0.8.0-alpha4.2
+v0.8.0-alpha.5
+
+-------
+
+Adding the Link Card type. The Link Card can be used to link to another card, either on the current page or another sub-page. This is done by pressing the Link button - after a Card is linked, the card will change color slightly and an icon will appear, indicating a link is established. Pressing the "Jump" button on the Card (or pressing Enter) will then jump to the target location. Link Cards can also be set to link to programs or files on your computer and can open them right from MasterPlan. Pressing "Execute", in this case, will attempt to run or open the file as applicable.
+RE-IMPLEMENTATION: You can now move and select cards via the keyboard. Moving cards in this way will attempt to have them swap with their neighbors.
+RE-IMPLEMENTATION: You can now again skip numbering top-level cards (so they can serve as categories, effectively).
+RE-IMPLEMENTATION: Adding option to outline the window in a colored rectangle.
+QoL: Adding window transparency.
+QoL: Arrows no longer point to Cards quite so oddly.
+QoL: Keybindings can be searched by key / mouse button name as well now, rather than just by shortcut name.
+QoL: The rows for each shortcut in the keybindings section now have alternating background colors for readability.
+QoL: The screenshot area for subpages are now shown by means of a rectangle and a small camera icon beneath the sub-page name displayed on the grid background.
+QoL: Loading projects now outputs more information to logs.
+QoL: Separating keybinding for open / close sub-page out to two separate bindings.
+QoL: Adding setting to focus on cards when undoing or redoing.
+QoL: Add Log message when disconnecting all arrows from a Card via the keyboard shortcut.
+QoL: MasterPlan should now be built at least partially statically moving forward, making for a smoother experience on Linux without the need to install SDL-related dependencies.
+QoL: You can now use zooming and panning shortcuts while connecting Cards via arrows.
+CHANGE: Moving borderless window to Visual options section.
+CHANGE: Rewording some shortcut names.
+MINOR CHANGE: The bar in scrollbars are now colored and positioned properly.
+FIX: Map palette no longer closes when clicking away from the editing map.
+FIX: Maps are no longer blank right after autoloading on Windows.
+FIX: A single path in the Open Recent... menu is now no longer blank.
+FIX: Moving from subpages where you're editing text now properly deactivates the text editing mode. This also fixes the inability to use shortcuts after leaving the subpage in this case.
+FIX: Create menu is now sized a bit more properly.
+FIX: MP no longer crashes if the custom font path is a directory.
+FIX: Copying sub-pages no longer reference the original page. Instead, the copy just has the name and leads to a new, blank page. NOTE: This applies to any existing v0.8 saves with multiple sub-pages referencing a page.
+FIX: MP no longer crashes if placing cards too far away from the center. Previously, this was about the distance away from the edge of the grid as that is from the center.
+FIX: Minor fix - copying and pasting cards now only displays a message if cards are actually selected / in the paste buffer to do so.
+FIX: Don't allow numbered cards to have negative tasks completed (Thanks, @Peter0x44!)
+FIX: MP no longer crashes if a theme lacks a color for an element. Instead, the event is logged at the bottom-left and the element is colored bright pink to destroy your optic nerve for making such an obvious mistake you piping hot fool.
+FIX: MP no longer crashes if opened when using a theme that no longer exists. Now it defaults to Sunlight if the theme is no longer available for whatever reason.
+FIX: Cards that are linked via arrows with a joint and placed very closely to the joint won't point to the top-left corner of the screen.
+FIX: Saving a project should now work a bit more reliably as we now manually sync the changes to disk after writing the file out.
+FIX: Contextual buttons above Maps and Images now are colored properly regardless of theme.
+FIX: Creating Cards via the Create menu now selects them automatically.
+MINOR FIX: Pressing Enter / Return when editing text no longer triggers the key press for shortcuts that use it.
+MINOR FIX: Horizontal spacing improved for rows of elements with manually defined spacing.
+-------
+
+v0.8.0-alpha.4.2
 
 -------
 
@@ -13,7 +55,7 @@ FIX: MasterPlan no longer crashes when saving pages when subpages were created o
 
 -------
 
-v0.8.0-alpha4.1
+v0.8.0-alpha.4.1
 
 -------
 
@@ -34,7 +76,7 @@ FIX: Don't log "Deleted 0 Cards." when pressing delete without having a card sel
 
 -------
 
-v0.8.0-alpha4
+v0.8.0-alpha.4
 
 -------
 
@@ -79,7 +121,7 @@ FIX: Projects should no longer save links between cards incorrectly. Again. Inte
 
 -------
 
-v0.8.0-alpha3
+v0.8.0-alpha.3
 
 -------
 
@@ -101,7 +143,7 @@ FIX: You no longer accidentally click on something in the background by clicking
 
 -------
 
-v0.8.0-alpha2
+v0.8.0-alpha.2
 
 -------
 
@@ -150,7 +192,7 @@ Note: The saving and loading system for lines have been reworked, and so you wil
 
 -------
 
-v0.8.0-alpha1.2
+v0.8.0-alpha.1.2
 
 -------
 
@@ -161,7 +203,7 @@ v0.8.0-alpha1.2
 
 -------
 
-v0.8.0-alpha1
+v0.8.0-alpha.1
 
 -------
 
