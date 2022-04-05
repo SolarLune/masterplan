@@ -92,9 +92,11 @@ func build(baseDir string, releaseMode string, targetOS string) {
 
 	// Default building for the current OS
 	if forWin {
+		// No static flag for Windows because we're redistributing the DLLs for simplicity, and I have yet to figure out where to put the static libraries on Linux to cross-compile successfully.
 		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w -H windowsgui`, `-tags`, releaseMode, `-o`, filename, `./`)
 	} else {
-		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w`, `-tags`, releaseMode, `-o`, filename, `./`)
+		// When a command is more than a single word and is separated by spaces, it has to be in a single "space" (i.e. "static " + releaseMode)
+		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w`, `-tags`, `static `+releaseMode, `-o`, filename, `./`)
 	}
 
 	fmt.Println("<Building binary with args: ", c.Args, ".>")
