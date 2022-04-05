@@ -51,6 +51,7 @@ const (
 	GUIBlankImageColor = "Blank Image Color"
 	GUIMapColor        = "Map Color"
 	GUISubBoardColor   = "Sub-Page Color"
+	GUILinkColor       = "Link Color"
 )
 
 var availableThemes []string = []string{}
@@ -187,7 +188,7 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked f
 
 func (iconButton *IconButton) Update() {
 
-	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && globals.Mouse.CurrentCursor == "normal" {
+	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink) {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		iconButton.OnPressed()
 	}
@@ -551,7 +552,7 @@ func (button *Button) Update() {
 
 	if mousePos.Inside(buttonRect) && !button.Disabled {
 
-		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.CurrentCursor == "normal" {
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && (globals.State == StateNeutral || globals.State == StateCardLink) {
 			if button.OnPressed != nil {
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 				button.OnPressed()
@@ -1494,6 +1495,8 @@ func (label *Label) Update() {
 
 				enter := globals.Keyboard.Key(sdl.K_KP_ENTER).Pressed() || globals.Keyboard.Key(sdl.K_RETURN).Pressed() || globals.Keyboard.Key(sdl.K_RETURN2).Pressed()
 				if enter {
+					globals.Keyboard.Key(sdl.K_KP_ENTER).Consume()
+					globals.Keyboard.Key(sdl.K_RETURN).Consume()
 					if label.NewlinesAllowed() {
 						label.DeleteSelectedChars()
 						label.InsertRunesAtIndex([]rune{'\n'}, label.Selection.CaretPos)
@@ -1650,7 +1653,7 @@ func (label *Label) Draw() {
 		}
 
 		if mousePos.Inside(label.Rect) {
-			globals.Mouse.SetCursor("text caret")
+			globals.Mouse.SetCursor(CursorCaret)
 		}
 
 	}
@@ -2051,7 +2054,7 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		for _, element := range row.Elements {
 
 			rect := element.Rectangle()
-			usedWidth += rect.W
+			usedWidth += rect.W + row.HorizontalSpacing
 			if yHeight < rect.H {
 				yHeight = rect.H
 			}
@@ -2372,6 +2375,16 @@ func (container *Container) Open() {
 	}
 }
 
+func (container *Container) MinimumHeight() float32 {
+	height := float32(0)
+	for _, row := range container.Rows {
+		if row.Visible {
+			height += globals.GridSize
+		}
+	}
+	return height
+}
+
 type GUIImage struct {
 	Texture         *sdl.Texture
 	Rect            *sdl.FRect
@@ -2379,10 +2392,11 @@ type GUIImage struct {
 	WorldSpace      bool
 	Border          bool
 	TintByFontColor bool
+	Visible         bool
 }
 
 func NewGUIImage(rect *sdl.FRect, srcRect *sdl.Rect, texture *sdl.Texture, worldSpace bool) *GUIImage {
-	icon := &GUIImage{Rect: rect, SrcRect: srcRect, Texture: texture, WorldSpace: worldSpace, TintByFontColor: true}
+	icon := &GUIImage{Rect: rect, SrcRect: srcRect, Texture: texture, WorldSpace: worldSpace, TintByFontColor: true, Visible: true}
 	if icon.Rect == nil {
 		icon.Rect = &sdl.FRect{
 			W: float32(srcRect.W),
@@ -2395,6 +2409,10 @@ func NewGUIImage(rect *sdl.FRect, srcRect *sdl.Rect, texture *sdl.Texture, world
 func (image *GUIImage) Update() {}
 
 func (image *GUIImage) Draw() {
+
+	if !image.Visible {
+		return
+	}
 
 	if image.TintByFontColor {
 		color := getThemeColor(GUIFontColor)

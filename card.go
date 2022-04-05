@@ -569,18 +569,18 @@ func (card *Card) Update() {
 			card.UnlinkAll()
 		}
 
-		if globals.Keybindings.Pressed(KBLinkCard) && (globals.State == StateNeutral || globals.State == StateCardLinking) {
+		if globals.Keybindings.Pressed(KBLinkCard) && (globals.State == StateNeutral || globals.State == StateCardArrow) {
 
-			globals.State = StateCardLinking
-			globals.Mouse.SetCursor("link")
+			globals.State = StateCardArrow
+			globals.Mouse.SetCursor(CursorArrow)
 
-			if ClickedInRect(card.Rect, true) && card.Page.Linking == nil {
-				card.Page.Linking = card
+			if ClickedInRect(card.Rect, true) && card.Page.Arrowing == nil {
+				card.Page.Arrowing = card
 				// We create an undo state before having created the link so we can undo to before it, natch
 				card.CreateUndoState = true
 			}
 
-			if card.Page.Linking == card {
+			if card.Page.Arrowing == card {
 
 				released := globals.Mouse.Button(sdl.BUTTON_LEFT).Released()
 
@@ -597,7 +597,7 @@ func (card *Card) Update() {
 
 					if globals.Mouse.WorldPosition().Inside(possibleCard.Rect) && released {
 
-						if possibleCard.IsLinkedTo(possibleCard.Page.Linking) {
+						if possibleCard.IsLinkedTo(possibleCard.Page.Arrowing) {
 							card.Unlink(possibleCard)
 						} else {
 							card.Link(possibleCard)
@@ -612,16 +612,16 @@ func (card *Card) Update() {
 				}
 
 				if released {
-					card.Page.Linking = nil
+					card.Page.Arrowing = nil
 				}
 
 			}
 
 		} else {
 
-			if globals.State == StateCardLinking {
+			if globals.State == StateCardArrow {
 				globals.State = StateNeutral
-				card.Page.Linking = nil
+				card.Page.Arrowing = nil
 			}
 
 			if globals.State == StateNeutral {
@@ -956,7 +956,7 @@ func (card *Card) DrawContents() {
 
 func (card *Card) PostDraw() {
 
-	if card.Page.Linking == card {
+	if card.Page.Arrowing == card {
 
 		translatedStart := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)})
 		color := card.Color()
@@ -1125,14 +1125,11 @@ func (card *Card) Deserialize(data string) {
 		card.LoadedID = gjson.Get(data, "id").Int()
 	}
 
-	linkedTo := []int64{}
-
 	if gjson.Get(data, "links").Exists() {
 
 		links := []string{}
 
 		for _, linkEnd := range gjson.Get(data, "links").Array() {
-			linkedTo = append(linkedTo, gjson.Get(linkEnd.Str, "end").Int())
 			links = append(links, linkEnd.String())
 		}
 
@@ -1504,6 +1501,8 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewMapContents(card)
 		case ContentTypeSubpage:
 			card.Contents = NewSubPageContents(card)
+		case ContentTypeLink:
+			card.Contents = NewLinkContents(card)
 		default:
 			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}

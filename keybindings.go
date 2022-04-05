@@ -54,6 +54,7 @@ const (
 	KBNewTimerCard    = "New Timer Card"
 	KBNewMapCard      = "New Map Card"
 	KBNewSubpageCard  = "New Sub-Page Card"
+	KBNewLinkCard     = "New Link Card"
 
 	KBAddToSelection      = "Add to Selection Modifier"
 	KBRemoveFromSelection = "Remove From Selection Modifier"
@@ -73,8 +74,8 @@ const (
 	KBResizeMultiple      = "Resize Multiple (Hold)"
 
 	KBCollapseCard = "Card: Collapse"
-	KBLinkCard     = "Card: Link With Line"
-	KBUnlinkCard   = "Card: Remove All Links"
+	KBLinkCard     = "Card: Link With Arrow"
+	KBUnlinkCard   = "Card: Remove All Arrows"
 
 	KBCopyText      = "Textbox: Copy Selected Text"
 	KBCutText       = "Textbox: Cut Selected Text"
@@ -114,6 +115,8 @@ const (
 
 	KBSubpageOpen  = "Sub-Page: Open"
 	KBSubpageClose = "Sub-Page: Close"
+
+	KBActivateLink = "Link: Jump to Linked Card"
 
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -450,6 +453,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBNewTimerCard, sdl.K_6, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewMapCard, sdl.K_7, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewSubpageCard, sdl.K_8, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewLinkCard, sdl.K_9, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
@@ -504,6 +508,8 @@ func (kb *Keybindings) Default() {
 
 	kb.DefineKeyShortcut(KBSubpageOpen, sdl.K_BACKQUOTE)
 	kb.DefineKeyShortcut(KBSubpageClose, sdl.K_BACKQUOTE)
+
+	kb.DefineKeyShortcut(KBActivateLink, sdl.K_RETURN)
 
 	kb.DefineKeyShortcut(KBResizeMultiple, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 

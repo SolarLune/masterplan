@@ -27,11 +27,12 @@ require (
 	github.com/otiai10/copy v1.7.0
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
+	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/tanema/gween v0.0.0-20200427131925-c89ae23cc63c
 	github.com/tidwall/gjson v1.13.0
 	github.com/tidwall/sjson v1.2.4
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/veandco/go-sdl2 v0.4.12
+	github.com/veandco/go-sdl2 v0.4.19
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	golang.design/x/clipboard v0.6.0
 	golang.org/x/exp v0.0.0-20220128181451-c853b6ddb95e // indirect
@@ -39,4 +40,3 @@ require (
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
 )
-

@@ -40,7 +40,8 @@ const (
 	SettingsSmoothMovement           = "SmoothMovement"
 	SettingsFocusOnSelectingWithKeys = "FocusOnSelectingWithKeys"
 	SettingsWindowTransparency       = "Window Transparency"
-	SettingsWindowTransparencyMode   = "Transparency Mode:"
+	SettingsWindowTransparencyMode   = "Transparency Mode"
+	SettingsFocusOnUndo              = "FocusOnUndo"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"
@@ -78,6 +79,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsSmoothMovement).Set(true)
 	props.Get(SettingsNumberTopLevelCards).Set(true)
 	props.Get(SettingsFocusOnSelectingWithKeys).Set(true)
+	props.Get(SettingsFocusOnUndo).Set(true)
 	props.Get(SettingsOutlineWindow).Set(false)
 
 	transparency := props.Get(SettingsWindowTransparency)

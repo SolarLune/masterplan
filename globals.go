@@ -14,7 +14,8 @@ const (
 	StateTextEditing = "project state text editing"
 	StateMapEditing  = "project state map editing"
 	StateContextMenu = "project state context menu open"
-	StateCardLinking = "project state card linking"
+	StateCardArrow   = "project state card arrow"
+	StateCardLink    = "project state card linking"
 )
 
 type Globals struct {

@@ -8,6 +8,10 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [x] Fix Map card not showing after autoload on Windows (texture is refreshed before data is written, or something right after autoload?)
 [x] Fix recent files filepath not being complete on Windows
 [x] Card movement!
+[ ] Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
+[ ] Hover over Tasks to display more information about them (full task, creation date, completion date, etc).
+[ ] Due dates
+[ ] Calendar? https://github.com/SolarLune/masterplan/issues/74
 [ ] Time unit estimation should be better
   [ ] Fix time unit estimation to handle large months (i.e. many years) properly
 [x] Window Transparency / make window transparent if mouse isn't in window
@@ -388,8 +392,7 @@ becomes
 [ ] Option to indent Text with icons off
 [ ] Resizeable Notes / Collapsible Notes
 [ ] Background hint text for text entry (i.e. "Enter date in MM/DD/YYYY Format" behind something that allows you to enter a date)
-[ ] Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
-[ ] Hover over Tasks to display more information about them (full task, creation date, completion date, etc).
+
 
 Long-term Goals
 

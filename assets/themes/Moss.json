@@ -11,5 +11,6 @@
     "Blank Image Color": [140, 140, 140, 255],
     "Timer Color": [120, 100, 80, 255],
     "Map Color": [50, 55, 60, 255],
-    "Sub-Page Color": [40, 40, 60, 255]
+    "Sub-Page Color": [40, 40, 60, 255],
+    "Link Color": [45, 50, 60, 255]
 }

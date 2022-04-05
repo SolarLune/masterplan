@@ -110,6 +110,10 @@ func (history *UndoHistory) Undo() bool {
 
 		}
 
+		if globals.Settings.Get(SettingsFocusOnUndo).AsBool() {
+			history.Project.Camera.FocusOn(false, affected...)
+		}
+
 		for _, page := range history.Project.Pages {
 			page.UpdateStacks = true
 		}
@@ -161,6 +165,10 @@ func (history *UndoHistory) Redo() bool {
 				affected.Page.DeleteCards(affected)
 			}
 
+		}
+
+		if globals.Settings.Get(SettingsFocusOnUndo).AsBool() {
+			history.Project.Camera.FocusOn(false, affected...)
 		}
 
 		for _, page := range history.Project.Pages {

@@ -1,112 +1,90 @@
 {
-  "version": "0.8.0-alpha.1-2",
-  "root": {
-    "pagecontenttype": "PageContentFolder",
-    "name": "New Folder",
-    "contents": [
-      {
-        "pagecontenttype": "PageContentPage",
-        "name": "New Page",
-        "cards": [
-          {
-            "id": 0,
-            "rect": {
-              "X": -480,
-              "Y": -128,
-              "W": 256,
-              "H": 64
-            },
-            "contents": "Checkbox",
-            "properties": {
-              "checked": false,
-              "description": "New Checkbox",
-              "filepath": ""
-            }
-          },
-          {
-            "id": 7,
-            "rect": {
-              "X": 512,
-              "Y": -32,
-              "W": 288,
-              "H": 32
-            },
-            "contents": "Checkbox",
-            "properties": {
-              "checked": false,
-              "description": "New Checkbox",
-              "filepath": ""
-            },
-            "links": [
-              {
-                "start": 7,
-                "end": 0,
-                "joints": [
-                  {
-                    "X": -32,
-                    "Y": 32
-                  },
-                  {
-                    "X": -288,
-                    "Y": 32
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "id": 1,
-            "rect": {
-              "X": 192,
-              "Y": 96,
-              "W": 320,
-              "H": 64
-            },
-            "contents": "Checkbox",
-            "properties": {
-              "checked": false,
-              "description": "New Checkbox",
-              "filepath": ""
-            },
-            "links": [
-              {
-                "start": 1,
-                "end": 0,
-                "joints": [
-                  {
-                    "X": -96,
-                    "Y": 96
-                  },
-                  {
-                    "X": -288,
-                    "Y": 32
-                  }
-                ]
-              },
-              {
-                "start": 1,
-                "end": 3,
-                "joints": []
-              }
-            ]
-          },
-          {
-            "id": 3,
-            "rect": {
-              "X": -512,
-              "Y": 160,
-              "W": 288,
-              "H": 32
-            },
-            "contents": "Checkbox",
-            "properties": {
-              "checked": false,
-              "description": "New Checkbox"
-            }
-          }
-        ]
-      }
-    ]
+  "version": "0.8.0-alpha.4.2",
+  "pan": {
+    "X": 177.99994,
+    "Y": 40.000015
   },
+  "zoom": 1,
+  "pages": [
+    {
+      "id": 0,
+      "pan": {
+        "X": 177.99997,
+        "Y": 40.000023
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": -448,
+            "Y": 0,
+            "W": 352,
+            "H": 96
+          },
+          "contents": "Link",
+          "properties": {
+            "description": "Illmakeyoueatthoseoats",
+            "run": "/home/solarlune/Pictures/Memes/illmakeyoueatthoseoats.png",
+            "link mode": 1,
+            "target": 1,
+            "args": "",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 1,
+          "rect": {
+            "X": 192,
+            "Y": 64,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 2,
+          "rect": {
+            "X": -480,
+            "Y": 128,
+            "W": 320,
+            "H": 96
+          },
+          "contents": "Link",
+          "properties": {
+            "description": "Pulstar",
+            "run": "/home/solarlune/Games/SNK Games/Pulstar/NeogeoEmu.bin.x86_64",
+            "link mode": 1,
+            "target": 1,
+            "args": "",
+            "filepath": ""
+          }
+        },
+        {
+          "id": 3,
+          "rect": {
+            "X": -448,
+            "Y": 256,
+            "W": 320,
+            "H": 96
+          },
+          "contents": "Link",
+          "properties": {
+            "description": "Megazeux",
+            "run": "/usr/bin/megazeux",
+            "link mode": 1,
+            "target": 1,
+            "args": "/home/solarlune/Games/Megazeux Games/&/&.mzx",
+            "filepath": ""
+          }
+        }
+      ]
+    }
+  ],
   "savedimages": {}
 }

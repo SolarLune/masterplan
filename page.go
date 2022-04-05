@@ -15,26 +15,28 @@ import (
 )
 
 type Page struct {
-	ID                  uint64
-	Project             *Project
-	UpwardPage          *Page
-	PointingSubpageCard *Card
-	Grid                *Grid
-	Cards               []*Card
-	ToDelete            []*Card
-	ToRestore           []*Card
-	Selection           *Selection
-	UpdateStacks        bool
-	Drawables           []*Drawable
-	ToRaise             []*Card
-	Valid               bool
+	ID         uint64
+	Project    *Project
+	UpwardPage *Page
+
+	Grid         *Grid
+	Cards        []*Card
+	ToDelete     []*Card
+	ToRestore    []*Card
+	Selection    *Selection
+	UpdateStacks bool
+	Drawables    []*Drawable
+	ToRaise      []*Card
+	Valid        bool
 
 	IgnoreWritePan bool
 	Pan            Point
 	Zoom           float32
 
-	Linking              *Card
+	Arrowing             *Card
 	DeserializationLinks []string
+
+	PointingSubpageCard *Card
 }
 
 var globalPageID = uint64(0)

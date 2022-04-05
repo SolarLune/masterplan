@@ -137,7 +137,7 @@ func main() {
 		}
 	}()
 
-	fmt.Println("Release mode:", globals.ReleaseMode)
+	log.Println("Release mode:", globals.ReleaseMode)
 
 	loadThemes()
 
@@ -346,7 +346,7 @@ func main() {
 
 		diff := (globals.WindowTargetTransparency - globals.WindowTransparency) * 0.2
 
-		if math.Abs(diff) > 0.001 {
+		if math.Abs(diff) > 0.0001 {
 			globals.WindowTransparency += diff
 			globals.Window.SetWindowOpacity(float32(globals.WindowTransparency))
 		}
@@ -1013,6 +1013,11 @@ func ConstructMenus() {
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 	}))
 
+	root.AddRow(AlignCenter).Add("create new link", NewButton("Link", nil, &sdl.Rect{112, 256, 32, 32}, false, func() {
+		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeLink)
+		card.SetCenter(globals.Project.Camera.TargetPosition)
+	}))
+
 	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+64, createMenu.Pages["root"].IdealSize().Y+16)
 
 	// Edit Menu
@@ -1138,6 +1143,12 @@ func ConstructMenus() {
 	setType.AddRow(AlignCenter).Add("set sub-page content type", NewButton("Sub-Page", nil, &sdl.Rect{112, 96, 32, 32}, false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeSubpage)
+		}
+	}))
+
+	setType.AddRow(AlignCenter).Add("set link content type", NewButton("Link", nil, &sdl.Rect{112, 256, 32, 32}, false, func() {
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			card.SetContents(ContentTypeLink)
 		}
 	}))
 
@@ -1341,6 +1352,10 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnSelectingWithKeys)))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Focus on Affected Cards On Undo / Redo:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnUndo)))
+
+	row = general.AddRow(AlignCenter)
 	row.Add("", NewLabel("Custom Screenshot Path:", nil, false, AlignLeft))
 	screenshotPath := NewLabel("Screenshot path", nil, false, AlignLeft)
 	screenshotPath.Editable = true
@@ -1436,6 +1451,9 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Number top-level cards:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNumberTopLevelCards)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Borderless Window:", nil, false, AlignLeft))

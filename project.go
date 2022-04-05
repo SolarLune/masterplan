@@ -62,6 +62,8 @@ type Project struct {
 	LastCardType string
 	Modified     bool
 
+	LinkingCard *Card
+
 	LoadConfirmationTo string
 }
 
@@ -166,7 +168,7 @@ func (project *Project) Update() {
 
 	globals.Mouse.ApplyCursor()
 
-	globals.Mouse.SetCursor("normal")
+	globals.Mouse.SetCursor(CursorNormal)
 
 	for _, page := range project.Pages {
 		if page.Valid {
@@ -333,6 +335,7 @@ func (project *Project) Save() {
 	} else {
 		file.Write([]byte(saveData))
 		file.Close()
+		file.Sync() // Ensure the save file is written
 	}
 
 	globals.EventLog.Log("Project saved successfully.", false)
@@ -459,6 +462,8 @@ func OpenProjectFrom(filename string) {
 				}
 
 			}
+
+			newProject.SendMessage(NewMessage(MessageProjectLoadingAllCardsCreated, nil, nil))
 
 			for _, page := range newProject.Pages {
 
@@ -601,7 +606,7 @@ func (project *Project) SendMessage(msg *Message) {
 
 func (project *Project) GlobalShortcuts() {
 
-	if globals.State != StateCardLinking {
+	if globals.State != StateCardArrow {
 
 		if globals.Keybindings.Pressed(KBUndo) {
 			project.UndoHistory.Undo()
@@ -713,6 +718,11 @@ func (project *Project) GlobalShortcuts() {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeSubpage)
 			kb.Shortcuts[KBNewSubpageCard].ConsumeKeys()
+
+		} else if kb.Pressed(KBNewLinkCard) {
+
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeLink)
+			kb.Shortcuts[KBNewLinkCard].ConsumeKeys()
 
 		}
 
@@ -935,6 +945,31 @@ func (project *Project) GlobalShortcuts() {
 
 		}
 
+	} else if globals.State == StateCardLink {
+
+		globals.Mouse.SetCursor(CursorEyedropper)
+
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+			for _, card := range project.CurrentPage.Cards {
+				if ClickedInRect(card.Rect, true) {
+					project.LinkingCard.Contents.(*LinkContents).SetTarget(card)
+					project.Camera.FocusOn(false, project.LinkingCard)
+					project.LinkingCard = nil
+					globals.EventLog.Log("Card linking succeeded.", false)
+					globals.State = StateNeutral
+				}
+			}
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+		}
+
+		if globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() || globals.Keyboard.Key(sdl.K_ESCAPE).Pressed() {
+			globals.State = StateNeutral
+			globals.EventLog.Log("Card linking canceled.", false)
+			project.LinkingCard = nil
+			globals.Mouse.Button(sdl.BUTTON_RIGHT).Consume()
+			globals.Keyboard.Key(sdl.K_ESCAPE).Consume()
+		}
+
 	}
 
 }
@@ -952,7 +987,9 @@ func (project *Project) SetPage(page *Page) {
 		project.CurrentPage = page
 		project.Camera.JumpTo(page.Pan, page.Zoom)
 		page.SendMessage(NewMessage(MessagePageChanged, nil, nil))
-		globals.State = StateNeutral
+		if globals.State != StateNeutral && globals.State != StateCardLink {
+			globals.State = StateNeutral
+		}
 		if page.UpwardPage == nil {
 			globals.MenuSystem.Get("prev sub page").Close()
 		} else {

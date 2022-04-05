@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"os/exec"
 	"path"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gen2brain/beeep"
 	"github.com/ncruces/zenity"
+	"github.com/skratchdot/open-golang/open"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/veandco/go-sdl2/sdl"
@@ -25,6 +27,7 @@ const (
 	ContentTypeMap      = "Map"
 	ContentTypeTable    = "Table"
 	ContentTypeSubpage  = "Sub-Page"
+	ContentTypeLink     = "Link"
 
 	TriggerTypeSet    = "Set"
 	TriggerTypeToggle = "Toggle"
@@ -1007,6 +1010,10 @@ func NewImageContents(card *Card) *ImageContents {
 		}),
 	}
 
+	for _, button := range imageContents.Buttons {
+		button.Tint = ColorWhite
+	}
+
 	return imageContents
 }
 
@@ -1754,6 +1761,7 @@ func NewMapContents(card *Card) *MapContents {
 			}
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		})
+		button.Tint = ColorWhite
 		mc.Buttons = append(mc.Buttons, button)
 
 	}
@@ -1764,12 +1772,14 @@ func NewMapContents(card *Card) *MapContents {
 		mc.MapData.Rotate(1)
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	})
+	rotateRight.Tint = ColorWhite
 	mc.Buttons = append(mc.Buttons, rotateRight)
 
 	rotateLeft := NewIconButton(0, 0, &sdl.Rect{400, 192, 32, 32}, true, func() {
 		mc.MapData.Rotate(-1)
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	})
+	rotateLeft.Tint = ColorWhite
 	rotateLeft.Flip = sdl.FLIP_HORIZONTAL
 
 	mc.Buttons = append(mc.Buttons, rotateLeft)
@@ -1890,10 +1900,10 @@ func (mc *MapContents) Update() {
 		leftMB := globals.Mouse.Button(sdl.BUTTON_LEFT)
 		rightMB := globals.Mouse.Button(sdl.BUTTON_RIGHT)
 
-		globals.State = StateNeutral
-
 		if mc.Tool != MapEditToolNone && mp.Inside(mc.Card.Rect) {
 			globals.State = StateMapEditing
+		} else if globals.State == StateMapEditing && (mc.Tool == MapEditToolNone || !mp.Inside(mc.Card.Rect)) {
+			globals.State = StateNeutral
 		}
 
 		if mc.Card.Resizing == "" {
@@ -1901,7 +1911,7 @@ func (mc *MapContents) Update() {
 			if globals.Keybindings.Pressed(KBPickColor) {
 
 				// Eyedropping to pick color
-				globals.Mouse.SetCursor("eyedropper")
+				globals.Mouse.SetCursor(CursorEyedropper)
 
 				if leftMB.Held() {
 					value := mc.MapData.Get(gp)
@@ -1915,7 +1925,7 @@ func (mc *MapContents) Update() {
 
 					if mp.Inside(mc.Card.Rect) {
 
-						globals.Mouse.SetCursor("pencil")
+						globals.Mouse.SetCursor(CursorPencil)
 
 						if mp.Inside(mc.Card.Rect) && (leftMB.Pressed() || rightMB.Pressed()) {
 							mc.LineStart = gp
@@ -1970,7 +1980,7 @@ func (mc *MapContents) Update() {
 
 				} else if mc.Tool == MapEditToolPencil && mp.Inside(mc.Card.Rect) {
 
-					globals.Mouse.SetCursor("pencil")
+					globals.Mouse.SetCursor(CursorPencil)
 
 					if leftMB.Held() {
 						mc.MapData.Set(gp, mc.ColorIndex())
@@ -1982,7 +1992,7 @@ func (mc *MapContents) Update() {
 
 				} else if mc.Tool == MapEditToolEraser && mp.Inside(mc.Card.Rect) {
 
-					globals.Mouse.SetCursor("eraser")
+					globals.Mouse.SetCursor(CursorEraser)
 
 					if leftMB.Held() {
 						mc.MapData.Set(gp, 0)
@@ -1991,7 +2001,7 @@ func (mc *MapContents) Update() {
 
 				} else if mc.Tool == MapEditToolFill && mp.Inside(mc.Card.Rect) {
 
-					globals.Mouse.SetCursor("bucket")
+					globals.Mouse.SetCursor(CursorBucket)
 
 					neighbors := map[Point]bool{gp: true}
 					checked := map[Point]bool{}
@@ -2457,7 +2467,7 @@ func (sb *SubPageContents) Update() {
 	rect.W = sb.Container.Rect.W - rect.X + sb.Container.Rect.X
 	sb.NameLabel.SetRectangle(rect)
 
-	if globals.State == StateNeutral && sb.Card.IsSelected() && globals.Keybindings.Pressed(KBSubpageOpen) {
+	if (globals.State == StateNeutral || globals.State == StateCardLink) && sb.Card.IsSelected() && globals.Keybindings.Pressed(KBSubpageOpen) {
 		globals.Keybindings.Shortcuts[KBSubpageOpen].ConsumeKeys()
 		sb.OpenSubpage()
 	}
@@ -2547,3 +2557,283 @@ func (sb *SubPageContents) DefaultSize() Point {
 }
 
 func (sb *SubPageContents) Trigger(triggerType string) {}
+
+type LinkContents struct {
+	Label      *Label
+	TargetName *Label
+	targetCard *Card
+	DefaultContents
+	ProgramRow *ContainerRow
+	CardRow    *ContainerRow
+	linkedIcon *GUIImage
+	loaded     bool
+}
+
+func NewLinkContents(card *Card) *LinkContents {
+	lc := &LinkContents{
+		DefaultContents: newDefaultContents(card),
+		Label:           NewLabel("New Link", nil, true, AlignLeft),
+		TargetName:      NewLabel("[No Target]", nil, true, AlignCenter),
+	}
+
+	lc.Card.Properties.Get("run") // Update it to say it's in use
+	lc.Card.Properties.Get("args")
+	lc.Card.Properties.Get("link mode")
+	lc.Card.Properties.Get("target")
+
+	lc.Label.Editable = true
+	lc.Label.Property = card.Properties.Get("description")
+	lc.Label.RegexString = RegexNoNewlines
+
+	lc.Label.OnChange = func() {
+		if lc.Label.Editing {
+			lineCount := float32(lc.Label.LineCount())
+			if lineCount*globals.GridSize > 1 {
+				lc.Card.Recreate(lc.Card.Rect.W, lc.Container.MinimumHeight()+((lineCount-1)*globals.GridSize))
+			}
+		}
+	}
+
+	row := lc.Container.AddRow(AlignLeft)
+	row.Add("icon", NewGUIImage(nil, &sdl.Rect{112, 256, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true))
+	row.Add("label", lc.Label)
+	lc.CardRow = lc.Container.AddRow(AlignCenter)
+	lc.CardRow.HorizontalSpacing = 16
+	lc.CardRow.Add("link", NewButton("Link", nil, nil, true, func() {
+		globals.State = StateCardLink
+		card.Page.Project.LinkingCard = card
+		globals.EventLog.Log("Linking mode activated. Select a card to link to it. Right click or press escape to cancel.", false)
+	}))
+
+	lc.CardRow.Add("jump", NewButton("Jump", nil, nil, true, func() {
+		lc.Jump()
+	}))
+	lc.CardRow.Add("clear", NewButton("Clear", nil, nil, true, func() {
+		lc.SetTarget(nil)
+	}))
+
+	lc.ProgramRow = lc.Container.AddRow(AlignCenter)
+	lc.ProgramRow.HorizontalSpacing = 16
+	lc.ProgramRow.Add("browse", NewButton("Browse", nil, nil, true, func() {
+		browse, err := zenity.SelectFile(zenity.DisallowEmpty())
+		if err == nil {
+			lc.Card.Properties.Get("run").Set(browse)
+		} else {
+			globals.EventLog.Log(err.Error(), true)
+		}
+	}))
+
+	lc.ProgramRow.Add("edit", NewIconButton(0, 0, &sdl.Rect{176, 160, 32, 32}, true, func() {
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+		commonMenu := globals.MenuSystem.Get("common")
+		commonMenu.Pages["root"].Clear()
+		commonMenu.Pages["root"].AddRow(AlignLeft).Add("filepath label", NewLabel("Filepath:", nil, false, AlignLeft))
+
+		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
+		row := commonMenu.Pages["root"].AddRow(AlignLeft)
+		row.ExpandElements = true
+
+		run := lc.Card.Properties.Get("run")
+		l := NewLabel(run.AsString(), nil, false, AlignLeft)
+		l.Editable = true
+		l.RegexString = RegexNoNewlines
+		l.Property = run
+		l.Selection.SelectAll()
+		row.Add("filepath", l)
+
+		commonMenu.Pages["root"].AddRow(AlignLeft).Add("args label", NewLabel("Arguments:", nil, false, AlignLeft))
+
+		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
+		row = commonMenu.Pages["root"].AddRow(AlignLeft)
+		row.ExpandElements = true
+
+		args := lc.Card.Properties.Get("args")
+		l = NewLabel(" ", nil, false, AlignLeft)
+		l.Editable = true
+		l.RegexString = RegexNoNewlines
+		l.Property = args
+
+		row.Add("args", l)
+		l.Selection.SelectAll()
+		commonMenu.Open()
+	}))
+
+	lc.ProgramRow.Add("run", NewButton("Run", nil, nil, true, func() {
+		lc.Run()
+	}))
+
+	lc.ProgramRow.Add("clear", NewButton("Clear", nil, nil, true, func() {
+		lc.Card.Properties.Remove("run")
+		lc.Card.CreateUndoState = true
+		globals.EventLog.Log("Program link erased.", false)
+	}))
+
+	row = lc.Container.AddRow(AlignCenter)
+	row.HorizontalSpacing = 16
+	lc.linkedIcon = NewGUIImage(nil, &sdl.Rect{176, 126, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true)
+	row.Add("", lc.linkedIcon)
+	row.Add("", NewLabel("Link Mode:", nil, true, AlignCenter))
+	row.Add("group", NewIconButtonGroup(nil, true, func(index int) {}, card.Properties.Get("link mode"), &sdl.Rect{144, 256, 32, 32}, &sdl.Rect{144, 0, 32, 32}))
+
+	return lc
+}
+
+func (lc *LinkContents) Update() {
+
+	h := lc.Container.Rect.H - lc.Container.MinimumHeight() + globals.GridSize
+	if h < globals.GridSize {
+		h = globals.GridSize
+	}
+	lc.Label.SetMaxSize(lc.Container.Rect.W-32, h)
+
+	lc.DefaultContents.Update()
+
+	programMode := lc.Card.Properties.Get("link mode").AsFloat() == 1
+
+	if lc.Card.selected && globals.Keybindings.Pressed(KBActivateLink) {
+		if programMode {
+			lc.Run()
+		} else {
+			lc.Jump()
+		}
+	}
+
+	// During loading, Card.Contents.Update() gets called and doing this may not work if the card refers to another one that has yet to
+	// be deserialized.
+
+	if lc.targetCard != nil {
+		targetName := "(Unnamed)"
+		if lc.targetCard.Properties.Has("description") && lc.targetCard.Properties.Get("description").InUse {
+			targetName = lc.targetCard.Properties.Get("description").AsString()
+		}
+		lc.TargetName.SetText([]rune(targetName))
+	} else if !lc.Card.Page.Project.Loading && lc.Card.Properties.Get("target").AsFloat() >= 0 {
+		found := false
+		for _, page := range lc.Card.Page.Project.Pages {
+
+			if tc := page.CardByID(int64(lc.Card.Properties.Get("target").AsFloat())); tc != nil {
+				lc.SetTarget(tc)
+				found = true
+				break
+			}
+
+		}
+		if !found {
+			lc.Card.Properties.Get("target").Set(-1.0)
+		}
+	}
+
+	lc.ProgramRow.Visible = programMode
+	lc.CardRow.Visible = !programMode
+
+	lc.linkedIcon.Visible = (lc.Card.Properties.Get("link mode").AsFloat() == 0 && lc.Card.Properties.Get("target").AsFloat() >= 0) || (lc.Card.Properties.Get("link mode").AsFloat() == 1 && lc.Card.Properties.Get("run").AsString() != "")
+
+	// lc.Label.SetMaxSize(lc.Container.Rect.W-32, lc.Container.Rect.H-32)
+}
+
+func (lc *LinkContents) Jump() {
+	if lc.targetCard != nil {
+
+		if !lc.targetCard.Valid {
+			lc.SetTarget(nil)
+			globals.EventLog.Log("Link Card [%s] has no target.", false, lc.Card.Properties.Get("description").AsString())
+			return
+		}
+
+		globals.EventLog.Log("Jumped to target: %s.", false, lc.TargetName.TextAsString())
+		lc.Card.Page.Project.Camera.FocusOn(false, lc.targetCard)
+	} else {
+		globals.EventLog.Log("Link Card [%s] has no target.", false, lc.Card.Properties.Get("description").AsString())
+	}
+
+}
+
+func (lc *LinkContents) Run() {
+
+	if lc.Card.Properties.Get("run").AsString() != "" {
+		program := lc.Card.Properties.Get("run").AsString()
+		args := lc.Card.Properties.Get("args").AsString()
+
+		var runError error
+
+		// We will try running the file directly, and if that doesn't work, we'll open it in the default program for the filetype.
+		if err := exec.Command(program, args).Start(); err != nil {
+			if secondErr := open.Run(program); secondErr != nil {
+				runError = secondErr
+			} else {
+				globals.EventLog.Log("Opening %s.", false, program)
+				runError = nil
+			}
+		} else {
+			globals.EventLog.Log("Running %s.", false, program)
+		}
+
+		if runError != nil {
+			globals.EventLog.Log("ERROR: "+runError.Error(), true)
+		}
+
+	} else {
+		globals.EventLog.Log("Error: Card [%s] isn't linked to a program.", true, lc.Card.Properties.Get("description").AsString())
+	}
+
+}
+
+func (lc *LinkContents) SetTarget(targetCard *Card) {
+	lc.targetCard = targetCard
+	target := lc.Card.Properties.Get("target")
+	if targetCard == nil {
+		target.Set(-1.0)
+	} else {
+		target.Set(float64(lc.targetCard.ID))
+	}
+	lc.Card.CreateUndoState = true
+	globals.EventLog.Log("Card link erased.", false)
+}
+
+func (lc *LinkContents) Draw() {
+	lc.DefaultContents.Draw()
+}
+
+func (lc *LinkContents) Color() Color {
+	color := getThemeColor(GUILinkColor)
+	if (lc.Card.Properties.Get("link mode").AsFloat() == 0 && lc.Card.Properties.Get("target").AsFloat() < 0) || (lc.Card.Properties.Get("link mode").AsFloat() == 1 && lc.Card.Properties.Get("run").AsString() == "") {
+		color = color.Sub(30)
+	}
+	return color
+}
+
+func (lc *LinkContents) DefaultSize() Point {
+	return Point{globals.GridSize * 10, globals.GridSize * 3}
+}
+
+func (lc *LinkContents) Trigger(triggerType string) {}
+
+func (lc *LinkContents) ReceiveMessage(msg *Message) {
+
+	if msg.Type == MessageProjectLoadingAllCardsCreated && !lc.loaded {
+
+		lc.loaded = true
+
+		if lc.Card.Properties.Get("target").AsFloat() >= 0 {
+
+			found := false
+
+			for _, page := range lc.Card.Page.Project.Pages {
+
+				if tc := page.CardByLoadedID(int64(lc.Card.Properties.Get("target").AsFloat())); tc != nil {
+					lc.SetTarget(tc)
+					found = true
+					break
+				}
+
+			}
+
+			if !found {
+				lc.Card.Properties.Get("target").Set(-1.0)
+			}
+
+		}
+
+	}
+
+}

@@ -735,7 +735,7 @@ func FilesInDirectory(dir string, prefix string) []string {
 
 }
 
-var RegexNoNewlines = `[^\n]`
-var RegexOnlyDigits = `[\d]`
-var RegexOnlyDigitsAndColon = `[\d:]`
-var RegexHex = `[#a-fA-F\d]`
+const RegexNoNewlines = `[^\n]`
+const RegexOnlyDigits = `[\d]`
+const RegexOnlyDigitsAndColon = `[\d:]`
+const RegexHex = `[#a-fA-F\d]`

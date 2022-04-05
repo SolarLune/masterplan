@@ -200,7 +200,7 @@ func (menu *Menu) Update() {
 	if menu.Opened {
 
 		if globals.Mouse.Position().Inside(menu.Rect) {
-			globals.Mouse.SetCursor("normal")
+			globals.Mouse.SetCursor(CursorNormal)
 		}
 
 		if menu.Dragging {
@@ -387,8 +387,6 @@ func (menu *Menu) Update() {
 			}
 
 			if menu.Resizing != "" {
-
-				globals.Mouse.SetCursor("resize")
 
 				switch menu.Resizing {
 				case ResizeR:

@@ -7,6 +7,21 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+const (
+	CursorNormal              = "normal"
+	CursorResizeCorner        = "resizecorner"
+	CursorResizeCornerFlipped = "resizecorner_flipped"
+	CursorResizeHorizontal    = "resizehorizontal"
+	CursorResizeVertical      = "resizevertical"
+	CursorCaret               = "textcaret"
+	CursorPencil              = "pencil"
+	CursorEyedropper          = "eyedropper"
+	CursorBucket              = "bucket"
+	CursorEraser              = "eraser"
+	CursorArrow               = "arrow"
+	// CursorLink                = "Link"
+)
+
 type InputState struct {
 	Down         bool
 	Mods         sdl.Keymod
@@ -289,19 +304,19 @@ func LoadCursors() {
 
 	}
 
-	globals.Mouse.Cursors["normal"] = createCursor(432, 0, false)
-	globals.Mouse.Cursors["resizecorner"] = createCursor(432, 48, false)
-	globals.Mouse.Cursors["resizecorner_flipped"] = createCursor(432, 48, true)
-	globals.Mouse.Cursors["resizehorizontal"] = createCursor(432, 368, false)
-	globals.Mouse.Cursors["resizevertical"] = createCursor(432, 416, false)
-	globals.Mouse.Cursors["text caret"] = createCursor(432, 96, false)
-	globals.Mouse.Cursors["pencil"] = createCursor(432, 144, false)
-	globals.Mouse.Cursors["eyedropper"] = createCursor(432, 192, false)
-	globals.Mouse.Cursors["bucket"] = createCursor(432, 240, false)
-	globals.Mouse.Cursors["eraser"] = createCursor(432, 272, false)
-	globals.Mouse.Cursors["link"] = createCursor(432, 320, false)
+	globals.Mouse.Cursors[CursorNormal] = createCursor(432, 0, false)
+	globals.Mouse.Cursors[CursorResizeCorner] = createCursor(432, 48, false)
+	globals.Mouse.Cursors[CursorResizeCornerFlipped] = createCursor(432, 48, true)
+	globals.Mouse.Cursors[CursorResizeHorizontal] = createCursor(432, 368, false)
+	globals.Mouse.Cursors[CursorResizeVertical] = createCursor(432, 416, false)
+	globals.Mouse.Cursors[CursorCaret] = createCursor(432, 96, false)
+	globals.Mouse.Cursors[CursorPencil] = createCursor(432, 144, false)
+	globals.Mouse.Cursors[CursorEyedropper] = createCursor(432, 192, false)
+	globals.Mouse.Cursors[CursorBucket] = createCursor(432, 240, false)
+	globals.Mouse.Cursors[CursorEraser] = createCursor(432, 272, false)
+	globals.Mouse.Cursors[CursorArrow] = createCursor(432, 320, false)
 
-	globals.Mouse.SetCursor("normal")
+	globals.Mouse.SetCursor(CursorNormal)
 
 }
 
