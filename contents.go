@@ -2801,6 +2801,11 @@ func (lc *LinkContents) Draw() {
 
 func (lc *LinkContents) Color() Color {
 	color := getThemeColor(GUILinkColor)
+
+	if lc.Card.CustomColor != nil {
+		color = lc.Card.CustomColor
+	}
+
 	if (lc.Card.Properties.Get("link mode").AsFloat() == 0 && lc.Card.Properties.Get("target").AsFloat() < 0) || (lc.Card.Properties.Get("link mode").AsFloat() == 1 && lc.Card.Properties.Get("run").AsString() == "") {
 		color = color.Sub(30)
 	}
