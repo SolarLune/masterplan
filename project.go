@@ -566,6 +566,7 @@ func (project *Project) MouseActions() {
 			contextMenu.Rect.X = globals.Mouse.Position().X
 			contextMenu.Rect.Y = globals.Mouse.Position().Y
 			contextMenu.Open()
+			contextMenu.Update()
 		}
 
 	}
