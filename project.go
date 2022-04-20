@@ -757,8 +757,15 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if kb.Pressed(KBCopyCards) {
+			globals.CopyBuffer.CutMode = false
 			project.CurrentPage.CopySelectedCards()
 			kb.Shortcuts[KBCopyCards].ConsumeKeys()
+		}
+
+		if kb.Pressed(KBCutCards) {
+			globals.CopyBuffer.CutMode = true
+			project.CurrentPage.CopySelectedCards()
+			kb.Shortcuts[KBCutCards].ConsumeKeys()
 		}
 
 		if kb.Pressed(KBPasteCards) {

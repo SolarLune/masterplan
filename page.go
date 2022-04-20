@@ -365,7 +365,11 @@ func (page *Page) CopySelectedCards() {
 		globals.CopyBuffer.Copy(card)
 	}
 	if len(globals.CopyBuffer.Cards) > 0 {
-		globals.EventLog.Log("Copied %d Cards.", false, len(globals.CopyBuffer.Cards))
+		if globals.CopyBuffer.CutMode {
+			globals.EventLog.Log("Cut %d Cards.", false, len(globals.CopyBuffer.Cards))
+		} else {
+			globals.EventLog.Log("Copied %d Cards.", false, len(globals.CopyBuffer.Cards))
+		}
 	}
 }
 
@@ -431,6 +435,13 @@ func (page *Page) PasteCards(offset Point) {
 
 	for _, card := range newCards {
 		page.Project.UndoHistory.Capture(NewUndoState(card))
+	}
+
+	if globals.CopyBuffer.CutMode {
+		for _, card := range globals.CopyBuffer.Cards {
+			card.Page.DeleteCards(card)
+		}
+		globals.CopyBuffer.CutMode = false
 	}
 
 	globals.EventLog.On = true

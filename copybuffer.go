@@ -1,6 +1,7 @@
 package main
 
 type CopyBuffer struct {
+	CutMode           bool
 	Cards             []*Card
 	CardsToSerialized map[*Card]string
 }

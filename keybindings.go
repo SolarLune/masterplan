@@ -65,6 +65,7 @@ const (
 	KBSaveProjectAs       = "Save Project As"
 	KBOpenProject         = "Open Project"
 	KBCopyCards           = "Copy Selected Cards"
+	KBCutCards            = "Cut Selected Cards"
 	KBPasteCards          = "Paste Selected Cards"
 	KBExternalPaste       = "Paste From External Clipboard"
 	KBReturnToOrigin      = "Center View to Origin"
@@ -464,6 +465,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBDeselectAllCards, sdl.K_a, sdl.K_LCTRL, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBCopyCards, sdl.K_c, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBCutCards, sdl.K_x, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBPasteCards, sdl.K_v, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBExternalPaste, sdl.K_v, sdl.K_LCTRL, sdl.K_LSHIFT)
 

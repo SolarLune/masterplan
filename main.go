@@ -349,6 +349,9 @@ func main() {
 		if math.Abs(diff) > 0.0001 {
 			globals.WindowTransparency += diff
 			globals.Window.SetWindowOpacity(float32(globals.WindowTransparency))
+		} else if globals.WindowTransparency != globals.WindowTargetTransparency {
+			globals.WindowTransparency = globals.WindowTargetTransparency
+			globals.Window.SetWindowOpacity(float32(globals.WindowTransparency))
 		}
 
 		globals.MenuSystem.Get("main").Pages["root"].FindElement("time label", false).(*Label).SetText([]rune(time.Now().Format("Mon Jan 2 2006")))

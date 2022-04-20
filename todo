@@ -8,7 +8,16 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [x] Fix Map card not showing after autoload on Windows (texture is refreshed before data is written, or something right after autoload?)
 [x] Fix recent files filepath not being complete on Windows
 [x] Card movement!
+
+[ ] Fix Cut not working???
+[ ] Limit size of notes, maybe? Or make multiple textures for each "part" of a huge note or something like that, IDK
+[ ] Copying sub-pages should just copy the contents, rather than copying the card itself only
+[ ] Follow caret as you type
 [ ] Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
+[ ] Box Card that expands to highlight / "cover" a selection of cards. You can manually resize it, or press a button to enclose a selection of Cards. You can also hide cards inside of this "box".
+[ ] Add method to copy colors from one card to others
+[ ] A palette of pre-selected colors (the same ones for the Map) for setting any card's color.
+
 [ ] Hover over Tasks to display more information about them (full task, creation date, completion date, etc).
 [ ] Due dates
 [ ] Calendar? https://github.com/SolarLune/masterplan/issues/74
@@ -20,7 +29,6 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [ ] Key to jump to ends of arrow cards
 [ ] Ability to search / list Cards by type
 [ ] Ability to edit Card contents using buttons to cycle through the controls
-[ ] Add method to copy colors from one card to others
 [ ] Cards should be able to be raised or lowered to always be on top or below, etc.
 [x] Fix crashes related to sub-pages
 [x] Move screenshot location for sub-pages up
