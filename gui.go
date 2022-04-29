@@ -913,12 +913,14 @@ func (bg *ButtonGroup) Destroy() {
 }
 
 type IconButtonGroup struct {
-	Buttons    []*IconButton
-	Rect       *sdl.FRect
-	Icons      []*sdl.Rect
-	OnChoose   func(index int)
-	Property   *Property
-	WorldSpace bool
+	Buttons     []*IconButton
+	Rect        *sdl.FRect
+	Icons       []*sdl.Rect
+	OnChoose    func(index int)
+	Property    *Property
+	ChosenIndex int
+	WorldSpace  bool
+	Spacing     float32
 }
 
 func NewIconButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index int), property *Property, icons ...*sdl.Rect) *IconButtonGroup {
@@ -962,6 +964,8 @@ func (bg *IconButtonGroup) SetButtons(icons ...*sdl.Rect) {
 			}
 			if bg.Property != nil {
 				bg.Property.Set(float64(index))
+			} else {
+				bg.ChosenIndex = index
 			}
 		}))
 
@@ -972,7 +976,7 @@ func (bg *IconButtonGroup) SetButtons(icons ...*sdl.Rect) {
 func (bg *IconButtonGroup) Update() {
 
 	rect := bg.Rectangle()
-	w := rect.W / float32(len(bg.Buttons))
+	w := (rect.W / float32(len(bg.Buttons))) + bg.Spacing
 
 	for i, b := range bg.Buttons {
 
@@ -988,10 +992,12 @@ func (bg *IconButtonGroup) Update() {
 
 func (bg *IconButtonGroup) Draw() {
 
-	chosenIndex := int(bg.Property.AsFloat())
+	if bg.Property != nil {
+		bg.ChosenIndex = int(bg.Property.AsFloat())
+	}
 
 	for i, b := range bg.Buttons {
-		b.AlwaysHighlight = chosenIndex == i
+		b.AlwaysHighlight = bg.ChosenIndex == i
 		b.Draw()
 	}
 
@@ -2217,7 +2223,7 @@ func (container *Container) Update() {
 	if container.NeedScroll() && container.DisplayScrollbar {
 		container.Scrollbar.Rect.H = container.Rect.H - 48
 		container.Scrollbar.Rect.W = 16
-		container.Scrollbar.Rect.X = container.Rect.X + container.Rect.W
+		container.Scrollbar.Rect.X = container.Rect.X + container.Rect.W - container.Scrollbar.Rect.W
 		container.Scrollbar.Rect.Y = container.Rect.Y + 48
 
 		if wheel := globals.Mouse.Wheel(); wheel != 0 && pos.Inside(container.Rect) {
@@ -2242,13 +2248,36 @@ func (container *Container) Update() {
 
 func (container *Container) Draw() {
 
-	rect := container.Rect
+	r := container.Rectangle()
 
 	if container.WorldSpace {
-		rect = globals.Project.Camera.TranslateRect(rect)
+		r = globals.Project.Camera.TranslateRect(r)
 	}
 
-	globals.Renderer.SetClipRect(&sdl.Rect{int32(rect.X), int32(rect.Y), int32(rect.W), int32(rect.H)})
+	rect := &sdl.Rect{int32(r.X), int32(r.Y), int32(r.W), int32(r.H)}
+
+	// We combine clipping rectangles here as necessary; this allows containers within containers to render correctly
+	if len(globals.ClipRects) > 0 {
+		prevRect := globals.ClipRects[len(globals.ClipRects)-1]
+		if prevRect.X > rect.X {
+			rect.X = prevRect.X
+		}
+
+		if prevRect.X+prevRect.W < rect.X+rect.W {
+			rect.W = (prevRect.X + prevRect.W) - rect.X
+		}
+
+		if prevRect.Y > rect.Y {
+			rect.Y = prevRect.Y
+		}
+
+		if prevRect.Y+prevRect.H < rect.Y+rect.H {
+			rect.H = (prevRect.Y + prevRect.H) - rect.Y
+		}
+	}
+
+	globals.Renderer.SetClipRect(rect)
+	globals.ClipRects = append(globals.ClipRects, rect)
 
 	rows := append([]*ContainerRow{}, container.Rows...)
 
@@ -2260,10 +2289,16 @@ func (container *Container) Draw() {
 		}
 	}
 
-	globals.Renderer.SetClipRect(nil)
-
 	if container.NeedScroll() && container.DisplayScrollbar {
 		container.Scrollbar.Draw()
+	}
+
+	globals.ClipRects[len(globals.ClipRects)-1] = nil
+	globals.ClipRects = globals.ClipRects[:len(globals.ClipRects)-1]
+	if len(globals.ClipRects) > 0 {
+		globals.Renderer.SetClipRect(globals.ClipRects[0])
+	} else {
+		globals.Renderer.SetClipRect(nil)
 	}
 
 }

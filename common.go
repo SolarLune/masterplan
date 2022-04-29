@@ -630,7 +630,7 @@ func DrawLabel(pos Point, text string) {
 		textSize.X = 16
 	}
 
-	guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
+	guiTexture := globals.GUITexture.Texture
 	menuColor := getThemeColor(GUIMenuColor)
 
 	guiTexture.SetColorMod(menuColor.RGB())

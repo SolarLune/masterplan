@@ -9,18 +9,43 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [x] Fix recent files filepath not being complete on Windows
 [x] Card movement!
 
-[ ] Fix Cut not working???
-[ ] Limit size of notes, maybe? Or make multiple textures for each "part" of a huge note or something like that, IDK
-[ ] Copying sub-pages should just copy the contents, rather than copying the card itself only
-[ ] Follow caret as you type
-[ ] Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
-[ ] Box Card that expands to highlight / "cover" a selection of cards. You can manually resize it, or press a button to enclose a selection of Cards. You can also hide cards inside of this "box".
+[ ] Auto-backups
+[ ] Option to disable shadows on cards
+[x] Keybindings for opening the different panels (find, create, edit, etc).
+
 [ ] Add method to copy colors from one card to others
 [ ] A palette of pre-selected colors (the same ones for the Map) for setting any card's color.
+[ ] Follow caret as you type when editing text
+[ ] Maybe don't use render textures for cards considering rendering 9 textures might just be faster than rendering a massive texture??? Not sure of the trade-off in terms of speed, but not
+    every computer has really large texture limits
 
-[ ] Hover over Tasks to display more information about them (full task, creation date, completion date, etc).
+[ ] Save menu positions across sessions
+[ ] Speed up hierarchy view, it doesn't have to take as long as it does, as it only needs to rebuild the list when something changes, not all of the time
+[ ] Re-add the tutorial
+[ ] Keyboard editing of card contents
+[ ] Add some sort of "ball" object that allows you to test simple physics / motions / spaces???
+[ ] Rework directional card selection to work better with cards inside of other cards
+[ ] Feature to loop timers
+  [ ] Feature to loop timer chains (i.e. once timer A makes timer B happen, it can loop back around somehow)
+[ ] Add version check to themes - if a theme doesn't have the version check, don't load it (and specify the error in the message at the bottom-left)???
+[ ] Zoom to cursor
+[ ] Add hours / days (?) to timer: https://discord.com/channels/339550825154347008/758009278756946040/967082808386400276
+[ ] Limit size of notes, maybe? Or make multiple textures for each "part" of a huge note or something like that, IDK
+  [ ] Software renderer - Create manual software fallback - this way, computers with poor VRAM or maximum texture sizes won't have such problems
+[x] Don't auto-load project if loading it doesn't work
+[x] Fix Cut not working???
+[ ] Copying sub-pages should copy the contents, rather than copying the card itself only
+[ ] Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
+  [ ] Hover over Cards to display more information about them (full task, creation date, completion date, etc).
+[ ] Box Card that expands to highlight / "cover" a selection of cards. You can manually resize it, or press a button to enclose a selection of Cards. You can also hide cards inside of this "box".
+[ ] "Higher-quality" text rendering? : https://steamcommunity.com/app/1269310/discussions/0/3183484867126950856/
+[ ] Hide map background when zoomed out enough to make it seem "contiguous"
+[ ] Add alternate borders for maps for terrain
+[ ] Multiple projects via tabs
+[ ] Dialog to list and filter all cards in project
+
 [ ] Due dates
-[ ] Calendar? https://github.com/SolarLune/masterplan/issues/74
+  [ ] Calendar? https://github.com/SolarLune/masterplan/issues/74
 [ ] Time unit estimation should be better
   [ ] Fix time unit estimation to handle large months (i.e. many years) properly
 [x] Window Transparency / make window transparent if mouse isn't in window

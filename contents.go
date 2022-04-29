@@ -25,14 +25,39 @@ const (
 	ContentTypeImage    = "Image"
 	ContentTypeTimer    = "Timer"
 	ContentTypeMap      = "Map"
-	ContentTypeTable    = "Table"
 	ContentTypeSubpage  = "Sub-Page"
 	ContentTypeLink     = "Link"
+	// ContentTypeTable    = "Table"
 
 	TriggerTypeSet    = "Set"
 	TriggerTypeToggle = "Toggle"
 	TriggerTypeClear  = "Clear"
 )
+
+var icons map[string]*sdl.Rect = map[string]*sdl.Rect{
+	ContentTypeCheckbox: {48, 32, 32, 32},
+	ContentTypeNumbered: {48, 96, 32, 32},
+	ContentTypeNote:     {176, 64, 32, 32},
+	ContentTypeSound:    {144, 160, 32, 32},
+	ContentTypeImage:    {48, 64, 32, 32},
+	ContentTypeTimer:    {80, 64, 32, 32},
+	ContentTypeMap:      {112, 96, 32, 32},
+	ContentTypeSubpage:  {48, 256, 32, 32},
+	ContentTypeLink:     {112, 256, 32, 32},
+}
+
+var contentOrder = map[string]int{
+	ContentTypeCheckbox: 0,
+	ContentTypeNumbered: 1,
+	ContentTypeNote:     2,
+	ContentTypeSound:    3,
+	ContentTypeImage:    4,
+	ContentTypeTimer:    5,
+	ContentTypeMap:      6,
+	ContentTypeSubpage:  7,
+	ContentTypeLink:     8,
+	// ContentTypeTable:    0,
+}
 
 type Contents interface {
 	Update()
@@ -2425,12 +2450,22 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 	if sb.Card.Properties.Has("subpage") {
 		spID := uint64(sb.Card.Properties.Get("subpage").AsFloat())
-		for _, page := range project.Pages {
-			// If our desired backing page already exists and is not already being pointed to by another subpage card, then we set this subpage card to point to it
-			if page.ID == spID && page.PointingSubpageCard == nil {
-				sb.SubPage = page
-				break
+		if globals.LoadingSubpagesBroken {
+
+			if len(project.Pages) > int(spID) {
+				sb.SubPage = project.Pages[spID]
 			}
+
+		} else {
+
+			for _, page := range project.Pages {
+				// If our desired backing page already exists and is not already being pointed to by another subpage card, then we set this subpage card to point to it
+				if page.ID == spID && page.PointingSubpageCard == nil {
+					sb.SubPage = page
+					break
+				}
+			}
+
 		}
 
 	}
@@ -2440,7 +2475,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	}
 
 	sb.SubPage.PointingSubpageCard = card
-	sb.Card.Properties.Get("subpage").Set(float64(project.PageIndex(sb.SubPage))) // We have to set as a float because JSON only has floats as numbers, not ints
+	sb.Card.Properties.Get("subpage").Set(float64(sb.SubPage.ID)) // We have to set as a float because JSON only has floats as numbers, not ints
 	sb.SubPage.UpwardPage = sb.Card.Page
 
 	sb.NameLabel.Property = card.Properties.Get("description")
@@ -2452,7 +2487,6 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 	sb.ScreenshotRow = sb.Container.AddRow(AlignCenter)
 	sb.ScreenshotRow.Add("screenshot", sb.ScreenshotImage)
-	sb.ScreenshotRow.ForcedSize = SubpageScreenshotSize
 
 	sb.Container.AddRow(AlignCenter).Add("open", NewButton("Open", nil, nil, true, func() {
 		sb.OpenSubpage()
@@ -2472,18 +2506,26 @@ func (sb *SubPageContents) Update() {
 		sb.OpenSubpage()
 	}
 
+	w := sb.Container.Rect.W
+	if w < 0 {
+		w = 0
+	}
+
 	h := sb.Container.Rect.H - 64
 	if h < 0 {
 		h = 0
-	} else if h > SubpageScreenshotSize.Y {
-		h = SubpageScreenshotSize.Y
 	}
 
-	sb.ScreenshotImage.SrcRect.H = int32(h)
+	sb.ScreenshotImage.Rect.W = w
 	sb.ScreenshotImage.Rect.H = h
-	sb.ScreenshotRow.ForcedSize.Y = h
 
 	sb.DefaultContents.Update()
+
+	mbLeft := globals.Mouse.Button(sdl.BUTTON_LEFT)
+	if ClickedInRect(sb.Card.Rect, true) && mbLeft.PressedTimes(2) {
+		sb.OpenSubpage()
+		mbLeft.Consume()
+	}
 
 }
 
@@ -2500,6 +2542,7 @@ func (sb *SubPageContents) ReceiveMessage(msg *Message) {
 	if sb.SubPage != nil {
 		if msg.Type == MessageCardDeleted {
 			sb.SubPage.Valid = false
+			globals.Hierarchy.AddPage(sb.SubPage)
 		} else if msg.Type == MessageCardRestored {
 			sb.SubPage.Valid = true
 		}

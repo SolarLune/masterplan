@@ -8,6 +8,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/ncruces/zenity"
+	"github.com/pkg/browser"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/veandco/go-sdl2/sdl"
@@ -73,6 +74,11 @@ func NewProject() *Project {
 		Camera: NewCamera(),
 		// Pages:           []*Page{},
 		LastCardType: ContentTypeCheckbox,
+	}
+
+	if globals.Hierarchy != nil {
+		globals.Hierarchy.Destroy()
+		globals.Hierarchy = NewHierarchy(globals.Hierarchy.Container)
 	}
 
 	project.UndoHistory = NewUndoHistory(project)
@@ -277,12 +283,17 @@ func (project *Project) Save() {
 
 	pageData := "["
 
-	pagesToSave := []*Page{}
+	pagesToSave := []*Page{project.Pages[0]}
 
-	for _, page := range project.Pages {
-		if page.Valid {
-			pagesToSave = append(pagesToSave, page)
+	if len(project.Pages) > 1 {
+
+		for _, page := range project.Pages[1:] {
+			// If a subpage card is broken, we might fix it using a tool, and saving it should then rely on pointingsubpagecard to not be nil
+			if page.Valid {
+				pagesToSave = append(pagesToSave, page)
+			}
 		}
+
 	}
 
 	sort.SliceStable(pagesToSave, func(i, j int) bool { return pagesToSave[i].ID < pagesToSave[j].ID })
@@ -379,6 +390,23 @@ func (project *Project) Open() {
 }
 
 func OpenProjectFrom(filename string) {
+
+	i := 0
+	for {
+
+		if i >= len(globals.RecentFiles) {
+			break
+		}
+
+		file := globals.RecentFiles[i]
+
+		if !FileExists(file) {
+			globals.RecentFiles = append(globals.RecentFiles[:i], globals.RecentFiles[i+1:]...)
+		} else {
+			i++
+		}
+
+	}
 
 	jsonData, err := os.ReadFile(filename)
 	if err != nil {
@@ -524,10 +552,20 @@ func OpenProjectFrom(filename string) {
 			newProject.UndoHistory.MinimumFrame = 1
 			globals.EventLog.On = true
 
+			globals.LoadingSubpagesBroken = false
+
 			globals.EventLog.Log("Project loaded successfully.", false)
 
 		}
 
+	}
+
+}
+
+func (project *Project) Reload() {
+
+	if project.Filepath != "" {
+		OpenProjectFrom(project.Filepath)
 	}
 
 }
@@ -607,11 +645,59 @@ func (project *Project) SendMessage(msg *Message) {
 
 func (project *Project) GlobalShortcuts() {
 
+	kb := globals.Keybindings
+
+	if kb.Pressed(KBHelp) {
+		browser.OpenURL("https://github.com/SolarLune/masterplan/wiki")
+		globals.EventLog.Log("Opening help page on github.com/SolarLune/masterplan/wiki...", true)
+		kb.Shortcuts[KBHelp].ConsumeKeys()
+	}
+
+	if kb.Pressed(KBOpenCreateMenu) {
+		menu := globals.MenuSystem.Get("create")
+		if menu.Opened {
+			menu.Close()
+		} else {
+			menu.Open()
+		}
+		kb.Shortcuts[KBOpenCreateMenu].ConsumeKeys()
+	}
+
+	if kb.Pressed(KBOpenEditMenu) {
+		menu := globals.MenuSystem.Get("edit")
+		if menu.Opened {
+			menu.Close()
+		} else {
+			menu.Open()
+		}
+		kb.Shortcuts[KBOpenEditMenu].ConsumeKeys()
+	}
+
+	if kb.Pressed(KBOpenHierarchyMenu) {
+		menu := globals.MenuSystem.Get("hierarchy")
+		if menu.Opened {
+			menu.Close()
+		} else {
+			menu.Open()
+		}
+		kb.Shortcuts[KBOpenHierarchyMenu].ConsumeKeys()
+	}
+
+	if kb.Pressed(KBOpenStatsMenu) {
+		menu := globals.MenuSystem.Get("stats")
+		if menu.Opened {
+			menu.Close()
+		} else {
+			menu.Open()
+		}
+		kb.Shortcuts[KBOpenStatsMenu].ConsumeKeys()
+	}
+
 	if globals.State != StateCardArrow {
 
-		if globals.Keybindings.Pressed(KBUndo) {
+		if kb.Pressed(KBUndo) {
 			project.UndoHistory.Undo()
-		} else if globals.Keybindings.Pressed(KBRedo) {
+		} else if kb.Pressed(KBRedo) {
 			project.UndoHistory.Redo()
 		}
 
@@ -622,7 +708,6 @@ func (project *Project) GlobalShortcuts() {
 		dx := float32(0)
 		dy := float32(0)
 		panSpeed := float32(960) * globals.DeltaTime
-		kb := globals.Keybindings
 
 		if kb.Pressed(KBPanRight) {
 			dx = panSpeed
@@ -654,7 +739,10 @@ func (project *Project) GlobalShortcuts() {
 			kb.Shortcuts[KBZoomOut].ConsumeKeys()
 		}
 
-		if kb.Pressed(KBZoomLevel25) {
+		if kb.Pressed(KBZoomLevel5) {
+			project.Camera.SetZoom(0.05)
+			kb.Shortcuts[KBZoomLevel5].ConsumeKeys()
+		} else if kb.Pressed(KBZoomLevel25) {
 			project.Camera.SetZoom(0.25)
 			kb.Shortcuts[KBZoomLevel25].ConsumeKeys()
 		} else if kb.Pressed(KBZoomLevel50) {
@@ -769,7 +857,7 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if kb.Pressed(KBPasteCards) {
-			project.CurrentPage.PasteCards(Point{})
+			project.CurrentPage.PasteCards(Point{}, true)
 			kb.Shortcuts[KBPasteCards].ConsumeKeys()
 		}
 

@@ -204,6 +204,13 @@ func main() {
 		panic(err)
 	}
 
+	rendererInfo, err := renderer.GetInfo()
+	if err != nil {
+		panic(err)
+	}
+
+	globals.RendererInfo = rendererInfo
+
 	// if globals.ProgramSettings.Get(SettingsSaveWindowPosition).AsBool() && globals.OldProgramSettings.WindowPosition.W > 0 && globals.OldProgramSettings.WindowPosition.H > 0 {
 	// 	x = int32(globals.OldProgramSettings.WindowPosition.X)
 	// 	y = int32(globals.OldProgramSettings.WindowPosition.Y)
@@ -242,9 +249,9 @@ func main() {
 	globals.TriggerReloadFonts = true
 	HandleFontReload()
 
-	globals.Project = NewProject()
-
 	ConstructMenus()
+
+	globals.Project = NewProject()
 
 	// renderer.SetLogicalSize(960, 540)
 
@@ -294,19 +301,34 @@ func main() {
 		}
 	}()
 
+	globals.GUITexture = globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
+
 	// Either you're possibly passing the filename by double-clicking on a project, or you're possibly autoloading
 	if len(os.Args) > 1 || (globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0) {
 
-		// Call this here to make sure we don't refresh the texture right after creating the project; this fixes the issue
-		// where the map card is blank on autoload on Windows.
-		handleEvents()
+		// Successful previous load
 
-		//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
+		if !globals.Settings.Has(SettingsSuccessfulLoad) || globals.Settings.Get(SettingsSuccessfulLoad).AsBool() {
 
-		if len(os.Args) > 1 {
-			OpenProjectFrom(os.Args[1])
-		} else if globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0 {
-			OpenProjectFrom(globals.RecentFiles[0])
+			// Call this here to make sure we don't refresh the texture right after creating the project; this fixes the issue
+			// where the map card is blank on autoload on Windows.
+			handleEvents()
+
+			//Loads file when passed in as argument; courtesy of @DanielKilgallon on GitHub.
+
+			globals.Settings.Get(SettingsSuccessfulLoad).Set(false)
+
+			if len(os.Args) > 1 {
+				OpenProjectFrom(os.Args[1])
+			} else if globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0 {
+				OpenProjectFrom(globals.RecentFiles[0])
+			}
+
+			globals.Settings.Get(SettingsSuccessfulLoad).Set(true)
+
+		} else {
+			globals.EventLog.Log("WARNING: MasterPlan crashed while attempting to load the last project.", true)
+			globals.Settings.Get(SettingsSuccessfulLoad).Set(true)
 		}
 
 	}
@@ -424,9 +446,9 @@ func main() {
 			globals.DebugMode = !globals.DebugMode
 		}
 
-		if globals.Keyboard.Key(sdl.K_F5).Pressed() {
-			profileCPU()
-		}
+		// if globals.Keyboard.Key(sdl.K_F8).Pressed() {
+		// 	profileCPU()
+		// }
 
 		// if rl.WindowShouldClose() {
 		// 	currentProject.PromptQuit()
@@ -901,7 +923,7 @@ func ConstructMenus() {
 
 	// View Menu
 
-	viewMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 200}, MenuCloseClickOut), "view", false)
+	viewMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), "view", false)
 	root = viewMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("Create Menu", NewButton("Create", nil, nil, false, func() {
@@ -916,6 +938,16 @@ func ConstructMenus() {
 
 	root.AddRow(AlignCenter).Add("Find Menu", NewButton("Find", nil, nil, false, func() {
 		globals.MenuSystem.Get("find").Open()
+		viewMenu.Close()
+	}))
+
+	// root.AddRow(AlignCenter).Add("Tools Menu", NewButton("Tools", nil, nil, false, func() {
+	// 	globals.MenuSystem.Get("tools").Open()
+	// 	viewMenu.Close()
+	// }))
+
+	root.AddRow(AlignCenter).Add("Hierarchy Menu", NewButton("Hierarchy", nil, nil, false, func() {
+		globals.MenuSystem.Get("hierarchy").Open()
 		viewMenu.Close()
 	}))
 
@@ -946,6 +978,7 @@ func ConstructMenus() {
 					loadConfirm.Center()
 					loadConfirm.Open()
 					loadRecent.Close()
+					fileMenu.Close()
 				}))
 			}
 
@@ -976,63 +1009,63 @@ func ConstructMenus() {
 	root = createMenu.Pages["root"]
 	root.AddRow(AlignCenter).Add("create label", NewLabel("Create", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
 
-	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, &sdl.Rect{48, 32, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, icons[ContentTypeCheckbox], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new numbered", NewButton("Numbered", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new numbered", NewButton("Numbered", nil, icons[ContentTypeNumbered], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNumbered)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, &sdl.Rect{112, 160, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, icons[ContentTypeNote], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNote)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, &sdl.Rect{144, 160, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, icons[ContentTypeSound], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSound)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new image", NewButton("Image", nil, &sdl.Rect{48, 64, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new image", NewButton("Image", nil, icons[ContentTypeImage], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeImage)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new timer", NewButton("Timer", nil, &sdl.Rect{80, 64, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new timer", NewButton("Timer", nil, icons[ContentTypeTimer], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeTimer)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new map", NewButton("Map", nil, &sdl.Rect{112, 96, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new map", NewButton("Map", nil, icons[ContentTypeMap], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeMap)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new subpage", NewButton("Sub-Page", nil, &sdl.Rect{48, 256, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new subpage", NewButton("Sub-Page", nil, icons[ContentTypeSubpage], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSubpage)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new link", NewButton("Link", nil, &sdl.Rect{112, 256, 32, 32}, false, func() {
+	root.AddRow(AlignCenter).Add("create new link", NewButton("Link", nil, icons[ContentTypeLink], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeLink)
 		card.SetCenter(globals.Project.Camera.TargetPosition)
 		globals.Project.CurrentPage.Selection.Clear()
@@ -1056,6 +1089,90 @@ func ConstructMenus() {
 	}))
 	root.AddRow(AlignCenter).Add("set type", NewButton("Set Type", nil, nil, false, func() {
 		editMenu.SetPage("set type")
+	}))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewButton("Flatten Project", nil, nil, false, func() {
+
+		common := globals.MenuSystem.Get("common")
+		root := common.Pages["root"]
+		root.DefaultExpand = true
+		root.Clear()
+		row := root.AddRow(AlignCenter)
+		row.Add("", NewLabel("Warning!", nil, false, AlignCenter))
+		row = root.AddRow(AlignCenter)
+		label := NewLabel("This tool will flatten the project, bringing all cards from all sub-pages to the root page, organized horizontally going to the right. It's best to consider this something that cannot be easily undone (outside of reloading the project). Is this OK?", nil, false, AlignCenter)
+		row.Add("", label)
+		row = root.AddRow(AlignCenter)
+		row.Add("", NewButton("Proceed", nil, nil, false, func() {
+
+			project := globals.Project
+
+			globals.EventLog.On = false
+
+			if len(project.Pages) > 1 {
+
+				for _, page := range globals.Project.Pages[1:] {
+
+					globals.CopyBuffer.Clear()
+
+					root := globals.Project.Pages[0]
+					offsetX := float32(0)
+					for _, c := range root.Cards {
+						if c.Rect.X+c.Rect.W > offsetX {
+							offsetX = c.Rect.X + c.Rect.W
+						}
+					}
+
+					pageOffsetX := float32(0)
+					for _, card := range page.Cards {
+						if card.Rect.X < pageOffsetX {
+							pageOffsetX = card.Rect.X
+						}
+					}
+
+					for _, card := range page.Cards {
+
+						globals.CopyBuffer.CutMode = true
+
+						if card.ContentType != ContentTypeSubpage {
+							globals.CopyBuffer.Copy(card)
+						}
+
+						card.LockPosition()
+						card.CreateUndoState = true
+
+					}
+
+					rootPage := project.Pages[0]
+					rootPage.Selection.Clear()
+
+					for _, card := range rootPage.PasteCards(Point{offsetX - pageOffsetX, 0}, false) {
+						rootPage.Selection.Add(card)
+					}
+
+					project.SetPage(page) // Force screenshots to be taken
+					page.Update()
+					page.Draw()
+
+				}
+
+			}
+
+			globals.EventLog.On = true
+
+			globals.EventLog.Log("Project flattened - all cards in sub-pages are now in the root page.", true)
+
+			project.SetPage(project.Pages[0])
+
+			common.Close()
+
+		}))
+		row.Add("", NewButton("Cancel", nil, nil, false, func() {
+			common.Close()
+		}))
+		common.Open()
+
 	}))
 
 	setColor := editMenu.AddPage("set color")
@@ -1119,55 +1236,55 @@ func ConstructMenus() {
 	setType := editMenu.AddPage("set type")
 	setType.AddRow(AlignCenter).Add("label", NewLabel("Set Type", &sdl.FRect{0, 0, 192, 32}, false, AlignCenter))
 
-	setType.AddRow(AlignCenter).Add("set checkbox content type", NewButton("Checkbox", nil, &sdl.Rect{48, 32, 32, 32}, false, func() {
+	setType.AddRow(AlignCenter).Add("set checkbox content type", NewButton("Checkbox", nil, icons[ContentTypeCheckbox], false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeCheckbox)
 		}
 	}))
 
-	setType.AddRow(AlignCenter).Add("set number content type", NewButton("Number", nil, &sdl.Rect{48, 96, 32, 32}, false, func() {
+	setType.AddRow(AlignCenter).Add("set number content type", NewButton("Number", nil, icons[ContentTypeNumbered], false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeNumbered)
 		}
 	}))
 
-	setType.AddRow(AlignCenter).Add("set note content type", NewButton("Note", nil, &sdl.Rect{80, 0, 32, 32}, false, func() {
+	setType.AddRow(AlignCenter).Add("set note content type", NewButton("Note", nil, icons[ContentTypeNote], false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeNote)
 		}
 	}))
 
-	setType.AddRow(AlignCenter).Add("set sound content type", NewButton("Sound", nil, &sdl.Rect{80, 32, 32, 32}, false, func() {
+	setType.AddRow(AlignCenter).Add("set sound content type", NewButton("Sound", nil, icons[ContentTypeSound], false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeSound)
 		}
 	}))
 
-	setType.AddRow(AlignCenter).Add("set image content type", NewButton("Image", nil, &sdl.Rect{48, 64, 32, 32}, false, func() {
+	setType.AddRow(AlignCenter).Add("set image content type", NewButton("Image", nil, icons[ContentTypeImage], false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeImage)
 		}
 	}))
 
-	setType.AddRow(AlignCenter).Add("set timer content type", NewButton("Timer", nil, &sdl.Rect{80, 64, 32, 32}, false, func() {
+	setType.AddRow(AlignCenter).Add("set timer content type", NewButton("Timer", nil, icons[ContentTypeTimer], false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeTimer)
 		}
 	}))
 
-	setType.AddRow(AlignCenter).Add("set map content type", NewButton("Map", nil, &sdl.Rect{112, 96, 32, 32}, false, func() {
+	setType.AddRow(AlignCenter).Add("set map content type", NewButton("Map", nil, icons[ContentTypeMap], false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeMap)
 		}
 	}))
 
-	setType.AddRow(AlignCenter).Add("set sub-page content type", NewButton("Sub-Page", nil, &sdl.Rect{112, 96, 32, 32}, false, func() {
+	setType.AddRow(AlignCenter).Add("set sub-page content type", NewButton("Sub-Page", nil, icons[ContentTypeSubpage], false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeSubpage)
 		}
 	}))
 
-	setType.AddRow(AlignCenter).Add("set link content type", NewButton("Link", nil, &sdl.Rect{112, 256, 32, 32}, false, func() {
+	setType.AddRow(AlignCenter).Add("set link content type", NewButton("Link", nil, icons[ContentTypeLink], false, func() {
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			card.SetContents(ContentTypeLink)
 		}
@@ -1197,10 +1314,17 @@ func ConstructMenus() {
 		contextMenu.Close()
 	}))
 
+	root.AddRow(AlignCenter).Add("cut cards", NewButton("Cut Cards", &sdl.FRect{0, 0, 192, 32}, nil, false, func() {
+		page := globals.Project.CurrentPage
+		globals.CopyBuffer.CutMode = true
+		page.CopySelectedCards()
+		contextMenu.Close()
+	}))
+
 	root.AddRow(AlignCenter).Add("paste cards", NewButton("Paste Cards", &sdl.FRect{0, 0, 192, 32}, nil, false, func() {
 		menuPos := Point{globals.MenuSystem.Get("context").Rect.X, globals.MenuSystem.Get("context").Rect.Y}
 		offset := globals.Mouse.Position().Sub(menuPos)
-		globals.Project.CurrentPage.PasteCards(offset)
+		globals.Project.CurrentPage.PasteCards(offset, true)
 		contextMenu.Close()
 	}))
 
@@ -1721,6 +1845,211 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 	row.Add("", NewButton("Twitter", nil, &sdl.Rect{80, 224, 32, 32}, false, func() { browser.OpenURL("https://twitter.com/MasterPlanApp") }))
 
+	// Tools menu
+
+	// tools := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 9999, 320, 256}, MenuCloseButton), "tools", false)
+	// tools.Draggable = true
+	// tools.Resizeable = true
+	// tools.UpdateAnchor()
+
+	// root = tools.Pages["root"]
+
+	// row = root.AddRow(AlignCenter)
+	// row.Add("", NewLabel("Tools", nil, false, AlignCenter))
+
+	// row = root.AddRow(AlignCenter)
+	// row.Add("", NewButton("Fix Broken Sub-pages", nil, nil, false, func() {
+
+	// 	common := globals.MenuSystem.Get("common")
+	// 	root := common.Pages["root"]
+	// 	root.DefaultExpand = true
+	// 	root.Clear()
+	// 	row := root.AddRow(AlignCenter)
+	// 	row.Add("", NewLabel("Warning!", nil, false, AlignCenter))
+	// 	row = root.AddRow(AlignCenter)
+	// 	label := NewLabel("Fix Broken Sub-pages will reload the project while attempting to fix Sub-page Cards in case they point to incorrect locations (this has the highest chance of success on projects that have NOT been saved over after noticing the problem). Proceed?", nil, false, AlignCenter)
+	// 	row.Add("", label)
+	// 	row = root.AddRow(AlignCenter)
+	// 	row.Add("", NewButton("Fix Broken Sub-pages", nil, nil, false, func() {
+
+	// 		common.Close()
+
+	// 		project := globals.Project
+
+	// 		if project.Filepath == "" {
+	// 			globals.EventLog.Log("Cannot fix broken sub-pages on a project that has yet to be saved, as it is unnecessary. No changes have been made.", true)
+	// 			return
+	// 		}
+
+	// 		if len(project.Pages) > 1 {
+
+	// 			globals.EventLog.On = false
+
+	// 			globals.LoadingSubpagesBroken = true
+
+	// 			project.Reload()
+
+	// 			globals.EventLog.On = true
+
+	// 			globals.EventLog.Log("Sub-pages have been reassigned as necessary and the project has been reloaded.\nPlease double-check to see if the cards are in the correct locations.\nIf not, it may be advised to flatten the project and start over.", true)
+
+	// 		} else {
+	// 			globals.EventLog.Log("No other sub-pages found in the project. No changes have been made.", true)
+	// 			return
+	// 		}
+
+	// 	}))
+	// 	row.Add("", NewButton("NO! I changed my mind.", nil, nil, false, func() {
+	// 		common.Close()
+	// 	}))
+	// 	common.Open()
+
+	// }))
+
+	// Hierarchy Menu
+
+	list := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 0, 400, 800}, MenuCloseButton), "hierarchy", false)
+	list.Draggable = true
+	list.Resizeable = true
+	list.UpdateAnchor()
+
+	listRoot := list.Pages["root"]
+
+	row = listRoot.AddRow(AlignCenter)
+	row.Add("", NewLabel("Hierarchy", nil, false, AlignCenter))
+
+	sorting := 0
+
+	row = listRoot.AddRow(AlignLeft)
+
+	row.Add("", NewLabel("Sorting : ", nil, false, AlignLeft))
+
+	sortAZ := NewIconButtonGroup(nil, false, func(index int) { sorting = index }, nil,
+		&sdl.Rect{48, 288, 32, 32},
+		&sdl.Rect{80, 288, 32, 32},
+		&sdl.Rect{112, 288, 32, 32},
+	)
+	sortAZ.Spacing = 12
+
+	row.Add("", sortAZ)
+
+	row = listRoot.AddRow(AlignLeft)
+	row.Add("", NewLabel("Type Filter :", nil, false, AlignLeft))
+
+	row = listRoot.AddRow(AlignLeft)
+
+	filter := 0
+
+	iconGroup := NewIconButtonGroup(nil, false, func(index int) { filter = index }, nil,
+		&sdl.Rect{176, 192, 32, 32},
+		icons[ContentTypeCheckbox],
+		icons[ContentTypeNumbered],
+		icons[ContentTypeNote],
+		icons[ContentTypeSound],
+		icons[ContentTypeImage],
+		icons[ContentTypeTimer],
+		icons[ContentTypeMap],
+		icons[ContentTypeSubpage],
+		icons[ContentTypeLink],
+	)
+	iconGroup.Spacing = 3
+
+	row.Add("", iconGroup)
+
+	row = listRoot.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = listRoot.AddRow(AlignLeft)
+	listPIP := NewContainer(&sdl.FRect{0, 0, 320, 128}, false)
+	row.Add("container", listPIP)
+
+	globals.Hierarchy = NewHierarchy(listPIP)
+
+	listPIP.OnUpdate = func() {
+
+		// listPIP.Rect.W = float32(math.Max(float64(listRoot.Rect.W)-128, 250))
+		listPIP.Rect.W = float32(math.Max(float64(listRoot.Rect.W), 250))
+		listPIP.Rect.H = listRoot.Rect.H - 190
+		listPIP.Rows = globals.Hierarchy.Rows(sorting, filter)
+
+	}
+
+	// listRoot.OnUpdate = func() {
+
+	// 	if globals.RebuildList {
+
+	// 		fmt.Println("Rebuild list")
+
+	// 		globals.RebuildList = false
+
+	// 		listRoot.Destroy()
+
+	// 		for _, page := range globals.Project.Pages {
+
+	// 			expanded := true
+
+	// 			if len(page.Cards) > 0 {
+	// 				row := listRoot.AddRow(AlignCenter)
+	// 				// row.Add("", NewLabel(page.Name(), nil, false, AlignCenter))
+	// 				row.Add("", NewButton(page.Name(), nil, nil, false, func() {
+	// 					expanded = !expanded
+	// 				}))
+	// 				row.VerticalSpacing = 12
+	// 			}
+
+	// 			for _, c := range page.Cards {
+
+	// 				// Push the variable into the for loop for usage
+	// 				card := c
+	// 				row = listRoot.AddRow(AlignLeft)
+	// 				row.Add("", NewGUIImage(nil, icons[card.ContentType], globals.GUITexture.Texture, false))
+	// 				row.Visible = expanded
+
+	// 				text := ""
+	// 				switch card.ContentType {
+	// 				case ContentTypeImage:
+	// 					fallthrough
+	// 				case ContentTypeSound:
+	// 					if card.Properties.Has("filepath") && card.Properties.Get("filepath").AsString() != "" {
+	// 						_, fn := filepath.Split(card.Properties.Get("filepath").AsString())
+	// 						text = fn
+	// 					} else if card.ContentType == ContentTypeImage {
+	// 						text = "No Image Loaded"
+	// 					} else {
+	// 						text = "No Sound Loaded"
+	// 					}
+	// 				case ContentTypeMap:
+	// 					text = "Map"
+	// 				default:
+	// 					text = card.Properties.Get("description").AsString()
+	// 				}
+
+	// 				if len(text) > 20 {
+	// 					text = strings.ReplaceAll(text, "\n", " - ")
+	// 					text = text[:20] + "..."
+	// 				}
+
+	// 				button := NewButton(text, &sdl.FRect{0, 0, 350, 32}, nil, false, func() {
+	// 					globals.Project.Camera.FocusOn(false, card)
+	// 					card.Page.Selection.Clear()
+	// 					card.Page.Selection.Add(card)
+	// 				})
+
+	// 				button.Label.HorizontalAlignment = AlignLeft
+	// 				button.Label.SetMaxSize(350, 32)
+	// 				row.Add("", button)
+
+	// 			}
+
+	// 			row.VerticalSpacing = 12
+	// 			row.Add("", NewSpacer(nil))
+
+	// 		}
+
+	// 	}
+
+	// }
+
 	// Search Menu
 
 	find := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 9999, 512, 96}, MenuCloseButton), "find", false)
@@ -1791,11 +2120,17 @@ func ConstructMenus() {
 		}
 
 		if len(foundCards) > 0 {
+			editing := searchLabel.Editing
 			foundCard := foundCards[foundIndex]
 			foundCard.selected = true // Hack to make sure the selected Card isn't raised, as that changes the order of the Cards, thereby making it impossible to jump from card to card easily.
 			foundCard.Page.Selection.Add(foundCard)
 			foundLabel.SetText([]rune(fmt.Sprintf("%d of %d", foundIndex+1, len(foundCards))))
 			globals.Project.Camera.FocusOn(false, foundCard)
+
+			if editing {
+				searchLabel.Editing = true
+				globals.State = StateTextEditing
+			}
 		} else {
 			foundLabel.SetText([]rune("0 of 0"))
 		}
@@ -1812,11 +2147,13 @@ func ConstructMenus() {
 		if globals.Keybindings.Pressed(KBFindNext) {
 			foundIndex++
 			findFunc()
+			globals.State = StateTextEditing
 			searchLabel.Editing = true
 			searchLabel.Selection.SelectAll()
 		} else if globals.Keybindings.Pressed(KBFindPrev) {
 			foundIndex--
 			findFunc()
+			globals.State = StateTextEditing
 			searchLabel.Editing = true
 			searchLabel.Selection.SelectAll()
 		}
@@ -1824,6 +2161,7 @@ func ConstructMenus() {
 	}
 
 	find.OnOpen = func() {
+		globals.State = StateTextEditing
 		searchLabel.Editing = true
 		searchLabel.Selection.SelectAll()
 	}

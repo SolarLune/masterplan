@@ -45,18 +45,16 @@ func (joint *LinkJoint) StartDragging() {
 }
 
 type LinkEnding struct {
-	Start    *Card
-	End      *Card
-	Joints   []*LinkJoint
-	GUIImage Image
+	Start  *Card
+	End    *Card
+	Joints []*LinkJoint
 }
 
 func NewLinkEnding(start, end *Card) *LinkEnding {
 	return &LinkEnding{
-		Start:    start,
-		End:      end,
-		Joints:   []*LinkJoint{},
-		GUIImage: globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage(),
+		Start:  start,
+		End:    end,
+		Joints: []*LinkJoint{},
 	}
 }
 
@@ -188,14 +186,14 @@ func (le *LinkEnding) Draw() {
 		// delta := points[len(points)-1].Sub(le.End.Center())
 		// px = px.Add(delta.Normalized().Mult(16))
 
-		le.GUIImage.Texture.SetColorMod(mainColor.RGB())
-		le.GUIImage.Texture.SetAlphaMod(255)
+		globals.GUITexture.Texture.SetColorMod(mainColor.RGB())
+		globals.GUITexture.Texture.SetAlphaMod(255)
 		delta := points[len(points)-1].Sub(points[len(points)-2])
 		px := points[len(points)-1].Sub(delta.Normalized().Mult(16))
 		px = le.Start.Page.Project.Camera.TranslatePoint(px)
 		dir := (delta.Angle() + (math.Pi)) / (math.Pi * 2) * 360
 
-		globals.Renderer.CopyExF(le.GUIImage.Texture, &sdl.Rect{208, 0, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{208, 0, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 
 		if points[0] == points[len(points)-1] {
 			return
@@ -244,7 +242,6 @@ func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
 	}
 
 	point = le.Start.Page.Project.Camera.TranslatePoint(point)
-	icon := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
 	dst := &sdl.FRect{point.X - 16, point.Y - 16, 32, 32}
 
 	outlineColor := getThemeColor(GUIFontColor)
@@ -260,15 +257,15 @@ func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
 		}
 	}
 
-	icon.Texture.SetColorMod(outlineColor.RGB())
-	icon.Texture.SetAlphaMod(alpha)
+	globals.GUITexture.Texture.SetColorMod(outlineColor.RGB())
+	globals.GUITexture.Texture.SetAlphaMod(alpha)
 
 	src := &sdl.Rect{208, 96, 32, 32}
-	globals.Renderer.CopyF(icon.Texture, src, dst)
+	globals.Renderer.CopyF(globals.GUITexture.Texture, src, dst)
 
 	if le.Start.Contents != nil {
-		icon.Texture.SetColorMod(fillColor.RGB())
-		icon.Texture.SetAlphaMod(fillColor[3])
+		globals.GUITexture.Texture.SetColorMod(fillColor.RGB())
+		globals.GUITexture.Texture.SetAlphaMod(fillColor[3])
 	}
 
 	if fixed {
@@ -276,7 +273,7 @@ func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
 	} else {
 		src.Y += src.H * 2
 	}
-	globals.Renderer.CopyF(icon.Texture, src, dst)
+	globals.Renderer.CopyF(globals.GUITexture.Texture, src, dst)
 }
 
 type Card struct {
@@ -349,6 +346,8 @@ func NewCard(page *Page, contentType string) *Card {
 	globalCardID++
 
 	card.SetContents(contentType)
+
+	globals.Hierarchy.AddCard(card)
 
 	return card
 
@@ -953,6 +952,8 @@ func (card *Card) DrawContents() {
 
 		card.CreateUndoState = false
 
+		globals.Hierarchy.AddCard(card)
+
 	}
 
 }
@@ -1323,22 +1324,28 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 	newWidth = float32(math.Ceil(float64(newWidth/globals.GridSize))) * globals.GridSize
 	newHeight = float32(math.Ceil(float64(newHeight/globals.GridSize))) * globals.GridSize
 
-	// In truth, it'd be "better" to get the information for the renderer and then use that for the max size,
-	// but it's better to hardcode the size for simplicity.
-	maxSize := float32(4096)
+	maxWidth := float32(4096)
+	if float32(globals.RendererInfo.MaxTextureWidth) < maxWidth {
+		maxWidth = float32(globals.RendererInfo.MaxTextureWidth)
+	}
+
+	maxHeight := float32(4096)
+	if float32(globals.RendererInfo.MaxTextureHeight) < maxHeight {
+		maxHeight = float32(globals.RendererInfo.MaxTextureHeight)
+	}
 
 	// Let's just say this is the smallest size
 	gs := globals.GridSize
 	if newWidth < gs {
 		newWidth = gs
-	} else if newWidth > maxSize {
-		newWidth = maxSize
+	} else if newWidth > maxWidth {
+		newWidth = maxWidth
 	}
 
 	if newHeight < gs {
 		newHeight = gs
-	} else if newHeight > maxSize {
-		newHeight = maxSize
+	} else if newHeight > maxHeight {
+		newHeight = maxHeight
 	}
 
 	if card.Rect.W != newWidth || card.Rect.H != newHeight {
@@ -1383,7 +1390,7 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 				src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
 
-				guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
+				guiTexture := globals.GUITexture.Texture
 
 				drawPatches := func() {
 
@@ -1471,6 +1478,8 @@ func (card *Card) ReceiveMessage(message *Message) {
 	} else if message.Type == MessageCollisionGridResized {
 		card.Page.Grid.Put(card)
 		card.Page.UpdateStacks = true
+	} else if message.Type == MessageUndoRedo {
+		globals.Hierarchy.AddCard(card)
 	}
 
 }
@@ -1530,6 +1539,7 @@ func (card *Card) SetContents(contentType string) {
 	if prevContents != nil && prevContents != card.Contents {
 		prevContents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
 		card.Contents.ReceiveMessage(NewMessage(MessageContentSwitched, card, nil))
+		card.CreateUndoState = true
 	}
 
 	card.ContentType = contentType

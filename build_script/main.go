@@ -81,7 +81,7 @@ func build(baseDir string, releaseMode string, targetOS string) {
 	os.Setenv("CGO_ENABLED", "1")
 	os.Setenv(`GOOS`, targetOS)
 	os.Setenv(`GOARCH`, "amd64")
-	os.Setenv(`CGO_LDFLAGS`, "-lSDL2 -lSDL2_gfx")
+	// os.Setenv(`CGO_LDFLAGS`, "-lSDL2 -lSDL2_gfx") // This makes static building on Linux not be actually static for SDL; I guess because it's linking against the system's SDL2, rather than the local library
 
 	// cross-compile:
 	if forWin && runtime.GOOS == "linux" {

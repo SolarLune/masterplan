@@ -42,6 +42,7 @@ const (
 	SettingsWindowTransparency       = "Window Transparency"
 	SettingsWindowTransparencyMode   = "Transparency Mode"
 	SettingsFocusOnUndo              = "FocusOnUndo"
+	SettingsSuccessfulLoad           = "SuccesfulLoad"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"

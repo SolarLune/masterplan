@@ -670,6 +670,9 @@ func (menu *Menu) Open() {
 	if menu.OnOpen != nil {
 		menu.OnOpen()
 	}
+	if menu.CurrentPage != "" && menu.Pages[menu.CurrentPage].OnOpen != nil {
+		menu.Pages[menu.CurrentPage].OnOpen()
+	}
 }
 
 func (menu *Menu) Close() {

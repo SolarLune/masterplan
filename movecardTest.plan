@@ -1,0 +1,172 @@
+{
+  "version": "0.8.0-alpha.5",
+  "pan": {
+    "X": 624,
+    "Y": 0
+  },
+  "zoom": 1,
+  "pages": [
+    {
+      "id": 0,
+      "pan": {
+        "X": 623.98834,
+        "Y": 0.0003837766
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": 160,
+            "Y": -160,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "New Sub-Page",
+            "subpage": 4
+          }
+        },
+        {
+          "id": 1,
+          "rect": {
+            "X": 480,
+            "Y": -160,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "New Sub-Page",
+            "subpage": 2
+          }
+        },
+        {
+          "id": 2,
+          "rect": {
+            "X": -160,
+            "Y": 192,
+            "W": 288,
+            "H": 320
+          },
+          "contents": "Sub-Page",
+          "properties": {
+            "description": "New Sub-Page",
+            "subpage": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 3,
+          "rect": {
+            "X": 64,
+            "Y": 32,
+            "W": 416,
+            "H": 128
+          },
+          "contents": "Note",
+          "properties": {
+            "description": "New Note"
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 4,
+          "rect": {
+            "X": 32,
+            "Y": 32,
+            "W": 128,
+            "H": 128
+          },
+          "contents": "Image",
+          "properties": {
+            "filepath": ""
+          }
+        },
+        {
+          "id": 5,
+          "rect": {
+            "X": 224,
+            "Y": 32,
+            "W": 128,
+            "H": 128
+          },
+          "contents": "Image",
+          "properties": {
+            "filepath": ""
+          }
+        },
+        {
+          "id": 6,
+          "rect": {
+            "X": 32,
+            "Y": 224,
+            "W": 128,
+            "H": 128
+          },
+          "contents": "Image",
+          "properties": {
+            "filepath": ""
+          }
+        },
+        {
+          "id": 7,
+          "rect": {
+            "X": 224,
+            "Y": 224,
+            "W": 128,
+            "H": 128
+          },
+          "contents": "Image",
+          "properties": {
+            "filepath": ""
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "pan": {
+        "X": 0,
+        "Y": 0
+      },
+      "zoom": 1,
+      "cards": [
+        {
+          "id": 8,
+          "rect": {
+            "X": 96,
+            "Y": 96,
+            "W": 288,
+            "H": 32
+          },
+          "contents": "Checkbox",
+          "properties": {
+            "checked": false,
+            "description": "New Checkbox"
+          }
+        }
+      ]
+    }
+  ],
+  "savedimages": {}
+}

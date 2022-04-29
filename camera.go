@@ -49,8 +49,8 @@ func (camera *Camera) JumpTo(pos Point, zoom float32) {
 
 func (camera *Camera) SetZoom(targetZoom float32) {
 
-	if targetZoom < 0.25 {
-		targetZoom = 0.25
+	if targetZoom < 0.05 {
+		targetZoom = 0.05
 	} else if targetZoom >= 10 {
 		targetZoom = 10
 	}

@@ -16,6 +16,7 @@ const (
 	// KBDebugRestart = "DEBUG: RESTART"
 	KBDebugToggle = "DEBUG: Toggle Debug View"
 
+	KBZoomLevel5    = "Zoom Level 5%"
 	KBZoomLevel25   = "Zoom Level 25%"
 	KBZoomLevel50   = "Zoom Level 50%"
 	KBZoomLevel100  = "Zoom Level 100%"
@@ -118,6 +119,12 @@ const (
 	KBSubpageClose = "Sub-Page: Close"
 
 	KBActivateLink = "Link: Jump to Linked Card"
+
+	KBOpenCreateMenu    = "Main Menu: Open Create Menu"
+	KBOpenEditMenu      = "Main Menu: Open Edit Menu"
+	KBOpenHierarchyMenu = "Main Menu: Open Hierarchy Menu"
+	KBOpenStatsMenu     = "Main Menu: Open Stats Menu"
+	KBHelp              = "Main Menu: Open Help (website)"
 
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -398,8 +405,9 @@ func (kb *Keybindings) DefineMouseShortcut(bindingName string, mouseButton uint8
 func (kb *Keybindings) Default() {
 
 	// kb.DefineKeyShortcut(KBDebugRestart, sdl.K_r)
-	kb.DefineKeyShortcut(KBDebugToggle, sdl.K_F1)
+	kb.DefineKeyShortcut(KBDebugToggle, sdl.K_F12)
 
+	kb.DefineKeyShortcut(KBZoomLevel5, sdl.K_0)
 	kb.DefineKeyShortcut(KBZoomLevel25, sdl.K_1)
 	kb.DefineKeyShortcut(KBZoomLevel50, sdl.K_2)
 	kb.DefineKeyShortcut(KBZoomLevel100, sdl.K_3)
@@ -482,9 +490,9 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBUndo, sdl.K_z, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBRedo, sdl.K_z, sdl.K_LCTRL, sdl.K_LSHIFT)
 
-	kb.DefineKeyShortcut(KBWindowSizeSmall, sdl.K_F2)
-	kb.DefineKeyShortcut(KBWindowSizeNormal, sdl.K_F3)
-	kb.DefineKeyShortcut(KBToggleFullscreen, sdl.K_F4)
+	kb.DefineKeyShortcut(KBWindowSizeSmall, sdl.K_F9)
+	kb.DefineKeyShortcut(KBWindowSizeNormal, sdl.K_F10)
+	kb.DefineKeyShortcut(KBToggleFullscreen, sdl.K_RETURN, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBUnlockImageASR, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
 	kb.DefineKeyShortcut(KBCheckboxToggleCompletion, sdl.K_SPACE)
@@ -514,6 +522,12 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBActivateLink, sdl.K_RETURN)
 
 	kb.DefineKeyShortcut(KBResizeMultiple, sdl.K_LSHIFT).triggerMode = TriggerModeHold
+
+	kb.DefineKeyShortcut(KBHelp, sdl.K_F1)
+	kb.DefineKeyShortcut(KBOpenCreateMenu, sdl.K_F2)
+	kb.DefineKeyShortcut(KBOpenEditMenu, sdl.K_F3)
+	kb.DefineKeyShortcut(KBOpenHierarchyMenu, sdl.K_F4)
+	kb.DefineKeyShortcut(KBOpenStatsMenu, sdl.K_F5)
 
 	kb.UpdateShortcutFamilies()
 

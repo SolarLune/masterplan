@@ -59,6 +59,8 @@ func NewPage(project *Project) *Page {
 
 	page.Selection = NewSelection(page)
 
+	globals.Hierarchy.AddPage(page)
+
 	return page
 
 }
@@ -373,8 +375,9 @@ func (page *Page) CopySelectedCards() {
 	}
 }
 
-func (page *Page) PasteCards(offset Point) {
+func (page *Page) PasteCards(offset Point, adhereToMousePosition bool) []*Card {
 
+	prevEventLog := globals.EventLog.On
 	globals.EventLog.On = false
 
 	newCards := []*Card{}
@@ -415,13 +418,16 @@ func (page *Page) PasteCards(offset Point) {
 	// We do this because otherwise when creating an undo state below, the links wouldn't be included
 	page.UpdateLinks()
 
-	for _, card := range newCards {
-		offset = offset.Add(Point{card.Rect.X + (card.Rect.W / 2), card.Rect.Y + (card.Rect.H / 2)})
+	if adhereToMousePosition {
+
+		for _, card := range newCards {
+			offset = offset.Add(Point{card.Rect.X + (card.Rect.W / 2), card.Rect.Y + (card.Rect.H / 2)})
+		}
+
+		offset = offset.Div(float32(len(newCards)))
+		offset = globals.Mouse.WorldPosition().Sub(offset)
+
 	}
-
-	offset = offset.Div(float32(len(newCards)))
-
-	offset = globals.Mouse.WorldPosition().Sub(offset)
 
 	for _, card := range newCards {
 		card.Rect.X += offset.X
@@ -444,11 +450,13 @@ func (page *Page) PasteCards(offset Point) {
 		globals.CopyBuffer.CutMode = false
 	}
 
-	globals.EventLog.On = true
+	globals.EventLog.On = prevEventLog
 
 	if len(globals.CopyBuffer.Cards) > 0 {
 		globals.EventLog.Log("Pasted %d Cards.", false, len(globals.CopyBuffer.Cards))
 	}
+
+	return newCards
 
 }
 

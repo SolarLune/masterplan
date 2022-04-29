@@ -24,8 +24,10 @@ type Globals struct {
 	Window                   *sdl.Window
 	WindowTransparency       float64
 	WindowTargetTransparency float64
+	GUITexture               Image
 
 	Renderer          *sdl.Renderer
+	RendererInfo      sdl.RendererInfo
 	Font              *ttf.Font
 	TextRenderer      *TextRenderer
 	LoadedFontPath    string
@@ -57,8 +59,14 @@ type Globals struct {
 
 	DebugMode          bool
 	TriggerReloadFonts bool
+	ClipRects          []*sdl.Rect
+
+	LoadingSubpagesBroken bool
+
+	Hierarchy *Hierarchy
 }
 
 var globals = &Globals{
 	ReleaseMode: "dev",
+	ClipRects:   []*sdl.Rect{},
 }
