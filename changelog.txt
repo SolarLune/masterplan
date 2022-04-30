@@ -1,5 +1,39 @@
 -------
 
+v0.8.0-alpha.6
+
+-------
+
+QoL: Adding Hierarchy menu. This menu allows you to see your project at a glance with each card listed under its named page. You can filter out cards by card type, or sort them alphabetically or by position on the page.
+QoL: If MasterPlan crashed when attempting to autoload a project, it won't automatically try to load that project again when restarted.
+QoL: Sub-page Card screenshots now resize to fill the Card, rather than being cropped.
+QoL: You can now double-click on Sub-page Cards to open them, rather than needing to press their Open buttons.
+QoL: Zoom goes out to 5% now, instead of 25% minimum. Adding a shorcut for this zoom level as well.
+QoL: Adding Flatten Project tool to Edit menu. This tool allows you to pull all cards from sub-pages and place them into the main / root page.
+QoL: Reworked map and image icons for enhanced readability.
+QoL: Adding keyboard shortcut to open the help documentation on Github.
+QoL: Adding keyboard shortcuts (the function keys, by default), to open the Create, Edit, Hierarchy, and Stats menus.
+QoL: Scrolling through menus via the mouse wheel is now absolute, rather than being relative to the overall "height" of the menu.
+QoL: MasterPlan will now warn you on load if a project contains orphaned pages (pages that cannot be reached through sub-pages).
+RE-IMPLEMENTATION: Re-implementing automatic backups.
+RE-IMPLEMENTATION: Re-implementing Cut Card context menu option / keyboard shortcut.
+RE-IMPLEMENTATION: Adding mouse wheel sensitivity for scrolling menus.
+FIX: Files that no longer exist will now be removed from the Open Recent... menu. This triggers when any project is attempted to be loaded.
+FIX: Loading a recent project now properly closes the file menu.
+FIX: Triggering Find to find a Card on another page no longer deselects the text (i.e. Ctrl+F no longer cancels out editing the find text).
+FIX: MasterPlan should no longer crash if a Card is too large (i.e. if it requests a texture of a size that is too large for the video card to generate. Instead, the texture size will be capped).
+FIX: MasterPlan should, again, no longer save sub-pages incorrectly.
+FIX: MasterPlan should, again, be compiling partially statically on Linux, such that SDL is no longer a dynamic dependency (so you shouldn't have to install SDL to use MasterPlan).
+FIX: Quick hot-fix to fix not being able to click buttons in the context menu. Whoops!
+FIX: Also fixes the context menu contents being in the previous position for a single frame.
+FIX: Link Cards can now have customized colors.
+FIX: Window transparency will be more accurately set / the window won't be very slightly transparent sometimes.
+CHANGE: Keyboard shortcuts have been edited, so be aware of this - you may wish to reset all shortcuts to default, to ensure there's no keyboard shortcut conflicts.
+CHANGE: Previous sub page menu is now at the bottom-center, by default.
+Adding basic roadmap on Github: https://github.com/SolarLune/masterplan/wiki/Roadmap
+
+-------
+
 v0.8.0-alpha.5
 
 -------
