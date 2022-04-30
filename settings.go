@@ -43,6 +43,10 @@ const (
 	SettingsWindowTransparencyMode   = "Transparency Mode"
 	SettingsFocusOnUndo              = "FocusOnUndo"
 	SettingsSuccessfulLoad           = "SuccesfulLoad"
+	SettingsAutoBackup               = "Automatic Backups"
+	SettingsAutoBackupTime           = "Backup Timer"
+	SettingsMaxAutoBackups           = "Max Automatic Backup Count"
+	SettingsMouseWheelSensitivity    = "Mouse Wheel Sensitivity"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"
@@ -52,6 +56,17 @@ const (
 	WindowTransparencyAlways = "Always"
 	WindowTransparencyMouse  = "When mouse is outside window"
 	WindowTransparencyWindow = "When window is inactive"
+)
+
+const (
+	MouseWheelSensitvity25  = "25%"
+	MouseWheelSensitvity50  = "50%"
+	MouseWheelSensitvity100 = "100%"
+	MouseWheelSensitvity150 = "150%"
+	MouseWheelSensitvity200 = "200%"
+	MouseWheelSensitvity300 = "300%"
+	MouseWheelSensitvity400 = "400%"
+	MouseWheelSensitvity800 = "800%"
 )
 
 func NewProgramSettings() *Properties {
@@ -83,6 +98,10 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsFocusOnSelectingWithKeys).Set(true)
 	props.Get(SettingsFocusOnUndo).Set(true)
 	props.Get(SettingsOutlineWindow).Set(false)
+	props.Get(SettingsAutoBackup).Set(true)
+	props.Get(SettingsAutoBackupTime).Set(10.0)
+	props.Get(SettingsMaxAutoBackups).Set(6.0)
+	props.Get(SettingsMouseWheelSensitivity).Set(MouseWheelSensitvity100)
 
 	transparency := props.Get(SettingsWindowTransparency)
 	transparency.Set(1.0)

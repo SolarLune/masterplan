@@ -2010,6 +2010,7 @@ type ContainerRow struct {
 	HorizontalSpacing float32
 	VerticalSpacing   float32
 	ExpandElements    bool
+	HorizontalMargin  float32
 	Visible           bool
 	ForcedSize        Point
 	Index             int
@@ -2045,11 +2046,11 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 	x := row.Container.Rect.X
 	y := row.Container.Rect.Y + float32(yPos)
 
-	row.rect.X = x - 32
+	row.rect.X = x - 32 + row.HorizontalMargin
 	row.rect.Y = y
 
 	usedWidth := float32(0)
-	maxWidth := row.Container.Rect.W
+	maxWidth := row.Container.Rect.W - (row.HorizontalMargin * 2)
 	yHeight := float32(0)
 
 	if row.ForcedSize.Y != 0 {
@@ -2178,6 +2179,8 @@ type Container struct {
 	OnUpdate         func()
 	OnOpen           func()
 	DefaultExpand    bool
+	DefaultMargin    float32
+	overallHeight    float32
 }
 
 func NewContainer(rect *sdl.FRect, worldSpace bool) *Container {
@@ -2205,21 +2208,6 @@ func (container *Container) Update() {
 		globals.Mouse.HiddenPosition = true
 	}
 
-	perc := float32(0)
-
-	if idealSize := container.IdealSize(); container.NeedScroll() && idealSize.Y > 32 {
-		perc = ((idealSize.Y - container.Rect.H) / container.Rect.H) * container.Scrollbar.Value
-	}
-
-	y := float32(-perc * container.Rect.H)
-	for _, row := range container.Rows {
-		if row.Visible {
-			y += row.Update(y)
-		}
-	}
-
-	globals.Mouse.HiddenPosition = false
-
 	if container.NeedScroll() && container.DisplayScrollbar {
 		container.Scrollbar.Rect.H = container.Rect.H - 48
 		container.Scrollbar.Rect.W = 16
@@ -2227,7 +2215,7 @@ func (container *Container) Update() {
 		container.Scrollbar.Rect.Y = container.Rect.Y + 48
 
 		if wheel := globals.Mouse.Wheel(); wheel != 0 && pos.Inside(container.Rect) {
-			container.Scrollbar.SetValue(container.Scrollbar.TargetValue - float32(wheel)*0.1)
+			container.Scrollbar.SetValue(container.Scrollbar.TargetValue - float32(wheel)/container.overallHeight*100)
 			globals.Mouse.wheel = 0 // Consume the wheel movement
 		}
 
@@ -2240,9 +2228,27 @@ func (container *Container) Update() {
 		}
 	}
 
+	perc := float32(0)
+
+	if idealSize := container.IdealSize(); container.NeedScroll() && idealSize.Y > 32 {
+		perc = ((idealSize.Y - container.Rect.H) / container.Rect.H) * container.Scrollbar.Value
+	}
+
+	container.overallHeight = float32(0)
+	y := float32(-perc * container.Rect.H)
+	for _, row := range container.Rows {
+		if row.Visible {
+			diff := row.Update(y)
+			y += diff
+			container.overallHeight += diff
+		}
+	}
+
 	if container.OnUpdate != nil {
 		container.OnUpdate()
 	}
+
+	globals.Mouse.HiddenPosition = false
 
 }
 
@@ -2307,6 +2313,7 @@ func (container *Container) AddRow(alignment string) *ContainerRow {
 	newRow := NewContainerRow(container, alignment)
 	newRow.Index = len(container.Rows)
 	newRow.ExpandElements = container.DefaultExpand
+	newRow.HorizontalMargin = container.DefaultMargin
 	container.Rows = append(container.Rows, newRow)
 	return newRow
 }

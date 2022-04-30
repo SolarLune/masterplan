@@ -186,11 +186,32 @@ func (mouse *Mouse) RelativeMovement() Point {
 	return mouse.screenPosition.Sub(mouse.prevPosition)
 }
 
-func (mouse *Mouse) Wheel() int32 {
+func (mouse *Mouse) Wheel() float32 {
 	if mouse.HiddenButtons {
 		return mouse.Dummy.Wheel()
 	}
-	return mouse.wheel
+	s := globals.Settings.Get(SettingsMouseWheelSensitivity).AsString()
+	sensitivity := float32(1)
+	switch s {
+	case MouseWheelSensitvity25:
+		sensitivity = 0.25
+	case MouseWheelSensitvity50:
+		sensitivity = 0.5
+	case MouseWheelSensitvity100:
+		sensitivity = 1
+	case MouseWheelSensitvity150:
+		sensitivity = 1.5
+	case MouseWheelSensitvity200:
+		sensitivity = 2
+	case MouseWheelSensitvity300:
+		sensitivity = 3
+	case MouseWheelSensitvity400:
+		sensitivity = 4
+	case MouseWheelSensitvity800:
+		sensitivity = 8
+	}
+
+	return float32(mouse.wheel) * sensitivity
 }
 
 func (mouse *Mouse) Position() Point {

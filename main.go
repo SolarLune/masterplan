@@ -1468,6 +1468,7 @@ func ConstructMenus() {
 
 	general := settings.AddPage("general")
 	general.DefaultExpand = true
+	general.DefaultMargin = 32
 
 	row = general.AddRow(AlignCenter)
 	row.Add("header", NewLabel("General Settings", nil, false, AlignCenter))
@@ -1501,6 +1502,29 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnUndo)))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Automatic Backups:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAutoBackup)))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Backup Every x Minutes:", nil, false, AlignLeft))
+
+	spinner := NewNumberSpinner(nil, false, globals.Settings.Get(SettingsAutoBackupTime))
+	spinner.MinValue = 1
+	row.Add("", spinner)
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Maximum Backup Count:", nil, false, AlignLeft))
+	spinner = NewNumberSpinner(nil, false, globals.Settings.Get(SettingsMaxAutoBackups))
+	spinner.MinValue = 1
+	row.Add("", spinner)
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = general.AddRow(AlignCenter)
 	row.Add("", NewLabel("Custom Screenshot Path:", nil, false, AlignLeft))
 	screenshotPath := NewLabel("Screenshot path", nil, false, AlignLeft)
 	screenshotPath.Editable = true
@@ -1532,6 +1556,7 @@ func ConstructMenus() {
 	}
 
 	visual.DefaultExpand = true
+	visual.DefaultMargin = 32
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("header", NewLabel("Visual Settings", nil, false, AlignCenter))
@@ -1657,6 +1682,8 @@ func ConstructMenus() {
 	heldButtons := []uint8{}
 
 	input := settings.AddPage("input")
+	input.DefaultMargin = 32
+
 	input.OnUpdate = func() {
 
 		globals.Keybindings.On = false
@@ -1736,8 +1763,12 @@ func ConstructMenus() {
 	row.Add("", dropdown)
 
 	row = input.AddRow(AlignCenter)
-	row.Add("", NewLabel("Reverse panning direction: ", nil, false, AlignLeft))
+	row.Add("", NewLabel("Reverse Panning direction: ", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsReversePan)))
+
+	row = input.AddRow(AlignCenter)
+	row.Add("", NewLabel("Scroll Wheel Sensitivity: ", nil, false, AlignLeft))
+	row.Add("", NewDropdown(&sdl.FRect{0, 0, 128, 32}, false, nil, globals.Settings.Get(SettingsMouseWheelSensitivity), "25%", "50%", "100%", "150%", "200%", "300%", "400%", "800%"))
 
 	row = input.AddRow(AlignCenter)
 	row.Add("keybindings header", NewLabel("Keybindings", nil, false, AlignLeft))
@@ -1908,7 +1939,7 @@ func ConstructMenus() {
 
 	// Hierarchy Menu
 
-	list := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 0, 400, 800}, MenuCloseButton), "hierarchy", false)
+	list := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 0, 440, 800}, MenuCloseButton), "hierarchy", false)
 	list.Draggable = true
 	list.Resizeable = true
 	list.UpdateAnchor()
@@ -2202,10 +2233,11 @@ func ConstructMenus() {
 
 	// Previous sub-page menu
 
-	prevSubPageMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 512, 96}, MenuCloseNone), "prev sub page", false)
+	prevSubPageMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{(globals.ScreenSize.X - 512) / 2, globals.ScreenSize.Y, 512, 96}, MenuCloseNone), "prev sub page", false)
 	prevSubPageMenu.Opened = false
-	prevSubPageMenu.Center()
 	prevSubPageMenu.Draggable = true
+	prevSubPageMenu.Resizeable = true
+	prevSubPageMenu.UpdateAnchor()
 
 	row = prevSubPageMenu.Pages["root"].AddRow(AlignCenter)
 	subName := NewLabel("sub page name", nil, false, AlignCenter)

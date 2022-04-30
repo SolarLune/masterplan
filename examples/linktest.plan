@@ -1,16 +1,16 @@
 {
-  "version": "0.8.0-alpha.4.2",
+  "version": "0.8.0-alpha.5",
   "pan": {
-    "X": 177.99994,
-    "Y": 40.000015
+    "X": -91.0443,
+    "Y": 294.1463
   },
   "zoom": 1,
   "pages": [
     {
       "id": 0,
       "pan": {
-        "X": 177.99997,
-        "Y": 40.000023
+        "X": -91.0443,
+        "Y": 294.1463
       },
       "zoom": 1,
       "cards": [
@@ -28,8 +28,7 @@
             "run": "/home/solarlune/Pictures/Memes/illmakeyoueatthoseoats.png",
             "link mode": 1,
             "target": 1,
-            "args": "",
-            "filepath": ""
+            "args": ""
           }
         },
         {
@@ -61,8 +60,7 @@
             "run": "/home/solarlune/Games/SNK Games/Pulstar/NeogeoEmu.bin.x86_64",
             "link mode": 1,
             "target": 1,
-            "args": "",
-            "filepath": ""
+            "args": ""
           }
         },
         {
@@ -79,8 +77,7 @@
             "run": "/usr/bin/megazeux",
             "link mode": 1,
             "target": 1,
-            "args": "/home/solarlune/Games/Megazeux Games/&/&.mzx",
-            "filepath": ""
+            "args": "/home/solarlune/Games/Megazeux Games/&/&.mzx"
           }
         }
       ]

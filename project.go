@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/blang/semver"
 	"github.com/ncruces/zenity"
@@ -66,6 +68,9 @@ type Project struct {
 	LinkingCard *Card
 
 	LoadConfirmationTo string
+
+	BackingUp  bool
+	LastBackup time.Time
 }
 
 func NewProject() *Project {
@@ -74,6 +79,7 @@ func NewProject() *Project {
 		Camera: NewCamera(),
 		// Pages:           []*Page{},
 		LastCardType: ContentTypeCheckbox,
+		LastBackup:   time.Now(),
 	}
 
 	if globals.Hierarchy != nil {
@@ -166,7 +172,63 @@ func (project *Project) CreateGridTexture() {
 
 }
 
+func (project *Project) AutoBackup() {
+
+	if globals.ReleaseMode != "demo" && project.Filepath != "" && globals.Settings.Get(SettingsAutoBackup).AsBool() && time.Since(project.LastBackup) > time.Duration(globals.Settings.Get(SettingsAutoBackupTime).AsFloat())*time.Minute {
+
+		filename := project.Filepath
+		if strings.Contains(filename, ".plan"+BackupDelineator) {
+			filename = filename[:strings.Index(filename, ".plan")] + ".plan" + BackupDelineator + time.Now().Format(FileTimeFormat)
+		} else {
+			filename += BackupDelineator + time.Now().Format(FileTimeFormat)
+		}
+
+		ogFilepath := project.Filepath
+		project.Filepath = filename
+		project.BackingUp = true
+		project.Save()
+		project.BackingUp = false
+		project.LastBackup = time.Now()
+		project.Filepath = ogFilepath
+
+		head := filepath.Base(filename)
+		if !strings.Contains(head, ".plan"+BackupDelineator) {
+			head += BackupDelineator
+		} else {
+			ind := strings.Index(head, ".plan"+BackupDelineator)
+			head = head[:ind] + ".plan" + BackupDelineator
+		}
+
+		existingBackups := FilesInDirectory(filepath.Dir(project.Filepath), head)
+
+		maxBackups := int(globals.Settings.Get(SettingsMaxAutoBackups).AsFloat())
+
+		if len(existingBackups) > maxBackups {
+
+			deleteCount := len(existingBackups) - maxBackups
+			for i := 0; i < deleteCount; i++ {
+
+				if existingBackups[0] != ogFilepath {
+
+					if err := os.Remove(existingBackups[0]); err != nil {
+						log.Println("ERROR: Couldn't delete existing backups: ", err.Error())
+					}
+
+				}
+
+				existingBackups = existingBackups[1:]
+
+			}
+
+		}
+
+	}
+
+}
+
 func (project *Project) Update() {
+
+	project.AutoBackup()
 
 	project.Camera.Update()
 
@@ -349,7 +411,11 @@ func (project *Project) Save() {
 		file.Sync() // Ensure the save file is written
 	}
 
-	globals.EventLog.Log("Project saved successfully.", false)
+	if project.BackingUp {
+		globals.EventLog.Log("Project back-up successfully saved.", false)
+	} else {
+		globals.EventLog.Log("Project saved successfully.", false)
+	}
 
 	project.Modified = false
 
@@ -376,7 +442,7 @@ func (project *Project) SaveAs() {
 // Open a project to load
 func (project *Project) Open() {
 
-	if filename, err := zenity.SelectFile(zenity.Title("Select MasterPlan Project to Open..."), zenity.FileFilter{Name: "Project File (*.plan)", Patterns: []string{"*.plan"}}); err == nil {
+	if filename, err := zenity.SelectFile(zenity.Title("Select MasterPlan Project to Open..."), zenity.FileFilter{Name: "Project File (*.plan / *.plan_bak_*)", Patterns: []string{"*.plan", "*.plan_bak_*"}}); err == nil {
 
 		project.LoadConfirmationTo = filename
 		loadConfirm := globals.MenuSystem.Get("confirm load")
@@ -493,7 +559,12 @@ func OpenProjectFrom(filename string) {
 
 			newProject.SendMessage(NewMessage(MessageProjectLoadingAllCardsCreated, nil, nil))
 
+			brokenProject := false
 			for _, page := range newProject.Pages {
+
+				if page.PointingSubpageCard == nil && page != newProject.Pages[0] {
+					brokenProject = true
+				}
 
 				for _, card := range page.Cards {
 
@@ -555,6 +626,10 @@ func OpenProjectFrom(filename string) {
 			globals.LoadingSubpagesBroken = false
 
 			globals.EventLog.Log("Project loaded successfully.", false)
+
+			if brokenProject {
+				globals.EventLog.Log("WARNING: This project contains data on orphaned Pages (pages that aren't reachable through sub-pages).\nIt is possible that the project is broken. It may be best to flatten the project and restructure, or start over.", true)
+			}
 
 		}
 
