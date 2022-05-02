@@ -1,5 +1,28 @@
 -------
 
+v0.8.0-alpha.6.1
+
+-------
+
+Quickie hotfix for Alpha 6:
+
+QoL / FIX: Cards now only update if they are on the current page, unless they are timers (as timers still have to tick). This is an optimization, and also a fix for an issue where double-clicking causes seemingly random sub-pages to open (in truth, this is because they were still being updated and "existing", despite the user not being on their page).
+QoL: Editing the filepath of image and sound cards now automatically highlights the filepath text to edit. Note that this is not done for Link cards linking to programs because you may wish to edit the arguments instead of the filepath, so you can choose.
+QoL: Adding keyboard shortcuts to edit the description text of Checkbox, Note, Numbered, Timer, Sub-Page and Link Cards (defaulting to Enter).
+QoL: Orphaned pages (pages that aren't pointed to from an existing Sub-page Card) are named as such in the Hierarchy menu.
+QoL: MasterPlan will let you know if you attempt to paste something from your system clipboard and it's empty.
+QoL: MasterPlan will let you know if you attempt to paste filepaths that it can't automatically detect.
+QoL: Adding Spearmint theme.
+QoL: Reworking empty image graphic to be visually clearer.
+FIX: Saving a screenshot to the project no longer causes a message indicating a temporary already exists to pop up.
+FIX: Canceling browsing for a file for cards (i.e. for Image, Sound, and Link cards) no longer causes a message indicating the user canceled it to pop up.
+FIX: Cards that have been saved from the clipboard to the project can no longer be edited to point to other images (since this would cause those other images to also be saved).
+FIX: Images that are downloaded from the internet are no longer attempted to save directly in the project.
+FIX: Orphaned pages (pages that aren't pointed to from an existing Sub-page Card) are no longer saved if they have no cards in them when saving the project.
+FIX?: Images linked from the internet should properly display after loading the project now?
+
+-------
+
 v0.8.0-alpha.6
 
 -------
