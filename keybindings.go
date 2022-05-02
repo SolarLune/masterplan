@@ -92,14 +92,21 @@ const (
 	KBWindowSizeNormal = "Set Window Size to 1920x1080"
 
 	KBCheckboxToggleCompletion = "Checkbox: Complete"
+	KBCheckboxEditText         = "Checkbox: Edit Description"
+	KBNoteEditText             = "Note: Edit Description"
+	KBNumberedEditText         = "Numbered: Edit Description"
 	KBNumberedIncrement        = "Numbered: Increment Value"
 	KBNumberedDecrement        = "Numbered: Decrement Value"
 	KBSoundPlay                = "Sound: Toggle Playback"
 	KBSoundStopAll             = "Sound: Stop All Playback"
 	KBSoundJumpForward         = "Sound: Jump Forward 1s"
 	KBSoundJumpBackward        = "Sound: Jump Backward 1s"
-
-	KBUnlockImageASR = "Image: Unlock Aspect Ratio (Hold)"
+	KBUnlockImageASR           = "Image: Unlock Aspect Ratio (Hold)"
+	KBTimerEditText            = "Timer: Edit Description"
+	KBTimerStartStop           = "Timer: Start / Stop Timer"
+	KBSubpageEditText          = "Sub-Page: Edit Description"
+	KBSubpageOpen              = "Sub-Page: Open"
+	KBSubpageClose             = "Sub-Page: Close"
 
 	KBPickColor        = "Map: Pick Color"
 	KBMapNoTool        = "Map: Pointer Tool"
@@ -113,11 +120,7 @@ const (
 	KBFindNext = "Find: Next Card"
 	KBFindPrev = "Find: Prev. Card"
 
-	KBTimerStartStop = "Timer: Start / Stop Timer"
-
-	KBSubpageOpen  = "Sub-Page: Open"
-	KBSubpageClose = "Sub-Page: Close"
-
+	KBLinkEditText = "Link: Edit Description"
 	KBActivateLink = "Link: Jump to Linked Card"
 
 	KBOpenCreateMenu    = "Main Menu: Open Create Menu"
@@ -496,6 +499,10 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBUnlockImageASR, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
 	kb.DefineKeyShortcut(KBCheckboxToggleCompletion, sdl.K_SPACE)
+	kb.DefineKeyShortcut(KBCheckboxEditText, sdl.K_RETURN)
+	kb.DefineKeyShortcut(KBNoteEditText, sdl.K_RETURN)
+	kb.DefineKeyShortcut(KBNumberedEditText, sdl.K_RETURN)
+	kb.DefineKeyShortcut(KBTimerEditText, sdl.K_RETURN)
 	kb.DefineKeyShortcut(KBNumberedIncrement, sdl.K_SPACE)
 	kb.DefineKeyShortcut(KBNumberedDecrement, sdl.K_SPACE, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBSoundPlay, sdl.K_SPACE)
@@ -516,9 +523,11 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBFindNext, sdl.K_f, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBFindPrev, sdl.K_f, sdl.K_LCTRL, sdl.K_LSHIFT)
 
+	kb.DefineKeyShortcut(KBSubpageEditText, sdl.K_RETURN)
 	kb.DefineKeyShortcut(KBSubpageOpen, sdl.K_BACKQUOTE)
 	kb.DefineKeyShortcut(KBSubpageClose, sdl.K_BACKQUOTE)
 
+	kb.DefineKeyShortcut(KBLinkEditText, sdl.K_RETURN)
 	kb.DefineKeyShortcut(KBActivateLink, sdl.K_RETURN)
 
 	kb.DefineKeyShortcut(KBResizeMultiple, sdl.K_LSHIFT).triggerMode = TriggerModeHold

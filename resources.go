@@ -63,7 +63,8 @@ type Resource struct {
 	Data          interface{} // The data the resource represents; this might be an image, a sound stream, etc.
 	MimeType      string
 	Response      *grab.Response
-	TempFile      bool
+	TempFile      bool // Whether the file is temporary (and so should be deleted after MasterPlan closes) - downloaded images, for example, are temporary
+	SaveFile      bool // Whether the file should be saved along with the project - pasted screenshots, as an example, are saved
 	Parsed        bool
 }
 
@@ -87,6 +88,7 @@ func NewResource(resourcePath string) (*Resource, error) {
 		if destDir == "" {
 			destDir = filepath.Join(os.TempDir(), "masterplan")
 			resource.TempFile = true
+			// It's online, so we don't need to save it
 		}
 
 		if req, err := grab.NewRequest("", resourcePath); err != nil {

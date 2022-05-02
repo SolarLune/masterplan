@@ -272,8 +272,8 @@ func WriteImageToTemp(clipboardImg []byte) (string, error) {
 	// Make the directory if it doesn't exist
 	mpTmpDir := filepath.Join(os.TempDir(), "masterplan")
 
-	if err = os.Mkdir(mpTmpDir, os.ModeDir+os.ModeAppend+os.ModePerm); err != nil {
-		// We're going to continue past any error from os.Mkdir, if there is one, as that just means the folder must exist already.
+	if err = os.Mkdir(mpTmpDir, os.ModeDir+os.ModeAppend+os.ModePerm); err != nil && !os.IsExist(err) {
+		// We're going to assume past any error from os.Mkdir, if there is one, as that just means the folder must exist already.
 		globals.EventLog.Log(err.Error(), false)
 	}
 

@@ -557,8 +557,8 @@ func (card *Card) Update() {
 
 	}
 
-	// We want the contents to update regardless of if the page is current
-	if card.Contents != nil {
+	// We want the contents to update regardless of if the page is current if the card contains a timer
+	if card.Contents != nil && (card.Page.IsCurrent() || card.ContentType == ContentTypeTimer) {
 		card.Contents.Update()
 	}
 

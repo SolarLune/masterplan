@@ -350,10 +350,20 @@ func (project *Project) Save() {
 	if len(project.Pages) > 1 {
 
 		for _, page := range project.Pages[1:] {
-			// If a subpage card is broken, we might fix it using a tool, and saving it should then rely on pointingsubpagecard to not be nil
-			if page.Valid {
-				pagesToSave = append(pagesToSave, page)
+			// If a page is an orphan, then we can just skip saving it as long as it doesn't have any cards
+			if page.PointingSubpageCard == nil {
+				valid := false
+				for _, card := range page.Cards {
+					if card.Valid {
+						valid = true
+						break
+					}
+				}
+				if !valid {
+					continue
+				}
 			}
+			pagesToSave = append(pagesToSave, page)
 		}
 
 	}
@@ -377,7 +387,7 @@ func (project *Project) Save() {
 
 			fp := card.Properties.Get("filepath").AsString()
 
-			if card.Properties.Has("saveimage") && globals.Resources.Get(fp).TempFile {
+			if res := globals.Resources.Get(fp); res != nil && res.SaveFile {
 
 				if pngFile, err := os.ReadFile(fp); err != nil {
 					panic(err)
@@ -528,6 +538,7 @@ func OpenProjectFrom(filename string) {
 				savedImageFileNames[fpName] = newFName
 
 				globals.Resources.Get(newFName).TempFile = true
+				globals.Resources.Get(newFName).SaveFile = true
 
 			}
 
@@ -574,7 +585,12 @@ func OpenProjectFrom(filename string) {
 					card.DisplayRect.H = card.Rect.H
 
 					if card.Properties.Has("saveimage") {
-						card.Contents.(*ImageContents).LoadFileFrom(savedImageFileNames[card.Properties.Get("filepath").AsString()]) // Reload the file
+						imgPath, exists := savedImageFileNames[card.Properties.Get("filepath").AsString()]
+						if exists {
+							card.Contents.(*ImageContents).LoadFileFrom(imgPath) // Reload the file
+						} else {
+							card.Properties.Remove("saveimage")
+						}
 					}
 
 				}

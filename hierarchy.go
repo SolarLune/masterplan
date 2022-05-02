@@ -106,7 +106,11 @@ func (hier *Hierarchy) Rows(sorting, filter int) []*ContainerRow {
 		rows = append(rows, category.UI)
 
 		name := category.UI.Elements["page name"].(*Label)
-		name.SetText([]rune(page.Name()))
+		text := page.Name()
+		if page != globals.Project.Pages[0] && page.PointingSubpageCard == nil {
+			text += " [ORPHANED]"
+		}
+		name.SetText([]rune(text))
 
 		pageRows := make([]*HierarchyCategoryElement, 0, len(category.OrderOfEntry))
 

@@ -8,7 +8,7 @@
     "Completed Color": [230, 161, 20, 255],
     "Note Color": [30, 40, 50, 255],
     "Sound Color": [200, 120, 80, 255],
-    "Blank Image Color": [140, 140, 140, 255],
+    "Blank Image Color": [255, 255, 255, 255],
     "Timer Color": [80, 80, 80, 255],
     "Map Color": [50, 55, 60, 255],
     "Sub-Page Color": [140, 130, 120, 255],

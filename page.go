@@ -516,6 +516,7 @@ func (page *Page) HandleExternalPaste() {
 		} else {
 
 			globals.Resources.Get(filePath).TempFile = true
+			globals.Resources.Get(filePath).SaveFile = true
 
 			card := page.CreateNewCard(ContentTypeImage)
 			contents := card.Contents.(*ImageContents)
@@ -524,9 +525,7 @@ func (page *Page) HandleExternalPaste() {
 
 		}
 
-	}
-
-	if txt := clipboard.Read(clipboard.FmtText); txt != nil {
+	} else if txt := clipboard.Read(clipboard.FmtText); txt != nil {
 
 		text := string(txt)
 
@@ -542,6 +541,8 @@ func (page *Page) HandleExternalPaste() {
 				card := page.CreateNewCard(ContentTypeSound)
 				card.Contents.(*SoundContents).LoadFileFrom(text)
 
+			} else {
+				globals.EventLog.Log("WARNING: Unsure of type of file at pasted link:\n%s\nNo card was created for this link.", true, text)
 			}
 
 		} else {
@@ -669,6 +670,8 @@ func (page *Page) HandleExternalPaste() {
 
 		}
 
+	} else {
+		globals.EventLog.Log("No data found in clipboard.", true)
 	}
 
 	page.UpdateStacks = true

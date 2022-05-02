@@ -1,18 +1,17 @@
-[x] Fix color picker not being able to be held outside of the color edit menu
-[x] Things that modify cards (undo / redo, timer elapsing, find) activates that page
-[x] Deleting a sub-page card invalidates that page so find doesn't find it; it should no longer be updated
-Add (?) bubbles that you can hover over to get some text / information. This would probably best be done with a GUI element to 
-[x] Unlock Aspect Ratio isn't working
-[x] Make it so menus on the edges are anchored there, and won't move regardless of window resizing
-[x] Fix pasting sub-page in itself, which prevents you from being able to get out???
-[x] Fix Map card not showing after autoload on Windows (texture is refreshed before data is written, or something right after autoload?)
-[x] Fix recent files filepath not being complete on Windows
-[x] Card movement!
 
-[ ] Auto-backups
+[ ] Add button to reload images
+[ ] Make "-" also work for automatic newlines
+[ ] Package pre-made icons for maps (somehow?)
+[x] Fix bug where downloaded images don't display on reloading project - maybe fixed?
 [ ] Option to disable shadows on cards
+[x] Auto-backups
 [x] Keybindings for opening the different panels (find, create, edit, etc).
-
+[ ] Add tags or icon functionality to prioritize Cards; they can also be searchable in the Find dialog.
+[x] Dialog to list and filter all cards in project
+[ ] Add Text filter / search to Hierarchy menu
+[ ] Speed up saving screenshots in the project file - it's EXTREMELY slow
+[ ] Add option to save downloaded images in the project
+[ ] Reimplement automatic relative paths
 [ ] Add method to copy colors from one card to others
 [ ] A palette of pre-selected colors (the same ones for the Map) for setting any card's color.
 [ ] Follow caret as you type when editing text
@@ -20,10 +19,8 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
     every computer has really large texture limits
 
 [ ] Save menu positions across sessions
-[ ] Speed up hierarchy view, it doesn't have to take as long as it does, as it only needs to rebuild the list when something changes, not all of the time
 [ ] Re-add the tutorial
 [ ] Keyboard editing of card contents
-[ ] Add some sort of "ball" object that allows you to test simple physics / motions / spaces???
 [ ] Rework directional card selection to work better with cards inside of other cards
 [ ] Feature to loop timers
   [ ] Feature to loop timer chains (i.e. once timer A makes timer B happen, it can loop back around somehow)
@@ -42,7 +39,18 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [ ] Hide map background when zoomed out enough to make it seem "contiguous"
 [ ] Add alternate borders for maps for terrain
 [ ] Multiple projects via tabs
-[ ] Dialog to list and filter all cards in project
+[x] Fix color picker not being able to be held outside of the color edit menu
+[ ] Speed up hierarchy view, it doesn't have to take as long as it does, as it only needs to rebuild the list when something changes, not all of the time
+[x] Things that modify cards (undo / redo, timer elapsing, find) activates that page
+[x] Deleting a sub-page card invalidates that page so find doesn't find it; it should no longer be updated
+[ ] Add some sort of "ball" object that allows you to test simple physics / motions / spaces???
+Add (?) bubbles that you can hover over to get some text / information. This would probably best be done with a GUI element to 
+[x] Unlock Aspect Ratio isn't working
+[x] Make it so menus on the edges are anchored there, and won't move regardless of window resizing
+[x] Fix pasting sub-page in itself, which prevents you from being able to get out???
+[x] Fix Map card not showing after autoload on Windows (texture is refreshed before data is written, or something right after autoload?)
+[x] Fix recent files filepath not being complete on Windows
+[x] Card movement!
 
 [ ] Due dates
   [ ] Calendar? https://github.com/SolarLune/masterplan/issues/74
@@ -58,7 +66,6 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [x] Fix crashes related to sub-pages
 [x] Move screenshot location for sub-pages up
 [x] Add shortcut to unlink Card from any connected Cards
-[ ] Add tags or icon functionality to prioritize Cards; they can also be searchable in the Find dialog.
 [ ] Add button / option to group Cards together, effectively locking them into a shape.
 [ ] FIX: Saving while an expanded card is collapsed will save it as collapsed
 [x] Resize Cards from left and top

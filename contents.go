@@ -146,11 +146,6 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 func (cc *CheckboxContents) Update() {
 
-	if cc.Card.IsSelected() && globals.State == StateNeutral && globals.Keybindings.Pressed(KBCheckboxToggleCompletion) {
-		prop := cc.Card.Properties.Get("checked")
-		prop.Set(!prop.AsBool())
-	}
-
 	cc.Label.SetMaxSize(cc.Container.Rect.W-32, cc.Container.Rect.H)
 
 	// rect := cc.Label.Rectangle()
@@ -160,6 +155,20 @@ func (cc *CheckboxContents) Update() {
 
 	// Put the update here so the label gets updated after setting the description
 	cc.DefaultContents.Update()
+
+	if cc.Card.IsSelected() && globals.State == StateNeutral {
+		kb := globals.Keybindings
+		if kb.Pressed(KBCheckboxToggleCompletion) {
+			kb.Shortcuts[KBCheckboxToggleCompletion].ConsumeKeys()
+			prop := cc.Card.Properties.Get("checked")
+			prop.Set(!prop.AsBool())
+		} else if kb.Pressed(KBCheckboxEditText) {
+			kb.Shortcuts[KBCheckboxEditText].ConsumeKeys()
+			cc.Label.Editing = true
+			globals.State = StateTextEditing
+			cc.Label.Selection.SelectAll()
+		}
+	}
 
 }
 
@@ -442,14 +451,23 @@ func (nc *NumberedContents) Update() {
 
 	if nc.Card.IsSelected() && globals.State == StateNeutral {
 
-		if globals.Keybindings.Pressed(KBNumberedIncrement) {
+		kb := globals.Keybindings
+
+		if kb.Pressed(KBNumberedIncrement) {
 			current := nc.Card.Properties.Get("current")
 			current.Set(nc.Current.EnforceCaps(current.AsFloat() + 1))
 		}
 
-		if globals.Keybindings.Pressed(KBNumberedDecrement) {
+		if kb.Pressed(KBNumberedDecrement) {
 			current := nc.Card.Properties.Get("current")
 			current.Set(nc.Current.EnforceCaps(current.AsFloat() - 1))
+		}
+
+		if kb.Pressed(KBNumberedEditText) {
+			kb.Shortcuts[KBNumberedEditText].ConsumeKeys()
+			nc.Label.Editing = true
+			nc.Label.Selection.SelectAll()
+			globals.State = StateTextEditing
 		}
 
 	}
@@ -600,6 +618,15 @@ func (nc *NoteContents) Update() {
 
 	nc.Label.SetMaxSize(nc.Container.Rect.W-32, nc.Container.Rect.H)
 
+	kb := globals.Keybindings
+
+	if nc.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBNoteEditText) {
+		kb.Shortcuts[KBNoteEditText].ConsumeKeys()
+		nc.Label.Editing = true
+		nc.Label.Selection.SelectAll()
+		globals.State = StateTextEditing
+	}
+
 }
 
 func (nc *NoteContents) Color() Color {
@@ -682,7 +709,7 @@ func NewSoundContents(card *Card) *SoundContents {
 			filepath, err := zenity.SelectFile(zenity.Title("Select audio file..."), zenity.FileFilters{{Name: "Audio files", Patterns: []string{"*.wav", "*.ogg", "*.oga", "*.mp3", "*.flac"}}})
 			if err != nil {
 				globals.EventLog.Log(err.Error(), false)
-			} else {
+			} else if err != zenity.ErrCanceled {
 				soundContents.LoadFileFrom(filepath)
 			}
 		}))
@@ -702,6 +729,8 @@ func NewSoundContents(card *Card) *SoundContents {
 
 		commonMenu.Open()
 		soundContents.FilepathLabel.Selection.SelectAll()
+		soundContents.FilepathLabel.Editing = true
+		globals.State = StateTextEditing
 	}))
 
 	row = soundContents.Container.AddRow(AlignCenter)
@@ -988,10 +1017,14 @@ func NewImageContents(card *Card) *ImageContents {
 		// Browse
 		NewIconButton(0, 0, &sdl.Rect{400, 224, 32, 32}, true, func() {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+			if imageContents.Resource != nil && imageContents.Resource.SaveFile {
+				globals.EventLog.Log("This is an image that has been directly pasted into the project; it cannot change to point to another image file.", true)
+				return
+			}
 			filepath, err := zenity.SelectFile(zenity.Title("Select image file..."), zenity.FileFilters{{Name: "Image files", Patterns: []string{"*.bmp", "*.gif", "*.png", "*.jpeg", "*.jpg"}}})
 			if err != nil {
 				globals.EventLog.Log(err.Error(), false)
-			} else {
+			} else if err != zenity.ErrCanceled {
 				imageContents.LoadFileFrom(filepath)
 			}
 		}),
@@ -1006,10 +1039,15 @@ func NewImageContents(card *Card) *ImageContents {
 			// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 			row := commonMenu.Pages["root"].AddRow(AlignLeft)
 			row.ExpandElements = true
-			row.Add("filepath", imageContents.FilepathLabel)
-
 			commonMenu.Open()
-			imageContents.FilepathLabel.Selection.SelectAll()
+			if imageContents.Resource != nil && imageContents.Resource.SaveFile {
+				row.Add("filepath", NewLabel("This is an image that has been directly pasted into the project; its filepath cannot be edited.", nil, false, AlignLeft))
+			} else {
+				row.Add("filepath", imageContents.FilepathLabel)
+				imageContents.FilepathLabel.Selection.SelectAll()
+				imageContents.FilepathLabel.Editing = true
+				globals.State = StateTextEditing
+			}
 		}),
 
 		// 1:1 / 100% button
@@ -1083,8 +1121,8 @@ func (ic *ImageContents) Update() {
 
 		}
 
-		if resource.TempFile {
-			ic.Card.Properties.Get("saveimage") // InUse = true now
+		if resource.SaveFile {
+			ic.Card.Properties.Get("saveimage").Set(true) // InUse = true now
 		}
 
 		if ic.GifPlayer != nil {
@@ -1362,6 +1400,14 @@ func (tc *TimerContents) Update() {
 	tc.Name.SetRectangle(r)
 
 	tc.StartButton.IconSrc.X = 112
+
+	kb := globals.Keybindings
+	if tc.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBTimerEditText) {
+		kb.Shortcuts[KBTimerEditText].ConsumeKeys()
+		tc.Name.Editing = true
+		tc.Name.Selection.SelectAll()
+		globals.State = StateTextEditing
+	}
 
 	if tc.Running {
 
@@ -2497,6 +2543,14 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 func (sb *SubPageContents) Update() {
 
+	kb := globals.Keybindings
+	if sb.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBSubpageEditText) {
+		kb.Shortcuts[KBSubpageEditText].ConsumeKeys()
+		sb.NameLabel.Editing = true
+		sb.NameLabel.Selection.SelectAll()
+		globals.State = StateTextEditing
+	}
+
 	rect := sb.NameLabel.Rectangle()
 	rect.W = sb.Container.Rect.W - rect.X + sb.Container.Rect.X
 	sb.NameLabel.SetRectangle(rect)
@@ -2666,7 +2720,7 @@ func NewLinkContents(card *Card) *LinkContents {
 		browse, err := zenity.SelectFile(zenity.DisallowEmpty())
 		if err == nil {
 			lc.Card.Properties.Get("run").Set(browse)
-		} else {
+		} else if err != zenity.ErrCanceled {
 			globals.EventLog.Log(err.Error(), true)
 		}
 	}))
@@ -2682,7 +2736,8 @@ func NewLinkContents(card *Card) *LinkContents {
 		row.ExpandElements = true
 
 		run := lc.Card.Properties.Get("run")
-		l := NewLabel(run.AsString(), nil, false, AlignLeft)
+		l := NewLabel(" ", nil, false, AlignLeft)
+		l.SetText([]rune(run.AsString()))
 		l.Editable = true
 		l.RegexString = RegexNoNewlines
 		l.Property = run
@@ -2727,6 +2782,14 @@ func NewLinkContents(card *Card) *LinkContents {
 }
 
 func (lc *LinkContents) Update() {
+
+	kb := globals.Keybindings
+	if lc.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBLinkEditText) {
+		kb.Shortcuts[KBLinkEditText].ConsumeKeys()
+		lc.Label.Editing = true
+		lc.Label.Selection.SelectAll()
+		globals.State = StateTextEditing
+	}
 
 	h := lc.Container.Rect.H - lc.Container.MinimumHeight() + globals.GridSize
 	if h < globals.GridSize {
