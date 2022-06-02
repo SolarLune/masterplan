@@ -1,9 +1,15 @@
 
+[ ] Document orphan pages
+[ ] Document hierarchy
+[ ] Document unlinking all cards
+[ ] Zoom to cursor
+[ ] Option to disable shadows on cards
+
+[ ] ESC key to exit common menu when entering paths for images or sounds
 [ ] Add button to reload images
 [ ] Make "-" also work for automatic newlines
 [ ] Package pre-made icons for maps (somehow?)
 [x] Fix bug where downloaded images don't display on reloading project - maybe fixed?
-[ ] Option to disable shadows on cards
 [x] Auto-backups
 [x] Keybindings for opening the different panels (find, create, edit, etc).
 [ ] Add tags or icon functionality to prioritize Cards; they can also be searchable in the Find dialog.
@@ -17,15 +23,15 @@
 [ ] Follow caret as you type when editing text
 [ ] Maybe don't use render textures for cards considering rendering 9 textures might just be faster than rendering a massive texture??? Not sure of the trade-off in terms of speed, but not
     every computer has really large texture limits
+[ ] Add text when you first save or load a project so you know it's doing it, maybe?
+[ ] PDF / PNG output (See: https://github.com/signintech/gopdf)
 
 [ ] Save menu positions across sessions
 [ ] Re-add the tutorial
-[ ] Keyboard editing of card contents
 [ ] Rework directional card selection to work better with cards inside of other cards
 [ ] Feature to loop timers
   [ ] Feature to loop timer chains (i.e. once timer A makes timer B happen, it can loop back around somehow)
 [ ] Add version check to themes - if a theme doesn't have the version check, don't load it (and specify the error in the message at the bottom-left)???
-[ ] Zoom to cursor
 [ ] Add hours / days (?) to timer: https://discord.com/channels/339550825154347008/758009278756946040/967082808386400276
 [ ] Limit size of notes, maybe? Or make multiple textures for each "part" of a huge note or something like that, IDK
   [ ] Software renderer - Create manual software fallback - this way, computers with poor VRAM or maximum texture sizes won't have such problems
@@ -69,10 +75,9 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [ ] Add button / option to group Cards together, effectively locking them into a shape.
 [ ] FIX: Saving while an expanded card is collapsed will save it as collapsed
 [x] Resize Cards from left and top
-[ ] PDF / PNG output (See: https://github.com/signintech/gopdf)
 [ ] Find dialog should be able to search for types (either with a phrase, like ":image", or with a drop-down)
-[ ] Moving cards with keyboard keys
-[ ] Selecting them via Tab + Shift+Tab
+[x] Moving cards with keyboard keys
+[x] Selecting them via Tab + Shift+Tab
 [ ] Dragging objects, it's possible to misdrop them onto nearby cells instead of their exact, correct cell
 [ ] Open different projects as tabs
 [ ] Update text rendering; it's bad with light text, particularly

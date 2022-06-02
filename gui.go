@@ -781,7 +781,10 @@ func (dropdown *Dropdown) Draw() {
 func (dropdown *Dropdown) Rectangle() *sdl.FRect {
 	if dropdown.Open {
 		r := dropdown.Button.Rectangle()
-		r.H += float32(len(dropdown.Choices)-1) * r.H
+		r.H = 0
+		for _, o := range dropdown.Choices {
+			r.H += o.Rectangle().H
+		}
 		return r
 	} else {
 		return dropdown.Button.Rectangle()

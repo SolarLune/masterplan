@@ -47,6 +47,7 @@ const (
 	SettingsAutoBackupTime           = "Backup Timer"
 	SettingsMaxAutoBackups           = "Max Automatic Backup Count"
 	SettingsMouseWheelSensitivity    = "Mouse Wheel Sensitivity"
+	SettingsZoomToCursor             = "Zoom to Cursor"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"
@@ -102,6 +103,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsAutoBackupTime).Set(10.0)
 	props.Get(SettingsMaxAutoBackups).Set(6.0)
 	props.Get(SettingsMouseWheelSensitivity).Set(MouseWheelSensitvity100)
+	props.Get(SettingsZoomToCursor).Set(true)
 
 	transparency := props.Get(SettingsWindowTransparency)
 	transparency.Set(1.0)

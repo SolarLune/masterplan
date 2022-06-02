@@ -1767,6 +1767,10 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsReversePan)))
 
 	row = input.AddRow(AlignCenter)
+	row.Add("", NewLabel("Zoom to Cursor: ", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsZoomToCursor)))
+
+	row = input.AddRow(AlignCenter)
 	row.Add("", NewLabel("Scroll Wheel Sensitivity: ", nil, false, AlignLeft))
 	row.Add("", NewDropdown(&sdl.FRect{0, 0, 128, 32}, false, nil, globals.Settings.Get(SettingsMouseWheelSensitivity), "25%", "50%", "100%", "150%", "200%", "300%", "400%", "800%"))
 

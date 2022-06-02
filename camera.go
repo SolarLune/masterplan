@@ -11,18 +11,20 @@ type Camera struct {
 	TargetPosition Point
 	Zoom           float32
 	TargetZoom     float32
+	Softness       float32
 }
 
 func NewCamera() *Camera {
 	return &Camera{
 		Zoom:       1,
 		TargetZoom: 1,
+		Softness:   0.2,
 	}
 }
 
 func (camera *Camera) Update() {
 
-	softness := float32(0.2)
+	softness := camera.Softness
 
 	if !globals.Settings.Get(SettingsSmoothMovement).AsBool() {
 		softness = 1
@@ -37,6 +39,7 @@ func (camera *Camera) Update() {
 	globals.Renderer.SetScale(camera.Zoom, camera.Zoom)
 
 	camera.Position = camera.Position.Add(camera.TargetPosition.Sub(camera.Position).Mult(softness))
+
 }
 
 func (camera *Camera) JumpTo(pos Point, zoom float32) {
@@ -60,7 +63,20 @@ func (camera *Camera) SetZoom(targetZoom float32) {
 }
 
 func (camera *Camera) AddZoom(zoomInAmount float32) {
+
 	camera.SetZoom(camera.TargetZoom + zoomInAmount)
+
+	softness := camera.Softness
+
+	if !globals.Settings.Get(SettingsSmoothMovement).AsBool() {
+		softness = 1
+	}
+
+	if globals.Settings.Get(SettingsZoomToCursor).AsBool() && camera.TargetZoom > camera.Zoom {
+		zoomdiff := globals.Mouse.WorldPosition().Sub(camera.TargetPosition).Mult(softness * 0.25)
+		camera.TargetPosition = camera.TargetPosition.Add(zoomdiff)
+	}
+
 }
 
 func (camera *Camera) Offset() Point {

@@ -22,7 +22,7 @@ require (
 	github.com/jfreymuth/oggvorbis v1.0.3 // indirect
 	github.com/mewkiz/pkg v0.0.0-20211102230744-16a6ce8f1b77 // indirect
 	github.com/mholt/archiver v3.1.1+incompatible
-	github.com/ncruces/zenity v0.7.12
+	github.com/ncruces/zenity v0.8.7
 	github.com/nwaples/rardecode v1.1.2 // indirect
 	github.com/otiai10/copy v1.7.0
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
@@ -32,11 +32,10 @@ require (
 	github.com/tidwall/gjson v1.13.0
 	github.com/tidwall/sjson v1.2.4
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/veandco/go-sdl2 v0.4.19
+	github.com/veandco/go-sdl2 v0.4.21
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	golang.design/x/clipboard v0.6.0
 	golang.org/x/exp v0.0.0-20220128181451-c853b6ddb95e // indirect
 	golang.org/x/mobile v0.0.0-20220112015953-858099ff7816 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
 )

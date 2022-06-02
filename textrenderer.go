@@ -1,8 +1,6 @@
 package main
 
 import (
-	"image/color"
-	"log"
 	"math"
 	"strings"
 
@@ -23,7 +21,7 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 	surf, err := globals.Font.RenderUTF8Shaded(string(glyph.Rune), sdl.Color{255, 255, 255, 255}, sdl.Color{0, 0, 0, 255})
 
 	if err != nil {
-		log.Println(string(glyph.Rune), glyph.Rune, err)
+		// If there's an error rendering a glyph, we just assume it doesn't exist in the fontset
 		return nil
 	}
 
@@ -45,7 +43,7 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 
 			// This would be to get the color unmodified.
 			// return color.RGBA{pixels[i+3], pixels[i+2], pixels[i+1], pixels[i]}
-			newSurf.Set(x, y, color.RGBA{0xff, 0xff, 0xff, pixels[i+3]})
+			newSurf.Set(x, y, sdl.RGBA8888{0xff, 0xff, 0xff, pixels[i+3]})
 		}
 	}
 
@@ -67,11 +65,17 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 }
 
 func (glyph *Glyph) Width() int32 {
+	if glyph.Texture() == nil {
+		return 0
+	}
 	asr := float64(glyph.Image.Size.X / glyph.Image.Size.Y)
 	return int32(math.Ceil(float64(glyph.Height()) * asr))
 }
 
 func (glyph *Glyph) Height() int32 {
+	if glyph.Texture() == nil {
+		return 0
+	}
 	return int32(globals.GridSize)
 }
 
@@ -243,6 +247,9 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 			}
 
 			glyph := tr.Glyph(c)
+			if glyph == nil {
+				continue
+			}
 			glyph.Texture().SetColorMod(255, 255, 255)
 			glyph.Texture().SetAlphaMod(255)
 
@@ -517,6 +524,10 @@ func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier f
 	for _, c := range text {
 
 		glyph := tr.Glyph(c)
+
+		if glyph == nil {
+			continue
+		}
 
 		if c == '\n' {
 			pos.X = startX
