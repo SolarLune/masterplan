@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -241,6 +242,9 @@ func main() {
 
 	globals.Window = window
 	globals.Renderer = renderer
+	globals.GUITexture = globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
+	globals.Dispatcher = NewDispatcher()
+
 	globals.TextRenderer = NewTextRenderer()
 	screenWidth, screenHeight, _ := globals.Renderer.GetOutputSize()
 	globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
@@ -300,8 +304,6 @@ func main() {
 
 		}
 	}()
-
-	globals.GUITexture = globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
 
 	// Either you're possibly passing the filename by double-clicking on a project, or you're possibly autoloading
 	if len(os.Args) > 1 || (globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0) {
@@ -481,7 +483,7 @@ func main() {
 			if globals.DebugMode {
 				fps, _ := gfx.GetFramerate(fpsManager)
 				s := strconv.FormatFloat(float64(fps), 'f', 0, 64)
-				globals.TextRenderer.QuickRenderText(s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, AlignRight)
+				globals.TextRenderer.QuickRenderText(s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, nil, AlignRight)
 			}
 
 		}
@@ -490,10 +492,12 @@ func main() {
 			ThickRect(0, 0, screenWidth, screenHeight, 4, getThemeColor(GUICompletedColor))
 		}
 
+		// Loading a project
 		if globals.NextProject != nil {
 			globals.Project.Destroy()
 			globals.Project = globals.NextProject
 			globals.NextProject = nil
+			globals.Dispatcher.Run() // It's not modified, but we'll run the dispatcher manually
 		}
 
 		// y := int32(0)
@@ -573,7 +577,7 @@ func main() {
 			fontColor[3] = fade
 
 			FillRect(dst.X, dst.Y-dst.H, dst.W, dst.H, bgColor)
-			globals.TextRenderer.QuickRenderText(text, Point{0, event.Y - dst.H}, msgSize, fontColor, AlignLeft)
+			globals.TextRenderer.QuickRenderText(text, Point{0, event.Y - dst.H}, msgSize, fontColor, nil, AlignLeft)
 
 			eventY -= dst.H
 
@@ -956,6 +960,11 @@ func ConstructMenus() {
 		viewMenu.Close()
 	}))
 
+	root.AddRow(AlignCenter).Add("Deadlines", NewButton("Deadlines", nil, nil, false, func() {
+		globals.MenuSystem.Get("deadlines").Open()
+		viewMenu.Close()
+	}))
+
 	loadRecent := globals.MenuSystem.Add(NewMenu(&sdl.FRect{128, 96, 512, 128}, MenuCloseClickOut), "load recent", false)
 	loadRecent.OnOpen = func() {
 
@@ -1076,7 +1085,7 @@ func ConstructMenus() {
 
 	// Edit Menu
 
-	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, globals.ScreenSize.Y/2 - (450 / 2), 300, 450}, MenuCloseButton), "edit", false)
+	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, globals.ScreenSize.Y/2 - (450 / 2), 350, 450}, MenuCloseButton), "edit", false)
 	editMenu.Draggable = true
 	editMenu.Resizeable = true
 	editMenu.AnchorMode = MenuAnchorLeft
@@ -1089,6 +1098,9 @@ func ConstructMenus() {
 	}))
 	root.AddRow(AlignCenter).Add("set type", NewButton("Set Type", nil, nil, false, func() {
 		editMenu.SetPage("set type")
+	}))
+	root.AddRow(AlignCenter).Add("set deadline", NewButton("Set Deadline", nil, nil, false, func() {
+		editMenu.SetPage("set deadline")
 	}))
 
 	row = root.AddRow(AlignCenter)
@@ -1289,6 +1301,190 @@ func ConstructMenus() {
 			card.SetContents(ContentTypeLink)
 		}
 	}))
+
+	setDeadline := editMenu.AddPage("set deadline")
+	setDeadline.AddRow(AlignCenter).Add("label", NewLabel("Set Deadline", &sdl.FRect{0, 0, 192, 32}, false, AlignCenter))
+
+	row = setDeadline.AddRow(AlignCenter)
+
+	var bg *ButtonGroup
+
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+
+	prevMonthButton := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+		bg.ChosenIndex = -1
+		now = time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, now.Location())
+	})
+	prevMonthButton.Flip = sdl.FLIP_HORIZONTAL
+
+	row = setDeadline.AddRow(AlignCenter)
+
+	row.Add("prev month", prevMonthButton)
+	row.Add("month label", NewLabel("Month", nil, false, AlignCenter))
+	row.Add("next month", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+		bg.ChosenIndex = -1
+		now = time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
+	}))
+
+	row = setDeadline.AddRow(AlignCenter)
+
+	prevYearButton := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+		bg.ChosenIndex = -1
+		now = time.Date(now.Year()-1, now.Month(), 1, 0, 0, 0, 0, now.Location())
+	})
+	prevYearButton.Flip = sdl.FLIP_HORIZONTAL
+
+	row.Add("prev year", prevYearButton)
+	yearLabel := NewLabel("Year", nil, false, AlignCenter)
+	yearLabel.Editable = true
+	yearLabel.RegexString = RegexOnlyDigits
+	yearLabel.OnClickOut = func() {
+		now = time.Date(yearLabel.TextAsInt(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		bg.ChosenIndex = -1
+	}
+	row.Add("year label", yearLabel)
+
+	row.Add("next year", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+		bg.ChosenIndex = -1
+		now = time.Date(now.Year()+1, now.Month(), 1, 0, 0, 0, 0, now.Location())
+	}))
+
+	row.Add("reset date", NewIconButton(0, 0, &sdl.Rect{208, 192, 32, 32}, false, func() {
+		today := time.Now()
+		now = time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, now.Location())
+		bg.ChosenIndex = -1
+	}))
+
+	days := []string{}
+	for i := 0; i < 42; i++ {
+		days = append(days, strconv.Itoa(i+1))
+	}
+
+	bg = NewButtonGroup(&sdl.FRect{0, 0, globals.GridSize * 8, globals.GridSize * 6}, false, func(index int) {}, nil, days...)
+	bg.SetLabels("S", "M", "T", "W", "T", "F", "S")
+	bg.MaxButtonsPerRow = 7
+
+	row = setDeadline.AddRow(AlignCenter)
+	row.Add("days", bg)
+
+	selectedDate := ""
+
+	row = setDeadline.AddRow(AlignCenter)
+	row.Add("set deadline", NewButton("Set Deadline", nil, nil, false, func() {
+
+		selection := globals.Project.CurrentPage.Selection.AsSlice()
+		completableCount := 0
+
+		if len(selection) > 0 {
+
+			if selectedDate != "" {
+
+				for _, card := range selection {
+					if card.Completable() {
+						completableCount++
+						card.Properties.Get("deadline").Set(selectedDate)
+					}
+				}
+
+				globals.EventLog.Log("Deadline set on %d complete-able cards to %s.", false, completableCount, selectedDate)
+
+			} else {
+				globals.EventLog.Log("Deadline cannot be set as no date is selected.", false)
+			}
+
+		}
+
+	}))
+
+	row = setDeadline.AddRow(AlignCenter)
+	row.Add("clear deadline", NewButton("Clear Deadline", nil, nil, false, func() {
+
+		selection := globals.Project.CurrentPage.Selection.AsSlice()
+
+		if len(selection) > 0 {
+
+			for _, card := range selection {
+				card.Properties.Remove("deadline")
+			}
+
+			globals.EventLog.Log("Deadline removed on %d cards.", false, len(selection))
+		}
+
+	}))
+
+	setDeadline.OnDraw = func() {
+
+		setDeadline.FindElement("month label", false).(*Label).SetText([]rune(now.Month().String()[:3]))
+		setDeadline.FindElement("year label", false).(*Label).SetText([]rune(strconv.Itoa(now.Year())))
+
+		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		end := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, now.Location())
+
+		index := 0
+
+		cardToDate := map[*Card]time.Time{}
+
+		if globals.Project != nil {
+
+			for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+
+				if card.selected && card.Properties.Has("deadline") {
+
+					deadline := card.Properties.Get("deadline").AsString()
+					date, _ := time.ParseInLocation("2006-01-02", deadline, now.Location())
+					cardToDate[card] = date
+
+				}
+
+			}
+
+			for i, button := range bg.Buttons {
+
+				buttonRect := button.Rectangle()
+
+				if time.Weekday(i) < start.Weekday() || index >= end.Day() {
+					button.Disabled = true
+					button.Label.SetText([]rune(""))
+				} else {
+
+					today := start.AddDate(0, 0, index)
+
+					if DatesAreEqual(today, time.Now()) {
+						button.BackgroundColor = getThemeColor(GUIMenuColor).Accent()
+					} else {
+						button.BackgroundColor = ColorTransparent
+					}
+
+					for card, date := range cardToDate {
+						if DatesAreEqual(today, date) && !card.Completed() && card.Completable() {
+							globals.GUITexture.Texture.SetColorMod(255, 255, 255)
+							globals.GUITexture.Texture.SetAlphaMod(255)
+							globals.Renderer.Copy(globals.GUITexture.Texture, &sdl.Rect{0, 240, 32, 32}, &sdl.Rect{int32(buttonRect.X), int32(buttonRect.Y), 32, 32})
+							// globals.TextRenderer.QuickRenderText(strconv.Itoa(date.Day()), card.Page.Project.Camera.TranslatePoint(Point{card.Rect.X, card.Rect.Y}), 1, ColorWhite, ColorBlack, AlignLeft)
+							break
+						}
+					}
+
+					if bg.ChosenIndex > -1 && bg.ChosenIndex == i {
+						selectedDate = start.AddDate(0, 0, index).Format("2006-01-02")
+					}
+
+					button.Label.SetText([]rune(strconv.Itoa(index + 1)))
+					index++
+					button.Disabled = false
+				}
+			}
+
+		}
+
+		if bg.ChosenIndex == -1 {
+			selectedDate = ""
+		}
+
+	}
+
+	setDeadline.OnDraw()
 
 	// Context Menu
 
@@ -1623,6 +1819,18 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNumberTopLevelCards)))
 
 	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Card Shadows:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsCardShadows)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Flash Deadlines:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFlashDeadlines)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("deadline display label", NewLabel("Display Deadlines As:", nil, false, AlignLeft))
+	row.Add("deadline display setting", NewButtonGroup(&sdl.FRect{0, 0, 256, 32}, false, nil, globals.Settings.Get(SettingsDeadlineDisplay), DeadlineDisplayDueDuration, DeadlineDisplayDate))
+
+	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
@@ -1832,7 +2040,7 @@ func ConstructMenus() {
 		shortcutName := NewLabel(shortcut.Name, nil, false, AlignLeft)
 
 		row.Add("key-"+shortcut.Name, shortcutName)
-		row.ExpandElements = true
+		row.ExpandAllElements = true
 
 		redefineButton := NewButton(shortcut.KeysToString(), nil, nil, false, nil)
 
@@ -1875,7 +2083,7 @@ func ConstructMenus() {
 	row.Add("", NewLabel("That said, I think this is already FAR better than v0.7 and am very excited to get people using it and get some feedback on the new changes. Please do let me know your thoughts! (And don't forget to do frequent back-ups!) ~ SolarLune", &sdl.FRect{0, 0, 512, 160}, false, AlignLeft))
 
 	row = about.AddRow(AlignCenter)
-	row.ExpandElements = false
+	row.ExpandAllElements = false
 	row.Add("", NewButton("Discord", nil, &sdl.Rect{48, 224, 32, 32}, false, func() { browser.OpenURL("https://discord.gg/tRVf7qd") }))
 	row.Add("", NewSpacer(nil))
 	row.Add("", NewButton("Twitter", nil, &sdl.Rect{80, 224, 32, 32}, false, func() { browser.OpenURL("https://twitter.com/MasterPlanApp") }))
@@ -2258,6 +2466,150 @@ func ConstructMenus() {
 	row.Add("go up", NewButton("Go Up", nil, nil, false, func() {
 		globals.Project.GoUpFromSubpage()
 	}))
+
+	deadlines := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), "deadlines", false)
+
+	deadlines.Draggable = true
+	deadlines.Resizeable = true
+	deadlines.AnchorMode = MenuAnchorBottomLeft
+
+	deadlineRoot := deadlines.Pages["root"]
+
+	baseRows := []*ContainerRow{
+		NewContainerRow(deadlineRoot, AlignCenter), // Due deadlines
+		NewContainerRow(deadlineRoot, AlignCenter), // Completed deadlines
+	}
+
+	labelRow := baseRows[0]
+	labelRow.Add("label", NewLabel("Due Deadlines", nil, false, AlignCenter))
+
+	completeRow := baseRows[1]
+	completeRow.Add("", NewLabel("Completed Deadlines", nil, false, AlignCenter))
+
+	type deadlineButton struct {
+		Row  *ContainerRow
+		Card *Card
+	}
+
+	deadlineButtons := []*deadlineButton{}
+
+	refreshDeadlineButtons := func() {
+
+		for _, button := range deadlineButtons {
+			// Project changed, start over
+			button.Row.Visible = true
+
+			if globals.Project != button.Card.Page.Project {
+
+				for _, button := range deadlineButtons {
+					button.Row.Destroy()
+				}
+
+				deadlineButtons = []*deadlineButton{}
+				break
+			} else if !button.Card.Valid {
+				button.Row.Visible = false
+			}
+
+		}
+
+		if globals.Project != nil {
+
+			for _, page := range globals.Project.Pages {
+
+				for _, c := range page.Cards {
+
+					card := c
+
+					if card.Properties.Has("deadline") {
+
+						var db *deadlineButton
+						for _, existingDb := range deadlineButtons {
+							if existingDb.Card == card {
+								db = existingDb
+								break
+							}
+						}
+
+						if db == nil {
+
+							deadlineRow := NewContainerRow(deadlineRoot, AlignLeft)
+							button := NewButton("a super long button that says", nil, nil, false, func() {
+								card.Page.Project.Camera.FocusOn(false, card)
+								selection := card.Page.Selection
+								if !globals.Keybindings.Pressed(KBAddToSelection) {
+									selection.Clear()
+								}
+								selection.Add(card)
+							})
+							deadlineRow.AlternateBGColor = true
+							deadlineRow.Add("left spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
+							deadlineRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{240, 160, 32, 32}, globals.GUITexture.Texture, false))
+							deadlineRow.Add("button", button)
+							deadlineRow.Add("date", NewLabel("Due on 9999-99-9999", nil, false, AlignCenter))
+							deadlineRow.Add("right spacer", NewSpacer(&sdl.FRect{0, 0, 64, 32}))
+							deadlineRow.ExpandSelectedElements = []MenuElement{deadlineRow.Elements["button"]}
+							db = &deadlineButton{Card: card, Row: deadlineRow}
+							deadlineButtons = append(deadlineButtons, db)
+						}
+
+						deadlineStr := card.Properties.Get("deadline").AsString()
+						iconObj := db.Row.Elements["icon"].(*GUIImage)
+						buttonObj := db.Row.Elements["button"].(*Button)
+						date := db.Row.Elements["date"].(*Label)
+						switch card.DeadlineState() {
+						case DeadlineStateTimeRemains:
+							iconObj.SrcRect = &sdl.Rect{240, 160, 32, 32}
+						case DeadlineStateDueToday:
+							iconObj.SrcRect = &sdl.Rect{272, 160, 32, 32}
+						case DeadlineStateOverdue:
+							iconObj.SrcRect = &sdl.Rect{304, 160, 32, 32}
+						case DeadlineStateDone:
+							iconObj.SrcRect = &sdl.Rect{336, 160, 32, 32}
+						}
+						buttonObj.Label.SetText([]rune(card.Name()))
+						date.SetText([]rune("Due on " + deadlineStr))
+
+					}
+
+				}
+
+			}
+
+		}
+
+		sort.SliceStable(deadlineButtons, func(i, j int) bool {
+			deadlineA, _ := time.ParseInLocation("2006-01-02", deadlineButtons[i].Card.Properties.Get("deadline").AsString(), now.Location())
+			deadlineB, _ := time.ParseInLocation("2006-01-02", deadlineButtons[j].Card.Properties.Get("deadline").AsString(), now.Location())
+			if deadlineA.Before(deadlineB) {
+				return true
+			} else if deadlineA.After(deadlineB) {
+				return false
+			}
+			return deadlineButtons[i].Card.ID < deadlineButtons[j].Card.ID
+		})
+
+		deadlineRoot.Rows = append([]*ContainerRow{}, baseRows[0])
+		for _, b := range deadlineButtons {
+			if !b.Card.Completed() {
+				deadlineRoot.Rows = append(deadlineRoot.Rows, b.Row)
+			}
+		}
+
+		deadlineRoot.Rows = append(deadlineRoot.Rows, baseRows[1])
+
+		for _, b := range deadlineButtons {
+			if b.Card.Completed() {
+				deadlineRoot.Rows = append(deadlineRoot.Rows, b.Row)
+			}
+		}
+
+	}
+
+	globals.Dispatcher.Register(refreshDeadlineButtons)
+
+	refreshDeadlineButtons() // Call it once to initialize the static elements
+
 	// Stats Menu
 
 	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), "stats", false)
@@ -2277,7 +2629,7 @@ func ConstructMenus() {
 	row = root.AddRow(AlignLeft)
 	completedLabel := NewLabel("so many cards completed", nil, false, AlignLeft)
 	row.Add("", completedLabel)
-	row.ExpandElements = true
+	row.ExpandAllElements = true
 
 	row = root.AddRow(AlignLeft)
 	row.Add("", NewSpacer(&sdl.FRect{0, 0, 32, 1}))
@@ -2299,7 +2651,7 @@ func ConstructMenus() {
 	}
 
 	row = root.AddRow(AlignLeft)
-	row.ExpandElements = true
+	row.ExpandAllElements = true
 	timeUnit := NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {}, globals.Settings.Get("time unit"), timeUnitChoices...)
 
 	// timeUnit := NewDropdown(nil, false, func(index int) {}, timeUnitChoices...)
@@ -2308,7 +2660,7 @@ func ConstructMenus() {
 	row = root.AddRow(AlignLeft)
 	estimatedTime := NewLabel("Time estimation label", nil, false, AlignLeft)
 	row.Add("", estimatedTime)
-	row.ExpandElements = true
+	row.ExpandAllElements = true
 
 	row = root.AddRow(AlignLeft)
 	row.Add("", NewLabel("Limit time estimation read-out to same as units: ", nil, false, AlignLeft))

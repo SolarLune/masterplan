@@ -124,7 +124,7 @@ func (history *UndoHistory) Undo() bool {
 
 		history.On = true
 
-		history.Project.Modified = true
+		history.Project.SetModifiedState()
 
 		return true
 
@@ -181,7 +181,7 @@ func (history *UndoHistory) Redo() bool {
 
 		history.On = true
 
-		history.Project.Modified = true
+		history.Project.SetModifiedState()
 
 		return true
 
@@ -208,7 +208,7 @@ func (history *UndoHistory) Update() {
 		history.Index = len(history.Frames)
 
 		if !history.Project.Loading {
-			history.Project.Modified = true
+			history.Project.SetModifiedState()
 		}
 
 		history.Changed = false

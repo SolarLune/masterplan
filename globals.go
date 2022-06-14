@@ -61,6 +61,8 @@ type Globals struct {
 	TriggerReloadFonts bool
 	ClipRects          []*sdl.Rect
 
+	Dispatcher *Dispatcher
+
 	LoadingSubpagesBroken bool
 
 	Hierarchy *Hierarchy

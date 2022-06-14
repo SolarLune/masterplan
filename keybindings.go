@@ -127,6 +127,7 @@ const (
 	KBOpenEditMenu      = "Main Menu: Open Edit Menu"
 	KBOpenHierarchyMenu = "Main Menu: Open Hierarchy Menu"
 	KBOpenStatsMenu     = "Main Menu: Open Stats Menu"
+	KBOpenDeadlinesMenu = "Main Menu: Open Deadlines Menu"
 	KBHelp              = "Main Menu: Open Help (website)"
 
 	// KBURLButton               = "Show URL Buttons"
@@ -537,6 +538,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBOpenEditMenu, sdl.K_F3)
 	kb.DefineKeyShortcut(KBOpenHierarchyMenu, sdl.K_F4)
 	kb.DefineKeyShortcut(KBOpenStatsMenu, sdl.K_F5)
+	kb.DefineKeyShortcut(KBOpenDeadlinesMenu, sdl.K_F6)
 
 	kb.UpdateShortcutFamilies()
 

@@ -64,6 +64,7 @@ type Project struct {
 	UndoHistory  *UndoHistory
 	LastCardType string
 	Modified     bool
+	justModified bool
 
 	LinkingCard *Card
 
@@ -255,6 +256,18 @@ func (project *Project) Update() {
 	// This should only be true for a total of essentially 1 or 2 frames, immediately after loading
 	project.Loading = false
 
+	if project.Modified && project.justModified {
+		globals.Dispatcher.Run()
+	}
+
+	project.justModified = false
+
+}
+
+// SetModifiedState sets the modified variable for the Project to true, but also sets justModified to true, allowing the Dispatcher to run to make things happen when the project is altered in some appreciable way.
+func (project *Project) SetModifiedState() {
+	project.Modified = true
+	project.justModified = true
 }
 
 func (project *Project) Draw() {
@@ -286,7 +299,7 @@ func (project *Project) Draw() {
 			textSize := globals.TextRenderer.MeasureText([]rune(text), 1).CeilToGrid()
 			globals.Renderer.SetDrawColor(gridColor.RGBA())
 			globals.Renderer.FillRectF(project.Camera.TranslateRect(&sdl.FRect{0, -globals.GridSize, textSize.X, textSize.Y}))
-			globals.TextRenderer.QuickRenderText(text, project.Camera.TranslatePoint(Point{textSize.X / 2, -globals.GridSize}), 1, getThemeColor(GUIBGColor), AlignCenter)
+			globals.TextRenderer.QuickRenderText(text, project.Camera.TranslatePoint(Point{textSize.X / 2, -globals.GridSize}), 1, getThemeColor(GUIBGColor), nil, AlignCenter)
 
 			// globals.Renderer.DrawRectF(project.Camera.TranslateRect(&sdl.FRect{0, 0, SubpageScreenshotSize.X, SubpageScreenshotSize.Y}))
 
@@ -782,6 +795,16 @@ func (project *Project) GlobalShortcuts() {
 			menu.Open()
 		}
 		kb.Shortcuts[KBOpenStatsMenu].ConsumeKeys()
+	}
+
+	if kb.Pressed(KBOpenDeadlinesMenu) {
+		menu := globals.MenuSystem.Get("deadlines")
+		if menu.Opened {
+			menu.Close()
+		} else {
+			menu.Open()
+		}
+		kb.Shortcuts[KBOpenDeadlinesMenu].ConsumeKeys()
 	}
 
 	if globals.State != StateCardArrow {

@@ -199,7 +199,7 @@ func (iconButton *IconButton) Draw() {
 
 	orig := *iconButton.Rect
 	rect := &orig
-	guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
+	guiTex := globals.GUITexture.Texture
 
 	if iconButton.WorldSpace {
 		rect = globals.Project.Camera.TranslateRect(rect)
@@ -578,12 +578,9 @@ func (button *Button) Draw() {
 	buttonRect := button.Rectangle()
 
 	if button.BackgroundColor[3] > 0 {
-		guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
-		guiTexture.SetBlendMode(sdl.BLENDMODE_NONE)
-		guiTexture.SetColorMod(button.BackgroundColor.RGB())
-		guiTexture.SetAlphaMod(1)
-		globals.Renderer.CopyF(guiTexture, &sdl.Rect{240, 128, 32, 32}, buttonRect)
-		guiTexture.SetBlendMode(sdl.BLENDMODE_BLEND)
+		// gfx.RoundedRectangleColor(globals.Renderer, int32(buttonRect.X), int32(buttonRect.Y), int32(buttonRect.X)+int32(buttonRect.W), int32(buttonRect.Y)+int32(buttonRect.H), 4, button.BackgroundColor.SDLColor())
+		globals.Renderer.SetDrawColor(button.BackgroundColor.RGBA())
+		globals.Renderer.FillRectF(buttonRect)
 	}
 
 	if len(button.Label.Text) > 0 {
@@ -596,7 +593,7 @@ func (button *Button) Draw() {
 		mousePos = globals.Mouse.WorldPosition()
 	}
 
-	button.Highlighter.Highlighting = mousePos.Inside(buttonRect) || !button.FadeOnInactive
+	button.Highlighter.Highlighting = (mousePos.Inside(buttonRect) || !button.FadeOnInactive) && !button.Disabled
 
 	button.Highlighter.SetRect(buttonRect)
 	button.Highlighter.Draw()
@@ -605,7 +602,7 @@ func (button *Button) Draw() {
 
 	if button.IconSrc != nil {
 
-		guiTexture := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
+		guiTexture := globals.GUITexture.Texture
 
 		guiTexture.SetAlphaMod(uint8(button.Label.Alpha * 255))
 		guiTexture.SetColorMod(color.RGB())
@@ -679,7 +676,7 @@ func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), pro
 		dropdown.Open = !dropdown.Open
 	})
 
-	dropdown.Button.BackgroundColor = getThemeColor(GUIMenuColor)
+	dropdown.Button.BackgroundColor = getThemeColor(GUIMenuColor).Accent()
 
 	dropdown.SetOptions(options...)
 
@@ -716,14 +713,14 @@ func (dropdown *Dropdown) SetOptions(options ...string) {
 				dropdown.OnChoose(index)
 			}
 		})
-		b.BackgroundColor = getThemeColor(GUIMenuColor)
+		b.BackgroundColor = getThemeColor(GUIMenuColor).Accent()
 		dropdown.Choices = append(dropdown.Choices, b)
 	}
 }
 
 func (dropdown *Dropdown) Update() {
 
-	bgColor := getThemeColor(GUIMenuColor)
+	bgColor := getThemeColor(GUIMenuColor).Accent()
 	dropdown.Button.BackgroundColor = bgColor
 	for _, c := range dropdown.Choices {
 		c.BackgroundColor = bgColor
@@ -807,13 +804,15 @@ func (dropdown *Dropdown) SetRectangle(rect *sdl.FRect) {
 func (dropdown *Dropdown) Destroy() {}
 
 type ButtonGroup struct {
-	ChosenIndex int
-	Options     []string
-	Buttons     []*Button
-	Rect        *sdl.FRect
-	OnChoose    func(index int)
-	Property    *Property
-	WorldSpace  bool
+	ChosenIndex      int
+	Options          []string
+	Buttons          []*Button
+	Labels           []*Label
+	Rect             *sdl.FRect
+	OnChoose         func(index int)
+	Property         *Property
+	WorldSpace       bool
+	MaxButtonsPerRow int
 }
 
 func NewButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index int), property *Property, choices ...string) *ButtonGroup {
@@ -823,17 +822,27 @@ func NewButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index int), 
 	}
 
 	group := &ButtonGroup{
-		Rect:       rect,
-		Options:    []string{},
-		Buttons:    []*Button{},
-		Property:   property,
-		WorldSpace: worldSpace,
+		Rect:             rect,
+		Options:          []string{},
+		Buttons:          []*Button{},
+		Property:         property,
+		WorldSpace:       worldSpace,
+		MaxButtonsPerRow: 1,
+		Labels:           []*Label{},
 	}
 
 	group.SetChoices(choices...)
 
 	return group
 
+}
+
+func (bg *ButtonGroup) SetLabels(headers ...string) {
+	for _, header := range headers {
+		label := NewLabel(header, nil, bg.WorldSpace, AlignCenter)
+		bg.Labels = append(bg.Labels, label)
+	}
+	bg.Rect.H += globals.GridSize
 }
 
 func (bg *ButtonGroup) SetChoices(choices ...string) {
@@ -856,6 +865,7 @@ func (bg *ButtonGroup) SetChoices(choices ...string) {
 				bg.Property.Set(bg.Buttons[bg.ChosenIndex].Label.TextAsString())
 			}
 		})
+		newButton.Highlighter.HighlightMode = HighlightRing
 		bg.Buttons = append(bg.Buttons, newButton)
 	}
 
@@ -864,11 +874,36 @@ func (bg *ButtonGroup) SetChoices(choices ...string) {
 func (bg *ButtonGroup) Update() {
 
 	rect := bg.Rectangle()
-	rect.W /= float32(len(bg.Buttons))
+	if bg.MaxButtonsPerRow > 1 {
+		rect.W /= float32(bg.MaxButtonsPerRow)
+	} else {
+		rect.W /= float32(len(bg.Buttons))
+	}
+	rect.H = globals.GridSize
 
-	for _, b := range bg.Buttons {
+	ogX := rect.X
+
+	if len(bg.Labels) > 0 {
+		for _, l := range bg.Labels {
+			l.SetRectangle(rect)
+			l.Update()
+			rect.X += rect.W
+		}
+		rect.Y += globals.GridSize
+	}
+
+	rect.X = ogX
+
+	for i, b := range bg.Buttons {
+		if bg.MaxButtonsPerRow > 1 && i%bg.MaxButtonsPerRow == 0 && i > 0 {
+			rect.Y += rect.H
+			rect.X = ogX
+		}
+
 		b.SetRectangle(rect)
+
 		rect.X += rect.W
+
 		b.Update()
 	}
 
@@ -889,6 +924,15 @@ func (bg *ButtonGroup) Update() {
 }
 
 func (bg *ButtonGroup) Draw() {
+
+	if globals.DebugMode {
+		globals.Renderer.SetDrawColor(255, 0, 0, 255)
+		globals.Renderer.FillRectF(bg.Rect)
+	}
+
+	for _, l := range bg.Labels {
+		l.Draw()
+	}
 
 	for i, b := range bg.Buttons {
 		b.FadeOnInactive = bg.ChosenIndex != i
@@ -2006,19 +2050,20 @@ func (label *Label) Destroy() {
 }
 
 type ContainerRow struct {
-	Container         *Container
-	ElementOrder      []MenuElement
-	Elements          map[string]MenuElement
-	Alignment         string
-	HorizontalSpacing float32
-	VerticalSpacing   float32
-	ExpandElements    bool
-	HorizontalMargin  float32
-	Visible           bool
-	ForcedSize        Point
-	Index             int
-	AlternateBGColor  bool
-	rect              *sdl.FRect
+	Container              *Container
+	ElementOrder           []MenuElement
+	Elements               map[string]MenuElement
+	Alignment              string
+	HorizontalSpacing      float32
+	VerticalSpacing        float32
+	ExpandAllElements      bool
+	ExpandSelectedElements []MenuElement
+	HorizontalMargin       float32
+	Visible                bool
+	ForcedSize             Point
+	AlternateBGColor       bool
+	alternateBGColorFlag   bool
+	rect                   *sdl.FRect
 }
 
 func NewContainerRow(container *Container, horizontalAlignment string) *ContainerRow {
@@ -2082,14 +2127,51 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		x += diff
 	}
 
+	if row.ExpandSelectedElements != nil {
+
+		if row.ExpandAllElements {
+			panic("ERROR: expand all elements and expand selected elements are both set, this shouldn't be the case. Panicking:")
+		}
+
+		for _, element := range row.Elements {
+			rect := element.Rectangle()
+			expand := false
+			for _, r := range row.ExpandSelectedElements {
+				if r == element {
+					expand = true
+					break
+				}
+			}
+			if !expand {
+				maxWidth -= rect.W
+			}
+		}
+
+	}
+
+	totalElementSize := float32(len(row.Elements))
+	if row.ExpandSelectedElements != nil {
+		totalElementSize = float32(len(row.ExpandSelectedElements))
+	}
+
 	for _, element := range row.ElementOrder {
 		rect := element.Rectangle()
 
 		rect.X = x
 		rect.Y = y
 
-		if row.ExpandElements {
-			rect.W = maxWidth / float32(len(row.Elements))
+		expanding := row.ExpandAllElements
+		if !expanding {
+			for _, e := range row.ExpandSelectedElements {
+				if e == element {
+					expanding = true
+					break
+				}
+			}
+		}
+
+		if expanding {
+			rect.W = maxWidth / totalElementSize
 		}
 
 		element.SetRectangle(rect)
@@ -2108,12 +2190,19 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 func (row *ContainerRow) Draw() {
 
 	if row.AlternateBGColor {
-		if row.Index%2 == 0 {
-			globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).Add(20).RGBA())
-		} else {
+
+		if row.alternateBGColorFlag {
 			globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
+		} else {
+			globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).Add(20).RGBA())
 		}
-		globals.Renderer.FillRectF(row.rect)
+
+		if row.Container.WorldSpace {
+			globals.Renderer.FillRectF(globals.Project.Camera.TranslateRect(row.rect))
+		} else {
+			globals.Renderer.FillRectF(row.rect)
+		}
+
 	}
 
 	for _, element := range row.Elements {
@@ -2180,6 +2269,7 @@ type Container struct {
 	Scrollbar        *Scrollbar
 	DisplayScrollbar bool
 	OnUpdate         func()
+	OnDraw           func()
 	OnOpen           func()
 	DefaultExpand    bool
 	DefaultMargin    float32
@@ -2292,10 +2382,28 @@ func (container *Container) Draw() {
 
 	sort.SliceStable(rows, func(i, j int) bool { return i > j })
 
-	for _, row := range rows {
+	alternateColor := false
+	for i := 0; i < len(rows); i++ {
+
+		row := rows[i]
+
 		if row.Visible {
+
+			if !row.AlternateBGColor {
+				alternateColor = false
+			}
+
+			row.alternateBGColorFlag = alternateColor
 			row.Draw()
+
+			alternateColor = !alternateColor
+
 		}
+
+	}
+
+	if container.OnDraw != nil {
+		container.OnDraw()
 	}
 
 	if container.NeedScroll() && container.DisplayScrollbar {
@@ -2314,8 +2422,7 @@ func (container *Container) Draw() {
 
 func (container *Container) AddRow(alignment string) *ContainerRow {
 	newRow := NewContainerRow(container, alignment)
-	newRow.Index = len(container.Rows)
-	newRow.ExpandElements = container.DefaultExpand
+	newRow.ExpandAllElements = container.DefaultExpand
 	newRow.HorizontalMargin = container.DefaultMargin
 	container.Rows = append(container.Rows, newRow)
 	return newRow
@@ -2904,7 +3011,7 @@ func (cw *ColorWheel) Draw() {
 	valueRect.H = float32(cw.ValueStrip.H)
 	globals.Renderer.CopyExF(cw.ValueTexture, nil, &valueRect, 0, nil, 0)
 
-	guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
+	guiTex := globals.GUITexture.Texture
 	guiTex.SetAlphaMod(255)
 	src := &sdl.Rect{0, 240, 8, 8}
 	dst := &sdl.Rect{int32(cw.Rect.X) + cw.SampledPosX - 4, int32(cw.Rect.Y) + cw.SampledPosY - 4, 8, 8}

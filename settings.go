@@ -48,6 +48,12 @@ const (
 	SettingsMaxAutoBackups           = "Max Automatic Backup Count"
 	SettingsMouseWheelSensitivity    = "Mouse Wheel Sensitivity"
 	SettingsZoomToCursor             = "Zoom to Cursor"
+	SettingsCardShadows              = "Card Shadows"
+	SettingsFlashDeadlines           = "Flash Deadlines"
+	SettingsDeadlineDisplay          = "Display Deadlines As"
+
+	DeadlineDisplayDueDuration = "Countdown"
+	DeadlineDisplayDate        = "Date"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"
@@ -104,6 +110,8 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsMaxAutoBackups).Set(6.0)
 	props.Get(SettingsMouseWheelSensitivity).Set(MouseWheelSensitvity100)
 	props.Get(SettingsZoomToCursor).Set(true)
+	props.Get(SettingsCardShadows).Set(true)
+	props.Get(SettingsFlashDeadlines).Set(true)
 
 	transparency := props.Get(SettingsWindowTransparency)
 	transparency.Set(1.0)

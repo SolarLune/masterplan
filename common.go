@@ -479,6 +479,18 @@ func (color Color) Sub(value uint8) Color {
 
 }
 
+func (color Color) IsDark() bool {
+	return color[0] < 50 && color[1] < 50 && color[2] < 50
+}
+
+func (color Color) Accent() Color {
+	accentAmount := uint8(40)
+	if color[0] > accentAmount || color[1] > accentAmount || color[2] > accentAmount {
+		return color.Sub(accentAmount)
+	}
+	return color.Add(accentAmount)
+}
+
 func (color Color) Mult(scalar float32) Color {
 
 	newColor := NewColor(color.RGBA())
@@ -582,6 +594,10 @@ func ColorFromHexString(hex string) Color {
 var ColorTransparent = NewColor(0, 0, 0, 0)
 var ColorWhite = NewColor(255, 255, 255, 255)
 var ColorBlack = NewColor(0, 0, 0, 255)
+var ColorRed = NewColor(255, 0, 0, 255)
+var ColorGreen = NewColor(89, 207, 147, 255)
+var ColorYellow = NewColor(248, 197, 58, 255)
+var ColorBlue = NewColor(66, 191, 232, 255)
 
 func ColorAt(surface *sdl.Surface, x, y int32) (r, g, b, a uint8) {
 
@@ -620,7 +636,7 @@ func ThickLine(start, end Point, thickness int32, color Color) {
 	gfx.ThickLineRGBA(globals.Renderer, int32(start.X), int32(start.Y), int32(end.X), int32(end.Y), thickness, color[0], color[1], color[2], color[3])
 }
 
-// DrawLabel draws a small label of the specified text at the X and Y position specified.
+// DrawLabel draws a small paper-like label of the specified text at the X and Y position specified.
 func DrawLabel(pos Point, text string) {
 
 	textSize := globals.TextRenderer.MeasureText([]rune(text), 0.5)
@@ -653,7 +669,7 @@ func DrawLabel(pos Point, text string) {
 	dst.W = float32(src.W)
 	globals.Renderer.CopyF(guiTexture, src, dst)
 
-	globals.TextRenderer.QuickRenderText(text, Point{pos.X + (textSize.X / 2), pos.Y}, 0.5, getThemeColor(GUIFontColor), AlignCenter)
+	globals.TextRenderer.QuickRenderText(text, Point{pos.X + (textSize.X / 2), pos.Y}, 0.5, getThemeColor(GUIFontColor), nil, AlignCenter)
 
 }
 
@@ -735,7 +751,12 @@ func FilesInDirectory(dir string, prefix string) []string {
 
 }
 
+func DatesAreEqual(d1, d2 time.Time) bool {
+	return d1.Year() == d2.Year() && d1.Month() == d2.Month() && d1.Day() == d2.Day()
+}
+
 const RegexNoNewlines = `[^\n]`
 const RegexOnlyDigits = `[\d]`
+const RegexNoDigits = `[^\d]`
 const RegexOnlyDigitsAndColon = `[\d:]`
 const RegexHex = `[#a-fA-F\d]`

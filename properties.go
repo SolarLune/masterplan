@@ -82,7 +82,11 @@ func (prop *Property) Set(value interface{}) {
 
 	if prop.data != value {
 
-		prop.data = value
+		if intData, isInt := value.(int); isInt {
+			prop.data = float64(intData)
+		} else {
+			prop.data = value
+		}
 
 		if prop.OnChange != nil {
 			prop.OnChange()

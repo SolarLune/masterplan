@@ -508,7 +508,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 	return result
 }
 
-func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier float32, color Color, alignment string) {
+func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier float32, color Color, outlineColor Color, alignment string) {
 
 	textSize := tr.MeasureText([]rune(text), sizeMultiplier)
 
@@ -537,12 +537,24 @@ func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier f
 			continue
 		}
 
+		tex := glyph.Texture()
+		tex.SetBlendMode(sdl.BLENDMODE_BLEND) // We set the blend mode here as well
+
+		if outlineColor != nil {
+			for y := -1; y < 1; y++ {
+				for x := -1; x < 1; x++ {
+					dst := &sdl.FRect{pos.X + float32(x), pos.Y + float32(y), float32(glyph.Width()) * sizeMultiplier, float32(glyph.Height()) * sizeMultiplier}
+					tex.SetColorMod(outlineColor.RGB())
+					tex.SetAlphaMod(outlineColor[3])
+					globals.Renderer.CopyF(tex, nil, dst)
+				}
+			}
+		}
+
 		dst := &sdl.FRect{pos.X, pos.Y, float32(glyph.Width()) * sizeMultiplier, float32(glyph.Height()) * sizeMultiplier}
 
-		tex := glyph.Texture()
 		tex.SetColorMod(color.RGB())
 		tex.SetAlphaMod(color[3])
-		tex.SetBlendMode(sdl.BLENDMODE_BLEND) // We set the blend mode here as well
 
 		globals.Renderer.CopyF(tex, nil, dst)
 		pos.X += float32(glyph.Width()) * sizeMultiplier

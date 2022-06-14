@@ -2,10 +2,13 @@ package main
 
 import (
 	"math"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/hako/durafmt"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/veandco/go-sdl2/sdl"
@@ -23,6 +26,11 @@ const (
 	ResizeL  = "resizehorizontal_l"
 	ResizeUL = "resizecorner_ul"
 	ResizeU  = "resizevertical_u"
+
+	DeadlineStateTimeRemains = iota
+	DeadlineStateDueToday
+	DeadlineStateOverdue
+	DeadlineStateDone
 )
 
 type LinkJoint struct {
@@ -301,6 +309,7 @@ type Card struct {
 	Depth                   int
 	Valid                   bool
 	CustomColor             Color
+	deadlineFade            float64
 
 	GridExtents GridSelection
 	Stack       *Stack
@@ -724,6 +733,32 @@ func (card *Card) IsLinkedTo(other *Card) bool {
 	return false
 }
 
+// Name returns the name of the card - this is usually its description, for checkboxes and progression cards, but can also be the filepath for images or sounds, for example, or just "Map" for maps.
+func (card *Card) Name() string {
+
+	text := ""
+
+	switch card.ContentType {
+	case ContentTypeImage:
+		fallthrough
+	case ContentTypeSound:
+		if card.Properties.Has("filepath") && card.Properties.Get("filepath").AsString() != "" {
+			_, fn := filepath.Split(card.Properties.Get("filepath").AsString())
+			text = fn
+		} else if card.ContentType == ContentTypeImage {
+			text = "No Image Loaded"
+		} else {
+			text = "No Sound Loaded"
+		}
+	case ContentTypeMap:
+		text = "Map"
+	default:
+		text = card.Properties.Get("description").AsString()
+	}
+
+	return text
+}
+
 // Link creates a link between the current Card and the other, provided Card, and returns it, along with a boolean indicating if the link was just created.
 // If a link is already formed between the Cards, it will return that LinkEnding, along with false as the second boolean.
 func (card *Card) Link(other *Card) (*LinkEnding, bool) {
@@ -791,18 +826,20 @@ func (card *Card) UnlinkAll() {
 
 func (card *Card) DrawShadow() {
 
-	tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
-
-	tp.X += 8
-	tp.Y += 8
-
+	if !globals.Settings.Get(SettingsCardShadows).AsBool() {
+		return
+	}
 	color := card.Color()
 
 	if color[3] > 0 {
 
-		color = color.Sub(40)
+		tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
+		tp.X += 8
+		tp.Y += 8
+
+		color = color.Mult(0.5).Sub(20)
 		card.Result.Texture.SetColorMod(color.RGB())
-		card.Result.Texture.SetAlphaMod(color[3])
+		card.Result.Texture.SetAlphaMod(192)
 		globals.Renderer.CopyF(card.Result.Texture, nil, tp)
 
 	}
@@ -894,7 +931,135 @@ func (card *Card) NearestPointInRect(in Point, perpendicular bool) Point {
 
 }
 
+func (card *Card) DeadlineState() int {
+
+	state := DeadlineStateDone
+
+	if card.Properties.Has("deadline") && !card.Completed() {
+
+		state = DeadlineStateTimeRemains
+
+		now := time.Now()
+		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		deadline, _ := time.ParseInLocation("2006-01-02", card.Properties.Get("deadline").AsString(), today.Location())
+		timeDiffDuration := deadline.Sub(today).Round(time.Hour * 24)
+
+		if timeDiffDuration == 0 {
+			state = DeadlineStateDueToday
+		} else if timeDiffDuration < 0 {
+			state = DeadlineStateOverdue
+		} else {
+			state = DeadlineStateTimeRemains
+		}
+
+	}
+
+	return state
+
+}
+
 func (card *Card) DrawCard() {
+
+	if card.Properties.Has("deadline") {
+
+		deadlineTarget := 0.0
+
+		if !card.Completed() && card.Completable() {
+			deadlineTarget = 1
+		}
+
+		card.deadlineFade += (deadlineTarget - card.deadlineFade) * 0.3
+
+		if card.deadlineFade > 0.01 {
+
+			now := time.Now()
+			today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			deadline, _ := time.ParseInLocation("2006-01-02", card.Properties.Get("deadline").AsString(), today.Location())
+			pureDeadlineDisplay := deadline.Format("2006-01-02")
+
+			timeDiffDuration := deadline.Sub(today).Round(time.Hour * 24)
+
+			timeDiff := durafmt.Parse(timeDiffDuration)
+			if timeDiffDuration < 0 {
+				timeDiff = durafmt.Parse(-timeDiffDuration)
+			}
+
+			var text = ""
+
+			if globals.Settings.Get(SettingsDeadlineDisplay).AsString() == DeadlineDisplayDueDuration {
+				text = "Due in " + timeDiff.String()
+			} else {
+				text = "Due on " + pureDeadlineDisplay
+			}
+
+			deadlineColor := getThemeColor(GUIMenuColor)
+
+			if timeDiffDuration <= 0 {
+
+				if timeDiffDuration == 0 {
+					if globals.Settings.Get(SettingsDeadlineDisplay).AsString() == DeadlineDisplayDueDuration {
+						text = "Due today!"
+					}
+				} else {
+					if globals.Settings.Get(SettingsDeadlineDisplay).AsString() == DeadlineDisplayDueDuration {
+						text = "Overdue by " + timeDiff.String() + "!"
+					}
+				}
+
+				deadlineColor = getThemeColor(GUICompletedColor)
+
+				if globals.Settings.Get(SettingsFlashDeadlines).AsBool() {
+
+					if deadlineColor.IsDark() {
+						deadlineColor = deadlineColor.Add(uint8(math.Sin(globals.Time*3.14*4)*60) - 60)
+					} else {
+						deadlineColor = deadlineColor.Sub(uint8(math.Sin(globals.Time*3.14*4)*60) + 60)
+					}
+
+				}
+
+			} else if timeDiffDuration <= time.Hour*26 {
+				deadlineColor = getThemeColor(GUICompletedColor)
+			}
+
+			textSize := globals.TextRenderer.MeasureText([]rune(text), 1)
+			textSize.X += 16
+
+			start := card.Page.Project.Camera.TranslateRect(&sdl.FRect{card.DisplayRect.X - textSize.X - 40, card.DisplayRect.Y, textSize.X, 16})
+
+			left := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X, card.DisplayRect.Y}).X
+			left += (start.X - left) * float32(card.deadlineFade)
+			rect := &sdl.Rect{int32(left), int32(start.Y), 9999, int32(card.DisplayRect.H)}
+			globals.Renderer.SetClipRect(rect)
+
+			// Center pieces
+			globals.GUITexture.Texture.SetColorMod(deadlineColor.RGB())
+			globals.GUITexture.Texture.SetAlphaMod(255)
+			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{240, 0, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
+			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{248, 0, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
+
+			// Outline
+			globals.GUITexture.Texture.SetColorMod(deadlineColor.Accent().RGB())
+			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{272, 128, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
+			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{280, 128, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
+
+			globals.TextRenderer.QuickRenderText(text, Point{start.X + 32, start.Y}, 1, getThemeColor(GUIFontColor), nil, AlignLeft)
+
+			globals.GUITexture.Texture.SetColorMod(255, 255, 255)
+
+			src := &sdl.Rect{240, 160, 32, 32}
+			if timeDiffDuration < 0 {
+				src.X = 304
+			} else if timeDiffDuration == 0 {
+				src.X = 272
+			}
+			globals.Renderer.CopyF(globals.GUITexture.Texture, src, &sdl.FRect{start.X + 2, start.Y, 32, 32})
+
+			globals.Renderer.SetClipRect(nil)
+
+		}
+
+	}
 
 	for _, link := range card.Links {
 		if link.Start == card && link.End.Valid {
@@ -1002,11 +1167,9 @@ func (card *Card) PostDraw() {
 			bottom := card.Stack.Bottom()
 			end := cam.TranslatePoint(Point{leftMost - globals.GridSize, bottom.DisplayRect.Y + bottom.DisplayRect.H})
 
-			color := getThemeColor(GUIMenuColor)
-			globals.Renderer.SetDrawColor(color.RGBA())
-			// globals.Renderer.DrawLineF(start.X, start.Y, end.X, end.Y)
-
-			ThickLine(start, end, 4, color)
+			// Draw "stack" line
+			ThickLine(start, end, 6, getThemeColor(GUIFontColor))
+			ThickLine(start, end, 4, getThemeColor(GUIMenuColor))
 
 		}
 
@@ -1063,6 +1226,10 @@ func (card *Card) MaximumCompletionLevel() float32 {
 func (card *Card) Completed() bool {
 	max := card.MaximumCompletionLevel()
 	return max > 0 && card.CompletionLevel() >= max
+}
+
+func (card *Card) Completable() bool {
+	return card.ContentType == ContentTypeCheckbox || card.ContentType == ContentTypeNumbered
 }
 
 func (card *Card) Serialize() string {

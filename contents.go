@@ -442,7 +442,7 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	row.Add("current", numbered.Current)
 	// row.Add("out of", NewLabel("out of", nil, true, AlignCenter))
 	row.Add("max", numbered.Max)
-	row.ExpandElements = true
+	row.ExpandAllElements = true
 
 	return numbered
 }
@@ -605,7 +605,7 @@ func NewNoteContents(card *Card) *NoteContents {
 	}
 
 	row := nc.Container.AddRow(AlignLeft)
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{112, 160, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true))
+	row.Add("icon", NewGUIImage(nil, &sdl.Rect{112, 160, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("label", nc.Label)
 
 	return nc
@@ -690,7 +690,7 @@ func NewSoundContents(card *Card) *SoundContents {
 	soundContents.PlaybackLabel = NewLabel("", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft)
 
 	firstRow := soundContents.Container.AddRow(AlignLeft)
-	firstRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{144, 160, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true))
+	firstRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{144, 160, 32, 32}, globals.GUITexture.Texture, true))
 	firstRow.Add("sound name label", soundContents.SoundNameLabel)
 
 	soundContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
@@ -724,7 +724,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 		row := commonMenu.Pages["root"].AddRow(AlignLeft)
-		row.ExpandElements = true
+		row.ExpandAllElements = true
 		row.Add("filepath", soundContents.FilepathLabel)
 
 		commonMenu.Open()
@@ -1038,7 +1038,7 @@ func NewImageContents(card *Card) *ImageContents {
 
 			// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 			row := commonMenu.Pages["root"].AddRow(AlignLeft)
-			row.ExpandElements = true
+			row.ExpandAllElements = true
 			commonMenu.Open()
 			if imageContents.Resource != nil && imageContents.Resource.SaveFile {
 				row.Add("filepath", NewLabel("This is an image that has been directly pasted into the project; its filepath cannot be edited.", nil, false, AlignLeft))
@@ -1365,7 +1365,7 @@ func NewTimerContents(card *Card) *TimerContents {
 	// tc.ClockLabel.AutoExpand = true
 
 	row := tc.Container.AddRow(AlignLeft)
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{80, 64, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true))
+	row.Add("icon", NewGUIImage(nil, &sdl.Rect{80, 64, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("name", tc.Name)
 
 	row = tc.Container.AddRow(AlignCenter)
@@ -1855,7 +1855,7 @@ func NewMapContents(card *Card) *MapContents {
 
 	mc.Buttons = append(mc.Buttons, rotateLeft)
 
-	mc.Container.AddRow(AlignLeft).Add("icon", NewGUIImage(nil, &sdl.Rect{112, 96, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true))
+	mc.Container.AddRow(AlignLeft).Add("icon", NewGUIImage(nil, &sdl.Rect{112, 96, 32, 32}, globals.GUITexture.Texture, true))
 
 	mc.MapData.Resize(int(mc.Card.Rect.W/globals.GridSize), int(mc.Card.Rect.H/globals.GridSize))
 
@@ -2324,7 +2324,7 @@ func (mc *MapContents) UpdateTexture() {
 		globals.Renderer.SetDrawColor(getThemeColor(GUIMapColor).RGBA())
 		globals.Renderer.FillRect(nil)
 
-		guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture
+		guiTex := globals.GUITexture.Texture
 
 		guiTex.SetColorMod(255, 255, 255)
 		guiTex.SetAlphaMod(255)
@@ -2488,7 +2488,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	sb.ScreenshotImage.Border = true
 
 	row := sb.Container.AddRow(AlignCenter)
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{48, 256, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true))
+	row.Add("icon", NewGUIImage(nil, &sdl.Rect{48, 256, 32, 32}, globals.GUITexture.Texture, true))
 	sb.NameLabel = NewLabel("New Sub-Page", nil, true, AlignCenter)
 	sb.NameLabel.DrawLineUnderTitle = false
 
@@ -2697,7 +2697,7 @@ func NewLinkContents(card *Card) *LinkContents {
 	}
 
 	row := lc.Container.AddRow(AlignLeft)
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{112, 256, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true))
+	row.Add("icon", NewGUIImage(nil, &sdl.Rect{112, 256, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("label", lc.Label)
 	lc.CardRow = lc.Container.AddRow(AlignCenter)
 	lc.CardRow.HorizontalSpacing = 16
@@ -2733,7 +2733,7 @@ func NewLinkContents(card *Card) *LinkContents {
 
 		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 		row := commonMenu.Pages["root"].AddRow(AlignLeft)
-		row.ExpandElements = true
+		row.ExpandAllElements = true
 
 		run := lc.Card.Properties.Get("run")
 		l := NewLabel(" ", nil, false, AlignLeft)
@@ -2748,7 +2748,7 @@ func NewLinkContents(card *Card) *LinkContents {
 
 		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 		row = commonMenu.Pages["root"].AddRow(AlignLeft)
-		row.ExpandElements = true
+		row.ExpandAllElements = true
 
 		args := lc.Card.Properties.Get("args")
 		l = NewLabel(" ", nil, false, AlignLeft)
@@ -2773,7 +2773,7 @@ func NewLinkContents(card *Card) *LinkContents {
 
 	row = lc.Container.AddRow(AlignCenter)
 	row.HorizontalSpacing = 16
-	lc.linkedIcon = NewGUIImage(nil, &sdl.Rect{176, 126, 32, 32}, globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage().Texture, true)
+	lc.linkedIcon = NewGUIImage(nil, &sdl.Rect{176, 126, 32, 32}, globals.GUITexture.Texture, true)
 	row.Add("", lc.linkedIcon)
 	row.Add("", NewLabel("Link Mode:", nil, true, AlignCenter))
 	row.Add("group", NewIconButtonGroup(nil, true, func(index int) {}, card.Properties.Get("link mode"), &sdl.Rect{144, 256, 32, 32}, &sdl.Rect{144, 0, 32, 32}))
@@ -2953,3 +2953,212 @@ func (lc *LinkContents) ReceiveMessage(msg *Message) {
 	}
 
 }
+
+// type Calendar struct {
+// 	DefaultContents
+// 	Buttons                 []*Button
+// 	SelectionSquarePosition Point
+// 	SelectedIndex           int
+// 	CurrentTime             time.Time
+// }
+
+// func NewCalendarContents(card *Card) *Calendar {
+
+// 	cal := &Calendar{
+// 		DefaultContents: newDefaultContents(card),
+// 		Buttons:         []*Button{},
+// 		SelectedIndex:   -1,
+// 	}
+
+// 	if !card.Properties.Has("month") {
+// 		cal.ResetDate()
+// 	}
+
+// 	cal.CurrentTime = time.Now()
+
+// 	// Month
+
+// 	containerRow := cal.Container.AddRow(AlignCenter)
+
+// 	containerRow.Add("icon", NewGUIImage(nil, &sdl.Rect{176, 224, 32, 32}, globals.GUITexture.Texture, true))
+
+// 	button := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() {
+// 		cal.SelectedIndex = -1
+// 		value := card.Properties.Get("month").AsFloat()
+// 		card.Properties.Get("month").Set(value - 1)
+// 		cal.CalculateDays()
+// 	})
+// 	button.Flip = sdl.FLIP_HORIZONTAL
+// 	containerRow.Add("prev month", button)
+
+// 	containerRow.Add("month label", NewLabel("month label", nil, true, AlignCenter))
+
+// 	button = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() {
+// 		cal.SelectedIndex = -1
+// 		value := card.Properties.Get("month").AsFloat()
+// 		card.Properties.Get("month").Set(value + 1)
+// 		cal.CalculateDays()
+// 	})
+// 	containerRow.Add("next month", button)
+
+// 	// Year
+
+// 	containerRow = cal.Container.AddRow(AlignCenter)
+// 	button = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() {
+// 		cal.SelectedIndex = -1
+// 		value := card.Properties.Get("year").AsFloat()
+// 		card.Properties.Get("year").Set(value - 1)
+// 		cal.CalculateDays()
+// 	})
+// 	button.Flip = sdl.FLIP_HORIZONTAL
+// 	containerRow.Add("prev year", button)
+
+// 	containerRow.Add("year label", NewLabel("year label", nil, true, AlignCenter))
+
+// 	button = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() {
+// 		cal.SelectedIndex = -1
+// 		value := card.Properties.Get("year").AsFloat()
+// 		card.Properties.Get("year").Set(value + 1)
+// 		cal.CalculateDays()
+// 	})
+// 	containerRow.Add("next year", button)
+
+// 	containerRow.Add("reset date", NewIconButton(0, 0, &sdl.Rect{208, 192, 32, 32}, true, func() {
+// 		cal.SelectedIndex = -1
+// 		cal.ResetDate()
+// 		cal.CalculateDays()
+// 	}))
+
+// 	containerRow = cal.Container.AddRow(AlignCenter)
+// 	daysOfWeek := []string{
+// 		"S", "M", "T", "W", "T", "F", "S",
+// 	}
+
+// 	for _, day := range daysOfWeek {
+// 		containerRow.Add("", NewLabel(day, nil, true, AlignCenter))
+// 	}
+
+// 	var row *ContainerRow
+
+// 	index := 0
+
+// 	// So many buttons because the week could start on any individual day, pushing the week from 5 max to 6 max
+// 	for i := 0; i < 36; i++ {
+// 		if i%7 == 0 {
+// 			row = cal.Container.AddRow(AlignLeft)
+// 			// row.AlternateBGColor = true
+// 		}
+// 		ii := index
+// 		var dateButton *Button
+// 		dateButton = NewButton("31", nil, nil, true, func() {
+// 			r := dateButton.Rectangle()
+// 			cal.SelectionSquarePosition = Point{r.X + (r.W / 2) - cal.Card.Rect.X, r.Y + (r.H / 2) - cal.Card.Rect.Y}
+// 			cal.SelectedIndex = ii
+// 		})
+// 		dateButton.Disabled = true
+// 		row.Add("", dateButton)
+// 		cal.Buttons = append(cal.Buttons, dateButton)
+// 		index++
+// 		// row.Add("test", NewIconButton(0, 0, ))
+// 	}
+
+// 	containerRow = cal.Container.AddRow(AlignCenter)
+// 	containerRow.Add("deadline", NewButton("Set Deadline", nil, nil, true, func() {
+// 		if cal.SelectedIndex >= 0 {
+// 			globals.EventLog.Log("Deadline set.", false)
+// 			cal.Card.Properties.Get("deadline-0").Set(time.Now().String())
+// 		} else {
+// 			globals.EventLog.Log("No date is selected for the deadline.", true)
+// 		}
+// 	}))
+
+// 	cal.CalculateDays()
+
+// 	return cal
+
+// }
+
+// func (cal *Calendar) ResetDate() {
+// 	now := time.Now()
+// 	cal.Card.Properties.Get("year").Set(int(now.Year()))
+// 	cal.Card.Properties.Get("month").Set(int(now.Month()))
+// }
+
+// func (cal *Calendar) CalculateDays() {
+
+// 	now := time.Now()
+// 	// month := time.Now().Month()
+// 	year := int(cal.Card.Properties.Get("year").AsFloat())
+// 	month := int(cal.Card.Properties.Get("month").AsFloat())
+// 	firstDayOfMonth := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, now.Location())
+// 	lastDayOfMonth := time.Date(year, time.Month(month+1), 0, 0, 0, 0, 0, now.Location())
+
+// 	index := 0
+
+// 	for i, button := range cal.Buttons {
+
+// 		if time.Weekday(i) < firstDayOfMonth.Weekday() || index >= lastDayOfMonth.Day() {
+// 			button.Disabled = true
+// 			button.Label.SetText([]rune(""))
+// 		} else {
+// 			button.Disabled = false
+// 			button.Label.SetText([]rune(strconv.Itoa(index + 1)))
+// 			index++
+// 		}
+
+// 	}
+
+// 	cal.Container.FindElement("month label", false).(*Label).SetText([]rune(firstDayOfMonth.Month().String()[:3]))
+// 	cal.Container.FindElement("year label", false).(*Label).SetText([]rune(strconv.Itoa(firstDayOfMonth.Year())))
+
+// 	// i := 0
+// 	// index := 0
+// 	// started := false
+// 	// for _, button := range cal.Buttons {
+
+// 	// 	label := ""
+
+// 	// 	if firstDayOfMonth.Weekday() == time.Weekday(i+1) {
+// 	// 		started = true
+// 	// 	}
+
+// 	// 	if started {
+// 	// 		label = strconv.Itoa(index + 1)
+// 	// 		index++
+// 	// 	}
+
+// 	// 	button.Label.SetText([]rune(label))
+
+// 	// 	i++
+
+// 	// }
+
+// }
+
+// // func (cal *Calendar) Update() {}
+
+// func (cal *Calendar) Draw() {
+
+// 	dst := globals.Project.Camera.TranslateRect(&sdl.FRect{cal.SelectionSquarePosition.X - 16 + cal.Card.Rect.X, cal.SelectionSquarePosition.Y - 16 + cal.Card.Rect.Y, 32, 32})
+
+// 	if cal.SelectedIndex >= 0 {
+// 		focusColor := getThemeColor(GUIMenuColor)
+// 		globals.GUITexture.Texture.SetAlphaMod(255)
+// 		globals.GUITexture.Texture.SetColorMod(focusColor.RGB())
+// 		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{240, 0, 32, 32}, dst, 0, &sdl.FPoint{0, 0}, sdl.FLIP_NONE)
+// 	}
+
+// 	cal.Container.Draw()
+
+// }
+
+// func (cal *Calendar) ReceiveMessage(msg *Message) {}
+
+// func (cal *Calendar) Color() Color {
+// 	return getThemeColor(GUICalendarColor)
+// }
+// func (cal *Calendar) DefaultSize() Point {
+// 	gs := globals.GridSize
+// 	return Point{gs * 8, gs * 8}
+// }
+// func (cal *Calendar) Trigger(triggerType string) {}

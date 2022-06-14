@@ -1,9 +1,17 @@
+[x] Zoom to cursor
+[x] Option to disable shadows on cards
+[ ] Reimplement relative filepaths
+[x] Add a view for upcoming deadlines 
+[ ] Add an option to represent dates as "d/m/y" or "m/d/y" or "y/d/m" or whatever
+[ ] Tables, both for completion, as well as for organizing text. See the image here for an example of how tables should look: https://discord.com/channels/339550825154347008/944383281145733131/984075751865348116
+[ ] Disconnecting a monitor crashes MasterPlan
+[ ] Use dispatcher for Hierarchy as necessary
+
+[ ] Crystal (additive blending) graphical mode for Cards
 
 [ ] Document orphan pages
 [ ] Document hierarchy
 [ ] Document unlinking all cards
-[ ] Zoom to cursor
-[ ] Option to disable shadows on cards
 
 [ ] ESC key to exit common menu when entering paths for images or sounds
 [ ] Add button to reload images

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -146,24 +145,7 @@ func (hier *Hierarchy) Rows(sorting, filter int) []*ContainerRow {
 
 					}
 
-					text := ""
-					switch card.ContentType {
-					case ContentTypeImage:
-						fallthrough
-					case ContentTypeSound:
-						if card.Properties.Has("filepath") && card.Properties.Get("filepath").AsString() != "" {
-							_, fn := filepath.Split(card.Properties.Get("filepath").AsString())
-							text = fn
-						} else if card.ContentType == ContentTypeImage {
-							text = "No Image Loaded"
-						} else {
-							text = "No Sound Loaded"
-						}
-					case ContentTypeMap:
-						text = "Map"
-					default:
-						text = card.Properties.Get("description").AsString()
-					}
+					text := card.Name()
 
 					text = strings.ReplaceAll(text, "\n", " - ")
 					if len(text) > 20 {
