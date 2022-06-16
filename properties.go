@@ -7,12 +7,6 @@ import (
 	"github.com/tidwall/sjson"
 )
 
-const (
-	PropertyTypeCheckbox = "checkbox property"
-	PropertyTypeLabel    = "label property"
-	PropertyTypeString   = "string property"
-)
-
 type Property struct {
 	Properties *Properties
 	Name       string
@@ -178,6 +172,13 @@ func (properties *Properties) Get(name string) *Property {
 	prop.InUse = true
 	return prop
 
+}
+
+func (properties *Properties) GetIfExists(propertyName string) *Property {
+	if properties.Has(propertyName) {
+		return properties.Get(propertyName)
+	}
+	return nil
 }
 
 func (properties *Properties) Remove(propertyName string) {

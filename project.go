@@ -383,11 +383,38 @@ func (project *Project) Save() {
 
 	sort.SliceStable(pagesToSave, func(i, j int) bool { return pagesToSave[i].ID < pagesToSave[j].ID })
 
+	type convertedFilepath struct {
+		Original string
+		PropName string
+		Card     *Card
+	}
+
 	for i, page := range pagesToSave {
+
+		// Convert all paths to relative before saving
+		converted := []convertedFilepath{}
+
+		for _, card := range page.Cards {
+			if fp := card.Properties.GetIfExists("filepath"); fp != nil && FileExists(fp.AsString()) {
+				converted = append(converted, convertedFilepath{Original: fp.AsString(), PropName: "filepath", Card: card})
+				fp.Set(PathToRelative(fp.AsString()))
+			}
+			if run := card.Properties.GetIfExists("run"); run != nil && FileExists(run.AsString()) {
+				converted = append(converted, convertedFilepath{Original: run.AsString(), PropName: "run", Card: card})
+				run.Set(PathToRelative(run.AsString()))
+			}
+		}
+
 		pageData += page.Serialize()
 		if i < len(pagesToSave)-1 {
 			pageData += ", "
 		}
+
+		// Reset the filepaths after serialization
+		for _, conv := range converted {
+			conv.Card.Properties.Get(conv.PropName).Set(conv.Original)
+		}
+
 	}
 
 	pageData += "]"

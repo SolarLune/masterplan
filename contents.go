@@ -695,9 +695,11 @@ func NewSoundContents(card *Card) *SoundContents {
 
 	soundContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
 
+	fp := card.Properties.Get("filepath")
+	fp.Set(PathToAbsolute(fp.AsString())) // Convert relative path to absolute
 	soundContents.FilepathLabel.Editable = true
 	soundContents.FilepathLabel.RegexString = RegexNoNewlines
-	soundContents.FilepathLabel.Property = card.Properties.Get("filepath")
+	soundContents.FilepathLabel.Property = fp
 	soundContents.FilepathLabel.OnChange = func() {
 		soundContents.LoadFileFrom(soundContents.FilepathLabel.TextAsString())
 	}
@@ -1005,7 +1007,9 @@ func NewImageContents(card *Card) *ImageContents {
 	imageContents.FilepathLabel = NewLabel("Image file path", nil, false, AlignLeft)
 	imageContents.FilepathLabel.Editable = true
 	imageContents.FilepathLabel.RegexString = RegexNoNewlines
-	imageContents.FilepathLabel.Property = card.Properties.Get("filepath")
+	fp := card.Properties.Get("filepath")
+	fp.Set(PathToAbsolute(fp.AsString()))
+	imageContents.FilepathLabel.Property = fp
 	imageContents.FilepathLabel.OnChange = func() {
 		imageContents.LoadFileFrom(imageContents.FilepathLabel.TextAsString())
 	}
@@ -1119,6 +1123,9 @@ func (ic *ImageContents) Update() {
 
 			}
 
+		} else if ic.Resource.IsGIF() && ic.Resource.AsGIF().LoadingProgress() >= 1 && ic.GifPlayer == nil {
+			// Happens specifically when loading a project with an already existing GIF
+			ic.GifPlayer = NewGifPlayer(ic.Resource.AsGIF())
 		}
 
 		if resource.SaveFile {
@@ -2673,7 +2680,8 @@ func NewLinkContents(card *Card) *LinkContents {
 		TargetName:      NewLabel("[No Target]", nil, true, AlignCenter),
 	}
 
-	lc.Card.Properties.Get("run") // Update it to say it's in use
+	run := lc.Card.Properties.Get("run") // Update it to say it's in use
+	run.Set(PathToAbsolute(run.AsString()))
 	lc.Card.Properties.Get("args")
 	lc.Card.Properties.Get("link mode")
 	// This has to be -1 so the target doesn't get set automatically to the first Card

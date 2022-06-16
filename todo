@@ -1,11 +1,14 @@
 [x] Zoom to cursor
 [x] Option to disable shadows on cards
-[ ] Reimplement relative filepaths
+[x] Reimplement relative filepaths
 [x] Add a view for upcoming deadlines 
+[ ] PDF / PNG output (See: https://github.com/signintech/gopdf, or https://github.com/tdewolff/canvas)
 [ ] Add an option to represent dates as "d/m/y" or "m/d/y" or "y/d/m" or whatever
 [ ] Tables, both for completion, as well as for organizing text. See the image here for an example of how tables should look: https://discord.com/channels/339550825154347008/944383281145733131/984075751865348116
 [ ] Disconnecting a monitor crashes MasterPlan
 [ ] Use dispatcher for Hierarchy as necessary
+[ ] Option to draw background for images
+[ ] Don't save empty / null properties in save file (?)
 
 [ ] Crystal (additive blending) graphical mode for Cards
 
@@ -32,7 +35,6 @@
 [ ] Maybe don't use render textures for cards considering rendering 9 textures might just be faster than rendering a massive texture??? Not sure of the trade-off in terms of speed, but not
     every computer has really large texture limits
 [ ] Add text when you first save or load a project so you know it's doing it, maybe?
-[ ] PDF / PNG output (See: https://github.com/signintech/gopdf)
 
 [ ] Save menu positions across sessions
 [ ] Re-add the tutorial

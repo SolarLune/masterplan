@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goware/urlx"
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -92,16 +93,6 @@ func LocalRelativePath(localPath string) string {
 
 	return out
 
-}
-
-func FileExists(filepath string) bool {
-	fsInfo, err := os.Stat(filepath)
-
-	if (err != nil && !os.IsExist(err)) || fsInfo.IsDir() {
-		return false
-	}
-
-	return true
 }
 
 type Point struct {
@@ -715,6 +706,47 @@ func (shape *Shape) SetSizes(xywh ...float32) {
 // 	return o
 
 // }
+
+func PathToRelative(fp string) string {
+	if !filepath.IsAbs(fp) || IsURL(fp) || strings.TrimSpace(fp) == "" || !FileExists(fp) {
+		return fp
+	}
+	base := LocalRelativePath("")
+	rel, err := filepath.Rel(base, string(fp))
+	if err != nil {
+		panic(err)
+	}
+	return filepath.ToSlash(rel)
+}
+
+func PathToAbsolute(fp string) string {
+	if filepath.IsAbs(fp) || IsURL(fp) || strings.TrimSpace(fp) == "" {
+		return fp
+	}
+	base := LocalRelativePath("")
+	elements := []string{base, filepath.FromSlash(string(fp))}
+	final := filepath.Clean(filepath.Join(elements...))
+	return final
+}
+
+func FileExists(fp string) bool {
+	fp = strings.TrimSpace(fp)
+	fsInfo, err := os.Stat(fp)
+
+	if (err != nil && !os.IsExist(err)) || fsInfo.IsDir() {
+		return false
+	}
+
+	return true
+}
+
+func IsURL(fp string) bool {
+	fp = strings.TrimSpace(fp)
+	if _, err := urlx.Parse(fp); err == nil {
+		return true
+	}
+	return false
+}
 
 // FilesinDirectory lists the files in a directory that have a filename as the base.
 func FilesInDirectory(dir string, prefix string) []string {

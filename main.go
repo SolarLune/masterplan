@@ -2481,10 +2481,10 @@ func ConstructMenus() {
 	}
 
 	labelRow := baseRows[0]
-	labelRow.Add("label", NewLabel("Due Deadlines", nil, false, AlignCenter))
+	labelRow.Add("due label", NewLabel("Due Deadlines (xxxx)", nil, false, AlignCenter))
 
 	completeRow := baseRows[1]
-	completeRow.Add("", NewLabel("Completed Deadlines", nil, false, AlignCenter))
+	completeRow.Add("completed label", NewLabel("Completed Deadlines (xxxx)", nil, false, AlignCenter))
 
 	type deadlineButton struct {
 		Row  *ContainerRow
@@ -2589,20 +2589,28 @@ func ConstructMenus() {
 			return deadlineButtons[i].Card.ID < deadlineButtons[j].Card.ID
 		})
 
+		count := 0
 		deadlineRoot.Rows = append([]*ContainerRow{}, baseRows[0])
 		for _, b := range deadlineButtons {
 			if !b.Card.Completed() {
+				count++
 				deadlineRoot.Rows = append(deadlineRoot.Rows, b.Row)
 			}
 		}
+
+		baseRows[0].Elements["due label"].(*Label).SetText([]rune(fmt.Sprintf("Due Deadlines (%d)", count)))
 
 		deadlineRoot.Rows = append(deadlineRoot.Rows, baseRows[1])
 
+		count = 0
 		for _, b := range deadlineButtons {
 			if b.Card.Completed() {
+				count++
 				deadlineRoot.Rows = append(deadlineRoot.Rows, b.Row)
 			}
 		}
+
+		baseRows[1].Elements["completed label"].(*Label).SetText([]rune(fmt.Sprintf("Due Deadlines (%d)", count)))
 
 	}
 

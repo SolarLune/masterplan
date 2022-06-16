@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image/color"
 	"image/gif"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -49,6 +48,8 @@ func (gifAnim *GifAnimation) Load() {
 			disposalMode = gifAnim.Data.Disposal[index-1]
 		}
 
+		empty := sdl.RGBA8888{0, 0, 0, 0}
+
 		for y := 0; y < gifAnim.frameImg.Bounds().Size().Y; y++ {
 
 			for x := 0; x < gifAnim.frameImg.Bounds().Size().X; x++ {
@@ -57,9 +58,10 @@ func (gifAnim *GifAnimation) Load() {
 				// some frames of GIFs can have a "changed rectangle", indicating which pixels in which rectangle need to actually change.
 
 				if disposalMode == gif.DisposalBackground {
-					gifAnim.frameImg.Set(x, y, color.RGBA{0, 0, 0, 0})
+					gifAnim.frameImg.Set(x, y, empty)
 				} else if disposalMode == gif.DisposalPrevious {
-					gifAnim.frameImg.Set(x, y, gifAnim.Data.Image[prev].At(x, y))
+					r, g, b, a := gifAnim.Data.Image[prev].At(x, y).RGBA()
+					gifAnim.frameImg.Set(x, y, sdl.RGBA8888{byte(r), byte(g), byte(b), byte(a)})
 				}
 
 				if disposalMode != gif.DisposalPrevious {
@@ -70,7 +72,8 @@ func (gifAnim *GifAnimation) Load() {
 
 					color := img.At(x, y)
 					if _, _, _, alpha := color.RGBA(); alpha > 0 {
-						gifAnim.frameImg.Set(x, y, img.At(x, y))
+						r, g, b, a := color.RGBA()
+						gifAnim.frameImg.Set(x, y, sdl.RGBA8888{byte(r), byte(g), byte(b), byte(a)})
 					}
 
 				}
