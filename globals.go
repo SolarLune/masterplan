@@ -27,6 +27,7 @@ type Globals struct {
 	GUITexture               Image
 
 	Renderer          *sdl.Renderer
+	ScreenshotTexture *sdl.Texture
 	RendererInfo      sdl.RendererInfo
 	Font              *ttf.Font
 	TextRenderer      *TextRenderer

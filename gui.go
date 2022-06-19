@@ -2068,14 +2068,13 @@ type ContainerRow struct {
 
 func NewContainerRow(container *Container, horizontalAlignment string) *ContainerRow {
 	row := &ContainerRow{
-		Container:         container,
-		ElementOrder:      []MenuElement{},
-		Elements:          map[string]MenuElement{},
-		Alignment:         horizontalAlignment,
-		HorizontalSpacing: 0,
-		VerticalSpacing:   4,
-		Visible:           true,
-		rect:              &sdl.FRect{},
+		Container:       container,
+		ElementOrder:    []MenuElement{},
+		Elements:        map[string]MenuElement{},
+		Alignment:       horizontalAlignment,
+		VerticalSpacing: 4,
+		Visible:         true,
+		rect:            &sdl.FRect{},
 		// InterElementSpacing: -1,
 	}
 

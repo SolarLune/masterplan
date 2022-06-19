@@ -270,48 +270,51 @@ func (project *Project) SetModifiedState() {
 	project.justModified = true
 }
 
-func (project *Project) Draw() {
-
+func (project *Project) DrawGrid() {
 	drawGridPiece := func(x, y float32) {
 		globals.Renderer.CopyF(project.GridTexture.Texture, nil, &sdl.FRect{x, y, project.GridTexture.Size.X, project.GridTexture.Size.Y})
 	}
 
-	if project.Camera.Zoom > 0.5 && globals.Settings.Get(SettingsShowGrid).AsBool() {
-
-		extent := float32(10)
-		for y := -extent; y < extent; y++ {
-			for x := -extent; x < extent; x++ {
-				translated := project.Camera.TranslateRect(&sdl.FRect{x * project.GridTexture.Size.X, y * project.GridTexture.Size.Y, 0, 0})
-				drawGridPiece(translated.X, translated.Y)
-			}
+	extent := float32(10)
+	for y := -extent; y < extent; y++ {
+		for x := -extent; x < extent; x++ {
+			translated := project.Camera.TranslateRect(&sdl.FRect{x * project.GridTexture.Size.X, y * project.GridTexture.Size.Y, 0, 0})
+			drawGridPiece(translated.X, translated.Y)
 		}
+	}
 
-		halfW := float32(project.Camera.ViewArea().W / 2)
-		halfH := float32(project.Camera.ViewArea().H / 2)
-		ThickLine(project.Camera.TranslatePoint(Point{project.Camera.Position.X - halfW, 0}), project.Camera.TranslatePoint(Point{project.Camera.Position.X + halfW, 0}), 2, getThemeColor(GUIGridColor))
-		ThickLine(project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y - halfH}), project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y + halfH}), 2, getThemeColor(GUIGridColor))
+	halfW := float32(project.Camera.ViewArea().W / 2)
+	halfH := float32(project.Camera.ViewArea().H / 2)
+	ThickLine(project.Camera.TranslatePoint(Point{project.Camera.Position.X - halfW, 0}), project.Camera.TranslatePoint(Point{project.Camera.Position.X + halfW, 0}), 2, getThemeColor(GUIGridColor))
+	ThickLine(project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y - halfH}), project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y + halfH}), 2, getThemeColor(GUIGridColor))
 
-		if project.CurrentPage.UpwardPage != nil {
+	if project.CurrentPage.UpwardPage != nil {
 
-			gridColor := getThemeColor(GUIGridColor)
+		gridColor := getThemeColor(GUIGridColor)
 
-			text := project.CurrentPage.PointingSubpageCard.Properties.Get("description").AsString()
-			textSize := globals.TextRenderer.MeasureText([]rune(text), 1).CeilToGrid()
-			globals.Renderer.SetDrawColor(gridColor.RGBA())
-			globals.Renderer.FillRectF(project.Camera.TranslateRect(&sdl.FRect{0, -globals.GridSize, textSize.X, textSize.Y}))
-			globals.TextRenderer.QuickRenderText(text, project.Camera.TranslatePoint(Point{textSize.X / 2, -globals.GridSize}), 1, getThemeColor(GUIBGColor), nil, AlignCenter)
+		text := project.CurrentPage.PointingSubpageCard.Properties.Get("description").AsString()
+		textSize := globals.TextRenderer.MeasureText([]rune(text), 1).CeilToGrid()
+		globals.Renderer.SetDrawColor(gridColor.RGBA())
+		globals.Renderer.FillRectF(project.Camera.TranslateRect(&sdl.FRect{0, -globals.GridSize, textSize.X, textSize.Y}))
+		globals.TextRenderer.QuickRenderText(text, project.Camera.TranslatePoint(Point{textSize.X / 2, -globals.GridSize}), 1, getThemeColor(GUIBGColor), nil, AlignCenter)
 
-			// globals.Renderer.DrawRectF(project.Camera.TranslateRect(&sdl.FRect{0, 0, SubpageScreenshotSize.X, SubpageScreenshotSize.Y}))
+		// globals.Renderer.DrawRectF(project.Camera.TranslateRect(&sdl.FRect{0, 0, SubpageScreenshotSize.X, SubpageScreenshotSize.Y}))
 
-			ssRect := project.Camera.TranslateRect(&sdl.FRect{0, 0, SubpageScreenshotSize.X / float32(SubpageScreenshotZoom), SubpageScreenshotSize.Y / float32(SubpageScreenshotZoom)}) // Screenshot zoom
-			ThickRect(int32(ssRect.X), int32(ssRect.Y), int32(ssRect.W), int32(ssRect.H), 2, gridColor)
-			guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
-			guiTex.Texture.SetColorMod(gridColor.RGB())
-			guiTex.Texture.SetAlphaMod(gridColor[3])
-			globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{80, 256, 32, 32}, &sdl.FRect{ssRect.X, ssRect.Y, 32, 32})
+		ssRect := project.Camera.TranslateRect(&sdl.FRect{0, 0, SubpageScreenshotSize.X / float32(SubpageScreenshotZoom), SubpageScreenshotSize.Y / float32(SubpageScreenshotZoom)}) // Screenshot zoom
+		ThickRect(int32(ssRect.X), int32(ssRect.Y), int32(ssRect.W), int32(ssRect.H), 2, gridColor)
+		guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
+		guiTex.Texture.SetColorMod(gridColor.RGB())
+		guiTex.Texture.SetAlphaMod(gridColor[3])
+		globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{80, 256, 32, 32}, &sdl.FRect{ssRect.X, ssRect.Y, 32, 32})
 
-		}
+	}
 
+}
+
+func (project *Project) Draw() {
+
+	if project.Camera.Zoom >= 1 && globals.Settings.Get(SettingsShowGrid).AsBool() {
+		project.DrawGrid()
 	}
 
 	// gridPieceToScreenW := globals.ScreenSize.X / project.GridTexture.Size.X / project.Camera.TargetZoom

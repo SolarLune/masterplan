@@ -214,6 +214,40 @@ func NewCorrectingRect(x1, y1, x2, y2 float32) CorrectingRect {
 	return CorrectingRect{x1, y1, x2, y2}
 }
 
+func (cr CorrectingRect) AddXY(x, y float32) CorrectingRect {
+	if x < cr.X1 {
+		cr.X1 = x
+	} else if x > cr.X2 {
+		cr.X2 = x
+	}
+	if y < cr.Y1 {
+		cr.Y1 = y
+	} else if y > cr.Y2 {
+		cr.Y2 = y
+	}
+	return cr
+}
+
+func (cr CorrectingRect) TopLeft() Point {
+	return Point{cr.X1, cr.Y1}
+}
+
+// func (cr CorrectingRect) CorrectBounds() {
+
+// }
+
+func (cr CorrectingRect) Width() float32 {
+	return cr.X2 - cr.X1
+}
+
+func (cr CorrectingRect) Height() float32 {
+	return cr.Y2 - cr.Y1
+}
+
+func (cr CorrectingRect) Center() Point {
+	return Point{cr.X1 + (cr.Width() / 2), cr.Y1 + (cr.Height() / 2)}
+}
+
 func (cr CorrectingRect) SDLRect() *sdl.FRect {
 
 	rect := &sdl.FRect{}
@@ -734,6 +768,17 @@ func FileExists(fp string) bool {
 	fsInfo, err := os.Stat(fp)
 
 	if (err != nil && !os.IsExist(err)) || fsInfo.IsDir() {
+		return false
+	}
+
+	return true
+}
+
+func FolderExists(fp string) bool {
+	fp = strings.TrimSpace(fp)
+	fsInfo, err := os.Stat(fp)
+
+	if (err != nil && !os.IsExist(err)) || !fsInfo.IsDir() {
 		return false
 	}
 

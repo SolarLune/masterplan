@@ -4,9 +4,6 @@ package main
 
 import (
 	"fmt"
-	"image"
-	"image/color"
-	"image/png"
 	"log"
 	"math"
 	"net/http"
@@ -34,8 +31,6 @@ import (
 )
 
 // Build-time variables; set by modeDemo.go and modeRelease.go.
-
-var takeScreenshot = false
 
 var windowTitle = "MasterPlan"
 var quit = false
@@ -212,6 +207,13 @@ func main() {
 
 	globals.RendererInfo = rendererInfo
 
+	globals.ScreenshotTexture, err = renderer.CreateTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_TARGET, w, h)
+	if err != nil {
+		panic(err)
+	}
+
+	// renderer.GetRenderTarget().Destroy()
+	// renderer.SetRenderTarget(globals.ScreenshotTexture)
 	// if globals.ProgramSettings.Get(SettingsSaveWindowPosition).AsBool() && globals.OldProgramSettings.WindowPosition.W > 0 && globals.OldProgramSettings.WindowPosition.H > 0 {
 	// 	x = int32(globals.OldProgramSettings.WindowPosition.X)
 	// 	y = int32(globals.OldProgramSettings.WindowPosition.Y)
@@ -398,6 +400,10 @@ func main() {
 		if screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y) {
 			globals.ScreenSizeChanged = true
 			globals.ScreenSizePrev = globals.ScreenSize
+			globals.ScreenshotTexture, err = renderer.CreateTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_TARGET, screenWidth, screenHeight)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 
 		globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
@@ -632,60 +638,10 @@ func main() {
 		// }
 
 		if globals.Keybindings.Pressed(KBTakeScreenshot) {
-			// This is here because you can trigger a screenshot from the context menu as well.
-			takeScreenshot = true
+			TakeScreenshot(nil)
 		}
 
-		if takeScreenshot {
-			// Use the current time for screenshot names; ".00" adds the fractional second
-			screenshotFileName := fmt.Sprintf("screenshot_%s.png", time.Now().Format(FileTimeFormat+".00"))
-			screenshotPath := LocalRelativePath(screenshotFileName)
-			if projectScreenshotsPath := globals.Settings.Get(SettingsScreenshotPath).AsString(); projectScreenshotsPath != "" {
-				if _, err := os.Stat(projectScreenshotsPath); err == nil {
-					screenshotPath = filepath.Join(projectScreenshotsPath, screenshotFileName)
-				}
-			}
-			// rl.TakeScreenshot(screenshotPath)
-
-			surf, err := sdl.CreateRGBSurfaceWithFormat(0, int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y), 32, sdl.PIXELFORMAT_ARGB8888)
-			if err != nil {
-				globals.EventLog.Log(err.Error(), false)
-			} else {
-				defer surf.Free()
-
-				if err := globals.Renderer.ReadPixels(nil, surf.Format.Format, surf.Data(), int(surf.Pitch)); err != nil {
-					globals.EventLog.Log(err.Error(), false)
-				}
-
-				screenshotFile, err := os.Create(screenshotPath)
-				if err != nil {
-					globals.EventLog.Log(err.Error(), false)
-				} else {
-					defer screenshotFile.Close()
-
-					image := image.NewRGBA(image.Rect(0, 0, int(globals.ScreenSize.X), int(globals.ScreenSize.Y)))
-					for y := 0; y < int(globals.ScreenSize.Y); y++ {
-						for x := 0; x < int(globals.ScreenSize.X); x++ {
-							r, g, b, a := ColorAt(surf, int32(x), int32(y))
-							image.Set(x, y, color.RGBA{r, g, b, a})
-						}
-					}
-
-					err := png.Encode(screenshotFile, image)
-
-					if err != nil {
-						globals.EventLog.Log(err.Error(), false)
-					} else {
-						screenshotFile.Sync()
-						globals.EventLog.Log("Screenshot saved successfully to %s.", false, screenshotPath)
-					}
-
-				}
-
-			}
-
-			takeScreenshot = false
-		}
+		handleScreenshots()
 
 		splashScreenTime += globals.DeltaTime
 
@@ -825,7 +781,10 @@ func ConstructMenus() {
 	mainMenu.AnchorMode = MenuAnchorTopLeft
 	root := mainMenu.Pages["root"]
 
-	row := root.AddRow(AlignCenter)
+	row := root.AddRow(AlignLeft)
+	row.HorizontalSpacing = 32
+
+	row.Add("", NewSpacer(nil))
 
 	var fileButton *Button
 
@@ -842,8 +801,6 @@ func ConstructMenus() {
 
 	row.Add("file menu", fileButton)
 
-	row.Add("", NewSpacer(&sdl.FRect{0, 0, 64, 32}))
-
 	var viewButton *Button
 
 	viewButton = NewButton("View", nil, nil, false, func() {
@@ -859,8 +816,25 @@ func ConstructMenus() {
 
 	row.Add("view menu", viewButton)
 
-	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 256, 32}))
-	row.Add("time label", NewLabel(time.Now().Format("Mon Jan 2 2006"), &sdl.FRect{0, 0, 256, 32}, false, AlignCenter))
+	var toolsButton *Button
+
+	toolsButton = NewButton("Tools", nil, nil, false, func() {
+		toolsMenu := globals.MenuSystem.Get("tools")
+		toolsMenu.Rect.X = toolsButton.Rectangle().X - 48
+		if mainMenu.Rect.Y > globals.ScreenSize.Y/2 {
+			toolsMenu.Rect.Y = toolsButton.Rectangle().Y - toolsMenu.Rect.H
+		} else {
+			toolsMenu.Rect.Y = toolsButton.Rectangle().Y + 32
+		}
+		toolsMenu.Open()
+	})
+
+	row.Add("tools menu", toolsButton)
+
+	timeLabel := NewLabel(time.Now().Format("Mon Jan 2 2006"), nil, false, AlignCenter)
+	row.Add("time label", timeLabel)
+
+	row.ExpandSelectedElements = []MenuElement{timeLabel}
 
 	// File Menu
 
@@ -915,6 +889,7 @@ func ConstructMenus() {
 		settings.Open()
 		fileMenu.Close()
 	}))
+
 	root.AddRow(AlignCenter).Add("Help", NewButton("Help", nil, nil, false, func() {
 		browser.OpenURL("https://github.com/SolarLune/masterplan/wiki")
 	}))
@@ -923,6 +898,174 @@ func ConstructMenus() {
 		confirmQuit.Center()
 		confirmQuit.Open()
 		fileMenu.Close()
+	}))
+
+	// Export sub-menu
+
+	exportMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 400, 350}, MenuCloseButton), "export", false)
+	exportMenu.Resizeable = true
+	exportMenu.Draggable = true
+
+	exportRoot := exportMenu.Pages["root"]
+	row = exportRoot.AddRow(AlignCenter)
+	row.Add("label", NewLabel("Export project as:", nil, false, AlignCenter))
+	row = exportRoot.AddRow(AlignCenter)
+	exportMode := NewButtonGroup(&sdl.FRect{0, 0, 256, 32}, false, func(index int) {}, nil, "PNGs", "PDF")
+	row.Add("choices", exportMode)
+
+	row = exportRoot.AddRow(AlignCenter)
+	row.Add("path label", NewLabel("Export directory:", nil, false, AlignCenter))
+
+	row = exportRoot.AddRow(AlignCenter)
+	row.ExpandAllElements = true
+
+	exportPathLabel := NewLabel("", nil, false, AlignLeft)
+
+	exportRoot.OnOpen = func() {
+		if globals.Project.Filepath != "" {
+			exportPathLabel.SetText([]rune(filepath.Dir(globals.Project.Filepath)))
+		} else {
+			exportPathLabel.SetText([]rune(LocalRelativePath(""))) // Default is MasterPlan's root directory
+		}
+	}
+
+	exportPathLabel.Editable = true
+	row.Add("path editable label", exportPathLabel)
+
+	row = exportRoot.AddRow(AlignCenter)
+	row.Add("path browse", NewButton("Browse", nil, nil, false, func() {
+		if path, err := zenity.SelectFile(zenity.Directory(), zenity.Title("Select Folder to Export Project Images...")); err != nil && err != zenity.ErrCanceled {
+			globals.EventLog.Log(err.Error(), true)
+		} else {
+			exportPathLabel.SetText([]rune(path))
+		}
+	}))
+
+	transparentBG := NewCheckbox(0, 0, false, nil)
+	transparentBGLabel := NewLabel("Transparent BG:", nil, false, AlignCenter)
+	row = exportRoot.AddRow(AlignCenter)
+	row.Add("transparent BG label", transparentBGLabel)
+	row.Add("transparent BG option", transparentBG)
+	row.Add("", NewSpacer(nil))
+	row.ExpandSelectedElements = []MenuElement{transparentBGLabel}
+
+	row = exportRoot.AddRow(AlignCenter)
+	row.Add("export", NewButton("Export", nil, nil, false, func() {
+		// takeScreenshot = true
+
+		exportModeOption := ExportModePNG
+		if exportMode.ChosenIndex == 1 {
+			exportModeOption = ExportModePDF
+		}
+		activeScreenshot = &ScreenshotOptions{
+			AllPages:              true,
+			ExportMode:            exportModeOption,
+			TransparentBackground: transparentBG.Checked,
+			HideGUI:               true,
+			Filename:              exportPathLabel.TextAsString(),
+		}
+	}))
+
+	// Tools Menu
+
+	toolsMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), "tools", false)
+	root = toolsMenu.Pages["root"]
+
+	root.AddRow(AlignCenter).Add("take screenshot", NewButton("Take Screenshot", nil, nil, false, func() {
+		TakeScreenshot(nil)
+		toolsMenu.Close()
+	}))
+
+	root.AddRow(AlignCenter).Add("export", NewButton("Export...", nil, nil, false, func() {
+
+		export := globals.MenuSystem.Get("export")
+		export.Center()
+		export.Open()
+		toolsMenu.Close()
+
+	}))
+
+	root.AddRow(AlignCenter).Add("", NewButton("Flatten Project", nil, nil, false, func() {
+
+		common := globals.MenuSystem.Get("common")
+		root := common.Pages["root"]
+		root.DefaultExpand = true
+		root.Clear()
+		row := root.AddRow(AlignCenter)
+		row.Add("", NewLabel("Warning!", nil, false, AlignCenter))
+		row = root.AddRow(AlignCenter)
+		label := NewLabel("This tool will flatten the project, bringing all cards from all sub-pages to the root page, organized horizontally going to the right. It's best to consider this something that cannot be easily undone (outside of reloading the project). Is this OK?", nil, false, AlignCenter)
+		row.Add("", label)
+		row = root.AddRow(AlignCenter)
+		row.Add("", NewButton("Proceed", nil, nil, false, func() {
+
+			project := globals.Project
+
+			globals.EventLog.On = false
+
+			if len(project.Pages) > 1 {
+
+				for _, page := range globals.Project.Pages[1:] {
+
+					globals.CopyBuffer.Clear()
+
+					root := globals.Project.Pages[0]
+					offsetX := float32(0)
+					for _, c := range root.Cards {
+						if c.Rect.X+c.Rect.W > offsetX {
+							offsetX = c.Rect.X + c.Rect.W
+						}
+					}
+
+					pageOffsetX := float32(0)
+					for _, card := range page.Cards {
+						if card.Rect.X < pageOffsetX {
+							pageOffsetX = card.Rect.X
+						}
+					}
+
+					for _, card := range page.Cards {
+
+						globals.CopyBuffer.CutMode = true
+
+						if card.ContentType != ContentTypeSubpage {
+							globals.CopyBuffer.Copy(card)
+						}
+
+						card.LockPosition()
+						card.CreateUndoState = true
+
+					}
+
+					rootPage := project.Pages[0]
+					rootPage.Selection.Clear()
+
+					for _, card := range rootPage.PasteCards(Point{offsetX - pageOffsetX, 0}, false) {
+						rootPage.Selection.Add(card)
+					}
+
+					project.SetPage(page) // Force screenshots to be taken
+					page.Update()
+					page.Draw()
+
+				}
+
+			}
+
+			globals.EventLog.On = true
+
+			globals.EventLog.Log("Project flattened - all cards in sub-pages are now in the root page.", true)
+
+			project.SetPage(project.Pages[0])
+
+			common.Close()
+
+		}))
+		row.Add("", NewButton("Cancel", nil, nil, false, func() {
+			common.Close()
+		}))
+		common.Open()
+
 	}))
 
 	// View Menu
@@ -1101,90 +1244,6 @@ func ConstructMenus() {
 	}))
 	root.AddRow(AlignCenter).Add("set deadline", NewButton("Set Deadline", nil, nil, false, func() {
 		editMenu.SetPage("set deadline")
-	}))
-
-	row = root.AddRow(AlignCenter)
-	row.Add("", NewButton("Flatten Project", nil, nil, false, func() {
-
-		common := globals.MenuSystem.Get("common")
-		root := common.Pages["root"]
-		root.DefaultExpand = true
-		root.Clear()
-		row := root.AddRow(AlignCenter)
-		row.Add("", NewLabel("Warning!", nil, false, AlignCenter))
-		row = root.AddRow(AlignCenter)
-		label := NewLabel("This tool will flatten the project, bringing all cards from all sub-pages to the root page, organized horizontally going to the right. It's best to consider this something that cannot be easily undone (outside of reloading the project). Is this OK?", nil, false, AlignCenter)
-		row.Add("", label)
-		row = root.AddRow(AlignCenter)
-		row.Add("", NewButton("Proceed", nil, nil, false, func() {
-
-			project := globals.Project
-
-			globals.EventLog.On = false
-
-			if len(project.Pages) > 1 {
-
-				for _, page := range globals.Project.Pages[1:] {
-
-					globals.CopyBuffer.Clear()
-
-					root := globals.Project.Pages[0]
-					offsetX := float32(0)
-					for _, c := range root.Cards {
-						if c.Rect.X+c.Rect.W > offsetX {
-							offsetX = c.Rect.X + c.Rect.W
-						}
-					}
-
-					pageOffsetX := float32(0)
-					for _, card := range page.Cards {
-						if card.Rect.X < pageOffsetX {
-							pageOffsetX = card.Rect.X
-						}
-					}
-
-					for _, card := range page.Cards {
-
-						globals.CopyBuffer.CutMode = true
-
-						if card.ContentType != ContentTypeSubpage {
-							globals.CopyBuffer.Copy(card)
-						}
-
-						card.LockPosition()
-						card.CreateUndoState = true
-
-					}
-
-					rootPage := project.Pages[0]
-					rootPage.Selection.Clear()
-
-					for _, card := range rootPage.PasteCards(Point{offsetX - pageOffsetX, 0}, false) {
-						rootPage.Selection.Add(card)
-					}
-
-					project.SetPage(page) // Force screenshots to be taken
-					page.Update()
-					page.Draw()
-
-				}
-
-			}
-
-			globals.EventLog.On = true
-
-			globals.EventLog.Log("Project flattened - all cards in sub-pages are now in the root page.", true)
-
-			project.SetPage(project.Pages[0])
-
-			common.Close()
-
-		}))
-		row.Add("", NewButton("Cancel", nil, nil, false, func() {
-			common.Close()
-		}))
-		common.Open()
-
 	}))
 
 	setColor := editMenu.AddPage("set color")
