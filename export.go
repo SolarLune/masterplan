@@ -22,7 +22,8 @@ const (
 )
 
 type ScreenshotOptions struct {
-	AllPages bool
+	Exporting   bool
+	ExportIndex int
 
 	TransparentBackground bool
 	HideGUI               bool
@@ -31,6 +32,12 @@ type ScreenshotOptions struct {
 	Filename   string
 }
 
+type screenshotOutput struct {
+	Page       *Page
+	Screenshot *image.RGBA
+}
+
+var activeScreenshotOutputs []screenshotOutput
 var activeScreenshot *ScreenshotOptions
 
 func TakeScreenshot(options *ScreenshotOptions) {
@@ -57,34 +64,23 @@ func TakeScreenshot(options *ScreenshotOptions) {
 
 }
 
-func createScreenshotImage() *image.RGBA {
+func createScreenshotImage(surf *sdl.Surface, width, height int32) *image.RGBA {
 
-	width := int32(globals.ScreenSize.X)
-	height := int32(globals.ScreenSize.Y)
+	surf.FillRect(nil, 0x00000000)
 
-	surf, err := sdl.CreateRGBSurfaceWithFormat(0, width, height, 32, sdl.PIXELFORMAT_ARGB8888)
-
-	if err != nil {
+	if err := globals.Renderer.ReadPixels(nil, surf.Format.Format, surf.Data(), int(surf.Pitch)); err != nil {
 		globals.EventLog.Log(err.Error(), false)
 	} else {
 
-		defer surf.Free()
-
-		if err := globals.Renderer.ReadPixels(nil, surf.Format.Format, surf.Data(), int(surf.Pitch)); err != nil {
-			globals.EventLog.Log(err.Error(), false)
-		} else {
-
-			img := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
-			for y := 0; y < int(globals.ScreenSize.Y); y++ {
-				for x := 0; x < int(globals.ScreenSize.X); x++ {
-					r, g, b, a := ColorAt(surf, int32(x), int32(y))
-					img.Set(x, y, color.RGBA{r, g, b, a})
-				}
+		img := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
+		for y := 0; y < int(height); y++ {
+			for x := 0; x < int(width); x++ {
+				r, g, b, a := ColorAt(surf, int32(x), int32(y))
+				img.Set(x, y, color.RGBA{r, g, b, a})
 			}
-
-			return img
-
 		}
+
+		return img
 
 	}
 
@@ -94,15 +90,12 @@ func createScreenshotImage() *image.RGBA {
 
 func handleScreenshots() {
 
-	// TODO: Use landscape orientation for PDFs
-	// Do pngs first, then PDFs
-	// PDFs can be generated using GoPDF.ImageFrom
-
 	if activeScreenshot != nil {
 
 		pages := []*Page{globals.Project.Pages[0]}
 
-		if activeScreenshot.AllPages {
+		if activeScreenshot.Exporting {
+			globals.LockInput = true
 			for _, page := range globals.Project.Pages[1:] {
 				if page.Valid {
 					pages = append(pages, page)
@@ -110,26 +103,45 @@ func handleScreenshots() {
 			}
 		}
 
-		type screenshotOutput struct {
-			Page       *Page
-			Screenshot *image.RGBA
-		}
-
-		images := []screenshotOutput{}
-
-		globals.Renderer.SetRenderTarget(globals.ScreenshotTexture)
-
 		camera := globals.Project.Camera
 		origPosition := camera.Position
 		origTargetPosition := camera.TargetPosition
 		origZoom := camera.Zoom
 		origTargetZoom := camera.TargetZoom
 		origPage := globals.Project.CurrentPage
+		origScreenSize := globals.ScreenSize // The screen size changes because we're changing the renderer's render target, which may have a different size from the screen
 
-		globals.Project.Camera.TargetZoom = 1
-		globals.Project.Camera.Zoom = 1
+		type shotPiece struct {
+			Piece  *image.RGBA
+			Offset image.Point
+		}
 
-		for _, page := range pages {
+		if !activeScreenshot.Exporting {
+
+			// For an ordinary screenshot, we don't have to do much; we just take a screenshot using the already bound backing globals.Renderer render target, and export it.
+
+			shot := createScreenshotImage(globals.ScreenshotSurf, int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y))
+
+			activeScreenshotOutputs = []screenshotOutput{{
+				Page:       globals.Project.CurrentPage,
+				Screenshot: shot,
+			},
+			}
+
+		} else if activeScreenshot.ExportIndex < len(globals.Project.Pages) {
+
+			screenshotWidth := 1920
+			screenshotHeight := 1080
+			globals.ScreenSize.X = float32(screenshotWidth)
+			globals.ScreenSize.Y = float32(screenshotHeight)
+
+			page := globals.Project.Pages[activeScreenshot.ExportIndex]
+
+			// But for exporting a project, we have to piece together a larger screenshot for all of each page, not just what the camera currently sees.
+
+			SetRenderTarget(globals.ScreenshotTexture)
+			globals.Renderer.SetDrawColor(0, 0, 0, 0)
+			globals.Renderer.Clear()
 
 			globals.Project.CurrentPage = page
 
@@ -144,244 +156,221 @@ func handleScreenshots() {
 				cardBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
 			}
 
-			if activeScreenshot.AllPages {
-
-				for _, card := range page.Cards {
-					cardBounds = cardBounds.AddXY(card.Rect.X, card.Rect.Y)
-					cardBounds = cardBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
-				}
-
+			for _, card := range page.Cards {
+				cardBounds = cardBounds.AddXY(card.Rect.X, card.Rect.Y)
+				cardBounds = cardBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
 			}
 
-			// If we're not taking a screenshot of all pages in the project (i.e. exporting), or we are and the bounds of the shot are under the size of a screenshot, we're good
-			if !activeScreenshot.AllPages || (cardBounds.Width() <= globals.ScreenSize.X && cardBounds.Height() <= globals.ScreenSize.Y) {
+			globals.Project.Camera.TargetZoom = 1
+			globals.Project.Camera.Zoom = 1
 
-				globals.Project.Camera.Position = cardBounds.Center()
+			pieces := []shotPiece{}
 
-				if !activeScreenshot.TransparentBackground {
-					clearColor := getThemeColor(GUIBGColor)
-					globals.Renderer.SetDrawColor(clearColor.RGBA())
-				} else {
-					globals.Renderer.SetDrawColor(0, 0, 0, 0)
-				}
+			offsetX := 0
+			offsetY := 0
 
-				globals.Renderer.Clear()
+			// Screenshot size for export is 1920x1080 base
+			halfSSW := float32(screenshotWidth) / 2
+			halfSSH := float32(screenshotHeight) / 2
 
-				if !activeScreenshot.TransparentBackground {
-					globals.Project.DrawGrid()
-				}
+			oneShot := false // One picture because all cards are visible on one screen; no need to stitch
 
-				page.Update()
-				page.Draw()
+			for y := cardBounds.Y1 + halfSSH - 64; y <= cardBounds.Y2+halfSSH; y += float32(screenshotHeight) {
 
-				if !activeScreenshot.HideGUI {
-					globals.MenuSystem.Draw()
-				}
+				offsetX = 0
 
-				shot := createScreenshotImage()
+				for x := cardBounds.X1 + halfSSW - 64; x <= cardBounds.X2+halfSSW; x += float32(screenshotWidth) {
 
-				images = append(images, screenshotOutput{
-					Page:       page,
-					Screenshot: shot,
-				})
-
-			} else if activeScreenshot.AllPages {
-
-				// Otherwise, we'll need to stitch together multiple screenshots to form our export
-
-				type shotPiece struct {
-					Piece  *image.RGBA
-					Offset image.Point
-				}
-
-				pieces := []shotPiece{}
-
-				offsetX := 0
-				offsetY := 0
-
-				ssx := globals.ScreenSize.X / 2
-				ssy := globals.ScreenSize.Y / 2
-
-				for y := cardBounds.Y1 + ssy - 64; y <= cardBounds.Y2+ssy; y += globals.ScreenSize.Y {
-
-					offsetX = 0
-
-					for x := cardBounds.X1 + ssx - 64; x <= cardBounds.X2+ssx; x += globals.ScreenSize.X {
-
+					if cardBounds.Width() > float32(screenshotWidth) || cardBounds.Height() > float32(screenshotHeight) {
 						globals.Project.Camera.Position.X = x
 						globals.Project.Camera.Position.Y = y
-
-						if !activeScreenshot.TransparentBackground {
-							clearColor := getThemeColor(GUIBGColor)
-							globals.Renderer.SetDrawColor(clearColor.RGBA())
-						} else {
-							globals.Renderer.SetDrawColor(0, 0, 0, 0)
-						}
-
-						globals.Renderer.Clear()
-
-						if !activeScreenshot.TransparentBackground {
-							globals.Project.DrawGrid()
-						}
-
-						page.Update()
-						page.Draw()
-
-						if !activeScreenshot.HideGUI {
-							globals.MenuSystem.Draw()
-						}
-
-						pieces = append(pieces, shotPiece{
-							Piece:  createScreenshotImage(),
-							Offset: image.Point{offsetX, offsetY},
-						})
-
-						offsetX += int(globals.ScreenSize.X)
-
+					} else {
+						globals.Project.Camera.Position = cardBounds.Center()
+						oneShot = true
 					}
 
-					offsetY += int(globals.ScreenSize.Y)
+					globals.Project.Camera.TargetPosition = globals.Project.Camera.Position
+
+					if !activeScreenshot.TransparentBackground {
+						clearColor := getThemeColor(GUIBGColor)
+						globals.Renderer.SetDrawColor(clearColor.RGBA())
+					} else {
+						globals.Renderer.SetDrawColor(0, 0, 0, 0)
+					}
+
+					globals.Renderer.Clear()
+
+					if !activeScreenshot.TransparentBackground {
+						globals.Project.DrawGrid()
+					}
+
+					page.Update()
+					page.Draw()
+
+					if !activeScreenshot.HideGUI {
+						globals.MenuSystem.Draw()
+					}
+
+					pieces = append(pieces, shotPiece{
+						Piece:  createScreenshotImage(globals.ExportSurf, int32(screenshotWidth), int32(screenshotHeight)), // We've binded the screenshot texture for this, which is 1920x1080
+						Offset: image.Point{offsetX, offsetY},
+					})
+
+					offsetX += screenshotWidth
+
+					if oneShot {
+						break
+					}
 
 				}
 
-				shot := image.NewRGBA(image.Rect(0, 0, int(offsetX), int(offsetY)))
+				offsetY += screenshotHeight
 
-				for _, p := range pieces {
-					D := p.Piece.Bounds().Add(p.Offset)
-					draw.Draw(shot, D, p.Piece, image.Point{0, 0}, draw.Src)
+				if oneShot {
+					break
 				}
-
-				images = append(images, screenshotOutput{
-					Page:       page,
-					Screenshot: shot,
-				})
 
 			}
+
+			shot := image.NewRGBA(image.Rect(0, 0, int(offsetX), int(offsetY)))
+
+			for _, p := range pieces {
+				D := p.Piece.Bounds().Add(p.Offset)
+				draw.Draw(shot, D, p.Piece, image.Point{0, 0}, draw.Src)
+			}
+
+			activeScreenshotOutputs = append(activeScreenshotOutputs, screenshotOutput{
+				Page:       page,
+				Screenshot: shot,
+			})
+
+			activeScreenshot.ExportIndex++
 
 		}
 
-		globals.Renderer.SetRenderTarget(nil)
-
+		SetRenderTarget(nil)
+		globals.ScreenSize = origScreenSize
 		globals.Project.Camera.Zoom = origZoom
 		globals.Project.Camera.TargetZoom = origTargetZoom
 		globals.Project.Camera.Position = origPosition
 		globals.Project.Camera.TargetPosition = origTargetPosition
 		globals.Project.CurrentPage = origPage
 
-		switch activeScreenshot.ExportMode {
-		case ExportModePNG:
+		if !activeScreenshot.Exporting || activeScreenshot.ExportIndex >= len(globals.Project.Pages) {
 
-			var err error
+			switch activeScreenshot.ExportMode {
+			case ExportModePNG:
 
-			exportedPageNames := map[string]bool{}
+				var err error
 
-			for _, img := range images {
+				exportedPageNames := map[string]bool{}
+
+				for _, img := range activeScreenshotOutputs {
+
+					pagePath := activeScreenshot.Filename
+
+					if activeScreenshot.Exporting {
+
+						projectName := ""
+						if globals.Project.Filepath != "" {
+
+							_, projectName = filepath.Split(globals.Project.Filepath)
+							if ind := strings.Index(projectName, filepath.Ext(projectName)); ind >= 0 {
+								projectName = projectName[:ind]
+							}
+
+						}
+
+						name := img.Page.Name()
+
+						i := 2
+						_, existsAlready := exportedPageNames[name]
+						for existsAlready {
+							name += strconv.Itoa(i)
+							_, existsAlready = exportedPageNames[name]
+						}
+
+						exportedPageNames[name] = true
+
+						pagePath = filepath.Join(pagePath, projectName+"_Export_"+name+".png")
+
+					}
+
+					var screenshotFile *os.File
+
+					screenshotFile, err = os.Create(pagePath)
+					if err != nil {
+						break
+					}
+
+					err = png.Encode(screenshotFile, img.Screenshot)
+
+					if err != nil {
+						break
+					}
+
+					screenshotFile.Sync()
+					screenshotFile.Close()
+
+				}
+
+				if err == nil {
+					if activeScreenshot.Exporting {
+						globals.EventLog.Log("Project successfully exported in %s format to folder: %s.", false, activeScreenshot.ExportMode, activeScreenshot.Filename)
+					} else {
+						globals.EventLog.Log("Screenshot saved successfully to %s.", false, activeScreenshot.Filename)
+					}
+				} else {
+					globals.EventLog.Log(err.Error(), true)
+				}
+
+			case ExportModePDF:
 
 				pagePath := activeScreenshot.Filename
 
-				if activeScreenshot.AllPages {
+				projectName := ""
 
-					projectName := ""
-					if globals.Project.Filepath != "" {
+				if globals.Project.Filepath != "" {
 
-						_, projectName = filepath.Split(globals.Project.Filepath)
-						if ind := strings.Index(projectName, filepath.Ext(projectName)); ind >= 0 {
-							projectName = projectName[:ind]
-						}
-
+					_, projectName = filepath.Split(globals.Project.Filepath)
+					if ind := strings.Index(projectName, filepath.Ext(projectName)); ind >= 0 {
+						projectName = projectName[:ind]
 					}
 
-					name := img.Page.Name()
+				}
 
-					i := 2
-					_, existsAlready := exportedPageNames[name]
-					for existsAlready {
-						name += strconv.Itoa(i)
-						_, existsAlready = exportedPageNames[name]
+				pagePath = filepath.Join(pagePath, projectName+"_Export.pdf")
+
+				pdf := gopdf.GoPdf{}
+
+				pdf.Start(gopdf.Config{})
+				pdf.SetNoCompression()
+
+				for _, img := range activeScreenshotOutputs {
+					pageWidth := float64(img.Screenshot.Bounds().Dx()) / 3
+					pageHeight := float64(img.Screenshot.Bounds().Dy()) / 3
+					pdf.AddPageWithOption(gopdf.PageOption{PageSize: &gopdf.Rect{W: pageWidth, H: pageHeight}})
+					pdf.ImageFrom(img.Screenshot, 0, 0, &gopdf.Rect{W: pageWidth, H: pageHeight})
+
+				}
+
+				if err := pdf.WritePdf(pagePath); err != nil {
+					globals.EventLog.Log(err.Error(), true)
+				} else {
+					if activeScreenshot.Exporting {
+						globals.EventLog.Log("Project successfully exported in [%s] format to folder: %s.", false, activeScreenshot.ExportMode, activeScreenshot.Filename)
+					} else {
+						globals.EventLog.Log("Screenshot saved successfully to %s.", false, activeScreenshot.Filename)
 					}
-
-					exportedPageNames[name] = true
-
-					pagePath = filepath.Join(pagePath, projectName+"_Export_"+name+".png")
-
-				}
-
-				var screenshotFile *os.File
-
-				screenshotFile, err = os.Create(pagePath)
-				if err != nil {
-					globals.EventLog.Log(err.Error(), false)
-					break
-				}
-
-				err = png.Encode(screenshotFile, img.Screenshot)
-
-				if err != nil {
-					globals.EventLog.Log(err.Error(), false)
-					break
-				}
-
-				screenshotFile.Sync()
-				screenshotFile.Close()
-
-			}
-
-			if err == nil {
-				if activeScreenshot.AllPages {
-					globals.EventLog.Log("Project successfully exported in [%s] format to folder: %s.", false, activeScreenshot.ExportMode, activeScreenshot.Filename)
-				} else {
-					globals.EventLog.Log("Screenshot saved successfully to %s.", false, activeScreenshot.Filename)
 				}
 			}
 
-		case ExportModePDF:
-			var err error
+			activeScreenshot = nil // Handled
+			activeScreenshotOutputs = []screenshotOutput{}
+			globals.LockInput = false
 
-			pagePath := activeScreenshot.Filename
-
-			projectName := ""
-
-			if globals.Project.Filepath != "" {
-
-				_, projectName = filepath.Split(globals.Project.Filepath)
-				if ind := strings.Index(projectName, filepath.Ext(projectName)); ind >= 0 {
-					projectName = projectName[:ind]
-				}
-
-			}
-
-			pagePath = filepath.Join(pagePath, projectName+"_Export.pdf")
-
-			pdf := gopdf.GoPdf{}
-
-			pdf.Start(gopdf.Config{
-				PageSize: gopdf.Rect{W: 1600, H: 900},
-			})
-
-			for _, img := range images {
-				pdf.AddPage()
-				w := img.Screenshot.Bounds().Dx()
-				h := img.Screenshot.Bounds().Dy()
-				asr := float64(h) / float64(w)
-				height := 1600 * asr
-				pdf.ImageFrom(img.Screenshot, 0, 0, &gopdf.Rect{W: 1600, H: height})
-			}
-
-			if err := pdf.WritePdf(pagePath); err != nil {
-				globals.EventLog.Log(err.Error(), true)
-			}
-
-			if err == nil {
-				if activeScreenshot.AllPages {
-					globals.EventLog.Log("Project successfully exported in [%s] format to folder: %s.", false, activeScreenshot.ExportMode, activeScreenshot.Filename)
-				} else {
-					globals.EventLog.Log("Screenshot saved successfully to %s.", false, activeScreenshot.Filename)
-				}
-			}
 		}
 
 	}
-
-	activeScreenshot = nil // Handled
 
 }

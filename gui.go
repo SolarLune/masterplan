@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"image/color"
 	"log"
 	"math"
@@ -349,6 +350,72 @@ func (checkbox *Checkbox) Rectangle() *sdl.FRect {
 	r := *checkbox.Rect
 	return &r
 }
+
+type ProgressBar struct {
+	Percentage float32
+	Rect       *sdl.FRect
+	WorldSpace bool
+}
+
+func NewProgressBar(rect *sdl.FRect, worldSpace bool) *ProgressBar {
+	return &ProgressBar{
+		Rect:       rect,
+		WorldSpace: worldSpace,
+	}
+}
+
+func (pb *ProgressBar) Update() {}
+
+func (pb *ProgressBar) Draw() {
+
+	r := pb.Rectangle()
+
+	text := fmt.Sprintf("%d%%", int(pb.Percentage*100))
+	textHeight := globals.TextRenderer.MeasureText([]rune(text), 1).Y
+
+	p := Point{r.X + (r.W / 2), r.Y + (r.H / 2) - (textHeight / 2)}
+
+	if pb.WorldSpace {
+		r = globals.Project.Camera.TranslateRect(r)
+		p = globals.Project.Camera.TranslatePoint(p)
+	}
+
+	renderer := globals.Renderer
+
+	renderer.SetDrawColor(getThemeColor(GUIFontColor).RGBA())
+	renderer.FillRectF(r)
+
+	margin := float32(2)
+	r.X += margin
+	r.Y += margin
+	r.W -= margin * 2
+	r.H -= margin * 2
+
+	renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
+	renderer.FillRectF(r)
+
+	r.W *= pb.Percentage
+
+	renderer.SetDrawColor(getThemeColor(GUICompletedColor).RGBA())
+	renderer.FillRectF(r)
+
+	globals.TextRenderer.QuickRenderText(text, p, 1, ColorWhite, ColorBlack, AlignCenter)
+
+}
+
+func (pb *ProgressBar) Rectangle() *sdl.FRect {
+	r := *pb.Rect
+	return &r
+}
+
+func (pb *ProgressBar) SetRectangle(rect *sdl.FRect) {
+	pb.Rect.X = rect.X
+	pb.Rect.Y = rect.Y
+	pb.Rect.W = rect.W
+	pb.Rect.H = rect.H
+}
+
+func (pb *ProgressBar) Destroy() {}
 
 type NumberSpinner struct {
 	Rect     *sdl.FRect

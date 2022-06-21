@@ -832,6 +832,23 @@ func DatesAreEqual(d1, d2 time.Time) bool {
 	return d1.Year() == d2.Year() && d1.Month() == d2.Month() && d1.Day() == d2.Day()
 }
 
+var renderTargets []*sdl.Texture = []*sdl.Texture{nil}
+
+// SetRenderTarget allows you to set the renderer's backing rendering target; setting it to nil reverts it to the previous target, if there was one. This was done
+// because exporting projects was busted on first export in some projects (shutin.plan, for one) due to setting the render target to be nil during the export.
+func SetRenderTarget(target *sdl.Texture) {
+
+	if target != nil {
+		renderTargets = append(renderTargets, target)
+	} else {
+		renderTargets = renderTargets[:len(renderTargets)-1]
+	}
+
+	target = renderTargets[len(renderTargets)-1]
+
+	globals.Renderer.SetRenderTarget(target)
+}
+
 const RegexNoNewlines = `[^\n]`
 const RegexOnlyDigits = `[\d]`
 const RegexNoDigits = `[^\d]`

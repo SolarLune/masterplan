@@ -151,7 +151,7 @@ func (project *Project) CreateGridTexture() {
 
 			project.GridTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
-			globals.Renderer.SetRenderTarget(project.GridTexture.Texture)
+			SetRenderTarget(project.GridTexture.Texture)
 
 			dst := &sdl.Rect{0, 0, srcRect.W, srcRect.H}
 
@@ -163,7 +163,7 @@ func (project *Project) CreateGridTexture() {
 				}
 			}
 
-			globals.Renderer.SetRenderTarget(nil)
+			SetRenderTarget(nil)
 
 		}
 
@@ -367,17 +367,28 @@ func (project *Project) Save() {
 
 		for _, page := range project.Pages[1:] {
 			// If a page is an orphan, then we can just skip saving it as long as it doesn't have any cards
-			if page.PointingSubpageCard == nil {
+			if !page.Valid {
+
 				valid := false
-				for _, card := range page.Cards {
-					if card.Valid {
-						valid = true
-						break
+
+				if page.PointingSubpageCard == nil {
+
+					// Orphan
+
+					for _, card := range page.Cards {
+						if card.Valid {
+							valid = true
+							break
+						}
 					}
+
 				}
+				// else, page.PointingSubpageCard points to a card that has been deleted; if it hadn't been deleted, then the page would be valid
+
 				if !valid {
 					continue
 				}
+
 			}
 			pagesToSave = append(pagesToSave, page)
 		}
@@ -687,7 +698,7 @@ func OpenProjectFrom(filename string) {
 			globals.EventLog.Log("Project loaded successfully.", false)
 
 			if brokenProject {
-				globals.EventLog.Log("WARNING: This project contains data on orphaned Pages (pages that aren't reachable through sub-pages).\nIt is possible that the project is broken. It may be best to flatten the project and restructure, or start over.", true)
+				globals.EventLog.Log("WARNING: This project contains data on orphaned Pages (pages that aren't reachable through sub-pages).\nIt is possible that the project is broken. If this is the case, you may remove orphaned pages by accessing them\nthrough the Hierarchy view and deleting all cards from those pages.\nYou can also flatten the project and restructure.", true)
 			}
 
 		}

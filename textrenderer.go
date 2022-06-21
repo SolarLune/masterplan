@@ -309,8 +309,8 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 		renderTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
-		globals.Renderer.SetRenderTarget(renderTexture.Texture)
-		defer globals.Renderer.SetRenderTarget(nil)
+		SetRenderTarget(renderTexture.Texture)
+		defer SetRenderTarget(nil)
 
 		// We need to call SetDrawColor() with transparent white because glyphs are opaque white. If we clear with transparent black (all 0's),
 		// the edges of certain glyphs can look really jank.
@@ -381,7 +381,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 		// renderTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
-		// globals.Renderer.SetRenderTarget(renderTexture.Texture)
+		// SetRenderTarget(renderTexture.Texture)
 
 		// // We need to call SetDrawColor() with transparent white because glyphs are opaque white. If we clear with transparent black (all 0's),
 		// // the edges of certain glyphs can look really jank.
@@ -499,7 +499,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 		// result.TextLines = textLines
 
-		// globals.Renderer.SetRenderTarget(nil)
+		// SetRenderTarget(nil)
 
 	}
 
@@ -541,8 +541,11 @@ func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier f
 		tex.SetBlendMode(sdl.BLENDMODE_BLEND) // We set the blend mode here as well
 
 		if outlineColor != nil {
-			for y := -1; y < 1; y++ {
-				for x := -1; x < 1; x++ {
+			for y := -1; y <= 1; y++ {
+				for x := -1; x <= 1; x++ {
+					if x == 0 && y == 0 {
+						continue
+					}
 					dst := &sdl.FRect{pos.X + float32(x), pos.Y + float32(y), float32(glyph.Width()) * sizeMultiplier, float32(glyph.Height()) * sizeMultiplier}
 					tex.SetColorMod(outlineColor.RGB())
 					tex.SetAlphaMod(outlineColor[3])

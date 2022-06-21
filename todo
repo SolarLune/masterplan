@@ -3,6 +3,8 @@
 [x] Reimplement relative filepaths
 [x] Add a view for upcoming deadlines 
 [ ] PDF / PNG output (See: https://github.com/signintech/gopdf, or https://github.com/tdewolff/canvas)
+  - Test transparent BG
+  - Add additional prompt if files already exist with one or more of the exported filenames. 
 [ ] Add method to copy colors from one card to others
 [ ] Tables, both for completion, as well as for organizing text. See the image here for an example of how tables should look: https://discord.com/channels/339550825154347008/944383281145733131/984075751865348116
 [ ] Add an option to represent dates as "d/m/y" or "m/d/y" or "y/d/m" or whatever
@@ -14,6 +16,7 @@
 [ ] A palette of pre-selected colors (the same ones for the Map) for setting any card's color.
 [ ] Don't save empty / null properties in save file (?)
 [ ] Crystal (additive blending) graphical mode for Cards
+[ ] Splash-screen? IDK if I should have it or not.
 
 [ ] Document orphan pages
 [ ] Document hierarchy

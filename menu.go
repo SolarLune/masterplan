@@ -641,7 +641,7 @@ func (menu *Menu) Recreate(newW, newH float32) {
 
 			}
 
-			globals.Renderer.SetRenderTarget(menu.BGTexture.Texture)
+			SetRenderTarget(menu.BGTexture.Texture)
 
 			drawPatches()
 
@@ -655,7 +655,7 @@ func (menu *Menu) Recreate(newW, newH float32) {
 
 			drawPatches()
 
-			globals.Renderer.SetRenderTarget(nil)
+			SetRenderTarget(nil)
 
 		}
 

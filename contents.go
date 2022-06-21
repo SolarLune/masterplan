@@ -2326,7 +2326,7 @@ func (mc *MapContents) UpdateTexture() {
 
 	if mc.RenderTexture != nil {
 
-		globals.Renderer.SetRenderTarget(mc.RenderTexture.Texture)
+		SetRenderTarget(mc.RenderTexture.Texture)
 
 		globals.Renderer.SetDrawColor(getThemeColor(GUIMapColor).RGBA())
 		globals.Renderer.FillRect(nil)
@@ -2425,7 +2425,7 @@ func (mc *MapContents) UpdateTexture() {
 			}
 
 		}
-		globals.Renderer.SetRenderTarget(nil)
+		SetRenderTarget(nil)
 
 	}
 
@@ -2615,7 +2615,7 @@ func (sb *SubPageContents) TakeScreenshot() {
 
 	// Render the screenshot
 
-	globals.Renderer.SetRenderTarget(sb.SubpageScreenshot)
+	SetRenderTarget(sb.SubpageScreenshot)
 	globals.Renderer.SetDrawColor(0, 0, 0, 0)
 	globals.Renderer.Clear()
 
@@ -2638,7 +2638,7 @@ func (sb *SubPageContents) TakeScreenshot() {
 
 	camera.JumpTo(originalPos, originalZoom)
 
-	globals.Renderer.SetRenderTarget(nil)
+	SetRenderTarget(nil)
 
 	sb.ScreenshotImage.Texture = sb.SubpageScreenshot
 

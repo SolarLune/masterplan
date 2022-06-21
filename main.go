@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
@@ -207,19 +208,20 @@ func main() {
 
 	globals.RendererInfo = rendererInfo
 
-	globals.ScreenshotTexture, err = renderer.CreateTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_TARGET, w, h)
+	globals.ScreenshotTexture, err = renderer.CreateTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_TARGET, 1920, 1080)
 	if err != nil {
 		panic(err)
 	}
 
-	// renderer.GetRenderTarget().Destroy()
-	// renderer.SetRenderTarget(globals.ScreenshotTexture)
-	// if globals.ProgramSettings.Get(SettingsSaveWindowPosition).AsBool() && globals.OldProgramSettings.WindowPosition.W > 0 && globals.OldProgramSettings.WindowPosition.H > 0 {
-	// 	x = int32(globals.OldProgramSettings.WindowPosition.X)
-	// 	y = int32(globals.OldProgramSettings.WindowPosition.Y)
-	// 	w = int32(globals.OldProgramSettings.WindowPosition.W)
-	// 	h = int32(globals.OldProgramSettings.WindowPosition.H)
-	// }
+	globals.ScreenshotSurf, err = sdl.CreateRGBSurfaceWithFormat(0, 1920, 1080, 32, sdl.PIXELFORMAT_ARGB8888)
+	if err != nil {
+		panic(err)
+	}
+
+	globals.ExportSurf, err = sdl.CreateRGBSurfaceWithFormat(0, 1920, 1080, 32, sdl.PIXELFORMAT_ARGB8888)
+	if err != nil {
+		panic(err)
+	}
 
 	if err := img.Init(img.INIT_JPG | img.INIT_PNG | img.INIT_TIF | img.INIT_WEBP); err != nil {
 		panic(err)
@@ -276,23 +278,11 @@ func main() {
 	gfx.InitFramerate(fpsManager)
 	gfx.SetFramerate(fpsManager, 60)
 
-	// fpsDisplayValue := float32(0)
-	// fpsDisplayAccumulator := float32(0)
-	// fpsDisplayTimer := time.Now()
-
 	log.Println("MasterPlan initialized successfully.")
-
-	// go func() {
-
-	// 	for {
-	// 		fmt.Println(fpsDisplayValue)
-	// 		time.Sleep(time.Second)
-	// 	}
-
-	// }()
 
 	fullscreen := false
 
+	// Autoload themes when Visual page is open, but only do it once per second so as not to spam your HDD
 	go func() {
 		for {
 
@@ -306,6 +296,20 @@ func main() {
 
 		}
 	}()
+
+	if strings.Contains(runtime.GOOS, "linux") {
+		possibleFileManagers := []string{"zenity", "qarma", "matedialog"}
+		oneExists := false
+		for _, p := range possibleFileManagers {
+			if _, err := exec.LookPath(p); err == nil {
+				oneExists = true
+				break
+			}
+		}
+		if !oneExists {
+			globals.EventLog.Log("WARNING: You are running MasterPlan on a Linux distribution that lacks one of the necessary\nfile manager dependency packages to spawn dialogs. Please install\none of the following to open dialogs without issues: [zenity], [qarma], [matedialog].", true)
+		}
+	}
 
 	// Either you're possibly passing the filename by double-clicking on a project, or you're possibly autoloading
 	if len(os.Args) > 1 || (globals.Settings.Get(SettingsAutoLoadLastProject).AsBool() && len(globals.RecentFiles) > 0) {
@@ -400,9 +404,10 @@ func main() {
 		if screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y) {
 			globals.ScreenSizeChanged = true
 			globals.ScreenSizePrev = globals.ScreenSize
-			globals.ScreenshotTexture, err = renderer.CreateTexture(sdl.PIXELFORMAT_ARGB8888, sdl.TEXTUREACCESS_TARGET, screenWidth, screenHeight)
+			globals.ScreenshotSurf.Free()
+			globals.ScreenshotSurf, err = sdl.CreateRGBSurfaceWithFormat(0, int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y), 32, sdl.PIXELFORMAT_ARGB8888)
 			if err != nil {
-				log.Fatal(err)
+				panic(err)
 			}
 		}
 
@@ -489,7 +494,8 @@ func main() {
 			if globals.DebugMode {
 				fps, _ := gfx.GetFramerate(fpsManager)
 				s := strconv.FormatFloat(float64(fps), 'f', 0, 64)
-				globals.TextRenderer.QuickRenderText(s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, nil, AlignRight)
+				globals.TextRenderer.QuickRenderText(s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, ColorBlack, AlignRight)
+				globals.TextRenderer.QuickRenderText(fmt.Sprintf("(%d, %d)", int(globals.Project.Camera.Position.X), int(globals.Project.Camera.Position.Y)), Point{globals.ScreenSize.X - 64, 32}, 1, ColorWhite, ColorBlack, AlignRight)
 			}
 
 		}
@@ -637,12 +643,6 @@ func main() {
 
 		// }
 
-		if globals.Keybindings.Pressed(KBTakeScreenshot) {
-			TakeScreenshot(nil)
-		}
-
-		handleScreenshots()
-
 		splashScreenTime += globals.DeltaTime
 
 		if splashScreenTime >= 0.5 {
@@ -661,6 +661,12 @@ func main() {
 		// }
 
 		renderer.Present()
+
+		if globals.Keybindings.Pressed(KBTakeScreenshot) {
+			TakeScreenshot(nil)
+		}
+
+		handleScreenshots()
 
 		demoText := ""
 
@@ -936,7 +942,7 @@ func ConstructMenus() {
 	row.Add("path browse", NewButton("Browse", nil, nil, false, func() {
 		if path, err := zenity.SelectFile(zenity.Directory(), zenity.Title("Select Folder to Export Project Images...")); err != nil && err != zenity.ErrCanceled {
 			globals.EventLog.Log(err.Error(), true)
-		} else {
+		} else if err != zenity.ErrCanceled {
 			exportPathLabel.SetText([]rune(path))
 		}
 	}))
@@ -951,20 +957,31 @@ func ConstructMenus() {
 
 	row = exportRoot.AddRow(AlignCenter)
 	row.Add("export", NewButton("Export", nil, nil, false, func() {
-		// takeScreenshot = true
 
 		exportModeOption := ExportModePNG
 		if exportMode.ChosenIndex == 1 {
 			exportModeOption = ExportModePDF
 		}
 		activeScreenshot = &ScreenshotOptions{
-			AllPages:              true,
+			Exporting:             true,
 			ExportMode:            exportModeOption,
 			TransparentBackground: transparentBG.Checked,
 			HideGUI:               true,
 			Filename:              exportPathLabel.TextAsString(),
 		}
 	}))
+	row.VerticalSpacing = 8
+	row = exportRoot.AddRow(AlignCenter)
+	progress := NewProgressBar(&sdl.FRect{0, 0, 256, 24}, false)
+	row.Add("export progress bar", progress)
+
+	exportRoot.OnUpdate = func() {
+		if activeScreenshot != nil {
+			progress.Percentage = float32(activeScreenshot.ExportIndex) / float32(len(globals.Project.Pages))
+		} else {
+			progress.Percentage = 1
+		}
+	}
 
 	// Tools Menu
 

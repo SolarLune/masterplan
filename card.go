@@ -1530,7 +1530,7 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 				card.Result.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
-				globals.Renderer.SetRenderTarget(card.Result.Texture)
+				SetRenderTarget(card.Result.Texture)
 
 				globals.Renderer.SetDrawColor(0, 0, 0, 0)
 
@@ -1598,7 +1598,7 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 				guiTexture.SetColorMod(255, 255, 255)
 				guiTexture.SetAlphaMod(255)
 
-				globals.Renderer.SetRenderTarget(nil)
+				SetRenderTarget(nil)
 
 			}
 
