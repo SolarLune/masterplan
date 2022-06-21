@@ -16,6 +16,7 @@ const (
 	StateContextMenu = "project state context menu open"
 	StateCardArrow   = "project state card arrow"
 	StateCardLink    = "project state card linking"
+	StateExport      = "project state export"
 )
 
 type Globals struct {
@@ -30,7 +31,6 @@ type Globals struct {
 	ScreenshotTexture *sdl.Texture
 	ScreenshotSurf    *sdl.Surface
 	ExportSurf        *sdl.Surface
-	LockInput         bool // If input is locked, then no mouse or keyboard events go through; this is used when the user shouldn't be altering the project's state (i.e. when exporting, for example).
 
 	RendererInfo      sdl.RendererInfo
 	Font              *ttf.Font

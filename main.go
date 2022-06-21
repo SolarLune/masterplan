@@ -908,7 +908,7 @@ func ConstructMenus() {
 
 	// Export sub-menu
 
-	exportMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 400, 350}, MenuCloseButton), "export", false)
+	exportMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 550, 350}, MenuCloseButton), "export", false)
 	exportMenu.Resizeable = true
 	exportMenu.Draggable = true
 
@@ -947,13 +947,13 @@ func ConstructMenus() {
 		}
 	}))
 
-	transparentBG := NewCheckbox(0, 0, false, nil)
-	transparentBGLabel := NewLabel("Transparent BG:", nil, false, AlignCenter)
+	bgOptions := NewButtonGroup(&sdl.FRect{0, 0, 400, 32}, false, func(index int) {}, nil, "Normal", "No Grid", "Transparent")
 	row = exportRoot.AddRow(AlignCenter)
-	row.Add("transparent BG label", transparentBGLabel)
-	row.Add("transparent BG option", transparentBG)
-	row.Add("", NewSpacer(nil))
-	row.ExpandSelectedElements = []MenuElement{transparentBGLabel}
+	row.ExpandAllElements = true
+	row.Add("bg options label", NewLabel("Background Options:", nil, false, AlignCenter))
+	row = exportRoot.AddRow(AlignCenter)
+	row.ExpandAllElements = true
+	row.Add("bg options", bgOptions)
 
 	row = exportRoot.AddRow(AlignCenter)
 	row.Add("export", NewButton("Export", nil, nil, false, func() {
@@ -962,13 +962,15 @@ func ConstructMenus() {
 		if exportMode.ChosenIndex == 1 {
 			exportModeOption = ExportModePDF
 		}
+
 		activeScreenshot = &ScreenshotOptions{
-			Exporting:             true,
-			ExportMode:            exportModeOption,
-			TransparentBackground: transparentBG.Checked,
-			HideGUI:               true,
-			Filename:              exportPathLabel.TextAsString(),
+			Exporting:        true,
+			ExportMode:       exportModeOption,
+			BackgroundOption: bgOptions.ChosenIndex,
+			HideGUI:          true,
+			Filename:         exportPathLabel.TextAsString(),
 		}
+
 	}))
 	row.VerticalSpacing = 8
 	row = exportRoot.AddRow(AlignCenter)
@@ -1295,8 +1297,7 @@ func ConstructMenus() {
 		hexText := string(hexText.Text[1:])
 		color := ColorFromHexString(hexText)
 		h, s, v := color.HSV()
-		colorWheel.SampledHue = NewColorFromHSV(h, s, v)
-		colorWheel.SampledValue = float32(v)
+		colorWheel.SetHSV(h, s, v)
 
 	}
 	hexText.MaxLength = 7
@@ -1311,6 +1312,19 @@ func ConstructMenus() {
 		}
 		globals.EventLog.Log("Color applied for %d card(s).", false, len(selectedCards))
 	}))
+
+	row = setColor.AddRow(AlignCenter)
+	row.Add("grab color", NewButton("Grab Color from Selected", nil, nil, false, func() {
+
+		selectedCards := globals.Project.CurrentPage.Selection.AsSlice()
+		if len(selectedCards) > 0 {
+			color := selectedCards[0].Color()
+			hexText.SetText([]rune(color.ToHexString()[:6]))
+			hexText.OnClickOut()
+			globals.EventLog.Log("Grabbed selected color from first selected Card.", false)
+		}
+	}))
+	row.ExpandAllElements = true
 
 	setColor.AddRow(AlignCenter).Add("default", NewButton("Reset to Default", nil, nil, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards

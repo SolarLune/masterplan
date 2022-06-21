@@ -1111,6 +1111,10 @@ func (card *Card) DrawContents() {
 		card.Contents.Draw()
 	}
 
+}
+
+func (card *Card) HandleUndos() {
+
 	if card.CreateUndoState {
 
 		card.Page.Project.UndoHistory.Capture(NewUndoState(card))

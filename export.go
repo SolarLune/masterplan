@@ -21,12 +21,18 @@ const (
 	ExportModePDF = "PDF"
 )
 
+const (
+	BackgroundNormal = iota
+	BackgroundNoGrid
+	BackgroundTransparent
+)
+
 type ScreenshotOptions struct {
 	Exporting   bool
 	ExportIndex int
 
-	TransparentBackground bool
-	HideGUI               bool
+	BackgroundOption int
+	HideGUI          bool
 
 	ExportMode string
 	Filename   string
@@ -95,7 +101,7 @@ func handleScreenshots() {
 		pages := []*Page{globals.Project.Pages[0]}
 
 		if activeScreenshot.Exporting {
-			globals.LockInput = true
+			globals.State = StateExport
 			for _, page := range globals.Project.Pages[1:] {
 				if page.Valid {
 					pages = append(pages, page)
@@ -191,7 +197,7 @@ func handleScreenshots() {
 
 					globals.Project.Camera.TargetPosition = globals.Project.Camera.Position
 
-					if !activeScreenshot.TransparentBackground {
+					if activeScreenshot.BackgroundOption != BackgroundTransparent {
 						clearColor := getThemeColor(GUIBGColor)
 						globals.Renderer.SetDrawColor(clearColor.RGBA())
 					} else {
@@ -200,7 +206,7 @@ func handleScreenshots() {
 
 					globals.Renderer.Clear()
 
-					if !activeScreenshot.TransparentBackground {
+					if activeScreenshot.BackgroundOption == BackgroundNormal {
 						globals.Project.DrawGrid()
 					}
 
@@ -367,7 +373,7 @@ func handleScreenshots() {
 
 			activeScreenshot = nil // Handled
 			activeScreenshotOutputs = []screenshotOutput{}
-			globals.LockInput = false
+			globals.State = StateNeutral
 
 		}
 

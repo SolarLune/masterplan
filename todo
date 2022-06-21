@@ -2,9 +2,8 @@
 [x] Option to disable shadows on cards
 [x] Reimplement relative filepaths
 [x] Add a view for upcoming deadlines 
-[ ] PDF / PNG output (See: https://github.com/signintech/gopdf, or https://github.com/tdewolff/canvas)
-  - Test transparent BG
-  - Add additional prompt if files already exist with one or more of the exported filenames. 
+[x] PDF / PNG output (See: https://github.com/signintech/gopdf, or https://github.com/tdewolff/canvas)
+[ ] Add additional prompt if files already exist with one or more of the exported filenames. 
 [ ] Add method to copy colors from one card to others
 [ ] Tables, both for completion, as well as for organizing text. See the image here for an example of how tables should look: https://discord.com/channels/339550825154347008/944383281145733131/984075751865348116
 [ ] Add an option to represent dates as "d/m/y" or "m/d/y" or "y/d/m" or whatever

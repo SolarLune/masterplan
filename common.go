@@ -840,7 +840,7 @@ func SetRenderTarget(target *sdl.Texture) {
 
 	if target != nil {
 		renderTargets = append(renderTargets, target)
-	} else {
+	} else if len(renderTargets) > 1 {
 		renderTargets = renderTargets[:len(renderTargets)-1]
 	}
 

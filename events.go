@@ -346,71 +346,69 @@ func handleEvents() {
 
 	for baseEvent := sdl.PollEvent(); baseEvent != nil; baseEvent = sdl.PollEvent() {
 
-		if !globals.LockInput {
+		switch event := baseEvent.(type) {
 
-			switch event := baseEvent.(type) {
-
-			case *sdl.DropEvent:
-				if event.Type == sdl.DROPFILE {
-					globals.Project.CurrentPage.HandleDroppedFiles(event.File)
-				}
-
-			case *sdl.QuitEvent:
-				confirmQuit := globals.MenuSystem.Get("confirm quit")
-				if confirmQuit.Opened {
-					quit = true
-				}
-				confirmQuit.Center()
-				confirmQuit.Open()
-
-			case *sdl.KeyboardEvent:
-
-				key := globals.Keyboard.Key(event.Keysym.Sym)
-
-				if event.State == sdl.PRESSED {
-					key.Mods = sdl.Keymod(event.Keysym.Mod)
-					key.SetState(true)
-				} else {
-					key.Mods = sdl.KMOD_NONE
-					key.SetState(false)
-				}
-
-			case *sdl.MouseMotionEvent:
-
-				globals.Mouse.screenPosition.X = float32(event.X)
-				globals.Mouse.screenPosition.Y = float32(event.Y)
-				if event.X == 0 || event.Y == 0 || event.X == int32(globals.ScreenSize.X-1) || event.Y == int32(globals.ScreenSize.Y-1) {
-					globals.Mouse.InsideWindow = false
-				} else {
-					globals.Mouse.InsideWindow = true
-				}
-
-			case *sdl.MouseButtonEvent:
-
-				mouseButton := globals.Mouse.Button(event.Button)
-
-				if event.State == sdl.PRESSED {
-					mouseButton.SetState(true)
-				} else if event.State == sdl.RELEASED {
-					mouseButton.SetState(false)
-				}
-
-			case *sdl.MouseWheelEvent:
-
-				globals.Mouse.wheel = event.Y
-
-			case *sdl.TextInputEvent:
-
-				globals.InputText = append(globals.InputText, []rune(event.GetText())...)
-
+		case *sdl.DropEvent:
+			if event.Type == sdl.DROPFILE {
+				globals.Project.CurrentPage.HandleDroppedFiles(event.File)
 			}
 
-		}
+		case *sdl.QuitEvent:
+			confirmQuit := globals.MenuSystem.Get("confirm quit")
+			if confirmQuit.Opened {
+				quit = true
+			}
+			confirmQuit.Center()
+			confirmQuit.Open()
 
-		// If the render targets reset, re-render all render textures
-		if baseEvent.GetType() == sdl.RENDER_TARGETS_RESET || baseEvent.GetType() == sdl.RENDER_DEVICE_RESET {
-			RefreshRenderTextures()
-			globals.Project.SendMessage(NewMessage(MessageRenderTextureRefresh, nil, nil))
+		case *sdl.KeyboardEvent:
+
+			key := globals.Keyboard.Key(event.Keysym.Sym)
+
+			if event.State == sdl.PRESSED {
+				key.Mods = sdl.Keymod(event.Keysym.Mod)
+				key.SetState(true)
+			} else {
+				key.Mods = sdl.KMOD_NONE
+				key.SetState(false)
+			}
+
+		case *sdl.MouseMotionEvent:
+
+			globals.Mouse.screenPosition.X = float32(event.X)
+			globals.Mouse.screenPosition.Y = float32(event.Y)
+			if event.X == 0 || event.Y == 0 || event.X == int32(globals.ScreenSize.X-1) || event.Y == int32(globals.ScreenSize.Y-1) {
+				globals.Mouse.InsideWindow = false
+			} else {
+				globals.Mouse.InsideWindow = true
+			}
+
+		case *sdl.MouseButtonEvent:
+
+			mouseButton := globals.Mouse.Button(event.Button)
+
+			if event.State == sdl.PRESSED {
+				mouseButton.SetState(true)
+			} else if event.State == sdl.RELEASED {
+				mouseButton.SetState(false)
+			}
+
+		case *sdl.MouseWheelEvent:
+
+			globals.Mouse.wheel = event.Y
+
+		case *sdl.TextInputEvent:
+
+			globals.InputText = append(globals.InputText, []rune(event.GetText())...)
+
+		case *sdl.RenderEvent:
+
+			// If the render targets reset, re-render all render textures
+			if baseEvent.GetType() == sdl.RENDER_TARGETS_RESET || baseEvent.GetType() == sdl.RENDER_DEVICE_RESET {
+				RefreshRenderTextures()
+				globals.Project.SendMessage(NewMessage(MessageRenderTextureRefresh, nil, nil))
+			}
+
 		}
 
 	}

@@ -138,6 +138,9 @@ func (page *Page) Draw() {
 
 	for _, card := range sorted {
 		card.DrawCard()
+		// Undo state creation / capturing can't be handled at the end of Card.DrawContents() like it used to be because that doesn't happen
+		// if the Card is offscreen. Now undo updating happens in its own function here.
+		card.HandleUndos()
 	}
 
 	for _, draw := range page.Drawables {

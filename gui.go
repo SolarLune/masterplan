@@ -3066,7 +3066,17 @@ func (cw *ColorWheel) Update() {
 
 }
 
+func (cw *ColorWheel) SetHSV(h, s, v float64) {
+	ch := NewColorFromHSV(h, s, 1)
+	cw.SampledHue = NewColor(ch.RGBA())
+	cw.SampledValue = float32(v)
+	cw.SampledPosX = int32(float64(cw.HueStrip.W) * (h / 360))
+	cw.SampledPosY = int32(float64(cw.HueStrip.H) * s)
+}
+
 func (cw *ColorWheel) Draw() {
+
+	ThickRect(int32(cw.Rect.X), int32(cw.Rect.Y), int32(cw.Rect.W), int32(cw.Rect.H), 2, getThemeColor(GUIFontColor))
 
 	hueRect := *cw.Rect
 	hueRect.H = float32(cw.HueStrip.H)
@@ -3082,8 +3092,6 @@ func (cw *ColorWheel) Draw() {
 	src := &sdl.Rect{0, 240, 8, 8}
 	dst := &sdl.Rect{int32(cw.Rect.X) + cw.SampledPosX - 4, int32(cw.Rect.Y) + cw.SampledPosY - 4, 8, 8}
 	globals.Renderer.Copy(guiTex, src, dst)
-
-	ThickRect(int32(cw.Rect.X), int32(cw.Rect.Y), int32(cw.Rect.W), int32(cw.Rect.H), 2, getThemeColor(GUIFontColor))
 
 	ThickLine(Point{cw.Rect.X + (cw.SampledValue * float32(cw.ValueStrip.W)), cw.Rect.Y + float32(cw.HueStrip.H)},
 		Point{cw.Rect.X + (cw.SampledValue * float32(cw.ValueStrip.W)), cw.Rect.Y + float32(cw.HueStrip.H) + float32(cw.ValueStrip.H)},
