@@ -1338,7 +1338,7 @@ func (label *Label) Update() {
 							offset = 1
 						}
 
-						next := strings.IndexAny(string(label.Text[start:]), " \n")
+						next := label.IndexOfRunes(start, " \n")
 
 						if next < 0 {
 							next = len(label.Text) - label.Selection.CaretPos
@@ -1370,7 +1370,7 @@ func (label *Label) Update() {
 							offset = 1
 						}
 
-						next := strings.LastIndexAny(string(label.Text[:start]), " \n")
+						next := label.LastIndexOfRunes(start, " \n")
 
 						if next < 0 {
 							next = -label.Selection.CaretPos
@@ -1457,6 +1457,16 @@ func (label *Label) Update() {
 
 				}
 
+				if globals.Keyboard.Key(sdl.K_HOME).Pressed() {
+					start := 0
+					label.Selection.Select(start, start)
+				}
+
+				if globals.Keyboard.Key(sdl.K_END).Pressed() {
+					end := len(label.Text)
+					label.Selection.Select(end, end)
+				}
+
 				mousePos := globals.Mouse.Position()
 				if label.WorldSpace {
 					mousePos = globals.Mouse.WorldPosition()
@@ -1518,46 +1528,42 @@ func (label *Label) Update() {
 						}
 					}
 
-					if label.Editing {
+					if button.PressedTimes(2) {
 
-						if button.PressedTimes(2) {
+						startOfWord := -1
+						endOfWord := -1
 
-							startOfWord := -1
-							endOfWord := -1
-
-							if next := strings.IndexAny(label.TextAsString()[label.Selection.CaretPos:], " \n"); next >= 0 {
-								endOfWord = label.Selection.CaretPos + next
-							} else {
-								endOfWord = len(label.Text)
-							}
-
-							if prev := strings.LastIndexAny(label.TextAsString()[:label.Selection.CaretPos], " \n"); prev >= 0 {
-								startOfWord = prev + 1
-							} else {
-								startOfWord = 0
-							}
-
-							label.Selection.Select(startOfWord, endOfWord)
-
-						} else if button.PressedTimes(3) {
-							// label.Selection.Select(0, len(label.Text))
-
-							start := 0
-							if prevBreak := label.PrevAutobreak(label.Selection.CaretPos); prevBreak >= 0 {
-								start = prevBreak
-							}
-
-							end := len(label.Text)
-							if nextBreak := label.NextAutobreak(label.Selection.CaretPos); nextBreak >= 0 {
-								end = nextBreak
-							}
-
-							label.Selection.Select(start, end)
-
-						} else if button.PressedTimes(4) {
-							label.Selection.SelectAll()
+						if next := strings.IndexAny(label.TextAsString()[label.Selection.CaretPos:], " \n"); next >= 0 {
+							endOfWord = label.Selection.CaretPos + next
+						} else {
+							endOfWord = len(label.Text)
 						}
 
+						if prev := strings.LastIndexAny(label.TextAsString()[:label.Selection.CaretPos], " \n"); prev >= 0 {
+							startOfWord = prev + 1
+						} else {
+							startOfWord = 0
+						}
+
+						label.Selection.Select(startOfWord, endOfWord)
+
+					} else if button.PressedTimes(3) {
+						// label.Selection.Select(0, len(label.Text))
+
+						start := 0
+						if prevBreak := label.PrevAutobreak(label.Selection.CaretPos); prevBreak >= 0 {
+							start = prevBreak
+						}
+
+						end := len(label.Text)
+						if nextBreak := label.NextAutobreak(label.Selection.CaretPos); nextBreak >= 0 {
+							end = nextBreak
+						}
+
+						label.Selection.Select(start, end)
+
+					} else if button.PressedTimes(4) {
+						label.Selection.SelectAll()
 					}
 
 				}
@@ -1596,8 +1602,9 @@ func (label *Label) Update() {
 					if text := clipboard.Read(clipboard.FmtText); text != nil {
 						label.DeleteSelectedChars()
 						start, _ := label.Selection.ContiguousRange()
-						label.InsertRunesAtIndex([]rune(string(text)), start)
-						label.Selection.AdvanceCaret(len(text))
+						runes := []rune(string(text))
+						label.InsertRunesAtIndex(runes, start)
+						label.Selection.AdvanceCaret(len(runes))
 					}
 				}
 
@@ -1634,6 +1641,47 @@ func (label *Label) Update() {
 					label.DeleteSelectedChars()
 					label.InsertRunesAtIndex(globals.InputText, label.Selection.CaretPos)
 					label.Selection.AdvanceCaret(len(globals.InputText))
+				}
+
+				// Refocus camera on editing text if the cursor gets close to the border
+				if label.WorldSpace {
+					camera := globals.Project.Camera
+					worldPos := label.IndexToWorld(label.Selection.CaretPos)
+					vr := camera.ViewArea()
+					margin := float32(128)
+					viewRect := &sdl.FRect{float32(vr.X) + margin, float32(vr.Y) + margin, float32(vr.W) - (margin * 2), float32(vr.H) - (margin * 2)}
+
+					if !worldPos.Inside(viewRect) {
+
+						diffX := float32(0)
+						diffY := float32(0)
+						moveX := false
+						moveY := false
+
+						if worldPos.X < viewRect.X {
+							diffX = worldPos.X - float32(vr.X) - margin
+							moveX = true
+						} else if worldPos.X > viewRect.X+viewRect.W {
+							diffX = worldPos.X - float32(vr.X+vr.W) + margin
+							moveX = true
+						}
+
+						if worldPos.Y < viewRect.Y {
+							diffY = worldPos.Y - float32(vr.Y) - margin
+							moveY = true
+						} else if worldPos.Y > viewRect.Y+viewRect.H {
+							diffY = worldPos.Y - float32(vr.Y+vr.H) + margin
+							moveY = true
+						}
+
+						if moveX {
+							camera.TargetPosition.X += diffX
+						}
+						if moveY {
+							camera.TargetPosition.Y += diffY
+						}
+
+					}
 				}
 
 			} else if globals.Mouse.CurrentCursor == "normal" {
@@ -1697,33 +1745,32 @@ func (label *Label) Draw() {
 		mousePos = globals.Mouse.WorldPosition()
 	}
 
-	if label.Editable && label.RendererResult != nil {
+	if label.Editable && label.RendererResult != nil && label.DrawLineUnderTitle {
 
-		if label.DrawLineUnderTitle {
+		thickness := float32(2)
 
-			thickness := float32(2)
+		lineY := float32(0)
 
-			lineY := float32(0)
-			if nextBreak := strings.Index(label.TextAsString(), "\n"); nextBreak >= 0 {
-				lineY = label.IndexToWorld(nextBreak).Y + globals.GridSize
-			} else {
-				lineY = label.Rect.Y + label.RendererResult.TextSize.Y + thickness
-			}
+		// if nextBreak := strings.Index(label.TextAsString(), "\n"); nextBreak >= 0 {
 
-			if lineY > label.Rect.Y+label.Rect.H {
-				lineY = label.Rect.Y + label.Rect.H
-			}
-
-			start := Point{label.Rect.X, lineY + thickness}
-			end := start.AddF(label.Rect.W-8, 0)
-			if label.WorldSpace {
-				start = globals.Project.Camera.TranslatePoint(start)
-				end = globals.Project.Camera.TranslatePoint(end)
-			}
-
-			ThickLine(start, end, int32(thickness), getThemeColor(GUIFontColor))
-
+		if nextBreak := label.IndexOfRunes(0, "\n"); nextBreak >= 0 {
+			lineY = label.IndexToWorld(nextBreak).Y + globals.GridSize
+		} else {
+			lineY = label.Rect.Y + label.RendererResult.TextSize.Y + thickness
 		}
+
+		if lineY > label.Rect.Y+label.Rect.H {
+			lineY = label.Rect.Y + label.Rect.H
+		}
+
+		start := Point{label.Rect.X, lineY + thickness}
+		end := start.AddF(label.Rect.W-8, 0)
+		if label.WorldSpace {
+			start = globals.Project.Camera.TranslatePoint(start)
+			end = globals.Project.Camera.TranslatePoint(end)
+		}
+
+		ThickLine(start, end, int32(thickness), getThemeColor(GUIFontColor))
 
 	}
 
@@ -1830,6 +1877,29 @@ func (label *Label) Draw() {
 
 	label.textChanged = false
 
+}
+
+// We need IndexOfRunes() because the strings.Index() functions assume the string is composed of one-byte runes, which isn't the case for foreign languages.
+func (label *Label) IndexOfRunes(start int, chars string) int {
+	for i, c := range label.Text[start:] {
+		for _, char := range chars {
+			if c == char {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func (label *Label) LastIndexOfRunes(end int, chars string) int {
+	for i := end - 1; i >= 0; i-- {
+		for _, char := range chars {
+			if char == label.Text[i] {
+				return i
+			}
+		}
+	}
+	return -1
 }
 
 func (label *Label) SetText(text []rune) {
