@@ -76,8 +76,8 @@ const (
 	KBResizeMultiple      = "Resize Multiple (Hold)"
 
 	KBCollapseCard = "Card: Collapse"
-	KBLinkCard     = "Card: Connect With Arrow"
-	KBUnlinkCard   = "Card: Disconnect All Arrows"
+	KBLinkCard     = "Card: Connect Cards"
+	KBUnlinkCard   = "Card: Disconnect From All Cards"
 
 	KBCopyText      = "Textbox: Copy Selected Text"
 	KBCutText       = "Textbox: Cut Selected Text"

@@ -271,6 +271,20 @@ func (grid *Grid) CardsInCardShape(card *Card, dx, dy float32) []*Card {
 
 func (grid *Grid) CardsInArea(x, y, w, h float32) []*Card {
 	return grid.Select(&sdl.FRect{x + 1, y + 1, w - 1, h - 1}).Cards()
+}
+
+func (grid *Grid) NeighboringCards(x, y float32) []*Card {
+
+	directions := []Point{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
+	neighbors := []*Card{}
+
+	gs := globals.GridSize
+
+	for _, d := range directions {
+		neighbors = append(neighbors, grid.CardsInArea(x+(d.X*gs), y+(d.Y*gs), gs, gs)...)
+	}
+
+	return neighbors
 
 }
 

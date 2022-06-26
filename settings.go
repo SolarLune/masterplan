@@ -52,8 +52,9 @@ const (
 	SettingsFlashDeadlines           = "Flash Deadlines"
 	SettingsDeadlineDisplay          = "Display Deadlines As"
 
-	DeadlineDisplayDueDuration = "Countdown"
-	DeadlineDisplayDate        = "Date"
+	DeadlineDisplayCountdown = "Days"
+	DeadlineDisplayDate      = "Date"
+	DeadlineDisplayIcons     = "Icons"
 
 	DoubleClickLast     = "Creates card of prev. type"
 	DoubleClickCheckbox = "Creates Checkbox card"

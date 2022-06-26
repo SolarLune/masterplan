@@ -543,42 +543,309 @@ func OpenProjectFrom(filename string) {
 		globals.EventLog.Log("Error: %s", true, err.Error())
 	} else {
 
-		log.Println("Load started.")
-
 		json := string(jsonData)
 
-		if ver, err := semver.Parse(gjson.Get(json, "version").String()); err != nil || ver.Minor < 8 {
-			globals.EventLog.Log("Error: Can't load project [%s] as it's a pre-0.8 project.", true, filename)
-			globals.EventLog.Log("Pre-0.8 projects will be supported later.", true)
-		} else {
+		if !gjson.Get(json, "version").Exists() && !gjson.Get(json, "Version").Exists() {
+			// if !gjson.Get(json, "pages").Exists() && !gjson.Get(json, "Tasks").Exists() {
+			globals.EventLog.Log("Warning: Cannot open project as it doesn't appear to be a valid MasterPlan project file. Please double-check to ensure it is valid.", true)
+			return
+		}
 
-			// Limit the length of the recent files list to 10 (this is arbitrary, but should be good enough)
-			if len(globals.RecentFiles) > 10 {
-				globals.RecentFiles = globals.RecentFiles[:10]
+		log.Println("Load started.")
+
+		// Limit the length of the recent files list to 10 (this is arbitrary, but should be good enough)
+		if len(globals.RecentFiles) > 10 {
+			globals.RecentFiles = globals.RecentFiles[:10]
+		}
+
+		for i := 0; i < len(globals.RecentFiles); i++ {
+			if globals.RecentFiles[i] == filename {
+				globals.RecentFiles = append(globals.RecentFiles[:i], globals.RecentFiles[i+1:]...)
+				break
+			}
+		}
+
+		globals.RecentFiles = append([]string{filename}, globals.RecentFiles...)
+
+		SaveSettings()
+
+		log.Println("Recent files list updated...")
+
+		globals.EventLog.On = false
+
+		newProject := NewProject()
+		newProject.Loading = true
+		newProject.UndoHistory.On = false
+		globals.NextProject = newProject
+
+		brokenProject := false
+
+		savedImageFileNames := map[string]string{}
+
+		if ver, err := semver.Parse(gjson.Get(json, "version").String()); err != nil || ver.Minor < 8 {
+
+			globals.EventLog.Log("WARNING: Not all features from MasterPlan v0.7.2 have been re-implemented.\nPlease double-check the project to ensure it has been imported correctly, and\ncheck the roadmap under Help to see what remains to be re-implemented.\nIt would probably be best not to save over the original plan.", true)
+
+			// IMPORT v0.7!
+
+			// We don't set the filepath here because we explicity want you not to save over the project accidentally.
+			// newProject.Filepath = filename
+
+			boardNames := gjson.Get(json, "BoardNames").Array()
+			createdSubpages := make([]*Card, 0, len(boardNames)-1)
+
+			x := float32(0)
+
+			for _, b := range boardNames[1:] {
+				t := newProject.CurrentPage.CreateNewCard(ContentTypeSubpage)
+				t.Rect.X = x
+				t.Properties.Get("description").Set(b.String())
+				x += t.Rect.W + globals.GridSize
+				createdSubpages = append(createdSubpages, t)
 			}
 
-			for i := 0; i < len(globals.RecentFiles); i++ {
-				if globals.RecentFiles[i] == filename {
-					globals.RecentFiles = append(globals.RecentFiles[:i], globals.RecentFiles[i+1:]...)
-					break
+			type Line struct {
+				Page    *Page
+				Start   Point
+				Endings []Point
+			}
+
+			newLine := func(page *Page, x, y float32) Line {
+				return Line{
+					Page:    page,
+					Start:   Point{x, y},
+					Endings: []Point{},
 				}
 			}
 
-			globals.RecentFiles = append([]string{filename}, globals.RecentFiles...)
+			linePositions := []Line{}
 
-			SaveSettings()
+			tasks := gjson.Get(json, "Tasks").Array()
+			for _, task := range tasks {
 
-			log.Println("Recent files list updated...")
+				boardIndex := task.Get("BoardIndex").Int()
 
-			globals.EventLog.On = false
+				cardType := ContentTypeCheckbox
 
-			newProject := NewProject()
-			newProject.Loading = true
+				content := task.Get(`TaskType\.CurrentChoice`).Int()
+
+				switch content {
+				// case 0: // Checkbox
+				case 1: // Progression
+					cardType = ContentTypeNumbered
+				case 2:
+					cardType = ContentTypeNote
+				case 3:
+					cardType = ContentTypeImage
+				case 4:
+					cardType = ContentTypeSound
+				case 5:
+					cardType = ContentTypeTimer
+				case 6:
+					// Line
+					line := newLine(newProject.Pages[boardIndex], float32(task.Get(`Position\.X`).Float()*2), float32(task.Get(`Position\.Y`).Float()*2))
+					endings := task.Get(`LineEndings`).Array()
+					for i := 0; i < len(endings); i += 2 {
+						line.Endings = append(line.Endings, Point{float32(endings[i].Float() * 2), float32(endings[i+1].Float() * 2)})
+					}
+					linePositions = append(linePositions, line)
+					continue
+				case 7:
+					cardType = ContentTypeMap
+				case 8:
+					// cardType = ContentTypeWhiteboard
+					continue
+				case 9:
+					// cardType = ContentTypeTable
+					continue
+				}
+
+				card := newProject.Pages[boardIndex].CreateNewCard(cardType)
+				card.Rect.X = float32(task.Get(`Position\.X`).Float() * 2) // Grid is 32x32 in MasterPlan v0.8 compared to 16x16 in v0.7.2
+				card.Rect.Y = float32(task.Get(`Position\.Y`).Float() * 2)
+
+				if card.Properties.Has("description") {
+					desc := ""
+					if d := task.Get("Description").String(); d != "" {
+						desc = d
+					} else if d := task.Get(`TimerName\.Text`).String(); d != "" {
+						desc = d
+					}
+					card.Properties.Get("description").Set(desc)
+				}
+
+				if card.Properties.Has("checked") {
+					card.Properties.Get("checked").Set(task.Get(`Checkbox\.Checked`).Bool())
+				}
+
+				if card.Properties.Has("current") {
+					card.Properties.Get("current").Set(task.Get(`Progression\.Current`).Float())
+					card.Properties.Get("maximum").Set(task.Get(`Progression\.Max`).Float())
+				}
+
+				if card.Completable() && task.Get(`DeadlineDaySpinner\.Number`).Exists() {
+
+					deadlineDay := int(task.Get(`DeadlineDaySpinner\.Number`).Int())
+					deadlineMonth := time.Month(task.Get(`DeadlineMonthSpinner\.CurrentChoice`).Int() + 1)
+					deadlineYear := int(task.Get(`DeadlineYearSpinner\.Number`).Int())
+					now := time.Now()
+					deadline := time.Date(deadlineYear, deadlineMonth, deadlineDay, 0, 0, 0, 0, now.Location())
+					card.Properties.Get("deadline").Set(deadline.Format("2006-01-02"))
+				}
+
+				if card.Properties.Has("filepath") {
+					fp := []string{}
+					for _, element := range task.Get(`FilePath`).Array() {
+						fp = append(fp, element.String())
+					}
+
+					relativePath := filepath.Join(fp...)
+					relativePath = filepath.ToSlash(relativePath)
+					card.Properties.Get("filepath").Set(relativePath)
+
+					if sound, ok := card.Contents.(*SoundContents); ok {
+						sound.LoadFile()
+					} else if image, ok := card.Contents.(*ImageContents); ok {
+						image.LoadFile()
+					}
+
+				}
+
+				if task.Get(`ImageDisplaySize\.X`).Exists() {
+
+					w := float32(task.Get(`ImageDisplaySize\.X`).Float() * 2)
+					h := float32(task.Get(`ImageDisplaySize\.Y`).Float() * 2)
+
+					if image, ok := card.Contents.(*ImageContents); ok {
+						if image.Resource != nil {
+							card.Rect.W = w
+							card.Rect.H = h
+						}
+					} else {
+						card.Rect.W = w
+						card.Rect.H = h
+					}
+
+				}
+
+				if task.Get(`TimerMode\.CurrentChoice`).Exists() {
+					timerType := task.Get(`TimerMode\.CurrentChoice`).Int()
+					switch timerType {
+
+					// Countdown
+					case 0:
+						card.Properties.Get("mode group").Set(TimerModeCountdown)
+						str := card.Contents.(*TimerContents).SetMaxTime(int(task.Get(`TimerMinuteSpinner\.Number`).Int()), int(task.Get(`TimerSecondSpinner\.Number`).Int()))
+						card.Properties.Get("max time").Set(str)
+						triggerMode := task.Get(`TimerTriggerMode\.CurrentChoice`).Int()
+						switch triggerMode {
+						case 1:
+							card.Properties.Get("trigger mode").Set(TriggerTypeSet)
+						case 2:
+							card.Properties.Get("trigger mode").Set(TriggerTypeClear)
+						default:
+							card.Properties.Get("trigger mode").Set(TriggerTypeToggle)
+						}
+					case 3:
+						card.Properties.Get("mode group").Set(TimerModeStopwatch)
+
+					}
+				}
+
+				if task.Get(`MapData`).Exists() {
+
+					card.Rect.H -= globals.GridSize // There's no header bar for maps in 0.8, so they're one row shorter
+
+					card.Update() // Allows the map to be set to the correct size
+
+					mc := card.Contents.(*MapContents)
+					mc.MapData.Clear()
+
+					for y, row := range task.Get(`MapData`).Array() {
+
+						for x, value := range row.Array() {
+
+							mc.MapData.SetI(x, y, int(value.Int()))
+
+						}
+
+					}
+
+					card.Properties.Get("contents").Set(mc.MapData.Serialize())
+					mc.UpdateTexture()
+				}
+
+				card.LockPosition()
+
+				// Autoresize the card to fit the amount of text typed.
+				if auto, ok := card.Contents.(AutosetSizer); ok {
+					auto.AutosetSize()
+				}
+
+				if cardType != ContentTypeNote && cardType != ContentTypeImage && cardType != ContentTypeMap {
+					card.Collapse() // Collapsing the cards make them align more correctly to the 0.7 "single-line" layout
+				}
+
+			}
+
+			// Attempt to connect relevant Cards
+			for _, line := range linePositions {
+
+				for _, dest := range line.Endings {
+
+					var baseCard *Card
+					var destination *Card
+
+					if cards := line.Page.Grid.NeighboringCards(line.Start.X, line.Start.Y); len(cards) > 0 {
+						for _, c := range cards {
+							// Skip subpages because they don't exist in 0.7
+							if c.ContentType == ContentTypeSubpage {
+								continue
+							}
+							baseCard = c
+						}
+					}
+
+					if cards := line.Page.Grid.NeighboringCards(dest.X, dest.Y); len(cards) > 0 {
+						for _, c := range cards {
+							// Skip subpages because they don't exist in 0.7
+							if c.ContentType == ContentTypeSubpage {
+								continue
+							}
+							destination = c
+						}
+					}
+
+					if baseCard != nil && destination != nil && baseCard != destination {
+						baseCard.Link(destination)
+					}
+
+				}
+
+			}
+
+			rootPageBounds := CorrectingRect{}
+			root := newProject.Pages[0]
+			rootPageBounds.X1 = root.Cards[0].Rect.X
+			rootPageBounds.Y1 = root.Cards[0].Rect.Y
+			rootPageBounds.X2 = root.Cards[0].Rect.X
+			rootPageBounds.Y2 = root.Cards[0].Rect.Y
+
+			for _, card := range root.Cards {
+				if card.ContentType != ContentTypeSubpage {
+					rootPageBounds = rootPageBounds.AddXY(card.Rect.X, card.Rect.Y)
+					rootPageBounds = rootPageBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
+				}
+			}
+
+			for _, subpage := range createdSubpages {
+				subpage.Rect.X += rootPageBounds.Width()
+				subpage.LockPosition()
+			}
+
+		} else {
+
 			newProject.Filepath = filename
-			newProject.UndoHistory.On = false
-			globals.NextProject = newProject
-
-			savedImageFileNames := map[string]string{}
 
 			for fpName, imgData := range gjson.Get(json, "savedimages").Map() {
 
@@ -622,85 +889,84 @@ func OpenProjectFrom(filename string) {
 
 			}
 
-			newProject.SendMessage(NewMessage(MessageProjectLoadingAllCardsCreated, nil, nil))
+		}
 
-			brokenProject := false
-			for _, page := range newProject.Pages {
+		newProject.SendMessage(NewMessage(MessageProjectLoadingAllCardsCreated, nil, nil))
 
-				if page.PointingSubpageCard == nil && page != newProject.Pages[0] {
-					brokenProject = true
-				}
+		for _, page := range newProject.Pages {
 
-				for _, card := range page.Cards {
+			if page.PointingSubpageCard == nil && page != newProject.Pages[0] {
+				brokenProject = true
+			}
 
-					card.DisplayRect.X = card.Rect.X
-					card.DisplayRect.Y = card.Rect.Y
-					card.DisplayRect.W = card.Rect.W
-					card.DisplayRect.H = card.Rect.H
+			for _, card := range page.Cards {
 
-					if card.Properties.Has("saveimage") {
-						imgPath, exists := savedImageFileNames[card.Properties.Get("filepath").AsString()]
-						if exists {
-							card.Contents.(*ImageContents).LoadFileFrom(imgPath) // Reload the file
-						} else {
-							card.Properties.Remove("saveimage")
-						}
+				card.DisplayRect.X = card.Rect.X
+				card.DisplayRect.Y = card.Rect.Y
+				card.DisplayRect.W = card.Rect.W
+				card.DisplayRect.H = card.Rect.H
+
+				if card.Properties.Has("saveimage") {
+					imgPath, exists := savedImageFileNames[card.Properties.Get("filepath").AsString()]
+					if exists {
+						card.Contents.(*ImageContents).LoadFileFrom(imgPath) // Reload the file
+					} else {
+						card.Properties.Remove("saveimage")
 					}
-
 				}
-
-				page.UpdateLinks()
 
 			}
 
-			// newProject.Camera.Update()
+			page.UpdateLinks()
 
-			// Settle the elements in - we do this a few times because it seems like things might take two steps (create card, set properties, create links, etc)
-			globals.Renderer.SetClipRect(nil)
-			for i := 0; i < 3; i++ {
-				for _, page := range newProject.Pages {
-					newProject.CurrentPage = page
-					page.Update()
-					page.Draw()
-				}
-			}
+		}
 
-			// for _, page := range newProject.Pages {
-			// 	newProject.CurrentPage = page
-			// 	for _, card := range page.Cards {
-			// 		card.CreateUndoState = true
-			// 	}
-			// 	page.Update()
-			// 	page.Draw()
-			// }
+		// newProject.Camera.Update()
 
-			newProject.UndoHistory.On = true
-
+		// Settle the elements in - we do this a few times because it seems like things might take two steps (create card, set properties, create links, etc)
+		globals.Renderer.SetClipRect(nil)
+		for i := 0; i < 3; i++ {
 			for _, page := range newProject.Pages {
-				for _, card := range page.Cards {
-					card.CreateUndoState = false
-					card.Page.Project.UndoHistory.Capture(NewUndoState(card))
-				}
+				newProject.CurrentPage = page
+				page.Update()
+				page.Draw()
 			}
+		}
 
-			newProject.SetPage(newProject.Pages[0])
+		// for _, page := range newProject.Pages {
+		// 	newProject.CurrentPage = page
+		// 	for _, card := range page.Cards {
+		// 		card.CreateUndoState = true
+		// 	}
+		// 	page.Update()
+		// 	page.Draw()
+		// }
 
-			newProject.Camera.JumpTo(newProject.Pages[0].Pan, newProject.Pages[0].Zoom)
+		newProject.UndoHistory.On = true
 
-			newProject.UndoHistory.Update()
-
-			newProject.Modified = false
-			newProject.UndoHistory.MinimumFrame = 1
-			globals.EventLog.On = true
-
-			globals.LoadingSubpagesBroken = false
-
-			globals.EventLog.Log("Project loaded successfully.", false)
-
-			if brokenProject {
-				globals.EventLog.Log("WARNING: This project contains data on orphaned Pages (pages that aren't reachable through sub-pages).\nIt is possible that the project is broken. If this is the case, you may remove orphaned pages by accessing them\nthrough the Hierarchy view and deleting all cards from those pages.\nYou can also flatten the project and restructure.", true)
+		for _, page := range newProject.Pages {
+			for _, card := range page.Cards {
+				card.CreateUndoState = false
+				card.Page.Project.UndoHistory.Capture(NewUndoState(card))
 			}
+		}
 
+		newProject.SetPage(newProject.Pages[0])
+
+		newProject.Camera.JumpTo(newProject.Pages[0].Pan, newProject.Pages[0].Zoom)
+
+		newProject.UndoHistory.Update()
+
+		newProject.Modified = false
+		newProject.UndoHistory.MinimumFrame = 1
+		globals.EventLog.On = true
+
+		globals.LoadingSubpagesBroken = false
+
+		globals.EventLog.Log("Project loaded successfully.", false)
+
+		if brokenProject {
+			globals.EventLog.Log("WARNING: This project contains data on orphaned Pages (pages that aren't reachable through sub-pages).\nIt is possible that the project is broken. If this is the case, you may remove orphaned pages by accessing them\nthrough the Hierarchy view and deleting all cards from those pages.\nYou can also flatten the project and restructure.", true)
 		}
 
 	}

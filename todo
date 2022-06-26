@@ -3,29 +3,38 @@
 [x] Reimplement relative filepaths
 [x] Add a view for upcoming deadlines 
 [x] PDF / PNG output (See: https://github.com/signintech/gopdf, or https://github.com/tdewolff/canvas)
-[ ] Add additional prompt if files already exist with one or more of the exported filenames. 
-[ ] Add method to copy colors from one card to others
+[x] Add method to copy colors from one card to others
+[x] Reimplement automatic relative paths
+[x] Implement loading 0.7 projects
+[ ] Optimize - seems like there's a memory leak somewhere
+[x] Make all text fields in Cards (like their title / description) consistent in terms of their capabilities
+[ ] Fix storing a card in collapsed mode doesn't allow it to become uncollapsed; guess we'll need to store the uncollapsed size to revert to.
+[ ] Option to zip export output?
+[ ] Registry menu or something where you can set shortcuts to jump to specific cards / parts of your project? Maybe you can tag pages from the Hierarchy menu?
+[ ] Box Card that expands to highlight / "cover" a selection of cards. You can manually resize it, or press a button to enclose a selection of Cards. You can also hide cards inside of this "box".
 [ ] Tables, both for completion, as well as for organizing text. See the image here for an example of how tables should look: https://discord.com/channels/339550825154347008/944383281145733131/984075751865348116
 [ ] Add an option to represent dates as "d/m/y" or "m/d/y" or "y/d/m" or whatever
 [ ] Disconnecting a monitor crashes MasterPlan
 [ ] Use dispatcher for Hierarchy as necessary
 [ ] Option to draw background / outer square for images
-[ ] Box Card that expands to highlight / "cover" a selection of cards. You can manually resize it, or press a button to enclose a selection of Cards. You can also hide cards inside of this "box".
-[ ] Registry menu or something where you can set shortcuts to jump to specific cards / parts of your project? Maybe you can tag pages from the Hierarchy menu?
 [ ] A palette of pre-selected colors (the same ones for the Map) for setting any card's color.
 [ ] Don't save empty / null properties in save file (?)
 [ ] Crystal (additive blending) graphical mode for Cards
 [ ] Splash-screen? IDK if I should have it or not.
+[ ] Add additional prompt if files already exist with one or more of the exported filenames. 
 
-[ ] Document orphan pages
-[ ] Document hierarchy
-[ ] Document unlinking all cards
-[ ] Document exporting
-[ ] Document deadlines
+- Lines, Maps
+
+[x] Document orphan pages
+[x] Document hierarchy
+[ ] Document new settings
+[x] Document unlinking all cards
+[x] Document exporting
+[x] Document deadlines
 
 [ ] ESC key to exit common menu when entering paths for images or sounds
 [ ] Add button to reload images
-[ ] Make "-" also work for automatic newlines
+[ ] Make "-" also work for automatic newlines for editable labels (so "-" is valid to split a line on)
 [ ] Package pre-made icons for maps (somehow?)
 [x] Fix bug where downloaded images don't display on reloading project - maybe fixed?
 [x] Auto-backups
@@ -35,7 +44,6 @@
 [ ] Add Text filter / search to Hierarchy menu
 [ ] Speed up saving screenshots in the project file - it's EXTREMELY slow
 [ ] Add option to save downloaded images in the project
-[ ] Reimplement automatic relative paths
 [ ] Follow caret as you type when editing text
 [ ] Maybe don't use render textures for cards considering rendering 9 textures might just be faster than rendering a massive texture??? Not sure of the trade-off in terms of speed, but not
     every computer has really large texture limits

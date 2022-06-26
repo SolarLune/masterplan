@@ -575,7 +575,7 @@ func (card *Card) Update() {
 
 		if card.selected && globals.Keybindings.Pressed(KBUnlinkCard) && globals.State == StateNeutral {
 			if len(card.Links) > 0 {
-				globals.EventLog.Log("Disconnected all links from currently selected Card(s).", false)
+				globals.EventLog.Log("Removed all connections from currently selected Card(s).", false)
 			}
 			card.UnlinkAll()
 		}
@@ -960,7 +960,7 @@ func (card *Card) DeadlineState() int {
 
 func (card *Card) DrawCard() {
 
-	if card.Properties.Has("deadline") {
+	if card.Completable() && card.Properties.Has("deadline") {
 
 		deadlineTarget := 0.0
 
@@ -969,6 +969,8 @@ func (card *Card) DrawCard() {
 		}
 
 		card.deadlineFade += (deadlineTarget - card.deadlineFade) * 0.3
+
+		deadlineDisplaySetting := globals.Settings.Get(SettingsDeadlineDisplay).AsString()
 
 		if card.deadlineFade > 0.01 {
 
@@ -979,73 +981,87 @@ func (card *Card) DrawCard() {
 
 			timeDiffDuration := deadline.Sub(today).Round(time.Hour * 24)
 
-			timeDiff := durafmt.Parse(timeDiffDuration)
-			if timeDiffDuration < 0 {
-				timeDiff = durafmt.Parse(-timeDiffDuration)
-			}
-
-			var text = ""
-
-			if globals.Settings.Get(SettingsDeadlineDisplay).AsString() == DeadlineDisplayDueDuration {
-				text = "Due in " + timeDiff.String()
-			} else {
-				text = "Due on " + pureDeadlineDisplay
-			}
-
-			deadlineColor := getThemeColor(GUIMenuColor)
-
-			if timeDiffDuration <= 0 {
-
-				if timeDiffDuration == 0 {
-					if globals.Settings.Get(SettingsDeadlineDisplay).AsString() == DeadlineDisplayDueDuration {
-						text = "Due today!"
-					}
-				} else {
-					if globals.Settings.Get(SettingsDeadlineDisplay).AsString() == DeadlineDisplayDueDuration {
-						text = "Overdue by " + timeDiff.String() + "!"
-					}
-				}
-
-				deadlineColor = getThemeColor(GUICompletedColor)
-
-				if globals.Settings.Get(SettingsFlashDeadlines).AsBool() {
-
-					if deadlineColor.IsDark() {
-						deadlineColor = deadlineColor.Add(uint8(math.Sin(globals.Time*3.14*4)*60) - 60)
-					} else {
-						deadlineColor = deadlineColor.Sub(uint8(math.Sin(globals.Time*3.14*4)*60) + 60)
-					}
-
-				}
-
-			} else if timeDiffDuration <= time.Hour*26 {
-				deadlineColor = getThemeColor(GUICompletedColor)
-			}
-
-			textSize := globals.TextRenderer.MeasureText([]rune(text), 1)
-			textSize.X += 16
-
-			start := card.Page.Project.Camera.TranslateRect(&sdl.FRect{card.DisplayRect.X - textSize.X - 40, card.DisplayRect.Y, textSize.X, 16})
-
+			start := card.Page.Project.Camera.TranslateRect(&sdl.FRect{card.DisplayRect.X - globals.GridSize, card.DisplayRect.Y, 32, 32})
 			left := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X, card.DisplayRect.Y}).X
 			left += (start.X - left) * float32(card.deadlineFade)
-			rect := &sdl.Rect{int32(left), int32(start.Y), 9999, int32(card.DisplayRect.H)}
-			globals.Renderer.SetClipRect(rect)
+			globals.Renderer.SetClipRect(&sdl.Rect{int32(left), int32(start.Y), 9999, int32(card.DisplayRect.H)})
 
-			// Center pieces
-			globals.GUITexture.Texture.SetColorMod(deadlineColor.RGB())
+			if deadlineDisplaySetting != DeadlineDisplayIcons {
+
+				timeDiff := durafmt.Parse(timeDiffDuration)
+				if timeDiffDuration < 0 {
+					timeDiff = durafmt.Parse(-timeDiffDuration)
+				}
+
+				var text = ""
+
+				if deadlineDisplaySetting == DeadlineDisplayCountdown {
+					text = "Due in " + timeDiff.String()
+				} else {
+					text = "Due on " + pureDeadlineDisplay
+				}
+
+				deadlineColor := getThemeColor(GUIMenuColor)
+
+				if timeDiffDuration <= 0 {
+
+					if timeDiffDuration == 0 {
+						if deadlineDisplaySetting == DeadlineDisplayCountdown {
+							text = "Due today!"
+						}
+					} else {
+						if deadlineDisplaySetting == DeadlineDisplayCountdown {
+							text = "Overdue by " + timeDiff.String() + "!"
+						}
+					}
+
+					deadlineColor = getThemeColor(GUICompletedColor)
+
+					if globals.Settings.Get(SettingsFlashDeadlines).AsBool() {
+
+						if deadlineColor.IsDark() {
+							deadlineColor = deadlineColor.Add(uint8(math.Sin(globals.Time*3.14*4)*60) - 60)
+						} else {
+							deadlineColor = deadlineColor.Sub(uint8(math.Sin(globals.Time*3.14*4)*60) + 60)
+						}
+
+					}
+
+				} else if timeDiffDuration <= time.Hour*26 {
+					deadlineColor = getThemeColor(GUICompletedColor).Accent()
+				}
+
+				textSize := globals.TextRenderer.MeasureText([]rune(text), 1)
+				textSize.X += 16
+
+				start = card.Page.Project.Camera.TranslateRect(&sdl.FRect{card.DisplayRect.X - textSize.X - globals.GridSize, card.DisplayRect.Y, textSize.X, 16})
+				left = card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X, card.DisplayRect.Y}).X
+				left += (start.X - left) * float32(card.deadlineFade)
+				globals.Renderer.SetClipRect(&sdl.Rect{int32(left), int32(start.Y), 9999, int32(card.DisplayRect.H)})
+
+				// Center pieces
+				globals.GUITexture.Texture.SetColorMod(deadlineColor.RGB())
+				globals.GUITexture.Texture.SetAlphaMod(255)
+				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{240, 0, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
+				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{248, 0, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
+
+				// Outline
+				globals.GUITexture.Texture.SetColorMod(deadlineColor.Accent().RGB())
+				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{272, 128, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
+				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{280, 128, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
+
+				globals.TextRenderer.QuickRenderText(text, Point{start.X + 32, start.Y}, 1, getThemeColor(GUIFontColor), nil, AlignLeft)
+
+			}
+
+			flash := ColorWhite
+
+			if globals.Settings.Get(SettingsFlashDeadlines).AsBool() && timeDiffDuration <= 0 {
+				flash = ColorWhite.Sub(uint8(math.Sin(globals.Time*3.14*4)*60) + 60)
+			}
+
+			globals.GUITexture.Texture.SetColorMod(flash.RGB())
 			globals.GUITexture.Texture.SetAlphaMod(255)
-			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{240, 0, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
-			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{248, 0, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
-
-			// Outline
-			globals.GUITexture.Texture.SetColorMod(deadlineColor.Accent().RGB())
-			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{272, 128, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
-			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{280, 128, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
-
-			globals.TextRenderer.QuickRenderText(text, Point{start.X + 32, start.Y}, 1, getThemeColor(GUIFontColor), nil, AlignLeft)
-
-			globals.GUITexture.Texture.SetColorMod(255, 255, 255)
 
 			src := &sdl.Rect{240, 160, 32, 32}
 			if timeDiffDuration < 0 {
@@ -1053,7 +1069,8 @@ func (card *Card) DrawCard() {
 			} else if timeDiffDuration == 0 {
 				src.X = 272
 			}
-			globals.Renderer.CopyF(globals.GUITexture.Texture, src, &sdl.FRect{start.X + 2, start.Y, 32, 32})
+
+			globals.Renderer.CopyF(globals.GUITexture.Texture, src, &sdl.FRect{start.X, start.Y, 32, 32})
 
 			globals.Renderer.SetClipRect(nil)
 

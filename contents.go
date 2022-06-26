@@ -29,9 +29,11 @@ const (
 	ContentTypeLink     = "Link"
 	// ContentTypeTable    = "Table"
 
-	TriggerTypeSet    = "Set"
-	TriggerTypeToggle = "Toggle"
-	TriggerTypeClear  = "Clear"
+)
+const (
+	TriggerTypeSet = iota
+	TriggerTypeToggle
+	TriggerTypeClear
 )
 
 var icons map[string]*sdl.Rect = map[string]*sdl.Rect{
@@ -50,8 +52,8 @@ var contentOrder = map[string]int{
 	ContentTypeCheckbox: 0,
 	ContentTypeNumbered: 1,
 	ContentTypeNote:     2,
-	ContentTypeSound:    3,
-	ContentTypeImage:    4,
+	ContentTypeImage:    3,
+	ContentTypeSound:    4,
 	ContentTypeTimer:    5,
 	ContentTypeMap:      6,
 	ContentTypeSubpage:  7,
@@ -65,7 +67,7 @@ type Contents interface {
 	ReceiveMessage(*Message)
 	Color() Color
 	DefaultSize() Point
-	Trigger(triggerType string)
+	Trigger(triggerType int)
 }
 
 type DefaultContents struct {
@@ -92,7 +94,7 @@ func (dc *DefaultContents) Draw() {
 	dc.Container.Draw()
 }
 
-func (dc *DefaultContents) Trigger(triggerType string) {}
+func (dc *DefaultContents) Trigger(triggerType int) {}
 
 func (dc *DefaultContents) ReceiveMessage(msg *Message) {}
 
@@ -121,17 +123,22 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 	cc.Label.Property = card.Properties.Get("description")
 
 	cc.Label.OnChange = func() {
+
 		if cc.Label.Editing {
 
-			y := cc.Label.IndexToWorld(cc.Label.Selection.CaretPos).Y - cc.Card.Rect.Y
-			if y > cc.Card.Rect.H-32 {
-				lineCount := float32(cc.Label.LineCount())
-				if lineCount*globals.GridSize > cc.Card.Rect.H {
-					cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
-				}
-			}
+			lineCount := float32(cc.Label.LineCount())
+			cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
+			cc.Card.UncollapsedSize = Point{cc.Card.Rect.W, cc.Card.Rect.H}
 
-			// cc.URLButtons.ScanText(cc.Label.TextAsString())
+			// y := cc.Label.IndexToWorld(cc.Label.Selection.CaretPos).Y - cc.Card.Rect.Y
+			// if y > cc.Card.Rect.H-32 {
+			// 	lineCount := float32(cc.Label.LineCount())
+			// 	if lineCount*globals.GridSize > cc.Card.Rect.H {
+			// 		cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
+			// 		cc.Card.UncollapsedSize = Point{cc.Card.Rect.W, cc.Card.Rect.H}
+			// 	}
+			// }
+			// cc.URLButtons.ScanText(cc.Label.TextAsString())		}
 		}
 
 	}
@@ -141,6 +148,18 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 	row.Add("label", cc.Label)
 
 	return cc
+
+}
+
+type AutosetSizer interface {
+	AutosetSize()
+}
+
+func (cc *CheckboxContents) AutosetSize() {
+
+	txt := cc.Card.Properties.Get("description").AsString()
+	textSize := globals.TextRenderer.MeasureText([]rune(txt), 1)
+	cc.Card.Recreate(textSize.X+globals.GridSize+16, textSize.Y) // Give it a little extra juice just to make sure we have enough room
 
 }
 
@@ -283,7 +302,7 @@ func (cc *CheckboxContents) DefaultSize() Point {
 	return Point{globals.GridSize * 9, globals.GridSize}
 }
 
-func (cc *CheckboxContents) Trigger(triggerType string) {
+func (cc *CheckboxContents) Trigger(triggerType int) {
 
 	prop := cc.Card.Properties.Get("checked")
 
@@ -417,13 +436,18 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	numbered.Label.OnChange = func() {
 		if numbered.Label.Editing {
 
-			y := numbered.Label.IndexToWorld(numbered.Label.Selection.CaretPos).Y - numbered.Card.Rect.Y
-			if y >= numbered.Card.Rect.H-32 {
-				lineCount := float32(numbered.Label.LineCount())
-				if lineCount*globals.GridSize > numbered.Card.Rect.H-32 {
-					numbered.Card.Recreate(numbered.Card.Rect.W, lineCount*globals.GridSize+32)
-				}
-			}
+			lineCount := float32(numbered.Label.LineCount())
+			numbered.Card.Recreate(numbered.Card.Rect.W, lineCount*globals.GridSize+globals.GridSize)
+			numbered.Card.UncollapsedSize = Point{numbered.Card.Rect.W, numbered.Card.Rect.H}
+
+			// y := numbered.Label.IndexToWorld(numbered.Label.Selection.CaretPos).Y - numbered.Card.Rect.Y
+			// if y >= numbered.Card.Rect.H-32 {
+			// 	lineCount := float32(numbered.Label.LineCount())
+			// 	if lineCount*globals.GridSize > numbered.Card.Rect.H-32 {
+			// 		numbered.Card.Recreate(numbered.Card.Rect.W, lineCount*globals.GridSize+32)
+			// 		numbered.Card.UncollapsedSize = Point{numbered.Card.Rect.W, numbered.Card.Rect.H}
+			// 	}
+			// }
 		}
 
 	}
@@ -499,7 +523,7 @@ func (nc *NumberedContents) Draw() {
 
 		nc.PercentageComplete += (p - nc.PercentageComplete) * 6 * globals.DeltaTime
 
-		src := &sdl.Rect{0, 0, int32(nc.Card.Rect.W * nc.PercentageComplete), int32(nc.Card.Rect.H)}
+		src := &sdl.Rect{0, 0, int32(nc.Card.DisplayRect.W * nc.PercentageComplete), int32(nc.Card.DisplayRect.H)}
 		dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
 		dst.X = nc.Card.DisplayRect.X
 		dst.Y = nc.Card.DisplayRect.Y
@@ -546,7 +570,7 @@ func (nc *NumberedContents) Color() Color {
 	}
 }
 
-func (nc *NumberedContents) Trigger(triggerType string) {
+func (nc *NumberedContents) Trigger(triggerType int) {
 
 	current := nc.Card.Properties.Get("current")
 	max := nc.Card.Properties.Get("maximum")
@@ -597,10 +621,16 @@ func NewNoteContents(card *Card) *NoteContents {
 
 	nc.Label.OnChange = func() {
 		if nc.Label.Editing {
+
 			lineCount := float32(nc.Label.LineCount())
-			if lineCount*globals.GridSize > nc.Card.Rect.H {
-				nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
-			}
+			nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
+			nc.Card.UncollapsedSize = Point{nc.Card.Rect.W, nc.Card.Rect.H}
+
+			// lineCount := float32(nc.Label.LineCount())
+			// if lineCount*globals.GridSize > nc.Card.Rect.H {
+			// 	nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
+			// 	nc.Card.UncollapsedSize = Point{nc.Card.Rect.W, nc.Card.Rect.H}
+			// }
 		}
 	}
 
@@ -609,6 +639,14 @@ func NewNoteContents(card *Card) *NoteContents {
 	row.Add("label", nc.Label)
 
 	return nc
+
+}
+
+func (nc *NoteContents) AutosetSize() {
+
+	txt := nc.Card.Properties.Get("description").AsString()
+	textSize := globals.TextRenderer.MeasureText([]rune(txt), 1)
+	nc.Card.Recreate(textSize.X+globals.GridSize+16, textSize.Y) // Give it a little extra juice just to make sure we have enough room
 
 }
 
@@ -637,7 +675,7 @@ func (nc *NoteContents) Color() Color {
 }
 
 func (nc *NoteContents) DefaultSize() Point {
-	return Point{globals.GridSize * 8, globals.GridSize * 4}
+	return Point{globals.GridSize * 8, globals.GridSize * 1}
 }
 
 type SoundContents struct {
@@ -928,11 +966,11 @@ func (sc *SoundContents) StopPlayback() {
 
 }
 
-func (sc *SoundContents) Trigger(triggerMode string) {
+func (sc *SoundContents) Trigger(triggerType int) {
 
 	if sc.Sound != nil {
 
-		switch triggerMode {
+		switch triggerType {
 		case TriggerTypeSet:
 			sc.Playing = true
 			sc.Sound.Play()
@@ -1270,6 +1308,11 @@ func (ic *ImageContents) ReceiveMessage(msg *Message) {
 	}
 }
 
+const (
+	TimerModeStopwatch = iota
+	TimerModeCountdown
+)
+
 type TimerContents struct {
 	DefaultContents
 	Name               *Label
@@ -1313,14 +1356,7 @@ func NewTimerContents(card *Card) *TimerContents {
 		minutes, _ := strconv.Atoi(timeUnits[0])
 		seconds, _ := strconv.Atoi(timeUnits[1])
 
-		for seconds >= 60 {
-			seconds -= 60
-			minutes++
-		}
-
-		tc.ClockMaxTime.SetTextRaw([]rune(fmt.Sprintf("%02d", minutes) + ":" + fmt.Sprintf("%02d", seconds)))
-
-		tc.MaxTime = time.Duration((minutes * int(time.Minute)) + (seconds * int(time.Second)))
+		tc.SetMaxTime(minutes, seconds)
 
 	}
 
@@ -1351,13 +1387,18 @@ func NewTimerContents(card *Card) *TimerContents {
 	)
 
 	tc.Name.OnChange = func() {
+
 		if tc.Name.Editing {
 
-			dy := tc.DefaultSize().Y
 			lineCount := float32(tc.Name.LineCount())
-			if (lineCount-1)*globals.GridSize > card.Rect.H-dy {
-				card.Recreate(card.Rect.W, (lineCount-1)*globals.GridSize+dy)
-			}
+			tc.Card.Recreate(tc.Card.Rect.W, tc.Container.MinimumHeight()+(lineCount*globals.GridSize))
+			tc.Card.UncollapsedSize = Point{tc.Card.Rect.W, tc.Card.Rect.H}
+
+			// dy := tc.DefaultSize().Y
+			// lineCount := float32(tc.Name.LineCount())
+			// if (lineCount-1)*globals.GridSize > card.Rect.H-dy {
+			// 	card.Recreate(card.Rect.W, (lineCount-1)*globals.GridSize+dy)
+			// }
 
 		}
 
@@ -1393,6 +1434,21 @@ func NewTimerContents(card *Card) *TimerContents {
 	row.Add("trigger", tc.TriggerMode)
 
 	return tc
+}
+
+func (tc *TimerContents) SetMaxTime(minutes, seconds int) string {
+
+	for seconds >= 60 {
+		seconds -= 60
+		minutes++
+	}
+
+	tc.ClockMaxTime.SetTextRaw([]rune(fmt.Sprintf("%02d", minutes) + ":" + fmt.Sprintf("%02d", seconds)))
+
+	tc.MaxTime = time.Duration((minutes * int(time.Minute)) + (seconds * int(time.Second)))
+
+	return tc.ClockMaxTime.TextAsString()
+
 }
 
 func (tc *TimerContents) Update() {
@@ -1538,7 +1594,7 @@ func (tc *TimerContents) Draw() {
 
 }
 
-func (tc *TimerContents) Trigger(triggerType string) {
+func (tc *TimerContents) Trigger(triggerType int) {
 
 	switch triggerType {
 	case TriggerTypeSet:
@@ -1716,6 +1772,7 @@ func (mapData *MapData) Rotate(direction int) {
 }
 
 func (mapData *MapData) SetI(x, y, value int) bool {
+
 	if y < 0 || x < 0 || y >= mapData.Height || x >= mapData.Width {
 		return false
 	}
@@ -2496,7 +2553,23 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 	row := sb.Container.AddRow(AlignCenter)
 	row.Add("icon", NewGUIImage(nil, &sdl.Rect{48, 256, 32, 32}, globals.GUITexture.Texture, true))
-	sb.NameLabel = NewLabel("New Sub-Page", nil, true, AlignCenter)
+	sb.NameLabel = NewLabel("New Sub-Page", nil, true, AlignLeft)
+	sb.NameLabel.OnChange = func() {
+
+		if sb.NameLabel.Editing {
+
+			sb.Card.Recreate(sb.Card.Rect.W, sb.Container.IdealSize().Y)
+			sb.Card.UncollapsedSize = Point{sb.Card.Rect.W, sb.Card.Rect.H}
+
+			// dy := tc.DefaultSize().Y
+			// lineCount := float32(tc.Name.LineCount())
+			// if (lineCount-1)*globals.GridSize > card.Rect.H-dy {
+			// 	card.Recreate(card.Rect.W, (lineCount-1)*globals.GridSize+dy)
+			// }
+
+		}
+
+	}
 	sb.NameLabel.DrawLineUnderTitle = false
 
 	project := sb.Card.Page.Project
@@ -2572,13 +2645,17 @@ func (sb *SubPageContents) Update() {
 		w = 0
 	}
 
-	h := sb.Container.Rect.H - 64
+	h := sb.Container.Rect.H - sb.NameLabel.Rect.H - globals.GridSize // This last gridsize is the Open button
 	if h < 0 {
 		h = 0
 	}
 
-	sb.ScreenshotImage.Rect.W = w
-	sb.ScreenshotImage.Rect.H = h
+	size := math.Min(float64(w), float64(h))
+
+	sb.ScreenshotImage.Rect.W = float32(size)
+	sb.ScreenshotImage.Rect.H = float32(size)
+	sb.ScreenshotRow.ForcedSize.X = float32(size)
+	sb.ScreenshotRow.ForcedSize.Y = float32(size)
 
 	sb.DefaultContents.Update()
 
@@ -2660,7 +2737,7 @@ func (sb *SubPageContents) DefaultSize() Point {
 	return Point{gs * 9, gs * 10}
 }
 
-func (sb *SubPageContents) Trigger(triggerType string) {}
+func (sb *SubPageContents) Trigger(triggerType int) {}
 
 type LinkContents struct {
 	Label      *Label
@@ -2698,9 +2775,13 @@ func NewLinkContents(card *Card) *LinkContents {
 	lc.Label.OnChange = func() {
 		if lc.Label.Editing {
 			lineCount := float32(lc.Label.LineCount())
-			if lineCount*globals.GridSize > 1 {
-				lc.Card.Recreate(lc.Card.Rect.W, lc.Container.MinimumHeight()+((lineCount-1)*globals.GridSize))
-			}
+			lc.Card.Recreate(lc.Card.Rect.W, lc.Container.MinimumHeight()+((lineCount-1)*globals.GridSize))
+			lc.Card.UncollapsedSize = Point{lc.Card.Rect.W, lc.Card.Rect.H}
+
+			// 	lineCount := float32(lc.Label.LineCount())
+			// 	if lineCount*globals.GridSize > 1 {
+			// 		lc.Card.Recreate(lc.Card.Rect.W, lc.Container.MinimumHeight()+((lineCount-1)*globals.GridSize))
+			// 	}
 		}
 	}
 
@@ -2930,7 +3011,7 @@ func (lc *LinkContents) DefaultSize() Point {
 	return Point{globals.GridSize * 10, globals.GridSize * 3}
 }
 
-func (lc *LinkContents) Trigger(triggerType string) {}
+func (lc *LinkContents) Trigger(triggerType int) {}
 
 func (lc *LinkContents) ReceiveMessage(msg *Message) {
 
@@ -3169,4 +3250,4 @@ func (lc *LinkContents) ReceiveMessage(msg *Message) {
 // 	gs := globals.GridSize
 // 	return Point{gs * 8, gs * 8}
 // }
-// func (cal *Calendar) Trigger(triggerType string) {}
+// func (cal *Calendar) Trigger(triggerType int) {}

@@ -963,12 +963,19 @@ func ConstructMenus() {
 			exportModeOption = ExportModePDF
 		}
 
+		outputDir := exportPathLabel.TextAsString()
+
+		if !FolderExists(outputDir) {
+			globals.EventLog.Log("Warning: Can't output to directory %s as it doesn't exist.", true, outputDir)
+			return
+		}
+
 		activeScreenshot = &ScreenshotOptions{
 			Exporting:        true,
 			ExportMode:       exportModeOption,
 			BackgroundOption: bgOptions.ChosenIndex,
 			HideGUI:          true,
-			Filename:         exportPathLabel.TextAsString(),
+			Filename:         outputDir,
 		}
 
 	}))
@@ -1426,7 +1433,7 @@ func ConstructMenus() {
 	prevYearButton.Flip = sdl.FLIP_HORIZONTAL
 
 	row.Add("prev year", prevYearButton)
-	yearLabel := NewLabel("Year", nil, false, AlignCenter)
+	yearLabel := NewLabel("Yearss", nil, false, AlignCenter)
 	yearLabel.Editable = true
 	yearLabel.RegexString = RegexOnlyDigits
 	yearLabel.OnClickOut = func() {
@@ -1474,6 +1481,7 @@ func ConstructMenus() {
 					if card.Completable() {
 						completableCount++
 						card.Properties.Get("deadline").Set(selectedDate)
+						card.CreateUndoState = true
 					}
 				}
 
@@ -1496,6 +1504,7 @@ func ConstructMenus() {
 
 			for _, card := range selection {
 				card.Properties.Remove("deadline")
+				card.CreateUndoState = true
 			}
 
 			globals.EventLog.Log("Deadline removed on %d cards.", false, len(selection))
@@ -1506,7 +1515,10 @@ func ConstructMenus() {
 	setDeadline.OnDraw = func() {
 
 		setDeadline.FindElement("month label", false).(*Label).SetText([]rune(now.Month().String()[:3]))
-		setDeadline.FindElement("year label", false).(*Label).SetText([]rune(strconv.Itoa(now.Year())))
+		yearLabel := setDeadline.FindElement("year label", false).(*Label)
+		if !yearLabel.Editing {
+			yearLabel.SetText([]rune(strconv.Itoa(now.Year())))
+		}
 
 		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 		end := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, now.Location())
@@ -1901,7 +1913,7 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFlashSelected)))
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Smooth movement:", nil, false, AlignLeft))
+	row.Add("", NewLabel("Smooth panning + zoom:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSmoothMovement)))
 
 	row = visual.AddRow(AlignCenter)
@@ -1918,7 +1930,7 @@ func ConstructMenus() {
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("deadline display label", NewLabel("Display Deadlines As:", nil, false, AlignLeft))
-	row.Add("deadline display setting", NewButtonGroup(&sdl.FRect{0, 0, 256, 32}, false, nil, globals.Settings.Get(SettingsDeadlineDisplay), DeadlineDisplayDueDuration, DeadlineDisplayDate))
+	row.Add("deadline display setting", NewButtonGroup(&sdl.FRect{0, 0, 256, 32}, false, nil, globals.Settings.Get(SettingsDeadlineDisplay), DeadlineDisplayCountdown, DeadlineDisplayDate, DeadlineDisplayIcons))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
@@ -2597,7 +2609,7 @@ func ConstructMenus() {
 
 				deadlineButtons = []*deadlineButton{}
 				break
-			} else if !button.Card.Valid {
+			} else if !button.Card.Valid || !button.Card.Completable() || !button.Card.Properties.Has("deadline") {
 				button.Row.Visible = false
 			}
 
@@ -2669,12 +2681,14 @@ func ConstructMenus() {
 		}
 
 		sort.SliceStable(deadlineButtons, func(i, j int) bool {
-			deadlineA, _ := time.ParseInLocation("2006-01-02", deadlineButtons[i].Card.Properties.Get("deadline").AsString(), now.Location())
-			deadlineB, _ := time.ParseInLocation("2006-01-02", deadlineButtons[j].Card.Properties.Get("deadline").AsString(), now.Location())
-			if deadlineA.Before(deadlineB) {
-				return true
-			} else if deadlineA.After(deadlineB) {
-				return false
+			if deadlineButtons[i].Card.Properties.Has("deadline") && deadlineButtons[j].Card.Properties.Has("deadline") {
+				deadlineA, _ := time.ParseInLocation("2006-01-02", deadlineButtons[i].Card.Properties.Get("deadline").AsString(), now.Location())
+				deadlineB, _ := time.ParseInLocation("2006-01-02", deadlineButtons[j].Card.Properties.Get("deadline").AsString(), now.Location())
+				if deadlineA.Before(deadlineB) {
+					return true
+				} else if deadlineA.After(deadlineB) {
+					return false
+				}
 			}
 			return deadlineButtons[i].Card.ID < deadlineButtons[j].Card.ID
 		})
@@ -2682,7 +2696,7 @@ func ConstructMenus() {
 		count := 0
 		deadlineRoot.Rows = append([]*ContainerRow{}, baseRows[0])
 		for _, b := range deadlineButtons {
-			if !b.Card.Completed() {
+			if b.Card.Properties.Has("deadline") && b.Card.Completable() && !b.Card.Completed() {
 				count++
 				deadlineRoot.Rows = append(deadlineRoot.Rows, b.Row)
 			}
@@ -2694,13 +2708,13 @@ func ConstructMenus() {
 
 		count = 0
 		for _, b := range deadlineButtons {
-			if b.Card.Completed() {
+			if b.Card.Properties.Has("deadline") && b.Card.Completable() && b.Card.Completed() {
 				count++
 				deadlineRoot.Rows = append(deadlineRoot.Rows, b.Row)
 			}
 		}
 
-		baseRows[1].Elements["completed label"].(*Label).SetText([]rune(fmt.Sprintf("Due Deadlines (%d)", count)))
+		baseRows[1].Elements["completed label"].(*Label).SetText([]rune(fmt.Sprintf("Completed Deadlines (%d)", count)))
 
 	}
 
