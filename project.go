@@ -43,12 +43,6 @@ const (
 
 	// Project actions
 
-	ActionNewProject    = "new"
-	ActionLoadProject   = "load"
-	ActionSaveAsProject = "save as"
-	ActionRenameBoard   = "rename"
-	ActionQuit          = "quit"
-
 	BackupDelineator = "_bak_"
 	FileTimeFormat   = "01_02_06_15_04_05"
 )
