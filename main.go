@@ -459,9 +459,13 @@ func main() {
 			globals.DebugMode = !globals.DebugMode
 		}
 
-		// if globals.Keyboard.Key(sdl.K_F8).Pressed() {
-		// 	profileCPU()
-		// }
+		if globals.Keyboard.Key(sdl.K_F7).Pressed() {
+			profileCPU()
+		}
+
+		if globals.Keyboard.Key(sdl.K_F8).Pressed() {
+			profileHeap()
+		}
 
 		// if rl.WindowShouldClose() {
 		// 	currentProject.PromptQuit()
@@ -2966,8 +2970,25 @@ func profileCPU() {
 	globals.EventLog.Log("CPU Profiling begun.", false)
 
 	time.AfterFunc(time.Second*2, func() {
+		globals.EventLog.Log("CPU Profiling finished.", false)
 		cpuProfileStart = time.Time{}
 		pprof.StopCPUProfile()
 	})
+
+}
+
+func profileHeap() {
+
+	// rInt, _ := rand.Int(rand.Reader, big.NewInt(400))
+	// heapProfFile, err := os.Create(fmt.Sprintf("cpu.pprof%d", rInt))
+	heapProfFile, err := os.Create("heap.pprof")
+	if err != nil {
+		log.Fatal("Could not create Heap Profile: ", err)
+	}
+
+	defer heapProfFile.Close()
+
+	pprof.WriteHeapProfile(heapProfFile)
+	globals.EventLog.Log("Heap dumped.", false)
 
 }

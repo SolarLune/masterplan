@@ -148,7 +148,7 @@ func NewGrid(page *Page) *Grid {
 		Page:  page,
 		Cells: [][]*GridCell{},
 	}
-	grid.Resize(1000, 1000) // For now, this will do
+	grid.Resize(1, 1) // For now, this will do
 	return grid
 }
 
