@@ -264,14 +264,6 @@ func main() {
 	// renderer.SetLogicalSize(960, 540)
 
 	showedAboutDialog := false
-	splashScreenTime := float32(0)
-	// splashScreen := rl.LoadTexture(LocalPath("assets", "splashscreen.png"))
-	splashColor := sdl.Color{255, 255, 255, 255}
-
-	if globals.Settings.Get(SettingsDisableSplashscreen).AsBool() {
-		splashScreenTime = 100
-		splashColor.A = 0
-	}
 
 	fpsManager := &gfx.FPSmanager{}
 
@@ -645,23 +637,6 @@ func main() {
 
 		// 	}
 
-		// }
-
-		splashScreenTime += globals.DeltaTime
-
-		if splashScreenTime >= 0.5 {
-			sub := uint8(255 * globals.DeltaTime * 4)
-			if splashColor.A > sub {
-				splashColor.A -= sub
-			} else {
-				splashColor.A = 0
-			}
-		}
-
-		// if splashColor.A > 0 {
-		// 	src := rl.Rectangle{0, 0, float32(splashScreen.Width), float32(splashScreen.Height)}
-		// 	dst := rl.Rectangle{0, 0, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())}
-		// 	rl.DrawTexturePro(splashScreen, src, dst, rl.Vector2{}, 0, splashColor)
 		// }
 
 		renderer.Present()
