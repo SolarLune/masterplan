@@ -28,8 +28,9 @@ require (
 	github.com/phpdave11/gofpdi v1.0.13 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
-	github.com/signintech/gopdf v0.12.0 // indirect
-	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
+	github.com/signintech/gopdf v0.12.0
+	github.com/silbinarywolf/preferdiscretegpu v1.0.0 // indirect
+	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/tanema/gween v0.0.0-20200427131925-c89ae23cc63c
 	github.com/tidwall/gjson v1.13.0
 	github.com/tidwall/sjson v1.2.4
