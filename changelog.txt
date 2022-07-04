@@ -16,10 +16,10 @@ QoL: When editing text on a Card, the camera will move if the caret gets too clo
 QoL: Adding ability to grab color from the first selected card when coloring Cards in the Set Color menu.
 QoL: Adding Tools menu, moving Flatten Project to Tools menu. 
 QoL: Adding Take Screenshot menu entry to Tools menu. (It has always been possible to take a screenshot, it's just been only accessible via a keybinding until now.)
-QoL: Adding option to zoom to cursor when zooming in or out - note that this does not take effect when setting the zoom level directly using the number keys.
-QoL: Adding option to enable / disable shadows.
+QoL: Adding project settings option to zoom to cursor when zooming in or out - note that this does not take effect when setting the zoom level directly using the number keys.
+QoL: Adding project settings option to enable / disable shadows.
 QoL: The grid now will disappear if you zoom out beyond 100%, rather than only beyond the previous zoom level (50%).
-QoL: Starting MasterPlan on a Linux distribution without qarma, matedialog, or zenity will inform you to install one of these missing dependencies.
+QoL: Starting MasterPlan on a Linux distribution without qarma, matedialog, or zenity will inform you to install one of these missing dependencies (sorry KDE users, I'll need to address this somehow!).
 QoL: Renaming arrow connection shortcuts to "Connect Cards" and "Disconnect All Links".
 QoL: Renaming "Smooth movement" to "Smooth panning + zoom" in settings.
 QoL: Minor graphical tweaks to UI to improve visibility.
@@ -31,7 +31,7 @@ FIX: Setting color using hex string no longer has an inaccurate value / brightne
 FIX: Cards now correctly set their undo state regardless of if they're onscreen or not. (Previously, this wasn't the case, and Cards being offscreen would cause them to not update their undo state when doing things that affect them, like changing their color, for example.)
 FIX: Deleting sub-page cards no longer creates orphan pages.
 FIX: GIFs linked from the internet should now load properly when loading the project.
-FIX: Dropdown menus now extend  downwards into space properly depending on the currently selected (multiline) option, rather than there being a massive space at the bottom when they're open (this can be seen specifically in the "Transparency Mode" menu).
+FIX: Dropdown menus now extend downwards into space properly depending on the currently selected (multiline) option, rather than there being a massive space at the bottom when they're open (this can be seen specifically in the "Transparency Mode" menu).
 FIX: Custom fonts with empty glyphs no longer crash MasterPlan.
 FIX: Foreign / non-English latin characters (like Ç) no longer create a blank line in editable text. They also are now  properly stepped through with the keyboard arrow keys / word jumping.
 

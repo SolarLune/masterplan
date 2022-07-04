@@ -6,8 +6,16 @@
 [x] Add method to copy colors from one card to others
 [x] Reimplement automatic relative paths
 [x] Implement loading 0.7 projects
+[ ] Prefer discrete GPU
+[ ] Fix crashing / panics not reporting things to log files
+[ ] Fix sub-page title text not being centered / not editing properly with newlines
+[ ] Make it so if images surpass the GPU's maximum texture size, they get sized down
+[x] What should we do if we're using media from another drive?
 [ ] Optimize - seems like there's a memory leak somewhere
 [x] Make all text fields in Cards (like their title / description) consistent in terms of their capabilities
+[ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
+    That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
+    See: https://discord.com/channels/339550825154347008/758009278756946040/906326736965357628
 [ ] Fix storing a card in collapsed mode doesn't allow it to become uncollapsed; guess we'll need to store the uncollapsed size to revert to.
 [ ] Option to zip export output?
 [ ] Registry menu or something where you can set shortcuts to jump to specific cards / parts of your project? Maybe you can tag pages from the Hierarchy menu?
@@ -22,6 +30,7 @@
 [ ] Crystal (additive blending) graphical mode for Cards
 [ ] Splash-screen? IDK if I should have it or not.
 [ ] Add additional prompt if files already exist with one or more of the exported filenames. 
+[ ] Add templates, see: https://steamcommunity.com/app/1269310/discussions/0/3418808914582580976/
 
 - Lines, Maps
 
@@ -142,9 +151,6 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [ ] Optimize GPU execution
 [ ] Text scaling (so text can be smaller for people who want it to be smaller to fit more onscreen???)
 [ ] File filters aren't working on Mac? See: https://discord.com/channels/339550825154347008/900240962792620052/904398152386355210
-[ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
-    That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
-    See: https://discord.com/channels/339550825154347008/758009278756946040/906326736965357628
 [ ] Kapersky detects MP as malware: https://discord.com/channels/339550825154347008/758009278756946040/904661968047198238
 [ ] Edges on cards: https://discord.com/channels/339550825154347008/758009278756946040/904551737355026432
 [ ] Re-implement URL parsing

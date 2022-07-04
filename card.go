@@ -720,6 +720,16 @@ func (card *Card) Update() {
 
 }
 
+func (card *Card) Destroy() {
+
+	card.Result.Destroy()
+	if card.Contents != nil {
+		container := card.Contents.Container()
+		container.Destroy()
+	}
+
+}
+
 func (card *Card) IsSelected() bool {
 	return card.selected && card.Page.IsCurrent() && card.Page.Valid
 }
@@ -1513,12 +1523,14 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 	newHeight = float32(math.Ceil(float64(newHeight/globals.GridSize))) * globals.GridSize
 
 	maxWidth := float32(4096)
-	if float32(globals.RendererInfo.MaxTextureWidth) < maxWidth {
+
+	maxTextureSize := float32(SmallestRendererMaxTextureSize())
+	if maxWidth > maxTextureSize {
 		maxWidth = float32(globals.RendererInfo.MaxTextureWidth)
 	}
 
 	maxHeight := float32(4096)
-	if float32(globals.RendererInfo.MaxTextureHeight) < maxHeight {
+	if maxHeight > maxTextureSize {
 		maxHeight = float32(globals.RendererInfo.MaxTextureHeight)
 	}
 

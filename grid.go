@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"math"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -103,8 +104,8 @@ func (selection GridSelection) Cells() []*GridCell {
 	offsetY := len(selection.Grid.Cells) / 2
 	offsetX := len(selection.Grid.Cells[0]) / 2
 
-	for y := selection.Start.Y; y < selection.End.Y; y++ {
-		for x := selection.Start.X; x < selection.End.X; x++ {
+	for y := selection.Start.Y; y+float32(offsetY) < selection.End.Y; y++ {
+		for x := selection.Start.X; x+float32(offsetX) < selection.End.X; x++ {
 
 			cells = append(cells, selection.Grid.Cells[int(y)+offsetY][int(x)+offsetX])
 
@@ -176,6 +177,7 @@ func (grid *Grid) Put(card *Card) {
 	card.GridExtents = grid.Select(card.Rect)
 
 	if card.GridExtents.OutsideGrid() {
+		log.Println("grid expanded")
 		maxW := math.Max(math.Abs(float64(card.GridExtents.Start.X)), math.Abs(float64(card.GridExtents.End.X)))
 		maxH := math.Max(math.Abs(float64(card.GridExtents.Start.Y)), math.Abs(float64(card.GridExtents.End.Y)))
 		maxDim := math.Max(maxW, maxH)

@@ -21,10 +21,20 @@ type RenderTexture struct {
 // }
 
 func (rt *RenderTexture) Destroy() {
-	if rt.Texture != nil {
-		rt.Texture.Destroy()
+
+	if rt.Image.Texture != nil {
+		rt.Image.Texture.Destroy()
 	}
 	rt.Image.Texture = nil
+
+	for i, slot := range renderTextures {
+		if rt == slot {
+			renderTextures[i] = nil
+			renderTextures = append(renderTextures[:i], renderTextures[i+1:]...)
+			break
+		}
+	}
+
 }
 
 func (rt *RenderTexture) Recreate(newW, newH int32) {

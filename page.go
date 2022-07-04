@@ -191,6 +191,22 @@ func (page *Page) Draw() {
 
 }
 
+func (page *Page) Destroy() {
+	for _, card := range page.Cards {
+		card.Destroy()
+	}
+	page.Cards = nil
+	page.Drawables = nil
+	page.Grid = nil
+	page.PointingSubpageCard = nil
+	page.Selection = nil
+	page.ToDelete = nil
+	page.ToRaise = nil
+	page.ToRestore = nil
+	page.UpwardPage = nil
+	page.Valid = false
+}
+
 func (page *Page) Name() string {
 	if page.PointingSubpageCard != nil {
 		return page.PointingSubpageCard.Properties.Get("description").AsString()
@@ -534,7 +550,7 @@ func (page *Page) HandleExternalPaste() {
 
 		if res := globals.Resources.Get(text); res != nil && res.MimeType != "" {
 
-			if strings.Contains(res.MimeType, "image") || res.Extension == ".tga" {
+			if strings.Contains(res.MimeType, "image") || res.Extension == ".tga" || res.Extension == ".svg" {
 
 				card := page.CreateNewCard(ContentTypeImage)
 				card.Contents.(*ImageContents).LoadFileFrom(text)

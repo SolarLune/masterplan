@@ -223,6 +223,13 @@ func (project *Project) AutoBackup() {
 
 func (project *Project) Update() {
 
+	if globals.NextProject != nil && globals.NextProject != project {
+		// You're the old project, so you can just chill. We do this
+		// because otherwise, a card may use a resource that got destroyed
+		// to render.
+		return
+	}
+
 	project.AutoBackup()
 
 	project.Camera.Update()
@@ -277,6 +284,8 @@ func (project *Project) DrawGrid() {
 		}
 	}
 
+	// TODO: Draw pieces around the camera, rather than a solid 10 in every direction
+
 	halfW := float32(project.Camera.ViewArea().W / 2)
 	halfH := float32(project.Camera.ViewArea().H / 2)
 	ThickLine(project.Camera.TranslatePoint(Point{project.Camera.Position.X - halfW, 0}), project.Camera.TranslatePoint(Point{project.Camera.Position.X + halfW, 0}), 2, getThemeColor(GUIGridColor))
@@ -306,6 +315,13 @@ func (project *Project) DrawGrid() {
 }
 
 func (project *Project) Draw() {
+
+	if globals.NextProject != nil && globals.NextProject != project {
+		// You're the old project, so you can just chill. We do this
+		// because otherwise, a card may use a resource that got destroyed
+		// to render.
+		return
+	}
 
 	if project.Camera.Zoom >= 1 && globals.Settings.Get(SettingsShowGrid).AsBool() {
 		project.DrawGrid()
@@ -405,11 +421,11 @@ func (project *Project) Save() {
 		for _, card := range page.Cards {
 			if fp := card.Properties.GetIfExists("filepath"); fp != nil && FileExists(fp.AsString()) {
 				converted = append(converted, convertedFilepath{Original: fp.AsString(), PropName: "filepath", Card: card})
-				fp.Set(PathToRelative(fp.AsString()))
+				fp.Set(PathToRelative(fp.AsString(), project))
 			}
 			if run := card.Properties.GetIfExists("run"); run != nil && FileExists(run.AsString()) {
 				converted = append(converted, convertedFilepath{Original: run.AsString(), PropName: "run", Card: card})
-				run.Set(PathToRelative(run.AsString()))
+				run.Set(PathToRelative(run.AsString(), project))
 			}
 		}
 
@@ -544,6 +560,9 @@ func OpenProjectFrom(filename string) {
 			globals.EventLog.Log("Warning: Cannot open project as it doesn't appear to be a valid MasterPlan project file. Please double-check to ensure it is valid.", true)
 			return
 		}
+
+		// Destroy resources before we load new ones
+		globals.Resources.Destroy()
 
 		log.Println("Load started.")
 
@@ -976,6 +995,14 @@ func (project *Project) Reload() {
 }
 
 func (project *Project) Destroy() {
+
+	project.GridTexture.Destroy()
+	for _, page := range project.Pages {
+		page.Destroy()
+	}
+	project.Pages = nil
+	project.Camera = nil
+	project.CurrentPage = nil
 
 }
 

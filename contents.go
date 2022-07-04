@@ -68,35 +68,40 @@ type Contents interface {
 	Color() Color
 	DefaultSize() Point
 	Trigger(triggerType int)
+	Container() *Container
 }
 
 type DefaultContents struct {
 	Card      *Card
-	Container *Container
+	container *Container
 }
 
 func newDefaultContents(card *Card) DefaultContents {
 	return DefaultContents{
 		Card:      card,
-		Container: NewContainer(&sdl.FRect{0, 0, 0, 0}, true),
+		container: NewContainer(&sdl.FRect{0, 0, 0, 0}, true),
 	}
 }
 
 func (dc *DefaultContents) Update() {
 	rect := dc.Card.DisplayRect
-	dc.Container.SetRectangle(rect)
+	dc.container.SetRectangle(rect)
 	if dc.Card.Page.IsCurrent() {
-		dc.Container.Update()
+		dc.container.Update()
 	}
 }
 
 func (dc *DefaultContents) Draw() {
-	dc.Container.Draw()
+	dc.container.Draw()
 }
 
 func (dc *DefaultContents) Trigger(triggerType int) {}
 
 func (dc *DefaultContents) ReceiveMessage(msg *Message) {}
+
+func (dc *DefaultContents) Container() *Container {
+	return dc.container
+}
 
 type CheckboxContents struct {
 	DefaultContents
@@ -143,7 +148,7 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 	}
 
-	row := cc.Container.AddRow(AlignLeft)
+	row := cc.container.AddRow(AlignLeft)
 	row.Add("checkbox", cc.Checkbox)
 	row.Add("label", cc.Label)
 
@@ -165,7 +170,7 @@ func (cc *CheckboxContents) AutosetSize() {
 
 func (cc *CheckboxContents) Update() {
 
-	cc.Label.SetMaxSize(cc.Container.Rect.W-32, cc.Container.Rect.H)
+	cc.Label.SetMaxSize(cc.container.Rect.W-32, cc.container.Rect.H)
 
 	// rect := cc.Label.Rectangle()
 	// rect.W = cc.Container.Rect.W - rect.X + cc.Container.Rect.X
@@ -460,9 +465,9 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	max := card.Properties.Get("maximum")
 	numbered.Max = NewNumberSpinner(nil, true, max)
 
-	row := numbered.Container.AddRow(AlignCenter)
+	row := numbered.container.AddRow(AlignCenter)
 	row.Add("label", numbered.Label)
-	row = numbered.Container.AddRow(AlignCenter)
+	row = numbered.container.AddRow(AlignCenter)
 	row.Add("current", numbered.Current)
 	// row.Add("out of", NewLabel("out of", nil, true, AlignCenter))
 	row.Add("max", numbered.Max)
@@ -499,8 +504,8 @@ func (nc *NumberedContents) Update() {
 	nc.DefaultContents.Update()
 
 	rect := nc.Label.Rectangle()
-	rect.W = nc.Container.Rect.W - 32
-	rect.H = nc.Container.Rect.H - 32
+	rect.W = nc.container.Rect.W - 32
+	rect.H = nc.container.Rect.H - 32
 	if rect.H < 32 {
 		rect.H = 32
 	}
@@ -634,7 +639,7 @@ func NewNoteContents(card *Card) *NoteContents {
 		}
 	}
 
-	row := nc.Container.AddRow(AlignLeft)
+	row := nc.container.AddRow(AlignLeft)
 	row.Add("icon", NewGUIImage(nil, &sdl.Rect{112, 160, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("label", nc.Label)
 
@@ -654,7 +659,7 @@ func (nc *NoteContents) Update() {
 
 	nc.DefaultContents.Update()
 
-	nc.Label.SetMaxSize(nc.Container.Rect.W-32, nc.Container.Rect.H)
+	nc.Label.SetMaxSize(nc.container.Rect.W-32, nc.container.Rect.H)
 
 	kb := globals.Keybindings
 
@@ -727,14 +732,14 @@ func NewSoundContents(card *Card) *SoundContents {
 
 	soundContents.PlaybackLabel = NewLabel("", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft)
 
-	firstRow := soundContents.Container.AddRow(AlignLeft)
+	firstRow := soundContents.container.AddRow(AlignLeft)
 	firstRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{144, 160, 32, 32}, globals.GUITexture.Texture, true))
 	firstRow.Add("sound name label", soundContents.SoundNameLabel)
 
 	soundContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
 
 	fp := card.Properties.Get("filepath")
-	fp.Set(PathToAbsolute(fp.AsString())) // Convert relative path to absolute
+	fp.Set(PathToAbsolute(fp.AsString(), card.Page.Project)) // Convert relative path to absolute
 	soundContents.FilepathLabel.Editable = true
 	soundContents.FilepathLabel.RegexString = RegexNoNewlines
 	soundContents.FilepathLabel.Property = fp
@@ -742,7 +747,7 @@ func NewSoundContents(card *Card) *SoundContents {
 		soundContents.LoadFileFrom(soundContents.FilepathLabel.TextAsString())
 	}
 
-	row := soundContents.Container.AddRow(AlignCenter)
+	row := soundContents.container.AddRow(AlignCenter)
 
 	row.Add(
 		"browse button", NewButton("Browse", nil, nil, true, func() {
@@ -773,13 +778,13 @@ func NewSoundContents(card *Card) *SoundContents {
 		globals.State = StateTextEditing
 	}))
 
-	row = soundContents.Container.AddRow(AlignCenter)
+	row = soundContents.container.AddRow(AlignCenter)
 
 	row.Add("playback label", soundContents.PlaybackLabel)
 	row.Add("play button", soundContents.PlayButton)
 	row.Add("repeat button", repeatButton)
 
-	row = soundContents.Container.AddRow(AlignCenter)
+	row = soundContents.container.AddRow(AlignCenter)
 	row.Add("seek bar", soundContents.SeekBar)
 
 	if card.Properties.Get("filepath").AsString() != "" {
@@ -795,7 +800,7 @@ func (sc *SoundContents) Update() {
 	sc.DefaultContents.Update()
 
 	rect := sc.SoundNameLabel.Rectangle()
-	rect.W = sc.Container.Rect.W - 32
+	rect.W = sc.container.Rect.W - 32
 	// sc.SoundNameLabel.SetRectangle(rect)
 
 	sc.PlayButton.IconSrc.X = 112
@@ -1046,7 +1051,9 @@ func NewImageContents(card *Card) *ImageContents {
 	imageContents.FilepathLabel.Editable = true
 	imageContents.FilepathLabel.RegexString = RegexNoNewlines
 	fp := card.Properties.Get("filepath")
-	fp.Set(PathToAbsolute(fp.AsString()))
+
+	fp.Set(PathToAbsolute(fp.AsString(), card.Page.Project))
+
 	imageContents.FilepathLabel.Property = fp
 	imageContents.FilepathLabel.OnChange = func() {
 		imageContents.LoadFileFrom(imageContents.FilepathLabel.TextAsString())
@@ -1391,7 +1398,7 @@ func NewTimerContents(card *Card) *TimerContents {
 		if tc.Name.Editing {
 
 			lineCount := float32(tc.Name.LineCount())
-			tc.Card.Recreate(tc.Card.Rect.W, tc.Container.MinimumHeight()+(lineCount*globals.GridSize))
+			tc.Card.Recreate(tc.Card.Rect.W, tc.container.MinimumHeight()+(lineCount*globals.GridSize))
 			tc.Card.UncollapsedSize = Point{tc.Card.Rect.W, tc.Card.Rect.H}
 
 			// dy := tc.DefaultSize().Y
@@ -1412,24 +1419,24 @@ func NewTimerContents(card *Card) *TimerContents {
 	// tc.Name.AutoExpand = true
 	// tc.ClockLabel.AutoExpand = true
 
-	row := tc.Container.AddRow(AlignLeft)
+	row := tc.container.AddRow(AlignLeft)
 	row.Add("icon", NewGUIImage(nil, &sdl.Rect{80, 64, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("name", tc.Name)
 
-	row = tc.Container.AddRow(AlignCenter)
+	row = tc.container.AddRow(AlignCenter)
 	row.Add("clock", tc.ClockLabel)
 	row.Add("max", tc.ClockMaxTime)
 
-	row = tc.Container.AddRow(AlignCenter)
+	row = tc.container.AddRow(AlignCenter)
 	row.Add("pie", tc.Pie)
 	row.Add("start button", tc.StartButton)
 	row.Add("restart button", tc.RestartButton)
 
-	row = tc.Container.AddRow(AlignCenter)
+	row = tc.container.AddRow(AlignCenter)
 	row.Add("", NewLabel("Mode:  ", nil, true, AlignRight))
 	row.Add("mode", tc.Mode)
 
-	row = tc.Container.AddRow(AlignCenter)
+	row = tc.container.AddRow(AlignCenter)
 	row.Add("", NewLabel("Trigger:  ", nil, true, AlignRight))
 	row.Add("trigger", tc.TriggerMode)
 
@@ -1919,7 +1926,7 @@ func NewMapContents(card *Card) *MapContents {
 
 	mc.Buttons = append(mc.Buttons, rotateLeft)
 
-	mc.Container.AddRow(AlignLeft).Add("icon", NewGUIImage(nil, &sdl.Rect{112, 96, 32, 32}, globals.GUITexture.Texture, true))
+	mc.container.AddRow(AlignLeft).Add("icon", NewGUIImage(nil, &sdl.Rect{112, 96, 32, 32}, globals.GUITexture.Texture, true))
 
 	mc.MapData.Resize(int(mc.Card.Rect.W/globals.GridSize), int(mc.Card.Rect.H/globals.GridSize))
 
@@ -2551,14 +2558,14 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	sb.ScreenshotImage.TintByFontColor = false
 	sb.ScreenshotImage.Border = true
 
-	row := sb.Container.AddRow(AlignCenter)
+	row := sb.container.AddRow(AlignCenter)
 	row.Add("icon", NewGUIImage(nil, &sdl.Rect{48, 256, 32, 32}, globals.GUITexture.Texture, true))
 	sb.NameLabel = NewLabel("New Sub-Page", nil, true, AlignLeft)
 	sb.NameLabel.OnChange = func() {
 
 		if sb.NameLabel.Editing {
 
-			sb.Card.Recreate(sb.Card.Rect.W, sb.Container.IdealSize().Y)
+			sb.Card.Recreate(sb.Card.Rect.W, sb.container.IdealSize().Y)
 			sb.Card.UncollapsedSize = Point{sb.Card.Rect.W, sb.Card.Rect.H}
 
 			// dy := tc.DefaultSize().Y
@@ -2611,10 +2618,10 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	sb.NameLabel.Editable = true
 	row.Add("name", sb.NameLabel)
 
-	sb.ScreenshotRow = sb.Container.AddRow(AlignCenter)
+	sb.ScreenshotRow = sb.container.AddRow(AlignCenter)
 	sb.ScreenshotRow.Add("screenshot", sb.ScreenshotImage)
 
-	sb.Container.AddRow(AlignCenter).Add("open", NewButton("Open", nil, nil, true, func() {
+	sb.container.AddRow(AlignCenter).Add("open", NewButton("Open", nil, nil, true, func() {
 		sb.OpenSubpage()
 	}))
 
@@ -2632,7 +2639,7 @@ func (sb *SubPageContents) Update() {
 	}
 
 	rect := sb.NameLabel.Rectangle()
-	rect.W = sb.Container.Rect.W - rect.X + sb.Container.Rect.X
+	rect.W = sb.container.Rect.W - rect.X + sb.container.Rect.X
 	sb.NameLabel.SetRectangle(rect)
 
 	if (globals.State == StateNeutral || globals.State == StateCardLink) && sb.Card.IsSelected() && globals.Keybindings.Pressed(KBSubpageOpen) {
@@ -2640,12 +2647,12 @@ func (sb *SubPageContents) Update() {
 		sb.OpenSubpage()
 	}
 
-	w := sb.Container.Rect.W
+	w := sb.container.Rect.W
 	if w < 0 {
 		w = 0
 	}
 
-	h := sb.Container.Rect.H - sb.NameLabel.Rect.H - globals.GridSize // This last gridsize is the Open button
+	h := sb.container.Rect.H - sb.NameLabel.Rect.H - globals.GridSize // This last gridsize is the Open button
 	if h < 0 {
 		h = 0
 	}
@@ -2758,7 +2765,7 @@ func NewLinkContents(card *Card) *LinkContents {
 	}
 
 	run := lc.Card.Properties.Get("run") // Update it to say it's in use
-	run.Set(PathToAbsolute(run.AsString()))
+	run.Set(PathToAbsolute(run.AsString(), card.Page.Project))
 	lc.Card.Properties.Get("args")
 	lc.Card.Properties.Get("link mode")
 	// This has to be -1 so the target doesn't get set automatically to the first Card
@@ -2775,7 +2782,7 @@ func NewLinkContents(card *Card) *LinkContents {
 	lc.Label.OnChange = func() {
 		if lc.Label.Editing {
 			lineCount := float32(lc.Label.LineCount())
-			lc.Card.Recreate(lc.Card.Rect.W, lc.Container.MinimumHeight()+((lineCount-1)*globals.GridSize))
+			lc.Card.Recreate(lc.Card.Rect.W, lc.container.MinimumHeight()+((lineCount-1)*globals.GridSize))
 			lc.Card.UncollapsedSize = Point{lc.Card.Rect.W, lc.Card.Rect.H}
 
 			// 	lineCount := float32(lc.Label.LineCount())
@@ -2785,10 +2792,10 @@ func NewLinkContents(card *Card) *LinkContents {
 		}
 	}
 
-	row := lc.Container.AddRow(AlignLeft)
+	row := lc.container.AddRow(AlignLeft)
 	row.Add("icon", NewGUIImage(nil, &sdl.Rect{112, 256, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("label", lc.Label)
-	lc.CardRow = lc.Container.AddRow(AlignCenter)
+	lc.CardRow = lc.container.AddRow(AlignCenter)
 	lc.CardRow.HorizontalSpacing = 16
 	lc.CardRow.Add("link", NewButton("Link", nil, nil, true, func() {
 		globals.State = StateCardLink
@@ -2803,7 +2810,7 @@ func NewLinkContents(card *Card) *LinkContents {
 		lc.SetTarget(nil)
 	}))
 
-	lc.ProgramRow = lc.Container.AddRow(AlignCenter)
+	lc.ProgramRow = lc.container.AddRow(AlignCenter)
 	lc.ProgramRow.HorizontalSpacing = 16
 	lc.ProgramRow.Add("browse", NewButton("Browse", nil, nil, true, func() {
 		browse, err := zenity.SelectFile(zenity.DisallowEmpty())
@@ -2860,7 +2867,7 @@ func NewLinkContents(card *Card) *LinkContents {
 		globals.EventLog.Log("Program link erased.", false)
 	}))
 
-	row = lc.Container.AddRow(AlignCenter)
+	row = lc.container.AddRow(AlignCenter)
 	row.HorizontalSpacing = 16
 	lc.linkedIcon = NewGUIImage(nil, &sdl.Rect{176, 126, 32, 32}, globals.GUITexture.Texture, true)
 	row.Add("", lc.linkedIcon)
@@ -2880,11 +2887,11 @@ func (lc *LinkContents) Update() {
 		globals.State = StateTextEditing
 	}
 
-	h := lc.Container.Rect.H - lc.Container.MinimumHeight() + globals.GridSize
+	h := lc.container.Rect.H - lc.container.MinimumHeight() + globals.GridSize
 	if h < globals.GridSize {
 		h = globals.GridSize
 	}
-	lc.Label.SetMaxSize(lc.Container.Rect.W-32, h)
+	lc.Label.SetMaxSize(lc.container.Rect.W-32, h)
 
 	lc.DefaultContents.Update()
 

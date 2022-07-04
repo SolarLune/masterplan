@@ -17,10 +17,8 @@ const (
 	SettingsWindowPosition           = "WindowPosition"
 	SettingsSaveWindowPosition       = "SaveWindowPosition"
 	SettingsCustomFontPath           = "CustomFontPath"
-	SettingsFontSize                 = "FontSize"
 	SettingsTargetFPS                = "TargetFPS"
 	SettingsUnfocusedFPS             = "UnfocusedFPS"
-	SettingsDisableSplashscreen      = "DisableSplashscreen"
 	SettingsBorderlessWindow         = "BorderlessWindow"
 	SettingsOutlineWindow            = "OutlineWindow"
 	SettingsAlwaysShowNumbering      = "AlwaysShowNumbering"
@@ -51,6 +49,7 @@ const (
 	SettingsCardShadows              = "Card Shadows"
 	SettingsFlashDeadlines           = "Flash Deadlines"
 	SettingsDeadlineDisplay          = "Display Deadlines As"
+	SettingsMaxInternalImageSize     = "Max Internal Image Buffer Size"
 
 	DeadlineDisplayCountdown = "Days"
 	DeadlineDisplayDate      = "Date"
@@ -67,14 +66,39 @@ const (
 )
 
 const (
-	MouseWheelSensitvity25  = "25%"
-	MouseWheelSensitvity50  = "50%"
-	MouseWheelSensitvity100 = "100%"
-	MouseWheelSensitvity150 = "150%"
-	MouseWheelSensitvity200 = "200%"
-	MouseWheelSensitvity300 = "300%"
-	MouseWheelSensitvity400 = "400%"
-	MouseWheelSensitvity800 = "800%"
+	Percentage10  = "10%"
+	Percentage25  = "25%"
+	Percentage50  = "50%"
+	Percentage75  = "75%"
+	Percentage100 = "100%"
+	Percentage150 = "150%"
+	Percentage200 = "200%"
+	Percentage300 = "300%"
+	Percentage400 = "400%"
+	Percentage800 = "800%"
+)
+
+var percentageToNumber map[string]float32 = map[string]float32{
+	Percentage10:  0.1,
+	Percentage25:  0.25,
+	Percentage50:  0.5,
+	Percentage75:  0.75,
+	Percentage100: 1,
+	Percentage150: 1.5,
+	Percentage200: 2,
+	Percentage300: 3,
+	Percentage400: 4,
+	Percentage800: 8,
+}
+
+const (
+	ImageBufferSize512   = "512"
+	ImageBufferSize1024  = "1024"
+	ImageBufferSize2048  = "2048"
+	ImageBufferSize4096  = "4096"
+	ImageBufferSize8192  = "8192"
+	ImageBufferSize16384 = "16384"
+	ImageBufferSizeMax   = "Max"
 )
 
 func NewProgramSettings() *Properties {
@@ -109,10 +133,11 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsAutoBackup).Set(true)
 	props.Get(SettingsAutoBackupTime).Set(10.0)
 	props.Get(SettingsMaxAutoBackups).Set(6.0)
-	props.Get(SettingsMouseWheelSensitivity).Set(MouseWheelSensitvity100)
+	props.Get(SettingsMouseWheelSensitivity).Set(Percentage100)
 	props.Get(SettingsZoomToCursor).Set(true)
 	props.Get(SettingsCardShadows).Set(true)
 	props.Get(SettingsFlashDeadlines).Set(true)
+	props.Get(SettingsMaxInternalImageSize).Set(ImageBufferSize2048)
 
 	transparency := props.Get(SettingsWindowTransparency)
 	transparency.Set(1.0)

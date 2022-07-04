@@ -627,8 +627,12 @@ func (button *Button) Update() {
 		}
 
 	} else if button.FadeOnInactive {
-		alphaTarget = 0.6
+		alphaTarget = 0.7
 		lineTarget = 0
+	}
+
+	if button.Disabled {
+		alphaTarget = 0.3
 	}
 
 	button.Label.Alpha += ((alphaTarget - button.Label.Alpha) * 0.1)
@@ -2183,7 +2187,10 @@ func (label *Label) Rectangle() *sdl.FRect {
 }
 
 func (label *Label) Destroy() {
-	label.RendererResult.Image.Texture.Destroy()
+	if label.RendererResult != nil {
+		label.RendererResult.Destroy()
+		label.RendererResult = nil
+	}
 }
 
 type ContainerRow struct {

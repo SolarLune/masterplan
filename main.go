@@ -127,7 +127,9 @@ func main() {
 					}
 				}
 
-				text += "\n\n# ERROR END #\n\nOS: " + runtime.GOOS
+				text += "\n\n# ERROR END #\n\nOS: " + runtime.GOOS + "\nRendererInfo:" + fmt.Sprintf("%v", globals.RendererInfo)
+
+				os.Stdout.Write([]byte(text))
 
 			}
 			os.Stdout.Close()
@@ -246,7 +248,13 @@ func main() {
 
 	globals.Window = window
 	globals.Renderer = renderer
-	globals.GUITexture = globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
+
+	res := globals.Resources.Get(LocalRelativePath("assets/gui.png"))
+	res.Destructible = false
+	globals.GUITexture = res.AsImage()
+
+	globals.Resources.Get(LocalRelativePath("assets/empty_image.png")).Destructible = false
+
 	globals.Dispatcher = NewDispatcher()
 
 	globals.TextRenderer = NewTextRenderer()
@@ -1910,6 +1918,35 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("deadline display label", NewLabel("Display Deadlines As:", nil, false, AlignLeft))
 	row.Add("deadline display setting", NewButtonGroup(&sdl.FRect{0, 0, 256, 32}, false, nil, globals.Settings.Get(SettingsDeadlineDisplay), DeadlineDisplayCountdown, DeadlineDisplayDate, DeadlineDisplayIcons))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel(fmt.Sprintf("Maximum Texture Size Supported by\nGraphics Card: %d x %d", globals.RendererInfo.MaxTextureWidth, globals.RendererInfo.MaxTextureHeight), nil, false, AlignCenter))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Image Buffer Max Size:", nil, false, AlignLeft))
+	group := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, nil, globals.Settings.Get(SettingsMaxInternalImageSize),
+		ImageBufferSize512,
+		ImageBufferSize1024,
+		ImageBufferSize2048,
+		ImageBufferSize4096,
+		ImageBufferSize8192,
+		ImageBufferSize16384,
+		ImageBufferSizeMax)
+
+	group.Buttons[1].Disabled = SmallestRendererMaxTextureSize() < 1024
+	group.Buttons[2].Disabled = SmallestRendererMaxTextureSize() < 2048
+	group.Buttons[3].Disabled = SmallestRendererMaxTextureSize() < 4096
+	group.Buttons[4].Disabled = SmallestRendererMaxTextureSize() < 8192
+	group.Buttons[5].Disabled = SmallestRendererMaxTextureSize() < 16384
+
+	group.MaxButtonsPerRow = 3
+	row.Add("", group)
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))

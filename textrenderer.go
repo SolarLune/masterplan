@@ -95,7 +95,7 @@ type TextRendererResult struct {
 }
 
 func (trr *TextRendererResult) Destroy() {
-	if trr.Image.Texture != nil {
+	if trr.Image != nil && trr.Image.Texture != nil {
 		trr.Image.Texture.Destroy()
 		trr.Image.Texture = nil
 	}

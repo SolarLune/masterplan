@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"image/gif"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -50,8 +51,11 @@ func (resourceBank ResourceBank) Get(resourcePath string) *Resource {
 
 func (resourceBank ResourceBank) Destroy() {
 
-	for _, resource := range resourceBank {
-		resource.Destroy()
+	for resourceName, resource := range resourceBank {
+		if resource.Destructible {
+			resource.Destroy()
+			delete(resourceBank, resourceName)
+		}
 	}
 
 }
@@ -66,12 +70,14 @@ type Resource struct {
 	TempFile      bool // Whether the file is temporary (and so should be deleted after MasterPlan closes) - downloaded images, for example, are temporary
 	SaveFile      bool // Whether the file should be saved along with the project - pasted screenshots, as an example, are saved
 	Parsed        bool
+	Destructible  bool // System resources aren't able to be deleted
 }
 
 func NewResource(resourcePath string) (*Resource, error) {
 
 	resource := &Resource{
-		Name: resourcePath,
+		Name:         resourcePath,
+		Destructible: true,
 	}
 
 	if _, err := os.ReadFile(resourcePath); err == nil {
@@ -161,6 +167,57 @@ func (resource *Resource) Parse() {
 		} else {
 
 			surface, err := img.Load(resource.LocalFilepath)
+
+			internalSizeSetting := globals.Settings.Get(SettingsMaxInternalImageSize).AsString()
+
+			internalSizeMax := int32(256)
+			switch internalSizeSetting {
+			case ImageBufferSize512:
+				internalSizeMax = 512
+			case ImageBufferSize1024:
+				internalSizeMax = 1024
+			case ImageBufferSize2048:
+				internalSizeMax = 2048
+			case ImageBufferSize4096:
+				internalSizeMax = 4096
+			case ImageBufferSize8192:
+				internalSizeMax = 8192
+			case ImageBufferSizeMax:
+				internalSizeMax = math.MaxInt32
+			}
+
+			if maxSize := SmallestRendererMaxTextureSize(); internalSizeMax > maxSize {
+				internalSizeMax = maxSize
+			}
+
+			w := surface.W
+			h := surface.H
+
+			// Image is too big to be displayed on our graphics card, we have to resize it
+			if w > internalSizeMax || h > internalSizeMax {
+
+				asr := float64(h) / float64(w)
+				if w > h {
+					w = internalSizeMax
+					h = int32(math.Ceil(float64(w) * asr))
+				} else if h > w {
+					h = internalSizeMax
+					w = int32(math.Ceil(float64(h) / asr))
+				} else {
+					w = internalSizeMax
+					h = internalSizeMax
+				}
+
+				newSurf, _ := sdl.CreateRGBSurfaceWithFormat(0, w, h, int32(surface.Format.BitsPerPixel), surface.Format.Format)
+
+				surface.BlitScaled(nil, newSurf, &sdl.Rect{0, 0, w, h})
+
+				ogSurf := surface
+				surface = newSurf
+				ogSurf.Free()
+
+			}
+
 			if err != nil {
 				panic(err)
 			}
@@ -280,4 +337,11 @@ func (resource *Resource) Destroy() {
 	if resource.IsTexture() {
 		resource.AsImage().Texture.Destroy()
 	}
+
+	if resource.IsGIF() {
+		resource.AsGIF().Destroy()
+	}
+
+	resource.Data = nil
+
 }
