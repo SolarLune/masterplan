@@ -842,6 +842,7 @@ func (card *Card) Update() {
 func (card *Card) Destroy() {
 
 	card.Result.Destroy()
+	card.Result.StopTracking()
 	if card.Contents != nil {
 		container := card.Contents.Container()
 		container.Destroy()

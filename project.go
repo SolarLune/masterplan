@@ -1008,6 +1008,7 @@ func (project *Project) Reload() {
 func (project *Project) Destroy() {
 
 	project.GridTexture.Destroy()
+	project.GridTexture.StopTracking()
 	for _, page := range project.Pages {
 		page.Destroy()
 	}

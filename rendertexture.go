@@ -29,6 +29,12 @@ func (rt *RenderTexture) Destroy() {
 	}
 	rt.Image.Texture = nil
 
+}
+
+// StopTracking removes the RenderTexture from the global renderTextures slice, which means that it won't be refreshed when a windowing event requires it (which
+// is specifically applicable on Windows).
+func (rt *RenderTexture) StopTracking() {
+
 	for i, slot := range renderTextures {
 		if rt == slot {
 			renderTextures[i] = nil
