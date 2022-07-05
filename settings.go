@@ -139,7 +139,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsCardShadows).Set(true)
 	props.Get(SettingsFlashDeadlines).Set(true)
 	props.Get(SettingsMaxInternalImageSize).Set(ImageBufferSize2048)
-	props.Get(SettingsPlaceNewCardsInStack).Set(true)
+	props.Get(SettingsPlaceNewCardsInStack).Set(false)
 
 	transparency := props.Get(SettingsWindowTransparency)
 	transparency.Set(1.0)

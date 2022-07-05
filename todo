@@ -13,6 +13,7 @@
 [x] Make it so if images surpass the GPU's maximum texture size, they get sized down
 [x] What should we do if we're using media from another drive?
 [ ] Optimize - seems like there's a memory leak somewhere
+[ ] Show keybinding conflicts in the Keybindings menu
 [x] Make all text fields in Cards (like their title / description) consistent in terms of their capabilities
 [ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
     That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?

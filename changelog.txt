@@ -1,5 +1,27 @@
 -------
 
+v0.8.0-alpha.7.1
+
+-------
+
+RE-IMPLEMENTATION: Adding option to place newly created cards in a stack if a card is selected (defaulting to off). If the option is enabled, Cards created through keybindings or through the Create menu will be inserted into the stack underneath the currently selected Card.
+OPTIMIZATION: Resizing images no longer unnecessarily uses additional VRAM. (Internally, resizing images doesn't need to recreate the owning Card as the image doesn't show the card in the first place.)
+FIX: Images and sounds should no longer cause crashes when linked from a drive apart from the one MasterPlan starts on.
+FIX: Crashes should actually write vital information to the log file again, rather than inexplicably cutting that part out.
+FIX: MP should no longer crash when selecting non-existing cards in a direction (i.e. pressing right with no card to the right).
+FIX: Creating a new project while in a subpage will no longer have the "exit subpage" window stuck onscreen.
+QoL: More efforts to improve memory usage / free memory more aggressively, particularly when creating new projects / loading other projects in sequence. Please let me know if this doesn't work!
+QoL: Adding maximum image size buffer with customizeable size. Images that are larger than this buffer size will be scaled down to fit in this size when added to a project. The size will be capped to a maximum value of whatever your graphics card will support. The smaller the image buffer size, the smaller the images will be scaled when loading (meaning less fine details when zooming in on your project), and so the less VRAM they will consume. This setting takes effect on newly loaded resources (so change the option and then reload the project or restart MasterPlan to see the effect).
+QoL: MasterPlan now saves which page you're on when you save the project.
+QoL: Keybindings to select top or bottom card in Stack now default to Home / End, rather than Page Up / Page Down.
+QoL: Adding keybindings to select top or bottom card in the selected Card's indentation group (Page Up / Page Down).
+QoL: Adding keybinding to select all cards in indentation group or below. (Left Ctrl+Space).
+  -  For previous users, with these added keybinding changes in mind, please look over the shortcuts to ensure there are no keybinding conflicts (or reset the keybindings to default to avoid having conflicts).
+QoL: MasterPlan should now prefer using the dedicated GPU over the integrated GPU on Windows for computers that have the option.
+QoL: Disabled buttons are now darker, and button choices for button groups are now slightly lighter (60% > 70% brightness).
+
+-------
+
 v0.8.0-alpha.7
 
 -------
