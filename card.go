@@ -464,13 +464,23 @@ func (card *Card) Update() {
 				var nextCard *Card
 				selectRange := float32(1024)
 
+				baseCard := card
+
 				if kb.Pressed(KBSelectCardUp) {
 
-					if neighbors := grid.CardsAbove(card); len(neighbors) > 0 {
+					if selection := card.Page.Selection.Cards; len(selection) > 0 {
+						for c := range selection {
+							if c.Rect.Y < baseCard.Rect.Y {
+								baseCard = c
+							}
+						}
+					}
+
+					if neighbors := grid.CardsAbove(baseCard); len(neighbors) > 0 {
 						nextCard = neighbors[0]
-					} else if neighbors := grid.CardsInArea(card.Rect.X, card.Rect.Y-selectRange, card.Rect.W, selectRange); len(neighbors) > 0 {
+					} else if neighbors := grid.CardsInArea(baseCard.Rect.X, baseCard.Rect.Y-selectRange, baseCard.Rect.W, selectRange); len(neighbors) > 0 {
 						sort.Slice(neighbors, func(i, j int) bool {
-							return neighbors[i].Center().Distance(card.Center()) < neighbors[j].Center().Distance(card.Center())
+							return neighbors[i].Center().Distance(baseCard.Center()) < neighbors[j].Center().Distance(baseCard.Center())
 						})
 						nextCard = neighbors[0]
 					}
@@ -479,11 +489,19 @@ func (card *Card) Update() {
 
 				if kb.Pressed(KBSelectCardDown) {
 
-					if neighbors := grid.CardsBelow(card); len(neighbors) > 0 {
+					if selection := card.Page.Selection.Cards; len(selection) > 0 {
+						for c := range selection {
+							if c.Rect.Y > baseCard.Rect.Y {
+								baseCard = c
+							}
+						}
+					}
+
+					if neighbors := grid.CardsBelow(baseCard); len(neighbors) > 0 {
 						nextCard = neighbors[0]
-					} else if neighbors := grid.CardsInArea(card.Rect.X, card.Rect.Y+card.Rect.H, card.Rect.W, selectRange); len(neighbors) > 0 {
+					} else if neighbors := grid.CardsInArea(baseCard.Rect.X, baseCard.Rect.Y+baseCard.Rect.H, baseCard.Rect.W, selectRange); len(neighbors) > 0 {
 						sort.Slice(neighbors, func(i, j int) bool {
-							return neighbors[i].Center().Distance(card.Center()) < neighbors[j].Center().Distance(card.Center())
+							return neighbors[i].Center().Distance(baseCard.Center()) < neighbors[j].Center().Distance(baseCard.Center())
 						})
 						nextCard = neighbors[0]
 
@@ -493,9 +511,17 @@ func (card *Card) Update() {
 
 				if kb.Pressed(KBSelectCardRight) {
 
-					if neighbors := grid.CardsInArea(card.Rect.X+card.Rect.W, card.Rect.Y, selectRange, card.Rect.H); len(neighbors) > 0 {
+					if selection := card.Page.Selection.Cards; len(selection) > 0 {
+						for c := range selection {
+							if c.Rect.X > baseCard.Rect.X {
+								baseCard = c
+							}
+						}
+					}
+
+					if neighbors := grid.CardsInArea(baseCard.Rect.X+baseCard.Rect.W, baseCard.Rect.Y, selectRange, baseCard.Rect.H); len(neighbors) > 0 {
 						sort.Slice(neighbors, func(i, j int) bool {
-							return neighbors[i].Center().Distance(card.Center()) < neighbors[j].Center().Distance(card.Center())
+							return neighbors[i].Center().Distance(baseCard.Center()) < neighbors[j].Center().Distance(baseCard.Center())
 						})
 						nextCard = neighbors[0]
 					}
@@ -504,27 +530,64 @@ func (card *Card) Update() {
 
 				if kb.Pressed(KBSelectCardLeft) {
 
-					if neighbors := grid.CardsInArea(card.Rect.X-selectRange, card.Rect.Y, selectRange, card.Rect.H); len(neighbors) > 0 {
+					if selection := card.Page.Selection.Cards; len(selection) > 0 {
+						for c := range selection {
+							if c.Rect.X < baseCard.Rect.X {
+								baseCard = c
+							}
+						}
+					}
+
+					if neighbors := grid.CardsInArea(baseCard.Rect.X-selectRange, baseCard.Rect.Y, selectRange, baseCard.Rect.H); len(neighbors) > 0 {
 						sort.Slice(neighbors, func(i, j int) bool {
-							return neighbors[i].Center().Distance(card.Center()) < neighbors[j].Center().Distance(card.Center())
+							return neighbors[i].Center().Distance(baseCard.Center()) < neighbors[j].Center().Distance(baseCard.Center())
 						})
 						nextCard = neighbors[0]
 					}
 
 				}
 
-				if kb.Pressed(KBSelectCardTop) {
+				selectDir := 0
 
-					if head := card.Stack.Head(); len(head) > 0 {
-						nextCard = head[0]
-					}
-
+				if kb.Pressed(KBSelectCardTopStack) {
+					selectDir = -1
+					nextCard = card.Stack.Top()
 				}
 
-				if kb.Pressed(KBSelectCardBottom) {
+				if kb.Pressed(KBSelectCardBottomStack) {
+					selectDir = 1
+					nextCard = card.Stack.Bottom()
+				}
 
+				if kb.Pressed(KBSelectCardTopIndent) {
+					if head := card.Stack.Head(); len(head) > 0 {
+						selectDir = -1
+
+						nextCard = head[len(head)-1]
+						for i := len(head) - 1; i >= 0; i-- {
+							if head[i].Rect.X == card.Rect.X {
+								nextCard = head[i]
+							} else {
+								break
+							}
+						}
+
+					}
+				}
+
+				if kb.Pressed(KBSelectCardBottomIndent) {
 					if tail := card.Stack.Tail(); len(tail) > 0 {
-						nextCard = tail[len(tail)-1]
+						selectDir = 1
+
+						nextCard = tail[0]
+						for i := 0; i < len(tail); i++ {
+							if tail[i].Rect.X != card.Rect.X {
+								break
+							}
+							nextCard = tail[i]
+
+						}
+
 					}
 
 				}
@@ -533,19 +596,75 @@ func (card *Card) Update() {
 
 					if !kb.Pressed(KBAddToSelection) {
 						card.Page.Selection.Clear()
+					} else {
+
+						if selectDir < 0 {
+							head := card.Stack.Head()
+							for i := len(head) - 1; i >= 0; i-- {
+								c := head[i]
+								card.Page.Selection.Add(c)
+								if c == nextCard {
+									break
+								}
+							}
+						} else if selectDir > 0 {
+							for _, c := range card.Stack.Tail() {
+								card.Page.Selection.Add(c)
+								if c == nextCard {
+									break
+								}
+							}
+						}
+
 					}
 
 					card.Page.Selection.Add(nextCard)
+
 					kb.Shortcuts[KBSelectCardUp].ConsumeKeys()
 					kb.Shortcuts[KBSelectCardRight].ConsumeKeys()
 					kb.Shortcuts[KBSelectCardDown].ConsumeKeys()
 					kb.Shortcuts[KBSelectCardLeft].ConsumeKeys()
-					kb.Shortcuts[KBSelectCardTop].ConsumeKeys()
-					kb.Shortcuts[KBSelectCardBottom].ConsumeKeys()
+					kb.Shortcuts[KBSelectCardTopStack].ConsumeKeys()
+					kb.Shortcuts[KBSelectCardBottomStack].ConsumeKeys()
+					kb.Shortcuts[KBSelectCardTopIndent].ConsumeKeys()
+					kb.Shortcuts[KBSelectCardBottomIndent].ConsumeKeys()
 
 					if globals.Settings.Get(SettingsFocusOnSelectingWithKeys).AsBool() {
 						card.Page.Project.Camera.FocusOn(false, card.Page.Selection.AsSlice()...)
 					}
+
+				}
+
+				if kb.Pressed(KBSelectCardsInIndentGroup) {
+
+					if !kb.Pressed(KBAddToSelection) {
+						card.Page.Selection.Clear()
+					}
+
+					card.Page.Selection.Add(card)
+
+					head := card.Stack.Head()
+
+					for i := len(head) - 1; i >= 0; i-- {
+						c := head[i]
+						if c.Rect.X >= card.Rect.X {
+							card.Page.Selection.Add(c)
+						} else {
+							break
+						}
+					}
+
+					for _, c := range card.Stack.Tail() {
+						if c.Rect.X >= card.Rect.X {
+							card.Page.Selection.Add(c)
+						} else {
+							break
+						}
+					}
+
+					card.Page.Project.Camera.FocusOn(false, card.Page.Selection.AsSlice()...)
+
+					kb.Shortcuts[KBSelectCardsInIndentGroup].ConsumeKeys()
 
 				}
 
@@ -1637,7 +1756,10 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 		}
 
-		card.Result.RenderFunc()
+		// Images don't need to re-render a render texture, really, since the image is already stored in GPU memory.
+		if card.ContentType != ContentTypeImage {
+			card.Result.RenderFunc()
+		}
 
 		card.LockPosition() // Update Page's Grid.
 

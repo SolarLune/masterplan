@@ -143,7 +143,7 @@ func (stack *Stack) PostUpdate() {
 
 }
 
-// Head returns the rest of the Stack from this Card up (excluding this Card).
+// Head returns the rest of the Stack from this Card up (excluding this Card). The slice is sorted vertically, starting with the top of the stack.
 func (stack *Stack) Head() []*Card {
 	rest := []*Card{}
 
@@ -163,7 +163,7 @@ func (stack *Stack) Head() []*Card {
 	return rest
 }
 
-// Tail returns the rest of the Stack from this Card down (excluding this Card).
+// Tail returns the rest of the Stack from this Card down (excluding this Card). The slice is sorted vertically, starting with the top of the stack.
 func (stack *Stack) Tail() []*Card {
 	rest := []*Card{}
 	below := stack.Below

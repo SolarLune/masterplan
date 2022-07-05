@@ -38,14 +38,17 @@ const (
 	KBMoveCardRight = "Move Card Right"
 	KBMoveCardLeft  = "Move Card Left"
 
-	KBSelectCardUp     = "Select Card Above"
-	KBSelectCardDown   = "Select Card Below"
-	KBSelectCardRight  = "Select Card to Right"
-	KBSelectCardLeft   = "Select Card to Left"
-	KBSelectCardTop    = "Select Card At Top of Stack"
-	KBSelectCardBottom = "Select Card At Bottom of Stack"
-	KBSelectCardNext   = "Select Next Card"
-	KBSelectCardPrev   = "Select Prev Card"
+	KBSelectCardUp             = "Select Card Above"
+	KBSelectCardDown           = "Select Card Below"
+	KBSelectCardRight          = "Select Card to Right"
+	KBSelectCardLeft           = "Select Card to Left"
+	KBSelectCardTopStack       = "Select Card at Top of Stack"
+	KBSelectCardBottomStack    = "Select Card at Bottom of Stack"
+	KBSelectCardTopIndent      = "Select Card at Top of Indent in Stack"
+	KBSelectCardBottomIndent   = "Select Card at Bottom of Indent in Stack"
+	KBSelectCardsInIndentGroup = "Select All Cards in Indentation"
+	KBSelectCardNext           = "Select Next Card"
+	KBSelectCardPrev           = "Select Prev Card"
 
 	KBNewCheckboxCard = "New Checkbox Card"
 	KBNewNumberCard   = "New Number Card"
@@ -448,8 +451,11 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBSelectCardUp, sdl.K_UP)
 	kb.DefineKeyShortcut(KBSelectCardRight, sdl.K_RIGHT)
 	kb.DefineKeyShortcut(KBSelectCardLeft, sdl.K_LEFT)
-	kb.DefineKeyShortcut(KBSelectCardTop, sdl.K_PAGEUP)
-	kb.DefineKeyShortcut(KBSelectCardBottom, sdl.K_PAGEDOWN)
+	kb.DefineKeyShortcut(KBSelectCardTopStack, sdl.K_HOME)
+	kb.DefineKeyShortcut(KBSelectCardBottomStack, sdl.K_END)
+	kb.DefineKeyShortcut(KBSelectCardTopIndent, sdl.K_PAGEUP)
+	kb.DefineKeyShortcut(KBSelectCardBottomIndent, sdl.K_PAGEDOWN)
+	kb.DefineKeyShortcut(KBSelectCardsInIndentGroup, sdl.K_SPACE, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBSelectCardNext, sdl.K_TAB)
 	kb.DefineKeyShortcut(KBSelectCardPrev, sdl.K_TAB, sdl.K_LSHIFT)
 

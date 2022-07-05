@@ -50,6 +50,7 @@ const (
 	SettingsFlashDeadlines           = "Flash Deadlines"
 	SettingsDeadlineDisplay          = "Display Deadlines As"
 	SettingsMaxInternalImageSize     = "Max Internal Image Buffer Size"
+	SettingsPlaceNewCardsInStack     = "Position New Cards in Stack"
 
 	DeadlineDisplayCountdown = "Days"
 	DeadlineDisplayDate      = "Date"
@@ -138,6 +139,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsCardShadows).Set(true)
 	props.Get(SettingsFlashDeadlines).Set(true)
 	props.Get(SettingsMaxInternalImageSize).Set(ImageBufferSize2048)
+	props.Get(SettingsPlaceNewCardsInStack).Set(true)
 
 	transparency := props.Get(SettingsWindowTransparency)
 	transparency.Set(1.0)

@@ -366,6 +366,7 @@ func (project *Project) Save() {
 
 	saveData, _ = sjson.Set(saveData, "pan", project.Camera.TargetPosition)
 	saveData, _ = sjson.Set(saveData, "zoom", project.Camera.TargetZoom)
+	saveData, _ = sjson.Set(saveData, "currentPage", project.CurrentPage.ID)
 
 	savedImages := map[string]string{}
 
@@ -964,9 +965,19 @@ func OpenProjectFrom(filename string) {
 			}
 		}
 
-		newProject.SetPage(newProject.Pages[0])
+		if gjson.Get(json, "currentPage").Exists() {
+			pageID := uint64(gjson.Get(json, "currentPage").Int())
+			for _, p := range newProject.Pages {
+				if p.ID == pageID {
+					newProject.SetPage(p)
+					break
+				}
+			}
+		} else {
+			newProject.SetPage(newProject.Pages[0])
+		}
 
-		newProject.Camera.JumpTo(newProject.Pages[0].Pan, newProject.Pages[0].Zoom)
+		newProject.Camera.JumpTo(newProject.CurrentPage.Pan, newProject.CurrentPage.Zoom)
 
 		newProject.UndoHistory.Update()
 
@@ -1258,6 +1269,7 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if newCard != nil {
+			placeCardInStack(newCard, false)
 			project.CurrentPage.Selection.Clear()
 			project.CurrentPage.Selection.Add(newCard)
 		}

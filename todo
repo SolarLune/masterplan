@@ -6,10 +6,11 @@
 [x] Add method to copy colors from one card to others
 [x] Reimplement automatic relative paths
 [x] Implement loading 0.7 projects
-[ ] Prefer discrete GPU
-[ ] Fix crashing / panics not reporting things to log files
+[x] Prefer discrete GPU
+[x] Fix crashing / panics not reporting things to log files
+[ ] Parented Checkbox and Numbered Cards don't flash properly
 [ ] Fix sub-page title text not being centered / not editing properly with newlines
-[ ] Make it so if images surpass the GPU's maximum texture size, they get sized down
+[x] Make it so if images surpass the GPU's maximum texture size, they get sized down
 [x] What should we do if we're using media from another drive?
 [ ] Optimize - seems like there's a memory leak somewhere
 [x] Make all text fields in Cards (like their title / description) consistent in terms of their capabilities
@@ -30,6 +31,7 @@
 [ ] Crystal (additive blending) graphical mode for Cards
 [ ] Splash-screen? IDK if I should have it or not.
 [ ] Add additional prompt if files already exist with one or more of the exported filenames. 
+[ ] Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
 [ ] Add templates, see: https://steamcommunity.com/app/1269310/discussions/0/3418808914582580976/
 
 - Lines, Maps
@@ -383,7 +385,6 @@ Dialog editor of some description??? Seems like it could be sick to have some ki
 [ ] Add option for log display time - this and the volume could be a new Slider GUI element.
 [ ] Task Neighbors could contain loops sometimes; this should be resolved when establishing the neighbors.
 [ ] Consolidate the Tasks that consist of Contents and Data Structures (somehow)
-[ ] Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
 [ ] Lines are drawing underneath Tasks (this could be configurable)
 [ ] Move "Don't open at start" checkbox somewhere else, it being in About is kind of counter-intuitive
 [ ] Draw text to a buffer, draw the buffer to the screen; might be considerably faster than drawing text constantly. Seems like 72% of non-sleep execution time might be spent drawing.

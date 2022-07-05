@@ -516,6 +516,9 @@ func main() {
 			globals.Project = globals.NextProject
 			globals.NextProject = nil
 			globals.Dispatcher.Run() // It's not modified, but we'll run the dispatcher manually
+			if globals.Project.CurrentPage.UpwardPage == nil {
+				globals.MenuSystem.Get("prev sub page").Close()
+			}
 		}
 
 		// y := int32(0)
@@ -1178,63 +1181,63 @@ func ConstructMenus() {
 
 	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, icons[ContentTypeCheckbox], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
-		card.SetCenter(globals.Project.Camera.TargetPosition)
+		placeCardInStack(card, true)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new numbered", NewButton("Numbered", nil, icons[ContentTypeNumbered], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNumbered)
-		card.SetCenter(globals.Project.Camera.TargetPosition)
+		placeCardInStack(card, true)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, icons[ContentTypeNote], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNote)
-		card.SetCenter(globals.Project.Camera.TargetPosition)
+		placeCardInStack(card, true)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, icons[ContentTypeSound], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSound)
-		card.SetCenter(globals.Project.Camera.TargetPosition)
+		placeCardInStack(card, true)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new image", NewButton("Image", nil, icons[ContentTypeImage], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeImage)
-		card.SetCenter(globals.Project.Camera.TargetPosition)
+		placeCardInStack(card, true)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new timer", NewButton("Timer", nil, icons[ContentTypeTimer], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeTimer)
-		card.SetCenter(globals.Project.Camera.TargetPosition)
+		placeCardInStack(card, true)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new map", NewButton("Map", nil, icons[ContentTypeMap], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeMap)
-		card.SetCenter(globals.Project.Camera.TargetPosition)
+		placeCardInStack(card, true)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new subpage", NewButton("Sub-Page", nil, icons[ContentTypeSubpage], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSubpage)
-		card.SetCenter(globals.Project.Camera.TargetPosition)
+		placeCardInStack(card, true)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new link", NewButton("Link", nil, icons[ContentTypeLink], false, func() {
 		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeLink)
-		card.SetCenter(globals.Project.Camera.TargetPosition)
+		placeCardInStack(card, true)
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
@@ -1787,6 +1790,10 @@ func ConstructMenus() {
 	row = general.AddRow(AlignCenter)
 	row.Add("", NewLabel("Focus on Affected Cards On Undo / Redo:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnUndo)))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Place Newly Created Cards in Selected Stack:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsPlaceNewCardsInStack)))
 
 	row = general.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))

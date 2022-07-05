@@ -90,6 +90,7 @@ func (glyph *Glyph) Destroy() {
 type TextRendererResult struct {
 	Image           *RenderTexture
 	TextLines       [][]rune
+	LineSizes       []Point
 	TextSize        Point
 	AlignmentOffset Point
 }
@@ -185,6 +186,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 		y := 0
 
 		result.TextLines = [][]rune{}
+		result.LineSizes = []Point{}
 
 		line := []rune{}
 
@@ -270,14 +272,13 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 		result.TextSize.X = finalW
 		result.TextSize.Y = float32(math.Max(float64(globals.GridSize), float64(len(result.TextLines)*int(globals.GridSize))))
 
-		lineWidths := []float32{}
 		maxLineWidth := float32(0)
 
 		for _, l := range result.TextLines {
-			width := tr.MeasureText(l, 1).X
-			lineWidths = append(lineWidths, width)
-			if maxLineWidth < width {
-				maxLineWidth = width
+			size := tr.MeasureText(l, 1)
+			result.LineSizes = append(result.LineSizes, size)
+			if maxLineWidth < size.X {
+				maxLineWidth = size.X
 			}
 		}
 
@@ -292,9 +293,9 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 			}
 
 			if horizontalAlignment == AlignCenter {
-				lw = int32((finalW - lineWidths[lineIndex]) / 2)
+				lw = int32((finalW - result.LineSizes[lineIndex].X) / 2)
 			} else if horizontalAlignment == AlignRight {
-				lw = int32(finalW - lineWidths[lineIndex])
+				lw = int32(finalW - result.LineSizes[lineIndex].X)
 			}
 
 			ch.Rect.X += lw

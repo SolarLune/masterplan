@@ -1,6 +1,8 @@
 package main
 
-import "github.com/veandco/go-sdl2/sdl"
+import (
+	"github.com/veandco/go-sdl2/sdl"
+)
 
 var renderTextures = []*RenderTexture{}
 
@@ -56,9 +58,8 @@ func (rt *RenderTexture) Recreate(newW, newH int32) {
 }
 
 // NewRenderTexture creates a new *RenderTexture. However, it does NOT return the RenderTexture created; instead, it allows you to specify
-// the width and height of the Texture, as well as a function to be called when the Texture needs to be rendered (i.e. directly after calling
-// NewRenderTexture(), as well as whenever SDL loses context and render textures need to be rebuilt (see: https://wiki.libsdl.org/SDL_EventType, SDL_RENDER_TARGETS_RESET)).
-// This is a bit of a doozy.
+// a function to be called when the Texture needs to be rendered (i.e. directly after calling ewRenderTexture(), as well as whenever SDL loses context
+// and render textures need to be rebuilt (see: https://wiki.libsdl.org/SDL_EventType, SDL_RENDER_TARGETS_RESET)). This is a bit of a doozy.
 func NewRenderTexture() *RenderTexture {
 
 	rt := &RenderTexture{}

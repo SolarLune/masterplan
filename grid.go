@@ -104,11 +104,26 @@ func (selection GridSelection) Cells() []*GridCell {
 	offsetY := len(selection.Grid.Cells) / 2
 	offsetX := len(selection.Grid.Cells[0]) / 2
 
-	for y := selection.Start.Y; y+float32(offsetY) < selection.End.Y; y++ {
-		for x := selection.Start.X; x+float32(offsetX) < selection.End.X; x++ {
+	for y := selection.Start.Y; y < selection.End.Y; y++ {
+		for x := selection.Start.X; x < selection.End.X; x++ {
+			cy := int(y) + offsetY
+			cx := int(x) + offsetX
 
-			cells = append(cells, selection.Grid.Cells[int(y)+offsetY][int(x)+offsetX])
+			if cy < 0 {
+				cy = 0
+			}
+			if cy >= len(selection.Grid.Cells) {
+				cy = len(selection.Grid.Cells) - 1
+			}
 
+			if cx < 0 {
+				cx = 0
+			}
+			if cx >= len(selection.Grid.Cells[0]) {
+				cx = len(selection.Grid.Cells[0]) - 1
+			}
+
+			cells = append(cells, selection.Grid.Cells[cy][cx])
 		}
 	}
 	return cells

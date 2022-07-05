@@ -113,6 +113,25 @@ type CheckboxContents struct {
 	// URLButtons                   *URLButtons
 }
 
+func commonTextEditingResizing(label *Label, card *Card) {
+
+	if label.Editing {
+
+		lineCount := float32(label.LineCount())
+		prevHeight := card.Rect.H
+		card.Recreate(card.Rect.W, lineCount*globals.GridSize)
+		if card.Rect.H != prevHeight {
+			for _, tail := range card.Stack.Tail() {
+				tail.Rect.Y += card.Rect.H - prevHeight
+				tail.LockPosition()
+			}
+		}
+		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
+
+	}
+
+}
+
 func NewCheckboxContents(card *Card) *CheckboxContents {
 
 	cc := &CheckboxContents{
@@ -128,24 +147,7 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 	cc.Label.Property = card.Properties.Get("description")
 
 	cc.Label.OnChange = func() {
-
-		if cc.Label.Editing {
-
-			lineCount := float32(cc.Label.LineCount())
-			cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
-			cc.Card.UncollapsedSize = Point{cc.Card.Rect.W, cc.Card.Rect.H}
-
-			// y := cc.Label.IndexToWorld(cc.Label.Selection.CaretPos).Y - cc.Card.Rect.Y
-			// if y > cc.Card.Rect.H-32 {
-			// 	lineCount := float32(cc.Label.LineCount())
-			// 	if lineCount*globals.GridSize > cc.Card.Rect.H {
-			// 		cc.Card.Recreate(cc.Card.Rect.W, lineCount*globals.GridSize)
-			// 		cc.Card.UncollapsedSize = Point{cc.Card.Rect.W, cc.Card.Rect.H}
-			// 	}
-			// }
-			// cc.URLButtons.ScanText(cc.Label.TextAsString())		}
-		}
-
+		commonTextEditingResizing(cc.Label, card)
 	}
 
 	row := cc.container.AddRow(AlignLeft)
@@ -439,20 +441,20 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	numbered.Label.Property = card.Properties.Get("description")
 	numbered.Label.Editable = true
 	numbered.Label.OnChange = func() {
+
 		if numbered.Label.Editing {
 
 			lineCount := float32(numbered.Label.LineCount())
+			prevHeight := card.Rect.H
 			numbered.Card.Recreate(numbered.Card.Rect.W, lineCount*globals.GridSize+globals.GridSize)
-			numbered.Card.UncollapsedSize = Point{numbered.Card.Rect.W, numbered.Card.Rect.H}
+			if card.Rect.H != prevHeight {
+				for _, tail := range card.Stack.Tail() {
+					tail.Rect.Y += card.Rect.H - prevHeight
+					tail.LockPosition()
+				}
+			}
+			card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
 
-			// y := numbered.Label.IndexToWorld(numbered.Label.Selection.CaretPos).Y - numbered.Card.Rect.Y
-			// if y >= numbered.Card.Rect.H-32 {
-			// 	lineCount := float32(numbered.Label.LineCount())
-			// 	if lineCount*globals.GridSize > numbered.Card.Rect.H-32 {
-			// 		numbered.Card.Recreate(numbered.Card.Rect.W, lineCount*globals.GridSize+32)
-			// 		numbered.Card.UncollapsedSize = Point{numbered.Card.Rect.W, numbered.Card.Rect.H}
-			// 	}
-			// }
 		}
 
 	}
@@ -625,18 +627,7 @@ func NewNoteContents(card *Card) *NoteContents {
 	nc.Label.Property = card.Properties.Get("description")
 
 	nc.Label.OnChange = func() {
-		if nc.Label.Editing {
-
-			lineCount := float32(nc.Label.LineCount())
-			nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
-			nc.Card.UncollapsedSize = Point{nc.Card.Rect.W, nc.Card.Rect.H}
-
-			// lineCount := float32(nc.Label.LineCount())
-			// if lineCount*globals.GridSize > nc.Card.Rect.H {
-			// 	nc.Card.Recreate(nc.Card.Rect.W, lineCount*globals.GridSize)
-			// 	nc.Card.UncollapsedSize = Point{nc.Card.Rect.W, nc.Card.Rect.H}
-			// }
-		}
+		commonTextEditingResizing(nc.Label, card)
 	}
 
 	row := nc.container.AddRow(AlignLeft)
@@ -1394,21 +1385,7 @@ func NewTimerContents(card *Card) *TimerContents {
 	)
 
 	tc.Name.OnChange = func() {
-
-		if tc.Name.Editing {
-
-			lineCount := float32(tc.Name.LineCount())
-			tc.Card.Recreate(tc.Card.Rect.W, tc.container.MinimumHeight()+(lineCount*globals.GridSize))
-			tc.Card.UncollapsedSize = Point{tc.Card.Rect.W, tc.Card.Rect.H}
-
-			// dy := tc.DefaultSize().Y
-			// lineCount := float32(tc.Name.LineCount())
-			// if (lineCount-1)*globals.GridSize > card.Rect.H-dy {
-			// 	card.Recreate(card.Rect.W, (lineCount-1)*globals.GridSize+dy)
-			// }
-
-		}
-
+		commonTextEditingResizing(tc.Name, card)
 	}
 
 	tc.StartButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() { tc.Running = !tc.Running })
@@ -2565,14 +2542,16 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 		if sb.NameLabel.Editing {
 
+			prevHeight := card.Rect.H
 			sb.Card.Recreate(sb.Card.Rect.W, sb.container.IdealSize().Y)
-			sb.Card.UncollapsedSize = Point{sb.Card.Rect.W, sb.Card.Rect.H}
+			if card.Rect.H != prevHeight {
+				for _, tail := range card.Stack.Tail() {
+					tail.Rect.Y += card.Rect.H - prevHeight
+					tail.LockPosition()
+				}
+			}
 
-			// dy := tc.DefaultSize().Y
-			// lineCount := float32(tc.Name.LineCount())
-			// if (lineCount-1)*globals.GridSize > card.Rect.H-dy {
-			// 	card.Recreate(card.Rect.W, (lineCount-1)*globals.GridSize+dy)
-			// }
+			sb.Card.UncollapsedSize = Point{sb.Card.Rect.W, sb.Card.Rect.H}
 
 		}
 
