@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goware/urlx"
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -749,7 +748,7 @@ func (shape *Shape) SetSizes(xywh ...float32) {
 // }
 
 func PathToRelative(fp string, project *Project) string {
-	if !filepath.IsAbs(fp) || IsURL(fp) || strings.TrimSpace(fp) == "" || !FileExists(fp) {
+	if !filepath.IsAbs(fp) || strings.TrimSpace(fp) == "" || !FileExists(fp) {
 		return fp
 	}
 	rel, _ := filepath.Rel(filepath.Dir(project.Filepath), string(fp))
@@ -763,7 +762,7 @@ func PathToRelative(fp string, project *Project) string {
 
 func PathToAbsolute(fp string, project *Project) string {
 
-	if filepath.IsAbs(fp) || IsURL(fp) || strings.TrimSpace(fp) == "" {
+	if filepath.IsAbs(fp) || strings.TrimSpace(fp) == "" {
 		return fp
 	}
 	elements := []string{filepath.Dir(project.Filepath), filepath.FromSlash(string(fp))}
@@ -771,6 +770,10 @@ func PathToAbsolute(fp string, project *Project) string {
 	if !FileExists(final) {
 		elements = []string{filepath.Dir(LocalRelativePath("")), filepath.FromSlash(string(fp))} // TODO: REMOVE THIS AT SOME POINT IN THE FUTURE, AS THIS SERVES TO FIX A TEMPORARY BLUNDER CAUSED BY MAKING PATHS RELATIVE TO THE MASTERPLAN FOLDER
 		final = filepath.Clean(filepath.Join(elements...))
+	}
+	// If the file doesn't exist, we'll just abandon our efforts; maybe it's a URL, for example.
+	if !FileExists(final) {
+		return fp
 	}
 	return final
 }
@@ -795,14 +798,6 @@ func FolderExists(fp string) bool {
 	}
 
 	return true
-}
-
-func IsURL(fp string) bool {
-	fp = strings.TrimSpace(fp)
-	if _, err := urlx.Parse(fp); err == nil {
-		return true
-	}
-	return false
 }
 
 // FilesinDirectory lists the files in a directory that have a filename as the base.
