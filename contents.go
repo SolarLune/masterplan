@@ -124,6 +124,7 @@ func commonTextEditingResizing(label *Label, card *Card) {
 			for _, tail := range card.Stack.Tail() {
 				tail.Rect.Y += card.Rect.H - prevHeight
 				tail.LockPosition()
+				tail.CreateUndoState = true
 			}
 		}
 		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
@@ -451,6 +452,7 @@ func NewNumberedContents(card *Card) *NumberedContents {
 				for _, tail := range card.Stack.Tail() {
 					tail.Rect.Y += card.Rect.H - prevHeight
 					tail.LockPosition()
+					tail.CreateUndoState = true
 				}
 			}
 			card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
@@ -2548,6 +2550,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 				for _, tail := range card.Stack.Tail() {
 					tail.Rect.Y += card.Rect.H - prevHeight
 					tail.LockPosition()
+					tail.CreateUndoState = true
 				}
 			}
 
@@ -2665,10 +2668,7 @@ func (sb *SubPageContents) ReceiveMessage(msg *Message) {
 
 	if sb.SubPage != nil {
 		if msg.Type == MessageCardDeleted {
-			sb.SubPage.Valid = false
 			globals.Hierarchy.AddPage(sb.SubPage)
-		} else if msg.Type == MessageCardRestored {
-			sb.SubPage.Valid = true
 		}
 	}
 

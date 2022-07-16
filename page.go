@@ -27,7 +27,6 @@ type Page struct {
 	UpdateStacks bool
 	Drawables    []*Drawable
 	ToRaise      []*Card
-	Valid        bool
 
 	IgnoreWritePan bool
 	Pan            Point
@@ -50,7 +49,6 @@ func NewPage(project *Project) *Page {
 		Drawables: []*Drawable{},
 		ToRaise:   []*Card{},
 		Zoom:      1,
-		Valid:     true,
 	}
 
 	page.Grid = NewGrid(page)
@@ -204,7 +202,23 @@ func (page *Page) Destroy() {
 	page.ToRaise = nil
 	page.ToRestore = nil
 	page.UpwardPage = nil
-	page.Valid = false
+}
+
+func (page *Page) Valid() bool {
+
+	// Root page
+	if page == page.Project.Pages[0] {
+		return true
+	}
+
+	// Deleted page or orphan
+	if page.PointingSubpageCard == nil || !page.PointingSubpageCard.Valid {
+		return false
+	}
+
+	// See if we have a valid path to the root
+	return page.PointingSubpageCard.Page.Valid()
+
 }
 
 func (page *Page) Name() string {

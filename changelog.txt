@@ -1,8 +1,25 @@
 -------
 
+v0.8.0-alpha.7.2
+
+-------
+
+QoL: Adding jump button next to pages in hierarchy view.
+QoL: Orphaned page names are now darker than normal page names.
+FIX: Cards are now again placed in the center of the screen if the option to place new cards in a stack is disabled.
+FIX: When cards automatically resize when typing text, other cards that move to make room now properly are moved when undoing / redoing.
+FIX: Exporting now only exports pages that have not been deleted.
+FIX: Menu to go up from a sub-page now appears again if opening a project from within a subpage (specifically, the last subpage in the project).
+FIX: If a page has no accessible path to the route, it is now considered deleted (if in a normal project) or orphaned (if in a project that already contains orphaned pages).
+Note: When loading a project with orphaned pages, deleted / inaccessible pages will show up in the Hierarchy view as "orphans" - this allows you to get at their contents. When saving a project with orphan pages, as long as they have no contents, they will be deleted. The change here is that if a project has no orphans, deleted pages will not be accessible from the hierarchy.
+
+-------
+
 v0.8.0-alpha.7.1
 
 -------
+
+HOT-FIX RELEASE: Images should now load on Linux. This was broken previously because the relative paths were mistaken to be URLs (which they weren't, of course).
 
 RE-IMPLEMENTATION: Adding option to place newly created cards in a stack if a card is selected (defaulting to off). If the option is enabled, Cards created through keybindings or through the Create menu will be inserted into the stack underneath the currently selected Card.
 OPTIMIZATION: Resizing images no longer unnecessarily uses additional VRAM. (Internally, resizing images doesn't need to recreate the owning Card as the image doesn't show the card in the first place.)

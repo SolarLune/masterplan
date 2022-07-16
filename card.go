@@ -851,7 +851,7 @@ func (card *Card) Destroy() {
 }
 
 func (card *Card) IsSelected() bool {
-	return card.selected && card.Page.IsCurrent() && card.Page.Valid
+	return card.selected && card.Page.IsCurrent() && card.Page.Valid()
 }
 
 func (card *Card) IsLinkedTo(other *Card) bool {

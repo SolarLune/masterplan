@@ -2451,7 +2451,7 @@ func ConstructMenus() {
 
 		for _, page := range globals.Project.Pages {
 
-			if !page.Valid {
+			if !page.Valid() {
 				continue
 			}
 

@@ -858,23 +858,19 @@ func SetRenderTarget(target *sdl.Texture) {
 
 func placeCardInStack(card *Card, centerIfNoSelection bool) {
 
-	if globals.Settings.Get(SettingsPlaceNewCardsInStack).AsBool() {
-
-		selection := globals.Project.CurrentPage.Selection.AsSlice()
-		if len(selection) > 0 {
-			card.Rect.X = selection[0].Rect.X
-			card.Rect.Y = selection[0].Rect.Y + selection[0].Rect.H
-			for _, t := range selection[0].Stack.Tail() {
-				t.Rect.Y += card.Rect.H
-				t.LockPosition()
-			}
-			card.LockPosition()
-			globals.Project.Camera.FocusOn(false, card)
-		} else if centerIfNoSelection {
-			card.SetCenter(globals.Project.Camera.TargetPosition)
-			globals.Project.Camera.FocusOn(false, card)
+	selection := globals.Project.CurrentPage.Selection.AsSlice()
+	if len(selection) > 0 && globals.Settings.Get(SettingsPlaceNewCardsInStack).AsBool() {
+		card.Rect.X = selection[0].Rect.X
+		card.Rect.Y = selection[0].Rect.Y + selection[0].Rect.H
+		for _, t := range selection[0].Stack.Tail() {
+			t.Rect.Y += card.Rect.H
+			t.LockPosition()
 		}
-
+		card.LockPosition()
+		globals.Project.Camera.FocusOn(false, card)
+	} else if centerIfNoSelection {
+		card.SetCenter(globals.Project.Camera.TargetPosition)
+		globals.Project.Camera.FocusOn(false, card)
 	}
 
 }

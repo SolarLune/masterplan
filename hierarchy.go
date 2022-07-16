@@ -48,17 +48,21 @@ func (hier *Hierarchy) AddPage(page *Page) {
 
 		cat.UI.Add("page name", NewLabel(page.Name(), &sdl.FRect{0, 0, 250, 32}, false, AlignRight))
 
-		var button *IconButton
-		button = NewIconButton(0, 0, &sdl.Rect{202, 32, 32, 32}, false, func() {
+		cat.UI.Add("jump button", NewIconButton(0, 0, &sdl.Rect{176, 256, 32, 32}, false, func() {
+			page.Project.SetPage(page)
+		}))
+
+		var expandButton *IconButton
+		expandButton = NewIconButton(0, 0, &sdl.Rect{202, 32, 32, 32}, false, func() {
 			cat.Expanded = !cat.Expanded
 			if cat.Expanded {
-				button.IconSrc.X = 208
+				expandButton.IconSrc.X = 208
 			} else {
-				button.IconSrc.X = 112
+				expandButton.IconSrc.X = 112
 			}
 		})
 
-		cat.UI.Add("button", button)
+		cat.UI.Add("expand button", expandButton)
 
 		cat.UI.VerticalSpacing = 12
 
@@ -96,7 +100,7 @@ func (hier *Hierarchy) Rows(sorting, filter int) []*ContainerRow {
 
 	for _, page := range globals.Hierarchy.OrderOfEntry {
 
-		if !page.Valid {
+		if !page.Project.HasOrphanPages && !page.Valid() {
 			continue
 		}
 
@@ -106,9 +110,14 @@ func (hier *Hierarchy) Rows(sorting, filter int) []*ContainerRow {
 
 		name := category.UI.Elements["page name"].(*Label)
 		text := page.Name()
-		if page != globals.Project.Pages[0] && page.PointingSubpageCard == nil {
+
+		name.Alpha = 1
+
+		if !page.Valid() {
 			text += " [ORPHANED]"
+			name.Alpha = 0.5
 		}
+
 		name.SetText([]rune(text))
 
 		pageRows := make([]*HierarchyCategoryElement, 0, len(category.OrderOfEntry))

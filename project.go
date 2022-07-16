@@ -50,17 +50,17 @@ const (
 type Project struct {
 	Pages []*Page
 	// CurrentPageIndex int
-	CurrentPage  *Page
-	Camera       *Camera
-	GridTexture  *RenderTexture
-	Filepath     string
-	Loading      bool
-	UndoHistory  *UndoHistory
-	LastCardType string
-	Modified     bool
-	justModified bool
-
-	LinkingCard *Card
+	CurrentPage    *Page
+	Camera         *Camera
+	GridTexture    *RenderTexture
+	Filepath       string
+	Loading        bool
+	UndoHistory    *UndoHistory
+	LastCardType   string
+	Modified       bool
+	justModified   bool
+	HasOrphanPages bool
+	LinkingCard    *Card
 
 	LoadConfirmationTo string
 
@@ -241,7 +241,7 @@ func (project *Project) Update() {
 	globals.Mouse.SetCursor(CursorNormal)
 
 	for _, page := range project.Pages {
-		if page.Valid {
+		if page.Valid() {
 			page.Update()
 		}
 	}
@@ -378,30 +378,29 @@ func (project *Project) Save() {
 
 		for _, page := range project.Pages[1:] {
 			// If a page is an orphan, then we can just skip saving it as long as it doesn't have any cards
-			if !page.Valid {
+			if page.Valid() {
+				pagesToSave = append(pagesToSave, page)
+			} else if project.HasOrphanPages {
 
 				valid := false
 
-				if page.PointingSubpageCard == nil {
+				// Orphan
 
-					// Orphan
-
-					for _, card := range page.Cards {
-						if card.Valid {
-							valid = true
-							break
-						}
+				for _, card := range page.Cards {
+					if card.Valid {
+						valid = true
+						break
 					}
-
 				}
-				// else, page.PointingSubpageCard points to a card that has been deleted; if it hadn't been deleted, then the page would be valid
 
+				// else, page.PointingSubpageCard points to a card that has been deleted; if it hadn't been deleted, then the page would be valid
 				if !valid {
 					continue
 				}
 
+				pagesToSave = append(pagesToSave, page)
+
 			}
-			pagesToSave = append(pagesToSave, page)
 		}
 
 	}
@@ -965,7 +964,7 @@ func OpenProjectFrom(filename string) {
 			}
 		}
 
-		if gjson.Get(json, "currentPage").Exists() {
+		if !brokenProject && gjson.Get(json, "currentPage").Exists() {
 			pageID := uint64(gjson.Get(json, "currentPage").Int())
 			for _, p := range newProject.Pages {
 				if p.ID == pageID {
@@ -990,7 +989,11 @@ func OpenProjectFrom(filename string) {
 		globals.EventLog.Log("Project loaded successfully.", false)
 
 		if brokenProject {
-			globals.EventLog.Log("WARNING: This project contains data on orphaned Pages (pages that aren't reachable through sub-pages).\nIt is possible that the project is broken. If this is the case, you may remove orphaned pages by accessing them\nthrough the Hierarchy view and deleting all cards from those pages.\nYou can also flatten the project and restructure.", true)
+			newProject.HasOrphanPages = true
+			globals.EventLog.Log(
+				"WARNING: This project contains cards on orphaned Pages (Pages that aren't reachable through corresponding Sub-Page Cards).\n"+
+					"You may fix this by accessing orphaned Pages through the Hierarchy view and moving or deleting all cards from those pages.\n"+
+					"Saving will then fix the project. You can also flatten the project and restructure, and then save the project.", true)
 		}
 
 	}
@@ -1540,17 +1543,22 @@ func (project *Project) GoUpFromSubpage() {
 }
 
 func (project *Project) SetPage(page *Page) {
+
 	if project.CurrentPage != page {
+
 		project.CurrentPage = page
 		project.Camera.JumpTo(page.Pan, page.Zoom)
 		page.SendMessage(NewMessage(MessagePageChanged, nil, nil))
 		if globals.State != StateNeutral && globals.State != StateCardLink {
 			globals.State = StateNeutral
 		}
-		if page.UpwardPage == nil {
-			globals.MenuSystem.Get("prev sub page").Close()
-		} else {
-			globals.MenuSystem.Get("prev sub page").Open()
-		}
+
 	}
+
+	if page.UpwardPage == nil {
+		globals.MenuSystem.Get("prev sub page").Close()
+	} else {
+		globals.MenuSystem.Get("prev sub page").Open()
+	}
+
 }

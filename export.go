@@ -103,7 +103,7 @@ func handleScreenshots() {
 		if activeScreenshot.Exporting {
 			globals.State = StateExport
 			for _, page := range globals.Project.Pages[1:] {
-				if page.Valid {
+				if page.Valid() {
 					pages = append(pages, page)
 				}
 			}
@@ -134,7 +134,7 @@ func handleScreenshots() {
 			},
 			}
 
-		} else if activeScreenshot.ExportIndex < len(globals.Project.Pages) {
+		} else if activeScreenshot.ExportIndex < len(pages) {
 
 			screenshotWidth := 1920
 			screenshotHeight := 1080
@@ -262,7 +262,7 @@ func handleScreenshots() {
 		globals.Project.Camera.TargetPosition = origTargetPosition
 		globals.Project.CurrentPage = origPage
 
-		if !activeScreenshot.Exporting || activeScreenshot.ExportIndex >= len(globals.Project.Pages) {
+		if !activeScreenshot.Exporting || activeScreenshot.ExportIndex >= len(pages) {
 
 			switch activeScreenshot.ExportMode {
 			case ExportModePNG:
