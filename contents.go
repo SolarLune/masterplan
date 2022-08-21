@@ -1031,6 +1031,8 @@ type ImageContents struct {
 	Buttons       []*IconButton
 	Resource      *Resource
 	DefaultImage  *Resource
+	BrokenImage   *Resource
+	// RotatedTexture *sdl.Texture
 }
 
 func NewImageContents(card *Card) *ImageContents {
@@ -1038,9 +1040,10 @@ func NewImageContents(card *Card) *ImageContents {
 	imageContents := &ImageContents{
 		DefaultContents: newDefaultContents(card),
 		DefaultImage:    globals.Resources.Get(LocalRelativePath("assets/empty_image.png")),
+		BrokenImage:     globals.Resources.Get(LocalRelativePath("assets/broken_image.png")),
 	}
 
-	imageContents.FilepathLabel = NewLabel("Image file path", nil, false, AlignLeft)
+	imageContents.FilepathLabel = NewLabel(" ", nil, false, AlignLeft)
 	imageContents.FilepathLabel.Editable = true
 	imageContents.FilepathLabel.RegexString = RegexNoNewlines
 	fp := card.Properties.Get("filepath")
@@ -1053,6 +1056,48 @@ func NewImageContents(card *Card) *ImageContents {
 	}
 
 	imageContents.LoadFile()
+
+	// rotateRight := NewIconButton(0, 0, &sdl.Rect{368, 192, 32, 32}, true, func() {
+
+	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
+	// 	card := imageContents.Card
+	// 	card.Recreate(card.Rect.H, card.Rect.W)
+	// 	rotate := card.Properties.Get("rotate").AsFloat()
+	// 	rotate += 90
+	// 	if rotate >= 360 {
+	// 		rotate -= 360
+	// 	}
+	// 	card.Properties.Get("rotate").Set(rotate)
+	// 	imageContents.Card.CreateUndoState = true
+	// 	imageContents.handleRotation()
+
+	// })
+
+	// rotateLeft := NewIconButton(0, 0, &sdl.Rect{368, 192, 32, 32}, true, func() {
+
+	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
+	// 	card := imageContents.Card
+	// 	card.Recreate(card.Rect.H, card.Rect.W)
+	// 	rotate := card.Properties.Get("rotate").AsFloat()
+	// 	rotate -= 90
+	// 	if rotate < 0 {
+	// 		rotate += 360
+	// 	}
+	// 	card.Properties.Get("rotate").Set(rotate)
+	// 	imageContents.Card.CreateUndoState = true
+	// 	imageContents.handleRotation()
+
+	// })
+
+	// if !card.Properties.Has("rotate") {
+	// 	card.Properties.Get("rotate").Set(0)
+	// } else {
+	// 	imageContents.handleRotation()
+	// }
+
+	// rotateLeft.Flip = sdl.FLIP_HORIZONTAL
 
 	imageContents.Buttons = []*IconButton{
 
@@ -1113,6 +1158,9 @@ func NewImageContents(card *Card) *ImageContents {
 			}
 
 		}),
+
+		// rotateLeft,
+		// rotateRight,
 	}
 
 	for _, button := range imageContents.Buttons {
@@ -1201,6 +1249,10 @@ func (ic *ImageContents) Draw() {
 	resource := ic.Resource
 	if resource == nil {
 		resource = ic.DefaultImage
+		// There is something in the filepath, but it's not valid
+		if len(ic.FilepathLabel.Text) > 3 {
+			resource = ic.BrokenImage
+		}
 	}
 
 	if resource != nil {
@@ -1215,21 +1267,23 @@ func (ic *ImageContents) Draw() {
 				texture = ic.GifPlayer.Texture()
 			}
 
-			if texture != nil {
-				if resource == ic.DefaultImage {
-					texture.SetColorMod(getThemeColor(GUIBlankImageColor).RGB())
-				}
-
-				color := ColorWhite.Clone()
-
-				if ic.Card.IsSelected() && globals.Settings.Get(SettingsFlashSelected).AsBool() {
-					color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((ic.Card.Rect.X+ic.Card.Rect.Y)*0.004))*30 + 30))
-				}
-
-				texture.SetColorMod(color.RGB())
-
-				globals.Renderer.CopyF(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
+			if texture == nil {
+				texture = ic.BrokenImage.AsImage().Texture
 			}
+
+			if resource == ic.DefaultImage {
+				texture.SetColorMod(getThemeColor(GUIBlankImageColor).RGB())
+			}
+
+			color := ColorWhite.Clone()
+
+			if ic.Card.IsSelected() && globals.Settings.Get(SettingsFlashSelected).AsBool() {
+				color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((ic.Card.Rect.X+ic.Card.Rect.Y)*0.004))*30 + 30))
+			}
+
+			texture.SetColorMod(color.RGB())
+
+			globals.Renderer.CopyF(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
 
 		} else {
 
@@ -1259,6 +1313,45 @@ func (ic *ImageContents) Draw() {
 	}
 
 }
+
+// func (ic *ImageContents) handleRotation() {
+
+// 	if ic.Resource != nil && ic.Card.Properties.Has("rotate") {
+
+// 		angle := ic.Card.Properties.Get("rotate").AsFloat()
+
+// 		if angle != 0 {
+
+// 			if ic.Resource.IsTexture() {
+
+// 				surf := ic.Resource.AsImage().Surface
+// 				pixels := surf.Pixels()
+// 				newSurf, err := sdl.CreateRGBSurfaceFrom(unsafe.Pointer(&pixels), surf.W, surf.H, surf.BytesPerPixel(), int(surf.Pitch), surf.Format.Rmask, surf.Format.Gmask, surf.Format.Bmask, surf.Format.Amask)
+
+// 				if err != nil {
+// 					panic(err)
+// 				}
+
+// 				defer newSurf.Free()
+
+// 				gfx.RotateSurface90Degrees(newSurf, 1)
+
+// 				if ic.RotatedTexture != nil {
+// 					ic.RotatedTexture.Destroy()
+// 				}
+
+// 				ic.RotatedTexture, err = globals.Renderer.CreateTextureFromSurface(newSurf)
+// 				if err != nil {
+// 					panic(err)
+// 				}
+
+// 			}
+
+// 		}
+
+// 	}
+
+// }
 
 func (ic *ImageContents) ValidResource() bool {
 	return ic.Resource != nil && ic.Resource.FinishedDownloading() && (ic.Resource.IsGIF() || ic.Resource.IsTexture())
@@ -2029,7 +2122,7 @@ func (mc *MapContents) Update() {
 
 		if mc.Card.Resizing == "" {
 
-			if globals.Keybindings.Pressed(KBPickColor) {
+			if mc.Tool != MapEditToolNone && globals.Keybindings.Pressed(KBPickColor) {
 
 				// Eyedropping to pick color
 				globals.Mouse.SetCursor(CursorEyedropper)

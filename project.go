@@ -419,7 +419,7 @@ func (project *Project) Save() {
 		converted := []convertedFilepath{}
 
 		for _, card := range page.Cards {
-			if fp := card.Properties.GetIfExists("filepath"); fp != nil && FileExists(fp.AsString()) {
+			if fp := card.Properties.GetIfExists("filepath"); fp != nil && (globals.Resources.Get(fp.AsString()) == nil || !globals.Resources.Get(fp.AsString()).SaveFile) && FileExists(fp.AsString()) {
 				converted = append(converted, convertedFilepath{Original: fp.AsString(), PropName: "filepath", Card: card})
 				fp.Set(PathToRelative(fp.AsString(), project))
 			}

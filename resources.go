@@ -221,7 +221,7 @@ func (resource *Resource) Parse() {
 			if err != nil {
 				panic(err)
 			}
-			defer surface.Free()
+			// defer surface.Free()
 
 			texture, err := globals.Renderer.CreateTextureFromSurface(surface)
 			if err != nil {
@@ -232,6 +232,7 @@ func (resource *Resource) Parse() {
 			resource.Data = Image{
 				Size:    Point{float32(surface.W), float32(surface.H)},
 				Texture: texture,
+				// Surface: surface,
 			}
 
 		}

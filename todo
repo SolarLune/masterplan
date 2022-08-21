@@ -31,6 +31,8 @@
 [ ] Don't save empty / null properties in save file (?)
 [ ] Crystal (additive blending) graphical mode for Cards
 [ ] Splash-screen? IDK if I should have it or not.
+[ ] Add options to rotate images
+[ ] Double-clicking to select editable labels shouldn't place the caret at the end of the text
 [ ] Add additional prompt if files already exist with one or more of the exported filenames. 
 [ ] Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
 [ ] Add templates, see: https://steamcommunity.com/app/1269310/discussions/0/3418808914582580976/

@@ -515,7 +515,7 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 	} else if strings.Contains(mimeType, "audio") {
 		card := page.CreateNewCard(ContentTypeSound)
 		card.Contents.(*SoundContents).LoadFileFrom(filePath)
-	} else {
+	} else if strings.Contains(mimeType, "text") {
 
 		if filepath.Ext(filePath) == ".plan" {
 			globals.Project.LoadConfirmationTo = filePath
@@ -530,12 +530,15 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 			} else {
 				card := page.CreateNewCard(ContentTypeCheckbox)
 				card.Properties.Get("description").Set(string(text))
-				card.Recreate(globals.ScreenSize.X/2/globals.Project.Camera.Zoom, globals.ScreenSize.Y/2*globals.Project.Camera.Zoom)
+				size := globals.TextRenderer.MeasureText([]rune(string(text)), 1)
+				card.Recreate(size.X, size.Y)
 				card.SetContents(ContentTypeNote)
 			}
 
 		}
 
+	} else {
+		globals.EventLog.Log("Dropped file [%s] is not a recognized image, audio, or text file format.", true, filePath)
 	}
 
 }
@@ -694,10 +697,24 @@ func (page *Page) HandleExternalPaste() {
 
 			} else {
 
+				maxWidth := float32(512)
+
 				card := page.CreateNewCard(ContentTypeNote)
-				size := globals.TextRenderer.MeasureText([]rune(text), 1)
-				card.Recreate(size.X+(globals.GridSize*2), size.Y)
 				card.Properties.Get("description").Set(text)
+				size := globals.TextRenderer.MeasureText([]rune(text), 1)
+
+				note := card.Contents.(*NoteContents)
+				note.Label.SetText([]rune(text))
+
+				if size.X > maxWidth {
+					newSize := globals.TextRenderer.MeasureTextAutowrap(maxWidth, text)
+					card.Recreate(newSize.X+(globals.GridSize*4), newSize.Y)
+				} else {
+					width := size.X + (globals.GridSize * 2)
+					height := size.Y
+
+					card.Recreate(width, height)
+				}
 
 			}
 

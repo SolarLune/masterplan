@@ -274,6 +274,7 @@ func (cr CorrectingRect) SDLRect() *sdl.FRect {
 type Image struct {
 	Size    Point
 	Texture *sdl.Texture
+	// Surface *sdl.Surface
 }
 
 func formatTime(t time.Duration, showMilliseconds bool) string {

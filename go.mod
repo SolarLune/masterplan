@@ -20,6 +20,7 @@ require (
 	github.com/hajimehoshi/oto v1.0.1 // indirect
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/jfreymuth/oggvorbis v1.0.3 // indirect
+	github.com/kvartborg/vector v0.1.0 // indirect
 	github.com/mewkiz/pkg v0.0.0-20211102230744-16a6ce8f1b77 // indirect
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/ncruces/zenity v0.8.7
