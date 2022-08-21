@@ -45,6 +45,10 @@ const (
 
 	BackupDelineator = "_bak_"
 	FileTimeFormat   = "01_02_06_15_04_05"
+
+	// Per-Project Properties
+
+	ProjectCacheDirectory = "CacheDirectory"
 )
 
 type Project struct {
@@ -66,6 +70,8 @@ type Project struct {
 
 	BackingUp  bool
 	LastBackup time.Time
+
+	Properties *Properties
 }
 
 func NewProject() *Project {
@@ -75,6 +81,7 @@ func NewProject() *Project {
 		// Pages:           []*Page{},
 		LastCardType: ContentTypeCheckbox,
 		LastBackup:   time.Now(),
+		Properties:   NewProperties(),
 	}
 
 	if globals.Hierarchy != nil {
@@ -89,6 +96,8 @@ func NewProject() *Project {
 	project.CurrentPage = project.AddPage()
 
 	project.CreateGridTexture()
+
+	project.Properties.Get(ProjectCacheDirectory).Set("")
 
 	globalCardID = 0
 
@@ -368,6 +377,16 @@ func (project *Project) Save() {
 	saveData, _ = sjson.Set(saveData, "zoom", project.Camera.TargetZoom)
 	saveData, _ = sjson.Set(saveData, "currentPage", project.CurrentPage.ID)
 
+	if cache := project.Properties.Get(ProjectCacheDirectory); cache.AsString() != "" {
+		cache.Set(project.PathToRelative(cache.AsString(), true))
+	}
+
+	saveData, _ = sjson.SetRaw(saveData, "properties", project.Properties.Serialize())
+
+	if cache := project.Properties.Get(ProjectCacheDirectory); cache.AsString() != "" {
+		cache.Set(project.PathToAbsolute(cache.AsString(), true))
+	}
+
 	savedImages := map[string]string{}
 
 	pageData := "["
@@ -421,11 +440,11 @@ func (project *Project) Save() {
 		for _, card := range page.Cards {
 			if fp := card.Properties.GetIfExists("filepath"); fp != nil && (globals.Resources.Get(fp.AsString()) == nil || !globals.Resources.Get(fp.AsString()).SaveFile) && FileExists(fp.AsString()) {
 				converted = append(converted, convertedFilepath{Original: fp.AsString(), PropName: "filepath", Card: card})
-				fp.Set(PathToRelative(fp.AsString(), project))
+				fp.Set(project.PathToRelative(fp.AsString(), false))
 			}
 			if run := card.Properties.GetIfExists("run"); run != nil && FileExists(run.AsString()) {
 				converted = append(converted, convertedFilepath{Original: run.AsString(), PropName: "run", Card: card})
-				run.Set(PathToRelative(run.AsString(), project))
+				run.Set(project.PathToRelative(run.AsString(), false))
 			}
 		}
 
@@ -859,6 +878,14 @@ func OpenProjectFrom(filename string) {
 		} else {
 
 			newProject.Filepath = filename
+
+			if props := gjson.Get(json, "properties"); props.Exists() {
+				newProject.Properties.Deserialize(gjson.Get(json, "properties").String())
+			}
+
+			if cache := newProject.Properties.Get(ProjectCacheDirectory); cache.AsString() != "" {
+				cache.Set(newProject.PathToAbsolute(cache.AsString(), true))
+			}
 
 			for fpName, imgData := range gjson.Get(json, "savedimages").Map() {
 
@@ -1561,4 +1588,51 @@ func (project *Project) SetPage(page *Page) {
 		globals.MenuSystem.Get("prev sub page").Open()
 	}
 
+}
+
+func (project *Project) PathToRelative(fp string, directory bool) string {
+
+	var exists bool
+	if directory {
+		exists = FolderExists(fp)
+	} else {
+		exists = FileExists(fp)
+	}
+
+	if !filepath.IsAbs(fp) || strings.TrimSpace(fp) == "" || !exists {
+		return fp
+	}
+	rel, _ := filepath.Rel(filepath.Dir(project.Filepath), string(fp))
+	// We don't do anything if the path could not be made relative; a possibility is that it's not possible (on Windows, for example, there is no way to get
+	// a relative path from C:\ to D:\. They're two different drives. There is no relative path that works here.)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	return filepath.ToSlash(rel)
+}
+
+func (project *Project) PathToAbsolute(fp string, directory bool) string {
+
+	if filepath.IsAbs(fp) || strings.TrimSpace(fp) == "" {
+		return fp
+	}
+	elements := []string{filepath.Dir(project.Filepath), filepath.FromSlash(string(fp))}
+	final := filepath.Clean(filepath.Join(elements...))
+
+	var exists bool
+	if directory {
+		exists = FolderExists(final)
+	} else {
+		exists = FileExists(final)
+	}
+
+	// if !exists {
+	// 	elements = []string{filepath.Dir(LocalRelativePath("")), filepath.FromSlash(string(fp))} // TODO: REMOVE THIS AT SOME POINT IN THE FUTURE, AS THIS SERVES TO FIX A TEMPORARY BLUNDER CAUSED BY MAKING PATHS RELATIVE TO THE MASTERPLAN FOLDER
+	// 	final = filepath.Clean(filepath.Join(elements...))
+	// }
+	// If the file doesn't exist, we'll just abandon our efforts; maybe it's a URL, for example.
+	if !exists {
+		return fp
+	}
+	return final
 }

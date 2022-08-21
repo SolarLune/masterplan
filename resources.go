@@ -90,8 +90,15 @@ func NewResource(resourcePath string) (*Resource, error) {
 
 		log.Println("possible online resource")
 
-		destDir := globals.Settings.Get(SettingsDownloadDirectory).AsString()
-		if destDir == "" {
+		project := globals.Project
+
+		if globals.NextProject != nil {
+			project = globals.NextProject
+		}
+
+		destDir := project.Properties.Get(ProjectCacheDirectory).AsString()
+
+		if destDir == "" || !FolderExists(destDir) {
 			destDir = filepath.Join(os.TempDir(), "masterplan")
 			resource.TempFile = true
 			// It's online, so we don't need to save it
@@ -102,9 +109,18 @@ func NewResource(resourcePath string) (*Resource, error) {
 		} else {
 			unescapedPath, _ := url.QueryUnescape(req.URL().Path)
 			req.Filename = filepath.Join(destDir, filepath.FromSlash(req.URL().Hostname()+"/"+unescapedPath))
+
+			// It's already been downloaded
+			if FileExists(req.Filename) {
+				resource.LocalFilepath = req.Filename
+				resource.Extension = filepath.Ext(resource.LocalFilepath)
+				resource.Parse()
+				return resource, nil
+			}
+
 			resource.LocalFilepath = req.Filename
 			resource.Extension = filepath.Ext(resourcePath)
-			resource.Response = globals.GrabClient.Do(req)
+			resource.Response = globals.GrabClient.Do(req) // This can take time, up to and including seconds to execute
 
 			if resource.Response.IsComplete() && resource.Response.Err() != nil {
 				return nil, resource.Response.Err()

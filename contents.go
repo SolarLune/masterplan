@@ -732,7 +732,7 @@ func NewSoundContents(card *Card) *SoundContents {
 	soundContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
 
 	fp := card.Properties.Get("filepath")
-	fp.Set(PathToAbsolute(fp.AsString(), card.Page.Project)) // Convert relative path to absolute
+	fp.Set(card.Page.Project.PathToAbsolute(fp.AsString(), false)) // Convert relative path to absolute
 	soundContents.FilepathLabel.Editable = true
 	soundContents.FilepathLabel.RegexString = RegexNoNewlines
 	soundContents.FilepathLabel.Property = fp
@@ -1048,7 +1048,7 @@ func NewImageContents(card *Card) *ImageContents {
 	imageContents.FilepathLabel.RegexString = RegexNoNewlines
 	fp := card.Properties.Get("filepath")
 
-	fp.Set(PathToAbsolute(fp.AsString(), card.Page.Project))
+	fp.Set(card.Page.Project.PathToAbsolute(fp.AsString(), false))
 
 	imageContents.FilepathLabel.Property = fp
 	imageContents.FilepathLabel.OnChange = func() {
@@ -2837,7 +2837,7 @@ func NewLinkContents(card *Card) *LinkContents {
 	}
 
 	run := lc.Card.Properties.Get("run") // Update it to say it's in use
-	run.Set(PathToAbsolute(run.AsString(), card.Page.Project))
+	run.Set(card.Page.Project.PathToAbsolute(run.AsString(), false))
 	lc.Card.Properties.Get("args")
 	lc.Card.Properties.Get("link mode")
 	// This has to be -1 so the target doesn't get set automatically to the first Card

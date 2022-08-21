@@ -13,7 +13,6 @@ const (
 	SettingsPath                     = "MasterPlan/settings08.json"
 	SettingsLegacyPath               = "masterplan-settings08.json"
 	SettingsTheme                    = "Theme"
-	SettingsDownloadDirectory        = "DownloadDirectory"
 	SettingsWindowPosition           = "WindowPosition"
 	SettingsSaveWindowPosition       = "SaveWindowPosition"
 	SettingsCustomFontPath           = "CustomFontPath"
@@ -108,10 +107,8 @@ func NewProgramSettings() *Properties {
 
 	props := NewProperties()
 	props.Get(SettingsTheme).Set("Moonlight")
-	props.Get(SettingsDownloadDirectory).Set("")
 	props.Get(SettingsTargetFPS).Set(60.0)
 	props.Get(SettingsUnfocusedFPS).Set(60.0)
-	props.Get(SettingsDownloadDirectory).Set("")
 	props.Get(SettingsDisplayMessages).Set(true)
 	props.Get(SettingsDoubleClickMode).Set(DoubleClickLast)
 	props.Get(SettingsShowGrid).Set(true)

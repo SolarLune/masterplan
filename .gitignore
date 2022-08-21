@@ -11,4 +11,5 @@ newTerminal.sh
 reflex.sh
 bin_archive
 ignore
+examples/cacheTest/*
 .vscode

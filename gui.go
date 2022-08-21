@@ -1314,7 +1314,9 @@ func (label *Label) Update() {
 			if !label.Editing && ClickedInRect(activeRect, label.WorldSpace) && globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 				label.Editing = true
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+				caretPos := label.Selection.CaretPos
 				label.Selection.SelectAll()
+				label.Selection.CaretPos = caretPos
 			}
 
 			if label.Editing {
@@ -1324,7 +1326,9 @@ func (label *Label) Update() {
 				if ClickedOutRect(activeRect, label.WorldSpace) || globals.Keyboard.Key(sdl.K_ESCAPE).Pressed() {
 					label.Editing = false
 					globals.State = StateNeutral
+					caretPos := label.Selection.CaretPos
 					label.Selection.Select(0, 0)
+					label.Selection.CaretPos = caretPos
 					clickedOut = true
 				}
 
@@ -1469,6 +1473,28 @@ func (label *Label) Update() {
 				if globals.Keyboard.Key(sdl.K_END).Pressed() {
 					end := len(label.Text)
 					label.Selection.Select(end, end)
+				}
+
+				if globals.Keyboard.Key(sdl.K_PAGEUP).Pressed() {
+					lineCount := 5
+					newIndex := label.Selection.CaretPos
+					for lineCount > 0 {
+						newIndex -= label.IndexInLine(newIndex) + 1
+						lineCount--
+					}
+					newIndex -= label.IndexInLine(newIndex)
+					label.Selection.Select(newIndex, newIndex)
+				}
+
+				if globals.Keyboard.Key(sdl.K_PAGEDOWN).Pressed() {
+					lineCount := 5
+					newIndex := label.Selection.CaretPos
+					for lineCount > 0 {
+						lineNo := label.LineNumber(newIndex)
+						newIndex += len(label.RendererResult.TextLines[lineNo]) - label.IndexInLine(newIndex)
+						lineCount--
+					}
+					label.Selection.Select(newIndex, newIndex)
 				}
 
 				mousePos := globals.Mouse.Position()

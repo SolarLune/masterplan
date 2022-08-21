@@ -748,37 +748,6 @@ func (shape *Shape) SetSizes(xywh ...float32) {
 
 // }
 
-func PathToRelative(fp string, project *Project) string {
-	if !filepath.IsAbs(fp) || strings.TrimSpace(fp) == "" || !FileExists(fp) {
-		return fp
-	}
-	rel, _ := filepath.Rel(filepath.Dir(project.Filepath), string(fp))
-	// We don't do anything if the path could not be made relative; a possibility is that it's not possible (on Windows, for example, there is no way to get
-	// a relative path from C:\ to D:\. They're two different drives. There is no relative path that works here.)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	return filepath.ToSlash(rel)
-}
-
-func PathToAbsolute(fp string, project *Project) string {
-
-	if filepath.IsAbs(fp) || strings.TrimSpace(fp) == "" {
-		return fp
-	}
-	elements := []string{filepath.Dir(project.Filepath), filepath.FromSlash(string(fp))}
-	final := filepath.Clean(filepath.Join(elements...))
-	if !FileExists(final) {
-		elements = []string{filepath.Dir(LocalRelativePath("")), filepath.FromSlash(string(fp))} // TODO: REMOVE THIS AT SOME POINT IN THE FUTURE, AS THIS SERVES TO FIX A TEMPORARY BLUNDER CAUSED BY MAKING PATHS RELATIVE TO THE MASTERPLAN FOLDER
-		final = filepath.Clean(filepath.Join(elements...))
-	}
-	// If the file doesn't exist, we'll just abandon our efforts; maybe it's a URL, for example.
-	if !FileExists(final) {
-		return fp
-	}
-	return final
-}
-
 func FileExists(fp string) bool {
 	fp = strings.TrimSpace(fp)
 	fsInfo, err := os.Stat(fp)

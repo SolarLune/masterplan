@@ -1,4 +1,5 @@
 // Erase the space before "go" to enable generating the version info from the version info file when it's in the root directory
+//
 //go:generate goversioninfo -64=true
 package main
 
@@ -1764,6 +1765,26 @@ func ConstructMenus() {
 	row.Add("header", NewLabel("General Settings", nil, false, AlignCenter))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Automatic Backups:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAutoBackup)))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Backup Every x Minutes:", nil, false, AlignLeft))
+
+	spinner := NewNumberSpinner(nil, false, globals.Settings.Get(SettingsAutoBackupTime))
+	spinner.MinValue = 1
+	row.Add("", spinner)
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewLabel("Maximum Backup Count:", nil, false, AlignLeft))
+	spinner = NewNumberSpinner(nil, false, globals.Settings.Get(SettingsMaxAutoBackups))
+	spinner.MinValue = 1
+	row.Add("", spinner)
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = general.AddRow(AlignCenter)
 	row.Add("", NewLabel("Auto Load Last Project:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAutoLoadLastProject)))
 
@@ -1799,21 +1820,28 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 
 	row = general.AddRow(AlignCenter)
-	row.Add("", NewLabel("Automatic Backups:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAutoBackup)))
+	row.Add("", NewLabel("External Download Cache Directory For Current Project:", nil, false, AlignLeft))
+	cachePath := NewLabel("", nil, false, AlignLeft)
+	cachePath.Editable = true
+	cachePath.RegexString = RegexNoNewlines
+	row.Add("", cachePath)
+
+	general.OnUpdate = func() {
+		cachePath.Property = globals.Project.Properties.Get(ProjectCacheDirectory)
+	}
 
 	row = general.AddRow(AlignCenter)
-	row.Add("", NewLabel("Backup Every x Minutes:", nil, false, AlignLeft))
+	row.Add("", NewButton("Browse", nil, nil, false, func() {
 
-	spinner := NewNumberSpinner(nil, false, globals.Settings.Get(SettingsAutoBackupTime))
-	spinner.MinValue = 1
-	row.Add("", spinner)
+		if path, err := zenity.SelectFile(zenity.Title("Select External Download Cache Directory"), zenity.Directory()); err == nil {
+			globals.Project.Properties.Get(ProjectCacheDirectory).Set(path)
+		}
 
-	row = general.AddRow(AlignCenter)
-	row.Add("", NewLabel("Maximum Backup Count:", nil, false, AlignLeft))
-	spinner = NewNumberSpinner(nil, false, globals.Settings.Get(SettingsMaxAutoBackups))
-	spinner.MinValue = 1
-	row.Add("", spinner)
+	}))
+
+	row.Add("", NewButton("Clear", nil, nil, false, func() {
+		globals.Project.Properties.Get(ProjectCacheDirectory).Set("")
+	}))
 
 	row = general.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
