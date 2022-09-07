@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"math"
 	"net/http"
@@ -1247,7 +1248,7 @@ func ConstructMenus() {
 
 	// Edit Menu
 
-	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, globals.ScreenSize.Y/2 - (450 / 2), 350, 450}, MenuCloseButton), "edit", false)
+	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, globals.ScreenSize.Y/2 - (450 / 2), 400, 500}, MenuCloseButton), "edit", false)
 	editMenu.Draggable = true
 	editMenu.Resizeable = true
 	editMenu.AnchorMode = MenuAnchorLeft
@@ -1263,6 +1264,9 @@ func ConstructMenus() {
 	}))
 	root.AddRow(AlignCenter).Add("set deadline", NewButton("Set Deadline", nil, nil, false, func() {
 		editMenu.SetPage("set deadline")
+	}))
+	root.AddRow(AlignCenter).Add("add icons", NewButton("Add Icons", nil, nil, false, func() {
+		editMenu.SetPage("add icons")
 	}))
 
 	setColor := editMenu.AddPage("set color")
@@ -1402,7 +1406,7 @@ func ConstructMenus() {
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 
-	prevMonthButton := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+	prevMonthButton := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		bg.ChosenIndex = -1
 		now = time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, now.Location())
 	})
@@ -1412,14 +1416,14 @@ func ConstructMenus() {
 
 	row.Add("prev month", prevMonthButton)
 	row.Add("month label", NewLabel("Month", nil, false, AlignCenter))
-	row.Add("next month", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+	row.Add("next month", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		bg.ChosenIndex = -1
 		now = time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
 	}))
 
 	row = setDeadline.AddRow(AlignCenter)
 
-	prevYearButton := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+	prevYearButton := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		bg.ChosenIndex = -1
 		now = time.Date(now.Year()-1, now.Month(), 1, 0, 0, 0, 0, now.Location())
 	})
@@ -1435,12 +1439,12 @@ func ConstructMenus() {
 	}
 	row.Add("year label", yearLabel)
 
-	row.Add("next year", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+	row.Add("next year", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		bg.ChosenIndex = -1
 		now = time.Date(now.Year()+1, now.Month(), 1, 0, 0, 0, 0, now.Location())
 	}))
 
-	row.Add("reset date", NewIconButton(0, 0, &sdl.Rect{208, 192, 32, 32}, false, func() {
+	row.Add("reset date", NewIconButton(0, 0, &sdl.Rect{208, 192, 32, 32}, globals.GUITexture, false, func() {
 		today := time.Now()
 		now = time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, now.Location())
 		bg.ChosenIndex = -1
@@ -1580,6 +1584,67 @@ func ConstructMenus() {
 	}
 
 	setDeadline.OnDraw()
+
+	// Icons Menu
+
+	root = editMenu.AddPage("add icons")
+
+	root.AddRow(AlignCenter).Add("icons label", NewLabel("Icons", nil, false, AlignCenter))
+
+	type iconStruct struct {
+		Image    Image
+		Filepath string
+	}
+
+	iconImgs := []iconStruct{}
+
+	filepath.Walk(LocalRelativePath("assets/icons"), func(path string, info fs.FileInfo, err error) error {
+
+		if filepath.Ext(path) == ".png" {
+			res := globals.Resources.Get(path)
+			res.Destructible = false
+			iconImgs = append(iconImgs, iconStruct{
+				Image:    res.AsImage(),
+				Filepath: path,
+			})
+		}
+
+		return nil
+	})
+
+	for i := 0; i < len(iconImgs); i += 5 {
+
+		newRow := root.AddRow(AlignCenter)
+
+		for j := 0; j < 5; j++ {
+
+			if i+j >= len(iconImgs) {
+				break
+			}
+
+			icon := iconImgs[i+j]
+
+			button := NewIconButton(0, 0, &sdl.Rect{0, 0, int32(icon.Image.Size.X), int32(icon.Image.Size.X)}, icon.Image, false, func() {
+				n := globals.Project.CurrentPage.CreateNewCard(ContentTypeImage)
+				n.Rect.X = globals.Project.Camera.Position.X
+				n.Rect.Y = globals.Project.Camera.Position.Y
+				ic := n.Contents.(*ImageContents)
+				ic.LoadFileFrom(icon.Filepath)
+				ic.LoadedImage = true // The size is set already
+				n.Recreate(globals.GridSize, globals.GridSize)
+				n.CreateUndoState = true
+				n.Update()
+				n.HandleUndos()
+			})
+			button.Tint = NewColor(255, 255, 255, 255)
+			button.Scale.X = 2
+			button.Scale.Y = 2
+			newRow.Add("", button)
+		}
+
+	}
+
+	// root.AddRow(AlignCenter)
 
 	// Context Menu
 
@@ -2170,7 +2235,7 @@ func ConstructMenus() {
 
 	}
 	row.Add("search editable", searchKeybindingsLabel)
-	row.Add("clear button", NewIconButton(0, 0, &sdl.Rect{176, 0, 32, 32}, false, func() {
+	row.Add("clear button", NewIconButton(0, 0, &sdl.Rect{176, 0, 32, 32}, globals.GUITexture, false, func() {
 		searchKeybindingsLabel.SetText([]rune(""))
 	}))
 	// row.ExpandElements = true
@@ -2565,7 +2630,7 @@ func ConstructMenus() {
 	}
 
 	var caseSensitiveButton *IconButton
-	caseSensitiveButton = NewIconButton(0, 0, &sdl.Rect{112, 224, 32, 32}, false, func() {
+	caseSensitiveButton = NewIconButton(0, 0, &sdl.Rect{112, 224, 32, 32}, globals.GUITexture, false, func() {
 		caseSensitive = !caseSensitive
 		if caseSensitive {
 			caseSensitiveButton.IconSrc.X = 144
@@ -2576,7 +2641,7 @@ func ConstructMenus() {
 	})
 	row.Add("", caseSensitiveButton)
 
-	row.Add("", NewIconButton(0, 0, &sdl.Rect{176, 96, 32, 32}, false, func() {
+	row.Add("", NewIconButton(0, 0, &sdl.Rect{176, 96, 32, 32}, globals.GUITexture, false, func() {
 		searchLabel.SetText([]rune(""))
 	}))
 
@@ -2584,7 +2649,7 @@ func ConstructMenus() {
 
 	row = root.AddRow(AlignCenter)
 
-	prev := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+	prev := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		foundIndex--
 		findFunc()
 	})
@@ -2593,7 +2658,7 @@ func ConstructMenus() {
 
 	row.Add("", foundLabel)
 
-	row.Add("", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, false, func() {
+	row.Add("", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		foundIndex++
 		findFunc()
 	}))
@@ -2918,7 +2983,7 @@ func ConstructMenus() {
 			row = root.AddRow(AlignCenter)
 		}
 		index := i
-		iconButton := NewIconButton(0, 0, &sdl.Rect{48, 128, 32, 32}, false, func() { MapDrawingColor = index + 1 })
+		iconButton := NewIconButton(0, 0, &sdl.Rect{48, 128, 32, 32}, globals.GUITexture, false, func() { MapDrawingColor = index + 1 })
 		iconButton.BGIconSrc = &sdl.Rect{144, 96, 32, 32}
 		iconButton.Tint = color
 		row.Add("paletteColor"+strconv.Itoa(i), iconButton)

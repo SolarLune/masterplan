@@ -158,6 +158,8 @@ type FocusableMenuElement interface {
 }
 
 type IconButton struct {
+	Scale                   Point
+	originalSize            Point
 	Rect                    *sdl.FRect
 	IconSrc                 *sdl.Rect
 	WorldSpace              bool
@@ -169,17 +171,21 @@ type IconButton struct {
 	HighlightingTargetColor float32
 	FadeOnInactive          bool
 	AlwaysHighlight         bool
+	Image                   Image
 }
 
-func NewIconButton(x, y float32, iconSrc *sdl.Rect, worldSpace bool, onClicked func()) *IconButton {
+func NewIconButton(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool, onClicked func()) *IconButton {
 
 	iconButton := &IconButton{
 		Rect:                    &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)},
+		originalSize:            Point{float32(iconSrc.W), float32(iconSrc.H)},
 		IconSrc:                 iconSrc,
 		WorldSpace:              worldSpace,
 		OnPressed:               onClicked,
 		HighlightingTargetColor: 1,
 		FadeOnInactive:          true,
+		Image:                   image,
+		Scale:                   Point{1, 1},
 	}
 	iconButton.Highlighter = NewHighlighter(iconButton.Rect, worldSpace)
 	iconButton.Highlighter.HighlightMode = HighlightUnderline
@@ -194,13 +200,16 @@ func (iconButton *IconButton) Update() {
 		iconButton.OnPressed()
 	}
 
+	iconButton.Rect.W = iconButton.originalSize.X * iconButton.Scale.X
+	iconButton.Rect.H = iconButton.originalSize.Y * iconButton.Scale.Y
+
 }
 
 func (iconButton *IconButton) Draw() {
 
 	orig := *iconButton.Rect
 	rect := &orig
-	guiTex := globals.GUITexture.Texture
+	guiTex := iconButton.Image.Texture
 
 	if iconButton.WorldSpace {
 		rect = globals.Project.Camera.TranslateRect(rect)
@@ -257,6 +266,9 @@ func (iconButton *IconButton) Draw() {
 		globals.Renderer.FillRectF(dst)
 	}
 
+	guiTex.SetColorMod(255, 255, 255)
+	guiTex.SetAlphaMod(255)
+
 }
 
 func (iconButton *IconButton) Destroy() {}
@@ -285,7 +297,7 @@ type Checkbox struct {
 
 func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 	checkbox := &Checkbox{
-		IconButton: *NewIconButton(x, y, &sdl.Rect{48, 0, 32, 32}, worldSpace, nil),
+		IconButton: *NewIconButton(x, y, &sdl.Rect{48, 0, 32, 32}, globals.GUITexture, worldSpace, nil),
 		Clickable:  true,
 	}
 
@@ -457,7 +469,7 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 		}
 	}
 
-	spinner.Increase = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, worldSpace, func() {
+	spinner.Increase = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, globals.GUITexture, worldSpace, func() {
 		if spinner.Property != nil {
 			f := spinner.Property.AsFloat()
 			spinner.Property.Set(spinner.EnforceCaps(f + 1))
@@ -469,7 +481,7 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 		}
 	})
 
-	spinner.Decrease = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, worldSpace, func() {
+	spinner.Decrease = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, globals.GUITexture, worldSpace, func() {
 		if spinner.Property != nil {
 			f := spinner.Property.AsFloat()
 			spinner.Property.Set(spinner.EnforceCaps(f - 1))
@@ -1076,7 +1088,7 @@ func (bg *IconButtonGroup) SetButtons(icons ...*sdl.Rect) {
 	for i, src := range icons {
 
 		index := i
-		bg.Buttons = append(bg.Buttons, NewIconButton(0, 0, src, bg.WorldSpace, func() {
+		bg.Buttons = append(bg.Buttons, NewIconButton(0, 0, src, globals.GUITexture, bg.WorldSpace, func() {
 			if bg.OnChoose != nil {
 				bg.OnChoose(index)
 			}

@@ -47,6 +47,14 @@ func (rt *RenderTexture) StopTracking() {
 
 func (rt *RenderTexture) Recreate(newW, newH int32) {
 
+	if newW > globals.RendererInfo.MaxTextureWidth {
+		newW = globals.RendererInfo.MaxTextureWidth
+	}
+
+	if newH > globals.RendererInfo.MaxTextureHeight {
+		newH = globals.RendererInfo.MaxTextureHeight
+	}
+
 	rt.Size.X = float32(newW)
 	rt.Size.Y = float32(newH)
 

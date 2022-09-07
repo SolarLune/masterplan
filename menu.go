@@ -179,8 +179,8 @@ func NewMenu(rect *sdl.FRect, closeMethod int) *Menu {
 		Draggable:   false,
 	}
 
-	menu.closeButtonButton = NewIconButton(0, 0, &sdl.Rect{176, 0, 32, 32}, false, func() { menu.Close() })
-	menu.BackButton = NewIconButton(0, 0, &sdl.Rect{208, 0, 32, 32}, false, func() { menu.SetPrevPage() })
+	menu.closeButtonButton = NewIconButton(0, 0, &sdl.Rect{176, 0, 32, 32}, globals.GUITexture, false, func() { menu.Close() })
+	menu.BackButton = NewIconButton(0, 0, &sdl.Rect{208, 0, 32, 32}, globals.GUITexture, false, func() { menu.SetPrevPage() })
 
 	menu.AddPage("root")
 	menu.SetPage("root")

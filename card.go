@@ -956,9 +956,10 @@ func (card *Card) UnlinkAll() {
 
 func (card *Card) DrawShadow() {
 
-	if !globals.Settings.Get(SettingsCardShadows).AsBool() {
+	if !globals.Settings.Get(SettingsCardShadows).AsBool() || !card.Onscreen() {
 		return
 	}
+
 	color := card.Color()
 
 	if color[3] > 0 {
@@ -1208,15 +1209,7 @@ func (card *Card) DrawCard() {
 
 	}
 
-	for _, link := range card.Links {
-		if link.Start == card && link.End.Valid {
-			link.Draw()
-		}
-	}
-
-	area := card.Page.Project.Camera.ViewArea()
-	viewArea := &sdl.FRect{float32(area.X), float32(area.Y), float32(area.W), float32(area.H)}
-	if _, intersect := card.DisplayRect.Intersect(viewArea); !intersect {
+	if !card.Onscreen() {
 		return
 	}
 
@@ -1236,6 +1229,22 @@ func (card *Card) DrawCard() {
 
 	card.DrawContents()
 
+}
+
+func (card *Card) Onscreen() bool {
+	area := card.Page.Project.Camera.ViewArea()
+	viewArea := &sdl.FRect{float32(area.X), float32(area.Y), float32(area.W), float32(area.H)}
+	_, intersecting := card.DisplayRect.Intersect(viewArea)
+	return intersecting
+
+}
+
+func (card *Card) DrawLinks() {
+	for _, link := range card.Links {
+		if link.Start == card && link.End.Valid {
+			link.Draw()
+		}
+	}
 }
 
 func (card *Card) Color() Color {
@@ -1322,6 +1331,10 @@ func (card *Card) PostDraw() {
 			ThickLine(start, end, 6, getThemeColor(GUIFontColor))
 			ThickLine(start, end, 4, getThemeColor(GUIMenuColor))
 
+		}
+
+		if !card.Onscreen() {
+			return
 		}
 
 		if card.Numberable() {

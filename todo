@@ -1,3 +1,7 @@
+[ ] Home or End + Shift to select text using those keys
+[ ] Disable debug options in release build
+[ ] Figure out what to do if pasted text, for example, is super large and the GPU can't generate a texture for it - capping the cards to some logical number and using scroll bars seems like it might be the solution...?
+
 [x] Zoom to cursor
 [x] Option to disable shadows on cards
 [x] Reimplement relative filepaths
@@ -8,6 +12,9 @@
 [x] Implement loading 0.7 projects
 [x] Prefer discrete GPU
 [x] Fix crashing / panics not reporting things to log files
+[x] Add option to save downloaded images in the project
+  - [ ] Do something about deleting downloaded images if necessary?
+[ ] Add option to disable icons on Cards
 [ ] Parented Checkbox and Numbered Cards don't flash properly
 [ ] Fix sub-page title text not being centered / not editing properly with newlines
 [x] Make it so if images surpass the GPU's maximum texture size, they get sized down
@@ -57,7 +64,6 @@
 [x] Dialog to list and filter all cards in project
 [ ] Add Text filter / search to Hierarchy menu
 [ ] Speed up saving screenshots in the project file - it's EXTREMELY slow
-[ ] Add option to save downloaded images in the project
 [ ] Follow caret as you type when editing text
 [ ] Maybe don't use render textures for cards considering rendering 9 textures might just be faster than rendering a massive texture??? Not sure of the trade-off in terms of speed, but not
     every computer has really large texture limits

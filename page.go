@@ -32,7 +32,7 @@ type Page struct {
 	Pan            Point
 	Zoom           float32
 
-	Arrowing             *Card
+	Arrowing             *Card // The card that we're in the process of linking from one to another
 	DeserializationLinks []string
 
 	PointingSubpageCard *Card
@@ -139,6 +139,10 @@ func (page *Page) Draw() {
 		// Undo state creation / capturing can't be handled at the end of Card.DrawContents() like it used to be because that doesn't happen
 		// if the Card is offscreen. Now undo updating happens in its own function here.
 		card.HandleUndos()
+	}
+
+	for _, card := range sorted {
+		card.DrawLinks()
 	}
 
 	for _, draw := range page.Drawables {

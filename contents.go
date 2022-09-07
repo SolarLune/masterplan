@@ -708,12 +708,12 @@ func NewSoundContents(card *Card) *SoundContents {
 		}
 	}
 
-	soundContents.PlayButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, nil)
+	soundContents.PlayButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, true, nil)
 	soundContents.PlayButton.OnPressed = func() {
 		soundContents.TogglePlayback()
 	}
 
-	repeatButton := NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, true, func() {
+	repeatButton := NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, globals.GUITexture, true, func() {
 
 		if soundContents.Resource == nil {
 			return
@@ -1102,7 +1102,7 @@ func NewImageContents(card *Card) *ImageContents {
 	imageContents.Buttons = []*IconButton{
 
 		// Browse
-		NewIconButton(0, 0, &sdl.Rect{400, 224, 32, 32}, true, func() {
+		NewIconButton(0, 0, &sdl.Rect{400, 224, 32, 32}, globals.GUITexture, true, func() {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			if imageContents.Resource != nil && imageContents.Resource.SaveFile {
 				globals.EventLog.Log("This is an image that has been directly pasted into the project; it cannot change to point to another image file.", true)
@@ -1117,7 +1117,7 @@ func NewImageContents(card *Card) *ImageContents {
 		}),
 
 		// Edit Path
-		NewIconButton(0, 0, &sdl.Rect{400, 256, 32, 32}, true, func() {
+		NewIconButton(0, 0, &sdl.Rect{400, 256, 32, 32}, globals.GUITexture, true, func() {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			commonMenu := globals.MenuSystem.Get("common")
 			commonMenu.Pages["root"].Clear()
@@ -1138,7 +1138,7 @@ func NewImageContents(card *Card) *ImageContents {
 		}),
 
 		// 1:1 / 100% button
-		NewIconButton(0, 0, &sdl.Rect{368, 224, 32, 32}, true, func() {
+		NewIconButton(0, 0, &sdl.Rect{368, 224, 32, 32}, globals.GUITexture, true, func() {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
@@ -1483,8 +1483,8 @@ func NewTimerContents(card *Card) *TimerContents {
 		commonTextEditingResizing(tc.Name, card)
 	}
 
-	tc.StartButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() { tc.Running = !tc.Running })
-	tc.RestartButton = NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, true, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 })
+	tc.StartButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, true, func() { tc.Running = !tc.Running })
+	tc.RestartButton = NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, globals.GUITexture, true, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 })
 	tc.Pie = NewPie(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color().Add(40), true)
 
 	tc.Name.Editable = true
@@ -1967,7 +1967,7 @@ func NewMapContents(card *Card) *MapContents {
 
 	for index, iconSrc := range toolButtons {
 		i := index
-		button := NewIconButton(0, 0, iconSrc, true, func() {
+		button := NewIconButton(0, 0, iconSrc, globals.GUITexture, true, func() {
 			if i != MapEditToolColors {
 				mc.Tool = i
 			} else {
@@ -1982,14 +1982,14 @@ func NewMapContents(card *Card) *MapContents {
 
 	// Rotation buttons
 
-	rotateRight := NewIconButton(0, 0, &sdl.Rect{400, 192, 32, 32}, true, func() {
+	rotateRight := NewIconButton(0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
 		mc.MapData.Rotate(1)
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	})
 	rotateRight.Tint = ColorWhite
 	mc.Buttons = append(mc.Buttons, rotateRight)
 
-	rotateLeft := NewIconButton(0, 0, &sdl.Rect{400, 192, 32, 32}, true, func() {
+	rotateLeft := NewIconButton(0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
 		mc.MapData.Rotate(-1)
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	})
@@ -2893,7 +2893,7 @@ func NewLinkContents(card *Card) *LinkContents {
 		}
 	}))
 
-	lc.ProgramRow.Add("edit", NewIconButton(0, 0, &sdl.Rect{176, 160, 32, 32}, true, func() {
+	lc.ProgramRow.Add("edit", NewIconButton(0, 0, &sdl.Rect{176, 160, 32, 32}, globals.GUITexture, true, func() {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		commonMenu := globals.MenuSystem.Get("common")
 		commonMenu.Pages["root"].Clear()
