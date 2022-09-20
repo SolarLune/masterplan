@@ -1089,6 +1089,45 @@ func (card *Card) DeadlineState() int {
 
 }
 
+func (card *Card) DeadlineText() string {
+
+	if !card.Properties.Has("deadline") || card.Completed() {
+		return ""
+	}
+
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	deadline, _ := time.ParseInLocation("2006-01-02", card.Properties.Get("deadline").AsString(), today.Location())
+	pureDeadlineDisplay := deadline.Format("2006-01-02")
+
+	timeDiffDuration := deadline.Sub(today).Round(time.Hour * 24)
+
+	timeDiff := durafmt.Parse(timeDiffDuration)
+	if timeDiffDuration < 0 {
+		timeDiff = durafmt.Parse(-timeDiffDuration)
+	}
+
+	deadlineDisplaySetting := globals.Settings.Get(SettingsDeadlineDisplay).AsString()
+
+	text := ""
+
+	if deadlineDisplaySetting == DeadlineDisplayCountdown {
+		text = "Due in " + timeDiff.String()
+
+		if timeDiffDuration == 0 {
+			text = "Due today!"
+		} else if timeDiffDuration < 0 {
+			text = "Overdue by " + timeDiff.String() + "!"
+		}
+
+	} else {
+		text = "Due on " + pureDeadlineDisplay
+	}
+
+	return text
+
+}
+
 func (card *Card) DrawCard() {
 
 	if card.Completable() && card.Properties.Has("deadline") {
@@ -1124,7 +1163,7 @@ func (card *Card) DrawCard() {
 					timeDiff = durafmt.Parse(-timeDiffDuration)
 				}
 
-				var text = ""
+				text := ""
 
 				if deadlineDisplaySetting == DeadlineDisplayCountdown {
 					text = "Due in " + timeDiff.String()
@@ -1148,7 +1187,7 @@ func (card *Card) DrawCard() {
 
 					deadlineColor = getThemeColor(GUICompletedColor)
 
-					if globals.Settings.Get(SettingsFlashDeadlines).AsBool() {
+					if activeScreenshot == nil && globals.Settings.Get(SettingsFlashDeadlines).AsBool() {
 
 						if deadlineColor.IsDark() {
 							deadlineColor = deadlineColor.Add(uint8(math.Sin(globals.Time*3.14*4)*60) - 60)
@@ -1170,7 +1209,7 @@ func (card *Card) DrawCard() {
 				left += (start.X - left) * float32(card.deadlineFade)
 				globals.Renderer.SetClipRect(&sdl.Rect{int32(left), int32(start.Y), 9999, int32(card.DisplayRect.H)})
 
-				// Center pieces
+				// Center pieces of deadline frame
 				globals.GUITexture.Texture.SetColorMod(deadlineColor.RGB())
 				globals.GUITexture.Texture.SetAlphaMod(255)
 				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{240, 0, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
@@ -1187,7 +1226,7 @@ func (card *Card) DrawCard() {
 
 			flash := ColorWhite
 
-			if globals.Settings.Get(SettingsFlashDeadlines).AsBool() && timeDiffDuration <= 0 {
+			if activeScreenshot == nil && globals.Settings.Get(SettingsFlashDeadlines).AsBool() && timeDiffDuration <= 0 {
 				flash = ColorWhite.Sub(uint8(math.Sin(globals.Time*3.14*4)*60) + 60)
 			}
 

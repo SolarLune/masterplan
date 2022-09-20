@@ -162,9 +162,24 @@ func handleScreenshots() {
 				cardBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
 			}
 
+			deadlineDisplaySetting := globals.Settings.Get(SettingsDeadlineDisplay).AsString()
+
 			for _, card := range page.Cards {
 				cardBounds = cardBounds.AddXY(card.Rect.X, card.Rect.Y)
 				cardBounds = cardBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
+
+				if card.DeadlineState() != DeadlineStateDone {
+
+					if deadlineDisplaySetting != DeadlineDisplayIcons {
+						deadlineText := card.DeadlineText()
+						measure := globals.TextRenderer.MeasureText([]rune(deadlineText), 1)
+						cardBounds = cardBounds.AddXY(card.Rect.X-measure.X, card.Rect.Y)
+					} else {
+						cardBounds = cardBounds.AddXY(card.Rect.X-32, card.Rect.Y)
+					}
+
+				}
+
 			}
 
 			globals.Project.Camera.TargetZoom = 1
