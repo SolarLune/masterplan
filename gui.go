@@ -1372,7 +1372,12 @@ func (label *Label) Update() {
 					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
 						label.Selection.Select(label.Selection.Start, label.Selection.End+advance)
 					} else {
-						label.Selection.AdvanceCaret(advance)
+						if label.Selection.Length() == 0 {
+							label.Selection.AdvanceCaret(advance)
+						} else {
+							_, end := label.Selection.ContiguousRange()
+							label.Selection.Select(end, end)
+						}
 					}
 				}
 
@@ -1406,7 +1411,12 @@ func (label *Label) Update() {
 					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
 						label.Selection.Select(label.Selection.Start, label.Selection.End+advance)
 					} else {
-						label.Selection.AdvanceCaret(advance)
+						if label.Selection.Length() == 0 {
+							label.Selection.AdvanceCaret(advance)
+						} else {
+							start, _ := label.Selection.ContiguousRange()
+							label.Selection.Select(start, start)
+						}
 					}
 				}
 
