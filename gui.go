@@ -1867,7 +1867,7 @@ func (label *Label) Draw() {
 			pos = globals.Project.Camera.TranslatePoint(pos)
 		}
 
-		if math.Sin(globals.Time*(math.Pi*4)) > 0 {
+		if label.Selection.Length() == 0 && math.Sin(globals.Time*(math.Pi*4)) > 0 {
 			ThickLine(pos, pos.Add(Point{0, globals.GridSize}), 4, getThemeColor(GUIFontColor))
 		}
 
