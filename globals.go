@@ -19,6 +19,12 @@ const (
 	StateExport      = "project state export"
 )
 
+const (
+	ReleaseModeRelease = "release"
+	ReleaseModeDemo    = "demo"
+	ReleaseModeDev     = "dev"
+)
+
 type Globals struct {
 	Project                  *Project
 	NextProject              *Project
@@ -74,6 +80,6 @@ type Globals struct {
 }
 
 var globals = &Globals{
-	ReleaseMode: "dev",
+	ReleaseMode: ReleaseModeDev,
 	ClipRects:   []*sdl.Rect{},
 }

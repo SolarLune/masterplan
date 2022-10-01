@@ -53,6 +53,7 @@ const (
 	GUIMapColor        = "Map Color"
 	GUISubBoardColor   = "Sub-Page Color"
 	GUILinkColor       = "Link Color"
+	GUITableColor      = "Table Color"
 )
 
 var availableThemes []string = []string{}
@@ -1299,6 +1300,30 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 
 }
 
+func (label *Label) MoveCaretBackOneWord() int {
+
+	start := label.Selection.CaretPos
+	offset := 0
+
+	if start > 0 && (label.Text[start-1] == ' ' || label.Text[start-1] == '\n') {
+		start--
+		offset = 1
+	}
+
+	next := label.LastIndexOfRunes(start, " \n")
+
+	if next < 0 {
+		next = -label.Selection.CaretPos
+	}
+
+	if next > 0 {
+		next++
+	}
+
+	return -(start - next + offset)
+
+}
+
 func (label *Label) Update() {
 
 	clickedOut := false
@@ -1381,26 +1406,7 @@ func (label *Label) Update() {
 					advance := -1
 
 					if globals.Keyboard.Key(sdl.K_LCTRL).Held() {
-
-						start := label.Selection.CaretPos
-						offset := 0
-
-						if start > 0 && (label.Text[start-1] == ' ' || label.Text[start-1] == '\n') {
-							start--
-							offset = 1
-						}
-
-						next := label.LastIndexOfRunes(start, " \n")
-
-						if next < 0 {
-							next = -label.Selection.CaretPos
-						}
-
-						if next > 0 {
-							next++
-						}
-
-						advance = -(start - next + offset)
+						advance = label.MoveCaretBackOneWord()
 					}
 
 					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
@@ -1479,12 +1485,22 @@ func (label *Label) Update() {
 
 				if globals.Keyboard.Key(sdl.K_HOME).Pressed() {
 					start := 0
-					label.Selection.Select(start, start)
+					end := start
+					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+						end = label.Selection.End
+					}
+					label.Selection.Select(start, end)
+					label.Selection.CaretPos = start
 				}
 
 				if globals.Keyboard.Key(sdl.K_END).Pressed() {
 					end := len(label.Text)
-					label.Selection.Select(end, end)
+					start := end
+					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+						start = label.Selection.Start
+					}
+					label.Selection.Select(start, end)
+					label.Selection.CaretPos = end
 				}
 
 				if globals.Keyboard.Key(sdl.K_PAGEUP).Pressed() {
@@ -1611,6 +1627,12 @@ func (label *Label) Update() {
 				}
 
 				if globals.Keyboard.Key(sdl.K_BACKSPACE).Pressed() {
+
+					if globals.Keyboard.Key(sdl.K_LCTRL).Held() {
+						start := label.Selection.Start
+						end := start + label.MoveCaretBackOneWord()
+						label.Selection.Select(start, end)
+					}
 
 					if label.Selection.Length() == 0 {
 						prev := label.Selection.Start - 1

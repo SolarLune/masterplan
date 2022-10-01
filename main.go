@@ -75,7 +75,7 @@ func init() {
 func main() {
 
 	// We want this here because releaseMode can change because of build tags, so we want to be sure all init() functions run to ensure the releaseMode variable is accurate
-	if globals.ReleaseMode != "dev" {
+	if globals.ReleaseMode != ReleaseModeDev {
 
 		// Redirect STDERR and STDOUT to log.txt in release mode
 
@@ -109,7 +109,7 @@ func main() {
 	// using runtime.Caller().
 
 	defer func() {
-		if globals.ReleaseMode != "dev" {
+		if globals.ReleaseMode != ReleaseModeDev {
 			panicOut := recover()
 			if panicOut != nil {
 
@@ -463,12 +463,16 @@ func main() {
 			globals.DebugMode = !globals.DebugMode
 		}
 
-		if globals.Keyboard.Key(sdl.K_F7).Pressed() {
-			profileCPU()
-		}
+		if globals.ReleaseMode == ReleaseModeDev {
 
-		if globals.Keyboard.Key(sdl.K_F8).Pressed() {
-			profileHeap()
+			if globals.Keyboard.Key(sdl.K_F7).Pressed() {
+				profileCPU()
+			}
+
+			if globals.Keyboard.Key(sdl.K_F8).Pressed() {
+				profileHeap()
+			}
+
 		}
 
 		// if rl.WindowShouldClose() {
@@ -591,7 +595,20 @@ func main() {
 				m = " (x" + strconv.Itoa(event.Multiplier+1) + ")"
 			}
 
-			text := event.Time + ": " + event.Text + m
+			text := ""
+
+			lines := strings.Split(event.Text, "\n")
+			for i, t := range lines {
+				if i > 0 {
+					text += "        "
+				}
+				text += t
+				if i < len(lines)-1 {
+					text += "\n"
+				}
+			}
+
+			text = event.Time + ": " + text + m
 
 			textSize := globals.TextRenderer.MeasureText([]rune(text), msgSize)
 
@@ -664,7 +681,7 @@ func main() {
 
 		demoText := ""
 
-		if globals.ReleaseMode == "demo" {
+		if globals.ReleaseMode == ReleaseModeDemo {
 			demoText = " [DEMO]"
 		}
 
@@ -1243,6 +1260,13 @@ func ConstructMenus() {
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
 	}))
+
+	// root.AddRow(AlignCenter).Add("create new table", NewButton("Table", nil, icons[ContentTypeTable], false, func() {
+	// 	card := globals.Project.CurrentPage.CreateNewCard(ContentTypeTable)
+	// 	placeCardInStack(card, true)
+	// 	globals.Project.CurrentPage.Selection.Clear()
+	// 	globals.Project.CurrentPage.Selection.Add(card)
+	// }))
 
 	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+64, createMenu.Pages["root"].IdealSize().Y+16)
 
@@ -1996,6 +2020,10 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Show Grid:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowGrid)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Hide Grid on Zoom out:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsHideGridOnZoomOut)))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Flash Selected Cards:", nil, false, AlignLeft))

@@ -27,8 +27,7 @@ const (
 	ContentTypeMap      = "Map"
 	ContentTypeSubpage  = "Sub-Page"
 	ContentTypeLink     = "Link"
-	// ContentTypeTable    = "Table"
-
+	ContentTypeTable    = "Table"
 )
 const (
 	TriggerTypeSet = iota
@@ -46,6 +45,7 @@ var icons map[string]*sdl.Rect = map[string]*sdl.Rect{
 	ContentTypeMap:      {112, 96, 32, 32},
 	ContentTypeSubpage:  {48, 256, 32, 32},
 	ContentTypeLink:     {112, 256, 32, 32},
+	ContentTypeTable:    {176, 224, 32, 32},
 }
 
 var contentOrder = map[string]int{
@@ -58,7 +58,7 @@ var contentOrder = map[string]int{
 	ContentTypeMap:      6,
 	ContentTypeSubpage:  7,
 	ContentTypeLink:     8,
-	// ContentTypeTable:    0,
+	ContentTypeTable:    9,
 }
 
 type Contents interface {
@@ -851,8 +851,16 @@ func (sc *SoundContents) Update() {
 
 				}
 
-				sc.Sound = sc.Resource.AsNewSound()
+				sound, err := sc.Resource.AsNewSound()
 				sc.SeekBar.SetValue(0)
+
+				if err != nil {
+					globals.EventLog.Log("Error: Couldn't load [%s] as sound resource\ndue to error: %s", false, sc.Resource.Name, err.Error())
+					sc.Resource = nil
+					return
+				} else {
+					sc.Sound = sound
+				}
 
 				var nextInLoop *Card
 
@@ -1595,7 +1603,7 @@ func (tc *TimerContents) Update() {
 				if tc.AlarmSound != nil {
 					tc.AlarmSound.Destroy()
 				}
-				tc.AlarmSound = globals.Resources.Get(LocalRelativePath("assets/alarm.wav")).AsNewSound()
+				tc.AlarmSound, _ = globals.Resources.Get(LocalRelativePath("assets/alarm.wav")).AsNewSound()
 				tc.AlarmSound.Play()
 			}
 
@@ -3121,6 +3129,35 @@ func (lc *LinkContents) ReceiveMessage(msg *Message) {
 	}
 
 }
+
+// type TableContents struct {
+// 	DefaultContents
+// }
+
+// func NewTableContents(card *Card) *TableContents {
+// 	tc := &TableContents{
+// 		DefaultContents: newDefaultContents(card),
+// 	}
+// 	return tc
+// }
+
+// func (tc *TableContents) Update() {}
+
+// func (tc *TableContents) Draw() {}
+
+// func (tc *TableContents) Color() Color {
+// 	color := getThemeColor(GUITableColor)
+// 	return color
+// }
+
+// func (tc *TableContents) ReceiveMessage(msg *Message) {}
+
+// func (tc *TableContents) DefaultSize() Point {
+// 	gs := globals.GridSize
+// 	return Point{gs * 6, gs * 4}
+// }
+
+// func (tc *TableContents) Trigger(triggerType int) {}
 
 // type Calendar struct {
 // 	DefaultContents

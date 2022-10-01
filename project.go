@@ -178,7 +178,7 @@ func (project *Project) CreateGridTexture() {
 
 func (project *Project) AutoBackup() {
 
-	if globals.ReleaseMode != "demo" && project.Filepath != "" && globals.Settings.Get(SettingsAutoBackup).AsBool() && time.Since(project.LastBackup) > time.Duration(globals.Settings.Get(SettingsAutoBackupTime).AsFloat())*time.Minute {
+	if globals.ReleaseMode != ReleaseModeDemo && project.Filepath != "" && globals.Settings.Get(SettingsAutoBackup).AsBool() && time.Since(project.LastBackup) > time.Duration(globals.Settings.Get(SettingsAutoBackupTime).AsFloat())*time.Minute {
 
 		filename := project.Filepath
 		if strings.Contains(filename, ".plan"+BackupDelineator) {
@@ -332,7 +332,7 @@ func (project *Project) Draw() {
 		return
 	}
 
-	if project.Camera.Zoom >= 1 && globals.Settings.Get(SettingsShowGrid).AsBool() {
+	if (project.Camera.Zoom >= 1 || !globals.Settings.Get(SettingsHideGridOnZoomOut).AsBool()) && globals.Settings.Get(SettingsShowGrid).AsBool() {
 		project.DrawGrid()
 	}
 
@@ -366,7 +366,7 @@ func (project *Project) Draw() {
 
 func (project *Project) Save() {
 
-	if globals.ReleaseMode == "demo" {
+	if globals.ReleaseMode == ReleaseModeDemo {
 		globals.EventLog.Log("Cannot save in demo mode of MasterPlan.", true)
 		return
 	}

@@ -194,14 +194,17 @@ func (le *LinkEnding) Draw() {
 		// delta := points[len(points)-1].Sub(le.End.Center())
 		// px = px.Add(delta.Normalized().Mult(16))
 
-		globals.GUITexture.Texture.SetColorMod(mainColor.RGB())
+		globals.GUITexture.Texture.SetColorMod(outlineColor.RGB())
 		globals.GUITexture.Texture.SetAlphaMod(255)
 		delta := points[len(points)-1].Sub(points[len(points)-2])
 		px := points[len(points)-1].Sub(delta.Normalized().Mult(16))
 		px = le.Start.Page.Project.Camera.TranslatePoint(px)
-		dir := (delta.Angle() + (math.Pi)) / (math.Pi * 2) * 360
+		dir := delta.Angle() / (math.Pi * 2) * 360
+		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{240, 224, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 
-		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{208, 0, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+		globals.GUITexture.Texture.SetColorMod(mainColor.RGB())
+		globals.GUITexture.Texture.SetAlphaMod(255)
+		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{240, 192, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 
 		if points[0] == points[len(points)-1] {
 			return
@@ -1890,6 +1893,8 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewSubPageContents(card)
 		case ContentTypeLink:
 			card.Contents = NewLinkContents(card)
+		// case ContentTypeTable:
+		// 	card.Contents = NewTableContents(card)
 		default:
 			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}

@@ -318,11 +318,11 @@ func (resource *Resource) IsSound() bool {
 	return false
 }
 
-func (resource *Resource) AsNewSound() *Sound {
+func (resource *Resource) AsNewSound() (*Sound, error) {
 
 	originalFile, err := os.Open(resource.LocalFilepath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	var originalStream beep.StreamSeekCloser
@@ -339,10 +339,10 @@ func (resource *Resource) AsNewSound() *Sound {
 	}
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return NewSound(originalStream, format)
+	return NewSound(originalStream, format), nil
 }
 
 func (resource *Resource) Destroy() {

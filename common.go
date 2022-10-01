@@ -83,7 +83,7 @@ func LocalRelativePath(localPath string) string {
 
 	workingDirectory := filepath.Dir(exePath)
 
-	if globals.ReleaseMode == "dev" {
+	if globals.ReleaseMode == ReleaseModeDev {
 		// Not in release mode, so current working directory is the root.
 		workingDirectory, _ = os.Getwd()
 	}

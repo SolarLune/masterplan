@@ -1,12 +1,13 @@
-[ ] You can't click on menus if you're editing maps and the menu covers the map
-[ ] If loading a sound file fails (see: https://discordapp.com/channels/339550825154347008/900240962792620052/1019084852131278878), MasterPlan should inform the user, not silently crash
-[ ] Home or End + Shift to select text using those keys
+[x] You can't click on menus if you're editing maps and the menu covers the map
+[x] If loading a sound file fails (see: https://discordapp.com/channels/339550825154347008/900240962792620052/1019084852131278878), MasterPlan should inform the user, not silently crash
+[x] Home or End + Shift to select text using those keys
 [ ] Disable debug options in release build
 [ ] Figure out what to do if pasted text, for example, is super large and the GPU can't generate a texture for it - capping the cards to some logical number and using scroll bars seems like it might be the solution...?
 
 [x] Zoom to cursor
 [x] Option to disable shadows on cards
 [x] Reimplement relative filepaths
+[ ] Spreadsheet support to represent them in MasterPlan as a table?
 [x] Add a view for upcoming deadlines 
 [x] PDF / PNG output (See: https://github.com/signintech/gopdf, or https://github.com/tdewolff/canvas)
 [x] Add method to copy colors from one card to others
