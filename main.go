@@ -459,11 +459,11 @@ func main() {
 		// 	globals.Project = NewProject()
 		// }
 
-		if globals.Keybindings.Pressed(KBDebugToggle) {
-			globals.DebugMode = !globals.DebugMode
-		}
-
 		if globals.ReleaseMode == ReleaseModeDev {
+
+			if globals.Keybindings.Pressed(KBDebugToggle) {
+				globals.DebugMode = !globals.DebugMode
+			}
 
 			if globals.Keyboard.Key(sdl.K_F7).Pressed() {
 				profileCPU()
@@ -685,7 +685,12 @@ func main() {
 			demoText = " [DEMO]"
 		}
 
-		title := "MasterPlan v" + globals.Version.String() + demoText
+		title := ""
+		if globals.ReleaseMode == ReleaseModeDev {
+			title = "MasterPlan v" + globals.Version.String() + " INDEV"
+		} else {
+			title = "MasterPlan v" + globals.Version.String() + demoText
+		}
 
 		if globals.Project.Filepath != "" {
 			_, fileName := filepath.Split(globals.Project.Filepath)
@@ -1332,32 +1337,90 @@ func ConstructMenus() {
 	hexText.RegexString = RegexHex
 	setColor.AddRow(AlignCenter).Add("hex text", hexText)
 
-	setColor.AddRow(AlignCenter).Add("apply", NewButton("Apply to Selected", nil, nil, false, func() {
+	setColor.AddRow(AlignCenter).Add("", NewSpacer(&sdl.FRect{0, 0, 4, 8}))
+
+	// Apply colors
+
+	row = setColor.AddRow(AlignCenter)
+
+	row.Add("icon", NewGUIImage(nil, &sdl.Rect{208, 256, 32, 32}, globals.GUITexture.Texture, false))
+	row.Add("applyLabel", NewLabel("Apply to :    ", nil, false, AlignCenter))
+
+	row = setColor.AddRow(AlignCenter)
+	row.ExpandAllElements = true
+	row.Add("applyBG", NewButton("BG", nil, &sdl.Rect{208, 288, 32, 32}, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards
 		for card := range selectedCards {
 			card.CustomColor = colorWheel.SampledColor.Clone()
 			card.CreateUndoState = true
 		}
-		globals.EventLog.Log("Color applied for %d card(s).", false, len(selectedCards))
+		globals.EventLog.Log("Color applied for the background of %d card(s).", false, len(selectedCards))
 	}))
 
+	row.Add("applyFont", NewButton("Text", nil, &sdl.Rect{240, 288, 32, 32}, false, func() {
+		selectedCards := globals.Project.CurrentPage.Selection.Cards
+		for card := range selectedCards {
+			card.FontColor = colorWheel.SampledColor.Clone()
+			card.CreateUndoState = true
+		}
+		globals.EventLog.Log("Color applied for the contents of %d card(s).", false, len(selectedCards))
+	}))
+
+	// Spacer
+
+	setColor.AddRow(AlignCenter).Add("", NewSpacer(&sdl.FRect{0, 0, 4, 8}))
+
+	// Grab colors
+
 	row = setColor.AddRow(AlignCenter)
-	row.Add("grab color", NewButton("Grab Color from Selected", nil, nil, false, func() {
+
+	row.Add("icon", NewGUIImage(nil, &sdl.Rect{240, 256, 32, 32}, globals.GUITexture.Texture, false))
+
+	row.Add("grabLabel", NewLabel("Sample from :    ", nil, false, AlignCenter))
+
+	row = setColor.AddRow(AlignCenter)
+
+	row.ExpandAllElements = true
+
+	row.Add("grabBG", NewButton("BG", nil, &sdl.Rect{208, 320, 32, 32}, false, func() {
 
 		selectedCards := globals.Project.CurrentPage.Selection.AsSlice()
 		if len(selectedCards) > 0 {
 			color := selectedCards[0].Color()
 			hexText.SetText([]rune(color.ToHexString()[:6]))
 			hexText.OnClickOut()
-			globals.EventLog.Log("Grabbed selected color from first selected Card.", false)
+			globals.EventLog.Log("Grabbed background color from first selected Card.", false)
 		}
 	}))
-	row.ExpandAllElements = true
 
-	setColor.AddRow(AlignCenter).Add("default", NewButton("Reset to Default", nil, nil, false, func() {
+	row.Add("grabFont", NewButton("Text", nil, &sdl.Rect{240, 320, 32, 32}, false, func() {
+
+		selectedCards := globals.Project.CurrentPage.Selection.AsSlice()
+		if len(selectedCards) > 0 {
+
+			color := selectedCards[0].FontColor
+
+			if color != nil {
+				color = color.Clone()
+			} else {
+				color = getThemeColor(GUIFontColor)
+			}
+
+			hexText.SetText([]rune(color.ToHexString()[:6]))
+			hexText.OnClickOut()
+			globals.EventLog.Log("Grabbed content color from first selected Card.", false)
+
+		}
+
+	}))
+
+	setColor.AddRow(AlignCenter).Add("", NewSpacer(&sdl.FRect{0, 0, 4, 8}))
+
+	setColor.AddRow(AlignCenter).Add("reset to default", NewButton("Reset to Default", nil, nil, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards
 		for card := range selectedCards {
 			card.CustomColor = nil
+			card.FontColor = nil
 			card.CreateUndoState = true
 		}
 		globals.EventLog.Log("Color reset to default for %d card(s).", false, len(selectedCards))

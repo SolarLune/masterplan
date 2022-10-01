@@ -1,9 +1,9 @@
 [x] You can't click on menus if you're editing maps and the menu covers the map
 [x] If loading a sound file fails (see: https://discordapp.com/channels/339550825154347008/900240962792620052/1019084852131278878), MasterPlan should inform the user, not silently crash
 [x] Home or End + Shift to select text using those keys
-[ ] Disable debug options in release build
+[x] Disable debug options in release build
 [ ] Figure out what to do if pasted text, for example, is super large and the GPU can't generate a texture for it - capping the cards to some logical number and using scroll bars seems like it might be the solution...?
-
+[ ] Add a palette of pre-selected colors (the same ones for the Map) for setting any card's color.
 [x] Zoom to cursor
 [x] Option to disable shadows on cards
 [x] Reimplement relative filepaths
@@ -17,6 +17,7 @@
 [x] Fix crashing / panics not reporting things to log files
 [x] Add option to save downloaded images in the project
   - [ ] Do something about deleting downloaded images if necessary?
+[ ] Navigating between GUI options using tab + shift+tab (at some point; not as high a priority since most elements can be modified directly on the board, so there's less menu navigation).
 [ ] Add option to disable icons on Cards
 [ ] Parented Checkbox and Numbered Cards don't flash properly
 [ ] Fix sub-page title text not being centered / not editing properly with newlines
@@ -37,7 +38,6 @@
 [ ] Disconnecting a monitor crashes MasterPlan
 [ ] Use dispatcher for Hierarchy as necessary
 [ ] Option to draw background / outer square for images
-[ ] A palette of pre-selected colors (the same ones for the Map) for setting any card's color.
 [ ] Don't save empty / null properties in save file (?)
 [ ] Crystal (additive blending) graphical mode for Cards
 [ ] Splash-screen? IDK if I should have it or not.

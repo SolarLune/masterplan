@@ -312,6 +312,7 @@ type Card struct {
 	Depth                   int
 	Valid                   bool
 	CustomColor             Color
+	FontColor               Color
 	deadlineFade            float64
 
 	GridExtents GridSelection
@@ -1305,8 +1306,21 @@ func (card *Card) DrawContents() {
 
 	card.Highlighter.Draw()
 
+	currentTheme := globals.Settings.Get(SettingsTheme).AsString()
+
+	var ogColor Color
+
+	if card.FontColor != nil {
+		ogColor = getThemeColor(GUIFontColor)
+		guiColors[currentTheme][GUIFontColor] = card.FontColor
+	}
+
 	if card.Contents != nil {
 		card.Contents.Draw()
+	}
+
+	if card.FontColor != nil {
+		guiColors[currentTheme][GUIFontColor] = ogColor
 	}
 
 }
@@ -1448,6 +1462,9 @@ func (card *Card) Serialize() string {
 	if card.CustomColor != nil {
 		data, _ = sjson.Set(data, "custom color", card.CustomColor.ToHexString())
 	}
+	if card.FontColor != nil {
+		data, _ = sjson.Set(data, "font color", card.FontColor.ToHexString())
+	}
 	data, _ = sjson.SetRaw(data, "properties", card.Properties.Serialize())
 
 	if len(card.Links) > 0 {
@@ -1519,6 +1536,13 @@ func (card *Card) Deserialize(data string) {
 		card.CustomColor = ColorFromHexString(cc.String())
 	} else {
 		card.CustomColor = nil
+	}
+
+	if gjson.Get(data, "font color").Exists() {
+		cc := gjson.Get(data, "font color")
+		card.FontColor = ColorFromHexString(cc.String())
+	} else {
+		card.FontColor = nil
 	}
 
 	// for _, link := range card.Links {
