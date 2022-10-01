@@ -1397,7 +1397,12 @@ func (label *Label) Update() {
 					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
 						label.Selection.Select(label.Selection.Start, label.Selection.End+advance)
 					} else {
-						label.Selection.AdvanceCaret(advance)
+						if label.Selection.Length() == 0 {
+							label.Selection.AdvanceCaret(advance)
+						} else {
+							_, end := label.Selection.ContiguousRange()
+							label.Selection.Select(end, end)
+						}
 					}
 				}
 
@@ -1412,7 +1417,12 @@ func (label *Label) Update() {
 					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
 						label.Selection.Select(label.Selection.Start, label.Selection.End+advance)
 					} else {
-						label.Selection.AdvanceCaret(advance)
+						if label.Selection.Length() == 0 {
+							label.Selection.AdvanceCaret(advance)
+						} else {
+							start, _ := label.Selection.ContiguousRange()
+							label.Selection.Select(start, start)
+						}
 					}
 				}
 
@@ -1879,7 +1889,7 @@ func (label *Label) Draw() {
 			pos = globals.Project.Camera.TranslatePoint(pos)
 		}
 
-		if math.Sin(globals.Time*(math.Pi*4)) > 0 {
+		if label.Selection.Length() == 0 && math.Sin(globals.Time*(math.Pi*4)) > 0 {
 			ThickLine(pos, pos.Add(Point{0, globals.GridSize}), 4, getThemeColor(GUIFontColor))
 		}
 
