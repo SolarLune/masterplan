@@ -1,8 +1,13 @@
+[ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
+    That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
+    See: https://discord.com/channels/339550825154347008/758009278756946040/906326736965357628
 [x] You can't click on menus if you're editing maps and the menu covers the map
 [x] If loading a sound file fails (see: https://discordapp.com/channels/339550825154347008/900240962792620052/1019084852131278878), MasterPlan should inform the user, not silently crash
 [x] Home or End + Shift to select text using those keys
 [x] Disable debug options in release build
+
 [ ] Figure out what to do if pasted text, for example, is super large and the GPU can't generate a texture for it - capping the cards to some logical number and using scroll bars seems like it might be the solution...?
+[ ] Add palette for card / text colors
 [ ] Add a palette of pre-selected colors (the same ones for the Map) for setting any card's color.
 [x] Zoom to cursor
 [x] Option to disable shadows on cards
@@ -26,9 +31,6 @@
 [ ] Optimize - seems like there's a memory leak somewhere
 [ ] Show keybinding conflicts in the Keybindings menu
 [x] Make all text fields in Cards (like their title / description) consistent in terms of their capabilities
-[ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
-    That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
-    See: https://discord.com/channels/339550825154347008/758009278756946040/906326736965357628
 [ ] Fix storing a card in collapsed mode doesn't allow it to become uncollapsed; guess we'll need to store the uncollapsed size to revert to.
 [ ] Option to zip export output?
 [ ] Registry menu or something where you can set shortcuts to jump to specific cards / parts of your project? Maybe you can tag pages from the Hierarchy menu?

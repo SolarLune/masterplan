@@ -27,6 +27,7 @@ jobs:
         sudo apt-get install libsdl2-mixer-dev -y
         sudo apt-get install libsdl2-ttf-dev -y
         sudo apt-get install libsdl2-gfx-dev -y
+        sudo apt-get install libxss-dev -y
 
     - name: Build
       run: go run ./build_script/main.go -b -c
@@ -104,4 +105,36 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: _GH-Actions-MasterPlan-MacOS-Demo-v0.8.0.a4
+        path: bin/macos-0.8-Demo-64.tar.gz
+
+  buildMac12:
+    runs-on: macos-12
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Download Pre-reqs
+      run: brew install sdl2{,_image,_mixer,_ttf,_gfx} pkg-config dylibbundler
+
+    - name: Build
+      run: go run ./build_script/main.go -b
+
+    - name: Bundle Dependencies
+      run: dylibbundler -od -b -x ./bin/macos-0.8-Release-64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/macos-0.8-Release-64/MasterPlan.app/Contents/libs -p @executable_path/../libs
+
+    - name: Compress
+      run: go run ./build_script/main.go -c
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: _GH-Actions-MasterPlan-MacOS-12-Release-v0.8.0.a4
+        path: bin/macos-0.8-Release-64.tar.gz
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: _GH-Actions-MasterPlan-MacOS-12-Demo-v0.8.0.a4
         path: bin/macos-0.8-Demo-64.tar.gz
