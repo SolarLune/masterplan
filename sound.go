@@ -33,7 +33,7 @@ func NewSound(stream beep.StreamSeekCloser, format beep.Format) *Sound {
 
 func (sound *Sound) ReloadStream() {
 
-	resampled := beep.Resample(3, sound.Format.SampleRate, 44100, sound.Stream)
+	resampled := beep.Resample(3, sound.Format.SampleRate, globals.ChosenAudioSampleRate, sound.Stream)
 
 	seq := beep.Seq(resampled, beep.Callback(func() {
 		sound.Empty = true

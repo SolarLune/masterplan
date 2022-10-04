@@ -166,6 +166,8 @@ func main() {
 	// 	rl.SetWindowSize(int(programSettings.WindowPosition.Width), int(programSettings.WindowPosition.Height))
 	// }
 
+	globals.EventLog = NewEventLog()
+
 	x := int32(sdl.WINDOWPOS_UNDEFINED)
 	y := int32(sdl.WINDOWPOS_UNDEFINED)
 	w := int32(960)
@@ -189,9 +191,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := speaker.Init(beep.SampleRate(44100), 2048); err != nil {
-		panic(err)
-	}
+	InitSpeaker()
 
 	// window, renderer, err := sdl.CreateWindowAndRenderer(w, h, windowFlags)
 	window, err := sdl.CreateWindow("MasterPlan", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, w, h, windowFlags)
@@ -264,7 +264,6 @@ func main() {
 	globals.TextRenderer = NewTextRenderer()
 	screenWidth, screenHeight, _ := globals.Renderer.GetOutputSize()
 	globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
-	globals.EventLog = NewEventLog()
 
 	globals.TriggerReloadFonts = true
 	HandleFontReload()
@@ -1907,6 +1906,38 @@ func ConstructMenus() {
 	}
 	row.Add("", number)
 
+	row = sound.AddRow(AlignCenter)
+	row.Add("", NewLabel("Playback Buffer Size:", nil, false, AlignCenter))
+	audioBufferBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, func(index int) {
+		globals.EventLog.Log("Audio playback buffer size set to %s; changes will take effect on program restart.", false, globals.Settings.Get(SettingsAudioBufferSize).AsString())
+	}, globals.Settings.Get(SettingsAudioBufferSize),
+		AudioBufferSize32,
+		AudioBufferSize64,
+		AudioBufferSize128,
+		AudioBufferSize256,
+		AudioBufferSize512,
+		AudioBufferSize1024,
+		AudioBufferSize2048,
+	)
+	audioBufferBG.MaxButtonsPerRow = 4
+	row.Add("", audioBufferBG)
+
+	row = sound.AddRow(AlignCenter)
+	row.Add("", NewLabel("Playback Device Sample Rate:", nil, false, AlignCenter))
+
+	audioSampleRateBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, func(index int) {
+		globals.EventLog.Log("Audio playback sample rate set to %s; changes will take effect on program restart.", false, globals.Settings.Get(SettingsAudioSampleRate).AsString())
+	}, globals.Settings.Get(SettingsAudioSampleRate),
+		AudioSampleRate11025,
+		AudioSampleRate22050,
+		AudioSampleRate44100,
+		AudioSampleRate48000,
+		AudioSampleRate88200,
+		AudioSampleRate96000,
+	)
+	audioSampleRateBG.MaxButtonsPerRow = 3
+	row.Add("", audioSampleRateBG)
+
 	// General options
 
 	general := settings.AddPage("general")
@@ -3195,5 +3226,52 @@ func profileHeap() {
 
 	pprof.WriteHeapProfile(heapProfFile)
 	globals.EventLog.Log("Heap dumped.", false)
+
+}
+
+func InitSpeaker() {
+
+	nonPositive := false
+
+	sampleRate, _ := strconv.Atoi(globals.Settings.Get(SettingsAudioSampleRate).AsString())
+
+	if sampleRate <= 0 {
+		sampleRate = 44100
+		nonPositive = true
+	}
+
+	bufferSize, _ := strconv.Atoi(globals.Settings.Get(SettingsAudioBufferSize).AsString())
+
+	if bufferSize <= 0 {
+		bufferSize = 512
+		nonPositive = true
+	}
+
+	if nonPositive {
+		globals.EventLog.Log("Warning: sample rate or buffer size is a non-positive integer. Initializing speaker with default values (44.1khz @ 512 buffer size).", true)
+	}
+
+	initialized := globals.SpeakerInitialized
+
+	if initialized {
+		speaker.Lock()
+		speaker.Clear()
+		speaker.Close()
+	}
+
+	if err := speaker.Init(beep.SampleRate(sampleRate), bufferSize); err != nil {
+		globals.EventLog.Log("Error initializing audio system: <%s>;\nAudio playback may not be usable. It's advised to check the audio settings\nin the Settings section.", true, err.Error())
+		globals.SpeakerInitialized = true
+	} else {
+		globals.SpeakerInitialized = false
+		globals.EventLog.Log("Speaker system initialized properly with sample rate %d and buffer size %d.", false, sampleRate, bufferSize)
+	}
+
+	if initialized {
+		speaker.Unlock()
+	}
+
+	globals.ChosenAudioBufferSize = bufferSize
+	globals.ChosenAudioSampleRate = beep.SampleRate(sampleRate)
 
 }

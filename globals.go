@@ -5,6 +5,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/cavaliergopher/grab/v3"
+	"github.com/faiface/beep"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
@@ -62,11 +63,14 @@ type Globals struct {
 	WindowFlags       uint32
 	ReleaseMode       string
 
-	Settings       *Properties
-	SettingsLoaded bool
-	Keybindings    *Keybindings
-	RecentFiles    []string
-	HTTPClient     *http.Client
+	Settings              *Properties
+	SettingsLoaded        bool
+	ChosenAudioSampleRate beep.SampleRate
+	ChosenAudioBufferSize int
+	SpeakerInitialized    bool
+	Keybindings           *Keybindings
+	RecentFiles           []string
+	HTTPClient            *http.Client
 
 	DebugMode          bool
 	TriggerReloadFonts bool

@@ -913,6 +913,7 @@ func NewButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index int), 
 		WorldSpace:       worldSpace,
 		MaxButtonsPerRow: 1,
 		Labels:           []*Label{},
+		OnChoose:         onChoose,
 	}
 
 	group.SetChoices(choices...)
@@ -942,11 +943,11 @@ func (bg *ButtonGroup) SetChoices(choices ...string) {
 		index := i
 		newButton := NewButton(c, nil, nil, bg.WorldSpace, func() {
 			bg.ChosenIndex = index
-			if bg.OnChoose != nil {
-				bg.OnChoose(index)
-			}
 			if bg.Property != nil {
 				bg.Property.Set(bg.Buttons[bg.ChosenIndex].Label.TextAsString())
+			}
+			if bg.OnChoose != nil {
+				bg.OnChoose(index)
 			}
 		})
 		newButton.Highlighter.HighlightMode = HighlightRing

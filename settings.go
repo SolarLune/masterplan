@@ -29,7 +29,6 @@ const (
 	SettingsFocusOnElapsedTimers     = "FocusOnElapsedTimers"
 	SettingsNotifyOnElapsedTimers    = "NotifyOnElapsedTimers"
 	SettingsPlayAlarmSound           = "PlayAlarmSound"
-	SettingsAudioVolume              = "AudioVolume"
 	SettingsShowAboutDialogOnStart   = "ShowAboutDialogOnStart"
 	SettingsReversePan               = "ReversePan"
 	SettingsAutoLoadLastProject      = "AutoLoadLastProject"
@@ -51,6 +50,10 @@ const (
 	SettingsMaxInternalImageSize     = "Max Internal Image Buffer Size"
 	SettingsPlaceNewCardsInStack     = "Position New Cards in Stack"
 	SettingsHideGridOnZoomOut        = "Hide Grid on Zoom out"
+
+	SettingsAudioVolume     = "AudioVolume"
+	SettingsAudioBufferSize = "Audio Playback Buffer Size"
+	SettingsAudioSampleRate = "Audio Playback Sample Rate"
 
 	DeadlineDisplayCountdown = "Days"
 	DeadlineDisplayDate      = "Date"
@@ -77,6 +80,26 @@ const (
 	Percentage300 = "300%"
 	Percentage400 = "400%"
 	Percentage800 = "800%"
+)
+
+const (
+	AudioSampleRate11025 = "11025"
+	AudioSampleRate22050 = "22050"
+	AudioSampleRate44100 = "44100"
+	AudioSampleRate48000 = "48000"
+	AudioSampleRate88200 = "88200"
+	AudioSampleRate96000 = "96000"
+	// AudioSampleRate192000 = "192000"
+)
+
+const (
+	AudioBufferSize32   = "32"
+	AudioBufferSize64   = "64"
+	AudioBufferSize128  = "128"
+	AudioBufferSize256  = "256"
+	AudioBufferSize512  = "512"
+	AudioBufferSize1024 = "1024"
+	AudioBufferSize2048 = "2048"
 )
 
 var percentageToNumber map[string]float32 = map[string]float32{
@@ -118,7 +141,6 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsFocusOnElapsedTimers).Set(false)
 	props.Get(SettingsNotifyOnElapsedTimers).Set(true)
 	props.Get(SettingsPlayAlarmSound).Set(true)
-	props.Get(SettingsAudioVolume).Set(80.0)
 	props.Get(SettingsShowAboutDialogOnStart).Set(true)
 	props.Get(SettingsReversePan).Set(false)
 	props.Get(SettingsCustomFontPath).Set("")
@@ -139,6 +161,11 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsMaxInternalImageSize).Set(ImageBufferSize2048)
 	props.Get(SettingsPlaceNewCardsInStack).Set(false)
 	props.Get(SettingsHideGridOnZoomOut).Set(true)
+
+	// Audio settings; not shown in MasterPlan because it's very rarely necessary to tweak
+	props.Get(SettingsAudioVolume).Set(80.0)
+	props.Get(SettingsAudioSampleRate).Set(AudioSampleRate44100)
+	props.Get(SettingsAudioBufferSize).Set(AudioBufferSize512)
 
 	transparency := props.Get(SettingsWindowTransparency)
 	transparency.Set(1.0)

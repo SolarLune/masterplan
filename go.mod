@@ -16,7 +16,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd // indirect
 	github.com/goware/urlx v0.3.1
-	github.com/hajimehoshi/go-mp3 v0.3.2 // indirect
+	github.com/hajimehoshi/go-mp3 v0.3.2
 	github.com/hajimehoshi/oto v1.0.1 // indirect
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/jfreymuth/oggvorbis v1.0.3 // indirect
