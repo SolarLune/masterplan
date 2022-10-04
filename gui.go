@@ -1496,22 +1496,20 @@ func (label *Label) Update() {
 
 				if globals.Keyboard.Key(sdl.K_HOME).Pressed() {
 					start := 0
-					end := start
 					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
-						end = label.Selection.End
+						label.Selection.Select(start, label.Selection.CaretPos)
+					} else {
+						label.Selection.Select(start, start)
 					}
-					label.Selection.Select(start, end)
-					label.Selection.CaretPos = start
 				}
 
 				if globals.Keyboard.Key(sdl.K_END).Pressed() {
 					end := len(label.Text)
-					start := end
 					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
-						start = label.Selection.Start
+						label.Selection.Select(end, label.Selection.CaretPos)
+					} else {
+						label.Selection.Select(end, end)
 					}
-					label.Selection.Select(start, end)
-					label.Selection.CaretPos = end
 				}
 
 				if globals.Keyboard.Key(sdl.K_PAGEUP).Pressed() {
