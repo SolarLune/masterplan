@@ -1086,9 +1086,11 @@ func (project *Project) MouseActions() {
 	if globals.State != StateContextMenu {
 
 		if globals.Mouse.Wheel() > 0 {
-			project.Camera.AddZoom(project.Camera.Zoom * 0.05)
+			scrollSensitivity := percentageToNumber[globals.Settings.Get(SettingsMouseWheelSensitivity).AsString()]
+			project.Camera.AddZoom(project.Camera.Zoom * 0.1 * scrollSensitivity)
 		} else if globals.Mouse.Wheel() < 0 {
-			project.Camera.AddZoom(-project.Camera.Zoom * 0.05)
+			scrollSensitivity := percentageToNumber[globals.Settings.Get(SettingsMouseWheelSensitivity).AsString()]
+			project.Camera.AddZoom(-project.Camera.Zoom * 0.1 * scrollSensitivity)
 		}
 
 		if globals.Keybindings.Pressed(KBPanModifier) {
