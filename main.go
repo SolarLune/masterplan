@@ -47,7 +47,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.8.0-alpha.7.2")
+	globals.Version = semver.MustParse("0.8.0-alpha.7.3")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -1909,7 +1909,7 @@ func ConstructMenus() {
 	row = sound.AddRow(AlignCenter)
 	row.Add("", NewLabel("Playback Buffer Size:", nil, false, AlignCenter))
 	audioBufferBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, func(index int) {
-		globals.EventLog.Log("Audio playback buffer size set to %s; changes will take effect on program restart.", false, globals.Settings.Get(SettingsAudioBufferSize).AsString())
+		globals.EventLog.Log("Audio playback buffer size set to %s; changes will take effect on program restart.", true, globals.Settings.Get(SettingsAudioBufferSize).AsString())
 	}, globals.Settings.Get(SettingsAudioBufferSize),
 		AudioBufferSize32,
 		AudioBufferSize64,
@@ -1926,7 +1926,7 @@ func ConstructMenus() {
 	row.Add("", NewLabel("Playback Device Sample Rate:", nil, false, AlignCenter))
 
 	audioSampleRateBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, func(index int) {
-		globals.EventLog.Log("Audio playback sample rate set to %s; changes will take effect on program restart.", false, globals.Settings.Get(SettingsAudioSampleRate).AsString())
+		globals.EventLog.Log("Audio playback sample rate set to %s; changes will take effect on program restart.", true, globals.Settings.Get(SettingsAudioSampleRate).AsString())
 	}, globals.Settings.Get(SettingsAudioSampleRate),
 		AudioSampleRate11025,
 		AudioSampleRate22050,

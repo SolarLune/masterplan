@@ -1,5 +1,37 @@
 -------
 
+v0.8.0-alpha.7.3
+
+-------
+
+QoL: Adding ability to cache downloaded resources. Caching downloaded resources works by specifying the per-project cache folder in Settings > General Settings. Any downloaded images, sounds, etc. will be stored here, instead of being placed in the temporary directory. When loading a project, these same locations will be used to load the images, meaning that downloaded resources will only be downloaded once; after that, they'll be pulled from the cache directory. If the cache directory doesn't exist, then it will work as it normally does (downloading to the temporary directory).
+QoL: Pasting text into MasterPlan now creates a more logically sized card, rather than a super wide one.
+QoL: Double-clicking to edit labels no longer adjusts the caret position.
+QoL: Page Up and Page Down now advance 5 lines when editing text.
+QoL: Adding icons, accessible through a menu in the View menu. Icons are automatically packaged with MasterPlan and serve to allow you to easily add images that represent characters, locations, ideas, etc. to your project for visual representation. The packaged icon set will be improved and expanded upon as time passes, and it may even be possible to easily add user-created icons in the future.
+QoL: Make left/right arrow keys move the cursor to the start/end of a selection.
+QoL: Don't draw caret if a selection is open.
+QoL: Arrows are outlined now.
+QoL: Adding ability to delete the last word with Left Ctrl + Backspace.
+QoL: Adding ability to select all text before or after the caret with Left Shift + Home or End.
+QoL: Multi-line log messages now are indented on the following lines for better readability.
+QoL: Adding option to disable grid disappearing on zoom out.
+QoL: Adding ability to color card contents, just like card backgrounds can be colored.
+QoL: Adding settings to change audio playback buffer size and audio sample-rate. These settings can be useful if the default audio playback settings don't allow you to play audio back, or if sounds sound bad when played back. Note that changing these settings take effect only after restarting MasterPlan.
+QoL: Adding broken image icon for images that have invalid filepaths.
+OPTIMIZATION: Cards won't draw the card or shadow if they're not at least partially onscreen.
+FIX: Saving screenshots to a project now properly loads them back.
+FIX: When editing a map, holding the color pick key now will pick a color only if a tool is selected, making it easier to deselect cards if that is the same key (which it is by default - Left Alt).
+FIX: Lines / links now draw on top of other cards.
+FIX?: MasterPlan will no longer attempt to create a larger render texture than the graphics card can support (this might happen when updating text).
+FIX: Deadlines are now included in exports.
+FIX: You can now click buttons that are over a Map while editing.
+FIX: Being unable to create sounds due to sound files not being compatible with MasterPlan no longer crashes MasterPlan, but rather displays a warning log message.
+FIX: Toggling debug mode is disabled in non-development versions of MasterPlan.
+FIX: Starting MasterPlan no longer crashes if the audio system cannot be initialized.
+
+-------
+
 v0.8.0-alpha.7.2
 
 -------
