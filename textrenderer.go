@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"math"
 	"strings"
 
@@ -43,7 +44,7 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 
 			// This would be to get the color unmodified.
 			// return color.RGBA{pixels[i+3], pixels[i+2], pixels[i+1], pixels[i]}
-			newSurf.Set(x, y, sdl.RGBA8888{0xff, 0xff, 0xff, pixels[i+3]})
+			newSurf.Set(x, y, color.RGBA{0xff, 0xff, 0xff, pixels[i+3]})
 		}
 	}
 

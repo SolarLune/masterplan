@@ -35,7 +35,7 @@ require (
 	github.com/tidwall/gjson v1.13.0
 	github.com/tidwall/sjson v1.2.4
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/veandco/go-sdl2 v0.4.25
+	github.com/veandco/go-sdl2 v0.5.0-alpha.1
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	golang.design/x/clipboard v0.6.0
 	golang.org/x/exp v0.0.0-20220128181451-c853b6ddb95e // indirect
