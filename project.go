@@ -1604,12 +1604,12 @@ func (project *Project) PathToRelative(fp string, directory bool) string {
 	if !filepath.IsAbs(fp) || strings.TrimSpace(fp) == "" || !exists {
 		return fp
 	}
-	rel, _ := filepath.Rel(filepath.Dir(project.Filepath), string(fp))
+	rel, err := filepath.Rel(filepath.Dir(project.Filepath), string(fp))
 	// We don't do anything if the path could not be made relative; a possibility is that it's not possible (on Windows, for example, there is no way to get
 	// a relative path from C:\ to D:\. They're two different drives. There is no relative path that works here.)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	if err != nil {
+		return fp
+	}
 	return filepath.ToSlash(rel)
 }
 

@@ -4,6 +4,7 @@ v0.8.0-alpha.7.3
 
 -------
 
+QoL: Mouse wheel scrolling is now more sensitive and tied to the Mouse Wheel Sensitivity Input setting.
 QoL: Adding ability to cache downloaded resources. Caching downloaded resources works by specifying the per-project cache folder in Settings > General Settings. Any downloaded images, sounds, etc. will be stored here, instead of being placed in the temporary directory. When loading a project, these same locations will be used to load the images, meaning that downloaded resources will only be downloaded once; after that, they'll be pulled from the cache directory. If the cache directory doesn't exist, then it will work as it normally does (downloading to the temporary directory).
 QoL: Pasting text into MasterPlan now creates a more logically sized card, rather than a super wide one.
 QoL: Double-clicking to edit labels no longer adjusts the caret position.
