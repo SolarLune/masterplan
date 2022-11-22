@@ -726,14 +726,18 @@ func OpenProjectFrom(filename string) {
 				}
 
 				if card.Properties.Has("filepath") {
-					fp := []string{}
-					for _, element := range task.Get(`FilePath`).Array() {
-						fp = append(fp, element.String())
-					}
 
-					relativePath := filepath.Join(fp...)
-					relativePath = filepath.ToSlash(relativePath)
-					card.Properties.Get("filepath").Set(relativePath)
+					// If it's a saved image from the clipboard, then the path is of no consequence.
+					if !card.Properties.Has("saveimage") {
+						fp := []string{}
+						for _, element := range task.Get(`FilePath`).Array() {
+							fp = append(fp, element.String())
+						}
+
+						relativePath := filepath.Join(fp...)
+						relativePath = filepath.ToSlash(relativePath)
+						card.Properties.Get("filepath").Set(relativePath)
+					}
 
 					if sound, ok := card.Contents.(*SoundContents); ok {
 						sound.LoadFile()
@@ -952,6 +956,7 @@ func OpenProjectFrom(filename string) {
 						card.Contents.(*ImageContents).LoadFileFrom(imgPath) // Reload the file
 					} else {
 						card.Properties.Remove("saveimage")
+						globals.EventLog.Log("Saved screenshot: %s could not be loaded.\n", true, imgPath)
 					}
 				}
 
@@ -1477,61 +1482,7 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if kb.Pressed(KBSelectCardNext) || kb.Pressed(KBSelectCardPrev) {
-
-			cardList := append([]*Card{}, project.CurrentPage.Cards...)
-
-			if len(cardList) > 0 {
-
-				sort.SliceStable(cardList, func(i, j int) bool {
-					if cardList[i].Rect.Y == cardList[j].Rect.Y {
-						return cardList[i].Rect.X < cardList[j].Rect.X
-					}
-					return cardList[i].Rect.Y < cardList[j].Rect.Y
-				})
-
-				selectionIndex := 0
-
-				prev := false
-				if kb.Pressed(KBSelectCardPrev) {
-					prev = true
-				}
-
-				for i, c := range cardList {
-					if c.selected {
-						if prev {
-							selectionIndex = i - 1
-						} else {
-							selectionIndex = i + 1
-						}
-						break
-					}
-				}
-
-				if selectionIndex < 0 {
-					selectionIndex = 0
-				}
-
-				if selectionIndex >= len(cardList)-1 {
-					selectionIndex = len(cardList) - 1
-				}
-
-				if selectionIndex < len(cardList) {
-					nextCard := cardList[selectionIndex]
-
-					project.CurrentPage.Selection.Clear()
-
-					project.CurrentPage.Selection.Add(nextCard)
-
-					if globals.Settings.Get(SettingsFocusOnSelectingWithKeys).AsBool() {
-						project.Camera.FocusOn(false, project.CurrentPage.Selection.AsSlice()...)
-					}
-
-					kb.Shortcuts[KBSelectCardNext].ConsumeKeys()
-
-				}
-
-			}
-
+			project.CurrentPage.SelectNextCard()
 		}
 
 	} else if globals.State == StateCardLink {
@@ -1557,6 +1508,27 @@ func (project *Project) GlobalShortcuts() {
 			project.LinkingCard = nil
 			globals.Mouse.Button(sdl.BUTTON_RIGHT).Consume()
 			globals.Keyboard.Key(sdl.K_ESCAPE).Consume()
+		}
+
+	}
+
+	if globals.State == StateTextEditing && globals.editingCard != nil {
+
+		if globals.Keybindings.Pressed(KBSwitchWrapMode) {
+
+			globals.Keybindings.Shortcuts[KBSwitchWrapMode].ConsumeKeys()
+
+			wrapMode := "Wrap"
+
+			if globals.textEditingWrap.AsFloat() == TextWrappingModeExpand {
+				globals.textEditingWrap.Set(TextWrappingModeWrap)
+			} else {
+				globals.textEditingWrap.Set(TextWrappingModeExpand)
+				wrapMode = "Expand"
+			}
+
+			globals.EventLog.Log("Text editing wrap mode switched to %s.", false, wrapMode)
+
 		}
 
 	}

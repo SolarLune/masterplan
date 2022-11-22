@@ -60,7 +60,7 @@ const (
 	KBNewSubpageCard  = "New Sub-Page Card"
 	KBNewLinkCard     = "New Link Card"
 
-	KBAddToSelection      = "Add to Selection Modifier"
+	KBAddToSelection      = "Multi-Edit / Add to Selection Modifier"
 	KBRemoveFromSelection = "Remove From Selection Modifier"
 	KBDeleteCards         = "Delete Selected Cards"
 	KBSelectAllCards      = "Select All Cards"
@@ -76,7 +76,7 @@ const (
 	KBFocusOnCards        = "Focus On Selected Cards"
 	KBTakeScreenshot      = "Take Screenshot"
 	KBOpenContextMenu     = "Open Context Menu"
-	KBResizeMultiple      = "Resize Multiple (Hold)"
+	KBResizeMultiple      = "Resize Multiple Cards Modifier"
 
 	KBCollapseCard = "Card: Collapse"
 	KBLinkCard     = "Card: Connect Cards"
@@ -86,6 +86,8 @@ const (
 	KBCutText       = "Textbox: Cut Selected Text"
 	KBPasteText     = "Textbox: Paste Copied Text"
 	KBSelectAllText = "Textbox: Select All Text"
+
+	KBSwitchWrapMode = "Card Text Editing: Switch Wrap Mode"
 
 	KBUndo = "Undo"
 	KBRedo = "Redo"
@@ -494,6 +496,8 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBCutText, sdl.K_x, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBPasteText, sdl.K_v, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBSelectAllText, sdl.K_a, sdl.K_LCTRL)
+
+	kb.DefineKeyShortcut(KBSwitchWrapMode, sdl.K_w, sdl.K_LCTRL)
 
 	kb.DefineKeyShortcut(KBCollapseCard, sdl.K_c, sdl.K_LSHIFT)
 

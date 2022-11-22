@@ -1,10 +1,11 @@
 package main
 
 const (
-	MessageResizeCompleted               = "MessageResizeCompleted"
-	MessageResizeStart                   = "MessageResizeStart"
+	MessageCardResizeCompleted           = "MessageCardResizeCompleted"
+	MessageCardResizeStart               = "MessageCardResizeStart"
 	MessageCardDeleted                   = "MessageCardDeleted"
 	MessageCardRestored                  = "MessageCardRestored"
+	MessageCardMoveStack                 = "MessageCardMoveStack"
 	MessageContentSwitched               = "MessageContentSwitched"
 	MessageThemeChange                   = "MessageThemeChange"
 	MessageUndoRedo                      = "MessageUndoRedo"

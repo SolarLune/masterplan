@@ -88,6 +88,9 @@ func (dc *DefaultContents) Update() {
 	dc.container.SetRectangle(rect)
 	if dc.Card.Page.IsCurrent() {
 		dc.container.Update()
+		if globals.State == StateTextEditing && dc.container.HasElement(globals.editingLabel) {
+			globals.editingCard = dc.Card
+		}
 	}
 }
 
@@ -115,19 +118,29 @@ type CheckboxContents struct {
 
 func commonTextEditingResizing(label *Label, card *Card) {
 
-	if label.Editing {
+	if label.Editing && label.textChanged {
 
-		lineCount := float32(label.LineCount())
-		prevHeight := card.Rect.H
-		card.Recreate(card.Rect.W, lineCount*globals.GridSize)
-		if card.Rect.H != prevHeight {
-			for _, tail := range card.Stack.Tail() {
-				tail.Rect.Y += card.Rect.H - prevHeight
-				tail.LockPosition()
-				tail.CreateUndoState = true
+		if globals.textEditingWrap.AsFloat() == TextWrappingModeWrap {
+
+			lineCount := float32(label.LineCount())
+			prevHeight := card.Contents.DefaultSize().Y
+
+			target := lineCount*globals.GridSize + (prevHeight - globals.GridSize)
+			if card.Collapsed == CollapsedShade {
+				target = lineCount * globals.GridSize
 			}
+			card.Recreate(card.Rect.W, target)
+
+		} else {
+			// Expand
+			size := globals.TextRenderer.MeasureText(label.Text, 1)
+			card.Recreate(size.X+64, card.Rect.H)
 		}
+
 		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
+		if label.MultiEditing && label.Property != nil {
+			card.SyncProperty(label.Property, true)
+		}
 
 	}
 
@@ -191,9 +204,7 @@ func (cc *CheckboxContents) Update() {
 			prop.Set(!prop.AsBool())
 		} else if kb.Pressed(KBCheckboxEditText) {
 			kb.Shortcuts[KBCheckboxEditText].ConsumeKeys()
-			cc.Label.Editing = true
-			globals.State = StateTextEditing
-			cc.Label.Selection.SelectAll()
+			cc.Label.BeginEditing()
 		}
 	}
 
@@ -430,7 +441,9 @@ type NumberedContents struct {
 	Label              *Label
 	Current            *NumberSpinner
 	Max                *NumberSpinner
+	DraggableSpace     *DraggableSpace
 	PercentageComplete float32
+	postDrawable       *Drawable
 }
 
 func NewNumberedContents(card *Card) *NumberedContents {
@@ -438,28 +451,37 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	numbered := &NumberedContents{
 		DefaultContents: newDefaultContents(card),
 		Label:           NewLabel("New Numbered", nil, true, AlignLeft),
+		DraggableSpace:  NewDraggableSpace(nil),
 	}
 	numbered.Label.Property = card.Properties.Get("description")
 	numbered.Label.Editable = true
 	numbered.Label.OnChange = func() {
-
-		if numbered.Label.Editing {
-
-			lineCount := float32(numbered.Label.LineCount())
-			prevHeight := card.Rect.H
-			numbered.Card.Recreate(numbered.Card.Rect.W, lineCount*globals.GridSize+globals.GridSize)
-			if card.Rect.H != prevHeight {
-				for _, tail := range card.Stack.Tail() {
-					tail.Rect.Y += card.Rect.H - prevHeight
-					tail.LockPosition()
-					tail.CreateUndoState = true
-				}
-			}
-			card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
-
-		}
-
+		commonTextEditingResizing(numbered.Label, card)
 	}
+
+	numbered.postDrawable = NewDrawable(
+
+		func() {
+
+			if numbered.Card.selected {
+
+				numbered.DraggableSpace.Rect = &sdl.FRect{numbered.Card.DisplayRect.X, numbered.Card.DisplayRect.Y, numbered.Card.DisplayRect.W, numbered.Card.DisplayRect.H + 24}
+				numbered.DraggableSpace.Current = int(numbered.Current.Property.AsFloat())
+				numbered.DraggableSpace.Max = int(numbered.Max.Property.AsFloat())
+
+				numbered.DraggableSpace.Draw()
+
+				if numbered.DraggableSpace.Dragging {
+					numbered.Current.Property.Set(float64(numbered.DraggableSpace.NewCurrent))
+					numbered.Card.CreateUndoState = true
+				}
+
+			}
+
+		},
+	)
+
+	card.Page.AddDrawable(numbered.postDrawable)
 
 	current := card.Properties.Get("current")
 	numbered.Current = NewNumberSpinner(nil, true, current)
@@ -498,9 +520,7 @@ func (nc *NumberedContents) Update() {
 
 		if kb.Pressed(KBNumberedEditText) {
 			kb.Shortcuts[KBNumberedEditText].ConsumeKeys()
-			nc.Label.Editing = true
-			nc.Label.Selection.SelectAll()
-			globals.State = StateTextEditing
+			nc.Label.BeginEditing()
 		}
 
 	}
@@ -554,8 +574,14 @@ func (nc *NumberedContents) Draw() {
 	if nc.Max.Property.AsFloat() > 0 {
 
 		dstPoint := Point{nc.Card.DisplayRect.X + nc.Card.DisplayRect.W - 32, nc.Card.DisplayRect.Y}
-		perc := strconv.FormatFloat(float64(p*100), 'f', 0, 32) + "%"
-		DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+		np := globals.Settings.Get(SettingsDisplayNumberedPercentagesAs).AsString()
+		if np == NumberedPercentagePercent {
+			perc := strconv.FormatFloat(float64(p*100), 'f', 0, 32) + "%"
+			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+		} else if np == NumberedPercentageCurrentMax {
+			perc := fmt.Sprintf("%.0f / %.0f", nc.Current.Property.AsFloat(), nc.Max.Property.AsFloat())
+			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+		}
 
 	}
 
@@ -658,9 +684,7 @@ func (nc *NoteContents) Update() {
 
 	if nc.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBNoteEditText) {
 		kb.Shortcuts[KBNoteEditText].ConsumeKeys()
-		nc.Label.Editing = true
-		nc.Label.Selection.SelectAll()
-		globals.State = StateTextEditing
+		nc.Label.BeginEditing()
 	}
 
 }
@@ -767,8 +791,7 @@ func NewSoundContents(card *Card) *SoundContents {
 
 		commonMenu.Open()
 		soundContents.FilepathLabel.Selection.SelectAll()
-		soundContents.FilepathLabel.Editing = true
-		globals.State = StateTextEditing
+		soundContents.FilepathLabel.BeginEditing()
 	}))
 
 	row = soundContents.container.AddRow(AlignCenter)
@@ -1140,8 +1163,7 @@ func NewImageContents(card *Card) *ImageContents {
 			} else {
 				row.Add("filepath", imageContents.FilepathLabel)
 				imageContents.FilepathLabel.Selection.SelectAll()
-				imageContents.FilepathLabel.Editing = true
-				globals.State = StateTextEditing
+				imageContents.FilepathLabel.BeginEditing()
 			}
 		}),
 
@@ -1554,9 +1576,7 @@ func (tc *TimerContents) Update() {
 	kb := globals.Keybindings
 	if tc.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBTimerEditText) {
 		kb.Shortcuts[KBTimerEditText].ConsumeKeys()
-		tc.Name.Editing = true
-		tc.Name.Selection.SelectAll()
-		globals.State = StateTextEditing
+		tc.Name.BeginEditing()
 	}
 
 	if tc.Running {
@@ -1832,7 +1852,7 @@ func (mapData *MapData) Rotate(direction int) {
 	newHeight := float32(mapData.Width) * globals.GridSize
 
 	mapData.Contents.Card.Recreate(newWidth, newHeight)
-	mapData.Contents.ReceiveMessage(NewMessage(MessageResizeCompleted, nil, nil))
+	mapData.Contents.ReceiveMessage(NewMessage(MessageCardResizeCompleted, nil, nil))
 
 	mapData.Data = [][]int{}
 	mapData.Resize(int(newWidth/globals.GridSize), int(newHeight/globals.GridSize))
@@ -2282,6 +2302,7 @@ func (mc *MapContents) Update() {
 			mc.UpdateTexture()
 			contents := mc.Card.Properties.Get("contents")
 			contents.SetRaw(mc.MapData.Serialize())
+			mc.Card.SyncProperty(contents, false)
 			mc.Card.CreateUndoState = true // Since we're setting the property raw, we have to manually create an undo state, though
 		}
 
@@ -2579,7 +2600,7 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 
 	if msg.Type == MessageThemeChange || msg.Type == MessageRenderTextureRefresh {
 		mc.UpdateTexture()
-	} else if msg.Type == MessageUndoRedo || msg.Type == MessageResizeCompleted {
+	} else if msg.Type == MessageUndoRedo || msg.Type == MessageCardResizeCompleted {
 		// Recreate texture first so the MapData has the correct size before deserialization
 		mc.RecreateTexture()
 		if msg.Type == MessageUndoRedo {
@@ -2642,23 +2663,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	row.Add("icon", NewGUIImage(nil, &sdl.Rect{48, 256, 32, 32}, globals.GUITexture.Texture, true))
 	sb.NameLabel = NewLabel("New Sub-Page", nil, true, AlignLeft)
 	sb.NameLabel.OnChange = func() {
-
-		if sb.NameLabel.Editing {
-
-			prevHeight := card.Rect.H
-			sb.Card.Recreate(sb.Card.Rect.W, sb.container.IdealSize().Y)
-			if card.Rect.H != prevHeight {
-				for _, tail := range card.Stack.Tail() {
-					tail.Rect.Y += card.Rect.H - prevHeight
-					tail.LockPosition()
-					tail.CreateUndoState = true
-				}
-			}
-
-			sb.Card.UncollapsedSize = Point{sb.Card.Rect.W, sb.Card.Rect.H}
-
-		}
-
+		commonTextEditingResizing(sb.NameLabel, card)
 	}
 	sb.NameLabel.DrawLineUnderTitle = false
 
@@ -2716,9 +2721,7 @@ func (sb *SubPageContents) Update() {
 	kb := globals.Keybindings
 	if sb.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBSubpageEditText) {
 		kb.Shortcuts[KBSubpageEditText].ConsumeKeys()
-		sb.NameLabel.Editing = true
-		sb.NameLabel.Selection.SelectAll()
-		globals.State = StateTextEditing
+		sb.NameLabel.BeginEditing()
 	}
 
 	rect := sb.NameLabel.Rectangle()
@@ -2962,9 +2965,7 @@ func (lc *LinkContents) Update() {
 	kb := globals.Keybindings
 	if lc.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBLinkEditText) {
 		kb.Shortcuts[KBLinkEditText].ConsumeKeys()
-		lc.Label.Editing = true
-		lc.Label.Selection.SelectAll()
-		globals.State = StateTextEditing
+		lc.Label.BeginEditing()
 	}
 
 	h := lc.container.Rect.H - lc.container.MinimumHeight() + globals.GridSize

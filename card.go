@@ -327,6 +327,8 @@ type Card struct {
 
 	Links              []*LinkEnding
 	LinkRectPercentage float32
+
+	changedProperty *Property
 }
 
 var globalCardID = int64(0)
@@ -354,7 +356,10 @@ func NewCard(page *Page, contentType string) *Card {
 	card.Page.AddDrawable(card.Drawable)
 
 	card.Properties = NewProperties()
-	card.Properties.OnChange = func(property *Property) { card.CreateUndoState = true }
+	card.Properties.OnChange = func(property *Property) {
+		card.changedProperty = property
+		card.CreateUndoState = true
+	}
 
 	globalCardID++
 
@@ -834,6 +839,48 @@ func (card *Card) Update() {
 					globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
 				}
+
+			}
+
+		}
+
+	}
+
+	if card.selected && globals.State == StateTextEditing && card.Contents.Container().HasElement(globals.editingLabel) {
+
+		if card.Stack != nil {
+
+			var nextCard *Card
+
+			if globals.Keybindings.Pressed(KBSelectCardNext) && card.Stack.Below != nil {
+				nextCard = card.Stack.Below
+			} else if globals.Keybindings.Pressed(KBSelectCardPrev) && card.Stack.Above != nil {
+				nextCard = card.Stack.Above
+			}
+
+			if nextCard != nil {
+				globals.editingLabel.EndEditing()
+				card.Page.Selection.Clear()
+				card.Page.Selection.Add(nextCard)
+
+				done := false
+
+				for _, row := range nextCard.Contents.Container().Rows {
+					for _, e := range row.Elements {
+						if label, ok := e.(*Label); ok {
+							label.BeginEditing()
+							label.Selection.SelectEnd()
+							done = true
+							break
+						}
+					}
+					if done {
+						break
+					}
+				}
+
+				globals.Keybindings.Shortcuts[KBSelectCardNext].ConsumeKeys()
+				globals.Keybindings.Shortcuts[KBSelectCardPrev].ConsumeKeys()
 
 			}
 
@@ -1325,9 +1372,48 @@ func (card *Card) DrawContents() {
 
 }
 
+func (card *Card) SyncProperty(property *Property, syncSize bool) {
+
+	for other := range card.Page.Selection.Cards {
+
+		if card == other {
+			continue
+		}
+
+		if other.Properties.Has(property.Name) {
+			other.Properties.Get(property.Name).Set(property.data)
+		}
+
+		if syncSize {
+			other.Recreate(card.Rect.W, card.Rect.H)
+			prevHeight := other.Rect.H
+			if other.Rect.H != prevHeight {
+				for _, tail := range card.Stack.Tail() {
+					tail.Rect.Y += card.Rect.H - prevHeight
+					tail.LockPosition()
+					tail.CreateUndoState = true
+				}
+			}
+		}
+
+		other.CreateUndoState = true
+
+	}
+
+}
+
 func (card *Card) HandleUndos() {
 
 	if card.CreateUndoState {
+
+		// This is here because otherwise the property is synced when
+		// pressing Shift + a key to create another card
+		if globals.Keybindings.Pressed(KBAddToSelection) && card.changedProperty != nil && globals.State == StateNeutral {
+			card.SyncProperty(card.changedProperty, false)
+		}
+		card.changedProperty = nil
+
+		card.LockPosition()
 
 		card.Page.Project.UndoHistory.Capture(NewUndoState(card))
 
@@ -1458,6 +1544,9 @@ func (card *Card) Serialize() string {
 	data, _ = sjson.Set(data, "id", card.ID)
 
 	data, _ = sjson.Set(data, "rect", card.Rect)
+	data, _ = sjson.Set(data, "collapsed", card.Collapsed)
+	data, _ = sjson.Set(data, "uncollapsedSizeX", card.UncollapsedSize.X)
+	data, _ = sjson.Set(data, "uncollapsedSizeY", card.UncollapsedSize.Y)
 	data, _ = sjson.Set(data, "contents", card.ContentType)
 	if card.CustomColor != nil {
 		data, _ = sjson.Set(data, "custom color", card.CustomColor.ToHexString())
@@ -1514,6 +1603,12 @@ func (card *Card) Deserialize(data string) {
 	rect := gjson.Get(data, "rect")
 	card.Rect.X = float32(rect.Get("X").Float())
 	card.Rect.Y = float32(rect.Get("Y").Float())
+
+	if gjson.Get(data, "collapsed").Exists() {
+		card.Collapsed = gjson.Get(data, "collapsed").String()
+		card.UncollapsedSize.X = float32(gjson.Get(data, "uncollapsedSizeX").Float())
+		card.UncollapsedSize.Y = float32(gjson.Get(data, "uncollapsedSizeY").Float())
+	}
 
 	if card.Page.Project.Loading && gjson.Get(data, "id").Exists() {
 		card.LoadedID = gjson.Get(data, "id").Int()
@@ -1613,14 +1708,14 @@ func (card *Card) StartResizing(rect *sdl.FRect, side string) {
 	card.ResizingRect.X2 = card.Rect.X + card.Rect.W
 	card.ResizingRect.Y2 = card.Rect.Y + card.Rect.H
 	card.ResizeClickOffset = globals.Mouse.WorldPosition().Sub(Point{rect.X, rect.Y})
-	card.ReceiveMessage(NewMessage(MessageResizeStart, card, nil))
+	card.ReceiveMessage(NewMessage(MessageCardResizeStart, card, nil))
 
 }
 
 func (card *Card) StopResizing() {
 	card.Resizing = ""
 	card.LockPosition()
-	card.ReceiveMessage(NewMessage(MessageResizeCompleted, card, nil))
+	card.ReceiveMessage(NewMessage(MessageCardResizeCompleted, card, nil))
 
 	if card.Rect.H > globals.GridSize {
 		card.Collapsed = CollapsedNone
@@ -1841,6 +1936,10 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 			card.Result.RenderFunc()
 		}
 
+		if card.Resizing == "" {
+			card.ReceiveMessage(NewMessage(MessageCardMoveStack, card, nil))
+		}
+
 		card.LockPosition() // Update Page's Grid.
 
 	}
@@ -1882,6 +1981,25 @@ func (card *Card) ReceiveMessage(message *Message) {
 		card.Page.UpdateStacks = true
 	} else if message.Type == MessageUndoRedo {
 		globals.Hierarchy.AddCard(card)
+	} else if message.Type == MessageCardMoveStack {
+		// Card resized, let's update the stack
+
+		if card.Page.Project.UndoHistory.On {
+
+			top := card.Rect.Y + card.Rect.H
+
+			for _, t := range card.Stack.Tail() {
+
+				if t.Rect.Y != top {
+					t.Rect.Y = top
+					t.LockPosition()
+					t.CreateUndoState = true
+					top += t.Rect.H
+				}
+			}
+
+		}
+
 	}
 
 }

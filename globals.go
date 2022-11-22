@@ -81,6 +81,10 @@ type Globals struct {
 	LoadingSubpagesBroken bool
 
 	Hierarchy *Hierarchy
+
+	editingLabel    *Label
+	editingCard     *Card
+	textEditingWrap *Property
 }
 
 var globals = &Globals{

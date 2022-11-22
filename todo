@@ -1,4 +1,10 @@
 [ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
+[ ] Add the ability for clipboard images to be saved in the MasterPlan download cache directory.
+[ ] Collapsing cards should probably just make the card smaller or bigger as necessary, but only to the ideal height of the card (so collapsing a Numbered Card just goes from 1 to 2 rows, for example).
+[x] Resizing cards makes them freak out.
+[x] Resizing cards makes new neighbors, even before finishing the resize process.
+[ ] Simplify clipboard image loading / saving; it might not be necessary to write them to temporary files, as this could be loaded from memory.
+[ ] Add tags or icon functionality to prioritize Cards; they can also be searchable in the Find / Hierarchy dialogs.
     That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
     See: https://discord.com/channels/339550825154347008/758009278756946040/906326736965357628
 [x] You can't click on menus if you're editing maps and the menu covers the map
@@ -7,6 +13,17 @@
 [x] Disable debug options in release build
 [ ] Timeline card? Some kind of grid where you can place cards and they will be sorted in chronological order?
     - Maybe this should be a "view"? So various cards can be 
+[ ] Add shadows for Maps and Images
+[ ] Add ability to join Cards together to move them together
+[ ] Timers trigger Numbered Cards and increment / decrement instead of filling entirely
+[x] Add draggable sliders to change Numbered Card values
+  [x] The sliders must always be visible
+  [x] Add ability to display current amount or current out of maximum for Numbered cards
+  [ ] Changing text in a collapsed Card shouldn't uncollapse it
+[ ] Add ability to change fill skin for Numbered cards
+[ ] Add templating system for frequently-altered collections of Cards
+[ ] Add ability to enter < 0 minimum values
+[x] Add ability to edit multiple Cards at the same time
 
 [ ] Figure out what to do if pasted text, for example, is super large and the GPU can't generate a texture for it - capping the cards to some logical number and using scroll bars seems like it might be the solution...?
 [ ] Add palette for card / text colors
@@ -67,7 +84,6 @@
 [x] Fix bug where downloaded images don't display on reloading project - maybe fixed?
 [x] Auto-backups
 [x] Keybindings for opening the different panels (find, create, edit, etc).
-[ ] Add tags or icon functionality to prioritize Cards; they can also be searchable in the Find dialog.
 [x] Dialog to list and filter all cards in project
 [ ] Add Text filter / search to Hierarchy menu
 [ ] Speed up saving screenshots in the project file - it's EXTREMELY slow

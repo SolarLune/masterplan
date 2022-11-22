@@ -198,6 +198,13 @@ func ClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
 	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.Position().Inside(rect)
 }
 
+func RawClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
+	if worldSpace {
+		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.RawWorldPosition().Inside(rect)
+	}
+	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.RawPosition().Inside(rect)
+}
+
 func ClickedOutRect(rect *sdl.FRect, worldSpace bool) bool {
 	if worldSpace {
 		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.WorldPosition().Inside(rect)
@@ -803,6 +810,22 @@ func FilesInDirectory(dir string, prefix string) []string {
 
 	return existingFiles
 
+}
+
+func SimplifyPathString(pathString string, maxLength int) string {
+	if len([]rune(pathString)) <= maxLength {
+		return pathString
+	}
+	split := strings.Split(pathString, string(os.PathSeparator))
+	out := ""
+	for i := len(split) - 1; i > 0; i-- {
+		out = split[i] + out
+		if len(out)+len([]rune(split[i-1])) > maxLength {
+			return "..." + out
+		}
+		out = string(os.PathSeparator) + out
+	}
+	return out
 }
 
 func DatesAreEqual(d1, d2 time.Time) bool {

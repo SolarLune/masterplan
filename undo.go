@@ -213,6 +213,8 @@ func (history *UndoHistory) Update() {
 
 		history.Changed = false
 
+		// history.Print()
+
 	}
 
 }

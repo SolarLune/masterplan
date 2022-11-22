@@ -69,6 +69,8 @@ func init() {
 	globals.HTTPClient = &http.Client{
 		Timeout: time.Second * 10,
 	}
+	globals.textEditingWrap = NewProperty("text editing wrap mode", nil)
+	globals.textEditingWrap.Set(TextWrappingModeWrap)
 
 }
 
@@ -501,6 +503,11 @@ func main() {
 			globals.Renderer.SetScale(1, 1)
 
 			globals.MenuSystem.Draw()
+
+			if globals.State == StateNeutral && !globals.MenuSystem.ExclusiveMenuOpen() && globals.Keybindings.Pressed(KBAddToSelection) {
+				pos := globals.Mouse.Position()
+				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{480, 80, 8, 8}, &sdl.FRect{pos.X + 20, pos.Y - 8, 8, 8})
+			}
 
 			if globals.DebugMode {
 				fps, _ := gfx.GetFramerate(fpsManager)
@@ -1342,28 +1349,35 @@ func ConstructMenus() {
 
 	row = setColor.AddRow(AlignCenter)
 
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{208, 256, 32, 32}, globals.GUITexture.Texture, false))
+	img := NewGUIImage(nil, &sdl.Rect{208, 256, 32, 32}, globals.GUITexture.Texture, false)
+	img.TintByFontColor = false
+	row.Add("icon", img)
+
 	row.Add("applyLabel", NewLabel("Apply to :    ", nil, false, AlignCenter))
 
 	row = setColor.AddRow(AlignCenter)
 	row.ExpandAllElements = true
-	row.Add("applyBG", NewButton("BG", nil, &sdl.Rect{208, 288, 32, 32}, false, func() {
+	button := NewButton("BG", nil, &sdl.Rect{208, 288, 32, 32}, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards
 		for card := range selectedCards {
 			card.CustomColor = colorWheel.SampledColor.Clone()
 			card.CreateUndoState = true
 		}
 		globals.EventLog.Log("Color applied for the background of %d card(s).", false, len(selectedCards))
-	}))
+	})
+	button.TintByFontColor = false
+	row.Add("applyBG", button)
 
-	row.Add("applyFont", NewButton("Text", nil, &sdl.Rect{240, 288, 32, 32}, false, func() {
+	button = NewButton("Text", nil, &sdl.Rect{240, 288, 32, 32}, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards
 		for card := range selectedCards {
 			card.FontColor = colorWheel.SampledColor.Clone()
 			card.CreateUndoState = true
 		}
 		globals.EventLog.Log("Color applied for the contents of %d card(s).", false, len(selectedCards))
-	}))
+	})
+	button.TintByFontColor = false
+	row.Add("applyFont", button)
 
 	// Spacer
 
@@ -1373,7 +1387,9 @@ func ConstructMenus() {
 
 	row = setColor.AddRow(AlignCenter)
 
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{240, 256, 32, 32}, globals.GUITexture.Texture, false))
+	img = NewGUIImage(nil, &sdl.Rect{240, 256, 32, 32}, globals.GUITexture.Texture, false)
+	img.TintByFontColor = false
+	row.Add("icon", img)
 
 	row.Add("grabLabel", NewLabel("Sample from :    ", nil, false, AlignCenter))
 
@@ -1381,7 +1397,7 @@ func ConstructMenus() {
 
 	row.ExpandAllElements = true
 
-	row.Add("grabBG", NewButton("BG", nil, &sdl.Rect{208, 320, 32, 32}, false, func() {
+	button = NewButton("BG", nil, &sdl.Rect{208, 320, 32, 32}, false, func() {
 
 		selectedCards := globals.Project.CurrentPage.Selection.AsSlice()
 		if len(selectedCards) > 0 {
@@ -1390,9 +1406,11 @@ func ConstructMenus() {
 			hexText.OnClickOut()
 			globals.EventLog.Log("Grabbed background color from first selected Card.", false)
 		}
-	}))
+	})
+	button.TintByFontColor = false
+	row.Add("grabBG", button)
 
-	row.Add("grabFont", NewButton("Text", nil, &sdl.Rect{240, 320, 32, 32}, false, func() {
+	button = NewButton("Text", nil, &sdl.Rect{240, 320, 32, 32}, false, func() {
 
 		selectedCards := globals.Project.CurrentPage.Selection.AsSlice()
 		if len(selectedCards) > 0 {
@@ -1411,7 +1429,10 @@ func ConstructMenus() {
 
 		}
 
-	}))
+	})
+	button.TintByFontColor = false
+
+	row.Add("grabFont", button)
 
 	setColor.AddRow(AlignCenter).Add("", NewSpacer(&sdl.FRect{0, 0, 4, 8}))
 
@@ -1825,8 +1846,13 @@ func ConstructMenus() {
 	confirmLoad := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm load", true)
 	confirmLoad.Draggable = true
 	root = confirmLoad.Pages["root"]
-	root.AddRow(AlignCenter).Add("label", NewLabel("Load this project?", nil, false, AlignCenter))
-	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
+	root.AddRow(AlignCenter).Add("label", NewLabel("Load the following project?", nil, false, AlignCenter))
+	confirmLoadFilepath := NewLabel("Project Filepath: ", &sdl.FRect{0, 0, 800, 32}, false, AlignCenter)
+	root.AddRow(AlignCenter).Add("label2", confirmLoadFilepath)
+	root.OnOpen = func() {
+		confirmLoadFilepath.SetText([]rune(SimplifyPathString(globals.Project.LoadConfirmationTo, 50)))
+	}
+	root.AddRow(AlignCenter).Add("label3", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
 	row = root.AddRow(AlignCenter)
 	row.Add("yes", NewButton("Yes", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
 		OpenProjectFrom(globals.Project.LoadConfirmationTo)
@@ -2130,6 +2156,10 @@ func ConstructMenus() {
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Number top-level cards:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNumberTopLevelCards)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Display Numbered Card Percentages as:", nil, false, AlignLeft))
+	row.Add("", NewButtonGroup(nil, false, nil, globals.Settings.Get(SettingsDisplayNumberedPercentagesAs), NumberedPercentagePercent, NumberedPercentageCurrentMax, NumberedPercentageOff))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Card Shadows:", nil, false, AlignLeft))
@@ -2809,6 +2839,27 @@ func ConstructMenus() {
 		globals.Project.GoUpFromSubpage()
 	}))
 
+	// Text editing menu
+
+	textEditing := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 9999, 256, 48}, MenuCloseNone), "text editing", false)
+	textEditing.AutoOpen = func() bool {
+		return globals.State == StateTextEditing && globals.editingCard != nil
+	}
+	textEditing.Draggable = true
+	textEditing.Resizeable = false
+	textEditing.AnchorMode = MenuAnchorTopRight
+
+	teRoot := textEditing.Pages["root"]
+	row = teRoot.AddRow(AlignLeft)
+	row.Add("label", NewLabel("Wrap Mode : ", nil, false, AlignCenter))
+	iconButtonGroup := NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, false, func(index int) {}, globals.textEditingWrap, &sdl.Rect{208, 352, 32, 32}, &sdl.Rect{208, 384, 32, 32})
+	for _, b := range iconButtonGroup.Buttons {
+		b.Tint = ColorWhite
+	}
+	row.Add("wrapMode", iconButtonGroup)
+
+	// Deadlines menu
+
 	deadlines := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), "deadlines", false)
 
 	deadlines.Draggable = true
@@ -3113,7 +3164,7 @@ func ConstructMenus() {
 
 	root.AddRow(AlignCenter).Add("pattern label", NewLabel("Patterns", nil, false, AlignCenter))
 
-	button := NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { MapPattern = MapPatternSolid })
+	button = NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { MapPattern = MapPatternSolid })
 	row = root.AddRow(AlignCenter)
 	row.Add("pattern solid", button)
 

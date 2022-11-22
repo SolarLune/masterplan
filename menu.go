@@ -164,6 +164,7 @@ type Menu struct {
 
 	OnOpen     func()
 	OnClose    func()
+	AutoOpen   func() bool
 	AnchorMode int
 }
 
@@ -192,6 +193,15 @@ func NewMenu(rect *sdl.FRect, closeMethod int) *Menu {
 }
 
 func (menu *Menu) Update() {
+
+	if menu.AutoOpen != nil {
+
+		if menu.AutoOpen() && !menu.Opened {
+			menu.Open()
+		} else if !menu.AutoOpen() && menu.Opened {
+			menu.Close()
+		}
+	}
 
 	if menu.CurrentPage == "" {
 		return
@@ -451,7 +461,7 @@ func (menu *Menu) Update() {
 
 		}
 
-		if menu.Draggable && globals.State != StateTextEditing {
+		if menu.Draggable {
 
 			if button.Pressed() && globals.Mouse.Position().Inside(menu.Rect) {
 				button.Consume()
@@ -579,6 +589,14 @@ func (menu *Menu) Recreate(newW, newH float32) {
 
 	if menu.Rect.W == newW && menu.Rect.H == newH {
 		return
+	}
+
+	if newW < 16 {
+		newW = 16
+	}
+
+	if newH < 16 {
+		newH = 16
 	}
 
 	menu.Rect.W = newW

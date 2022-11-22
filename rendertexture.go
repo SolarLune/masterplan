@@ -55,6 +55,14 @@ func (rt *RenderTexture) Recreate(newW, newH int32) {
 		newH = globals.RendererInfo.MaxTextureHeight
 	}
 
+	// SDL Texture size can't be 0x0 (this should never happen, but it seems to be happening on Windows periodically for certain users?)
+	if newW < 2 {
+		newW = 2
+	}
+	if newH < 2 {
+		newH = 2
+	}
+
 	rt.Size.X = float32(newW)
 	rt.Size.Y = float32(newH)
 
