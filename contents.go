@@ -497,7 +497,7 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	row.Add("current", numbered.Current)
 	// row.Add("out of", NewLabel("out of", nil, true, AlignCenter))
 	row.Add("max", numbered.Max)
-	row.ExpandAllElements = true
+	row.ExpandElementSet.SelectAll()
 
 	return numbered
 }
@@ -786,8 +786,8 @@ func NewSoundContents(card *Card) *SoundContents {
 
 		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 		row := commonMenu.Pages["root"].AddRow(AlignLeft)
-		row.ExpandAllElements = true
 		row.Add("filepath", soundContents.FilepathLabel)
+		row.ExpandElementSet.SelectAll()
 
 		commonMenu.Open()
 		soundContents.FilepathLabel.Selection.SelectAll()
@@ -1156,7 +1156,7 @@ func NewImageContents(card *Card) *ImageContents {
 
 			// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 			row := commonMenu.Pages["root"].AddRow(AlignLeft)
-			row.ExpandAllElements = true
+			row.ExpandElementSet.SelectAll()
 			commonMenu.Open()
 			if imageContents.Resource != nil && imageContents.Resource.SaveFile {
 				row.Add("filepath", NewLabel("This is an image that has been directly pasted into the project; its filepath cannot be edited.", nil, false, AlignLeft))
@@ -2912,7 +2912,6 @@ func NewLinkContents(card *Card) *LinkContents {
 
 		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 		row := commonMenu.Pages["root"].AddRow(AlignLeft)
-		row.ExpandAllElements = true
 
 		run := lc.Card.Properties.Get("run")
 		l := NewLabel(" ", nil, false, AlignLeft)
@@ -2922,13 +2921,12 @@ func NewLinkContents(card *Card) *LinkContents {
 		l.Property = run
 		l.Selection.SelectAll()
 		row.Add("filepath", l)
+		row.ExpandElementSet.SelectAll()
 
 		commonMenu.Pages["root"].AddRow(AlignLeft).Add("args label", NewLabel("Arguments:", nil, false, AlignLeft))
 
 		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 		row = commonMenu.Pages["root"].AddRow(AlignLeft)
-		row.ExpandAllElements = true
-
 		args := lc.Card.Properties.Get("args")
 		l = NewLabel(" ", nil, false, AlignLeft)
 		l.Editable = true
@@ -2936,6 +2934,7 @@ func NewLinkContents(card *Card) *LinkContents {
 		l.Property = args
 
 		row.Add("args", l)
+		row.ExpandElementSet.SelectAll()
 		l.Selection.SelectAll()
 		commonMenu.Open()
 	}))

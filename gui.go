@@ -163,6 +163,10 @@ type FocusableMenuElement interface {
 	SetFocused(bool)
 }
 
+type HighPriorityDrawMenuElement interface {
+	DrawOnTop()
+}
+
 type IconButton struct {
 	Scale                   Point
 	originalSize            Point
@@ -2339,21 +2343,65 @@ func (label *Label) Destroy() {
 	}
 }
 
+type ExpandElementSet struct {
+	Elements []MenuElement
+	On       bool
+	Row      *ContainerRow
+}
+
+func (set *ExpandElementSet) Select(elements ...MenuElement) {
+	set.Elements = append(set.Elements, elements...)
+	set.On = true
+}
+
+func (set *ExpandElementSet) SelectNone() {
+	set.Elements = []MenuElement{}
+	set.On = false
+}
+
+func (set *ExpandElementSet) SelectAll() {
+	set.On = true
+	for _, element := range set.Row.Elements {
+		set.Elements = append(set.Elements, element)
+	}
+}
+
+func (set *ExpandElementSet) SelectIf(testFunc func(MenuElement) bool) {
+	for _, element := range set.Row.Elements {
+		if testFunc(element) {
+			set.Elements = append(set.Elements, element)
+		}
+	}
+	if len(set.Elements) > 0 {
+		set.On = true
+	} else {
+		set.On = false
+	}
+}
+
+func (set ExpandElementSet) Contains(element MenuElement) bool {
+	for _, e := range set.Elements {
+		if e == element {
+			return true
+		}
+	}
+	return false
+}
+
 type ContainerRow struct {
-	Container              *Container
-	ElementOrder           []MenuElement
-	Elements               map[string]MenuElement
-	Alignment              string
-	HorizontalSpacing      float32
-	VerticalSpacing        float32
-	ExpandAllElements      bool
-	ExpandSelectedElements []MenuElement
-	HorizontalMargin       float32
-	Visible                bool
-	ForcedSize             Point
-	AlternateBGColor       bool
-	alternateBGColorFlag   bool
-	rect                   *sdl.FRect
+	Container            *Container
+	ElementOrder         []MenuElement
+	Elements             map[string]MenuElement
+	Alignment            string
+	HorizontalSpacing    float32
+	VerticalSpacing      float32
+	ExpandElementSet     ExpandElementSet
+	HorizontalMargin     float32
+	Visible              bool
+	ForcedSize           Point
+	AlternateBGColor     bool
+	alternateBGColorFlag bool
+	rect                 *sdl.FRect
 }
 
 func NewContainerRow(container *Container, horizontalAlignment string) *ContainerRow {
@@ -2367,6 +2415,8 @@ func NewContainerRow(container *Container, horizontalAlignment string) *Containe
 		rect:            &sdl.FRect{},
 		// InterElementSpacing: -1,
 	}
+
+	row.ExpandElementSet = ExpandElementSet{Row: row}
 
 	// By default, the vertical spacing is not there for worldspace rows (i.e.
 	// rows updated and drawn on Cards, where they have to be tight on space).
@@ -2416,31 +2466,16 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		x += diff
 	}
 
-	if row.ExpandSelectedElements != nil {
-
-		if row.ExpandAllElements {
-			panic("ERROR: expand all elements and expand selected elements are both set, this shouldn't be the case. Panicking:")
+	for _, element := range row.ElementOrder {
+		if !row.ExpandElementSet.Contains(element) {
+			maxWidth -= element.Rectangle().W
 		}
-
-		for _, element := range row.Elements {
-			rect := element.Rectangle()
-			expand := false
-			for _, r := range row.ExpandSelectedElements {
-				if r == element {
-					expand = true
-					break
-				}
-			}
-			if !expand {
-				maxWidth -= rect.W
-			}
-		}
-
 	}
 
-	totalElementSize := float32(len(row.Elements))
-	if row.ExpandSelectedElements != nil {
-		totalElementSize = float32(len(row.ExpandSelectedElements))
+	totalElementSize := float32(len(row.ElementOrder))
+
+	if row.ExpandElementSet.On {
+		totalElementSize = float32(len(row.ExpandElementSet.Elements))
 	}
 
 	for _, element := range row.ElementOrder {
@@ -2449,17 +2484,7 @@ func (row *ContainerRow) Update(yPos float32) float32 {
 		rect.X = x
 		rect.Y = y
 
-		expanding := row.ExpandAllElements
-		if !expanding {
-			for _, e := range row.ExpandSelectedElements {
-				if e == element {
-					expanding = true
-					break
-				}
-			}
-		}
-
-		if expanding {
+		if row.ExpandElementSet.On && row.ExpandElementSet.Contains(element) {
 			rect.W = maxWidth / totalElementSize
 		}
 
@@ -2504,6 +2529,14 @@ func (row *ContainerRow) Draw() {
 		element.Draw()
 
 	}
+
+	// if len(row.Tooltip) > 0 {
+
+	// 	if globals.Mouse.RawPosition().Inside(row.rect) {
+	// 		DrawTooltip(Point{row.rect.X - 32, row.rect.Y - 32}, row.Tooltip)
+	// 	}
+
+	// }
 
 }
 
@@ -2560,7 +2593,6 @@ type Container struct {
 	OnUpdate         func()
 	OnDraw           func()
 	OnOpen           func()
-	DefaultExpand    bool
 	DefaultMargin    float32
 	overallHeight    float32
 }
@@ -2699,6 +2731,20 @@ func (container *Container) Draw() {
 		container.Scrollbar.Draw()
 	}
 
+	for i := 0; i < len(rows); i++ {
+
+		row := rows[i]
+
+		if row.Visible {
+			for _, element := range row.Elements {
+				if high, ok := element.(HighPriorityDrawMenuElement); ok {
+					high.DrawOnTop()
+				}
+			}
+		}
+
+	}
+
 	globals.ClipRects[len(globals.ClipRects)-1] = nil
 	globals.ClipRects = globals.ClipRects[:len(globals.ClipRects)-1]
 	if len(globals.ClipRects) > 0 {
@@ -2711,7 +2757,6 @@ func (container *Container) Draw() {
 
 func (container *Container) AddRow(alignment string) *ContainerRow {
 	newRow := NewContainerRow(container, alignment)
-	newRow.ExpandAllElements = container.DefaultExpand
 	newRow.HorizontalMargin = container.DefaultMargin
 	container.Rows = append(container.Rows, newRow)
 	return newRow
@@ -3561,3 +3606,75 @@ func (ds *DraggableSpace) Draw() {
 	globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{0, 240, 8, 8}, &sdl.FRect{dragHandlePoint.X - 4, dragHandlePoint.Y, 8, 8})
 
 }
+
+type Tooltip struct {
+	Button     *IconButton
+	SpawnStart Point
+	Displaying bool
+	Text       string
+}
+
+func NewTooltip(text string) *Tooltip {
+	tt := &Tooltip{
+		Button: NewIconButton(0, 0, &sdl.Rect{240, 352, 32, 32}, globals.GUITexture, false, nil),
+		Text:   text,
+	}
+	tt.Button.Tint = ColorWhite
+	tt.Button.OnPressed = func() {
+		tt.Displaying = !tt.Displaying
+		tt.SpawnStart = Point{tt.Button.Rect.X, tt.Button.Rect.Y}
+	}
+	return tt
+}
+
+func (tt *Tooltip) Update() {
+	tt.Button.Update()
+	if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.RawPosition().Inside(tt.Button.Rect) {
+		tt.Displaying = false
+	}
+}
+func (tt *Tooltip) Draw() {
+	tt.Button.Draw()
+}
+
+func (tt *Tooltip) DrawOnTop() {
+	if tt.Displaying {
+		DrawTooltip(tt.SpawnStart, tt.Text)
+	}
+}
+
+func (tt *Tooltip) Rectangle() *sdl.FRect        { return tt.Button.Rectangle() }
+func (tt *Tooltip) SetRectangle(rect *sdl.FRect) { tt.Button.SetRectangle(rect) }
+func (tt *Tooltip) Destroy()                     { tt.Button.Destroy() }
+
+// type Tooltip struct {
+// 	Element MenuElement
+// 	Text    []rune
+// }
+
+// func NewTooltip(element MenuElement, text string) *Tooltip {
+// 	return &Tooltip{
+// 		Element: element,
+// 		Text:    []rune(text),
+// 	}
+// }
+
+// func (tt *Tooltip) Update() {
+// 	tt.Element.Update()
+// }
+
+// func (tt *Tooltip) Draw() {
+// 	tt.Element.Draw()
+// }
+
+// func (tt *Tooltip) Rectangle() *sdl.FRect {
+// 	return tt.Element.Rectangle()
+// }
+
+// func (tt *Tooltip) SetRectangle(rect *sdl.FRect) {
+// 	tt.Element.SetRectangle(rect)
+// }
+
+// func (tt *Tooltip) Destroy() {
+// 	tt.Element.Destroy()
+// }

@@ -862,7 +862,7 @@ func ConstructMenus() {
 	timeLabel := NewLabel(time.Now().Format("Mon Jan 2 2006"), nil, false, AlignCenter)
 	row.Add("time label", timeLabel)
 
-	row.ExpandSelectedElements = []MenuElement{timeLabel}
+	row.ExpandElementSet.Select(timeLabel)
 
 	// File Menu
 
@@ -945,7 +945,6 @@ func ConstructMenus() {
 	row.Add("path label", NewLabel("Export directory:", nil, false, AlignCenter))
 
 	row = exportRoot.AddRow(AlignCenter)
-	row.ExpandAllElements = true
 
 	exportPathLabel := NewLabel("", nil, false, AlignLeft)
 
@@ -959,6 +958,7 @@ func ConstructMenus() {
 
 	exportPathLabel.Editable = true
 	row.Add("path editable label", exportPathLabel)
+	row.ExpandElementSet.SelectAll()
 
 	row = exportRoot.AddRow(AlignCenter)
 	row.Add("path browse", NewButton("Browse", nil, nil, false, func() {
@@ -971,10 +971,8 @@ func ConstructMenus() {
 
 	bgOptions := NewButtonGroup(&sdl.FRect{0, 0, 400, 32}, false, func(index int) {}, nil, "Normal", "No Grid", "Transparent")
 	row = exportRoot.AddRow(AlignCenter)
-	row.ExpandAllElements = true
 	row.Add("bg options label", NewLabel("Background Options:", nil, false, AlignCenter))
 	row = exportRoot.AddRow(AlignCenter)
-	row.ExpandAllElements = true
 	row.Add("bg options", bgOptions)
 
 	row = exportRoot.AddRow(AlignCenter)
@@ -1037,7 +1035,7 @@ func ConstructMenus() {
 
 		common := globals.MenuSystem.Get("common")
 		root := common.Pages["root"]
-		root.DefaultExpand = true
+
 		root.Clear()
 		row := root.AddRow(AlignCenter)
 		row.Add("", NewLabel("Warning!", nil, false, AlignCenter))
@@ -1112,6 +1110,10 @@ func ConstructMenus() {
 		row.Add("", NewButton("Cancel", nil, nil, false, func() {
 			common.Close()
 		}))
+		for _, row := range root.Rows {
+			row.ExpandElementSet.SelectAll()
+		}
+
 		common.Open()
 
 	}))
@@ -1356,7 +1358,6 @@ func ConstructMenus() {
 	row.Add("applyLabel", NewLabel("Apply to :    ", nil, false, AlignCenter))
 
 	row = setColor.AddRow(AlignCenter)
-	row.ExpandAllElements = true
 	button := NewButton("BG", nil, &sdl.Rect{208, 288, 32, 32}, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards
 		for card := range selectedCards {
@@ -1379,6 +1380,8 @@ func ConstructMenus() {
 	button.TintByFontColor = false
 	row.Add("applyFont", button)
 
+	row.ExpandElementSet.SelectAll()
+
 	// Spacer
 
 	setColor.AddRow(AlignCenter).Add("", NewSpacer(&sdl.FRect{0, 0, 4, 8}))
@@ -1394,8 +1397,6 @@ func ConstructMenus() {
 	row.Add("grabLabel", NewLabel("Sample from :    ", nil, false, AlignCenter))
 
 	row = setColor.AddRow(AlignCenter)
-
-	row.ExpandAllElements = true
 
 	button = NewButton("BG", nil, &sdl.Rect{208, 320, 32, 32}, false, func() {
 
@@ -1433,6 +1434,8 @@ func ConstructMenus() {
 	button.TintByFontColor = false
 
 	row.Add("grabFont", button)
+
+	row.ExpandElementSet.SelectAll()
 
 	setColor.AddRow(AlignCenter).Add("", NewSpacer(&sdl.FRect{0, 0, 4, 8}))
 
@@ -1915,7 +1918,6 @@ func ConstructMenus() {
 	// Sound options
 
 	sound := settings.AddPage("sound")
-	sound.DefaultExpand = true
 
 	row = sound.AddRow(AlignCenter)
 	row.Add("", NewLabel("Sound Settings", nil, false, AlignCenter))
@@ -1964,16 +1966,25 @@ func ConstructMenus() {
 	audioSampleRateBG.MaxButtonsPerRow = 3
 	row.Add("", audioSampleRateBG)
 
+	for _, row := range sound.Rows {
+		row.ExpandElementSet.SelectAll()
+	}
+
 	// General options
 
 	general := settings.AddPage("general")
-	general.DefaultExpand = true
 	general.DefaultMargin = 32
 
 	row = general.AddRow(AlignCenter)
 	row.Add("header", NewLabel("General Settings", nil, false, AlignCenter))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Automatic Backups:
+Enables the creation of automatic backups.
+Note that these backups will be stored in the same
+location as the project's save file. This being
+the case, the project must be saved first in
+order for automatic backups to work.`))
 	row.Add("", NewLabel("Automatic Backups:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAutoBackup)))
 
@@ -1994,10 +2005,18 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Auto Load Last Project:
+When enabled, the last project you loaded 
+from disk will be loaded when starting
+MasterPlan.`))
 	row.Add("", NewLabel("Auto Load Last Project:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAutoLoadLastProject)))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Save Window Position:
+When enabled and MasterPlan is launched, the
+window will have the same position and size as
+when it was last closed.`))
 	row.Add("", NewLabel("Save Window Position:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSaveWindowPosition)))
 
@@ -2006,6 +2025,10 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnElapsedTimers)))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Notify on Elapsed Timers:
+When enabled and a timer elapses in MasterPlan
+when the window is unfocused, a notification
+will appear through your operating system.`))
 	row.Add("", NewLabel("Notify on Elapsed Timers:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNotifyOnElapsedTimers)))
 
@@ -2022,6 +2045,10 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnUndo)))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Place Newly Created Cards in Selected Stack:
+When enabled and you create a new Card, it will
+be added just below the currently selected Card,
+in the same stack.`))
 	row.Add("", NewLabel("Place Newly Created Cards in Selected Stack:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsPlaceNewCardsInStack)))
 
@@ -2029,6 +2056,13 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Download Cache Directory:
+When set, links to media (images, music, etc) on 
+the Internet will be downloaded and saved to this 
+directory instead of cached using a temporary directory.
+Using this can make using external resources much faster,
+as media isn't deleted after closing MasterPlan and can be reloaded 
+from this directory.`))
 	row.Add("", NewLabel("External Download Cache Directory For Current Project:", nil, false, AlignLeft))
 	cachePath := NewLabel("", nil, false, AlignLeft)
 	cachePath.Editable = true
@@ -2076,6 +2110,13 @@ func ConstructMenus() {
 		globals.Settings.Get(SettingsScreenshotPath).Set("")
 	}))
 
+	for _, row := range general.Rows {
+		row.ExpandElementSet.SelectIf(func(me MenuElement) bool {
+			_, isTooltip := me.(*Tooltip)
+			return !isTooltip
+		})
+	}
+
 	// Visual options
 
 	visual := settings.AddPage("visual")
@@ -2086,7 +2127,6 @@ func ConstructMenus() {
 		refreshThemes()
 	}
 
-	visual.DefaultExpand = true
 	visual.DefaultMargin = 32
 
 	row = visual.AddRow(AlignCenter)
@@ -2118,6 +2158,10 @@ func ConstructMenus() {
 	row.Add("theme info", NewLabel("While Visual Settings menu is open,\nthemes will be automatically hotloaded.", nil, false, AlignCenter))
 
 	row = visual.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Always Show Numbering:
+When enabled, numbered ordering (1., 2., 3., etc.) for stacks
+are always shown. When disabled, ordering is only displayed when
+a stack is selected.`))
 	row.Add("", NewLabel("Always Show Numbering:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAlwaysShowNumbering)))
 
@@ -2183,6 +2227,11 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Image Buffer Max Size:
+The size of the image buffer, which is used when displaying 
+images. The higher the buffer size, the more GPU memory it takes
+to display, but the higher the effective maximum resolution 
+of images can be.`))
 	row.Add("", NewLabel("Image Buffer Max Size:", nil, false, AlignLeft))
 	group := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, nil, globals.Settings.Get(SettingsMaxInternalImageSize),
 		ImageBufferSize512,
@@ -2251,6 +2300,13 @@ func ConstructMenus() {
 		globals.Settings.Get(SettingsCustomFontPath).Set("")
 		globals.TriggerReloadFonts = true
 	}))
+
+	for _, row := range visual.Rows {
+		row.ExpandElementSet.SelectIf(func(me MenuElement) bool {
+			_, isTooltip := me.(*Tooltip)
+			return !isTooltip
+		})
+	}
 
 	// row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
 
@@ -2338,6 +2394,9 @@ func ConstructMenus() {
 	row.Add("input header", NewLabel("Input", nil, false, AlignLeft))
 
 	row = input.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Double-click:
+What should be done when double-clicking on the
+project background.`))
 	row.Add("", NewLabel("Double-click: ", nil, false, AlignLeft))
 	dropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsDoubleClickMode), DoubleClickLast, DoubleClickCheckbox, DoubleClickNothing)
 	row.Add("", dropdown)
@@ -2347,6 +2406,10 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsReversePan)))
 
 	row = input.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Zoom to cursor:
+When enabled, zooming using the mouse wheel
+or zoom in + out key shortcuts will zoom towards
+where the cursor is over the window.`))
 	row.Add("", NewLabel("Zoom to Cursor: ", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsZoomToCursor)))
 
@@ -2412,7 +2475,6 @@ func ConstructMenus() {
 		shortcutName := NewLabel(shortcut.Name, nil, false, AlignLeft)
 
 		row.Add("key-"+shortcut.Name, shortcutName)
-		row.ExpandAllElements = true
 
 		redefineButton := NewButton(shortcut.KeysToString(), nil, nil, false, nil)
 
@@ -2431,11 +2493,11 @@ func ConstructMenus() {
 		}
 
 		row.Add(shortcut.Name+"-d", button)
+
+		row.ExpandElementSet.SelectAll()
 	}
 
 	about := settings.AddPage("about")
-
-	about.DefaultExpand = true
 
 	row = about.AddRow(AlignCenter)
 	row.Add("", NewLabel("About", nil, false, AlignCenter))
@@ -2455,10 +2517,13 @@ func ConstructMenus() {
 	row.Add("", NewLabel("That said, I think this is already FAR better than v0.7 and am very excited to get people using it and get some feedback on the new changes. Please do let me know your thoughts! (And don't forget to do frequent back-ups!) ~ SolarLune", &sdl.FRect{0, 0, 512, 160}, false, AlignLeft))
 
 	row = about.AddRow(AlignCenter)
-	row.ExpandAllElements = false
 	row.Add("", NewButton("Discord", nil, &sdl.Rect{48, 224, 32, 32}, false, func() { browser.OpenURL("https://discord.gg/tRVf7qd") }))
 	row.Add("", NewSpacer(nil))
 	row.Add("", NewButton("Twitter", nil, &sdl.Rect{80, 224, 32, 32}, false, func() { browser.OpenURL("https://twitter.com/MasterPlanApp") }))
+
+	for _, row := range about.Rows {
+		row.ExpandElementSet.SelectAll()
+	}
 
 	// Tools menu
 
@@ -2841,7 +2906,7 @@ func ConstructMenus() {
 
 	// Text editing menu
 
-	textEditing := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 9999, 256, 48}, MenuCloseNone), "text editing", false)
+	textEditing := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 9999, 312, 48}, MenuCloseNone), "text editing", false)
 	textEditing.AutoOpen = func() bool {
 		return globals.State == StateTextEditing && globals.editingCard != nil
 	}
@@ -2851,6 +2916,14 @@ func ConstructMenus() {
 
 	teRoot := textEditing.Pages["root"]
 	row = teRoot.AddRow(AlignLeft)
+
+	row.Add("hint", NewTooltip(`Set the wrapping mode for
+editable text.
+Wrap: Text that goes beyond a card's
+horizontal border will wrap to a new line.
+Extend: As you type, the card will expand
+horizontally.`))
+
 	row.Add("label", NewLabel("Wrap Mode : ", nil, false, AlignCenter))
 	iconButtonGroup := NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, false, func(index int) {}, globals.textEditingWrap, &sdl.Rect{208, 352, 32, 32}, &sdl.Rect{208, 384, 32, 32})
 	for _, b := range iconButtonGroup.Buttons {
@@ -2941,7 +3014,7 @@ func ConstructMenus() {
 							deadlineRow.Add("button", button)
 							deadlineRow.Add("date", NewLabel("Due on 9999-99-9999", nil, false, AlignCenter))
 							deadlineRow.Add("right spacer", NewSpacer(&sdl.FRect{0, 0, 64, 32}))
-							deadlineRow.ExpandSelectedElements = []MenuElement{deadlineRow.Elements["button"]}
+							deadlineRow.ExpandElementSet.Select(deadlineRow.Elements["button"])
 							db = &deadlineButton{Card: card, Row: deadlineRow}
 							deadlineButtons = append(deadlineButtons, db)
 						}
@@ -3032,7 +3105,7 @@ func ConstructMenus() {
 	row = root.AddRow(AlignLeft)
 	completedLabel := NewLabel("so many cards completed", nil, false, AlignLeft)
 	row.Add("", completedLabel)
-	row.ExpandAllElements = true
+	row.ExpandElementSet.SelectAll()
 
 	row = root.AddRow(AlignLeft)
 	row.Add("", NewSpacer(&sdl.FRect{0, 0, 32, 1}))
@@ -3054,16 +3127,17 @@ func ConstructMenus() {
 	}
 
 	row = root.AddRow(AlignLeft)
-	row.ExpandAllElements = true
 	timeUnit := NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {}, globals.Settings.Get("time unit"), timeUnitChoices...)
 
 	// timeUnit := NewDropdown(nil, false, func(index int) {}, timeUnitChoices...)
 	row.Add("", timeUnit)
 
+	row.ExpandElementSet.SelectAll()
+
 	row = root.AddRow(AlignLeft)
 	estimatedTime := NewLabel("Time estimation label", nil, false, AlignLeft)
 	row.Add("", estimatedTime)
-	row.ExpandAllElements = true
+	row.ExpandElementSet.SelectAll()
 
 	row = root.AddRow(AlignLeft)
 	row.Add("", NewLabel("Limit time estimation read-out to same as units: ", nil, false, AlignLeft))
