@@ -51,6 +51,7 @@ const (
 	SettingsPlaceNewCardsInStack         = "Position New Cards in Stack"
 	SettingsHideGridOnZoomOut            = "Hide Grid on Zoom out"
 	SettingsDisplayNumberedPercentagesAs = "Display Numbered Percentages"
+	SettingsShowTableHeaders             = "Display Table Headers"
 
 	SettingsAudioVolume     = "AudioVolume"
 	SettingsAudioBufferSize = "Audio Playback Buffer Size"
@@ -132,6 +133,12 @@ const (
 	ImageBufferSizeMax   = "Max"
 )
 
+const (
+	TableHeadersSelected = "Selected"
+	TableHeadersHover    = "Hovering"
+	TableHeadersAlways   = "Always"
+)
+
 func NewProgramSettings() *Properties {
 
 	// We're setting the defaults here; after setting them, we'll attempt to load settings from a preferences file below
@@ -169,6 +176,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsPlaceNewCardsInStack).Set(false)
 	props.Get(SettingsHideGridOnZoomOut).Set(true)
 	props.Get(SettingsDisplayNumberedPercentagesAs).Set(NumberedPercentagePercent)
+	props.Get(SettingsShowTableHeaders).Set(TableHeadersSelected)
 
 	// Audio settings; not shown in MasterPlan because it's very rarely necessary to tweak
 	props.Get(SettingsAudioVolume).Set(80.0)

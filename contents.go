@@ -5,6 +5,7 @@ import (
 	"math"
 	"os/exec"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -172,6 +173,7 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 }
 
+// AutosetSizer is for automatically setting the size of a Card when loading it from v0.7.
 type AutosetSizer interface {
 	AutosetSize()
 }
@@ -2863,16 +2865,7 @@ func NewLinkContents(card *Card) *LinkContents {
 	lc.Label.RegexString = RegexNoNewlines
 
 	lc.Label.OnChange = func() {
-		if lc.Label.Editing {
-			lineCount := float32(lc.Label.LineCount())
-			lc.Card.Recreate(lc.Card.Rect.W, lc.container.MinimumHeight()+((lineCount-1)*globals.GridSize))
-			lc.Card.UncollapsedSize = Point{lc.Card.Rect.W, lc.Card.Rect.H}
-
-			// 	lineCount := float32(lc.Label.LineCount())
-			// 	if lineCount*globals.GridSize > 1 {
-			// 		lc.Card.Recreate(lc.Card.Rect.W, lc.Container.MinimumHeight()+((lineCount-1)*globals.GridSize))
-			// 	}
-		}
+		commonTextEditingResizing(lc.Label, lc.Card)
 	}
 
 	row := lc.container.AddRow(AlignLeft)
@@ -3130,34 +3123,698 @@ func (lc *LinkContents) ReceiveMessage(msg *Message) {
 
 }
 
-// type TableContents struct {
-// 	DefaultContents
-// }
+type TableDataContents struct {
+	Value  int
+	Button *IconButton
+}
 
-// func NewTableContents(card *Card) *TableContents {
-// 	tc := &TableContents{
-// 		DefaultContents: newDefaultContents(card),
+const (
+	ValueDisplayModeCheck = iota
+)
+
+var valueDisplayModeSizes map[int]int = map[int]int{
+	ValueDisplayModeCheck: 3,
+}
+
+type TableData struct {
+	Table             *TableContents
+	Rect              *sdl.FRect
+	Data              [][]TableDataContents
+	RowHeadings       []*DraggableLabel
+	ColumnHeadings    []*DraggableLabel
+	MaxLabelSize      float32
+	Width, Height     int
+	DraggingLabel     *DraggableLabel
+	ValueDisplayMode  int
+	previouslyShowing bool
+	Changed           bool
+}
+
+func NewTableData(table *TableContents) *TableData {
+
+	td := &TableData{
+		Table:            table,
+		Rect:             &sdl.FRect{0, 0, 32, 32},
+		ValueDisplayMode: ValueDisplayModeCheck,
+	}
+
+	w := int(table.Card.Rect.W) / 32
+	h := int(table.Card.Rect.H) / 32
+	if w == 0 {
+		w = int(table.DefaultSize().X / 32)
+	}
+	if h == 0 {
+		h = int(table.DefaultSize().Y / 32)
+	}
+
+	td.Resize(w, h)
+
+	return td
+}
+
+func (td *TableData) Resize(w, h int) {
+
+	if td.Width == w && td.Height == h {
+		return
+	}
+
+	for len(td.RowHeadings) < h {
+		td.RowHeadings = append(td.RowHeadings, NewDraggableLabel("Row "+strconv.Itoa(len(td.RowHeadings)+1), td))
+	}
+
+	for len(td.ColumnHeadings) < w {
+		vert := NewDraggableLabel("Col "+strconv.Itoa(len(td.ColumnHeadings)+1), td)
+		vert.Vertical = true
+		td.ColumnHeadings = append(td.ColumnHeadings, vert)
+	}
+
+	td.Width = w
+	td.Height = h
+
+	// Data
+
+	for len(td.Data) < h {
+		td.Data = append(td.Data, make([]TableDataContents, w))
+	}
+
+	for i := 0; i < h; i++ {
+		for len(td.Data[i]) < w {
+			td.Data[i] = append(td.Data[i], TableDataContents{})
+		}
+	}
+
+	// newData := make([][]TableDataContents, h)
+
+	// for y := 0; y < h; y++ {
+	// 	newData[y] = make([]TableDataContents, w)
+
+	// 	for x := 0; x < w; x++ {
+	// 		if y < len(td.Data) && x < len(td.Data[y]) {
+	// 			if td.Data != nil && len(td.Data) >= y && len(td.Data[y]) >= x {
+	// 				newData[y][x] = td.Data[y][x]
+	// 			}
+	// 		}
+	// 	}
+
+	// }
+
+	// td.Data = newData
+
+	for i := 0; i < len(td.Data); i++ {
+		for j := 0; j < len(td.Data[i]); j++ {
+			x, y := j, i
+			if td.Data[i][j].Button == nil {
+				button := NewIconButton(0, 0, &sdl.Rect{0, 488, 24, 24}, globals.GUITexture, true, func() {
+
+					value := td.Value(x, y) + 1
+
+					if value >= valueDisplayModeSizes[td.ValueDisplayMode] {
+						value = 0
+					}
+
+					td.SetValue(x, y, value)
+					td.Changed = true
+
+					td.Table.Card.CreateUndoState = true
+				})
+				button.Highlighter.HighlightMode = HighlightRing
+				button.BGIconSrc = &sdl.Rect{0, 488, 24, 24}
+				button.FadeOnInactive = false
+
+				td.Data[i][j].Button = button
+			}
+		}
+	}
+
+}
+
+// func (td *TableData) Clear() {
+
+// 	// Data
+
+// 	for len(td.Data) < td.Height {
+// 		td.Data = append(td.Data, make([]TableDataContents, td.Width))
 // 	}
-// 	return tc
+
+// 	for i := 0; i < td.Height; i++ {
+// 		for len(td.Data[i]) < td.Width {
+// 			td.Data[i] = append(td.Data[i], TableDataContents{})
+// 		}
+// 	}
+
 // }
 
-// func (tc *TableContents) Update() {}
+func (td *TableData) Value(x, y int) int {
+	return td.Data[y][x].Value
+}
 
-// func (tc *TableContents) Draw() {}
+func (td *TableData) SetValue(x, y, value int) {
+	td.Data[y][x].Value = value
+}
 
-// func (tc *TableContents) Color() Color {
-// 	color := getThemeColor(GUITableColor)
-// 	return color
+func (td *TableData) Update() {
+
+	td.Changed = false
+
+	x := td.Table.Card.DisplayRect.X
+	y := td.Table.Card.DisplayRect.Y
+
+	maxSize := float32(0)
+
+	// Buttons
+
+	completedColor := getThemeColor(GUICompletedColor)
+
+	if td.Table.Card.Resizing == "" {
+
+		for yi := range td.Data {
+
+			if yi > td.Height {
+				break
+			}
+
+			for xi, content := range td.Data[yi] {
+
+				if xi > td.Width {
+					break
+				}
+
+				content.Button.Active = td.Table.Card.selected
+				content.Button.Rect.X = x + 4
+				content.Button.Rect.Y = y + 4
+				content.Button.Update()
+				content.Button.IconSrc.X = (int32(content.Value) * 24) + 24
+				x += 32
+
+				content.Button.BGIconTint = ColorWhite
+
+				tint := ColorWhite
+				if td.Value(xi, yi) == 1 {
+					tint = completedColor
+				}
+				content.Button.Tint = tint
+
+			}
+
+			y += 32
+			x = td.Table.Card.DisplayRect.X
+		}
+
+		hoveringX := int(math.Floor(float64((globals.Mouse.WorldPosition().X - td.Table.Card.DisplayRect.X) / 32)))
+		hoveringY := int(math.Floor(float64((globals.Mouse.WorldPosition().Y - td.Table.Card.DisplayRect.Y) / 32)))
+
+		hoveringAlpha := float32(1)
+
+		if hoveringX >= 0 && hoveringX < td.Width && hoveringY >= 0 && hoveringY < td.Height {
+			hoveringAlpha = 0.5
+		}
+
+		for yi := 0; yi < td.Height; yi++ {
+
+			if yi == hoveringY {
+				td.RowHeadings[yi].Label.Alpha = 1
+			} else {
+				td.RowHeadings[yi].Label.Alpha = hoveringAlpha
+			}
+
+		}
+
+		for xi := 0; xi < td.Width; xi++ {
+
+			if xi == hoveringX {
+				td.ColumnHeadings[xi].Label.Alpha = 1
+			} else {
+				td.ColumnHeadings[xi].Label.Alpha = hoveringAlpha
+			}
+
+		}
+
+	}
+
+	if !td.showing() {
+		return
+	}
+
+	// Rows
+
+	x = td.Table.Card.DisplayRect.X
+	y = td.Table.Card.DisplayRect.Y
+
+	mousePos := globals.Mouse.WorldPosition()
+
+	for i, heading := range td.RowHeadings {
+
+		if i < td.Height {
+
+			if td.DraggingLabel == heading || (td.DraggingLabel == nil && mousePos.Inside(heading.Rect)) {
+
+				for x := range td.Data[i] {
+					td.Data[i][x].Button.BGIconTint = completedColor
+				}
+
+			}
+
+			heading.Rect.X = x - heading.Rect.W
+			targetY := y
+
+			if td.DraggingLabel != nil && !td.DraggingLabel.Vertical {
+				if td.DraggingLabel.CenterY() < heading.CenterY() {
+					targetY += 8
+				} else {
+					targetY -= 8
+				}
+			}
+
+			if maxSize < heading.Label.TextSize().X {
+				maxSize = heading.Label.TextSize().X
+			}
+
+			heading.Rect.Y += (targetY - heading.Rect.Y) * 0.4
+			heading.Update()
+			y += 32
+
+			heading.FillAmount = td.RowCompletion(i, false)
+
+		}
+
+	}
+
+	for _, heading := range td.RowHeadings {
+		heading.MaxSize = maxSize
+	}
+
+	td.MaxLabelSize = maxSize
+
+	var prevOrder []*DraggableLabel
+	verticalChange := false
+
+	if td.DraggingLabel != nil && !td.DraggingLabel.Vertical {
+		prevOrder = append([]*DraggableLabel{}, td.RowHeadings...)
+		sort.Slice(td.RowHeadings[:td.Height], func(i, j int) bool { return td.RowHeadings[i].CenterY() < td.RowHeadings[j].CenterY() })
+	}
+
+	// Columns
+
+	maxSize = 0
+
+	x = td.Table.Card.DisplayRect.X
+	startY := td.Table.Card.DisplayRect.Y - 32
+	if td.DraggingLabel != nil {
+		startY -= 16
+	}
+
+	y = startY
+
+	lastWidth := float32(0)
+
+	for i, heading := range td.ColumnHeadings {
+
+		if i < td.Width {
+
+			if td.DraggingLabel == heading || (td.DraggingLabel == nil && mousePos.Inside(heading.Rect)) {
+
+				for y := range td.Data {
+					td.Data[y][i].Button.BGIconTint = completedColor
+				}
+
+			}
+
+			heading.Rect.X = x
+
+			if x > lastWidth {
+				lastWidth = 0
+				y = startY
+			}
+
+			if lastWidth == 0 {
+				lastWidth = x + heading.Rect.W
+			}
+
+			targetY := y
+
+			// if td.DraggingLabel != nil && td.DraggingLabel.Vertical {
+			// 	if td.DraggingLabel.CenterY() < heading.CenterY() {
+			// 		targetY += 8
+			// 	} else {
+			// 		targetY -= 8
+			// 	}
+			// }
+
+			if maxSize < heading.Label.TextSize().X {
+				maxSize = heading.Label.TextSize().X
+			}
+
+			heading.Rect.Y += (targetY - heading.Rect.Y) * 0.4
+			heading.Update()
+			x += 32
+			y -= 32
+
+			heading.FillAmount = td.RowCompletion(i, true)
+
+		}
+
+	}
+
+	for _, heading := range td.ColumnHeadings {
+		heading.MaxSize = maxSize
+	}
+
+	if maxSize > td.MaxLabelSize {
+		td.MaxLabelSize = maxSize
+	}
+
+	if td.DraggingLabel != nil && td.DraggingLabel.Vertical {
+		prevOrder = append([]*DraggableLabel{}, td.ColumnHeadings...)
+		verticalChange = true
+		sort.Slice(td.ColumnHeadings[:td.Width], func(i, j int) bool { return td.ColumnHeadings[i].Rect.X < td.ColumnHeadings[j].Rect.X })
+		// sort.Slice(td.ColumnHeadings[:td.Width], func(i, j int) bool {
+		// 	return td.ColumnHeadings[i].CenterY() > td.ColumnHeadings[j].CenterY() && td.ColumnHeadings[i].Rect.X < td.ColumnHeadings[j].Rect.X
+		// })
+	}
+
+	if len(prevOrder) > 0 && (!verticalChange && !td.labelSliceEqual(prevOrder, td.RowHeadings) || (verticalChange && !td.labelSliceEqual(prevOrder, td.ColumnHeadings))) {
+		var newPos, prevPos int
+
+		for i := range prevOrder {
+			if prevOrder[i] == td.DraggingLabel {
+				prevPos = i
+				break
+			}
+		}
+
+		if verticalChange {
+
+			for i, h := range td.ColumnHeadings {
+				if td.DraggingLabel == h {
+					newPos = i
+					break
+				}
+			}
+
+		} else {
+
+			for i, h := range td.RowHeadings {
+				if td.DraggingLabel == h {
+					newPos = i
+					break
+				}
+			}
+
+		}
+
+		td.ReorderData(prevPos, newPos, verticalChange)
+
+	}
+
+}
+
+func (td *TableData) Draw() {
+
+	for y := range td.Data {
+		if y < td.Height && y < int(td.Table.Card.DisplayRect.H/32) {
+			for x := range td.Data[y] {
+				if x < td.Width && x < int(td.Table.Card.DisplayRect.W/32) {
+					td.Data[y][x].Button.Draw()
+				}
+			}
+		}
+	}
+
+	if !td.showing() {
+		return
+	}
+
+	for i, heading := range td.RowHeadings {
+		// If the heading is greater than the size
+		if heading.Dragging {
+			continue
+		}
+		if i < td.Height {
+			heading.Draw()
+		}
+
+		// globals.Renderer.SetClipRect(&sdl.Rect{int32(td.Table.Card.Rect.X), int32(td.Table.Card.Rect.Y), int32(td.Table.Card.Rect.W), int32(td.Table.Card.Rect.H)})
+		// globals.Renderer.SetClipRect(nil)
+
+	}
+
+	for i, heading := range td.ColumnHeadings {
+		// If the heading is greater than the size
+		if heading.Dragging {
+			continue
+		}
+		if i < td.Width {
+			heading.Draw()
+		}
+	}
+
+	if td.DraggingLabel != nil {
+		td.DraggingLabel.Draw() // Draw it last so it draws on top
+	}
+
+}
+
+func (td *TableData) showing() bool {
+
+	headerMode := globals.Settings.Get(SettingsShowTableHeaders).AsString()
+	switch headerMode {
+	case TableHeadersSelected:
+		return td.Table.Card.selected && len(td.Table.Card.Page.Selection.Cards) == 1
+	case TableHeadersHover:
+		// rect := *td.Table.Card.DisplayRect
+		// return globals.Mouse.WorldPosition().Inside(&rect)
+		if globals.editingLabel != nil {
+			return td.previouslyShowing
+		}
+		maxDim := td.Table.Card.Rect.W
+		if td.Table.Card.Rect.H > maxDim {
+			maxDim = td.Table.Card.Rect.H
+		}
+
+		td.previouslyShowing = globals.Mouse.WorldPosition().Distance(td.Table.Card.Center()) < (maxDim*3)+td.MaxLabelSize
+		return td.previouslyShowing
+		// case TableHeadersAlways:
+		// 	return true
+	}
+	// Always
+	return true
+
+}
+
+func (td *TableData) labelSliceEqual(a, b []*DraggableLabel) bool {
+
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+
+}
+
+func (td *TableData) ReorderData(from, to int, vertical bool) {
+
+	if vertical {
+
+		for y := 0; y < td.Height; y++ {
+			td.SwapData(from, y, to, y)
+		}
+
+	} else {
+
+		for x := 0; x < td.Width; x++ {
+			td.SwapData(x, from, x, to)
+		}
+
+	}
+
+}
+
+func (td *TableData) SwapData(x1, y1, x2, y2 int) {
+
+	v := td.Value(x1, y1)
+	td.SetValue(x1, y1, td.Value(x2, y2))
+	td.SetValue(x2, y2, v)
+
+}
+
+func (td *TableData) RowCompletion(index int, column bool) float32 {
+
+	if td.ValueDisplayMode != ValueDisplayModeCheck {
+		return 0
+	}
+
+	completion := float32(0)
+	max := float32(0)
+
+	if column {
+
+		for i := 0; i < td.Height; i++ {
+			v := td.Data[i][index].Value
+			if v == 1 {
+				completion++
+			}
+			if v != 2 {
+				max++
+			}
+		}
+
+	} else {
+
+		for i := 0; i < td.Width; i++ {
+			v := td.Data[index][i].Value
+			if v == 1 {
+				completion++
+			}
+			if v != 2 {
+				max++
+			}
+		}
+
+	}
+
+	return completion / max
+
+}
+
+func (td *TableData) Serialize() string {
+
+	serialized := [][]int{}
+
+	for i := range td.Data {
+		serialized = append(serialized, []int{})
+		for j := range td.Data[i] {
+			serialized[i] = append(serialized[i], td.Data[i][j].Value)
+		}
+	}
+
+	dataStr, _ := sjson.Set("{}", "contents", serialized)
+	return dataStr
+
+}
+
+func (td *TableData) Deserialize(data string) {
+
+	if data != "" {
+
+		contents := gjson.Get(data, "contents")
+
+		contentsSlice := [][]int{}
+		for i, row := range contents.Array() {
+			contentsSlice = append(contentsSlice, []int{})
+			for _, value := range row.Array() {
+				contentsSlice[i] = append(contentsSlice[i], int(value.Int()))
+			}
+		}
+
+		td.Resize(len(contentsSlice[0]), len(contentsSlice))
+
+		for y := range contentsSlice {
+			for x, value := range contentsSlice[y] {
+				td.SetValue(x, y, value)
+			}
+		}
+
+	}
+
+}
+
+func (td *TableData) Rectangle() *sdl.FRect {
+	r := *td.Rect
+	return &r
+}
+
+func (td *TableData) SetRectangle(rect *sdl.FRect) {
+	td.Rect.X = rect.X
+	td.Rect.Y = rect.Y
+	td.Rect.W = rect.W
+	td.Rect.H = rect.H
+}
+
+func (td *TableData) Destroy() {}
+
+// type MenuElement interface {
+// 	Update()
+// 	Draw()
+// 	Rectangle() *sdl.FRect
+// 	SetRectangle(*sdl.FRect)
+// 	Destroy()
 // }
 
-// func (tc *TableContents) ReceiveMessage(msg *Message) {}
+type TableContents struct {
+	DefaultContents
+	// Label     *Label
+	TableData *TableData
+}
 
-// func (tc *TableContents) DefaultSize() Point {
-// 	gs := globals.GridSize
-// 	return Point{gs * 6, gs * 4}
-// }
+func NewTableContents(card *Card) *TableContents {
+	tc := &TableContents{
+		DefaultContents: newDefaultContents(card),
+	}
 
-// func (tc *TableContents) Trigger(triggerType int) {}
+	tc.TableData = NewTableData(tc)
+
+	if tc.Card.Properties.Get("contents").AsString() != "" {
+		tc.TableData.Deserialize(tc.Card.Properties.Get("contents").AsString())
+	} else {
+		tc.Card.Properties.Get("contents").SetRaw(tc.TableData.Serialize())
+	}
+
+	// row := tc.container.AddRow(AlignCenter)
+
+	// tc.Label = NewLabel("New Table", nil, true, AlignCenter)
+	// tc.Label.Editable = true
+	// tc.Label.Property = card.Properties.Get("description")
+	// tc.Label.RegexString = RegexNoNewlines
+
+	// tc.Label.OnChange = func() {
+	// 	commonTextEditingResizing(tc.Label, tc.Card)
+	// }
+
+	// row.Add("label", tc.Label)
+
+	return tc
+}
+
+func (tc *TableContents) Update() {
+	tc.DefaultContents.Update()
+	tc.TableData.Update()
+	if tc.TableData.Changed {
+		contents := tc.Card.Properties.Get("contents")
+		contents.SetRaw(tc.TableData.Serialize())
+		tc.Card.SyncProperty(contents, false)
+		tc.Card.CreateUndoState = true // Since we're setting the property raw, we have to manually create an undo state, though
+	}
+}
+
+func (tc *TableContents) Draw() {
+	tc.DefaultContents.Draw()
+	tc.TableData.Draw()
+}
+
+func (tc *TableContents) Color() Color {
+	color := getThemeColor(GUITableColor)
+	return color
+}
+
+func (tc *TableContents) ReceiveMessage(msg *Message) {
+	if msg.Type == MessageCardResizeCompleted {
+		w := int(tc.Card.Rect.W / 32)
+		h := int(tc.Card.Rect.H / 32)
+		tc.TableData.Resize(w, h)
+		tc.Card.Properties.Get("contents").SetRaw(tc.TableData.Serialize())
+	} else if msg.Type == MessageUndoRedo {
+		tc.TableData.Deserialize(tc.Card.Properties.Get("contents").AsString())
+		tc.Card.Properties.Get("contents").SetRaw(tc.TableData.Serialize())
+	}
+}
+
+func (tc *TableContents) DefaultSize() Point {
+	gs := globals.GridSize
+	return Point{gs * 4, gs * 4}
+}
+
+func (tc *TableContents) Trigger(triggerType int) {}
 
 // type Calendar struct {
 // 	DefaultContents

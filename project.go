@@ -1304,6 +1304,11 @@ func (project *Project) GlobalShortcuts() {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeLink)
 			kb.Shortcuts[KBNewLinkCard].ConsumeKeys()
 
+		} else if kb.Pressed(KBNewTableCard) {
+
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeTable)
+			kb.Shortcuts[KBNewTableCard].ConsumeKeys()
+
 		}
 
 		if newCard != nil {

@@ -59,6 +59,7 @@ const (
 	KBNewMapCard      = "New Map Card"
 	KBNewSubpageCard  = "New Sub-Page Card"
 	KBNewLinkCard     = "New Link Card"
+	KBNewTableCard    = "New Table Card"
 
 	KBAddToSelection      = "Multi-Edit / Add to Selection Modifier"
 	KBRemoveFromSelection = "Remove From Selection Modifier"
@@ -475,6 +476,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBNewMapCard, sdl.K_7, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewSubpageCard, sdl.K_8, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewLinkCard, sdl.K_9, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewTableCard, sdl.K_0, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold

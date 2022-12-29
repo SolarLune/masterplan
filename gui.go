@@ -177,8 +177,10 @@ type IconButton struct {
 	Tint                    Color
 	Flip                    sdl.RendererFlip
 	BGIconSrc               *sdl.Rect
+	BGIconTint              Color
 	Highlighter             *Highlighter
 	HighlightingTargetColor float32
+	Active                  bool
 	FadeOnInactive          bool
 	AlwaysHighlight         bool
 	Image                   Image
@@ -193,9 +195,11 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool
 		WorldSpace:              worldSpace,
 		OnPressed:               onClicked,
 		HighlightingTargetColor: 1,
+		Active:                  true,
 		FadeOnInactive:          true,
 		Image:                   image,
 		Scale:                   Point{1, 1},
+		BGIconTint:              ColorWhite.Clone(),
 	}
 	iconButton.Highlighter = NewHighlighter(iconButton.Rect, worldSpace)
 	iconButton.Highlighter.HighlightMode = HighlightUnderline
@@ -205,7 +209,7 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool
 
 func (iconButton *IconButton) Update() {
 
-	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) {
+	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		iconButton.OnPressed()
 	}
@@ -252,7 +256,7 @@ func (iconButton *IconButton) Draw() {
 	}
 
 	if iconButton.BGIconSrc != nil {
-		drawSrc(iconButton.BGIconSrc, 0, 0, NewColor(255, 255, 255, 255), 0)
+		drawSrc(iconButton.BGIconSrc, 0, 0, iconButton.BGIconTint, 0)
 	}
 
 	tint := iconButton.Tint
@@ -264,7 +268,9 @@ func (iconButton *IconButton) Draw() {
 
 	iconButton.Highlighter.SetRect(iconButton.Rect)
 	iconButton.Highlighter.Highlighting = iconButton.AlwaysHighlight || mp.Inside(iconButton.Rect)
-	iconButton.Highlighter.Draw()
+	if iconButton.Active {
+		iconButton.Highlighter.Draw()
+	}
 
 	if globals.DebugMode {
 		dst := &sdl.FRect{iconButton.Rect.X, iconButton.Rect.Y, iconButton.Rect.W, iconButton.Rect.H}
@@ -281,6 +287,15 @@ func (iconButton *IconButton) Draw() {
 
 }
 
+// func (iconButton *IconButton) Hovering() bool {
+// 	mp := globals.Mouse.Position()
+// 	if iconButton.WorldSpace {
+// 		mp = globals.Mouse.WorldPosition()
+// 	}
+
+// 	return mp.Inside(iconButton.Rect)
+// }
+
 func (iconButton *IconButton) Destroy() {}
 
 func (iconButton *IconButton) Rectangle() *sdl.FRect {
@@ -295,42 +310,46 @@ func (iconButton *IconButton) SetRectangle(rect *sdl.FRect) {
 	iconButton.Rect.H = rect.H
 }
 
-// func ImmediateIconButton(rect *sdl.FRect, src *sdl.Rect, scale float32) bool {
+func ImmediateIconButton(dst sdl.FRect, src sdl.Rect, scale float32, worldSpace bool) bool {
 
-// 	clicked := false
+	clicked := false
 
-// 	rect.W *= scale
-// 	rect.H *= scale
+	dst.W *= scale
+	dst.H *= scale
 
-// 	insideButton := globals.Mouse.RawPosition().Inside(rect)
+	if worldSpace {
+		dst = *globals.Project.Camera.TranslateRect(&dst)
+	}
 
-// 	if RawClickedInRect(rect, false) {
-// 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-// 		clicked = true
-// 	}
+	insideButton := globals.Mouse.RawPosition().Inside(&dst)
 
-// 	guiTex := globals.GUITexture.Texture
+	if RawClickedInRect(&dst, false) {
+		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+		clicked = true
+	}
 
-// 	tint := uint8(200)
+	guiTex := globals.GUITexture.Texture
 
-// 	if insideButton {
-// 		tint = 255
-// 	}
+	tint := uint8(200)
 
-// 	guiTex.SetColorMod(tint, tint, tint)
-// 	guiTex.SetAlphaMod(255)
+	if insideButton {
+		tint = 255
+	}
 
-// 	// clipRect := globals.Renderer.GetClipRect()
+	guiTex.SetColorMod(tint, tint, tint)
+	guiTex.SetAlphaMod(255)
 
-// 	// globals.Renderer.SetClipRect(nil)
+	// clipRect := globals.Renderer.GetClipRect()
 
-// 	globals.Renderer.CopyF(guiTex, src, rect)
+	// globals.Renderer.SetClipRect(nil)
 
-// 	// globals.Renderer.SetClipRect(&clipRect)
+	globals.Renderer.CopyF(guiTex, &src, &dst)
 
-// 	return clicked
+	// globals.Renderer.SetClipRect(&clipRect)
 
-// }
+	return clicked
+
+}
 
 type Checkbox struct {
 	IconButton
@@ -1314,6 +1333,7 @@ type Label struct {
 	HorizontalAlignment string
 	Offset              Point
 	Alpha               float32
+	currentAlpha        float32
 	OnChange            func()
 	OnClickOut          func()
 	textChanged         bool
@@ -1321,6 +1341,7 @@ type Label struct {
 	Property            *Property
 	MaxLength           int
 	MousedOver          bool
+	Color               Color
 
 	MultiEditing bool
 }
@@ -1863,18 +1884,22 @@ func (label *Label) BeginEditing() {
 
 func (label *Label) EndEditing() {
 
-	label.Editing = false
-	label.MultiEditing = false
-	if globals.State == StateTextEditing {
-		globals.State = StateNeutral
-		globals.editingCard = nil
-	}
-	caretPos := label.Selection.CaretPos
-	label.Selection.Select(0, 0)
-	label.Selection.CaretPos = caretPos
+	if label.Editing {
 
-	if globals.editingLabel == label {
-		globals.editingLabel = nil
+		label.Editing = false
+		label.MultiEditing = false
+		if globals.State == StateTextEditing {
+			globals.State = StateNeutral
+			globals.editingCard = nil
+		}
+		caretPos := label.Selection.CaretPos
+		label.Selection.Select(0, 0)
+		label.Selection.CaretPos = caretPos
+
+		if globals.editingLabel == label {
+			globals.editingLabel = nil
+		}
+
 	}
 
 }
@@ -2004,14 +2029,20 @@ func (label *Label) Draw() {
 			newRect = globals.Project.Camera.TranslateRect(newRect)
 		}
 
-		color := getThemeColor(GUIFontColor)
+		var color Color
+		if label.Color != nil {
+			color = label.Color
+		} else {
+			color = getThemeColor(GUIFontColor)
+		}
 
 		if label.MousedOver {
 			t := (1 + math.Sin(globals.Time*math.Pi*2)) * 0.5
 			color = color.Mix(color.Invert(), t*0.75)
 		}
 		label.RendererResult.Image.Texture.SetColorMod(color.RGB())
-		label.RendererResult.Image.Texture.SetAlphaMod(uint8(label.Alpha * 255))
+		label.currentAlpha += (label.Alpha - label.currentAlpha) * 0.2
+		label.RendererResult.Image.Texture.SetAlphaMod(uint8(label.currentAlpha * 255))
 
 		globals.Renderer.CopyF(label.RendererResult.Image.Texture, src, newRect)
 
@@ -2176,6 +2207,10 @@ func (label *Label) TextAsString() string { return string(label.Text) }
 func (label *Label) TextAsInt() int {
 	i, _ := strconv.Atoi(label.TextAsString())
 	return i
+}
+
+func (label *Label) TextSize() Point {
+	return globals.TextRenderer.MeasureText(label.Text, 1)
 }
 
 func (label *Label) DeleteSelectedChars() {
@@ -3605,6 +3640,130 @@ func (ds *DraggableSpace) Draw() {
 	globals.GUITexture.Texture.SetAlphaMod(255)
 	globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{0, 240, 8, 8}, &sdl.FRect{dragHandlePoint.X - 4, dragHandlePoint.Y, 8, 8})
 
+}
+
+type DraggableLabel struct {
+	Rect              *sdl.FRect
+	TableData         *TableData
+	MaxSize           float32
+	Label             *Label
+	Dragging          bool
+	Vertical          bool
+	FillAmount        float32
+	currentFillAmount float32
+}
+
+func NewDraggableLabel(text string, tableData *TableData) *DraggableLabel {
+	ds := &DraggableLabel{
+		Rect:      &sdl.FRect{0, 0, 32, 32},
+		Label:     NewLabel(text, nil, true, AlignLeft),
+		TableData: tableData,
+	}
+	ds.Label.Editable = true
+	ds.Label.RegexString = RegexNoNewlines
+	ds.Label.WorldSpace = true
+	ds.Label.DrawLineUnderTitle = false
+	return ds
+}
+
+func (ds *DraggableLabel) Update() {
+
+	dragArea := *ds.Rect
+	dragArea.W = 32
+	cursorPos := globals.Mouse.WorldPosition()
+	lmb := globals.Mouse.Button(sdl.BUTTON_LEFT)
+
+	// if cursorPos.Inside(ds.Rect) && globals.Mouse.WorldPosition().Distance(dragHandlePoint) < 16 {
+
+	// For now, we will just check to see if the mouse is close enough to grab the point
+	if cursorPos.Inside(&dragArea) {
+
+		globals.Mouse.SetCursor(CursorHand)
+
+		if lmb.Pressed() {
+			lmb.Consume()
+			ds.Dragging = true
+			ds.Label.EndEditing()
+			ds.TableData.DraggingLabel = ds
+		}
+
+	}
+
+	if ds.Dragging {
+		globals.Mouse.SetCursor(CursorHandGrab)
+		ds.Rect.X = globals.Mouse.WorldPosition().X
+		ds.Rect.Y = globals.Mouse.WorldPosition().Y - (ds.Rect.H / 2)
+		if lmb.Released() {
+			ds.Dragging = false
+			ds.TableData.DraggingLabel = nil
+		}
+	}
+
+	textSize := ds.Label.TextSize()
+
+	if textSize.X < 16 {
+		textSize.X = 16
+	}
+
+	if textSize.Y < 16 {
+		textSize.Y = 16
+	}
+
+	ds.Rect.W = textSize.X + dragArea.W + 16
+
+	if ds.Rect.W < ds.MaxSize+dragArea.W+16 {
+		ds.Rect.W = ds.MaxSize + dragArea.W + 16
+	}
+
+	ds.MaxSize = 0
+
+	ds.Rect.H = textSize.Y
+
+	ds.Label.SetRectangle(&sdl.FRect{ds.Rect.X + dragArea.W, ds.Rect.Y, ds.Rect.W - dragArea.W - 16, ds.Rect.H})
+
+	globals.Renderer.SetClipRect(nil)
+
+	ds.Label.Update()
+
+	if globals.Mouse.WorldPosition().Inside(ds.Rect) && lmb.Pressed() {
+		lmb.Consume()
+		if globals.editingLabel != nil {
+			globals.editingLabel.EndEditing()
+		}
+	}
+
+}
+
+func (ds *DraggableLabel) Draw() {
+
+	menuColor := getThemeColor(GUIMenuColor)
+	fontColor := getThemeColor(GUIFontColor)
+
+	shadow := NewColor(0, 0, 0, 150)
+
+	rect := globals.Project.Camera.TranslateRect(ds.Rect)
+
+	if ds.Dragging {
+		FillRect(rect.X+16, rect.Y+16, rect.W, rect.H, shadow)
+	}
+	FillRect(rect.X, rect.Y, rect.W, rect.H, fontColor)
+	FillRect(rect.X+2, rect.Y+2, rect.W-4, rect.H-4, menuColor)
+	ds.currentFillAmount += (ds.FillAmount - ds.currentFillAmount) * 0.4
+	if ds.currentFillAmount > 0.01 {
+		FillRect(rect.X+2, rect.Y+2, (rect.W-4)*ds.currentFillAmount, rect.H-4, getThemeColor(GUICompletedColor))
+	}
+
+	// Draggable icon
+	globals.GUITexture.Texture.SetColorMod(fontColor.RGB())
+	globals.GUITexture.Texture.SetAlphaMod(128)
+	globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{0, 288, 32, 32}, &sdl.FRect{rect.X, rect.Y, 32, 32})
+
+	ds.Label.Draw()
+
+}
+
+func (ds *DraggableLabel) CenterY() float32 {
+	return ds.Rect.Y + (ds.Rect.H / 2)
 }
 
 type Tooltip struct {

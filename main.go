@@ -1211,75 +1211,53 @@ func ConstructMenus() {
 	root = createMenu.Pages["root"]
 	root.AddRow(AlignCenter).Add("create label", NewLabel("Create", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
 
-	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, icons[ContentTypeCheckbox], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
+	createCard := func(contentType string) {
+		card := globals.Project.CurrentPage.CreateNewCard(contentType)
 		placeCardInStack(card, true)
+		globals.Project.UndoHistory.Capture(NewUndoState(card))
 		globals.Project.CurrentPage.Selection.Clear()
 		globals.Project.CurrentPage.Selection.Add(card)
+	}
+
+	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, icons[ContentTypeCheckbox], false, func() {
+		createCard(ContentTypeCheckbox)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new numbered", NewButton("Numbered", nil, icons[ContentTypeNumbered], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNumbered)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		createCard(ContentTypeNumbered)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, icons[ContentTypeNote], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNote)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		createCard(ContentTypeNote)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, icons[ContentTypeSound], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSound)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		createCard(ContentTypeSound)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new image", NewButton("Image", nil, icons[ContentTypeImage], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeImage)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		createCard(ContentTypeImage)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new timer", NewButton("Timer", nil, icons[ContentTypeTimer], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeTimer)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		createCard(ContentTypeTimer)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new map", NewButton("Map", nil, icons[ContentTypeMap], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeMap)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		createCard(ContentTypeMap)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new subpage", NewButton("Sub-Page", nil, icons[ContentTypeSubpage], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSubpage)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		createCard(ContentTypeSubpage)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new link", NewButton("Link", nil, icons[ContentTypeLink], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeLink)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		createCard(ContentTypeLink)
 	}))
 
-	// root.AddRow(AlignCenter).Add("create new table", NewButton("Table", nil, icons[ContentTypeTable], false, func() {
-	// 	card := globals.Project.CurrentPage.CreateNewCard(ContentTypeTable)
-	// 	placeCardInStack(card, true)
-	// 	globals.Project.CurrentPage.Selection.Clear()
-	// 	globals.Project.CurrentPage.Selection.Add(card)
-	// }))
+	root.AddRow(AlignCenter).Add("create new table", NewButton("Table", nil, icons[ContentTypeTable], false, func() {
+		createCard(ContentTypeTable)
+	}))
 
 	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+64, createMenu.Pages["root"].IdealSize().Y+16)
 
@@ -2204,6 +2182,10 @@ a stack is selected.`))
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Display Numbered Card Percentages as:", nil, false, AlignLeft))
 	row.Add("", NewButtonGroup(nil, false, nil, globals.Settings.Get(SettingsDisplayNumberedPercentagesAs), NumberedPercentagePercent, NumberedPercentageCurrentMax, NumberedPercentageOff))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Display Table Headers:", nil, false, AlignLeft))
+	row.Add("", NewButtonGroup(nil, false, nil, globals.Settings.Get(SettingsShowTableHeaders), TableHeadersSelected, TableHeadersHover, TableHeadersAlways))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Card Shadows:", nil, false, AlignLeft))

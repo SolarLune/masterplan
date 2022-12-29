@@ -1,0 +1,42 @@
+{
+  "version": "0.8.0-alpha.7.3",
+  "pan": {
+    "X": -37.440018,
+    "Y": 35.19998
+  },
+  "zoom": 2,
+  "currentPage": 0,
+  "properties": {
+    "CacheDirectory": ""
+  },
+  "pages": [
+    {
+      "id": 0,
+      "pan": {
+        "X": -37.44001,
+        "Y": 35.19999
+      },
+      "zoom": 2,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": -96,
+            "Y": 0,
+            "W": 192,
+            "H": 128
+          },
+          "collapsed": "CollapsedNone",
+          "uncollapsedSizeX": 192,
+          "uncollapsedSizeY": 128,
+          "contents": "Table",
+          "properties": {
+            "contents": "{\"contents\":[[0,0,1,0,1,0],[1,1,1,1,1,0],[0,1,1,0,1,0],[0,1,0,2,1,0]]}",
+            "filepath": ""
+          }
+        }
+      ]
+    }
+  ],
+  "savedimages": {}
+}

@@ -2035,8 +2035,8 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewSubPageContents(card)
 		case ContentTypeLink:
 			card.Contents = NewLinkContents(card)
-		// case ContentTypeTable:
-		// 	card.Contents = NewTableContents(card)
+		case ContentTypeTable:
+			card.Contents = NewTableContents(card)
 		default:
 			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}
