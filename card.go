@@ -314,6 +314,7 @@ type Card struct {
 	CustomColor             Color
 	FontColor               Color
 	deadlineFade            float64
+	ForceDrawing            bool
 
 	GridExtents GridSelection
 	Stack       *Stack
@@ -1299,7 +1300,7 @@ func (card *Card) DrawCard() {
 
 	}
 
-	if !card.Onscreen() {
+	if !card.Onscreen() && !card.ForceDrawing {
 		return
 	}
 
@@ -1463,6 +1464,12 @@ func (card *Card) PostDraw() {
 				if c.DisplayRect.X < leftMost {
 					leftMost = c.DisplayRect.X
 				}
+				if tb, ok := c.Contents.(*TableContents); ok {
+					w := tb.TableData.MaxLabelWidth
+					if c.DisplayRect.X-w < leftMost {
+						leftMost = c.DisplayRect.X - w - 16
+					}
+				}
 			}
 
 			start := cam.TranslatePoint(Point{leftMost - globals.GridSize, card.DisplayRect.Y})
@@ -1508,7 +1515,7 @@ func (card *Card) PostDraw() {
 }
 
 func (card *Card) Numberable() bool {
-	return card.ContentType == ContentTypeCheckbox || card.ContentType == ContentTypeNumbered // Or table
+	return card.ContentType == ContentTypeCheckbox || card.ContentType == ContentTypeNumbered || card.ContentType == ContentTypeTable // Or table
 }
 
 func (card *Card) CompletionLevel() float32 {
@@ -1516,6 +1523,8 @@ func (card *Card) CompletionLevel() float32 {
 		return card.Contents.(*CheckboxContents).CompletionLevel()
 	} else if card.ContentType == ContentTypeNumbered {
 		return card.Contents.(*NumberedContents).CompletionLevel()
+	} else if card.ContentType == ContentTypeTable {
+		return card.Contents.(*TableContents).CompletionLevel()
 	}
 	return 0
 }
@@ -1525,6 +1534,8 @@ func (card *Card) MaximumCompletionLevel() float32 {
 		return card.Contents.(*CheckboxContents).MaximumCompletionLevel()
 	} else if card.ContentType == ContentTypeNumbered {
 		return card.Contents.(*NumberedContents).MaximumCompletionLevel()
+	} else if card.ContentType == ContentTypeTable {
+		return card.Contents.(*TableContents).MaximumCompletionLevel()
 	}
 	return 0
 }
@@ -1678,10 +1689,12 @@ func (card *Card) Select() {
 		card.Page.Raise(card)
 	}
 	card.selected = true
+	card.ReceiveMessage(NewMessage(MessageCardSelected, nil, nil))
 }
 
 func (card *Card) Deselect() {
 	card.selected = false
+	card.ReceiveMessage(NewMessage(MessageCardDeselected, nil, nil))
 }
 
 func (card *Card) StartDragging() {

@@ -921,6 +921,10 @@ func placeCardInStack(card *Card, centerIfNoSelection bool) {
 		globals.Project.Camera.FocusOn(false, card)
 	}
 
+	globals.Project.UndoHistory.Capture(NewUndoState(card))
+	globals.Project.CurrentPage.Selection.Clear()
+	globals.Project.CurrentPage.Selection.Add(card)
+
 }
 
 const RegexNoNewlines = `[^\n]`

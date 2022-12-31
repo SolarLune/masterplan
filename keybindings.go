@@ -136,6 +136,11 @@ const (
 	KBOpenDeadlinesMenu = "Main Menu: Open Deadlines Menu"
 	KBHelp              = "Main Menu: Open Help (website)"
 
+	KBTableAddRow       = "Table: Add 1 Row"
+	KBTableAddColumn    = "Table: Add 1 Column"
+	KBTableDeleteRow    = "Table: Remove 1 Row"
+	KBTableDeleteColumn = "Table: Remove 1 Column"
+
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
 	// KBCopyTasks               = "Copy Tasks"
@@ -551,6 +556,11 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBOpenHierarchyMenu, sdl.K_F4)
 	kb.DefineKeyShortcut(KBOpenStatsMenu, sdl.K_F5)
 	kb.DefineKeyShortcut(KBOpenDeadlinesMenu, sdl.K_F6)
+
+	kb.DefineKeyShortcut(KBTableAddColumn, sdl.K_e)
+	kb.DefineKeyShortcut(KBTableDeleteColumn, sdl.K_e, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBTableAddRow, sdl.K_q)
+	kb.DefineKeyShortcut(KBTableDeleteRow, sdl.K_q, sdl.K_LSHIFT)
 
 	kb.UpdateShortcutFamilies()
 

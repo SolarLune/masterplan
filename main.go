@@ -1211,52 +1211,44 @@ func ConstructMenus() {
 	root = createMenu.Pages["root"]
 	root.AddRow(AlignCenter).Add("create label", NewLabel("Create", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
 
-	createCard := func(contentType string) {
-		card := globals.Project.CurrentPage.CreateNewCard(contentType)
-		placeCardInStack(card, true)
-		globals.Project.UndoHistory.Capture(NewUndoState(card))
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
-	}
-
 	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, icons[ContentTypeCheckbox], false, func() {
-		createCard(ContentTypeCheckbox)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new numbered", NewButton("Numbered", nil, icons[ContentTypeNumbered], false, func() {
-		createCard(ContentTypeNumbered)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeNumbered), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, icons[ContentTypeNote], false, func() {
-		createCard(ContentTypeNote)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeNote), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, icons[ContentTypeSound], false, func() {
-		createCard(ContentTypeSound)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeSound), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new image", NewButton("Image", nil, icons[ContentTypeImage], false, func() {
-		createCard(ContentTypeImage)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeImage), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new timer", NewButton("Timer", nil, icons[ContentTypeTimer], false, func() {
-		createCard(ContentTypeTimer)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeTimer), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new map", NewButton("Map", nil, icons[ContentTypeMap], false, func() {
-		createCard(ContentTypeMap)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeMap), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new subpage", NewButton("Sub-Page", nil, icons[ContentTypeSubpage], false, func() {
-		createCard(ContentTypeSubpage)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeSubpage), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new link", NewButton("Link", nil, icons[ContentTypeLink], false, func() {
-		createCard(ContentTypeLink)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeLink), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new table", NewButton("Table", nil, icons[ContentTypeTable], false, func() {
-		createCard(ContentTypeTable)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeTable), true)
 	}))
 
 	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+64, createMenu.Pages["root"].IdealSize().Y+16)
@@ -3298,6 +3290,22 @@ horizontally.`))
 
 	row = root.AddRow(AlignCenter)
 	row.Add("shift down", down)
+
+	// Table menu
+
+	tableMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{999999, 0, 500, 100}, MenuCloseButton), "table settings menu", false)
+	tableMenu.Resizeable = true
+	tableMenu.CloseMethod = MenuCloseButton
+	tableMenu.Draggable = true
+	tableMenu.AnchorMode = MenuAnchorTopRight
+
+	root = tableMenu.Pages["root"]
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewLabel("Map Settings", nil, false, AlignCenter))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("table mode", NewButtonGroup(nil, false, func(index int) { tableModeChanged = true }, nil, "Checkmark", "Letters", "Numbers"))
+	row.ExpandElementSet.SelectAll()
 
 }
 

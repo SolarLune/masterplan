@@ -174,6 +174,7 @@ type IconButton struct {
 	IconSrc                 *sdl.Rect
 	WorldSpace              bool
 	OnPressed               func()
+	OnRightClickPressed     func()
 	Tint                    Color
 	Flip                    sdl.RendererFlip
 	BGIconSrc               *sdl.Rect
@@ -212,6 +213,11 @@ func (iconButton *IconButton) Update() {
 	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		iconButton.OnPressed()
+	}
+
+	if iconButton.OnRightClickPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active && globals.Mouse.WorldPosition().Inside(iconButton.Rect) && globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
+		globals.Mouse.Button(sdl.BUTTON_RIGHT).Consume()
+		iconButton.OnRightClickPressed()
 	}
 
 	iconButton.Rect.W = iconButton.originalSize.X * iconButton.Scale.X
@@ -1342,6 +1348,8 @@ type Label struct {
 	MaxLength           int
 	MousedOver          bool
 	Color               Color
+
+	RotatedVertical bool
 
 	MultiEditing bool
 }
@@ -3643,21 +3651,26 @@ func (ds *DraggableSpace) Draw() {
 }
 
 type DraggableLabel struct {
-	Rect              *sdl.FRect
+	TargetRect        *sdl.FRect
 	TableData         *TableData
 	MaxSize           float32
 	Label             *Label
 	Dragging          bool
-	Vertical          bool
 	FillAmount        float32
 	currentFillAmount float32
+
+	rect             *sdl.FRect
+	Vertical         bool
+	verticalEditRect *sdl.FRect
+	verticalEditing  bool
 }
 
 func NewDraggableLabel(text string, tableData *TableData) *DraggableLabel {
 	ds := &DraggableLabel{
-		Rect:      &sdl.FRect{0, 0, 32, 32},
-		Label:     NewLabel(text, nil, true, AlignLeft),
-		TableData: tableData,
+		TargetRect: &sdl.FRect{0, 0, 32, 32},
+		rect:       &sdl.FRect{0, 0, 32, 32},
+		Label:      NewLabel(text, nil, true, AlignLeft),
+		TableData:  tableData,
 	}
 	ds.Label.Editable = true
 	ds.Label.RegexString = RegexNoNewlines
@@ -3668,8 +3681,9 @@ func NewDraggableLabel(text string, tableData *TableData) *DraggableLabel {
 
 func (ds *DraggableLabel) Update() {
 
-	dragArea := *ds.Rect
+	dragArea := *ds.TargetRect
 	dragArea.W = 32
+	dragArea.H = 32
 	cursorPos := globals.Mouse.WorldPosition()
 	lmb := globals.Mouse.Button(sdl.BUTTON_LEFT)
 
@@ -3691,12 +3705,24 @@ func (ds *DraggableLabel) Update() {
 
 	if ds.Dragging {
 		globals.Mouse.SetCursor(CursorHandGrab)
-		ds.Rect.X = globals.Mouse.WorldPosition().X
-		ds.Rect.Y = globals.Mouse.WorldPosition().Y - (ds.Rect.H / 2)
+		if ds.Vertical {
+			ds.TargetRect.X = globals.Mouse.WorldPosition().X - (ds.TargetRect.W / 2)
+			ds.TargetRect.Y = globals.Mouse.WorldPosition().Y - 16
+		} else {
+			ds.TargetRect.X = globals.Mouse.WorldPosition().X
+			ds.TargetRect.Y = globals.Mouse.WorldPosition().Y - (ds.TargetRect.H / 2)
+		}
 		if lmb.Released() {
 			ds.Dragging = false
 			ds.TableData.DraggingLabel = nil
+			ds.TableData.TableHeaderDropped(ds)
 		}
+	}
+
+	if ds.Label.Editing {
+		ds.TableData.EditingLabel = ds
+	} else if ds.TableData.EditingLabel == ds {
+		ds.TableData.EditingLabel = nil
 	}
 
 	textSize := ds.Label.TextSize()
@@ -3709,27 +3735,67 @@ func (ds *DraggableLabel) Update() {
 		textSize.Y = 16
 	}
 
-	ds.Rect.W = textSize.X + dragArea.W + 16
+	if ds.Vertical && !ds.verticalEditing {
 
-	if ds.Rect.W < ds.MaxSize+dragArea.W+16 {
-		ds.Rect.W = ds.MaxSize + dragArea.W + 16
+		ds.TargetRect.H = textSize.X + dragArea.H + 32
+
+		if ds.TargetRect.H < ds.MaxSize+dragArea.H+32 {
+			ds.TargetRect.H = ds.MaxSize + dragArea.H + 32
+		}
+
+		ds.MaxSize = 0
+
+		ds.TargetRect.W = globals.GridSize
+
+		nw := float32(math.Ceil(float64(ds.TargetRect.H-dragArea.H-32)/32) * 32)
+
+		ds.Label.SetRectangle(&sdl.FRect{ds.TargetRect.X + dragArea.H, ds.TargetRect.Y, nw, ds.TargetRect.W})
+
+	} else {
+
+		ds.TargetRect.W = textSize.X + dragArea.W + 48
+
+		if ds.TargetRect.W < ds.MaxSize+dragArea.W+48 {
+			ds.TargetRect.W = ds.MaxSize + dragArea.W + 48
+		}
+
+		ds.MaxSize = 0
+
+		ds.TargetRect.H = globals.GridSize
+
+		nw := float32(math.Ceil(float64(ds.TargetRect.W-dragArea.W-32)/32) * 32)
+
+		ds.Label.SetRectangle(&sdl.FRect{ds.TargetRect.X + dragArea.W, ds.TargetRect.Y, nw, ds.TargetRect.H})
+
 	}
 
-	ds.MaxSize = 0
+	r := *ds.TargetRect
+	r.Y += 32
+	r.W = ds.TargetRect.W
+	r.H = ds.TargetRect.H - 32
+	ds.verticalEditRect = &r
 
-	ds.Rect.H = textSize.Y
+	if globals.Mouse.WorldPosition().Inside(ds.verticalEditRect) && lmb.PressedTimes(2) || (ds.Label.Editing && !ds.verticalEditing) {
+		ds.verticalEditing = true
+		// ds.TargetRect.Y = ds.TableData.Table.Card.Rect.Y - 32
+		ds.TableData.EditingLabel = ds
+		lmb.Consume()
+		ds.Label.BeginEditing()
+	}
 
-	ds.Label.SetRectangle(&sdl.FRect{ds.Rect.X + dragArea.W, ds.Rect.Y, ds.Rect.W - dragArea.W - 16, ds.Rect.H})
+	if (globals.editingLabel == nil || globals.editingLabel != ds.Label) && ds.verticalEditing {
+		if ds.TableData.EditingLabel == ds {
+			ds.TableData.EditingLabel = nil
+		}
+		ds.verticalEditing = false
+	}
 
 	globals.Renderer.SetClipRect(nil)
 
 	ds.Label.Update()
 
-	if globals.Mouse.WorldPosition().Inside(ds.Rect) && lmb.Pressed() {
+	if globals.Mouse.WorldPosition().Inside(ds.TargetRect) && lmb.Pressed() && globals.editingLabel == nil {
 		lmb.Consume()
-		if globals.editingLabel != nil {
-			globals.editingLabel.EndEditing()
-		}
 	}
 
 }
@@ -3741,7 +3807,13 @@ func (ds *DraggableLabel) Draw() {
 
 	shadow := NewColor(0, 0, 0, 150)
 
-	rect := globals.Project.Camera.TranslateRect(ds.Rect)
+	softness := float32(0.5)
+	ds.rect.X += (ds.TargetRect.X - ds.rect.X) * softness
+	ds.rect.Y += (ds.TargetRect.Y - ds.rect.Y) * softness
+	ds.rect.W += (ds.TargetRect.W - ds.rect.W) * softness
+	ds.rect.H += (ds.TargetRect.H - ds.rect.H) * softness
+
+	rect := globals.Project.Camera.TranslateRect(ds.rect)
 
 	if ds.Dragging {
 		FillRect(rect.X+16, rect.Y+16, rect.W, rect.H, shadow)
@@ -3750,7 +3822,11 @@ func (ds *DraggableLabel) Draw() {
 	FillRect(rect.X+2, rect.Y+2, rect.W-4, rect.H-4, menuColor)
 	ds.currentFillAmount += (ds.FillAmount - ds.currentFillAmount) * 0.4
 	if ds.currentFillAmount > 0.01 {
-		FillRect(rect.X+2, rect.Y+2, (rect.W-4)*ds.currentFillAmount, rect.H-4, getThemeColor(GUICompletedColor))
+		if ds.Vertical && !ds.verticalEditing {
+			FillRect(rect.X+2, rect.Y+2, rect.W-4, (rect.H-4)*ds.currentFillAmount, getThemeColor(GUICompletedColor))
+		} else {
+			FillRect(rect.X+2, rect.Y+2, (rect.W-4)*ds.currentFillAmount, rect.H-4, getThemeColor(GUICompletedColor))
+		}
 	}
 
 	// Draggable icon
@@ -3758,12 +3834,32 @@ func (ds *DraggableLabel) Draw() {
 	globals.GUITexture.Texture.SetAlphaMod(128)
 	globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{0, 288, 32, 32}, &sdl.FRect{rect.X, rect.Y, 32, 32})
 
-	ds.Label.Draw()
+	if !ds.Vertical || ds.verticalEditing {
+		ds.Label.Draw()
+	} else {
+		ds.Label.currentAlpha += (ds.Label.Alpha - ds.Label.currentAlpha) * 0.2
+		ds.Label.RendererResult.Image.Texture.SetAlphaMod(uint8(ds.Label.currentAlpha * 255))
+		ds.Label.RendererResult.Image.Texture.SetColorMod(getThemeColor(GUIFontColor).RGB())
+		labelSize := ds.Label.TextSize()
+		rect := *ds.Label.Rect
+		rect.X += 2
+		rect.W = labelSize.X
+		if rect.W < 32 {
+			rect.W = 32
+		}
+		rect.H = labelSize.Y
+
+		globals.Renderer.CopyExF(ds.Label.RendererResult.Image.Texture, nil, globals.Project.Camera.TranslateRect(&rect), 90, &sdl.FPoint{-16, 16}, sdl.FLIP_NONE)
+	}
 
 }
 
 func (ds *DraggableLabel) CenterY() float32 {
-	return ds.Rect.Y + (ds.Rect.H / 2)
+	return ds.TargetRect.Y + (ds.TargetRect.H / 2)
+}
+
+func (ds *DraggableLabel) CenterX() float32 {
+	return ds.TargetRect.X + (ds.TargetRect.W / 2)
 }
 
 type Tooltip struct {
