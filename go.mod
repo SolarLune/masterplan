@@ -16,7 +16,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20220104163920-15ed2e8cf2bd // indirect
 	github.com/goware/urlx v0.3.1
-	github.com/hajimehoshi/go-mp3 v0.3.2
+	github.com/hajimehoshi/go-mp3 v0.3.2 // indirect
 	github.com/hajimehoshi/oto v1.0.1 // indirect
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/jfreymuth/oggvorbis v1.0.3 // indirect
@@ -35,7 +35,7 @@ require (
 	github.com/tidwall/gjson v1.13.0
 	github.com/tidwall/sjson v1.2.4
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/veandco/go-sdl2 v0.4.25
+	github.com/veandco/go-sdl2 v0.4.28
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	golang.design/x/clipboard v0.6.0
 	golang.org/x/exp v0.0.0-20220128181451-c853b6ddb95e // indirect
