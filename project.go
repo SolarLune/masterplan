@@ -681,15 +681,14 @@ func OpenProjectFrom(filename string) {
 						line.Endings = append(line.Endings, Point{float32(endings[i].Float() * 2), float32(endings[i+1].Float() * 2)})
 					}
 					linePositions = append(linePositions, line)
-					continue
+					continue // Lines don't exist, so we do our best to connect cards that lines wwere connected to and move on
 				case 7:
 					cardType = ContentTypeMap
 				case 8:
 					// cardType = ContentTypeWhiteboard
 					continue
 				case 9:
-					// cardType = ContentTypeTable
-					continue
+					cardType = ContentTypeTable
 				}
 
 				card := newProject.Pages[boardIndex].CreateNewCard(cardType)
@@ -811,6 +810,34 @@ func OpenProjectFrom(filename string) {
 					mc.UpdateTexture()
 				}
 
+				if task.Get(`TableData`).Exists() {
+
+					card.Update()
+
+					tc := card.Contents.(*TableContents)
+
+					height := len(task.Get(`TableData.Rows`).Array())
+					width := len(task.Get(`TableData.Columns`).Array())
+
+					card.Recreate(float32(width)*globals.GridSize, float32(height)*globals.GridSize)
+					tc.TableData.Resize(width, height)
+
+					for i, s := range task.Get(`TableData.Columns`).Array() {
+						ch := tc.TableData.ColumnHeadings[i]
+						ch.Label.SetTextRaw([]rune(s.String()))
+						ch.Label.RecreateTexture()
+					}
+					for i, s := range task.Get(`TableData.Rows`).Array() {
+						tc.TableData.RowHeadings[i].Label.SetTextRaw([]rune(s.String()))
+					}
+					for y, row := range task.Get(`TableData.Completion`).Array() {
+						for x, value := range row.Array() {
+							tc.TableData.SetValue(x, y, int(value.Int()))
+						}
+					}
+
+				}
+
 				card.LockPosition()
 
 				// Autoresize the card to fit the amount of text typed.
@@ -818,7 +845,7 @@ func OpenProjectFrom(filename string) {
 					auto.AutosetSize()
 				}
 
-				if cardType != ContentTypeNote && cardType != ContentTypeImage && cardType != ContentTypeMap {
+				if cardType != ContentTypeNote && cardType != ContentTypeImage && cardType != ContentTypeMap && cardType != ContentTypeTable {
 					card.Collapse() // Collapsing the cards make them align more correctly to the 0.7 "single-line" layout
 				}
 
@@ -862,21 +889,26 @@ func OpenProjectFrom(filename string) {
 
 			rootPageBounds := CorrectingRect{}
 			root := newProject.Pages[0]
-			rootPageBounds.X1 = root.Cards[0].Rect.X
-			rootPageBounds.Y1 = root.Cards[0].Rect.Y
-			rootPageBounds.X2 = root.Cards[0].Rect.X
-			rootPageBounds.Y2 = root.Cards[0].Rect.Y
 
-			for _, card := range root.Cards {
-				if card.ContentType != ContentTypeSubpage {
-					rootPageBounds = rootPageBounds.AddXY(card.Rect.X, card.Rect.Y)
-					rootPageBounds = rootPageBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
+			if len(root.Cards) > 0 {
+
+				rootPageBounds.X1 = root.Cards[0].Rect.X
+				rootPageBounds.Y1 = root.Cards[0].Rect.Y
+				rootPageBounds.X2 = root.Cards[0].Rect.X
+				rootPageBounds.Y2 = root.Cards[0].Rect.Y
+
+				for _, card := range root.Cards {
+					if card.ContentType != ContentTypeSubpage {
+						rootPageBounds = rootPageBounds.AddXY(card.Rect.X, card.Rect.Y)
+						rootPageBounds = rootPageBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
+					}
 				}
-			}
 
-			for _, subpage := range createdSubpages {
-				subpage.Rect.X += rootPageBounds.Width()
-				subpage.LockPosition()
+				for _, subpage := range createdSubpages {
+					subpage.Rect.X += rootPageBounds.Width()
+					subpage.LockPosition()
+				}
+
 			}
 
 		} else {

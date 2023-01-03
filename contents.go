@@ -3311,6 +3311,11 @@ func (td *TableData) Update() {
 
 	completedColor := getThemeColor(GUICompletedColor)
 
+	if td.Table.Card.CustomColor != nil {
+		h, s, v := td.Table.Card.CustomColor.HSV()
+		completedColor = NewColorFromHSV(h+30, s-0.2, v+0.4)
+	}
+
 	if td.Table.Card.Resizing == "" {
 
 		for yi := range td.Data {
@@ -4009,6 +4014,9 @@ func (tc *TableContents) Draw() {
 
 func (tc *TableContents) Color() Color {
 	color := getThemeColor(GUITableColor)
+	if tc.Card.CustomColor != nil {
+		color = tc.Card.CustomColor
+	}
 	return color
 }
 

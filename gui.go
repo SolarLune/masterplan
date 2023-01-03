@@ -3839,7 +3839,18 @@ func (ds *DraggableLabel) Draw() {
 	} else {
 		ds.Label.currentAlpha += (ds.Label.Alpha - ds.Label.currentAlpha) * 0.2
 		ds.Label.RendererResult.Image.Texture.SetAlphaMod(uint8(ds.Label.currentAlpha * 255))
-		ds.Label.RendererResult.Image.Texture.SetColorMod(getThemeColor(GUIFontColor).RGB())
+		t := (1 + math.Sin(globals.Time*math.Pi*2)) * 0.5
+
+		r := *ds.rect
+		r.Y += 32
+		r.H -= 32
+
+		color := getThemeColor(GUIFontColor)
+		if globals.Mouse.WorldPosition().Inside(&r) {
+			color = color.Mix(color.Invert(), t*0.75)
+		}
+		ds.Label.RendererResult.Image.Texture.SetColorMod(color.RGB())
+
 		labelSize := ds.Label.TextSize()
 		rect := *ds.Label.Rect
 		rect.X += 2
