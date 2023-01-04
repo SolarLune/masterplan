@@ -487,8 +487,6 @@ func NewNumberedContents(card *Card) *NumberedContents {
 
 	current := card.Properties.Get("current")
 	numbered.Current = NewNumberSpinner(nil, true, current)
-	// Don't allow negative numbers of tasks completed
-	numbered.Current.SetLimits(0, math.MaxFloat64)
 
 	max := card.Properties.Get("maximum")
 	numbered.Max = NewNumberSpinner(nil, true, max)
@@ -537,9 +535,6 @@ func (nc *NumberedContents) Update() {
 	}
 	nc.Label.SetRectangle(rect)
 
-	nc.Current.MaxValue = nc.Max.Property.AsFloat()
-	nc.Max.MinValue = nc.Current.Property.AsFloat()
-
 }
 
 func (nc *NumberedContents) Draw() {
@@ -550,6 +545,12 @@ func (nc *NumberedContents) Draw() {
 
 	if nc.Max.Property.AsFloat() > 0 {
 		p = float32(nc.Current.Property.AsFloat()) / float32(nc.Max.Property.AsFloat())
+		if p < 0 {
+			p = 0
+		}
+		if p > 1 {
+			p = 1
+		}
 		f.W *= p
 
 		nc.PercentageComplete += (p - nc.PercentageComplete) * 6 * globals.DeltaTime

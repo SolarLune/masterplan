@@ -3,7 +3,7 @@
 v0.8.0-alpha.8.0
 
 -------
-
+ 
 - RE-IMPLEMENTATION: Adding tables back in.
   Tables are useful to outline data in a matrix field, represented as an intersection of rows and columns. Rows and columns can be freely resized by clicking and dragging a row or column to rearrange. Double-clicking on the text allows you to edit that text. Tables can be visualized in a few different ways currently: as checkmarks, numbers, or grades (S - F).
 - QoL: Adding tooltip buttons to help explain unclear settings or options.
@@ -16,6 +16,8 @@ v0.8.0-alpha.8.0
   - There are two wrapping modes currently: Wrap, and Expand. Wrap will have cards grow downwards vertically, gaining more lines as you type beyond their borders. Expand will have cards grow horizontally when necessary.
 - QoL: Adding name of project to loading prompt when you decide to load a project.
 - QoL: Adding setting to change how numbered cards are displayed (either as percentage or current amount out of maximum).
+- QoL: Numbered Cards now allow negative numbers.
+- QoL: Numbered Cards now allow the current value to surpass the maximum.
 - FIX: Collapsing cards is now properly undo-able.
 - FIX: Icons for applying colors to cards no longer change color depending on theme.
 - FIX: When render textures are recreated (primarily done on Windows when the window is resized or altered), ensure they are never too small (0x0 in size). This might fix a crashing issue for Windows users.

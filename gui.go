@@ -3601,8 +3601,16 @@ func (ds *DraggableSpace) Draw() {
 		return
 	}
 
+	current := ds.Current
+	if current > ds.Max {
+		current = ds.Max
+	}
+	if current < ds.Min {
+		current = ds.Min
+	}
+
 	stepWidth := ds.Rect.W / float32(ds.Max-ds.Min)
-	dragHandlePoint := Point{ds.Rect.X + (stepWidth * float32(ds.Current)), ds.Rect.Y + ds.Rect.H}
+	dragHandlePoint := Point{ds.Rect.X + (stepWidth * float32(current)), ds.Rect.Y + ds.Rect.H}
 	cursorPos := globals.Mouse.WorldPosition()
 	lmb := globals.Mouse.Button(sdl.BUTTON_LEFT)
 
@@ -3630,8 +3638,8 @@ func (ds *DraggableSpace) Draw() {
 
 		ds.NewCurrent = int(math.Round(float64((cursorPos.X - ds.Rect.X) / stepWidth)))
 
-		if ds.NewCurrent < 0 {
-			ds.NewCurrent = 0
+		if ds.NewCurrent < ds.Min {
+			ds.NewCurrent = ds.Min
 		}
 
 		if ds.NewCurrent > ds.Max {
