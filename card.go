@@ -870,7 +870,7 @@ func (card *Card) Update() {
 					for _, e := range row.Elements {
 						if label, ok := e.(*Label); ok {
 							label.BeginEditing()
-							label.Selection.SelectEnd()
+							// label.Selection.SelectEnd() // We want to select all text on the next or previous card, I think?
 							done = true
 							break
 						}
