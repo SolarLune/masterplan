@@ -1,3 +1,5 @@
+[ ] Hey, undoing and redoing changes depending on what text overflow mode you're in. This shouldn't be the case.
+
 [ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
 [ ] Add the ability for clipboard images to be saved in the MasterPlan download cache directory.
 [ ] Collapsing cards should probably just make the card smaller or bigger as necessary, but only to the ideal height of the card (so collapsing a Numbered Card just goes from 1 to 2 rows, for example).

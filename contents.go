@@ -121,22 +121,22 @@ func commonTextEditingResizing(label *Label, card *Card) {
 
 	if label.Editing && label.textChanged {
 
-		if globals.textEditingWrap.AsFloat() == TextWrappingModeWrap {
+		size := card.Rect.W
 
-			lineCount := float32(label.LineCount())
-			prevHeight := card.Contents.DefaultSize().Y
-
-			target := lineCount*globals.GridSize + (prevHeight - globals.GridSize)
-			if card.Collapsed == CollapsedShade {
-				target = lineCount * globals.GridSize
-			}
-			card.Recreate(card.Rect.W, target)
-
-		} else {
-			// Expand
-			size := globals.TextRenderer.MeasureText(label.Text, 1)
-			card.Recreate(size.X+64, card.Rect.H)
+		// Expand
+		if globals.textEditingWrap.AsFloat() == TextWrappingModeExpand {
+			s := globals.TextRenderer.MeasureText(label.Text, 1)
+			size = s.X + 64
 		}
+
+		lineCount := float32(label.LineCount())
+		prevHeight := card.Contents.DefaultSize().Y
+
+		target := lineCount*globals.GridSize + (prevHeight - globals.GridSize)
+		if card.Collapsed == CollapsedShade {
+			target = lineCount * globals.GridSize
+		}
+		card.Recreate(size, target)
 
 		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
 		if label.MultiEditing && label.Property != nil {
