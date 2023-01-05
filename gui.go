@@ -2289,6 +2289,14 @@ func (label *Label) IndexToWorld(index int) Point {
 
 	for _, line := range label.RendererResult.TextLines {
 
+		// If the index is longer than the line length, then we can just
+		// skip the entire line and move down one
+		if index > len(line) {
+			index -= len(line)
+			point.Y += globals.GridSize
+			continue
+		}
+
 		for _, char := range line {
 
 			if index <= 0 {

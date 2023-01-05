@@ -3293,7 +3293,7 @@ horizontally.`))
 
 	// Table menu
 
-	tableMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{999999, 0, 500, 100}, MenuCloseButton), "table settings menu", false)
+	tableMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{999999, 0, 500, 275}, MenuCloseButton), "table settings menu", false)
 	tableMenu.Resizeable = true
 	tableMenu.CloseMethod = MenuCloseButton
 	tableMenu.Draggable = true
@@ -3301,11 +3301,36 @@ horizontally.`))
 
 	root = tableMenu.Pages["root"]
 	row = root.AddRow(AlignCenter)
-	row.Add("", NewLabel("Map Settings", nil, false, AlignCenter))
+	row.Add("", NewLabel("Table Settings", nil, false, AlignCenter))
 
 	row = root.AddRow(AlignCenter)
-	row.Add("table mode", NewButtonGroup(nil, false, func(index int) { tableModeChanged = true }, nil, "Checkmark", "Letters", "Numbers"))
+	row.Add("label", NewLabel("Visualize As:", nil, false, AlignCenter))
+	row = root.AddRow(AlignCenter)
+	row.Add("table mode", NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) { tableModeChanged = true }, nil, "Checkmarks", "Letters", "Numbers"))
 	row.ExpandElementSet.SelectAll()
+
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewLabel("Table Controls", nil, false, AlignCenter))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("swap", NewButton("Swap Rows and Columns", nil, nil, false, func() {
+		for c := range globals.Project.CurrentPage.Selection.Cards {
+			if c.ContentType == ContentTypeTable {
+				c.Contents.(*TableContents).TableData.SwapColumnsAndRows()
+			}
+		}
+	}))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("swap", NewButton("Clear", nil, nil, false, func() {
+		for c := range globals.Project.CurrentPage.Selection.Cards {
+			if c.ContentType == ContentTypeTable {
+				c.Contents.(*TableContents).TableData.Clear()
+			}
+		}
+	}))
 
 }
 

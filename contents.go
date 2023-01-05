@@ -3125,6 +3125,7 @@ func (lc *LinkContents) ReceiveMessage(msg *Message) {
 }
 
 type TableDataContents struct {
+	X, Y   int
 	Value  int
 	Button *IconButton
 }
@@ -3236,30 +3237,41 @@ func (td *TableData) Resize(w, h int) {
 
 	for i := 0; i < len(td.Data); i++ {
 		for j := 0; j < len(td.Data[i]); j++ {
+
 			x, y := j, i
+
+			td.Data[i][j].X = x
+			td.Data[i][j].Y = y
+
 			if td.Data[i][j].Button == nil {
 				button := NewIconButton(0, 0, &sdl.Rect{0, 488, 24, 24}, globals.GUITexture, true, func() {
 
-					value := td.Value(x, y) + 1
+					xx := td.Data[y][x].X
+					yy := td.Data[y][x].Y
+
+					value := td.Value(xx, yy) + 1
 
 					if value >= valueDisplayModeSizes[td.ValueDisplayMode] {
 						value = 0
 					}
 
-					td.SetValue(x, y, value)
+					td.SetValue(xx, yy, value)
 					td.Changed = true
 
 					td.Table.Card.CreateUndoState = true
 				})
 				button.OnRightClickPressed = func() {
 
-					value := td.Value(x, y) - 1
+					xx := td.Data[y][x].X
+					yy := td.Data[y][x].Y
+
+					value := td.Value(xx, yy) - 1
 
 					if value < 0 {
 						value = valueDisplayModeSizes[td.ValueDisplayMode] - 1
 					}
 
-					td.SetValue(x, y, value)
+					td.SetValue(xx, yy, value)
 					td.Changed = true
 
 					td.Table.Card.CreateUndoState = true
@@ -3274,22 +3286,6 @@ func (td *TableData) Resize(w, h int) {
 	}
 
 }
-
-// func (td *TableData) Clear() {
-
-// 	// Data
-
-// 	for len(td.Data) < td.Height {
-// 		td.Data = append(td.Data, make([]TableDataContents, td.Width))
-// 	}
-
-// 	for i := 0; i < td.Height; i++ {
-// 		for len(td.Data[i]) < td.Width {
-// 			td.Data[i] = append(td.Data[i], TableDataContents{})
-// 		}
-// 	}
-
-// }
 
 func (td *TableData) Value(x, y int) int {
 	return td.Data[y][x].Value
@@ -3651,7 +3647,7 @@ func (td *TableData) showing() bool {
 	headerMode := globals.Settings.Get(SettingsShowTableHeaders).AsString()
 	switch headerMode {
 	case TableHeadersSelected:
-		return td.Table.Card.selected && len(td.Table.Card.Page.Selection.Cards) == 1
+		return td.Table.Card.selected
 	case TableHeadersHover:
 		maxDim := td.Table.Card.Rect.W
 		if td.Table.Card.Rect.H > maxDim {
@@ -3853,12 +3849,9 @@ func (td *TableData) Deserialize(data string) {
 			if i >= len(td.ColumnHeadings) {
 				break
 			}
-			prevText := td.ColumnHeadings[i].Label.TextAsString()
-			newText := rn.String()
-			td.ColumnHeadings[i].Label.SetTextRaw([]rune(newText))
-			if prevText != newText {
-				td.ColumnHeadings[i].Label.RecreateTexture()
-			}
+			td.ColumnHeadings[i].Label.SetTextRaw([]rune(rn.String()))
+			td.ColumnHeadings[i].Update()
+			td.ColumnHeadings[i].Label.RecreateTexture()
 		}
 
 		td.ValueDisplayMode = int(gjson.Get(data, "mode").Int())
@@ -3880,6 +3873,73 @@ func (td *TableData) SetRectangle(rect *sdl.FRect) {
 }
 
 func (td *TableData) Destroy() {}
+
+func (td *TableData) SwapColumnsAndRows() {
+
+	newColumns := []*DraggableLabel{}
+	newRows := []*DraggableLabel{}
+
+	for _, r := range td.RowHeadings {
+		newColumns = append(newColumns, r)
+		r.Vertical = true
+		r.Label.RecreateTexture()
+	}
+
+	for _, c := range td.ColumnHeadings {
+		newRows = append(newRows, c)
+		c.Vertical = false
+	}
+
+	data := [][]TableDataContents{}
+
+	for x := 0; x < td.Width; x++ {
+		data = append(data, []TableDataContents{})
+		for y := 0; y < td.Height; y++ {
+			content := td.Data[y][x]
+			content.X = x
+			content.Y = y
+			data[x] = append(data[x], content)
+		}
+	}
+
+	td.RowHeadings = newRows
+	td.ColumnHeadings = newColumns
+
+	ogWidth := td.Width
+	td.Width = td.Height
+	td.Height = ogWidth
+	td.Data = data
+
+	td.Table.Card.Recreate(float32(td.Width)*globals.GridSize, float32(td.Height)*globals.GridSize)
+
+	td.ForceUndoStateCreation()
+
+	globals.EventLog.Log("Swapped columns and rows on table.", false)
+}
+
+func (td *TableData) Clear() {
+
+	for y := 0; y < len(td.Data); y++ {
+		for x := 0; x < len(td.Data[y]); x++ {
+			td.Data[y][x].Value = 0
+		}
+	}
+
+	td.ForceUndoStateCreation()
+
+	globals.EventLog.Log("Table cleared.", false)
+
+}
+
+func (td *TableData) ForceUndoStateCreation() {
+
+	// We have to manually do this because this is called from a menu before the changed state is set to false, in td.Update().
+	contents := td.Table.Card.Properties.Get("contents")
+	contents.SetRaw(td.Table.TableData.Serialize())
+	td.Table.Card.SyncProperty(contents, false)
+	td.Table.Card.CreateUndoState = true
+
+}
 
 // type MenuElement interface {
 // 	Update()
@@ -3907,6 +3967,11 @@ func NewTableContents(card *Card) *TableContents {
 		tc.TableData.Deserialize(tc.Card.Properties.Get("contents").AsString())
 	} else {
 		tc.Card.Properties.Get("contents").SetRaw(tc.TableData.Serialize())
+		tc.Card.Properties.Get("contents").OnChange = func() {
+			// If the contents change independently of the table data (i.e. through
+			// syncing), then deserialize the tabledata using the contents string.
+			tc.TableData.Deserialize(tc.Card.Properties.Get("contents").AsString())
+		}
 	}
 
 	tc.SettingsButton = NewIconButton(0, 0, &sdl.Rect{400, 160, 32, 32}, globals.GUITexture, true, func() {
@@ -4001,6 +4066,7 @@ func (tc *TableContents) Draw() {
 	tc.TableData.Draw()
 
 	if tc.TableData.Changed {
+
 		contents := tc.Card.Properties.Get("contents")
 		contents.SetRaw(tc.TableData.Serialize())
 		tc.Card.SyncProperty(contents, false)
