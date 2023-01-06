@@ -635,7 +635,12 @@ func (nc *NumberedContents) DefaultSize() Point {
 }
 
 func (nc *NumberedContents) CompletionLevel() float32 {
-	return float32(nc.Card.Properties.Get("current").AsFloat())
+	c := float32(nc.Card.Properties.Get("current").AsFloat())
+	max := float32(nc.Card.Properties.Get("maximum").AsFloat())
+	if c > max {
+		c = max
+	}
+	return c
 }
 
 func (nc *NumberedContents) MaximumCompletionLevel() float32 {
