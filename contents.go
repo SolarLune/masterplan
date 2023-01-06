@@ -3125,9 +3125,29 @@ func (lc *LinkContents) ReceiveMessage(msg *Message) {
 }
 
 type TableDataContents struct {
-	X, Y   int
-	Value  int
-	Button *IconButton
+	TableData *TableData
+	Value     int
+	Button    *IconButton
+}
+
+func (tdc *TableDataContents) OnClick(rightClick bool) {
+
+	if rightClick {
+		tdc.Value--
+	} else {
+		tdc.Value++
+	}
+
+	if tdc.Value >= valueDisplayModeSizes[tdc.TableData.ValueDisplayMode] {
+		tdc.Value = 0
+	} else if tdc.Value < 0 {
+		tdc.Value = valueDisplayModeSizes[tdc.TableData.ValueDisplayMode] - 1
+	}
+
+	tdc.TableData.Changed = true
+
+	tdc.TableData.Table.Card.CreateUndoState = true
+
 }
 
 const (
@@ -3145,7 +3165,7 @@ var valueDisplayModeSizes map[int]int = map[int]int{
 type TableData struct {
 	Table             *TableContents
 	Rect              *sdl.FRect
-	Data              [][]TableDataContents
+	Data              [][]*TableDataContents
 	RowHeadings       []*DraggableLabel
 	ColumnHeadings    []*DraggableLabel
 	MaxLabelWidth     float32
@@ -3208,80 +3228,34 @@ func (td *TableData) Resize(w, h int) {
 
 	// Data
 
-	for len(td.Data) < h {
-		td.Data = append(td.Data, make([]TableDataContents, w))
-	}
+	for y := 0; y < h; y++ {
 
-	for i := 0; i < h; i++ {
-		for len(td.Data[i]) < w {
-			td.Data[i] = append(td.Data[i], TableDataContents{})
+		if len(td.Data) < h {
+			td.Data = append(td.Data, make([]*TableDataContents, 0, w))
 		}
-	}
 
-	// newData := make([][]TableDataContents, h)
+		for x := 0; x < w; x++ {
 
-	// for y := 0; y < h; y++ {
-	// 	newData[y] = make([]TableDataContents, w)
-
-	// 	for x := 0; x < w; x++ {
-	// 		if y < len(td.Data) && x < len(td.Data[y]) {
-	// 			if td.Data != nil && len(td.Data) >= y && len(td.Data[y]) >= x {
-	// 				newData[y][x] = td.Data[y][x]
-	// 			}
-	// 		}
-	// 	}
-
-	// }
-
-	// td.Data = newData
-
-	for i := 0; i < len(td.Data); i++ {
-		for j := 0; j < len(td.Data[i]); j++ {
-
-			x, y := j, i
-
-			td.Data[i][j].X = x
-			td.Data[i][j].Y = y
-
-			if td.Data[i][j].Button == nil {
-				button := NewIconButton(0, 0, &sdl.Rect{0, 488, 24, 24}, globals.GUITexture, true, func() {
-
-					xx := td.Data[y][x].X
-					yy := td.Data[y][x].Y
-
-					value := td.Value(xx, yy) + 1
-
-					if value >= valueDisplayModeSizes[td.ValueDisplayMode] {
-						value = 0
-					}
-
-					td.SetValue(xx, yy, value)
-					td.Changed = true
-
-					td.Table.Card.CreateUndoState = true
-				})
-				button.OnRightClickPressed = func() {
-
-					xx := td.Data[y][x].X
-					yy := td.Data[y][x].Y
-
-					value := td.Value(xx, yy) - 1
-
-					if value < 0 {
-						value = valueDisplayModeSizes[td.ValueDisplayMode] - 1
-					}
-
-					td.SetValue(xx, yy, value)
-					td.Changed = true
-
-					td.Table.Card.CreateUndoState = true
-				}
-				button.Highlighter.HighlightMode = HighlightRing
-				button.BGIconSrc = &sdl.Rect{0, 488, 24, 24}
-				button.FadeOnInactive = false
-
-				td.Data[i][j].Button = button
+			if len(td.Data[y]) >= w {
+				break
 			}
+
+			tdc := &TableDataContents{TableData: td}
+
+			button := NewIconButton(0, 0, &sdl.Rect{0, 488, 24, 24}, globals.GUITexture, true, func() {
+				tdc.OnClick(false)
+			})
+			button.OnRightClickPressed = func() {
+				tdc.OnClick(true)
+			}
+			button.Highlighter.HighlightMode = HighlightRing
+			button.BGIconSrc = &sdl.Rect{0, 488, 24, 24}
+			button.FadeOnInactive = false
+
+			tdc.Button = button
+
+			td.Data[y] = append(td.Data[y], tdc)
+
 		}
 	}
 
@@ -3890,15 +3864,12 @@ func (td *TableData) SwapColumnsAndRows() {
 		c.Vertical = false
 	}
 
-	data := [][]TableDataContents{}
+	data := [][]*TableDataContents{}
 
 	for x := 0; x < td.Width; x++ {
-		data = append(data, []TableDataContents{})
+		data = append(data, []*TableDataContents{})
 		for y := 0; y < td.Height; y++ {
-			content := td.Data[y][x]
-			content.X = x
-			content.Y = y
-			data[x] = append(data[x], content)
+			data[x] = append(data[x], td.Data[y][x])
 		}
 	}
 
