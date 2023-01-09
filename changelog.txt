@@ -4,6 +4,9 @@ v0.8.0-alpha.8.1
 
 -------
 
+- FIX: Menus no longer disappear when the window is minimized on Windows.
+- FIX: Swapping rows and columns in Tables didn't work properly previously.
+
 -------
 
 v0.8.0-alpha.8.0
