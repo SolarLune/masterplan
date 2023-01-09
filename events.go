@@ -400,6 +400,7 @@ func handleEvents() {
 		case *sdl.RenderEvent:
 
 			// If the render targets reset, re-render all render textures
+			// if baseEvent.GetType() == sdl.RENDER_TARGETS_RESET || baseEvent.GetType() == sdl.RENDER_DEVICE_RESET || baseEvent.GetType() == sdl.WINDOWEVENT_MINIMIZED || baseEvent.GetType() == sdl.WINDOWEVENT_MAXIMIZED {
 			if baseEvent.GetType() == sdl.RENDER_TARGETS_RESET || baseEvent.GetType() == sdl.RENDER_DEVICE_RESET {
 				RefreshRenderTextures()
 				globals.Project.SendMessage(NewMessage(MessageRenderTextureRefresh, nil, nil))

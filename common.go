@@ -390,7 +390,6 @@ func RefreshRenderTextures() {
 
 	for _, renderTexture := range renderTextures {
 		renderTexture.Destroy()
-		renderTexture.Texture = nil
 		renderTexture.RenderFunc()
 	}
 

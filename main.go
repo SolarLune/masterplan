@@ -47,7 +47,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.8.0-alpha.8")
+	globals.Version = semver.MustParse("0.8.0-alpha.8.1")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -803,7 +803,7 @@ func ConstructMenus() {
 
 	// Main Menu
 
-	mainMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 800, 48}, MenuCloseNone), "main", false)
+	mainMenu := globals.MenuSystem.Add(NewMenu("main", &sdl.FRect{0, 0, 800, 48}, MenuCloseNone), false)
 	mainMenu.Opened = true
 	mainMenu.Draggable = true
 	mainMenu.AnchorMode = MenuAnchorTopLeft
@@ -866,7 +866,7 @@ func ConstructMenus() {
 
 	// File Menu
 
-	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 350}, MenuCloseClickOut), "file", false)
+	fileMenu := globals.MenuSystem.Add(NewMenu("file", &sdl.FRect{0, 48, 300, 350}, MenuCloseClickOut), false)
 	root = fileMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() {
@@ -930,7 +930,7 @@ func ConstructMenus() {
 
 	// Export sub-menu
 
-	exportMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 550, 350}, MenuCloseButton), "export", false)
+	exportMenu := globals.MenuSystem.Add(NewMenu("export", &sdl.FRect{48, 48, 550, 350}, MenuCloseButton), false)
 	exportMenu.Resizeable = true
 	exportMenu.Draggable = true
 
@@ -1014,7 +1014,7 @@ func ConstructMenus() {
 
 	// Tools Menu
 
-	toolsMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), "tools", false)
+	toolsMenu := globals.MenuSystem.Add(NewMenu("tools", &sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), false)
 	root = toolsMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("take screenshot", NewButton("Take Screenshot", nil, nil, false, func() {
@@ -1120,7 +1120,7 @@ func ConstructMenus() {
 
 	// View Menu
 
-	viewMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), "view", false)
+	viewMenu := globals.MenuSystem.Add(NewMenu("view", &sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), false)
 	root = viewMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("Create Menu", NewButton("Create", nil, nil, false, func() {
@@ -1158,7 +1158,7 @@ func ConstructMenus() {
 		viewMenu.Close()
 	}))
 
-	loadRecent := globals.MenuSystem.Add(NewMenu(&sdl.FRect{128, 96, 512, 128}, MenuCloseClickOut), "load recent", false)
+	loadRecent := globals.MenuSystem.Add(NewMenu("load recent", &sdl.FRect{128, 96, 512, 128}, MenuCloseClickOut), false)
 	loadRecent.OnOpen = func() {
 
 		root = loadRecent.Pages["root"]
@@ -1201,7 +1201,7 @@ func ConstructMenus() {
 
 	// Create Menu
 
-	createMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X, globals.ScreenSize.Y, 32, 32}, MenuCloseButton), "create", false)
+	createMenu := globals.MenuSystem.Add(NewMenu("create", &sdl.FRect{globals.ScreenSize.X, globals.ScreenSize.Y, 32, 32}, MenuCloseButton), false)
 	createMenu.AnchorMode = MenuAnchorBottomRight
 	createMenu.Draggable = true
 	createMenu.Resizeable = true
@@ -1255,7 +1255,7 @@ func ConstructMenus() {
 
 	// Edit Menu
 
-	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, globals.ScreenSize.Y/2 - (450 / 2), 400, 500}, MenuCloseButton), "edit", false)
+	editMenu := globals.MenuSystem.Add(NewMenu("edit", &sdl.FRect{0, globals.ScreenSize.Y/2 - (450 / 2), 400, 500}, MenuCloseButton), false)
 	editMenu.Draggable = true
 	editMenu.Resizeable = true
 	editMenu.AnchorMode = MenuAnchorLeft
@@ -1728,7 +1728,7 @@ func ConstructMenus() {
 
 	// Context Menu
 
-	contextMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 256, 256}, MenuCloseClickOut), "context", false)
+	contextMenu := globals.MenuSystem.Add(NewMenu("context", &sdl.FRect{0, 0, 256, 256}, MenuCloseClickOut), false)
 	contextMenu.OnOpen = func() { globals.State = StateContextMenu }
 	contextMenu.OnClose = func() { globals.State = StateNeutral }
 	root = contextMenu.Pages["root"]
@@ -1764,7 +1764,7 @@ func ConstructMenus() {
 		contextMenu.Close()
 	}))
 
-	commonMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 192}, MenuCloseButton), "common", false)
+	commonMenu := globals.MenuSystem.Add(NewMenu("common", &sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 192}, MenuCloseButton), false)
 	commonMenu.Draggable = true
 	commonMenu.Resizeable = true
 
@@ -1792,7 +1792,7 @@ func ConstructMenus() {
 
 	// Confirmation Menus
 
-	confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm quit", true)
+	confirmQuit := globals.MenuSystem.Add(NewMenu("confirm quit", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
 	confirmQuit.Draggable = true
 	root = confirmQuit.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to quit?", nil, false, AlignCenter))
@@ -1802,7 +1802,7 @@ func ConstructMenus() {
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
 	confirmQuit.Recreate(root.IdealSize().X+48, root.IdealSize().Y+32)
 
-	confirmNewProject := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm new project", true)
+	confirmNewProject := globals.MenuSystem.Add(NewMenu("confirm new project", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
 	confirmNewProject.Draggable = true
 	root = confirmNewProject.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Create a new project?", nil, false, AlignCenter))
@@ -1816,7 +1816,7 @@ func ConstructMenus() {
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmNewProject.Close() }))
 	confirmNewProject.Recreate(root.IdealSize().X+48, root.IdealSize().Y+32)
 
-	confirmLoad := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm load", true)
+	confirmLoad := globals.MenuSystem.Add(NewMenu("confirm load", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
 	confirmLoad.Draggable = true
 	root = confirmLoad.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Load the following project?", nil, false, AlignCenter))
@@ -1850,10 +1850,10 @@ func ConstructMenus() {
 
 	// Settings Menu
 
-	settings := NewMenu(&sdl.FRect{0, 0, 850, 512}, MenuCloseButton)
+	settings := NewMenu("settings", &sdl.FRect{0, 0, 850, 512}, MenuCloseButton)
 	settings.Draggable = true
 	settings.Resizeable = true
-	globals.MenuSystem.Add(settings, "settings", true)
+	globals.MenuSystem.Add(settings, true)
 
 	root = settings.Pages["root"]
 	row = root.AddRow(AlignCenter)
@@ -2562,7 +2562,7 @@ where the cursor is over the window.`))
 
 	// Hierarchy Menu
 
-	list := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 0, 440, 800}, MenuCloseButton), "hierarchy", false)
+	list := globals.MenuSystem.Add(NewMenu("hierarchy", &sdl.FRect{9999, 0, 440, 800}, MenuCloseButton), false)
 	list.Draggable = true
 	list.Resizeable = true
 	list.UpdateAnchor()
@@ -2706,7 +2706,7 @@ where the cursor is over the window.`))
 
 	// Search Menu
 
-	find := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 9999, 512, 96}, MenuCloseButton), "find", false)
+	find := globals.MenuSystem.Add(NewMenu("find", &sdl.FRect{9999, 9999, 512, 96}, MenuCloseButton), false)
 	find.AnchorMode = MenuAnchorTopRight
 	find.Draggable = true
 	find.Resizeable = true
@@ -2856,7 +2856,7 @@ where the cursor is over the window.`))
 
 	// Previous sub-page menu
 
-	prevSubPageMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{(globals.ScreenSize.X - 512) / 2, globals.ScreenSize.Y, 512, 96}, MenuCloseNone), "prev sub page", false)
+	prevSubPageMenu := globals.MenuSystem.Add(NewMenu("prev sub page", &sdl.FRect{(globals.ScreenSize.X - 512) / 2, globals.ScreenSize.Y, 512, 96}, MenuCloseNone), false)
 	prevSubPageMenu.Opened = false
 	prevSubPageMenu.Draggable = true
 	prevSubPageMenu.Resizeable = true
@@ -2880,7 +2880,7 @@ where the cursor is over the window.`))
 
 	// Text editing menu
 
-	textEditing := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 9999, 312, 48}, MenuCloseNone), "text editing", false)
+	textEditing := globals.MenuSystem.Add(NewMenu("text editing", &sdl.FRect{9999, 9999, 312, 48}, MenuCloseNone), false)
 	textEditing.AutoOpen = func() bool {
 		return globals.State == StateTextEditing && globals.editingCard != nil
 	}
@@ -2907,7 +2907,7 @@ horizontally.`))
 
 	// Deadlines menu
 
-	deadlines := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), "deadlines", false)
+	deadlines := globals.MenuSystem.Add(NewMenu("deadlines", &sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), false)
 
 	deadlines.Draggable = true
 	deadlines.Resizeable = true
@@ -3062,7 +3062,7 @@ horizontally.`))
 
 	// Stats Menu
 
-	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), "stats", false)
+	stats := globals.MenuSystem.Add(NewMenu("stats", &sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), false)
 	stats.Draggable = true
 	stats.Resizeable = true
 	stats.AnchorMode = MenuAnchorBottom
@@ -3187,7 +3187,7 @@ horizontally.`))
 
 	// Map palette menu
 
-	paletteMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 200, 560}, MenuCloseButton), "map palette menu", false)
+	paletteMenu := globals.MenuSystem.Add(NewMenu("map palette menu", &sdl.FRect{0, 0, 200, 560}, MenuCloseButton), false)
 	paletteMenu.Center()
 	paletteMenu.Draggable = true
 	paletteMenu.Resizeable = true
@@ -3293,7 +3293,7 @@ horizontally.`))
 
 	// Table menu
 
-	tableMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{999999, 0, 500, 275}, MenuCloseButton), "table settings menu", false)
+	tableMenu := globals.MenuSystem.Add(NewMenu("table settings menu", &sdl.FRect{999999, 0, 500, 275}, MenuCloseButton), false)
 	tableMenu.Resizeable = true
 	tableMenu.CloseMethod = MenuCloseButton
 	tableMenu.Draggable = true

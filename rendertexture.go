@@ -24,10 +24,10 @@ type RenderTexture struct {
 
 func (rt *RenderTexture) Destroy() {
 
-	if rt.Image.Texture != nil {
-		rt.Image.Texture.Destroy()
+	if rt.Texture != nil {
+		rt.Texture.Destroy()
 	}
-	rt.Image.Texture = nil
+	rt.Texture = nil
 
 }
 
