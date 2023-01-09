@@ -365,6 +365,7 @@ type Checkbox struct {
 	Checked       bool
 	Clickable     bool
 	MultiCheckbox bool
+	OnChange      func()
 }
 
 func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
@@ -388,6 +389,10 @@ func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 			checkbox.Property.Set(!checkbox.Property.AsBool())
 		} else {
 			checkbox.Checked = !checkbox.Checked
+		}
+
+		if checkbox.OnChange != nil {
+			checkbox.OnChange()
 		}
 
 	}
@@ -3914,15 +3919,75 @@ func (tt *Tooltip) Update() {
 	if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.RawPosition().Inside(tt.Button.Rect) {
 		tt.Displaying = false
 	}
+
+	if tt.Displaying {
+		globals.DrawOnTop = tt
+	}
+
 }
 func (tt *Tooltip) Draw() {
 	tt.Button.Draw()
 }
 
 func (tt *Tooltip) DrawOnTop() {
+
 	if tt.Displaying {
-		DrawTooltip(tt.SpawnStart, tt.Text)
+
+		fontSizeMult := float32(0.75)
+
+		textSize := globals.TextRenderer.MeasureText([]rune(tt.Text), fontSizeMult)
+
+		margin := float32(32)
+
+		if textSize.X < 16 {
+			textSize.X = 16
+		}
+
+		if textSize.Y < 16 {
+			textSize.Y = 16
+		}
+
+		menuColor := getThemeColor(GUIMenuColor)
+		fontColor := getThemeColor(GUIFontColor)
+
+		midHeight := globals.ScreenSize.Y / 2
+
+		pos := tt.SpawnStart
+
+		if pos.Y > midHeight {
+			pos.Y -= textSize.Y + 32
+		} else {
+			pos.Y += 64
+		}
+
+		maxX := globals.ScreenSize.X - textSize.X
+		if pos.X > maxX {
+			pos.X = maxX
+		}
+
+		maxY := globals.ScreenSize.Y - textSize.Y
+		if pos.Y > maxY {
+			pos.Y = maxY
+		}
+
+		dst := &sdl.FRect{pos.X, pos.Y, textSize.X, textSize.Y}
+
+		dst.X -= margin
+		dst.Y -= margin
+		dst.W += margin
+		dst.H += margin
+
+		shadow := NewColor(0, 0, 0, 150)
+		FillRect(dst.X+16, dst.Y+16, dst.W, dst.H, shadow)
+		FillRect(dst.X, dst.Y, dst.W, dst.H, fontColor)
+		FillRect(dst.X+2, dst.Y+2, dst.W-4, dst.H-4, menuColor)
+
+		globals.TextRenderer.QuickRenderText(tt.Text, Point{dst.X + (margin / 2), dst.Y + (margin / 2)}, fontSizeMult, getThemeColor(GUIFontColor), nil, AlignLeft)
+
+	} else if globals.DrawOnTop == tt {
+		globals.DrawOnTop = nil
 	}
+
 }
 
 func (tt *Tooltip) Rectangle() *sdl.FRect        { return tt.Button.Rectangle() }

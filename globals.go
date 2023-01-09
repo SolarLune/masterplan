@@ -85,6 +85,8 @@ type Globals struct {
 	editingLabel    *Label
 	editingCard     *Card
 	textEditingWrap *Property
+
+	DrawOnTop DrawOnTop
 }
 
 var globals = &Globals{

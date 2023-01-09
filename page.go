@@ -518,12 +518,14 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 	mime, _ := mimetype.DetectFile(filePath)
 	mimeType := mime.String()
 
+	var card *Card
+
 	// We check for tga specifically because the mimetype doesn't seem to detect this properly.
 	if strings.Contains(mimeType, "image") || filepath.Ext(filePath) == ".tga" {
-		card := page.CreateNewCard(ContentTypeImage)
+		card = page.CreateNewCard(ContentTypeImage)
 		card.Contents.(*ImageContents).LoadFileFrom(filePath)
 	} else if strings.Contains(mimeType, "audio") {
-		card := page.CreateNewCard(ContentTypeSound)
+		card = page.CreateNewCard(ContentTypeSound)
 		card.Contents.(*SoundContents).LoadFileFrom(filePath)
 	} else if strings.Contains(mimeType, "json") && strings.Contains(filepath.Ext(filePath), ".plan") {
 		globals.Project.LoadConfirmationTo = filePath
@@ -536,7 +538,7 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 		if err != nil {
 			globals.EventLog.Log(err.Error(), false)
 		} else {
-			card := page.CreateNewCard(ContentTypeCheckbox)
+			card = page.CreateNewCard(ContentTypeCheckbox)
 			card.Properties.Get("description").Set(string(text))
 			size := globals.TextRenderer.MeasureText([]rune(string(text)), 1)
 			card.Recreate(size.X, size.Y)
@@ -545,6 +547,12 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 
 	} else {
 		globals.EventLog.Log("Dropped file [%s] is not a recognized image, audio, or text file format.", true, filePath)
+	}
+
+	if card != nil {
+		card.Rect.X = page.Project.Camera.Position.X - (card.Rect.W / 2)
+		card.Rect.Y = page.Project.Camera.Position.Y - (card.Rect.H / 2)
+		card.LockPosition()
 	}
 
 }

@@ -888,6 +888,7 @@ func (sc *SoundContents) Update() {
 				if err != nil {
 					globals.EventLog.Log("Error: Couldn't load [%s] as sound resource\ndue to error: %s", false, sc.Resource.Name, err.Error())
 					sc.Resource = nil
+					sc.Sound = nil
 					return
 				} else {
 					sc.Sound = sound
@@ -1051,6 +1052,10 @@ func (sc *SoundContents) ReceiveMessage(msg *Message) {
 
 		if msg.Type == MessageCardDeleted {
 			sc.Sound.Pause()
+			// if globals.Settings.Get(SettingsCacheAudioBeforePlayback).AsBool() {
+			sc.Sound.Destroy()
+			sc.Sound = nil
+			// }
 			sc.Playing = false
 		}
 

@@ -52,6 +52,7 @@ const (
 	SettingsHideGridOnZoomOut            = "Hide Grid on Zoom out"
 	SettingsDisplayNumberedPercentagesAs = "Display Numbered Percentages"
 	SettingsShowTableHeaders             = "Display Table Headers"
+	// SettingsCacheAudioBeforePlayback     = "Cache Audio Before Playback"
 
 	SettingsAudioVolume     = "AudioVolume"
 	SettingsAudioBufferSize = "Audio Playback Buffer Size"
@@ -101,13 +102,16 @@ const (
 )
 
 const (
-	AudioBufferSize32   = "32"
-	AudioBufferSize64   = "64"
-	AudioBufferSize128  = "128"
-	AudioBufferSize256  = "256"
-	AudioBufferSize512  = "512"
-	AudioBufferSize1024 = "1024"
-	AudioBufferSize2048 = "2048"
+	AudioBufferSize32    = "32"
+	AudioBufferSize64    = "64"
+	AudioBufferSize128   = "128"
+	AudioBufferSize256   = "256"
+	AudioBufferSize512   = "512"
+	AudioBufferSize1024  = "1024"
+	AudioBufferSize2048  = "2048"
+	AudioBufferSize4096  = "4096"
+	AudioBufferSize8192  = "8192"
+	AudioBufferSize16384 = "16384"
 )
 
 var percentageToNumber map[string]float32 = map[string]float32{

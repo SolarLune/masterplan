@@ -711,61 +711,6 @@ func DrawLabel(pos Point, text string) {
 
 }
 
-// DrawTooltip draws a tooltip featuring the text provided at the position given.
-func DrawTooltip(pos Point, text string) {
-
-	clip := globals.Renderer.GetClipRect()
-
-	globals.Renderer.SetClipRect(nil)
-
-	fontSizeMult := float32(0.75)
-
-	textSize := globals.TextRenderer.MeasureText([]rune(text), fontSizeMult)
-	textSize.X += 16
-	textSize.Y += 48
-
-	if textSize.X < 16 {
-		textSize.X = 16
-	}
-
-	if textSize.Y < 16 {
-		textSize.Y = 16
-	}
-
-	menuColor := getThemeColor(GUIMenuColor)
-	fontColor := getThemeColor(GUIFontColor)
-
-	midHeight := globals.ScreenSize.Y / 2
-
-	if pos.Y > midHeight {
-		pos.Y -= textSize.Y + 32
-	} else {
-		pos.Y += 64
-	}
-
-	maxX := globals.ScreenSize.X - textSize.X
-	if pos.X > maxX {
-		pos.X = maxX
-	}
-
-	maxY := globals.ScreenSize.Y - textSize.Y
-	if pos.Y > maxY {
-		pos.Y = maxY
-	}
-
-	dst := &sdl.FRect{pos.X, pos.Y, textSize.X, textSize.Y}
-
-	shadow := NewColor(0, 0, 0, 150)
-	FillRect(dst.X+16, dst.Y+16, dst.W, dst.H, shadow)
-	FillRect(dst.X-2, dst.Y-2, dst.W+4, dst.H+4, fontColor)
-	FillRect(dst.X, dst.Y, dst.W, dst.H, menuColor)
-
-	globals.TextRenderer.QuickRenderText(text, Point{pos.X + (textSize.X / 2), pos.Y}, fontSizeMult, getThemeColor(GUIFontColor), nil, AlignCenter)
-
-	globals.Renderer.SetClipRect(&clip)
-
-}
-
 type Shape struct {
 	Rects []*sdl.FRect
 }
@@ -931,3 +876,7 @@ const RegexOnlyDigits = `[\d]`
 const RegexNoDigits = `[^\d]`
 const RegexOnlyDigitsAndColon = `[\d:]`
 const RegexHex = `[#a-fA-F\d]`
+
+type DrawOnTop interface {
+	DrawOnTop()
+}

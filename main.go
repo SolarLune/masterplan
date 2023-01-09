@@ -509,6 +509,10 @@ func main() {
 				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{480, 80, 8, 8}, &sdl.FRect{pos.X + 20, pos.Y - 8, 8, 8})
 			}
 
+			if globals.DrawOnTop != nil {
+				globals.DrawOnTop.DrawOnTop()
+			}
+
 			if globals.DebugMode {
 				fps, _ := gfx.GetFramerate(fpsManager)
 				s := strconv.FormatFloat(float64(fps), 'f', 0, 64)
@@ -1905,8 +1909,15 @@ func ConstructMenus() {
 	row.Add("", number)
 
 	row = sound.AddRow(AlignCenter)
+	row.Add("", NewTooltip(`Playback Buffer Size:
+Adjusting this changes the buffer size
+for playback of sounds. Try raising the 
+buffer size if the sound is too crackly.
+
+Changing this setting requires restarting 
+MasterPlan to take effect.`))
 	row.Add("", NewLabel("Playback Buffer Size:", nil, false, AlignCenter))
-	audioBufferBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, func(index int) {
+	audioBufferBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 96}, false, func(index int) {
 		globals.EventLog.Log("Audio playback buffer size set to %s; changes will take effect on program restart.", true, globals.Settings.Get(SettingsAudioBufferSize).AsString())
 	}, globals.Settings.Get(SettingsAudioBufferSize),
 		AudioBufferSize32,
@@ -1916,11 +1927,22 @@ func ConstructMenus() {
 		AudioBufferSize512,
 		AudioBufferSize1024,
 		AudioBufferSize2048,
+		AudioBufferSize4096,
+		AudioBufferSize8192,
+		AudioBufferSize16384,
 	)
 	audioBufferBG.MaxButtonsPerRow = 4
 	row.Add("", audioBufferBG)
 
 	row = sound.AddRow(AlignCenter)
+	row.Add("", NewTooltip(`Playback Device Sample Rate:
+Adjusting this changes the requested sample 
+rate for audio playback. Try raising the 
+sample rate if the sound is low quality
+or fuzzy.
+
+Changing this setting requires restarting 
+MasterPlan to take effect.`))
 	row.Add("", NewLabel("Playback Device Sample Rate:", nil, false, AlignCenter))
 
 	audioSampleRateBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, func(index int) {
@@ -1936,8 +1958,32 @@ func ConstructMenus() {
 	audioSampleRateBG.MaxButtonsPerRow = 3
 	row.Add("", audioSampleRateBG)
 
+	// 	row = sound.AddRow(AlignLeft)
+	// 	row.Add("", NewTooltip(`Cache Audio:
+	// Enables caching of music in sound cards. If
+	// enabled, then audio is loaded into memory rather
+	// than streamed from disk. This will drastically
+	// increase memory usage when playing back audio, while
+	// simultaneously reducing disk usage.
+
+	// Changing this will require restarting
+	// Masterplan to apply the effect.`))
+	// 	row.Add("", NewLabel("Cache Audio:", nil, false, AlignCenter))
+	// 	chkbox := NewCheckbox(0, 0, false, globals.Settings.Get(SettingsCacheAudioBeforePlayback))
+	// 	chkbox.OnChange = func() {
+	// 		cacheState := "Audio caching disabled."
+	// 		if chkbox.Property.AsBool() {
+	// 			cacheState = "Audio caching enabled."
+	// 		}
+	// 		globals.EventLog.Log(cacheState+" Restart MasterPlan to apply this change.", false)
+	// 	}
+	// 	row.Add("", chkbox)
+
 	for _, row := range sound.Rows {
-		row.ExpandElementSet.SelectAll()
+		row.ExpandElementSet.SelectIf(func(me MenuElement) bool {
+			_, isTooltip := me.(*Tooltip)
+			return !isTooltip
+		})
 	}
 
 	// General options

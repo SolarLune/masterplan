@@ -9,14 +9,14 @@ import (
 )
 
 type Sound struct {
-	Stream  beep.StreamSeekCloser
+	Stream  beep.StreamSeeker
 	Format  beep.Format
 	volume  *effects.Volume
 	control *beep.Ctrl
 	Empty   bool
 }
 
-func NewSound(stream beep.StreamSeekCloser, format beep.Format) *Sound {
+func NewSound(stream beep.StreamSeeker, format beep.Format) *Sound {
 
 	sound := &Sound{
 		Stream: stream,
@@ -32,6 +32,23 @@ func NewSound(stream beep.StreamSeekCloser, format beep.Format) *Sound {
 }
 
 func (sound *Sound) ReloadStream() {
+
+	// if globals.Settings.Get(SettingsCacheAudioBeforePlayback).AsBool() {
+
+	// 	ogStream := sound.Stream
+
+	// 	// globals.EventLog.Log("caching audio", false)
+
+	// 	buffer := beep.NewBuffer(sound.Format)
+	// 	buffer.Append(ogStream)
+	// 	sound.Stream = buffer.Streamer(0, ogStream.Len())
+
+	// 	// Close the stream if possible before replacing it, we don't need it after buffering
+	// 	if stream, ok := ogStream.(beep.StreamSeekCloser); ok {
+	// 		stream.Close()
+	// 	}
+
+	// }
 
 	resampled := beep.Resample(3, sound.Format.SampleRate, globals.ChosenAudioSampleRate, sound.Stream)
 
@@ -70,6 +87,9 @@ func (sound *Sound) UpdateVolume() {
 }
 
 func (sound *Sound) Play() {
+	if sound.Stream == nil {
+		sound.ReloadStream()
+	}
 	speaker.Lock()
 	sound.control.Paused = false
 	speaker.Unlock()
@@ -117,7 +137,12 @@ func (sound *Sound) Position() time.Duration {
 func (sound *Sound) Destroy() {
 	sound.Pause()
 	speaker.Lock()
-	sound.Stream.Close()
+
+	if stream, ok := sound.Stream.(beep.StreamSeekCloser); ok {
+		stream.Close()
+	}
+	sound.Stream = nil
+
 	speaker.Unlock()
 }
 
