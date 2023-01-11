@@ -4,8 +4,12 @@ v0.8.0-alpha.8.1
 
 -------
 
-- FIX: Menus no longer disappear when the window is minimized on Windows.
-- FIX: Swapping rows and columns in Tables didn't work properly previously.
+- QoL: Adding more audio playback buffer size options.
+- QoL: Dropped files onto MasterPlan now create cards in the center of the window, rather than the mouse last was prior to exiting the window.
+- FIX: Menus no longer disappear when the MasterPlan window is minimized on Windows.
+- FIX: Swapping rows and columns in Tables now works properly (previously, swapping rows and columns had pressing a cell correspond to the transposed cell in the table).
+- FIX: Tooltip bounds are sized properly now.
+- FIX: Numbered cards now properly count for parent card, rather than over counting when the value is over the maximum.
 
 -------
 

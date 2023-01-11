@@ -406,7 +406,8 @@ func main() {
 		}
 
 		globals.ScreenSizeChanged = false
-		if screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y) {
+		if screenWidth > 0 && screenHeight > 0 && (screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y)) {
+
 			globals.ScreenSizeChanged = true
 			globals.ScreenSizePrev = globals.ScreenSize
 			globals.ScreenshotSurf.Free()
@@ -414,9 +415,10 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-		}
 
-		globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
+			globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
+
+		}
 
 		globals.Time += float64(globals.DeltaTime)
 
