@@ -78,8 +78,6 @@ type Globals struct {
 
 	Dispatcher *Dispatcher
 
-	LoadingSubpagesBroken bool
-
 	Hierarchy *Hierarchy
 
 	editingLabel    *Label

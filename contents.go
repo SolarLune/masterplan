@@ -2684,23 +2684,24 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 	if sb.Card.Properties.Has("subpage") {
 		spID := uint64(sb.Card.Properties.Get("subpage").AsFloat())
-		if globals.LoadingSubpagesBroken {
 
-			if len(project.Pages) > int(spID) {
-				sb.SubPage = project.Pages[spID]
+		// if globals.LoadingSubpagesBroken {
+
+		// 	if len(project.Pages) > int(spID) {
+		// 		sb.SubPage = project.Pages[spID]
+		// 	}
+
+		// } else {
+
+		for _, page := range project.Pages {
+			// If our desired backing page already exists and is not already being pointed to by another subpage card, then we set this subpage card to point to it
+			if page.ID == spID && page.PointingSubpageCard == nil {
+				sb.SubPage = page
+				break
 			}
-
-		} else {
-
-			for _, page := range project.Pages {
-				// If our desired backing page already exists and is not already being pointed to by another subpage card, then we set this subpage card to point to it
-				if page.ID == spID && page.PointingSubpageCard == nil {
-					sb.SubPage = page
-					break
-				}
-			}
-
 		}
+
+		// }
 
 	}
 

@@ -1048,8 +1048,6 @@ func OpenProjectFrom(filename string) {
 		newProject.UndoHistory.MinimumFrame = 1
 		globals.EventLog.On = true
 
-		globals.LoadingSubpagesBroken = false
-
 		globals.EventLog.Log("Project loaded successfully.", false)
 
 		if brokenProject {
@@ -1523,6 +1521,10 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 	} else if globals.State == StateCardLink {
+
+		if kb.Pressed(KBSubpageClose) {
+			project.GoUpFromSubpage()
+		}
 
 		globals.Mouse.SetCursor(CursorEyedropper)
 

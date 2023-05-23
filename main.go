@@ -221,12 +221,12 @@ func main() {
 		panic(err)
 	}
 
-	globals.ScreenshotSurf, err = sdl.CreateRGBSurfaceWithFormat(0, 1920, 1080, 32, sdl.PIXELFORMAT_ARGB8888)
+	globals.ScreenshotSurf, err = sdl.CreateRGBSurfaceWithFormat(0, w, h, 32, sdl.PIXELFORMAT_ARGB8888)
 	if err != nil {
 		panic(err)
 	}
 
-	globals.ExportSurf, err = sdl.CreateRGBSurfaceWithFormat(0, 1920, 1080, 32, sdl.PIXELFORMAT_ARGB8888)
+	globals.ExportSurf, err = sdl.CreateRGBSurfaceWithFormat(0, w, h, 32, sdl.PIXELFORMAT_ARGB8888)
 	if err != nil {
 		panic(err)
 	}
@@ -264,8 +264,7 @@ func main() {
 	globals.Dispatcher = NewDispatcher()
 
 	globals.TextRenderer = NewTextRenderer()
-	screenWidth, screenHeight, _ := globals.Renderer.GetOutputSize()
-	globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
+	globals.ScreenSize = Point{float32(w), float32(h)}
 
 	globals.TriggerReloadFonts = true
 	HandleFontReload()
@@ -406,8 +405,13 @@ func main() {
 		}
 
 		globals.ScreenSizeChanged = false
+
+		// We check to see if the width and height is greater than zero because on
+		// Windows, SDL2 will return a screen size of 0, 0 if the window is minimized.
+		// This will make menus in MasterPlan disappear, which is, understandably, bad.
 		if screenWidth > 0 && screenHeight > 0 && (screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y)) {
 
+			globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)} // We have to set the screen size before we create the screenshot surface, duh~
 			globals.ScreenSizeChanged = true
 			globals.ScreenSizePrev = globals.ScreenSize
 			globals.ScreenshotSurf.Free()
@@ -415,8 +419,6 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-
-			globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
 
 		}
 

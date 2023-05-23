@@ -2008,6 +2008,8 @@ func (card *Card) ReceiveMessage(message *Message) {
 					t.LockPosition()
 					t.CreateUndoState = true
 					top += t.Rect.H
+				} else {
+					break
 				}
 			}
 

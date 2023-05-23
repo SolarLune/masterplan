@@ -428,13 +428,29 @@ func (page *Page) PasteCards(offset Point, adhereToMousePosition bool) []*Card {
 
 	page.Selection.Clear()
 
+	invalidCut := false
+
 	for i := 0; i < len(globals.CopyBuffer.Cards); i++ {
+
+		card := globals.CopyBuffer.Cards[i]
+
+		if card.ContentType == ContentTypeSubpage && globals.CopyBuffer.CutMode {
+			invalidCut = true
+			globals.EventLog.Log("Cannot cut a sub-page card.", true)
+			continue
+		}
+
 		newCard := page.CreateNewCard(ContentTypeCheckbox)
 		newCards = append(newCards, newCard)
 		oldToNew[globals.CopyBuffer.Cards[i]] = newCard
 	}
 
 	for i, card := range globals.CopyBuffer.Cards {
+
+		// If we try pasting sub-page cards and these were denied, skip them
+		if _, exists := oldToNew[card]; !exists {
+			continue
+		}
 
 		serialized := globals.CopyBuffer.CardsToSerialized[card]
 		serialized, _ = sjson.Set(serialized, "id", oldToNew[card].ID)
@@ -488,6 +504,11 @@ func (page *Page) PasteCards(offset Point, adhereToMousePosition bool) []*Card {
 
 	if globals.CopyBuffer.CutMode {
 		for _, card := range globals.CopyBuffer.Cards {
+			// If we try pasting sub-page cards and these were denied, skip them
+			if _, exists := oldToNew[card]; !exists {
+				continue
+			}
+
 			card.Page.DeleteCards(card)
 		}
 		globals.CopyBuffer.CutMode = false
@@ -497,6 +518,10 @@ func (page *Page) PasteCards(offset Point, adhereToMousePosition bool) []*Card {
 
 	if len(globals.CopyBuffer.Cards) > 0 {
 		globals.EventLog.Log("Pasted %d Cards.", false, len(globals.CopyBuffer.Cards))
+	}
+
+	if invalidCut {
+		globals.CopyBuffer.Clear()
 	}
 
 	return newCards
