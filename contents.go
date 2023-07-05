@@ -2944,6 +2944,18 @@ func NewLinkContents(card *Card) *LinkContents {
 		commonMenu.Open()
 	}))
 
+	lc.ProgramRow.Add("locate", NewButton("Locate", nil, nil, true, func() {
+
+		programPath := lc.Card.Properties.Get("run").AsString()
+		folderPath := path.Dir(programPath)
+		if programPath != "" && FolderExists(folderPath) {
+			open.Run(folderPath)
+		} else {
+			globals.EventLog.Log("WARNING: No program to navigate to, or an invalid file path has been set.", true)
+		}
+
+	}))
+
 	lc.ProgramRow.Add("run", NewButton("Run", nil, nil, true, func() {
 		lc.Run()
 	}))
@@ -3100,7 +3112,7 @@ func (lc *LinkContents) Color() Color {
 }
 
 func (lc *LinkContents) DefaultSize() Point {
-	return Point{globals.GridSize * 10, globals.GridSize * 3}
+	return Point{globals.GridSize * 13, globals.GridSize * 3}
 }
 
 func (lc *LinkContents) Trigger(triggerType int) {}
