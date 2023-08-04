@@ -90,7 +90,12 @@ func (history *UndoHistory) Undo() bool {
 
 		history.Index--
 
+		sel := history.Project.CurrentPage.Selection
+		sel.Clear()
+
 		for _, affected := range affected {
+
+			sel.Add(affected)
 
 			foundState := false
 
@@ -157,7 +162,12 @@ func (history *UndoHistory) Redo() bool {
 
 		history.Index++
 
+		sel := history.Project.CurrentPage.Selection
+		sel.Clear()
+
 		for _, affected := range affected {
+
+			sel.Add(affected)
 
 			if state, exists := history.Frames[history.Index-1].States[affected]; exists {
 				state.Apply()
@@ -212,6 +222,8 @@ func (history *UndoHistory) Update() {
 		}
 
 		history.Changed = false
+
+		// history.Print()
 
 	}
 

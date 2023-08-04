@@ -86,7 +86,7 @@ func (prop *Property) Set(value interface{}) {
 			prop.OnChange()
 		}
 
-		if prop.Properties.OnChange != nil {
+		if prop.Properties != nil && prop.Properties.OnChange != nil {
 			prop.Properties.OnChange(prop)
 		}
 

@@ -198,6 +198,13 @@ func ClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
 	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.Position().Inside(rect)
 }
 
+func RawClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
+	if worldSpace {
+		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.RawWorldPosition().Inside(rect)
+	}
+	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.RawPosition().Inside(rect)
+}
+
 func ClickedOutRect(rect *sdl.FRect, worldSpace bool) bool {
 	if worldSpace {
 		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.WorldPosition().Inside(rect)
@@ -383,7 +390,6 @@ func RefreshRenderTextures() {
 
 	for _, renderTexture := range renderTextures {
 		renderTexture.Destroy()
-		renderTexture.Texture = nil
 		renderTexture.RenderFunc()
 	}
 
@@ -805,6 +811,22 @@ func FilesInDirectory(dir string, prefix string) []string {
 
 }
 
+func SimplifyPathString(pathString string, maxLength int) string {
+	if len([]rune(pathString)) <= maxLength {
+		return pathString
+	}
+	split := strings.Split(pathString, string(os.PathSeparator))
+	out := ""
+	for i := len(split) - 1; i > 0; i-- {
+		out = split[i] + out
+		if len(out)+len([]rune(split[i-1])) > maxLength {
+			return "..." + out
+		}
+		out = string(os.PathSeparator) + out
+	}
+	return out
+}
+
 func DatesAreEqual(d1, d2 time.Time) bool {
 	return d1.Year() == d2.Year() && d1.Month() == d2.Month() && d1.Day() == d2.Day()
 }
@@ -843,6 +865,10 @@ func placeCardInStack(card *Card, centerIfNoSelection bool) {
 		globals.Project.Camera.FocusOn(false, card)
 	}
 
+	globals.Project.UndoHistory.Capture(NewUndoState(card))
+	globals.Project.CurrentPage.Selection.Clear()
+	globals.Project.CurrentPage.Selection.Add(card)
+
 }
 
 const RegexNoNewlines = `[^\n]`
@@ -850,3 +876,7 @@ const RegexOnlyDigits = `[\d]`
 const RegexNoDigits = `[^\d]`
 const RegexOnlyDigitsAndColon = `[\d:]`
 const RegexHex = `[#a-fA-F\d]`
+
+type DrawOnTop interface {
+	DrawOnTop()
+}

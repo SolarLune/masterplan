@@ -681,15 +681,14 @@ func OpenProjectFrom(filename string) {
 						line.Endings = append(line.Endings, Point{float32(endings[i].Float() * 2), float32(endings[i+1].Float() * 2)})
 					}
 					linePositions = append(linePositions, line)
-					continue
+					continue // Lines don't exist, so we do our best to connect cards that lines wwere connected to and move on
 				case 7:
 					cardType = ContentTypeMap
 				case 8:
 					// cardType = ContentTypeWhiteboard
 					continue
 				case 9:
-					// cardType = ContentTypeTable
-					continue
+					cardType = ContentTypeTable
 				}
 
 				card := newProject.Pages[boardIndex].CreateNewCard(cardType)
@@ -726,14 +725,18 @@ func OpenProjectFrom(filename string) {
 				}
 
 				if card.Properties.Has("filepath") {
-					fp := []string{}
-					for _, element := range task.Get(`FilePath`).Array() {
-						fp = append(fp, element.String())
-					}
 
-					relativePath := filepath.Join(fp...)
-					relativePath = filepath.ToSlash(relativePath)
-					card.Properties.Get("filepath").Set(relativePath)
+					// If it's a saved image from the clipboard, then the path is of no consequence.
+					if !card.Properties.Has("saveimage") {
+						fp := []string{}
+						for _, element := range task.Get(`FilePath`).Array() {
+							fp = append(fp, element.String())
+						}
+
+						relativePath := filepath.Join(fp...)
+						relativePath = filepath.ToSlash(relativePath)
+						card.Properties.Get("filepath").Set(relativePath)
+					}
 
 					if sound, ok := card.Contents.(*SoundContents); ok {
 						sound.LoadFile()
@@ -807,6 +810,34 @@ func OpenProjectFrom(filename string) {
 					mc.UpdateTexture()
 				}
 
+				if task.Get(`TableData`).Exists() {
+
+					card.Update()
+
+					tc := card.Contents.(*TableContents)
+
+					height := len(task.Get(`TableData.Rows`).Array())
+					width := len(task.Get(`TableData.Columns`).Array())
+
+					card.Recreate(float32(width)*globals.GridSize, float32(height)*globals.GridSize)
+					tc.TableData.Resize(width, height)
+
+					for i, s := range task.Get(`TableData.Columns`).Array() {
+						ch := tc.TableData.ColumnHeadings[i]
+						ch.Label.SetTextRaw([]rune(s.String()))
+						ch.Label.RecreateTexture()
+					}
+					for i, s := range task.Get(`TableData.Rows`).Array() {
+						tc.TableData.RowHeadings[i].Label.SetTextRaw([]rune(s.String()))
+					}
+					for y, row := range task.Get(`TableData.Completion`).Array() {
+						for x, value := range row.Array() {
+							tc.TableData.SetValue(x, y, int(value.Int()))
+						}
+					}
+
+				}
+
 				card.LockPosition()
 
 				// Autoresize the card to fit the amount of text typed.
@@ -814,7 +845,7 @@ func OpenProjectFrom(filename string) {
 					auto.AutosetSize()
 				}
 
-				if cardType != ContentTypeNote && cardType != ContentTypeImage && cardType != ContentTypeMap {
+				if cardType != ContentTypeNote && cardType != ContentTypeImage && cardType != ContentTypeMap && cardType != ContentTypeTable {
 					card.Collapse() // Collapsing the cards make them align more correctly to the 0.7 "single-line" layout
 				}
 
@@ -858,21 +889,26 @@ func OpenProjectFrom(filename string) {
 
 			rootPageBounds := CorrectingRect{}
 			root := newProject.Pages[0]
-			rootPageBounds.X1 = root.Cards[0].Rect.X
-			rootPageBounds.Y1 = root.Cards[0].Rect.Y
-			rootPageBounds.X2 = root.Cards[0].Rect.X
-			rootPageBounds.Y2 = root.Cards[0].Rect.Y
 
-			for _, card := range root.Cards {
-				if card.ContentType != ContentTypeSubpage {
-					rootPageBounds = rootPageBounds.AddXY(card.Rect.X, card.Rect.Y)
-					rootPageBounds = rootPageBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
+			if len(root.Cards) > 0 {
+
+				rootPageBounds.X1 = root.Cards[0].Rect.X
+				rootPageBounds.Y1 = root.Cards[0].Rect.Y
+				rootPageBounds.X2 = root.Cards[0].Rect.X
+				rootPageBounds.Y2 = root.Cards[0].Rect.Y
+
+				for _, card := range root.Cards {
+					if card.ContentType != ContentTypeSubpage {
+						rootPageBounds = rootPageBounds.AddXY(card.Rect.X, card.Rect.Y)
+						rootPageBounds = rootPageBounds.AddXY(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H)
+					}
 				}
-			}
 
-			for _, subpage := range createdSubpages {
-				subpage.Rect.X += rootPageBounds.Width()
-				subpage.LockPosition()
+				for _, subpage := range createdSubpages {
+					subpage.Rect.X += rootPageBounds.Width()
+					subpage.LockPosition()
+				}
+
 			}
 
 		} else {
@@ -952,6 +988,7 @@ func OpenProjectFrom(filename string) {
 						card.Contents.(*ImageContents).LoadFileFrom(imgPath) // Reload the file
 					} else {
 						card.Properties.Remove("saveimage")
+						globals.EventLog.Log("Saved screenshot: %s could not be loaded.\n", true, imgPath)
 					}
 				}
 
@@ -1010,8 +1047,6 @@ func OpenProjectFrom(filename string) {
 		newProject.Modified = false
 		newProject.UndoHistory.MinimumFrame = 1
 		globals.EventLog.On = true
-
-		globals.LoadingSubpagesBroken = false
 
 		globals.EventLog.Log("Project loaded successfully.", false)
 
@@ -1299,6 +1334,11 @@ func (project *Project) GlobalShortcuts() {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeLink)
 			kb.Shortcuts[KBNewLinkCard].ConsumeKeys()
 
+		} else if kb.Pressed(KBNewTableCard) {
+
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeTable)
+			kb.Shortcuts[KBNewTableCard].ConsumeKeys()
+
 		}
 
 		if newCard != nil {
@@ -1477,64 +1517,14 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if kb.Pressed(KBSelectCardNext) || kb.Pressed(KBSelectCardPrev) {
-
-			cardList := append([]*Card{}, project.CurrentPage.Cards...)
-
-			if len(cardList) > 0 {
-
-				sort.SliceStable(cardList, func(i, j int) bool {
-					if cardList[i].Rect.Y == cardList[j].Rect.Y {
-						return cardList[i].Rect.X < cardList[j].Rect.X
-					}
-					return cardList[i].Rect.Y < cardList[j].Rect.Y
-				})
-
-				selectionIndex := 0
-
-				prev := false
-				if kb.Pressed(KBSelectCardPrev) {
-					prev = true
-				}
-
-				for i, c := range cardList {
-					if c.selected {
-						if prev {
-							selectionIndex = i - 1
-						} else {
-							selectionIndex = i + 1
-						}
-						break
-					}
-				}
-
-				if selectionIndex < 0 {
-					selectionIndex = 0
-				}
-
-				if selectionIndex >= len(cardList)-1 {
-					selectionIndex = len(cardList) - 1
-				}
-
-				if selectionIndex < len(cardList) {
-					nextCard := cardList[selectionIndex]
-
-					project.CurrentPage.Selection.Clear()
-
-					project.CurrentPage.Selection.Add(nextCard)
-
-					if globals.Settings.Get(SettingsFocusOnSelectingWithKeys).AsBool() {
-						project.Camera.FocusOn(false, project.CurrentPage.Selection.AsSlice()...)
-					}
-
-					kb.Shortcuts[KBSelectCardNext].ConsumeKeys()
-
-				}
-
-			}
-
+			project.CurrentPage.SelectNextCard()
 		}
 
 	} else if globals.State == StateCardLink {
+
+		if kb.Pressed(KBSubpageClose) {
+			project.GoUpFromSubpage()
+		}
 
 		globals.Mouse.SetCursor(CursorEyedropper)
 
@@ -1557,6 +1547,27 @@ func (project *Project) GlobalShortcuts() {
 			project.LinkingCard = nil
 			globals.Mouse.Button(sdl.BUTTON_RIGHT).Consume()
 			globals.Keyboard.Key(sdl.K_ESCAPE).Consume()
+		}
+
+	}
+
+	if globals.State == StateTextEditing && globals.editingCard != nil {
+
+		if globals.Keybindings.Pressed(KBSwitchWrapMode) {
+
+			globals.Keybindings.Shortcuts[KBSwitchWrapMode].ConsumeKeys()
+
+			wrapMode := "Wrap"
+
+			if globals.textEditingWrap.AsFloat() == TextWrappingModeExpand {
+				globals.textEditingWrap.Set(TextWrappingModeWrap)
+			} else {
+				globals.textEditingWrap.Set(TextWrappingModeExpand)
+				wrapMode = "Expand"
+			}
+
+			globals.EventLog.Log("Text editing wrap mode switched to %s.", false, wrapMode)
+
 		}
 
 	}

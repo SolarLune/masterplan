@@ -24,10 +24,10 @@ type RenderTexture struct {
 
 func (rt *RenderTexture) Destroy() {
 
-	if rt.Image.Texture != nil {
-		rt.Image.Texture.Destroy()
+	if rt.Texture != nil {
+		rt.Texture.Destroy()
 	}
-	rt.Image.Texture = nil
+	rt.Texture = nil
 
 }
 
@@ -53,6 +53,14 @@ func (rt *RenderTexture) Recreate(newW, newH int32) {
 
 	if newH > globals.RendererInfo.MaxTextureHeight {
 		newH = globals.RendererInfo.MaxTextureHeight
+	}
+
+	// SDL Texture size can't be 0x0 (this should never happen, but it seems to be happening on Windows periodically for certain users?)
+	if newW < 2 {
+		newW = 2
+	}
+	if newH < 2 {
+		newH = 2
 	}
 
 	rt.Size.X = float32(newW)

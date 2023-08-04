@@ -347,6 +347,8 @@ func publishToItch() {
 
 	})
 
+	fmt.Println("Builds found:", buildNames)
+
 	for _, build := range buildNames {
 
 		buildName := strings.Split(build, string(os.PathSeparator))[1]

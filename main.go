@@ -47,7 +47,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.8.0-alpha.7.3")
+	globals.Version = semver.MustParse("0.8.0-alpha.8.1")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -69,6 +69,8 @@ func init() {
 	globals.HTTPClient = &http.Client{
 		Timeout: time.Second * 10,
 	}
+	globals.textEditingWrap = NewProperty("text editing wrap mode", nil)
+	globals.textEditingWrap.Set(TextWrappingModeWrap)
 
 }
 
@@ -219,12 +221,12 @@ func main() {
 		panic(err)
 	}
 
-	globals.ScreenshotSurf, err = sdl.CreateRGBSurfaceWithFormat(0, 1920, 1080, 32, sdl.PIXELFORMAT_ARGB8888)
+	globals.ScreenshotSurf, err = sdl.CreateRGBSurfaceWithFormat(0, w, h, 32, sdl.PIXELFORMAT_ARGB8888)
 	if err != nil {
 		panic(err)
 	}
 
-	globals.ExportSurf, err = sdl.CreateRGBSurfaceWithFormat(0, 1920, 1080, 32, sdl.PIXELFORMAT_ARGB8888)
+	globals.ExportSurf, err = sdl.CreateRGBSurfaceWithFormat(0, w, h, 32, sdl.PIXELFORMAT_ARGB8888)
 	if err != nil {
 		panic(err)
 	}
@@ -262,8 +264,7 @@ func main() {
 	globals.Dispatcher = NewDispatcher()
 
 	globals.TextRenderer = NewTextRenderer()
-	screenWidth, screenHeight, _ := globals.Renderer.GetOutputSize()
-	globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
+	globals.ScreenSize = Point{float32(w), float32(h)}
 
 	globals.TriggerReloadFonts = true
 	HandleFontReload()
@@ -404,7 +405,13 @@ func main() {
 		}
 
 		globals.ScreenSizeChanged = false
-		if screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y) {
+
+		// We check to see if the width and height is greater than zero because on
+		// Windows, SDL2 will return a screen size of 0, 0 if the window is minimized.
+		// This will make menus in MasterPlan disappear, which is, understandably, bad.
+		if screenWidth > 0 && screenHeight > 0 && (screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y)) {
+
+			globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)} // We have to set the screen size before we create the screenshot surface, duh~
 			globals.ScreenSizeChanged = true
 			globals.ScreenSizePrev = globals.ScreenSize
 			globals.ScreenshotSurf.Free()
@@ -412,9 +419,8 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-		}
 
-		globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)}
+		}
 
 		globals.Time += float64(globals.DeltaTime)
 
@@ -501,6 +507,15 @@ func main() {
 			globals.Renderer.SetScale(1, 1)
 
 			globals.MenuSystem.Draw()
+
+			if globals.State == StateNeutral && !globals.MenuSystem.ExclusiveMenuOpen() && globals.Keybindings.Pressed(KBAddToSelection) {
+				pos := globals.Mouse.Position()
+				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{480, 80, 8, 8}, &sdl.FRect{pos.X + 20, pos.Y - 8, 8, 8})
+			}
+
+			if globals.DrawOnTop != nil {
+				globals.DrawOnTop.DrawOnTop()
+			}
 
 			if globals.DebugMode {
 				fps, _ := gfx.GetFramerate(fpsManager)
@@ -796,7 +811,7 @@ func ConstructMenus() {
 
 	// Main Menu
 
-	mainMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 800, 48}, MenuCloseNone), "main", false)
+	mainMenu := globals.MenuSystem.Add(NewMenu("main", &sdl.FRect{0, 0, 800, 48}, MenuCloseNone), false)
 	mainMenu.Opened = true
 	mainMenu.Draggable = true
 	mainMenu.AnchorMode = MenuAnchorTopLeft
@@ -855,11 +870,11 @@ func ConstructMenus() {
 	timeLabel := NewLabel(time.Now().Format("Mon Jan 2 2006"), nil, false, AlignCenter)
 	row.Add("time label", timeLabel)
 
-	row.ExpandSelectedElements = []MenuElement{timeLabel}
+	row.ExpandElementSet.Select(timeLabel)
 
 	// File Menu
 
-	fileMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 48, 300, 350}, MenuCloseClickOut), "file", false)
+	fileMenu := globals.MenuSystem.Add(NewMenu("file", &sdl.FRect{0, 48, 300, 350}, MenuCloseClickOut), false)
 	root = fileMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("New Project", NewButton("New Project", nil, nil, false, func() {
@@ -923,7 +938,7 @@ func ConstructMenus() {
 
 	// Export sub-menu
 
-	exportMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 550, 350}, MenuCloseButton), "export", false)
+	exportMenu := globals.MenuSystem.Add(NewMenu("export", &sdl.FRect{48, 48, 550, 350}, MenuCloseButton), false)
 	exportMenu.Resizeable = true
 	exportMenu.Draggable = true
 
@@ -938,7 +953,6 @@ func ConstructMenus() {
 	row.Add("path label", NewLabel("Export directory:", nil, false, AlignCenter))
 
 	row = exportRoot.AddRow(AlignCenter)
-	row.ExpandAllElements = true
 
 	exportPathLabel := NewLabel("", nil, false, AlignLeft)
 
@@ -952,6 +966,7 @@ func ConstructMenus() {
 
 	exportPathLabel.Editable = true
 	row.Add("path editable label", exportPathLabel)
+	row.ExpandElementSet.SelectAll()
 
 	row = exportRoot.AddRow(AlignCenter)
 	row.Add("path browse", NewButton("Browse", nil, nil, false, func() {
@@ -964,10 +979,8 @@ func ConstructMenus() {
 
 	bgOptions := NewButtonGroup(&sdl.FRect{0, 0, 400, 32}, false, func(index int) {}, nil, "Normal", "No Grid", "Transparent")
 	row = exportRoot.AddRow(AlignCenter)
-	row.ExpandAllElements = true
 	row.Add("bg options label", NewLabel("Background Options:", nil, false, AlignCenter))
 	row = exportRoot.AddRow(AlignCenter)
-	row.ExpandAllElements = true
 	row.Add("bg options", bgOptions)
 
 	row = exportRoot.AddRow(AlignCenter)
@@ -1009,7 +1022,7 @@ func ConstructMenus() {
 
 	// Tools Menu
 
-	toolsMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), "tools", false)
+	toolsMenu := globals.MenuSystem.Add(NewMenu("tools", &sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), false)
 	root = toolsMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("take screenshot", NewButton("Take Screenshot", nil, nil, false, func() {
@@ -1030,7 +1043,7 @@ func ConstructMenus() {
 
 		common := globals.MenuSystem.Get("common")
 		root := common.Pages["root"]
-		root.DefaultExpand = true
+
 		root.Clear()
 		row := root.AddRow(AlignCenter)
 		row.Add("", NewLabel("Warning!", nil, false, AlignCenter))
@@ -1105,13 +1118,17 @@ func ConstructMenus() {
 		row.Add("", NewButton("Cancel", nil, nil, false, func() {
 			common.Close()
 		}))
+		for _, row := range root.Rows {
+			row.ExpandElementSet.SelectAll()
+		}
+
 		common.Open()
 
 	}))
 
 	// View Menu
 
-	viewMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), "view", false)
+	viewMenu := globals.MenuSystem.Add(NewMenu("view", &sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), false)
 	root = viewMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("Create Menu", NewButton("Create", nil, nil, false, func() {
@@ -1149,7 +1166,7 @@ func ConstructMenus() {
 		viewMenu.Close()
 	}))
 
-	loadRecent := globals.MenuSystem.Add(NewMenu(&sdl.FRect{128, 96, 512, 128}, MenuCloseClickOut), "load recent", false)
+	loadRecent := globals.MenuSystem.Add(NewMenu("load recent", &sdl.FRect{128, 96, 512, 128}, MenuCloseClickOut), false)
 	loadRecent.OnOpen = func() {
 
 		root = loadRecent.Pages["root"]
@@ -1192,7 +1209,7 @@ func ConstructMenus() {
 
 	// Create Menu
 
-	createMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X, globals.ScreenSize.Y, 32, 32}, MenuCloseButton), "create", false)
+	createMenu := globals.MenuSystem.Add(NewMenu("create", &sdl.FRect{globals.ScreenSize.X, globals.ScreenSize.Y, 32, 32}, MenuCloseButton), false)
 	createMenu.AnchorMode = MenuAnchorBottomRight
 	createMenu.Draggable = true
 	createMenu.Resizeable = true
@@ -1203,80 +1220,50 @@ func ConstructMenus() {
 	root.AddRow(AlignCenter).Add("create label", NewLabel("Create", &sdl.FRect{0, 0, 128, 32}, false, AlignCenter))
 
 	root.AddRow(AlignCenter).Add("create new checkbox", NewButton("Checkbox", nil, icons[ContentTypeCheckbox], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeCheckbox), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new numbered", NewButton("Numbered", nil, icons[ContentTypeNumbered], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNumbered)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeNumbered), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, icons[ContentTypeNote], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeNote)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeNote), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, icons[ContentTypeSound], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSound)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeSound), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new image", NewButton("Image", nil, icons[ContentTypeImage], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeImage)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeImage), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new timer", NewButton("Timer", nil, icons[ContentTypeTimer], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeTimer)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeTimer), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new map", NewButton("Map", nil, icons[ContentTypeMap], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeMap)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeMap), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new subpage", NewButton("Sub-Page", nil, icons[ContentTypeSubpage], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeSubpage)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeSubpage), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new link", NewButton("Link", nil, icons[ContentTypeLink], false, func() {
-		card := globals.Project.CurrentPage.CreateNewCard(ContentTypeLink)
-		placeCardInStack(card, true)
-		globals.Project.CurrentPage.Selection.Clear()
-		globals.Project.CurrentPage.Selection.Add(card)
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeLink), true)
 	}))
 
-	// root.AddRow(AlignCenter).Add("create new table", NewButton("Table", nil, icons[ContentTypeTable], false, func() {
-	// 	card := globals.Project.CurrentPage.CreateNewCard(ContentTypeTable)
-	// 	placeCardInStack(card, true)
-	// 	globals.Project.CurrentPage.Selection.Clear()
-	// 	globals.Project.CurrentPage.Selection.Add(card)
-	// }))
+	root.AddRow(AlignCenter).Add("create new table", NewButton("Table", nil, icons[ContentTypeTable], false, func() {
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeTable), true)
+	}))
 
 	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+64, createMenu.Pages["root"].IdealSize().Y+16)
 
 	// Edit Menu
 
-	editMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, globals.ScreenSize.Y/2 - (450 / 2), 400, 500}, MenuCloseButton), "edit", false)
+	editMenu := globals.MenuSystem.Add(NewMenu("edit", &sdl.FRect{0, globals.ScreenSize.Y/2 - (450 / 2), 400, 500}, MenuCloseButton), false)
 	editMenu.Draggable = true
 	editMenu.Resizeable = true
 	editMenu.AnchorMode = MenuAnchorLeft
@@ -1342,28 +1329,36 @@ func ConstructMenus() {
 
 	row = setColor.AddRow(AlignCenter)
 
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{208, 256, 32, 32}, globals.GUITexture.Texture, false))
+	img := NewGUIImage(nil, &sdl.Rect{208, 256, 32, 32}, globals.GUITexture.Texture, false)
+	img.TintByFontColor = false
+	row.Add("icon", img)
+
 	row.Add("applyLabel", NewLabel("Apply to :    ", nil, false, AlignCenter))
 
 	row = setColor.AddRow(AlignCenter)
-	row.ExpandAllElements = true
-	row.Add("applyBG", NewButton("BG", nil, &sdl.Rect{208, 288, 32, 32}, false, func() {
+	button := NewButton("BG", nil, &sdl.Rect{208, 288, 32, 32}, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards
 		for card := range selectedCards {
 			card.CustomColor = colorWheel.SampledColor.Clone()
 			card.CreateUndoState = true
 		}
 		globals.EventLog.Log("Color applied for the background of %d card(s).", false, len(selectedCards))
-	}))
+	})
+	button.TintByFontColor = false
+	row.Add("applyBG", button)
 
-	row.Add("applyFont", NewButton("Text", nil, &sdl.Rect{240, 288, 32, 32}, false, func() {
+	button = NewButton("Text", nil, &sdl.Rect{240, 288, 32, 32}, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards
 		for card := range selectedCards {
 			card.FontColor = colorWheel.SampledColor.Clone()
 			card.CreateUndoState = true
 		}
 		globals.EventLog.Log("Color applied for the contents of %d card(s).", false, len(selectedCards))
-	}))
+	})
+	button.TintByFontColor = false
+	row.Add("applyFont", button)
+
+	row.ExpandElementSet.SelectAll()
 
 	// Spacer
 
@@ -1373,15 +1368,15 @@ func ConstructMenus() {
 
 	row = setColor.AddRow(AlignCenter)
 
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{240, 256, 32, 32}, globals.GUITexture.Texture, false))
+	img = NewGUIImage(nil, &sdl.Rect{240, 256, 32, 32}, globals.GUITexture.Texture, false)
+	img.TintByFontColor = false
+	row.Add("icon", img)
 
 	row.Add("grabLabel", NewLabel("Sample from :    ", nil, false, AlignCenter))
 
 	row = setColor.AddRow(AlignCenter)
 
-	row.ExpandAllElements = true
-
-	row.Add("grabBG", NewButton("BG", nil, &sdl.Rect{208, 320, 32, 32}, false, func() {
+	button = NewButton("BG", nil, &sdl.Rect{208, 320, 32, 32}, false, func() {
 
 		selectedCards := globals.Project.CurrentPage.Selection.AsSlice()
 		if len(selectedCards) > 0 {
@@ -1390,9 +1385,11 @@ func ConstructMenus() {
 			hexText.OnClickOut()
 			globals.EventLog.Log("Grabbed background color from first selected Card.", false)
 		}
-	}))
+	})
+	button.TintByFontColor = false
+	row.Add("grabBG", button)
 
-	row.Add("grabFont", NewButton("Text", nil, &sdl.Rect{240, 320, 32, 32}, false, func() {
+	button = NewButton("Text", nil, &sdl.Rect{240, 320, 32, 32}, false, func() {
 
 		selectedCards := globals.Project.CurrentPage.Selection.AsSlice()
 		if len(selectedCards) > 0 {
@@ -1411,7 +1408,12 @@ func ConstructMenus() {
 
 		}
 
-	}))
+	})
+	button.TintByFontColor = false
+
+	row.Add("grabFont", button)
+
+	row.ExpandElementSet.SelectAll()
 
 	setColor.AddRow(AlignCenter).Add("", NewSpacer(&sdl.FRect{0, 0, 4, 8}))
 
@@ -1734,7 +1736,7 @@ func ConstructMenus() {
 
 	// Context Menu
 
-	contextMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 256, 256}, MenuCloseClickOut), "context", false)
+	contextMenu := globals.MenuSystem.Add(NewMenu("context", &sdl.FRect{0, 0, 256, 256}, MenuCloseClickOut), false)
 	contextMenu.OnOpen = func() { globals.State = StateContextMenu }
 	contextMenu.OnClose = func() { globals.State = StateNeutral }
 	root = contextMenu.Pages["root"]
@@ -1770,7 +1772,7 @@ func ConstructMenus() {
 		contextMenu.Close()
 	}))
 
-	commonMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 192}, MenuCloseButton), "common", false)
+	commonMenu := globals.MenuSystem.Add(NewMenu("common", &sdl.FRect{globals.ScreenSize.X / 4, globals.ScreenSize.Y/2 - 32, globals.ScreenSize.X / 2, 192}, MenuCloseButton), false)
 	commonMenu.Draggable = true
 	commonMenu.Resizeable = true
 
@@ -1798,7 +1800,7 @@ func ConstructMenus() {
 
 	// Confirmation Menus
 
-	confirmQuit := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm quit", true)
+	confirmQuit := globals.MenuSystem.Add(NewMenu("confirm quit", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
 	confirmQuit.Draggable = true
 	root = confirmQuit.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to quit?", nil, false, AlignCenter))
@@ -1808,7 +1810,7 @@ func ConstructMenus() {
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
 	confirmQuit.Recreate(root.IdealSize().X+48, root.IdealSize().Y+32)
 
-	confirmNewProject := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm new project", true)
+	confirmNewProject := globals.MenuSystem.Add(NewMenu("confirm new project", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
 	confirmNewProject.Draggable = true
 	root = confirmNewProject.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Create a new project?", nil, false, AlignCenter))
@@ -1822,11 +1824,16 @@ func ConstructMenus() {
 	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmNewProject.Close() }))
 	confirmNewProject.Recreate(root.IdealSize().X+48, root.IdealSize().Y+32)
 
-	confirmLoad := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 32, 32}, MenuCloseButton), "confirm load", true)
+	confirmLoad := globals.MenuSystem.Add(NewMenu("confirm load", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
 	confirmLoad.Draggable = true
 	root = confirmLoad.Pages["root"]
-	root.AddRow(AlignCenter).Add("label", NewLabel("Load this project?", nil, false, AlignCenter))
-	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
+	root.AddRow(AlignCenter).Add("label", NewLabel("Load the following project?", nil, false, AlignCenter))
+	confirmLoadFilepath := NewLabel("Project Filepath: ", &sdl.FRect{0, 0, 800, 32}, false, AlignCenter)
+	root.AddRow(AlignCenter).Add("label2", confirmLoadFilepath)
+	root.OnOpen = func() {
+		confirmLoadFilepath.SetText([]rune(SimplifyPathString(globals.Project.LoadConfirmationTo, 50)))
+	}
+	root.AddRow(AlignCenter).Add("label3", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
 	row = root.AddRow(AlignCenter)
 	row.Add("yes", NewButton("Yes", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
 		OpenProjectFrom(globals.Project.LoadConfirmationTo)
@@ -1851,10 +1858,10 @@ func ConstructMenus() {
 
 	// Settings Menu
 
-	settings := NewMenu(&sdl.FRect{0, 0, 850, 512}, MenuCloseButton)
+	settings := NewMenu("settings", &sdl.FRect{0, 0, 850, 512}, MenuCloseButton)
 	settings.Draggable = true
 	settings.Resizeable = true
-	globals.MenuSystem.Add(settings, "settings", true)
+	globals.MenuSystem.Add(settings, true)
 
 	root = settings.Pages["root"]
 	row = root.AddRow(AlignCenter)
@@ -1889,7 +1896,6 @@ func ConstructMenus() {
 	// Sound options
 
 	sound := settings.AddPage("sound")
-	sound.DefaultExpand = true
 
 	row = sound.AddRow(AlignCenter)
 	row.Add("", NewLabel("Sound Settings", nil, false, AlignCenter))
@@ -1907,8 +1913,15 @@ func ConstructMenus() {
 	row.Add("", number)
 
 	row = sound.AddRow(AlignCenter)
+	row.Add("", NewTooltip(`Playback Buffer Size:
+Adjusting this changes the buffer size
+for playback of sounds. Try raising the 
+buffer size if the sound is too crackly.
+
+Changing this setting requires restarting 
+MasterPlan to take effect.`))
 	row.Add("", NewLabel("Playback Buffer Size:", nil, false, AlignCenter))
-	audioBufferBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, func(index int) {
+	audioBufferBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 96}, false, func(index int) {
 		globals.EventLog.Log("Audio playback buffer size set to %s; changes will take effect on program restart.", true, globals.Settings.Get(SettingsAudioBufferSize).AsString())
 	}, globals.Settings.Get(SettingsAudioBufferSize),
 		AudioBufferSize32,
@@ -1918,11 +1931,22 @@ func ConstructMenus() {
 		AudioBufferSize512,
 		AudioBufferSize1024,
 		AudioBufferSize2048,
+		AudioBufferSize4096,
+		AudioBufferSize8192,
+		AudioBufferSize16384,
 	)
 	audioBufferBG.MaxButtonsPerRow = 4
 	row.Add("", audioBufferBG)
 
 	row = sound.AddRow(AlignCenter)
+	row.Add("", NewTooltip(`Playback Device Sample Rate:
+Adjusting this changes the requested sample 
+rate for audio playback. Try raising the 
+sample rate if the sound is low quality
+or fuzzy.
+
+Changing this setting requires restarting 
+MasterPlan to take effect.`))
 	row.Add("", NewLabel("Playback Device Sample Rate:", nil, false, AlignCenter))
 
 	audioSampleRateBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, func(index int) {
@@ -1938,16 +1962,49 @@ func ConstructMenus() {
 	audioSampleRateBG.MaxButtonsPerRow = 3
 	row.Add("", audioSampleRateBG)
 
+	// 	row = sound.AddRow(AlignLeft)
+	// 	row.Add("", NewTooltip(`Cache Audio:
+	// Enables caching of music in sound cards. If
+	// enabled, then audio is loaded into memory rather
+	// than streamed from disk. This will drastically
+	// increase memory usage when playing back audio, while
+	// simultaneously reducing disk usage.
+
+	// Changing this will require restarting
+	// Masterplan to apply the effect.`))
+	// 	row.Add("", NewLabel("Cache Audio:", nil, false, AlignCenter))
+	// 	chkbox := NewCheckbox(0, 0, false, globals.Settings.Get(SettingsCacheAudioBeforePlayback))
+	// 	chkbox.OnChange = func() {
+	// 		cacheState := "Audio caching disabled."
+	// 		if chkbox.Property.AsBool() {
+	// 			cacheState = "Audio caching enabled."
+	// 		}
+	// 		globals.EventLog.Log(cacheState+" Restart MasterPlan to apply this change.", false)
+	// 	}
+	// 	row.Add("", chkbox)
+
+	for _, row := range sound.Rows {
+		row.ExpandElementSet.SelectIf(func(me MenuElement) bool {
+			_, isTooltip := me.(*Tooltip)
+			return !isTooltip
+		})
+	}
+
 	// General options
 
 	general := settings.AddPage("general")
-	general.DefaultExpand = true
 	general.DefaultMargin = 32
 
 	row = general.AddRow(AlignCenter)
 	row.Add("header", NewLabel("General Settings", nil, false, AlignCenter))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Automatic Backups:
+Enables the creation of automatic backups.
+Note that these backups will be stored in the same
+location as the project's save file. This being
+the case, the project must be saved first in
+order for automatic backups to work.`))
 	row.Add("", NewLabel("Automatic Backups:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAutoBackup)))
 
@@ -1968,10 +2025,18 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Auto Load Last Project:
+When enabled, the last project you loaded 
+from disk will be loaded when starting
+MasterPlan.`))
 	row.Add("", NewLabel("Auto Load Last Project:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAutoLoadLastProject)))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Save Window Position:
+When enabled and MasterPlan is launched, the
+window will have the same position and size as
+when it was last closed.`))
 	row.Add("", NewLabel("Save Window Position:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSaveWindowPosition)))
 
@@ -1980,6 +2045,10 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnElapsedTimers)))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Notify on Elapsed Timers:
+When enabled and a timer elapses in MasterPlan
+when the window is unfocused, a notification
+will appear through your operating system.`))
 	row.Add("", NewLabel("Notify on Elapsed Timers:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNotifyOnElapsedTimers)))
 
@@ -1996,6 +2065,10 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFocusOnUndo)))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Place Newly Created Cards in Selected Stack:
+When enabled and you create a new Card, it will
+be added just below the currently selected Card,
+in the same stack.`))
 	row.Add("", NewLabel("Place Newly Created Cards in Selected Stack:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsPlaceNewCardsInStack)))
 
@@ -2003,6 +2076,13 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 
 	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Download Cache Directory:
+When set, links to media (images, music, etc) on 
+the Internet will be downloaded and saved to this 
+directory instead of cached using a temporary directory.
+Using this can make using external resources much faster,
+as media isn't deleted after closing MasterPlan and can be reloaded 
+from this directory.`))
 	row.Add("", NewLabel("External Download Cache Directory For Current Project:", nil, false, AlignLeft))
 	cachePath := NewLabel("", nil, false, AlignLeft)
 	cachePath.Editable = true
@@ -2050,6 +2130,13 @@ func ConstructMenus() {
 		globals.Settings.Get(SettingsScreenshotPath).Set("")
 	}))
 
+	for _, row := range general.Rows {
+		row.ExpandElementSet.SelectIf(func(me MenuElement) bool {
+			_, isTooltip := me.(*Tooltip)
+			return !isTooltip
+		})
+	}
+
 	// Visual options
 
 	visual := settings.AddPage("visual")
@@ -2060,7 +2147,6 @@ func ConstructMenus() {
 		refreshThemes()
 	}
 
-	visual.DefaultExpand = true
 	visual.DefaultMargin = 32
 
 	row = visual.AddRow(AlignCenter)
@@ -2092,6 +2178,10 @@ func ConstructMenus() {
 	row.Add("theme info", NewLabel("While Visual Settings menu is open,\nthemes will be automatically hotloaded.", nil, false, AlignCenter))
 
 	row = visual.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Always Show Numbering:
+When enabled, numbered ordering (1., 2., 3., etc.) for stacks
+are always shown. When disabled, ordering is only displayed when
+a stack is selected.`))
 	row.Add("", NewLabel("Always Show Numbering:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAlwaysShowNumbering)))
 
@@ -2132,6 +2222,14 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNumberTopLevelCards)))
 
 	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Display Numbered Card Percentages as:", nil, false, AlignLeft))
+	row.Add("", NewButtonGroup(nil, false, nil, globals.Settings.Get(SettingsDisplayNumberedPercentagesAs), NumberedPercentagePercent, NumberedPercentageCurrentMax, NumberedPercentageOff))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Display Table Headers:", nil, false, AlignLeft))
+	row.Add("", NewButtonGroup(nil, false, nil, globals.Settings.Get(SettingsShowTableHeaders), TableHeadersSelected, TableHeadersHover, TableHeadersAlways))
+
+	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Card Shadows:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsCardShadows)))
 
@@ -2153,6 +2251,11 @@ func ConstructMenus() {
 	row.Add("", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Image Buffer Max Size:
+The size of the image buffer, which is used when displaying 
+images. The higher the buffer size, the more GPU memory it takes
+to display, but the higher the effective maximum resolution 
+of images can be.`))
 	row.Add("", NewLabel("Image Buffer Max Size:", nil, false, AlignLeft))
 	group := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, nil, globals.Settings.Get(SettingsMaxInternalImageSize),
 		ImageBufferSize512,
@@ -2221,6 +2324,13 @@ func ConstructMenus() {
 		globals.Settings.Get(SettingsCustomFontPath).Set("")
 		globals.TriggerReloadFonts = true
 	}))
+
+	for _, row := range visual.Rows {
+		row.ExpandElementSet.SelectIf(func(me MenuElement) bool {
+			_, isTooltip := me.(*Tooltip)
+			return !isTooltip
+		})
+	}
 
 	// row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsShowAboutDialogOnStart)))
 
@@ -2308,6 +2418,9 @@ func ConstructMenus() {
 	row.Add("input header", NewLabel("Input", nil, false, AlignLeft))
 
 	row = input.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Double-click:
+What should be done when double-clicking on the
+project background.`))
 	row.Add("", NewLabel("Double-click: ", nil, false, AlignLeft))
 	dropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsDoubleClickMode), DoubleClickLast, DoubleClickCheckbox, DoubleClickNothing)
 	row.Add("", dropdown)
@@ -2317,6 +2430,10 @@ func ConstructMenus() {
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsReversePan)))
 
 	row = input.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Zoom to cursor:
+When enabled, zooming using the mouse wheel
+or zoom in + out key shortcuts will zoom towards
+where the cursor is over the window.`))
 	row.Add("", NewLabel("Zoom to Cursor: ", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsZoomToCursor)))
 
@@ -2382,7 +2499,6 @@ func ConstructMenus() {
 		shortcutName := NewLabel(shortcut.Name, nil, false, AlignLeft)
 
 		row.Add("key-"+shortcut.Name, shortcutName)
-		row.ExpandAllElements = true
 
 		redefineButton := NewButton(shortcut.KeysToString(), nil, nil, false, nil)
 
@@ -2401,11 +2517,11 @@ func ConstructMenus() {
 		}
 
 		row.Add(shortcut.Name+"-d", button)
+
+		row.ExpandElementSet.SelectAll()
 	}
 
 	about := settings.AddPage("about")
-
-	about.DefaultExpand = true
 
 	row = about.AddRow(AlignCenter)
 	row.Add("", NewLabel("About", nil, false, AlignCenter))
@@ -2425,10 +2541,13 @@ func ConstructMenus() {
 	row.Add("", NewLabel("That said, I think this is already FAR better than v0.7 and am very excited to get people using it and get some feedback on the new changes. Please do let me know your thoughts! (And don't forget to do frequent back-ups!) ~ SolarLune", &sdl.FRect{0, 0, 512, 160}, false, AlignLeft))
 
 	row = about.AddRow(AlignCenter)
-	row.ExpandAllElements = false
 	row.Add("", NewButton("Discord", nil, &sdl.Rect{48, 224, 32, 32}, false, func() { browser.OpenURL("https://discord.gg/tRVf7qd") }))
 	row.Add("", NewSpacer(nil))
 	row.Add("", NewButton("Twitter", nil, &sdl.Rect{80, 224, 32, 32}, false, func() { browser.OpenURL("https://twitter.com/MasterPlanApp") }))
+
+	for _, row := range about.Rows {
+		row.ExpandElementSet.SelectAll()
+	}
 
 	// Tools menu
 
@@ -2493,7 +2612,7 @@ func ConstructMenus() {
 
 	// Hierarchy Menu
 
-	list := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 0, 440, 800}, MenuCloseButton), "hierarchy", false)
+	list := globals.MenuSystem.Add(NewMenu("hierarchy", &sdl.FRect{9999, 0, 440, 800}, MenuCloseButton), false)
 	list.Draggable = true
 	list.Resizeable = true
 	list.UpdateAnchor()
@@ -2637,7 +2756,7 @@ func ConstructMenus() {
 
 	// Search Menu
 
-	find := globals.MenuSystem.Add(NewMenu(&sdl.FRect{9999, 9999, 512, 96}, MenuCloseButton), "find", false)
+	find := globals.MenuSystem.Add(NewMenu("find", &sdl.FRect{9999, 9999, 512, 96}, MenuCloseButton), false)
 	find.AnchorMode = MenuAnchorTopRight
 	find.Draggable = true
 	find.Resizeable = true
@@ -2787,7 +2906,7 @@ func ConstructMenus() {
 
 	// Previous sub-page menu
 
-	prevSubPageMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{(globals.ScreenSize.X - 512) / 2, globals.ScreenSize.Y, 512, 96}, MenuCloseNone), "prev sub page", false)
+	prevSubPageMenu := globals.MenuSystem.Add(NewMenu("prev sub page", &sdl.FRect{(globals.ScreenSize.X - 512) / 2, globals.ScreenSize.Y, 512, 96}, MenuCloseNone), false)
 	prevSubPageMenu.Opened = false
 	prevSubPageMenu.Draggable = true
 	prevSubPageMenu.Resizeable = true
@@ -2809,7 +2928,36 @@ func ConstructMenus() {
 		globals.Project.GoUpFromSubpage()
 	}))
 
-	deadlines := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), "deadlines", false)
+	// Text editing menu
+
+	textEditing := globals.MenuSystem.Add(NewMenu("text editing", &sdl.FRect{9999, 9999, 312, 48}, MenuCloseNone), false)
+	textEditing.AutoOpen = func() bool {
+		return globals.State == StateTextEditing && globals.editingCard != nil
+	}
+	textEditing.Draggable = true
+	textEditing.Resizeable = false
+	textEditing.AnchorMode = MenuAnchorTopRight
+
+	teRoot := textEditing.Pages["root"]
+	row = teRoot.AddRow(AlignLeft)
+
+	row.Add("hint", NewTooltip(`Set the wrapping mode for
+editable text.
+Wrap: Text that goes beyond a card's
+horizontal border will wrap to a new line.
+Extend: As you type, the card will expand
+horizontally.`))
+
+	row.Add("label", NewLabel("Wrap Mode : ", nil, false, AlignCenter))
+	iconButtonGroup := NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, false, func(index int) {}, globals.textEditingWrap, &sdl.Rect{208, 352, 32, 32}, &sdl.Rect{208, 384, 32, 32})
+	for _, b := range iconButtonGroup.Buttons {
+		b.Tint = ColorWhite
+	}
+	row.Add("wrapMode", iconButtonGroup)
+
+	// Deadlines menu
+
+	deadlines := globals.MenuSystem.Add(NewMenu("deadlines", &sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), false)
 
 	deadlines.Draggable = true
 	deadlines.Resizeable = true
@@ -2890,7 +3038,7 @@ func ConstructMenus() {
 							deadlineRow.Add("button", button)
 							deadlineRow.Add("date", NewLabel("Due on 9999-99-9999", nil, false, AlignCenter))
 							deadlineRow.Add("right spacer", NewSpacer(&sdl.FRect{0, 0, 64, 32}))
-							deadlineRow.ExpandSelectedElements = []MenuElement{deadlineRow.Elements["button"]}
+							deadlineRow.ExpandElementSet.Select(deadlineRow.Elements["button"])
 							db = &deadlineButton{Card: card, Row: deadlineRow}
 							deadlineButtons = append(deadlineButtons, db)
 						}
@@ -2964,7 +3112,7 @@ func ConstructMenus() {
 
 	// Stats Menu
 
-	stats := globals.MenuSystem.Add(NewMenu(&sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), "stats", false)
+	stats := globals.MenuSystem.Add(NewMenu("stats", &sdl.FRect{globals.ScreenSize.X/2 - (700 / 2), 9999, 700, 274}, MenuCloseButton), false)
 	stats.Draggable = true
 	stats.Resizeable = true
 	stats.AnchorMode = MenuAnchorBottom
@@ -2981,7 +3129,7 @@ func ConstructMenus() {
 	row = root.AddRow(AlignLeft)
 	completedLabel := NewLabel("so many cards completed", nil, false, AlignLeft)
 	row.Add("", completedLabel)
-	row.ExpandAllElements = true
+	row.ExpandElementSet.SelectAll()
 
 	row = root.AddRow(AlignLeft)
 	row.Add("", NewSpacer(&sdl.FRect{0, 0, 32, 1}))
@@ -3003,16 +3151,17 @@ func ConstructMenus() {
 	}
 
 	row = root.AddRow(AlignLeft)
-	row.ExpandAllElements = true
 	timeUnit := NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {}, globals.Settings.Get("time unit"), timeUnitChoices...)
 
 	// timeUnit := NewDropdown(nil, false, func(index int) {}, timeUnitChoices...)
 	row.Add("", timeUnit)
 
+	row.ExpandElementSet.SelectAll()
+
 	row = root.AddRow(AlignLeft)
 	estimatedTime := NewLabel("Time estimation label", nil, false, AlignLeft)
 	row.Add("", estimatedTime)
-	row.ExpandAllElements = true
+	row.ExpandElementSet.SelectAll()
 
 	row = root.AddRow(AlignLeft)
 	row.Add("", NewLabel("Limit time estimation read-out to same as units: ", nil, false, AlignLeft))
@@ -3088,7 +3237,7 @@ func ConstructMenus() {
 
 	// Map palette menu
 
-	paletteMenu := globals.MenuSystem.Add(NewMenu(&sdl.FRect{0, 0, 200, 560}, MenuCloseButton), "map palette menu", false)
+	paletteMenu := globals.MenuSystem.Add(NewMenu("map palette menu", &sdl.FRect{0, 0, 200, 560}, MenuCloseButton), false)
 	paletteMenu.Center()
 	paletteMenu.Draggable = true
 	paletteMenu.Resizeable = true
@@ -3113,7 +3262,7 @@ func ConstructMenus() {
 
 	root.AddRow(AlignCenter).Add("pattern label", NewLabel("Patterns", nil, false, AlignCenter))
 
-	button := NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { MapPattern = MapPatternSolid })
+	button = NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { MapPattern = MapPatternSolid })
 	row = root.AddRow(AlignCenter)
 	row.Add("pattern solid", button)
 
@@ -3191,6 +3340,47 @@ func ConstructMenus() {
 
 	row = root.AddRow(AlignCenter)
 	row.Add("shift down", down)
+
+	// Table menu
+
+	tableMenu := globals.MenuSystem.Add(NewMenu("table settings menu", &sdl.FRect{999999, 0, 500, 275}, MenuCloseButton), false)
+	tableMenu.Resizeable = true
+	tableMenu.CloseMethod = MenuCloseButton
+	tableMenu.Draggable = true
+	tableMenu.AnchorMode = MenuAnchorTopRight
+
+	root = tableMenu.Pages["root"]
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewLabel("Table Settings", nil, false, AlignCenter))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("label", NewLabel("Visualize As:", nil, false, AlignCenter))
+	row = root.AddRow(AlignCenter)
+	row.Add("table mode", NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) { tableModeChanged = true }, nil, "Checkmarks", "Letters", "Numbers"))
+	row.ExpandElementSet.SelectAll()
+
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewLabel("Table Controls", nil, false, AlignCenter))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("swap", NewButton("Swap Rows and Columns", nil, nil, false, func() {
+		for c := range globals.Project.CurrentPage.Selection.Cards {
+			if c.ContentType == ContentTypeTable {
+				c.Contents.(*TableContents).TableData.SwapColumnsAndRows()
+			}
+		}
+	}))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("swap", NewButton("Clear", nil, nil, false, func() {
+		for c := range globals.Project.CurrentPage.Selection.Cards {
+			if c.ContentType == ContentTypeTable {
+				c.Contents.(*TableContents).TableData.Clear()
+			}
+		}
+	}))
 
 }
 

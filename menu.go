@@ -25,14 +25,12 @@ const (
 
 type MenuSystem struct {
 	Menus          []*Menu
-	MenuNames      map[string]*Menu
 	ExclusiveMenus []*Menu // If an Exclusive Menu is drawn, no other Menus will be
 }
 
 func NewMenuSystem() *MenuSystem {
 	ms := &MenuSystem{
 		Menus:          []*Menu{},
-		MenuNames:      map[string]*Menu{},
 		ExclusiveMenus: []*Menu{},
 	}
 	return ms
@@ -83,27 +81,29 @@ func (ms *MenuSystem) Draw() {
 	}
 }
 
-func (ms *MenuSystem) Add(menu *Menu, name string, exclusive bool) *Menu {
-
-	if name == "" {
-		name = strconv.Itoa(int(rand.Int31()))
-	}
+func (ms *MenuSystem) Add(menu *Menu, exclusive bool) *Menu {
 
 	if exclusive {
 		ms.ExclusiveMenus = append(ms.ExclusiveMenus, menu)
 	} else {
 		ms.Menus = append(ms.Menus, menu)
 	}
-	ms.MenuNames[name] = menu
 	return menu
 
 }
 
 func (ms *MenuSystem) Get(name string) *Menu {
 
-	exists, ok := ms.MenuNames[name]
-	if ok {
-		return exists
+	for _, menu := range ms.Menus {
+		if menu.Name == name {
+			return menu
+		}
+	}
+
+	for _, menu := range ms.ExclusiveMenus {
+		if menu.Name == name {
+			return menu
+		}
 	}
 
 	return nil
@@ -136,6 +136,7 @@ const (
 )
 
 type Menu struct {
+	Name        string
 	Rect        *sdl.FRect
 	MinSize     Point
 	Pages       map[string]*Container
@@ -164,12 +165,14 @@ type Menu struct {
 
 	OnOpen     func()
 	OnClose    func()
+	AutoOpen   func() bool
 	AnchorMode int
 }
 
-func NewMenu(rect *sdl.FRect, closeMethod int) *Menu {
+func NewMenu(name string, rect *sdl.FRect, closeMethod int) *Menu {
 
 	menu := &Menu{
+		Name:        name,
 		Rect:        &sdl.FRect{rect.X, rect.Y, 0, 0},
 		MinSize:     Point{32, 32},
 		Pages:       map[string]*Container{},
@@ -177,6 +180,10 @@ func NewMenu(rect *sdl.FRect, closeMethod int) *Menu {
 		ResizeShape: NewShape(8),
 		Spacing:     MenuSpacingNone,
 		Draggable:   false,
+	}
+
+	if menu.Name == "" {
+		menu.Name = strconv.Itoa(int(rand.Int31()))
 	}
 
 	menu.closeButtonButton = NewIconButton(0, 0, &sdl.Rect{176, 0, 32, 32}, globals.GUITexture, false, func() { menu.Close() })
@@ -192,6 +199,15 @@ func NewMenu(rect *sdl.FRect, closeMethod int) *Menu {
 }
 
 func (menu *Menu) Update() {
+
+	if menu.AutoOpen != nil {
+
+		if menu.AutoOpen() && !menu.Opened {
+			menu.Open()
+		} else if !menu.AutoOpen() && menu.Opened {
+			menu.Close()
+		}
+	}
 
 	if menu.CurrentPage == "" {
 		return
@@ -451,7 +467,7 @@ func (menu *Menu) Update() {
 
 		}
 
-		if menu.Draggable && globals.State != StateTextEditing {
+		if menu.Draggable {
 
 			if button.Pressed() && globals.Mouse.Position().Inside(menu.Rect) {
 				button.Consume()
@@ -579,6 +595,14 @@ func (menu *Menu) Recreate(newW, newH float32) {
 
 	if menu.Rect.W == newW && menu.Rect.H == newH {
 		return
+	}
+
+	if newW < 16 {
+		newW = 16
+	}
+
+	if newH < 16 {
+		newH = 16
 	}
 
 	menu.Rect.W = newW

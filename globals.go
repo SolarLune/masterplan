@@ -78,9 +78,13 @@ type Globals struct {
 
 	Dispatcher *Dispatcher
 
-	LoadingSubpagesBroken bool
-
 	Hierarchy *Hierarchy
+
+	editingLabel    *Label
+	editingCard     *Card
+	textEditingWrap *Property
+
+	DrawOnTop DrawOnTop
 }
 
 var globals = &Globals{

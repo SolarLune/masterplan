@@ -136,8 +136,14 @@ func (page *Page) Draw() {
 
 	for _, card := range sorted {
 		card.DrawCard()
+	}
+
+	for _, card := range sorted {
 		// Undo state creation / capturing can't be handled at the end of Card.DrawContents() like it used to be because that doesn't happen
 		// if the Card is offscreen. Now undo updating happens in its own function here.
+
+		// We handle undos separately so that if drawing the contents of a card changes its properties / triggers an undo update,
+		// that's reflected here.
 		card.HandleUndos()
 	}
 
@@ -422,13 +428,29 @@ func (page *Page) PasteCards(offset Point, adhereToMousePosition bool) []*Card {
 
 	page.Selection.Clear()
 
+	invalidCut := false
+
 	for i := 0; i < len(globals.CopyBuffer.Cards); i++ {
+
+		card := globals.CopyBuffer.Cards[i]
+
+		if card.ContentType == ContentTypeSubpage && globals.CopyBuffer.CutMode {
+			invalidCut = true
+			globals.EventLog.Log("Cannot cut a sub-page card.", true)
+			continue
+		}
+
 		newCard := page.CreateNewCard(ContentTypeCheckbox)
 		newCards = append(newCards, newCard)
 		oldToNew[globals.CopyBuffer.Cards[i]] = newCard
 	}
 
 	for i, card := range globals.CopyBuffer.Cards {
+
+		// If we try pasting sub-page cards and these were denied, skip them
+		if _, exists := oldToNew[card]; !exists {
+			continue
+		}
 
 		serialized := globals.CopyBuffer.CardsToSerialized[card]
 		serialized, _ = sjson.Set(serialized, "id", oldToNew[card].ID)
@@ -482,6 +504,11 @@ func (page *Page) PasteCards(offset Point, adhereToMousePosition bool) []*Card {
 
 	if globals.CopyBuffer.CutMode {
 		for _, card := range globals.CopyBuffer.Cards {
+			// If we try pasting sub-page cards and these were denied, skip them
+			if _, exists := oldToNew[card]; !exists {
+				continue
+			}
+
 			card.Page.DeleteCards(card)
 		}
 		globals.CopyBuffer.CutMode = false
@@ -491,6 +518,10 @@ func (page *Page) PasteCards(offset Point, adhereToMousePosition bool) []*Card {
 
 	if len(globals.CopyBuffer.Cards) > 0 {
 		globals.EventLog.Log("Pasted %d Cards.", false, len(globals.CopyBuffer.Cards))
+	}
+
+	if invalidCut {
+		globals.CopyBuffer.Clear()
 	}
 
 	return newCards
@@ -512,37 +543,41 @@ func (page *Page) HandleDroppedFiles(filePath string) {
 	mime, _ := mimetype.DetectFile(filePath)
 	mimeType := mime.String()
 
+	var card *Card
+
 	// We check for tga specifically because the mimetype doesn't seem to detect this properly.
 	if strings.Contains(mimeType, "image") || filepath.Ext(filePath) == ".tga" {
-		card := page.CreateNewCard(ContentTypeImage)
+		card = page.CreateNewCard(ContentTypeImage)
 		card.Contents.(*ImageContents).LoadFileFrom(filePath)
 	} else if strings.Contains(mimeType, "audio") {
-		card := page.CreateNewCard(ContentTypeSound)
+		card = page.CreateNewCard(ContentTypeSound)
 		card.Contents.(*SoundContents).LoadFileFrom(filePath)
+	} else if strings.Contains(mimeType, "json") && strings.Contains(filepath.Ext(filePath), ".plan") {
+		globals.Project.LoadConfirmationTo = filePath
+		loadConfirm := globals.MenuSystem.Get("confirm load")
+		loadConfirm.Center()
+		loadConfirm.Open()
 	} else if strings.Contains(mimeType, "text") {
 
-		if filepath.Ext(filePath) == ".plan" {
-			globals.Project.LoadConfirmationTo = filePath
-			loadConfirm := globals.MenuSystem.Get("confirm load")
-			loadConfirm.Center()
-			loadConfirm.Open()
+		text, err := os.ReadFile(filePath)
+		if err != nil {
+			globals.EventLog.Log(err.Error(), false)
 		} else {
-
-			text, err := os.ReadFile(filePath)
-			if err != nil {
-				globals.EventLog.Log(err.Error(), false)
-			} else {
-				card := page.CreateNewCard(ContentTypeCheckbox)
-				card.Properties.Get("description").Set(string(text))
-				size := globals.TextRenderer.MeasureText([]rune(string(text)), 1)
-				card.Recreate(size.X, size.Y)
-				card.SetContents(ContentTypeNote)
-			}
-
+			card = page.CreateNewCard(ContentTypeCheckbox)
+			card.Properties.Get("description").Set(string(text))
+			size := globals.TextRenderer.MeasureText([]rune(string(text)), 1)
+			card.Recreate(size.X, size.Y)
+			card.SetContents(ContentTypeNote)
 		}
 
 	} else {
 		globals.EventLog.Log("Dropped file [%s] is not a recognized image, audio, or text file format.", true, filePath)
+	}
+
+	if card != nil {
+		card.Rect.X = page.Project.Camera.Position.X - (card.Rect.W / 2)
+		card.Rect.Y = page.Project.Camera.Position.Y - (card.Rect.H / 2)
+		card.LockPosition()
 	}
 
 }
@@ -729,6 +764,70 @@ func (page *Page) HandleExternalPaste() {
 	}
 
 	page.UpdateStacks = true
+
+}
+
+func (page *Page) SelectNextCard() *Card {
+
+	var nextCard *Card
+
+	kb := globals.Keybindings
+
+	cardList := append([]*Card{}, page.Cards...)
+
+	if len(cardList) > 0 {
+
+		sort.SliceStable(cardList, func(i, j int) bool {
+			if cardList[i].Rect.Y == cardList[j].Rect.Y {
+				return cardList[i].Rect.X < cardList[j].Rect.X
+			}
+			return cardList[i].Rect.Y < cardList[j].Rect.Y
+		})
+
+		selectionIndex := 0
+
+		prev := false
+		if kb.Pressed(KBSelectCardPrev) {
+			prev = true
+		}
+
+		for i, c := range cardList {
+			if c.selected {
+				if prev {
+					selectionIndex = i - 1
+				} else {
+					selectionIndex = i + 1
+				}
+				break
+			}
+		}
+
+		if selectionIndex < 0 {
+			selectionIndex = 0
+		}
+
+		if selectionIndex >= len(cardList)-1 {
+			selectionIndex = len(cardList) - 1
+		}
+
+		if selectionIndex < len(cardList) {
+			nextCard = cardList[selectionIndex]
+
+			page.Selection.Clear()
+
+			page.Selection.Add(nextCard)
+
+			if globals.Settings.Get(SettingsFocusOnSelectingWithKeys).AsBool() {
+				page.Project.Camera.FocusOn(false, page.Selection.AsSlice()...)
+			}
+
+			kb.Shortcuts[KBSelectCardNext].ConsumeKeys()
+
+		}
+
+	}
+
+	return nextCard
 
 }
 

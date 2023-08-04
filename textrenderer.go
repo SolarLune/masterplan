@@ -426,7 +426,7 @@ func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier f
 
 		if c == '\n' {
 			pos.X = startX
-			pos.Y += globals.GridSize
+			pos.Y += globals.GridSize * sizeMultiplier
 			continue
 		} else if glyph == nil {
 			continue

@@ -19,6 +19,8 @@ const (
 	CursorBucket              = "bucket"
 	CursorEraser              = "eraser"
 	CursorArrow               = "arrow"
+	CursorHand                = "hand"
+	CursorHandGrab            = "handgrab"
 	// CursorLink                = "Link"
 )
 
@@ -195,6 +197,10 @@ func (mouse *Mouse) Wheel() float32 {
 	return float32(mouse.wheel) * sensitivity
 }
 
+func (mouse *Mouse) RawPosition() Point {
+	return mouse.screenPosition
+}
+
 func (mouse *Mouse) Position() Point {
 	if mouse.HiddenPosition {
 		return mouse.Dummy.Position()
@@ -202,11 +208,7 @@ func (mouse *Mouse) Position() Point {
 	return mouse.screenPosition
 }
 
-func (mouse *Mouse) WorldPosition() Point {
-
-	if mouse.HiddenPosition {
-		return mouse.Dummy.WorldPosition()
-	}
+func (mouse *Mouse) RawWorldPosition() Point {
 
 	width, height, err := globals.Renderer.GetOutputSize()
 
@@ -230,6 +232,17 @@ func (mouse *Mouse) WorldPosition() Point {
 	// globals.Renderer.DrawRectF(globals.Project.Camera.Translate(&sdl.FRect{wx, wy, 16, 16}))
 
 	return Point{wx, wy}
+
+}
+
+func (mouse *Mouse) WorldPosition() Point {
+
+	if mouse.HiddenPosition {
+		return mouse.Dummy.WorldPosition()
+	}
+
+	return mouse.RawWorldPosition()
+
 }
 
 func (mouse *Mouse) SetCursor(cursorName string) {
@@ -317,6 +330,8 @@ func LoadCursors() {
 	globals.Mouse.Cursors[CursorBucket] = createCursor(432, 240, false)
 	globals.Mouse.Cursors[CursorEraser] = createCursor(432, 272, false)
 	globals.Mouse.Cursors[CursorArrow] = createCursor(432, 320, false)
+	globals.Mouse.Cursors[CursorHand] = createCursor(384, 320, false)
+	globals.Mouse.Cursors[CursorHandGrab] = createCursor(384, 368, false)
 
 	globals.Mouse.SetCursor(CursorNormal)
 
@@ -387,6 +402,7 @@ func handleEvents() {
 		case *sdl.RenderEvent:
 
 			// If the render targets reset, re-render all render textures
+			// if baseEvent.GetType() == sdl.RENDER_TARGETS_RESET || baseEvent.GetType() == sdl.RENDER_DEVICE_RESET || baseEvent.GetType() == sdl.WINDOWEVENT_MINIMIZED || baseEvent.GetType() == sdl.WINDOWEVENT_MAXIMIZED {
 			if baseEvent.GetType() == sdl.RENDER_TARGETS_RESET || baseEvent.GetType() == sdl.RENDER_DEVICE_RESET {
 				RefreshRenderTextures()
 				globals.Project.SendMessage(NewMessage(MessageRenderTextureRefresh, nil, nil))

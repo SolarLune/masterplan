@@ -59,8 +59,9 @@ const (
 	KBNewMapCard      = "New Map Card"
 	KBNewSubpageCard  = "New Sub-Page Card"
 	KBNewLinkCard     = "New Link Card"
+	KBNewTableCard    = "New Table Card"
 
-	KBAddToSelection      = "Add to Selection Modifier"
+	KBAddToSelection      = "Multi-Edit / Add to Selection Modifier"
 	KBRemoveFromSelection = "Remove From Selection Modifier"
 	KBDeleteCards         = "Delete Selected Cards"
 	KBSelectAllCards      = "Select All Cards"
@@ -76,7 +77,7 @@ const (
 	KBFocusOnCards        = "Focus On Selected Cards"
 	KBTakeScreenshot      = "Take Screenshot"
 	KBOpenContextMenu     = "Open Context Menu"
-	KBResizeMultiple      = "Resize Multiple (Hold)"
+	KBResizeMultiple      = "Resize Multiple Cards Modifier"
 
 	KBCollapseCard = "Card: Collapse"
 	KBLinkCard     = "Card: Connect Cards"
@@ -86,6 +87,8 @@ const (
 	KBCutText       = "Textbox: Cut Selected Text"
 	KBPasteText     = "Textbox: Paste Copied Text"
 	KBSelectAllText = "Textbox: Select All Text"
+
+	KBSwitchWrapMode = "Card Text Editing: Switch Wrap Mode"
 
 	KBUndo = "Undo"
 	KBRedo = "Redo"
@@ -132,6 +135,11 @@ const (
 	KBOpenStatsMenu     = "Main Menu: Open Stats Menu"
 	KBOpenDeadlinesMenu = "Main Menu: Open Deadlines Menu"
 	KBHelp              = "Main Menu: Open Help (website)"
+
+	KBTableAddRow       = "Table: Add 1 Row"
+	KBTableAddColumn    = "Table: Add 1 Column"
+	KBTableDeleteRow    = "Table: Remove 1 Row"
+	KBTableDeleteColumn = "Table: Remove 1 Column"
 
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
@@ -473,6 +481,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBNewMapCard, sdl.K_7, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewSubpageCard, sdl.K_8, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewLinkCard, sdl.K_9, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewTableCard, sdl.K_0, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
@@ -494,6 +503,8 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBCutText, sdl.K_x, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBPasteText, sdl.K_v, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBSelectAllText, sdl.K_a, sdl.K_LCTRL)
+
+	kb.DefineKeyShortcut(KBSwitchWrapMode, sdl.K_w, sdl.K_LCTRL)
 
 	kb.DefineKeyShortcut(KBCollapseCard, sdl.K_c, sdl.K_LSHIFT)
 
@@ -545,6 +556,11 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBOpenHierarchyMenu, sdl.K_F4)
 	kb.DefineKeyShortcut(KBOpenStatsMenu, sdl.K_F5)
 	kb.DefineKeyShortcut(KBOpenDeadlinesMenu, sdl.K_F6)
+
+	kb.DefineKeyShortcut(KBTableAddColumn, sdl.K_e)
+	kb.DefineKeyShortcut(KBTableDeleteColumn, sdl.K_e, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBTableAddRow, sdl.K_q)
+	kb.DefineKeyShortcut(KBTableDeleteRow, sdl.K_q, sdl.K_LSHIFT)
 
 	kb.UpdateShortcutFamilies()
 

@@ -5,6 +5,7 @@ import (
 	"math"
 	"os/exec"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -38,7 +39,7 @@ const (
 var icons map[string]*sdl.Rect = map[string]*sdl.Rect{
 	ContentTypeCheckbox: {48, 32, 32, 32},
 	ContentTypeNumbered: {48, 96, 32, 32},
-	ContentTypeNote:     {176, 64, 32, 32},
+	ContentTypeNote:     {112, 160, 32, 32},
 	ContentTypeSound:    {144, 160, 32, 32},
 	ContentTypeImage:    {48, 64, 32, 32},
 	ContentTypeTimer:    {80, 64, 32, 32},
@@ -88,6 +89,9 @@ func (dc *DefaultContents) Update() {
 	dc.container.SetRectangle(rect)
 	if dc.Card.Page.IsCurrent() {
 		dc.container.Update()
+		if globals.State == StateTextEditing && dc.container.HasElement(globals.editingLabel) {
+			globals.editingCard = dc.Card
+		}
 	}
 }
 
@@ -115,19 +119,29 @@ type CheckboxContents struct {
 
 func commonTextEditingResizing(label *Label, card *Card) {
 
-	if label.Editing {
+	if label.Editing && label.textChanged {
+
+		size := card.Rect.W
+
+		// Expand
+		if globals.textEditingWrap.AsFloat() == TextWrappingModeExpand {
+			s := globals.TextRenderer.MeasureText(label.Text, 1)
+			size = s.X + 64
+		}
 
 		lineCount := float32(label.LineCount())
-		prevHeight := card.Rect.H
-		card.Recreate(card.Rect.W, lineCount*globals.GridSize)
-		if card.Rect.H != prevHeight {
-			for _, tail := range card.Stack.Tail() {
-				tail.Rect.Y += card.Rect.H - prevHeight
-				tail.LockPosition()
-				tail.CreateUndoState = true
-			}
+		prevHeight := card.Contents.DefaultSize().Y
+
+		target := lineCount*globals.GridSize + (prevHeight - globals.GridSize)
+		if card.Collapsed == CollapsedShade {
+			target = lineCount * globals.GridSize
 		}
+		card.Recreate(size, target)
+
 		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
+		if label.MultiEditing && label.Property != nil {
+			card.SyncProperty(label.Property, true)
+		}
 
 	}
 
@@ -159,6 +173,7 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 }
 
+// AutosetSizer is for automatically setting the size of a Card when loading it from v0.7.
 type AutosetSizer interface {
 	AutosetSize()
 }
@@ -191,9 +206,7 @@ func (cc *CheckboxContents) Update() {
 			prop.Set(!prop.AsBool())
 		} else if kb.Pressed(KBCheckboxEditText) {
 			kb.Shortcuts[KBCheckboxEditText].ConsumeKeys()
-			cc.Label.Editing = true
-			globals.State = StateTextEditing
-			cc.Label.Selection.SelectAll()
+			cc.Label.BeginEditing()
 		}
 	}
 
@@ -430,7 +443,9 @@ type NumberedContents struct {
 	Label              *Label
 	Current            *NumberSpinner
 	Max                *NumberSpinner
+	DraggableSpace     *DraggableSpace
 	PercentageComplete float32
+	postDrawable       *Drawable
 }
 
 func NewNumberedContents(card *Card) *NumberedContents {
@@ -438,33 +453,40 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	numbered := &NumberedContents{
 		DefaultContents: newDefaultContents(card),
 		Label:           NewLabel("New Numbered", nil, true, AlignLeft),
+		DraggableSpace:  NewDraggableSpace(nil),
 	}
 	numbered.Label.Property = card.Properties.Get("description")
 	numbered.Label.Editable = true
 	numbered.Label.OnChange = func() {
-
-		if numbered.Label.Editing {
-
-			lineCount := float32(numbered.Label.LineCount())
-			prevHeight := card.Rect.H
-			numbered.Card.Recreate(numbered.Card.Rect.W, lineCount*globals.GridSize+globals.GridSize)
-			if card.Rect.H != prevHeight {
-				for _, tail := range card.Stack.Tail() {
-					tail.Rect.Y += card.Rect.H - prevHeight
-					tail.LockPosition()
-					tail.CreateUndoState = true
-				}
-			}
-			card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
-
-		}
-
+		commonTextEditingResizing(numbered.Label, card)
 	}
+
+	numbered.postDrawable = NewDrawable(
+
+		func() {
+
+			if numbered.Card.selected {
+
+				numbered.DraggableSpace.Rect = &sdl.FRect{numbered.Card.DisplayRect.X, numbered.Card.DisplayRect.Y, numbered.Card.DisplayRect.W, numbered.Card.DisplayRect.H + 24}
+				numbered.DraggableSpace.Current = int(numbered.Current.Property.AsFloat())
+				numbered.DraggableSpace.Max = int(numbered.Max.Property.AsFloat())
+
+				numbered.DraggableSpace.Draw()
+
+				if numbered.DraggableSpace.Dragging {
+					numbered.Current.Property.Set(float64(numbered.DraggableSpace.NewCurrent))
+					numbered.Card.CreateUndoState = true
+				}
+
+			}
+
+		},
+	)
+
+	card.Page.AddDrawable(numbered.postDrawable)
 
 	current := card.Properties.Get("current")
 	numbered.Current = NewNumberSpinner(nil, true, current)
-	// Don't allow negative numbers of tasks completed
-	numbered.Current.SetLimits(0, math.MaxFloat64)
 
 	max := card.Properties.Get("maximum")
 	numbered.Max = NewNumberSpinner(nil, true, max)
@@ -475,7 +497,7 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	row.Add("current", numbered.Current)
 	// row.Add("out of", NewLabel("out of", nil, true, AlignCenter))
 	row.Add("max", numbered.Max)
-	row.ExpandAllElements = true
+	row.ExpandElementSet.SelectAll()
 
 	return numbered
 }
@@ -498,9 +520,7 @@ func (nc *NumberedContents) Update() {
 
 		if kb.Pressed(KBNumberedEditText) {
 			kb.Shortcuts[KBNumberedEditText].ConsumeKeys()
-			nc.Label.Editing = true
-			nc.Label.Selection.SelectAll()
-			globals.State = StateTextEditing
+			nc.Label.BeginEditing()
 		}
 
 	}
@@ -515,9 +535,6 @@ func (nc *NumberedContents) Update() {
 	}
 	nc.Label.SetRectangle(rect)
 
-	nc.Current.MaxValue = nc.Max.Property.AsFloat()
-	nc.Max.MinValue = nc.Current.Property.AsFloat()
-
 }
 
 func (nc *NumberedContents) Draw() {
@@ -528,6 +545,12 @@ func (nc *NumberedContents) Draw() {
 
 	if nc.Max.Property.AsFloat() > 0 {
 		p = float32(nc.Current.Property.AsFloat()) / float32(nc.Max.Property.AsFloat())
+		if p < 0 {
+			p = 0
+		}
+		if p > 1 {
+			p = 1
+		}
 		f.W *= p
 
 		nc.PercentageComplete += (p - nc.PercentageComplete) * 6 * globals.DeltaTime
@@ -554,8 +577,14 @@ func (nc *NumberedContents) Draw() {
 	if nc.Max.Property.AsFloat() > 0 {
 
 		dstPoint := Point{nc.Card.DisplayRect.X + nc.Card.DisplayRect.W - 32, nc.Card.DisplayRect.Y}
-		perc := strconv.FormatFloat(float64(p*100), 'f', 0, 32) + "%"
-		DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+		np := globals.Settings.Get(SettingsDisplayNumberedPercentagesAs).AsString()
+		if np == NumberedPercentagePercent {
+			perc := strconv.FormatFloat(float64(p*100), 'f', 0, 32) + "%"
+			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+		} else if np == NumberedPercentageCurrentMax {
+			perc := fmt.Sprintf("%.0f / %.0f", nc.Current.Property.AsFloat(), nc.Max.Property.AsFloat())
+			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+		}
 
 	}
 
@@ -606,7 +635,12 @@ func (nc *NumberedContents) DefaultSize() Point {
 }
 
 func (nc *NumberedContents) CompletionLevel() float32 {
-	return float32(nc.Card.Properties.Get("current").AsFloat())
+	c := float32(nc.Card.Properties.Get("current").AsFloat())
+	max := float32(nc.Card.Properties.Get("maximum").AsFloat())
+	if c > max {
+		c = max
+	}
+	return c
 }
 
 func (nc *NumberedContents) MaximumCompletionLevel() float32 {
@@ -658,9 +692,7 @@ func (nc *NoteContents) Update() {
 
 	if nc.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBNoteEditText) {
 		kb.Shortcuts[KBNoteEditText].ConsumeKeys()
-		nc.Label.Editing = true
-		nc.Label.Selection.SelectAll()
-		globals.State = StateTextEditing
+		nc.Label.BeginEditing()
 	}
 
 }
@@ -762,13 +794,12 @@ func NewSoundContents(card *Card) *SoundContents {
 
 		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 		row := commonMenu.Pages["root"].AddRow(AlignLeft)
-		row.ExpandAllElements = true
 		row.Add("filepath", soundContents.FilepathLabel)
+		row.ExpandElementSet.SelectAll()
 
 		commonMenu.Open()
 		soundContents.FilepathLabel.Selection.SelectAll()
-		soundContents.FilepathLabel.Editing = true
-		globals.State = StateTextEditing
+		soundContents.FilepathLabel.BeginEditing()
 	}))
 
 	row = soundContents.container.AddRow(AlignCenter)
@@ -857,6 +888,7 @@ func (sc *SoundContents) Update() {
 				if err != nil {
 					globals.EventLog.Log("Error: Couldn't load [%s] as sound resource\ndue to error: %s", false, sc.Resource.Name, err.Error())
 					sc.Resource = nil
+					sc.Sound = nil
 					return
 				} else {
 					sc.Sound = sound
@@ -1020,6 +1052,10 @@ func (sc *SoundContents) ReceiveMessage(msg *Message) {
 
 		if msg.Type == MessageCardDeleted {
 			sc.Sound.Pause()
+			// if globals.Settings.Get(SettingsCacheAudioBeforePlayback).AsBool() {
+			sc.Sound.Destroy()
+			sc.Sound = nil
+			// }
 			sc.Playing = false
 		}
 
@@ -1133,15 +1169,14 @@ func NewImageContents(card *Card) *ImageContents {
 
 			// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 			row := commonMenu.Pages["root"].AddRow(AlignLeft)
-			row.ExpandAllElements = true
+			row.ExpandElementSet.SelectAll()
 			commonMenu.Open()
 			if imageContents.Resource != nil && imageContents.Resource.SaveFile {
 				row.Add("filepath", NewLabel("This is an image that has been directly pasted into the project; its filepath cannot be edited.", nil, false, AlignLeft))
 			} else {
 				row.Add("filepath", imageContents.FilepathLabel)
 				imageContents.FilepathLabel.Selection.SelectAll()
-				imageContents.FilepathLabel.Editing = true
-				globals.State = StateTextEditing
+				imageContents.FilepathLabel.BeginEditing()
 			}
 		}),
 
@@ -1554,9 +1589,7 @@ func (tc *TimerContents) Update() {
 	kb := globals.Keybindings
 	if tc.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBTimerEditText) {
 		kb.Shortcuts[KBTimerEditText].ConsumeKeys()
-		tc.Name.Editing = true
-		tc.Name.Selection.SelectAll()
-		globals.State = StateTextEditing
+		tc.Name.BeginEditing()
 	}
 
 	if tc.Running {
@@ -1832,7 +1865,7 @@ func (mapData *MapData) Rotate(direction int) {
 	newHeight := float32(mapData.Width) * globals.GridSize
 
 	mapData.Contents.Card.Recreate(newWidth, newHeight)
-	mapData.Contents.ReceiveMessage(NewMessage(MessageResizeCompleted, nil, nil))
+	mapData.Contents.ReceiveMessage(NewMessage(MessageCardResizeCompleted, nil, nil))
 
 	mapData.Data = [][]int{}
 	mapData.Resize(int(newWidth/globals.GridSize), int(newHeight/globals.GridSize))
@@ -2282,6 +2315,7 @@ func (mc *MapContents) Update() {
 			mc.UpdateTexture()
 			contents := mc.Card.Properties.Get("contents")
 			contents.SetRaw(mc.MapData.Serialize())
+			mc.Card.SyncProperty(contents, false)
 			mc.Card.CreateUndoState = true // Since we're setting the property raw, we have to manually create an undo state, though
 		}
 
@@ -2579,7 +2613,7 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 
 	if msg.Type == MessageThemeChange || msg.Type == MessageRenderTextureRefresh {
 		mc.UpdateTexture()
-	} else if msg.Type == MessageUndoRedo || msg.Type == MessageResizeCompleted {
+	} else if msg.Type == MessageUndoRedo || msg.Type == MessageCardResizeCompleted {
 		// Recreate texture first so the MapData has the correct size before deserialization
 		mc.RecreateTexture()
 		if msg.Type == MessageUndoRedo {
@@ -2642,23 +2676,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	row.Add("icon", NewGUIImage(nil, &sdl.Rect{48, 256, 32, 32}, globals.GUITexture.Texture, true))
 	sb.NameLabel = NewLabel("New Sub-Page", nil, true, AlignLeft)
 	sb.NameLabel.OnChange = func() {
-
-		if sb.NameLabel.Editing {
-
-			prevHeight := card.Rect.H
-			sb.Card.Recreate(sb.Card.Rect.W, sb.container.IdealSize().Y)
-			if card.Rect.H != prevHeight {
-				for _, tail := range card.Stack.Tail() {
-					tail.Rect.Y += card.Rect.H - prevHeight
-					tail.LockPosition()
-					tail.CreateUndoState = true
-				}
-			}
-
-			sb.Card.UncollapsedSize = Point{sb.Card.Rect.W, sb.Card.Rect.H}
-
-		}
-
+		commonTextEditingResizing(sb.NameLabel, card)
 	}
 	sb.NameLabel.DrawLineUnderTitle = false
 
@@ -2666,23 +2684,24 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 	if sb.Card.Properties.Has("subpage") {
 		spID := uint64(sb.Card.Properties.Get("subpage").AsFloat())
-		if globals.LoadingSubpagesBroken {
 
-			if len(project.Pages) > int(spID) {
-				sb.SubPage = project.Pages[spID]
+		// if globals.LoadingSubpagesBroken {
+
+		// 	if len(project.Pages) > int(spID) {
+		// 		sb.SubPage = project.Pages[spID]
+		// 	}
+
+		// } else {
+
+		for _, page := range project.Pages {
+			// If our desired backing page already exists and is not already being pointed to by another subpage card, then we set this subpage card to point to it
+			if page.ID == spID && page.PointingSubpageCard == nil {
+				sb.SubPage = page
+				break
 			}
-
-		} else {
-
-			for _, page := range project.Pages {
-				// If our desired backing page already exists and is not already being pointed to by another subpage card, then we set this subpage card to point to it
-				if page.ID == spID && page.PointingSubpageCard == nil {
-					sb.SubPage = page
-					break
-				}
-			}
-
 		}
+
+		// }
 
 	}
 
@@ -2716,9 +2735,7 @@ func (sb *SubPageContents) Update() {
 	kb := globals.Keybindings
 	if sb.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBSubpageEditText) {
 		kb.Shortcuts[KBSubpageEditText].ConsumeKeys()
-		sb.NameLabel.Editing = true
-		sb.NameLabel.Selection.SelectAll()
-		globals.State = StateTextEditing
+		sb.NameLabel.BeginEditing()
 	}
 
 	rect := sb.NameLabel.Rectangle()
@@ -2860,16 +2877,7 @@ func NewLinkContents(card *Card) *LinkContents {
 	lc.Label.RegexString = RegexNoNewlines
 
 	lc.Label.OnChange = func() {
-		if lc.Label.Editing {
-			lineCount := float32(lc.Label.LineCount())
-			lc.Card.Recreate(lc.Card.Rect.W, lc.container.MinimumHeight()+((lineCount-1)*globals.GridSize))
-			lc.Card.UncollapsedSize = Point{lc.Card.Rect.W, lc.Card.Rect.H}
-
-			// 	lineCount := float32(lc.Label.LineCount())
-			// 	if lineCount*globals.GridSize > 1 {
-			// 		lc.Card.Recreate(lc.Card.Rect.W, lc.Container.MinimumHeight()+((lineCount-1)*globals.GridSize))
-			// 	}
-		}
+		commonTextEditingResizing(lc.Label, lc.Card)
 	}
 
 	row := lc.container.AddRow(AlignLeft)
@@ -2909,7 +2917,6 @@ func NewLinkContents(card *Card) *LinkContents {
 
 		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 		row := commonMenu.Pages["root"].AddRow(AlignLeft)
-		row.ExpandAllElements = true
 
 		run := lc.Card.Properties.Get("run")
 		l := NewLabel(" ", nil, false, AlignLeft)
@@ -2919,13 +2926,12 @@ func NewLinkContents(card *Card) *LinkContents {
 		l.Property = run
 		l.Selection.SelectAll()
 		row.Add("filepath", l)
+		row.ExpandElementSet.SelectAll()
 
 		commonMenu.Pages["root"].AddRow(AlignLeft).Add("args label", NewLabel("Arguments:", nil, false, AlignLeft))
 
 		// We don't need to use Label.AutoExpand, as ContainerRow.ExpandElements will stretch the Label to fit the row
 		row = commonMenu.Pages["root"].AddRow(AlignLeft)
-		row.ExpandAllElements = true
-
 		args := lc.Card.Properties.Get("args")
 		l = NewLabel(" ", nil, false, AlignLeft)
 		l.Editable = true
@@ -2933,8 +2939,21 @@ func NewLinkContents(card *Card) *LinkContents {
 		l.Property = args
 
 		row.Add("args", l)
+		row.ExpandElementSet.SelectAll()
 		l.Selection.SelectAll()
 		commonMenu.Open()
+	}))
+
+	lc.ProgramRow.Add("locate", NewButton("Locate", nil, nil, true, func() {
+
+		programPath := lc.Card.Properties.Get("run").AsString()
+		folderPath := path.Dir(programPath)
+		if programPath != "" && FolderExists(folderPath) {
+			open.Run(folderPath)
+		} else {
+			globals.EventLog.Log("WARNING: No program to navigate to, or an invalid file path has been set.", true)
+		}
+
 	}))
 
 	lc.ProgramRow.Add("run", NewButton("Run", nil, nil, true, func() {
@@ -2962,9 +2981,7 @@ func (lc *LinkContents) Update() {
 	kb := globals.Keybindings
 	if lc.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBLinkEditText) {
 		kb.Shortcuts[KBLinkEditText].ConsumeKeys()
-		lc.Label.Editing = true
-		lc.Label.Selection.SelectAll()
-		globals.State = StateTextEditing
+		lc.Label.BeginEditing()
 	}
 
 	h := lc.container.Rect.H - lc.container.MinimumHeight() + globals.GridSize
@@ -3095,7 +3112,7 @@ func (lc *LinkContents) Color() Color {
 }
 
 func (lc *LinkContents) DefaultSize() Point {
-	return Point{globals.GridSize * 10, globals.GridSize * 3}
+	return Point{globals.GridSize * 13, globals.GridSize * 3}
 }
 
 func (lc *LinkContents) Trigger(triggerType int) {}
@@ -3130,34 +3147,973 @@ func (lc *LinkContents) ReceiveMessage(msg *Message) {
 
 }
 
-// type TableContents struct {
-// 	DefaultContents
+type TableDataContents struct {
+	TableData *TableData
+	Value     int
+	Button    *IconButton
+}
+
+func (tdc *TableDataContents) OnClick(rightClick bool) {
+
+	if rightClick {
+		tdc.Value--
+	} else {
+		tdc.Value++
+	}
+
+	if tdc.Value >= valueDisplayModeSizes[tdc.TableData.ValueDisplayMode] {
+		tdc.Value = 0
+	} else if tdc.Value < 0 {
+		tdc.Value = valueDisplayModeSizes[tdc.TableData.ValueDisplayMode] - 1
+	}
+
+	tdc.TableData.Changed = true
+
+	tdc.TableData.Table.Card.CreateUndoState = true
+
+}
+
+const (
+	ValueDisplayModeCheck  = iota
+	ValueDisplayModeLetter = iota
+	ValueDisplayModeNumber = iota
+)
+
+var valueDisplayModeSizes map[int]int = map[int]int{
+	ValueDisplayModeCheck:  3,
+	ValueDisplayModeLetter: 7,
+	ValueDisplayModeNumber: 11,
+}
+
+type TableData struct {
+	Table             *TableContents
+	Rect              *sdl.FRect
+	Data              [][]*TableDataContents
+	RowHeadings       []*DraggableLabel
+	ColumnHeadings    []*DraggableLabel
+	MaxLabelWidth     float32
+	MaxLabelHeight    float32
+	Width, Height     int
+	DraggingLabel     *DraggableLabel
+	EditingLabel      *DraggableLabel
+	ValueDisplayMode  int
+	previouslyShowing bool
+	Changed           bool
+}
+
+func NewTableData(table *TableContents) *TableData {
+
+	td := &TableData{
+		Table:            table,
+		Rect:             &sdl.FRect{0, 0, 32, 32},
+		ValueDisplayMode: ValueDisplayModeCheck,
+	}
+
+	w := int(table.Card.Rect.W) / 32
+	h := int(table.Card.Rect.H) / 32
+	if w == 0 {
+		w = int(table.DefaultSize().X / 32)
+	}
+	if h == 0 {
+		h = int(table.DefaultSize().Y / 32)
+	}
+
+	td.Resize(w, h)
+
+	return td
+}
+
+func (td *TableData) Resize(w, h int) {
+
+	if td.Width == w && td.Height == h {
+		return
+	}
+
+	for len(td.RowHeadings) < h {
+		hori := NewDraggableLabel("Row "+strconv.Itoa(len(td.RowHeadings)+1), td)
+		hori.Label.OnChange = func() {
+			td.Changed = true
+		}
+		td.RowHeadings = append(td.RowHeadings, hori)
+	}
+
+	for len(td.ColumnHeadings) < w {
+		vert := NewDraggableLabel("Col "+strconv.Itoa(len(td.ColumnHeadings)+1), td)
+		vert.Vertical = true
+		vert.Label.OnChange = func() {
+			td.Changed = true
+		}
+		td.ColumnHeadings = append(td.ColumnHeadings, vert)
+	}
+
+	td.Width = w
+	td.Height = h
+
+	// Data
+
+	for y := 0; y < h; y++ {
+
+		if len(td.Data) < h {
+			td.Data = append(td.Data, make([]*TableDataContents, 0, w))
+		}
+
+		for x := 0; x < w; x++ {
+
+			if len(td.Data[y]) >= w {
+				break
+			}
+
+			tdc := &TableDataContents{TableData: td}
+
+			button := NewIconButton(0, 0, &sdl.Rect{0, 488, 24, 24}, globals.GUITexture, true, func() {
+				tdc.OnClick(false)
+			})
+			button.OnRightClickPressed = func() {
+				tdc.OnClick(true)
+			}
+			button.Highlighter.HighlightMode = HighlightRing
+			button.BGIconSrc = &sdl.Rect{0, 488, 24, 24}
+			button.FadeOnInactive = false
+
+			tdc.Button = button
+
+			td.Data[y] = append(td.Data[y], tdc)
+
+		}
+	}
+
+}
+
+func (td *TableData) Value(x, y int) int {
+	return td.Data[y][x].Value
+}
+
+func (td *TableData) SetValue(x, y, value int) {
+	td.Data[y][x].Value = value
+}
+
+func (td *TableData) Update() {
+
+	td.Changed = false
+
+	x := td.Table.Card.DisplayRect.X
+	y := td.Table.Card.DisplayRect.Y
+
+	maxSize := float32(0)
+
+	// Buttons
+
+	completedColor := getThemeColor(GUICompletedColor)
+
+	if td.Table.Card.CustomColor != nil {
+		h, s, v := td.Table.Card.CustomColor.HSV()
+		completedColor = NewColorFromHSV(h+30, s-0.2, v+0.4)
+	}
+
+	if td.Table.Card.Resizing == "" {
+
+		for yi := range td.Data {
+
+			if yi >= td.Height {
+				break
+			}
+
+			for xi, content := range td.Data[yi] {
+
+				if xi >= td.Width {
+					break
+				}
+
+				content.Button.Active = td.Table.Card.selected
+				content.Button.Rect.X = x + 4
+				content.Button.Rect.Y = y + 4
+				content.Button.Update()
+				content.Button.IconSrc.X = (int32(content.Value) * 24) + 24
+				x += 32
+				content.Button.IconSrc.Y = 488 - (int32(td.ValueDisplayMode) * 24)
+
+				content.Button.BGIconTint = ColorWhite
+
+				tint := ColorWhite
+				if td.ValueDisplayMode == ValueDisplayModeCheck && td.Value(xi, yi) == 1 {
+					tint = completedColor
+				}
+				content.Button.Tint = tint
+
+			}
+
+			y += 32
+			x = td.Table.Card.DisplayRect.X
+		}
+
+		hoveringX := int(math.Floor(float64((globals.Mouse.WorldPosition().X - td.Table.Card.DisplayRect.X) / 32)))
+		hoveringY := int(math.Floor(float64((globals.Mouse.WorldPosition().Y - td.Table.Card.DisplayRect.Y) / 32)))
+
+		hoveringAlpha := float32(1)
+
+		if hoveringX >= 0 && hoveringX < td.Width && hoveringY >= 0 && hoveringY < td.Height {
+			hoveringAlpha = 0.5
+		}
+
+		for yi := 0; yi < td.Height; yi++ {
+
+			rh := td.RowHeadings[yi]
+
+			if rh.Label.Editing {
+				rh.Label.Alpha = 1
+				continue
+			}
+
+			if yi == hoveringY {
+				rh.Label.Alpha = 1
+			} else {
+				rh.Label.Alpha = hoveringAlpha
+			}
+
+		}
+
+		for xi := 0; xi < td.Width; xi++ {
+
+			ch := td.ColumnHeadings[xi]
+
+			if ch.Label.Editing {
+				ch.Label.Alpha = 1
+				continue
+			}
+
+			if xi == hoveringX {
+				ch.Label.Alpha = 1
+			} else {
+				ch.Label.Alpha = hoveringAlpha
+			}
+
+		}
+
+	}
+
+	if !td.showing() {
+		return
+	}
+
+	// Rows
+
+	x = td.Table.Card.DisplayRect.X
+	y = td.Table.Card.DisplayRect.Y
+
+	mousePos := globals.Mouse.WorldPosition()
+
+	if (globals.Keybindings.Pressed(KBSelectCardNext) || globals.Keybindings.Pressed(KBSelectCardPrev)) && td.EditingLabel != nil {
+
+		headingOrder := append([]*DraggableLabel{}, td.RowHeadings...)
+		headingOrder = append(headingOrder, td.ColumnHeadings...)
+
+		next := 0
+
+		for i, h := range headingOrder {
+			if h == td.EditingLabel {
+				h.Label.EndEditing()
+				next = i
+				if globals.Keybindings.Pressed(KBSelectCardNext) {
+					next++
+				} else {
+					next--
+				}
+				if next >= len(headingOrder) {
+					next = 0
+				}
+				if next < 0 {
+					next = len(headingOrder) - 1
+				}
+			}
+		}
+
+		headingOrder[next].Label.BeginEditing()
+
+	}
+
+	if td.EditingLabel != nil {
+		td.EditingLabel.Update()
+	}
+
+	for i, heading := range td.RowHeadings {
+
+		if i < td.Height {
+
+			if td.DraggingLabel == heading || (td.DraggingLabel == nil && mousePos.Inside(heading.TargetRect)) {
+
+				for x := range td.Data[i] {
+					td.Data[i][x].Button.BGIconTint = completedColor
+				}
+
+			}
+
+			heading.TargetRect.X = x - heading.TargetRect.W
+			targetY := y
+
+			if td.DraggingLabel != nil && !td.DraggingLabel.Vertical {
+				if td.DraggingLabel.CenterY() < heading.CenterY() {
+					targetY += 8
+				} else {
+					targetY -= 8
+				}
+			}
+
+			if maxSize < heading.Label.TextSize().X {
+				maxSize = heading.Label.TextSize().X
+			}
+
+			heading.TargetRect.Y += (targetY - heading.TargetRect.Y) * 0.4
+			if td.EditingLabel != heading {
+				heading.Update()
+			}
+			y += 32
+
+			heading.FillAmount = td.RowCompletion(i, false)
+
+		}
+
+	}
+
+	for _, heading := range td.RowHeadings {
+		heading.MaxSize = maxSize
+	}
+
+	td.MaxLabelWidth = maxSize
+
+	var prevOrder []*DraggableLabel
+	verticalChange := false
+
+	if td.DraggingLabel != nil && !td.DraggingLabel.Vertical {
+		prevOrder = append([]*DraggableLabel{}, td.RowHeadings...)
+		sort.Slice(td.RowHeadings[:td.Height], func(i, j int) bool { return td.RowHeadings[i].CenterY() < td.RowHeadings[j].CenterY() })
+	}
+
+	// Columns
+
+	maxSize = 0
+
+	x = td.Table.Card.DisplayRect.X
+	y = td.Table.Card.DisplayRect.Y
+
+	for i, heading := range td.ColumnHeadings {
+
+		if i < td.Width {
+
+			if td.DraggingLabel == heading || (td.DraggingLabel == nil && mousePos.Inside(heading.TargetRect)) {
+
+				for y := range td.Data {
+					td.Data[y][i].Button.BGIconTint = completedColor
+				}
+
+			}
+
+			targetX := x
+
+			if td.DraggingLabel != nil && td.DraggingLabel.Vertical {
+				if td.DraggingLabel.CenterX() < heading.CenterX() {
+					targetX += 8
+				} else {
+					targetX -= 8
+				}
+			}
+
+			if maxSize < heading.Label.TextSize().X {
+				maxSize = heading.Label.TextSize().X
+			}
+
+			heading.TargetRect.X += (targetX - heading.TargetRect.X) * 0.4
+			heading.TargetRect.Y = y - heading.TargetRect.H
+			if td.EditingLabel != heading {
+				heading.Update()
+			}
+			x += 32
+
+			heading.FillAmount = td.RowCompletion(i, true)
+
+		}
+
+	}
+
+	for _, heading := range td.ColumnHeadings {
+		heading.MaxSize = maxSize
+	}
+
+	td.MaxLabelHeight = maxSize
+
+	if td.DraggingLabel != nil && td.DraggingLabel.Vertical {
+		prevOrder = append([]*DraggableLabel{}, td.ColumnHeadings...)
+		verticalChange = true
+		sort.Slice(td.ColumnHeadings[:td.Width], func(i, j int) bool { return td.ColumnHeadings[i].CenterX() < td.ColumnHeadings[j].CenterX() })
+		// sort.Slice(td.ColumnHeadings[:td.Width], func(i, j int) bool {
+		// 	return td.ColumnHeadings[i].CenterY() > td.ColumnHeadings[j].CenterY() && td.ColumnHeadings[i].Rect.X < td.ColumnHeadings[j].Rect.X
+		// })
+	}
+
+	if len(prevOrder) > 0 && (!verticalChange && !td.labelSliceEqual(prevOrder, td.RowHeadings) || (verticalChange && !td.labelSliceEqual(prevOrder, td.ColumnHeadings))) {
+		var newPos, prevPos int
+
+		for i := range prevOrder {
+			if prevOrder[i] == td.DraggingLabel {
+				prevPos = i
+				break
+			}
+		}
+
+		if verticalChange {
+
+			for i, h := range td.ColumnHeadings {
+				if td.DraggingLabel == h {
+					newPos = i
+					break
+				}
+			}
+
+		} else {
+
+			for i, h := range td.RowHeadings {
+				if td.DraggingLabel == h {
+					newPos = i
+					break
+				}
+			}
+
+		}
+
+		td.ReorderData(prevPos, newPos, verticalChange)
+
+	}
+
+}
+
+func (td *TableData) Draw() {
+
+	for y := range td.Data {
+		if y < td.Height && y < int(td.Table.Card.DisplayRect.H/32) {
+			for x := range td.Data[y] {
+				if x < td.Width && x < int(td.Table.Card.DisplayRect.W/32) {
+					td.Data[y][x].Button.Draw()
+				}
+			}
+		}
+	}
+
+	if !td.showing() {
+		return
+	}
+
+	for i, heading := range td.RowHeadings {
+		// If the heading is greater than the size
+		if heading.Dragging {
+			continue
+		}
+		if i < td.Height {
+			heading.Draw()
+		}
+
+		// globals.Renderer.SetClipRect(&sdl.Rect{int32(td.Table.Card.Rect.X), int32(td.Table.Card.Rect.Y), int32(td.Table.Card.Rect.W), int32(td.Table.Card.Rect.H)})
+		// globals.Renderer.SetClipRect(nil)
+
+	}
+
+	for i, heading := range td.ColumnHeadings {
+		// If the heading is greater than the size
+		if heading.Dragging || heading.verticalEditing {
+			continue
+		}
+		if i < td.Width {
+			heading.Draw()
+		}
+	}
+
+	if td.DraggingLabel != nil {
+		td.DraggingLabel.Draw() // Draw it last so it draws on top
+	}
+
+	if td.EditingLabel != nil {
+		td.EditingLabel.Draw() // Draw it last so it draws on top
+	}
+
+}
+
+func (td *TableData) showing() bool {
+
+	if td.EditingLabel != nil || td.DraggingLabel != nil {
+		return true
+	}
+
+	headerMode := globals.Settings.Get(SettingsShowTableHeaders).AsString()
+	switch headerMode {
+	case TableHeadersSelected:
+		return td.Table.Card.selected
+	case TableHeadersHover:
+		maxDim := td.Table.Card.Rect.W
+		if td.Table.Card.Rect.H > maxDim {
+			maxDim = td.Table.Card.Rect.H
+		}
+
+		td.previouslyShowing = globals.Mouse.WorldPosition().Distance(td.Table.Card.Center()) < (maxDim*3)+float32(math.Max(float64(td.MaxLabelWidth), float64(td.MaxLabelHeight)))
+		return td.previouslyShowing
+	}
+	// Always
+	return true
+
+}
+
+func (td *TableData) labelSliceEqual(a, b []*DraggableLabel) bool {
+
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+
+}
+
+func (td *TableData) ReorderData(from, to int, vertical bool) {
+
+	if vertical {
+
+		for y := 0; y < td.Height; y++ {
+			td.SwapData(from, y, to, y)
+		}
+
+	} else {
+
+		for x := 0; x < td.Width; x++ {
+			td.SwapData(x, from, x, to)
+		}
+
+	}
+
+}
+
+func (td *TableData) SwapData(x1, y1, x2, y2 int) {
+
+	v := td.Value(x1, y1)
+	td.SetValue(x1, y1, td.Value(x2, y2))
+	td.SetValue(x2, y2, v)
+
+}
+
+func (td *TableData) TableHeaderDropped(label *DraggableLabel) {
+	td.Changed = true
+}
+
+func (td *TableData) RowCompletion(index int, column bool) float32 {
+
+	if td.ValueDisplayMode != ValueDisplayModeCheck {
+		return 0
+	}
+
+	completion := float32(0)
+	max := float32(0)
+
+	if column {
+
+		for i := 0; i < td.Height; i++ {
+			v := td.Data[i][index].Value
+			if v == 1 {
+				completion++
+			}
+			if v != 2 {
+				max++
+			}
+		}
+
+	} else {
+
+		for i := 0; i < td.Width; i++ {
+			v := td.Data[index][i].Value
+			if v == 1 {
+				completion++
+			}
+			if v != 2 {
+				max++
+			}
+		}
+
+	}
+
+	return completion / max
+
+}
+
+func (td *TableData) CompletionLevel() float32 {
+
+	if td.ValueDisplayMode != ValueDisplayModeCheck {
+		return 0
+	}
+
+	completion := float32(0)
+
+	for y := 0; y < td.Height; y++ {
+		for x := 0; x < td.Width; x++ {
+			if td.Data[y][x].Value == 1 {
+				completion++
+			}
+		}
+
+	}
+
+	return completion
+
+}
+
+func (td *TableData) MaximumCompletionLevel() float32 {
+
+	if td.ValueDisplayMode != ValueDisplayModeCheck {
+		return 0
+	}
+
+	max := float32(0)
+
+	for y := 0; y < td.Height; y++ {
+		for x := 0; x < td.Width; x++ {
+			if td.Data[y][x].Value != 2 {
+				max++
+			}
+		}
+
+	}
+
+	return max
+
+}
+
+func (td *TableData) Serialize() string {
+
+	serialized := [][]int{}
+
+	rowHeaders := []string{}
+	columnHeaders := []string{}
+
+	for y := 0; y < td.Height; y++ {
+		serialized = append(serialized, []int{})
+		for x := 0; x < td.Width; x++ {
+			serialized[y] = append(serialized[y], td.Data[y][x].Value)
+		}
+	}
+
+	for _, header := range td.RowHeadings {
+		rowHeaders = append(rowHeaders, header.Label.TextAsString())
+	}
+
+	for _, header := range td.ColumnHeadings {
+		columnHeaders = append(columnHeaders, header.Label.TextAsString())
+	}
+
+	dataStr, _ := sjson.Set("{}", "contents", serialized)
+	dataStr, _ = sjson.Set(dataStr, "rows", rowHeaders)
+	dataStr, _ = sjson.Set(dataStr, "columns", columnHeaders)
+	dataStr, _ = sjson.Set(dataStr, "width", td.Width)
+	dataStr, _ = sjson.Set(dataStr, "height", td.Height)
+	dataStr, _ = sjson.Set(dataStr, "mode", td.ValueDisplayMode)
+	return dataStr
+
+}
+
+func (td *TableData) Deserialize(data string) {
+
+	if data != "" {
+
+		contents := gjson.Get(data, "contents")
+
+		contentsSlice := [][]int{}
+		for i, row := range contents.Array() {
+			contentsSlice = append(contentsSlice, []int{})
+			for _, value := range row.Array() {
+				contentsSlice[i] = append(contentsSlice[i], int(value.Int()))
+			}
+		}
+
+		td.Resize(int(gjson.Get(data, "width").Int()), int(gjson.Get(data, "height").Int()))
+
+		for y := range contentsSlice {
+			for x, value := range contentsSlice[y] {
+				td.SetValue(x, y, value)
+			}
+		}
+
+		for i, rn := range gjson.Get(data, "rows").Array() {
+			if i >= len(td.RowHeadings) {
+				break
+			}
+			td.RowHeadings[i].Label.SetTextRaw([]rune(rn.String()))
+		}
+
+		for i, rn := range gjson.Get(data, "columns").Array() {
+			if i >= len(td.ColumnHeadings) {
+				break
+			}
+			td.ColumnHeadings[i].Label.SetTextRaw([]rune(rn.String()))
+			td.ColumnHeadings[i].Update()
+			td.ColumnHeadings[i].Label.RecreateTexture()
+		}
+
+		td.ValueDisplayMode = int(gjson.Get(data, "mode").Int())
+
+	}
+
+}
+
+func (td *TableData) Rectangle() *sdl.FRect {
+	r := *td.Rect
+	return &r
+}
+
+func (td *TableData) SetRectangle(rect *sdl.FRect) {
+	td.Rect.X = rect.X
+	td.Rect.Y = rect.Y
+	td.Rect.W = rect.W
+	td.Rect.H = rect.H
+}
+
+func (td *TableData) Destroy() {}
+
+func (td *TableData) SwapColumnsAndRows() {
+
+	newColumns := []*DraggableLabel{}
+	newRows := []*DraggableLabel{}
+
+	for _, r := range td.RowHeadings {
+		newColumns = append(newColumns, r)
+		r.Vertical = true
+		r.Label.RecreateTexture()
+	}
+
+	for _, c := range td.ColumnHeadings {
+		newRows = append(newRows, c)
+		c.Vertical = false
+	}
+
+	data := [][]*TableDataContents{}
+
+	for x := 0; x < td.Width; x++ {
+		data = append(data, []*TableDataContents{})
+		for y := 0; y < td.Height; y++ {
+			data[x] = append(data[x], td.Data[y][x])
+		}
+	}
+
+	td.RowHeadings = newRows
+	td.ColumnHeadings = newColumns
+
+	ogWidth := td.Width
+	td.Width = td.Height
+	td.Height = ogWidth
+	td.Data = data
+
+	td.Table.Card.Recreate(float32(td.Width)*globals.GridSize, float32(td.Height)*globals.GridSize)
+
+	td.ForceUndoStateCreation()
+
+	globals.EventLog.Log("Swapped columns and rows on table.", false)
+}
+
+func (td *TableData) Clear() {
+
+	for y := 0; y < len(td.Data); y++ {
+		for x := 0; x < len(td.Data[y]); x++ {
+			td.Data[y][x].Value = 0
+		}
+	}
+
+	td.ForceUndoStateCreation()
+
+	globals.EventLog.Log("Table cleared.", false)
+
+}
+
+func (td *TableData) ForceUndoStateCreation() {
+
+	// We have to manually do this because this is called from a menu before the changed state is set to false, in td.Update().
+	contents := td.Table.Card.Properties.Get("contents")
+	contents.SetRaw(td.Table.TableData.Serialize())
+	td.Table.Card.SyncProperty(contents, false)
+	td.Table.Card.CreateUndoState = true
+
+}
+
+// type MenuElement interface {
+// 	Update()
+// 	Draw()
+// 	Rectangle() *sdl.FRect
+// 	SetRectangle(*sdl.FRect)
+// 	Destroy()
 // }
 
-// func NewTableContents(card *Card) *TableContents {
-// 	tc := &TableContents{
-// 		DefaultContents: newDefaultContents(card),
-// 	}
-// 	return tc
-// }
+type TableContents struct {
+	DefaultContents
+	// Label     *Label
+	TableData      *TableData
+	SettingsButton *IconButton
+}
 
-// func (tc *TableContents) Update() {}
+func NewTableContents(card *Card) *TableContents {
+	tc := &TableContents{
+		DefaultContents: newDefaultContents(card),
+	}
 
-// func (tc *TableContents) Draw() {}
+	tc.TableData = NewTableData(tc)
 
-// func (tc *TableContents) Color() Color {
-// 	color := getThemeColor(GUITableColor)
-// 	return color
-// }
+	if tc.Card.Properties.Get("contents").AsString() != "" {
+		tc.TableData.Deserialize(tc.Card.Properties.Get("contents").AsString())
+	} else {
+		tc.Card.Properties.Get("contents").SetRaw(tc.TableData.Serialize())
+		tc.Card.Properties.Get("contents").OnChange = func() {
+			// If the contents change independently of the table data (i.e. through
+			// syncing), then deserialize the tabledata using the contents string.
+			tc.TableData.Deserialize(tc.Card.Properties.Get("contents").AsString())
+		}
+	}
 
-// func (tc *TableContents) ReceiveMessage(msg *Message) {}
+	tc.SettingsButton = NewIconButton(0, 0, &sdl.Rect{400, 160, 32, 32}, globals.GUITexture, true, func() {
+		menu := globals.MenuSystem.Get("table settings menu")
+		menu.Open()
+		mode := menu.Pages["root"].FindElement("table mode", false).(*ButtonGroup)
+		mode.ChosenIndex = tc.TableData.ValueDisplayMode
+	})
+	tc.SettingsButton.Tint = ColorWhite
 
-// func (tc *TableContents) DefaultSize() Point {
-// 	gs := globals.GridSize
-// 	return Point{gs * 6, gs * 4}
-// }
+	// row := tc.container.AddRow(AlignCenter)
 
-// func (tc *TableContents) Trigger(triggerType int) {}
+	// tc.Label = NewLabel("New Table", nil, true, AlignCenter)
+	// tc.Label.Editable = true
+	// tc.Label.Property = card.Properties.Get("description")
+	// tc.Label.RegexString = RegexNoNewlines
+
+	// tc.Label.OnChange = func() {
+	// 	commonTextEditingResizing(tc.Label, tc.Card)
+	// }
+
+	// row.Add("label", tc.Label)
+
+	return tc
+}
+
+var tableModeChanged bool
+
+func (tc *TableContents) Update() {
+	tc.DefaultContents.Update()
+	tc.TableData.Update()
+	tc.Card.ForceDrawing = tc.TableData.EditingLabel != nil
+
+	if globals.State == StateNeutral {
+
+		if globals.Keybindings.Pressed(KBTableAddColumn) {
+			tc.Card.Recreate(tc.Card.Rect.W+globals.GridSize, tc.Card.Rect.H)
+			tc.Card.StopResizing()
+			globals.Keybindings.Shortcuts[KBTableAddColumn].ConsumeKeys()
+			tc.TableData.Changed = true
+		}
+
+		if globals.Keybindings.Pressed(KBTableDeleteColumn) {
+			tc.Card.Recreate(tc.Card.Rect.W-globals.GridSize, tc.Card.Rect.H)
+			tc.Card.StopResizing()
+			globals.Keybindings.Shortcuts[KBTableDeleteColumn].ConsumeKeys()
+			tc.TableData.Changed = true
+		}
+
+		if globals.Keybindings.Pressed(KBTableAddRow) {
+			tc.Card.Recreate(tc.Card.Rect.W, tc.Card.Rect.H+globals.GridSize)
+			tc.Card.StopResizing()
+			globals.Keybindings.Shortcuts[KBTableAddRow].ConsumeKeys()
+			tc.TableData.Changed = true
+		}
+
+		if globals.Keybindings.Pressed(KBTableDeleteRow) {
+			tc.Card.Recreate(tc.Card.Rect.W, tc.Card.Rect.H-globals.GridSize)
+			tc.Card.StopResizing()
+			globals.Keybindings.Shortcuts[KBTableDeleteRow].ConsumeKeys()
+			tc.TableData.Changed = true
+		}
+
+	}
+
+	if tc.TableData.EditingLabel != nil {
+		tc.Card.Select()
+	}
+
+	if tableModeChanged {
+
+		menu := globals.MenuSystem.Get("table settings menu")
+		mode := menu.Pages["root"].FindElement("table mode", false).(*ButtonGroup)
+		tc.TableData.ValueDisplayMode = mode.ChosenIndex
+		tc.TableData.Changed = true
+
+	}
+
+	tableModeChanged = false
+
+	tc.SettingsButton.Rect.X = tc.Card.DisplayRect.X
+	tc.SettingsButton.Rect.Y = tc.Card.DisplayRect.Y + tc.Card.DisplayRect.H
+
+	if tc.Card.selected {
+		tc.SettingsButton.Update()
+	}
+
+}
+
+func (tc *TableContents) Draw() {
+	tc.DefaultContents.Draw()
+	tc.TableData.Draw()
+
+	if tc.TableData.Changed {
+
+		contents := tc.Card.Properties.Get("contents")
+		contents.SetRaw(tc.TableData.Serialize())
+		tc.Card.SyncProperty(contents, false)
+		tc.Card.CreateUndoState = true // Since we're setting the property raw, we have to manually create an undo state, though
+	}
+
+	if tc.Card.selected {
+		tc.SettingsButton.Draw()
+	}
+
+}
+
+func (tc *TableContents) Color() Color {
+	color := getThemeColor(GUITableColor)
+	if tc.Card.CustomColor != nil {
+		color = tc.Card.CustomColor
+	}
+	return color
+}
+
+func (tc *TableContents) ReceiveMessage(msg *Message) {
+	if msg.Type == MessageCardResizeCompleted {
+		w := int(tc.Card.Rect.W / 32)
+		h := int(tc.Card.Rect.H / 32)
+		tc.TableData.Resize(w, h)
+		tc.Card.Properties.Get("contents").SetRaw(tc.TableData.Serialize())
+	} else if msg.Type == MessageUndoRedo {
+		tc.TableData.Deserialize(tc.Card.Properties.Get("contents").AsString())
+		tc.Card.Properties.Get("contents").SetRaw(tc.TableData.Serialize())
+	} else if msg.Type == MessageCardDeselected {
+
+		msg := globals.MenuSystem.Get("table settings menu")
+		if msg.Opened {
+			msg.Close()
+		}
+
+	}
+}
+
+func (tc *TableContents) DefaultSize() Point {
+	gs := globals.GridSize
+	return Point{gs * 4, gs * 4}
+}
+
+func (tc *TableContents) Trigger(triggerType int) {}
+
+func (tc *TableContents) CompletionLevel() float32 {
+	return tc.TableData.CompletionLevel()
+}
+
+func (tc *TableContents) MaximumCompletionLevel() float32 {
+	return tc.TableData.MaximumCompletionLevel()
+}
 
 // type Calendar struct {
 // 	DefaultContents

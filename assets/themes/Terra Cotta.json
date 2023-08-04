@@ -6,11 +6,12 @@
     "Checkbox Color": [220, 170, 150, 255],
     "Number Color": [220, 160, 120, 255],
     "Completed Color": [240, 160, 110, 255],
-    "Note Color": [180, 120, 110, 255],
+    "Note Color": [220, 200, 190, 255],
     "Sound Color": [170, 170, 170, 255],
     "Blank Image Color": [255, 255, 255, 255],
     "Timer Color": [180, 160, 160, 255],
     "Map Color": [50, 55, 60, 255],
     "Sub-Page Color": [240, 210, 180, 255],
-    "Link Color": [140, 220, 160, 255]
+    "Link Color": [160, 160, 150, 255],
+    "Table Color": [120, 110, 100, 255]
 }

@@ -1,5 +1,45 @@
 -------
 
+v0.8.0-alpha.8.1
+
+-------
+
+- QoL: Adding more audio playback buffer size options.
+- QoL: Dropped files onto MasterPlan now create cards in the center of the window, rather than the mouse last was prior to exiting the window.
+- FIX: Menus no longer disappear when the MasterPlan window is minimized on Windows.
+- FIX: Swapping rows and columns in Tables now works properly (previously, swapping rows and columns had pressing a cell correspond to the transposed cell in the table).
+- FIX: Tooltip bounds are sized properly now.
+- FIX: Numbered cards now properly count for parent card, rather than over counting when the value is over the maximum.
+
+-------
+
+v0.8.0-alpha.8.0
+
+-------
+ 
+- RE-IMPLEMENTATION: Adding tables back in.
+  Tables are useful to outline data in a matrix field, represented as an intersection of rows and columns. Rows and columns can be freely resized by clicking and dragging a row or column to rearrange. Double-clicking on the text allows you to edit that text. Tables can be visualized in a few different ways currently: as checkmarks, numbers, or grades (S - F). You can press tab and shift-tab to cycle between editing text for each element.
+- QoL: Adding tooltip buttons to help explain unclear settings or options.
+- QoL: Adding ability to edit multiple cards at the same time by holding the "Mulitple" key, (aka the "Add to Selection" key, which defaults to left shift).
+  - When selecting / operating on multiple cards with the left-shift key, a + will appear next to the mouse cursor to indicate this.
+  - Editing text is done by holding the multi-edit key and double-clicking on the text to edit. All selected cards will have their relevant text field updated by typing.
+- QoL: Adding ability to move to next or previous card in stack by pressing "Next Card / Prev. Card" shortcuts (defaulting to Tab or Left Shift+Tab, respectively). Doing this while editing text will move to the next editable text in the next card up or down in the stack.
+- QoL: Editing text or collapsing Cards now adjusts the rest of the stack. This isn't perfect, and I still have a lot more I want to do with stacks to improve usability and make them even more fun to work with.
+- QoL: Adding a toggle-able text editing wrapping mode. The menu that displays this will appear at the top-right when editing text on a Card. You can press the button or press the keyboard shortcut to toggle between text wrapping modes (Ctrl+W when editing text).
+  - There are two wrapping modes currently: Wrap, and Expand. Wrap will have cards grow downwards vertically, gaining more lines as you type beyond their borders. Expand will have cards grow horizontally when necessary.
+- QoL: Adding name of project to loading prompt when you decide to load a project.
+- QoL: Adding setting to change how numbered cards are displayed (either as percentage or current amount out of maximum).
+- QoL: Numbered Cards now allow negative numbers.
+- QoL: Numbered Cards now allow the current value to surpass the maximum.
+- QoL: Highlighting text should be slightly more efficient than previously (though work still remains in this regard, and for optimization in general).
+- FIX: Collapsing cards is now properly undo-able.
+- FIX: Icons for applying colors to cards no longer change color depending on theme.
+- FIX: When render textures are recreated (primarily done on Windows when the window is resized or altered), ensure they are never too small (0x0 in size). This might fix a crashing issue for Windows users.
+- FIX: If a path cannot be made relative (on Windows, for example, if a piece of media points to an external drive), the path is saved and loaded unaltered. Note that this change might mean images don't save or load properly between the previous version and this one, so double-check when upgrading to ensure things work properly.
+- Contribution by Peter0x44: Improve HOME/END text selection when editing text (previously this would only expand the selection, rather than select from the original position to the caret's new position).
+
+-------
+
 v0.8.0-alpha.7.3
 
 -------

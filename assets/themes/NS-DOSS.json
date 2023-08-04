@@ -12,5 +12,6 @@
     "Timer Color": [160, 160, 160, 255],
     "Map Color": [50, 55, 60, 255],
     "Sub-Page Color": [160, 160, 160, 255],
-    "Link Color": [200, 0, 0, 255]
+    "Link Color": [200, 0, 0, 255],
+    "Table Color": [30, 30, 30, 255]
 }

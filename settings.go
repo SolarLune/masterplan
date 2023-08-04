@@ -10,46 +10,49 @@ import (
 )
 
 const (
-	SettingsPath                     = "MasterPlan/settings08.json"
-	SettingsLegacyPath               = "masterplan-settings08.json"
-	SettingsTheme                    = "Theme"
-	SettingsWindowPosition           = "WindowPosition"
-	SettingsSaveWindowPosition       = "SaveWindowPosition"
-	SettingsCustomFontPath           = "CustomFontPath"
-	SettingsTargetFPS                = "TargetFPS"
-	SettingsUnfocusedFPS             = "UnfocusedFPS"
-	SettingsBorderlessWindow         = "BorderlessWindow"
-	SettingsOutlineWindow            = "OutlineWindow"
-	SettingsAlwaysShowNumbering      = "AlwaysShowNumbering"
-	SettingsNumberTopLevelCards      = "NumberTopLevelCards"
-	SettingsDisplayMessages          = "DisplayMessages"
-	SettingsDoubleClickMode          = "DoubleClickMode"
-	SettingsShowGrid                 = "ShowGrid"
-	SettingsFlashSelected            = "FlashSelected"
-	SettingsFocusOnElapsedTimers     = "FocusOnElapsedTimers"
-	SettingsNotifyOnElapsedTimers    = "NotifyOnElapsedTimers"
-	SettingsPlayAlarmSound           = "PlayAlarmSound"
-	SettingsShowAboutDialogOnStart   = "ShowAboutDialogOnStart"
-	SettingsReversePan               = "ReversePan"
-	SettingsAutoLoadLastProject      = "AutoLoadLastProject"
-	SettingsScreenshotPath           = "ScreenshotPath"
-	SettingsSmoothMovement           = "SmoothMovement"
-	SettingsFocusOnSelectingWithKeys = "FocusOnSelectingWithKeys"
-	SettingsWindowTransparency       = "Window Transparency"
-	SettingsWindowTransparencyMode   = "Transparency Mode"
-	SettingsFocusOnUndo              = "FocusOnUndo"
-	SettingsSuccessfulLoad           = "SuccesfulLoad"
-	SettingsAutoBackup               = "Automatic Backups"
-	SettingsAutoBackupTime           = "Backup Timer"
-	SettingsMaxAutoBackups           = "Max Automatic Backup Count"
-	SettingsMouseWheelSensitivity    = "Mouse Wheel Sensitivity"
-	SettingsZoomToCursor             = "Zoom to Cursor"
-	SettingsCardShadows              = "Card Shadows"
-	SettingsFlashDeadlines           = "Flash Deadlines"
-	SettingsDeadlineDisplay          = "Display Deadlines As"
-	SettingsMaxInternalImageSize     = "Max Internal Image Buffer Size"
-	SettingsPlaceNewCardsInStack     = "Position New Cards in Stack"
-	SettingsHideGridOnZoomOut        = "Hide Grid on Zoom out"
+	SettingsPath                         = "MasterPlan/settings08.json"
+	SettingsLegacyPath                   = "masterplan-settings08.json"
+	SettingsTheme                        = "Theme"
+	SettingsWindowPosition               = "WindowPosition"
+	SettingsSaveWindowPosition           = "SaveWindowPosition"
+	SettingsCustomFontPath               = "CustomFontPath"
+	SettingsTargetFPS                    = "TargetFPS"
+	SettingsUnfocusedFPS                 = "UnfocusedFPS"
+	SettingsBorderlessWindow             = "BorderlessWindow"
+	SettingsOutlineWindow                = "OutlineWindow"
+	SettingsAlwaysShowNumbering          = "AlwaysShowNumbering"
+	SettingsNumberTopLevelCards          = "NumberTopLevelCards"
+	SettingsDisplayMessages              = "DisplayMessages"
+	SettingsDoubleClickMode              = "DoubleClickMode"
+	SettingsShowGrid                     = "ShowGrid"
+	SettingsFlashSelected                = "FlashSelected"
+	SettingsFocusOnElapsedTimers         = "FocusOnElapsedTimers"
+	SettingsNotifyOnElapsedTimers        = "NotifyOnElapsedTimers"
+	SettingsPlayAlarmSound               = "PlayAlarmSound"
+	SettingsShowAboutDialogOnStart       = "ShowAboutDialogOnStart"
+	SettingsReversePan                   = "ReversePan"
+	SettingsAutoLoadLastProject          = "AutoLoadLastProject"
+	SettingsScreenshotPath               = "ScreenshotPath"
+	SettingsSmoothMovement               = "SmoothMovement"
+	SettingsFocusOnSelectingWithKeys     = "FocusOnSelectingWithKeys"
+	SettingsWindowTransparency           = "Window Transparency"
+	SettingsWindowTransparencyMode       = "Transparency Mode"
+	SettingsFocusOnUndo                  = "FocusOnUndo"
+	SettingsSuccessfulLoad               = "SuccesfulLoad"
+	SettingsAutoBackup                   = "Automatic Backups"
+	SettingsAutoBackupTime               = "Backup Timer"
+	SettingsMaxAutoBackups               = "Max Automatic Backup Count"
+	SettingsMouseWheelSensitivity        = "Mouse Wheel Sensitivity"
+	SettingsZoomToCursor                 = "Zoom to Cursor"
+	SettingsCardShadows                  = "Card Shadows"
+	SettingsFlashDeadlines               = "Flash Deadlines"
+	SettingsDeadlineDisplay              = "Display Deadlines As"
+	SettingsMaxInternalImageSize         = "Max Internal Image Buffer Size"
+	SettingsPlaceNewCardsInStack         = "Position New Cards in Stack"
+	SettingsHideGridOnZoomOut            = "Hide Grid on Zoom out"
+	SettingsDisplayNumberedPercentagesAs = "Display Numbered Percentages"
+	SettingsShowTableHeaders             = "Display Table Headers"
+	// SettingsCacheAudioBeforePlayback     = "Cache Audio Before Playback"
 
 	SettingsAudioVolume     = "AudioVolume"
 	SettingsAudioBufferSize = "Audio Playback Buffer Size"
@@ -67,6 +70,12 @@ const (
 	WindowTransparencyAlways = "Always"
 	WindowTransparencyMouse  = "When mouse is outside window"
 	WindowTransparencyWindow = "When window is inactive"
+)
+
+const (
+	NumberedPercentagePercent    = "Percent"
+	NumberedPercentageOff        = "Off"
+	NumberedPercentageCurrentMax = "X / Y"
 )
 
 const (
@@ -93,13 +102,16 @@ const (
 )
 
 const (
-	AudioBufferSize32   = "32"
-	AudioBufferSize64   = "64"
-	AudioBufferSize128  = "128"
-	AudioBufferSize256  = "256"
-	AudioBufferSize512  = "512"
-	AudioBufferSize1024 = "1024"
-	AudioBufferSize2048 = "2048"
+	AudioBufferSize32    = "32"
+	AudioBufferSize64    = "64"
+	AudioBufferSize128   = "128"
+	AudioBufferSize256   = "256"
+	AudioBufferSize512   = "512"
+	AudioBufferSize1024  = "1024"
+	AudioBufferSize2048  = "2048"
+	AudioBufferSize4096  = "4096"
+	AudioBufferSize8192  = "8192"
+	AudioBufferSize16384 = "16384"
 )
 
 var percentageToNumber map[string]float32 = map[string]float32{
@@ -123,6 +135,12 @@ const (
 	ImageBufferSize8192  = "8192"
 	ImageBufferSize16384 = "16384"
 	ImageBufferSizeMax   = "Max"
+)
+
+const (
+	TableHeadersSelected = "Selected"
+	TableHeadersHover    = "Hovering"
+	TableHeadersAlways   = "Always"
 )
 
 func NewProgramSettings() *Properties {
@@ -161,6 +179,8 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsMaxInternalImageSize).Set(ImageBufferSize2048)
 	props.Get(SettingsPlaceNewCardsInStack).Set(false)
 	props.Get(SettingsHideGridOnZoomOut).Set(true)
+	props.Get(SettingsDisplayNumberedPercentagesAs).Set(NumberedPercentagePercent)
+	props.Get(SettingsShowTableHeaders).Set(TableHeadersSelected)
 
 	// Audio settings; not shown in MasterPlan because it's very rarely necessary to tweak
 	props.Get(SettingsAudioVolume).Set(80.0)
