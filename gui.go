@@ -1903,6 +1903,7 @@ func (label *Label) EndEditing() {
 		label.MultiEditing = false
 		if globals.State == StateTextEditing {
 			globals.State = StateNeutral
+			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			globals.editingCard = nil
 		}
 		caretPos := label.Selection.CaretPos
