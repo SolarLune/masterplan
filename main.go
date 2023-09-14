@@ -1197,6 +1197,7 @@ func ConstructMenus() {
 				globals.RecentFiles = []string{}
 				loadRecent.Close()
 				SaveSettings()
+				globals.EventLog.Log("Recent files list cleared.", true)
 			}))
 
 		}
