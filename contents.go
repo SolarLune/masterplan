@@ -201,7 +201,6 @@ func (cc *CheckboxContents) Update() {
 	if cc.Card.IsSelected() && globals.State == StateNeutral {
 		kb := globals.Keybindings
 		if kb.Pressed(KBCheckboxToggleCompletion) {
-			kb.Shortcuts[KBCheckboxToggleCompletion].ConsumeKeys()
 			prop := cc.Card.Properties.Get("checked")
 			prop.Set(!prop.AsBool())
 		} else if kb.Pressed(KBCheckboxEditText) {
