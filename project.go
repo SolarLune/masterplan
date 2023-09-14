@@ -510,6 +510,8 @@ func (project *Project) Save() {
 		globals.EventLog.Log("Project saved successfully.", false)
 	}
 
+	AddFileToRecentFilesList(project.Filepath)
+
 	project.Modified = false
 
 }
@@ -585,21 +587,7 @@ func OpenProjectFrom(filename string) {
 
 		log.Println("Load started.")
 
-		// Limit the length of the recent files list to 10 (this is arbitrary, but should be good enough)
-		if len(globals.RecentFiles) > 10 {
-			globals.RecentFiles = globals.RecentFiles[:10]
-		}
-
-		for i := 0; i < len(globals.RecentFiles); i++ {
-			if globals.RecentFiles[i] == filename {
-				globals.RecentFiles = append(globals.RecentFiles[:i], globals.RecentFiles[i+1:]...)
-				break
-			}
-		}
-
-		globals.RecentFiles = append([]string{filename}, globals.RecentFiles...)
-
-		SaveSettings()
+		AddFileToRecentFilesList(filename)
 
 		log.Println("Recent files list updated...")
 

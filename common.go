@@ -831,6 +831,26 @@ func DatesAreEqual(d1, d2 time.Time) bool {
 	return d1.Year() == d2.Year() && d1.Month() == d2.Month() && d1.Day() == d2.Day()
 }
 
+func AddFileToRecentFilesList(filename string) {
+
+	// Limit the length of the recent files list to 10 (this is arbitrary, but should be good enough)
+	if len(globals.RecentFiles) > 10 {
+		globals.RecentFiles = globals.RecentFiles[:10]
+	}
+
+	for i := 0; i < len(globals.RecentFiles); i++ {
+		if globals.RecentFiles[i] == filename {
+			globals.RecentFiles = append(globals.RecentFiles[:i], globals.RecentFiles[i+1:]...)
+			break
+		}
+	}
+
+	globals.RecentFiles = append([]string{filename}, globals.RecentFiles...)
+
+	SaveSettings()
+
+}
+
 var renderTargets []*sdl.Texture = []*sdl.Texture{nil}
 
 // SetRenderTarget allows you to set the renderer's backing rendering target; setting it to nil reverts it to the previous target, if there was one. This was done
