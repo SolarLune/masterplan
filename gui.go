@@ -1419,6 +1419,11 @@ func (label *Label) MoveCaretBackOneWord() int {
 
 func (label *Label) Update() {
 
+	if label.Editing && globals.Keybindings.Pressed(KBNewCardOfPrevType) {
+		label.EndEditing()
+		return
+	}
+
 	clickedOut := false
 
 	if label.HorizontalAlignment == AlignCenter {
@@ -1793,7 +1798,7 @@ func (label *Label) Update() {
 				}
 
 				// Typing
-				if len(globals.InputText) > 0 {
+				if !clickedOut && len(globals.InputText) > 0 {
 					label.DeleteSelectedChars()
 					label.InsertRunesAtIndex(globals.InputText, label.Selection.CaretPos)
 					label.Selection.AdvanceCaret(len(globals.InputText))

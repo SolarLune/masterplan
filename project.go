@@ -1337,6 +1337,23 @@ func (project *Project) GlobalShortcuts() {
 
 	}
 
+	if kb.Pressed(KBNewCardOfPrevType) && (globals.State == StateNeutral || globals.State == StateMapEditing || globals.State == StateTextEditing) {
+		newCard := project.CurrentPage.CreateNewCard(project.LastCardType)
+		kb.Shortcuts[KBNewCardOfPrevType].ConsumeKeys()
+		placeCardInStack(newCard, false)
+		project.CurrentPage.Selection.Clear()
+		project.CurrentPage.Selection.Add(newCard)
+
+		// Trigger text editing for this new card and update it by triggering all possible shortcuts for text editing. TODO: Clean this up.
+		kb.Shortcuts[KBCheckboxEditText].TempOverride = true
+		kb.Shortcuts[KBLinkEditText].TempOverride = true
+		kb.Shortcuts[KBNoteEditText].TempOverride = true
+		kb.Shortcuts[KBNumberedEditText].TempOverride = true
+		kb.Shortcuts[KBTimerEditText].TempOverride = true
+		kb.Shortcuts[KBSubpageEditText].TempOverride = true
+		newCard.Update()
+	}
+
 	if globals.State == StateNeutral || globals.State == StateMapEditing || globals.State == StateCardArrow {
 
 		kb := globals.Keybindings

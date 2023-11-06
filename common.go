@@ -877,6 +877,7 @@ func placeCardInStack(card *Card, centerIfNoSelection bool) {
 		for _, t := range selection[0].Stack.Tail() {
 			t.Rect.Y += card.Rect.H
 			t.LockPosition()
+			globals.Project.UndoHistory.Capture(NewUndoState(t))
 		}
 		card.LockPosition()
 		globals.Project.Camera.FocusOn(false, card)

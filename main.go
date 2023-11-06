@@ -745,6 +745,10 @@ func main() {
 
 		HandleFontReload()
 
+		for _, s := range globals.Keybindings.Shortcuts {
+			s.TempOverride = false
+		}
+
 	}
 
 	if globals.Settings.Get(SettingsSaveWindowPosition).AsBool() {
@@ -2449,6 +2453,8 @@ where the cursor is over the window.`))
 	row.Add("search label", NewLabel("Search: ", nil, false, AlignLeft))
 	searchKeybindingsLabel := NewLabel("test", &sdl.FRect{0, 0, 380, 32}, false, AlignLeft)
 	searchKeybindingsLabel.Editable = true
+	searchKeybindingsLabel.RegexString = RegexNoNewlines
+
 	// searchKeybindingsLabel.AutoExpand = true
 	searchKeybindingsLabel.OnChange = func() {
 

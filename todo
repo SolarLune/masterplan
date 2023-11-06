@@ -1,8 +1,16 @@
 [x] Editing card pushes lower cards up
 [x] Taking screenshots crash MP
 [x] Can't go up sub-pages via keybinding while in Link Mode
+
+[ ] Deleting cards should move the rest of the cards up (new shortcut?)
+[ ] Show shortcut collisions in input menu
+[ ] Give message on start-up when there's a shortcut collision
 [ ] Link text is essentially blank
-[ ] AMD cards might have minor graphical glitches? Mainly in main menu
+[ ] Investigate web - maybe I can render a website to an image and then link to it? - chromedp to have an actual visible website?
+[ ] State testing could be drastically simplified
+[ ] Consolidate card contents text editing (see project.go:1348)
+
+[ ] AMD cards might have MAJOR graphical glitches? Mainly in main menu
 [ ] Menu shadows are way too dark
 
 [x] It does not like cutting and pasting a sub-card into itself.
@@ -84,6 +92,7 @@
 [x] Make it so if images surpass the GPU's maximum texture size, they get sized down
 [x] What should we do if we're using media from another drive?
 [ ] Optimize - seems like there's a memory leak somewhere
+  [ ] Loop through slices to perform a function instead of making a duplicate slice to iterate through
 [ ] Show keybinding conflicts in the Keybindings menu
 [x] Make all text fields in Cards (like their title / description) consistent in terms of their capabilities
 [ ] Fix storing a card in collapsed mode doesn't allow it to become uncollapsed; guess we'll need to store the uncollapsed size to revert to.

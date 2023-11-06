@@ -88,7 +88,8 @@ const (
 	KBPasteText     = "Textbox: Paste Copied Text"
 	KBSelectAllText = "Textbox: Select All Text"
 
-	KBSwitchWrapMode = "Card Text Editing: Switch Wrap Mode"
+	KBSwitchWrapMode    = "Card Text Editing: Switch Wrap Mode"
+	KBNewCardOfPrevType = "Create New Card of Prev. Type"
 
 	KBUndo = "Undo"
 	KBRedo = "Redo"
@@ -219,8 +220,9 @@ type Shortcut struct {
 	triggerMode        int
 	MouseButton        uint8
 	DefaultMouseButton uint8
+	DefaultSet         bool
 
-	DefaultSet bool
+	TempOverride bool
 }
 
 func NewShortcut(name string) *Shortcut {
@@ -396,7 +398,6 @@ func NewKeybindings() *Keybindings {
 		MouseShortcutsByFamily: map[uint8][]*Shortcut{},
 	}
 	kb.Default()
-	kb.UpdateShortcutFamilies()
 	return kb
 }
 
@@ -482,6 +483,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBNewSubpageCard, sdl.K_8, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewLinkCard, sdl.K_9, sdl.K_LSHIFT)
 	kb.DefineKeyShortcut(KBNewTableCard, sdl.K_0, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewCardOfPrevType, sdl.K_RETURN, sdl.K_LCTRL)
 
 	kb.DefineKeyShortcut(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
@@ -513,7 +515,7 @@ func (kb *Keybindings) Default() {
 
 	kb.DefineKeyShortcut(KBWindowSizeSmall, sdl.K_F9)
 	kb.DefineKeyShortcut(KBWindowSizeNormal, sdl.K_F10)
-	kb.DefineKeyShortcut(KBToggleFullscreen, sdl.K_RETURN, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBToggleFullscreen, sdl.K_RETURN, sdl.K_LALT)
 	kb.DefineKeyShortcut(KBUnlockImageASR, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 
 	kb.DefineKeyShortcut(KBCheckboxToggleCompletion, sdl.K_SPACE)
@@ -617,6 +619,10 @@ func (kb *Keybindings) Pressed(bindingName string) bool {
 
 	if !kb.On || !sc.Enabled {
 		return false
+	}
+
+	if sc.TempOverride {
+		return true
 	}
 
 	if sc.MouseButton < 255 {
