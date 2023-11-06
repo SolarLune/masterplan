@@ -2351,6 +2351,21 @@ of images can be.`))
 
 	input.OnUpdate = func() {
 
+		for _, a := range globals.Keybindings.ShortcutsInOrder {
+			shortcut := input.FindElement("keyConflict-"+a.Name, false).(*Tooltip)
+			shortcut.Visible = false
+			shortcut.Text = "The following shortcuts share key combos:\n"
+			for _, b := range globals.Keybindings.ShortcutsInOrder {
+				if a == b {
+					continue
+				}
+				if a.KeysToString() == b.KeysToString() {
+					shortcut.Visible = true
+					shortcut.Text += "\n + " + b.Name
+				}
+			}
+		}
+
 		globals.Keybindings.On = false
 
 		if rebindingKey != nil {
@@ -2503,6 +2518,9 @@ where the cursor is over the window.`))
 		row = input.AddRow(AlignCenter)
 		row.AlternateBGColor = true
 
+		tooltip := NewTooltip("The following shortcuts share key combos:")
+		row.Add("keyConflict-"+shortcut.Name, tooltip)
+
 		shortcutName := NewLabel(shortcut.Name, nil, false, AlignLeft)
 
 		row.Add("key-"+shortcut.Name, shortcutName)
@@ -2525,7 +2543,9 @@ where the cursor is over the window.`))
 
 		row.Add(shortcut.Name+"-d", button)
 
-		row.ExpandElementSet.SelectAll()
+		row.ExpandElementSet.Select(shortcutName, redefineButton, button)
+
+		// row.ExpandElementSet.SelectAll()
 	}
 
 	about := settings.AddPage("about")

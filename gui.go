@@ -3905,12 +3905,14 @@ type Tooltip struct {
 	SpawnStart Point
 	Displaying bool
 	Text       string
+	Visible    bool
 }
 
 func NewTooltip(text string) *Tooltip {
 	tt := &Tooltip{
-		Button: NewIconButton(0, 0, &sdl.Rect{240, 352, 32, 32}, globals.GUITexture, false, nil),
-		Text:   text,
+		Button:  NewIconButton(0, 0, &sdl.Rect{240, 352, 32, 32}, globals.GUITexture, false, nil),
+		Text:    text,
+		Visible: true,
 	}
 	tt.Button.Tint = ColorWhite
 	tt.Button.OnPressed = func() {
@@ -3921,6 +3923,9 @@ func NewTooltip(text string) *Tooltip {
 }
 
 func (tt *Tooltip) Update() {
+	if !tt.Visible {
+		return
+	}
 	tt.Button.Update()
 	if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.RawPosition().Inside(tt.Button.Rect) {
 		tt.Displaying = false
@@ -3932,6 +3937,9 @@ func (tt *Tooltip) Update() {
 
 }
 func (tt *Tooltip) Draw() {
+	if !tt.Visible {
+		return
+	}
 	tt.Button.Draw()
 }
 
