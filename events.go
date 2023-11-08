@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image/color"
+
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -305,7 +307,7 @@ func LoadCursors() {
 			for y := 0; y < 48; y++ {
 				for x := 0; x < 48; x++ {
 					r, g, b, a := ColorAt(cursorImg, srcX+int32(x), srcY+int32(y))
-					cursorSurf.Set(47-x, y, sdl.RGBA8888{r, g, b, a})
+					cursorSurf.Set(47-x, y, color.RGBA{r, g, b, a})
 				}
 			}
 
