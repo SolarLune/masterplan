@@ -402,7 +402,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 	return result
 }
 
-func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier float32, color Color, outlineColor Color, alignment string) {
+func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier float32, color, outlineColor Color, alignment string) {
 
 	textSize := tr.MeasureText([]rune(text), sizeMultiplier)
 

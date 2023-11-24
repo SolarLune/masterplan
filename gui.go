@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/tanema/gween"
+	"github.com/tanema/gween/ease"
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 	"golang.design/x/clipboard"
@@ -185,6 +187,9 @@ type IconButton struct {
 	FadeOnInactive          bool
 	AlwaysHighlight         bool
 	Image                   Image
+	CanPress                bool
+
+	tween *gween.Tween
 }
 
 func NewIconButton(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool, onClicked func()) *IconButton {
@@ -201,6 +206,8 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool
 		Image:                   image,
 		Scale:                   Point{1, 1},
 		BGIconTint:              ColorWhite.Clone(),
+		tween:                   gween.New(1.4, 1, 0.1, ease.InCirc),
+		CanPress:                true,
 	}
 	iconButton.Highlighter = NewHighlighter(iconButton.Rect, worldSpace)
 	iconButton.Highlighter.HighlightMode = HighlightUnderline
@@ -210,14 +217,16 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool
 
 func (iconButton *IconButton) Update() {
 
-	if ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active {
+	if iconButton.CanPress && ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		iconButton.OnPressed()
+		iconButton.tween.Reset()
 	}
 
-	if iconButton.OnRightClickPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active && globals.Mouse.WorldPosition().Inside(iconButton.Rect) && globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
+	if iconButton.CanPress && iconButton.OnRightClickPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active && globals.Mouse.WorldPosition().Inside(iconButton.Rect) && globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
 		globals.Mouse.Button(sdl.BUTTON_RIGHT).Consume()
 		iconButton.OnRightClickPressed()
+		iconButton.tween.Reset()
 	}
 
 	iconButton.Rect.W = iconButton.originalSize.X * iconButton.Scale.X
@@ -234,6 +243,12 @@ func (iconButton *IconButton) Draw() {
 	if iconButton.WorldSpace {
 		rect = globals.Project.Camera.TranslateRect(rect)
 	}
+
+	currentSize, _ := iconButton.tween.Update(1.0 / float32(targetFPS))
+	rect.W *= currentSize
+	rect.H *= currentSize
+	rect.X += (1 - currentSize) * rect.W / 3
+	rect.Y += (1 - currentSize) * rect.H / 3
 
 	mp := globals.Mouse.Position()
 	if iconButton.WorldSpace {
@@ -272,8 +287,13 @@ func (iconButton *IconButton) Draw() {
 
 	drawSrc(iconButton.IconSrc, 0, 0, tint, iconButton.Flip)
 
-	iconButton.Highlighter.SetRect(iconButton.Rect)
-	iconButton.Highlighter.Highlighting = iconButton.AlwaysHighlight || mp.Inside(iconButton.Rect)
+	r := *iconButton.Rect
+	r.X += 1
+	r.Y += 1
+	r.W -= 2
+	r.H -= 2
+	iconButton.Highlighter.SetRect(&r)
+	iconButton.Highlighter.Highlighting = iconButton.AlwaysHighlight || (iconButton.CanPress && mp.Inside(iconButton.Rect))
 	if iconButton.Active {
 		iconButton.Highlighter.Draw()
 	}
@@ -1332,6 +1352,7 @@ type Label struct {
 	TextureDirty   bool
 	RendererResult *TextRendererResult
 	WorldSpace     bool
+	Highlighter    *Highlighter
 
 	Editable           bool
 	Editing            bool
@@ -1371,6 +1392,7 @@ func NewLabel(text string, rect *sdl.FRect, worldSpace bool, horizontalAlignment
 		RegexString:         "",
 		MaxLength:           -1,
 		DrawLineUnderTitle:  true,
+		Highlighter:         NewHighlighter(nil, worldSpace),
 	}
 
 	if rect == nil {
@@ -1449,6 +1471,11 @@ func (label *Label) Update() {
 			if !label.Editing && ClickedInRect(activeRect, label.WorldSpace) && globals.Mouse.Button(sdl.BUTTON_LEFT).PressedTimes(2) {
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 				label.BeginEditing()
+			}
+
+			mousePos := globals.Mouse.Position()
+			if label.WorldSpace {
+				mousePos = globals.Mouse.WorldPosition()
 			}
 
 			if label.Editing {
@@ -1622,11 +1649,6 @@ func (label *Label) Update() {
 						lineCount--
 					}
 					label.Selection.Select(newIndex, newIndex)
-				}
-
-				mousePos := globals.Mouse.Position()
-				if label.WorldSpace {
-					mousePos = globals.Mouse.WorldPosition()
 				}
 
 				if mousePos.Inside(label.Rect) {
@@ -1855,6 +1877,16 @@ func (label *Label) Update() {
 
 			}
 
+			label.Highlighter.Highlighting = false
+			if label.Editable && mousePos.Inside(label.Rect) {
+				rect := label.Rectangle()
+				rect.Y++
+				rect.W -= 1
+				rect.H -= 2
+				label.Highlighter.SetRect(rect)
+				label.Highlighter.Highlighting = true
+			}
+
 		}
 
 	}
@@ -1885,6 +1917,20 @@ func (label *Label) Update() {
 			label.Property.Set(label.TextAsString())
 		}
 	}
+
+	// baseline := float32(globals.Font.Ascent()) / 4
+
+	// w := int32(label.RendererResult.Image.Size.X)
+
+	// if w > int32(label.Rect.W) {
+	// 	w = int32(label.Rect.W)
+	// }
+
+	// h := int32(label.RendererResult.Image.Size.Y)
+
+	// if h > int32(label.Rect.H+baseline) {
+	// 	h = int32(label.Rect.H + baseline)
+	// }
 
 }
 
@@ -2078,6 +2124,10 @@ func (label *Label) Draw() {
 	}
 
 	label.textChanged = false
+
+	if label.Editable {
+		label.Highlighter.Draw()
+	}
 
 	// globals.textEditingWrap
 
@@ -3483,6 +3533,8 @@ type Highlighter struct {
 func NewHighlighter(rect *sdl.FRect, worldSpace bool) *Highlighter {
 	if rect == nil {
 		rect = &sdl.FRect{}
+	} else {
+		rect = &sdl.FRect{rect.X, rect.Y, rect.W, rect.H}
 	}
 	return &Highlighter{
 		Rect:          rect,

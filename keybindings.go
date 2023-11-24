@@ -548,7 +548,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBSubpageClose, sdl.K_BACKQUOTE)
 
 	kb.DefineKeyShortcut(KBLinkEditText, sdl.K_RETURN)
-	kb.DefineKeyShortcut(KBActivateLink, sdl.K_RETURN)
+	kb.DefineKeyShortcut(KBActivateLink, sdl.K_RETURN, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBResizeMultiple, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 

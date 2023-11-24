@@ -203,6 +203,9 @@ func (cc *CheckboxContents) Update() {
 		if kb.Pressed(KBCheckboxToggleCompletion) {
 			prop := cc.Card.Properties.Get("checked")
 			prop.Set(!prop.AsBool())
+			if !cc.Checkbox.MultiCheckbox {
+				cc.Checkbox.IconButton.tween.Reset()
+			}
 		} else if kb.Pressed(KBCheckboxEditText) {
 			kb.Shortcuts[KBCheckboxEditText].ConsumeKeys()
 			cc.Label.BeginEditing()
@@ -218,6 +221,8 @@ func (cc *CheckboxContents) Draw() {
 
 	dependentCards := cc.DependentCards()
 	cc.Checkbox.MultiCheckbox = len(dependentCards) > 0
+
+	cc.Checkbox.CanPress = !cc.Checkbox.MultiCheckbox
 
 	if len(dependentCards) > 0 {
 

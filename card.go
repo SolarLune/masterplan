@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"math/rand"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -330,6 +331,8 @@ type Card struct {
 	LinkRectPercentage float32
 
 	changedProperty *Property
+	currentColor    Color
+	colorFadeSpeed  float64
 }
 
 var globalCardID = int64(0)
@@ -348,6 +351,8 @@ func NewCard(page *Page, contentType string) *Card {
 		Links:           []*LinkEnding{},
 		ResizeShape:     NewShape(8),
 		DrawHighlighter: true,
+		currentColor:    NewColor(255, 255, 255, 255),
+		colorFadeSpeed:  0.1 + (rand.Float64() * 0.2),
 	}
 
 	card.Drawable = NewDrawable(card.PostDraw)
@@ -1313,8 +1318,9 @@ func (card *Card) DrawCard() {
 	}
 
 	if color[3] != 0 {
-		card.Result.Texture.SetColorMod(color.RGB())
-		card.Result.Texture.SetAlphaMod(color[3])
+		card.currentColor = card.currentColor.Mix(color, card.colorFadeSpeed)
+		card.Result.Texture.SetColorMod(card.currentColor.RGB())
+		card.Result.Texture.SetAlphaMod(card.currentColor[3])
 		globals.Renderer.CopyF(card.Result.Texture, nil, tp)
 	}
 

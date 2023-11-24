@@ -2,10 +2,11 @@
 [x] Taking screenshots crash MP
 [x] Can't go up sub-pages via keybinding while in Link Mode
 
+[x] Show shortcut collisions in input menu
+[ ] Make shortcuts be aware of the contexts in which they operate, so that true shortcut conflicts can be reported
+[x] Link text is essentially blank (Doesn't seem to be that way for me right now)
+[ ] Redirect STDOUT to messages at the bottom-left for programs that run
 [ ] Deleting cards should move the rest of the cards up (new shortcut?)
-[ ] Show shortcut collisions in input menu
-[ ] Give message on start-up when there's a shortcut collision
-[ ] Link text is essentially blank
 [ ] Investigate web - maybe I can render a website to an image and then link to it? - chromedp to have an actual visible website?
 [ ] State testing could be drastically simplified
 [ ] Consolidate card contents text editing (see project.go:1348)
