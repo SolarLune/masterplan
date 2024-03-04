@@ -16,9 +16,10 @@ const (
 	CursorEyedropper          = "eyedropper"
 	CursorBucket              = "bucket"
 	CursorEraser              = "eraser"
-	CursorArrow               = "arrow"
+	CursorLink                = "arrow"
 	CursorHand                = "hand"
 	CursorHandGrab            = "handgrab"
+	CursorWebArrow            = "webarrow"
 	// CursorLink                = "Link"
 )
 
@@ -327,9 +328,10 @@ func LoadCursors() {
 	globals.Mouse.Cursors[CursorEyedropper] = createCursor(432, 192, false)
 	globals.Mouse.Cursors[CursorBucket] = createCursor(432, 240, false)
 	globals.Mouse.Cursors[CursorEraser] = createCursor(432, 272, false)
-	globals.Mouse.Cursors[CursorArrow] = createCursor(432, 320, false)
+	globals.Mouse.Cursors[CursorLink] = createCursor(432, 320, false)
 	globals.Mouse.Cursors[CursorHand] = createCursor(384, 320, false)
 	globals.Mouse.Cursors[CursorHandGrab] = createCursor(384, 368, false)
+	globals.Mouse.Cursors[CursorWebArrow] = createCursor(432, 464, false)
 
 	globals.Mouse.SetCursor(CursorNormal)
 

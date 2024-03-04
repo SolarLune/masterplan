@@ -19,7 +19,7 @@ func (buffer *CopyBuffer) Clear() {
 
 func (buffer *CopyBuffer) Copy(card *Card) {
 	buffer.Cards = append(buffer.Cards, card)
-	buffer.CardsToSerialized[card] = card.Serialize()
+	buffer.CardsToSerialized[card] = card.Serialize(true)
 }
 
 func (buffer *CopyBuffer) Index(card *Card) int {

@@ -152,6 +152,12 @@ func (point Point) Distance(other Point) float32 {
 	return float32(math.Sqrt(float64(point.DistanceSquared(other))))
 }
 
+func (point Point) DistanceToRect(rect *sdl.FRect) float32 {
+	closestX := math.Max(float64(rect.X), math.Min(float64(point.X), float64(rect.X+rect.W)))
+	closestY := math.Max(float64(rect.Y), math.Min(float64(point.Y), float64(rect.Y+rect.H)))
+	return point.Distance(Point{float32(closestX), float32(closestY)})
+}
+
 func (point Point) Length() float32 {
 	return point.Distance(Point{0, 0})
 }
@@ -518,7 +524,8 @@ func (color Color) Sub(value uint8) Color {
 }
 
 func (color Color) IsDark() bool {
-	return color[0] < 50 && color[1] < 50 && color[2] < 50
+	threshold := 60
+	return color[0] < uint8(threshold) && color[1] < uint8(threshold) && color[2] < uint8(threshold)
 }
 
 func (color Color) Accent() Color {

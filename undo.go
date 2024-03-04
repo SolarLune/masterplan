@@ -276,7 +276,7 @@ func NewUndoState(card *Card) *UndoState {
 
 	state := &UndoState{
 		Card:       card,
-		Serialized: card.Serialize(),
+		Serialized: card.Serialize(false),
 	}
 
 	return state

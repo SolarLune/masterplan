@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/blang/semver"
@@ -85,6 +86,9 @@ type Globals struct {
 	textEditingWrap *Property
 
 	DrawOnTop DrawOnTop
+
+	BrowserContext context.Context
+	// BrowserCancel
 }
 
 var globals = &Globals{

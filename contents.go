@@ -1,17 +1,32 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"errors"
 	"fmt"
+	"image/png"
+	"log"
 	"math"
 	"os/exec"
 	"path"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
+	"github.com/chromedp/cdproto/input"
+	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/chromedp"
+	"github.com/chromedp/chromedp/device"
+	"github.com/chromedp/chromedp/kb"
 	"github.com/gen2brain/beeep"
+	"github.com/goware/urlx"
 	"github.com/ncruces/zenity"
+	"github.com/pkg/browser"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -29,6 +44,7 @@ const (
 	ContentTypeSubpage  = "Sub-Page"
 	ContentTypeLink     = "Link"
 	ContentTypeTable    = "Table"
+	ContentTypeWeb      = "web"
 )
 const (
 	TriggerTypeSet = iota
@@ -47,6 +63,7 @@ var icons map[string]*sdl.Rect = map[string]*sdl.Rect{
 	ContentTypeSubpage:  {48, 256, 32, 32},
 	ContentTypeLink:     {112, 256, 32, 32},
 	ContentTypeTable:    {176, 224, 32, 32},
+	ContentTypeWeb:      {144, 288, 32, 32},
 }
 
 var contentOrder = map[string]int{
@@ -60,6 +77,7 @@ var contentOrder = map[string]int{
 	ContentTypeSubpage:  7,
 	ContentTypeLink:     8,
 	ContentTypeTable:    9,
+	ContentTypeWeb:      10,
 }
 
 type Contents interface {
@@ -198,13 +216,14 @@ func (cc *CheckboxContents) Update() {
 	// Put the update here so the label gets updated after setting the description
 	cc.DefaultContents.Update()
 
+	wasChecked := cc.Card.Properties.Get("checked").AsBool()
+
 	if cc.Card.IsSelected() && globals.State == StateNeutral {
 		kb := globals.Keybindings
 		if kb.Pressed(KBCheckboxToggleCompletion) {
-			prop := cc.Card.Properties.Get("checked")
-			prop.Set(!prop.AsBool())
-			if !cc.Checkbox.MultiCheckbox {
-				cc.Checkbox.IconButton.tween.Reset()
+			if cc.Checkbox.CanPress {
+				prop := cc.Card.Properties.Get("checked")
+				prop.Set(!prop.AsBool())
 			}
 		} else if kb.Pressed(KBCheckboxEditText) {
 			kb.Shortcuts[KBCheckboxEditText].ConsumeKeys()
@@ -212,19 +231,30 @@ func (cc *CheckboxContents) Update() {
 		}
 	}
 
+	if wasChecked != cc.Card.Properties.Get("checked").AsBool() {
+		cc.Checkbox.IconButton.tween.Reset()
+	}
+
 }
 
 func (cc *CheckboxContents) Draw() {
+
+	wasChecked := cc.Card.Properties.Get("checked").AsBool()
 
 	completed := float32(0)
 	maximum := float32(0)
 
 	dependentCards := cc.DependentCards()
-	cc.Checkbox.MultiCheckbox = len(dependentCards) > 0
 
-	cc.Checkbox.CanPress = !cc.Checkbox.MultiCheckbox
+	cc.Checkbox.CanPress = len(dependentCards) == 0
+
+	cc.Checkbox.ActiveSrcPos.X = 48
+	cc.Checkbox.InactiveSrcPos.X = 48
 
 	if len(dependentCards) > 0 {
+
+		cc.Checkbox.ActiveSrcPos.X = 80
+		cc.Checkbox.InactiveSrcPos.X = 80
 
 		for _, c := range dependentCards {
 			if c.Numberable() {
@@ -263,8 +293,6 @@ func (cc *CheckboxContents) Draw() {
 
 	cc.DefaultContents.Draw()
 
-	cc.Checkbox.Clickable = len(dependentCards) == 0
-
 	if len(dependentCards) > 0 {
 		dstPoint := Point{cc.Card.DisplayRect.X + cc.Card.DisplayRect.W - 32, cc.Card.DisplayRect.Y}
 		DrawLabel(cc.Card.Page.Project.Camera.TranslatePoint(dstPoint), fmt.Sprintf("%d/%d", int(completed), int(maximum)))
@@ -296,6 +324,10 @@ func (cc *CheckboxContents) Draw() {
 	// 	}
 
 	// }
+
+	if wasChecked != cc.Card.Properties.Get("checked").AsBool() {
+		cc.Checkbox.IconButton.tween.Reset()
+	}
 
 }
 
@@ -344,9 +376,9 @@ func (cc *CheckboxContents) Trigger(triggerType int) {
 
 func (cc *CheckboxContents) CompletionLevel() float32 {
 
-	if len(cc.DependentCards()) > 0 {
+	if dep := cc.DependentCards(); len(dep) > 0 {
 		comp := float32(0)
-		for _, c := range cc.DependentCards() {
+		for _, c := range dep {
 			comp += c.CompletionLevel()
 		}
 		return comp
@@ -362,9 +394,9 @@ func (cc *CheckboxContents) CompletionLevel() float32 {
 
 func (cc *CheckboxContents) MaximumCompletionLevel() float32 {
 
-	if len(cc.DependentCards()) > 0 {
+	if dep := cc.DependentCards(); len(dep) > 0 {
 		comp := float32(0)
-		for _, c := range cc.DependentCards() {
+		for _, c := range dep {
 			comp += c.MaximumCompletionLevel()
 		}
 		return comp
@@ -442,6 +474,10 @@ func (cc *CheckboxContents) DependentCards() []*Card {
 	return cards
 }
 
+func (cc *CheckboxContents) MultiCheckbox() bool {
+	return len(cc.DependentCards()) > 0
+}
+
 type NumberedContents struct {
 	DefaultContents
 	Label              *Label
@@ -468,6 +504,10 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	numbered.postDrawable = NewDrawable(
 
 		func() {
+
+			if numbered.Card.Properties.Get("hideMax").AsBool() {
+				return
+			}
 
 			if numbered.Card.selected {
 
@@ -496,7 +536,15 @@ func NewNumberedContents(card *Card) *NumberedContents {
 	numbered.Max = NewNumberSpinner(nil, true, max)
 
 	row := numbered.container.AddRow(AlignCenter)
+	checkbox := NewCheckbox(0, 0, true, card.Properties.Get("hideMax"))
+	checkbox.ActiveSrcPos.X = 176
+	checkbox.ActiveSrcPos.Y = 320
+	checkbox.InactiveSrcPos.X = 176
+	checkbox.InactiveSrcPos.Y = 288
+	// checkbox.IconButton
+	row.Add("icon", checkbox)
 	row.Add("label", numbered.Label)
+
 	row = numbered.container.AddRow(AlignCenter)
 	row.Add("current", numbered.Current)
 	// row.Add("out of", NewLabel("out of", nil, true, AlignCenter))
@@ -529,6 +577,9 @@ func (nc *NumberedContents) Update() {
 
 	}
 
+	// nc.container.Rows[1].Visible = nc.container.Rows[0].FindElement("icon", false).(*Checkbox).Checked
+	nc.Max.Visible = !nc.Card.Properties.Get("hideMax").AsBool()
+
 	nc.DefaultContents.Update()
 
 	rect := nc.Label.Rectangle()
@@ -547,7 +598,7 @@ func (nc *NumberedContents) Draw() {
 
 	p := float32(0)
 
-	if nc.Max.Property.AsFloat() > 0 {
+	if !nc.Card.Properties.Get("hideMax").AsBool() && nc.Max.Property.AsFloat() > 0 {
 		p = float32(nc.Current.Property.AsFloat()) / float32(nc.Max.Property.AsFloat())
 		if p < 0 {
 			p = 0
@@ -578,7 +629,7 @@ func (nc *NumberedContents) Draw() {
 
 	nc.DefaultContents.Draw()
 
-	if nc.Max.Property.AsFloat() > 0 {
+	if !nc.Card.Properties.Get("hideMax").AsBool() && nc.Max.Property.AsFloat() > 0 {
 
 		dstPoint := Point{nc.Card.DisplayRect.X + nc.Card.DisplayRect.W - 32, nc.Card.DisplayRect.Y}
 		np := globals.Settings.Get(SettingsDisplayNumberedPercentagesAs).AsString()
@@ -605,7 +656,7 @@ func (nc *NumberedContents) Color() Color {
 		completedColor = NewColorFromHSV(h+30, s-0.2, v+0.2)
 	}
 
-	if nc.PercentageComplete >= 0.99 {
+	if !nc.Card.Properties.Get("hideMax").AsBool() && nc.PercentageComplete >= 0.99 {
 		return completedColor
 	} else {
 		return color
@@ -2018,7 +2069,6 @@ func NewMapContents(card *Card) *MapContents {
 			} else {
 				globals.MenuSystem.Get("map palette menu").Open()
 			}
-			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		})
 		button.Tint = ColorWhite
 		mc.Buttons = append(mc.Buttons, button)
@@ -4118,6 +4168,1098 @@ func (tc *TableContents) CompletionLevel() float32 {
 func (tc *TableContents) MaximumCompletionLevel() float32 {
 	return tc.TableData.MaximumCompletionLevel()
 }
+
+const (
+	WebCardSize256  = "256p"
+	WebCardSize320  = "320p"
+	WebCardSize512  = "512p"
+	WebCardSize1024 = "1024p"
+
+	WebCardFPSAsOftenAsPossible = "As Often As Possible"
+	WebCardFPS10FPS             = "10 FPS"
+	WebCardFPS1FPS              = "1 FPS"
+
+	WebCardAspectRatioWide   = "16:9"
+	WebCardAspectRatioTall   = "9:16"
+	WebCardAspectRatioSquare = "1:1"
+
+	WebCardUpdateOptionAlways              = "Always"
+	WebCardUpdateOptionWhenRecordingInputs = "Only When Recording Input"
+	WebCardUpdateOptionWhenSelected        = "Only When Selected"
+)
+
+type WebContents struct {
+	DefaultContents
+	DeviceInfo device.Info
+
+	BufferWidth, BufferHeight int
+	Context                   context.Context
+	ContextValid              atomic.Bool
+	CancelFunc                context.CancelFunc
+
+	TargetURL    string
+	NavigatedURL string
+	CurrentURL   string
+
+	ImageBuffer []byte
+	RawImage    []byte
+	// ImageSurface *sdl.Surface
+	ImageTexture *sdl.Texture
+
+	PauseRefresh     sync.Mutex
+	LoadingWebpage   atomic.Bool
+	ShouldRefresh    bool
+	RefreshedOnce    atomic.Bool
+	RefreshedTexture atomic.Bool
+
+	ValidBrowserTexture bool
+	RecordInput         bool
+
+	Actions chan chromedp.Action
+	// Actions chromedp.Tasks
+
+	Buttons []*IconButton
+
+	VerticalScrollbar   *Scrollbar
+	HorizontalScrollbar *Scrollbar
+}
+
+func NewWebContents(card *Card) *WebContents {
+
+	web := &WebContents{
+		DefaultContents:     newDefaultContents(card),
+		ShouldRefresh:       true,
+		Actions:             make(chan chromedp.Action),
+		VerticalScrollbar:   NewScrollbar(&sdl.FRect{0, 0, 16, 16}, true, nil),
+		HorizontalScrollbar: NewScrollbar(&sdl.FRect{0, 0, 16, 16}, true, nil),
+	}
+
+	web.VerticalScrollbar.DrawOnlyWhenMouseIsClose = true
+	web.HorizontalScrollbar.DrawOnlyWhenMouseIsClose = true
+
+	web.VerticalScrollbar.OnValueSet = func() {
+
+		tv := strconv.FormatFloat(float64(web.VerticalScrollbar.TargetValue), 'f', -1, 32)
+
+		err := chromedp.Run(web.Context, chromedp.Evaluate(`
+
+		var body = document.body;
+		var html = document.documentElement;
+
+		// Get the max height of the webpage
+		var pageHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+
+		var targetY = `+tv+` * pageHeight - window.innerHeight;
+		if (targetY < 0) {
+			targetY = 0;
+		}
+
+		window.scroll(window.scrollX, targetY)
+	`, nil))
+
+		if err != nil {
+			globals.EventLog.Log("error: %s", false, err.Error())
+		}
+
+	}
+
+	web.HorizontalScrollbar.OnValueSet = func() {
+
+		tv := strconv.FormatFloat(float64(web.HorizontalScrollbar.TargetValue), 'f', -1, 32)
+
+		err := chromedp.Run(web.Context, chromedp.Evaluate(`
+
+		var body = document.body;
+		var html = document.documentElement;
+
+		// Get the max height of the webpage
+		var pageWidth = Math.max(body.scrollWidth, body.offsetWidth, html.clientWidth, html.scrollWidth, html.offsetWidth);
+
+		var targetX = `+tv+` * pageWidth - window.innerWidth;
+		if (targetX < 0) {
+			targetX = 0;
+		}
+
+		window.scroll(targetX, window.scrollY)
+	`, nil))
+
+		if err != nil {
+			globals.EventLog.Log("error: %s", false, err.Error())
+		}
+
+	}
+
+	web.Card.Properties.SetDefault("size", WebCardSize256)
+	web.Card.Properties.SetDefault("aspect ratio", WebCardAspectRatioWide)
+	web.Card.Properties.SetDefault("update framerate", WebCardFPSAsOftenAsPossible)
+	web.Card.Properties.SetDefault("update only when", WebCardUpdateOptionAlways)
+	web.Card.Properties.SetDefault("url", "https://www.duckduckgo.com/")
+	web.Card.Properties.Get("url").OnlySerializeInSaves = true
+	// web.Card.Properties.SetDefault("aspect ratio width", 1)
+	// web.Card.Properties.SetDefault("aspect ratio height", 1)
+
+	buttonNames := []string{
+		"menu",
+		"edit",
+		"refresh",
+		"backward",
+		"forward",
+		"x1",
+		"x2",
+		"x3",
+	}
+
+	x := float32(0)
+
+	for _, b := range buttonNames {
+
+		// dst := sdl.FRect{web.Card.DisplayRect.X + x, web.Card.DisplayRect.Y - 32, 32, 32}
+		// iconSettings := ImmediateIconButtonSettings{
+		// 	Dst:        dst,
+		// 	Scale:      1,
+		// 	WorldSpace: true,
+		// }
+
+		var button *IconButton
+
+		switch b {
+
+		case "edit":
+			button = NewIconButton(
+				0, 0, &sdl.Rect{400, 32, 32, 32}, globals.GUITexture, true, func() {
+					web.ToggleRecordInput()
+				},
+			)
+		case "backward":
+			button = NewIconButton(
+				0, 0, &sdl.Rect{368, 0, 32, 32}, globals.GUITexture, true, func() {
+					entries := []*page.NavigationEntry{}
+					currentEntry := int64(0)
+					chromedp.Run(web.Context, chromedp.NavigationEntries(&currentEntry, &entries))
+					if int(currentEntry) >= 1 {
+						// web.Actions = append(web.Actions, chromedp.NavigateToHistoryEntry(currentEntry-1))
+						web.Actions <- chromedp.NavigateBack()
+					}
+				},
+			)
+			button.Flip = sdl.FLIP_HORIZONTAL
+		case "forward":
+			button = NewIconButton(
+				0, 0, &sdl.Rect{368, 0, 32, 32}, globals.GUITexture, true, func() {
+					entries := []*page.NavigationEntry{}
+					currentEntry := int64(0)
+					chromedp.Run(web.Context, chromedp.NavigationEntries(&currentEntry, &entries))
+					if int(currentEntry) < len(entries) {
+						web.Actions <- chromedp.NavigateForward()
+					}
+				},
+			)
+		case "x1":
+			button = NewIconButton(
+				0, 0, &sdl.Rect{304, 192, 32, 32}, globals.GUITexture, true, func() {
+					web.Card.Rect.W = float32(web.BufferWidth)
+					web.Card.Rect.H = float32(web.BufferHeight)
+					web.Card.LockPosition()
+				},
+			)
+		case "x2":
+			button = NewIconButton(
+				0, 0, &sdl.Rect{304, 224, 32, 32}, globals.GUITexture, true, func() {
+					web.Card.Rect.W = float32(web.BufferWidth) * 2
+					web.Card.Rect.H = float32(web.BufferHeight) * 2
+					web.Card.LockPosition()
+				},
+			)
+		case "x3":
+			button = NewIconButton(
+				0, 0, &sdl.Rect{304, 256, 32, 32}, globals.GUITexture, true, func() {
+					web.Card.Rect.W = float32(web.BufferWidth) * 3
+					web.Card.Rect.H = float32(web.BufferHeight) * 3
+					web.Card.LockPosition()
+				},
+			)
+
+		case "menu":
+
+			button = NewIconButton(
+				0, 0, &sdl.Rect{400, 160, 32, 32}, globals.GUITexture, true, func() {
+					globals.MenuSystem.Get("web card settings").Open()
+				},
+			)
+
+		case "refresh":
+
+			button = NewIconButton(
+				0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
+					web.Actions <- chromedp.Reload()
+				},
+			)
+
+		}
+
+		web.Buttons = append(web.Buttons, button)
+
+		x += 32
+
+	}
+
+	// web.Buttons = []*IconButton{}
+
+	web.ReinitContext()
+
+	web.UpdateBufferSize()
+
+	web.Navigate(web.Card.Properties.Get("url").AsString())
+	// web.Navigate("https://solarlunedev.tumblr.com/")
+
+	return web
+}
+
+func (w *WebContents) ReinitContext() {
+
+	if globals.BrowserContext == nil {
+
+		// opts := append(chromedp.DefaultExecAllocatorOptions[:], chromedp.Flag("headless", true))
+		opts := append(chromedp.DefaultExecAllocatorOptions[:], chromedp.Headless, chromedp.NoDefaultBrowserCheck, chromedp.Flag("mute-audio", false))
+
+		if browserPath := globals.Settings.Get(SettingsBrowserPath).AsString(); browserPath != "" {
+			opts = append(opts, chromedp.ExecPath(browserPath))
+		}
+
+		if userDataPath := globals.Settings.Get(SettingsBrowserUserDataPath).AsString(); userDataPath != "" {
+			opts = append(opts, chromedp.UserDataDir(userDataPath))
+		}
+
+		alloc, _ := chromedp.NewExecAllocator(context.Background(), opts...)
+		browserContext, _ := chromedp.NewContext(alloc)
+		globals.BrowserContext = browserContext
+		globals.EventLog.Log("Created Chrome context.", false)
+
+	}
+
+	// create context
+	ctx, cancel := chromedp.NewContext(
+		globals.BrowserContext,
+	)
+
+	chromedp.ListenTarget(ctx, func(ev interface{}) {
+		switch e := ev.(type) {
+		case *page.EventLifecycleEvent:
+			if e.Name == "DOMContentLoaded" {
+				w.LoadingWebpage.Store(true)
+				// fmt.Println("load start")
+			}
+			if e.Name == "networkIdle" {
+				// fmt.Println("idling")
+				w.LoadingWebpage.Store(false)
+			}
+		}
+	})
+
+	w.ContextValid.Store(true)
+	w.Context = ctx
+	w.CancelFunc = cancel
+	w.PauseRefresh = sync.Mutex{}
+
+	go func() {
+
+		for {
+
+			if !w.Card.Onscreen() {
+				time.Sleep(time.Second / 10)
+				continue
+			}
+
+			if w.RefreshedOnce.Load() {
+
+				switch w.Card.Properties.Get("update only when").AsString() {
+				// case WebCardUpdateOptionAlways:
+				case WebCardUpdateOptionWhenRecordingInputs:
+					if !w.RecordInput {
+						time.Sleep(time.Second / 10)
+						continue
+					}
+				case WebCardUpdateOptionWhenSelected:
+					if !w.Card.selected {
+						time.Sleep(time.Second / 10)
+						continue
+					}
+				}
+
+				switch w.Card.Properties.Get("update framerate").AsString() {
+				// case WebCardFPSAsOftenAsPossible:
+
+				case WebCardFPS10FPS:
+					time.Sleep(time.Second / 10)
+				case WebCardFPS1FPS:
+					time.Sleep(time.Second)
+				}
+
+			}
+
+			if !w.ContextValid.Load() {
+				globals.EventLog.Log("web context ended", true)
+				return
+			}
+
+			w.PauseRefresh.Lock()
+
+			if w.NavigatedURL != w.TargetURL {
+				w.NavigatedURL = w.TargetURL
+
+				w.LoadingWebpage.Store(true)
+				parsed, err := urlx.Parse(w.TargetURL)
+
+				if err == nil {
+					err = chromedp.Run(w.Context, chromedp.Tasks{
+						chromedp.Navigate(parsed.String()),
+					})
+
+				}
+
+				if err != nil {
+					globals.EventLog.Log("Error navigating to website: [ %s ];\nAre you sure the website URL is correct?\nError: [ %s ]", true, w.TargetURL, err.Error())
+					w.RefreshedTexture.Store(false)
+					w.PauseRefresh.Unlock()
+					continue
+				}
+			}
+
+			select {
+
+			case action := <-w.Actions:
+
+				if err := chromedp.Run(w.Context, action); err != nil {
+					if errors.Is(err, context.Canceled) {
+						w.PauseRefresh.Unlock()
+						return
+					}
+					globals.EventLog.Log(err.Error(), true)
+					if err != nil {
+						fmt.Println("error happened while running action: ", action, err.Error())
+					}
+					w.PauseRefresh.Unlock()
+					continue
+				}
+
+			default:
+			}
+
+			// fmt.Println(w.Actions)
+
+			// if err := chromedp.Run(w.Context, w.Actions); err != nil {
+			// 	if errors.Is(err, context.Canceled) {
+			// 		return
+			// 	}
+			// 	globals.EventLog.Log(err.Error(), true)
+			// }
+
+			if err := chromedp.Run(w.Context, chromedp.CaptureScreenshot(&w.ImageBuffer)); err != nil {
+				if errors.Is(err, context.Canceled) {
+					w.PauseRefresh.Unlock()
+					w.ContextValid.Store(false)
+					return
+				}
+				// globals.EventLog.Log(err.Error(), true)
+				log.Println(err.Error()) // Errors might happen when screenshotting a page in-navigation; that's fine
+				w.PauseRefresh.Unlock()
+				continue
+			}
+
+			decoded, err := png.Decode(bytes.NewReader(w.ImageBuffer))
+
+			if err != nil {
+				globals.EventLog.Log(err.Error(), true)
+				w.PauseRefresh.Unlock()
+				return
+			}
+
+			i := 0
+			for y := 0; y < decoded.Bounds().Dy(); y++ {
+				for x := 0; x < decoded.Bounds().Dx(); x++ {
+					r, g, b, a := decoded.At(x, y).RGBA()
+					w.RawImage[i] = byte(a)
+					w.RawImage[i+1] = byte(b)
+					w.RawImage[i+2] = byte(g)
+					w.RawImage[i+3] = byte(r)
+					i += 4
+				}
+			}
+
+			w.RefreshedTexture.Store(true)
+
+			// w.Actions = w.Actions[:0]
+
+			// if len(w.PauseRefresh) > 0 {
+			// 	<-w.PauseRefresh
+			// 	w.PauseRefresh <- true
+			// }
+
+			w.PauseRefresh.Unlock()
+
+			w.RefreshedOnce.Store(true)
+
+		}
+
+	}()
+
+}
+
+func (w *WebContents) UpdateBufferSize() {
+
+	w.PauseRefresh.Lock()
+	defer w.PauseRefresh.Unlock()
+
+	w.RefreshedOnce.Store(false)
+
+	deviceInfo := device.Reset.Device()
+	deviceInfo.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59"
+	// deviceInfo.UserAgent = "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4812.0 Mobile Safari/537.36"
+
+	deviceInfo.Width = int64(w.Width())
+	deviceInfo.Height = int64(w.Height())
+	deviceInfo.Scale = 1
+	deviceInfo.Touch = false
+	deviceInfo.Mobile = false
+	deviceInfo.Landscape = true
+	width := float64(deviceInfo.Width) * deviceInfo.Scale
+	height := float64(deviceInfo.Height) * deviceInfo.Scale
+
+	w.BufferWidth = int(width)
+	w.BufferHeight = int(height)
+	w.RawImage = make([]byte, int(width*height*4))
+	w.DeviceInfo = deviceInfo
+	w.ImageBuffer = []byte{}
+
+	if tex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_STREAMING, int32(width), int32(height)); err != nil {
+		globals.EventLog.Log(err.Error(), true)
+	} else {
+		w.ImageTexture = tex
+	}
+
+	if err := chromedp.Run(w.Context, chromedp.Tasks{
+		chromedp.Emulate(w.DeviceInfo),
+	}); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func (w *WebContents) Navigate(targetURL string) {
+	if w.NavigatedURL != targetURL {
+		w.TargetURL = targetURL
+		w.NavigatedURL = ""
+	}
+}
+
+func (w *WebContents) OpenURLInBrowser() {
+	// url := activeCard.Contents.(*WebContents).TargetURL
+	err := browser.OpenURL(w.CurrentURL)
+	globals.EventLog.Log("URL [ %s ] opened in default browser.", false, w.CurrentURL)
+	if err != nil {
+		globals.EventLog.Log("Error opening URL in default browser: [ %s ]", true, err.Error())
+	}
+}
+
+func (w *WebContents) Width() float64 {
+
+	asr := 1.0
+
+	switch w.Card.Properties.Get("aspect ratio").AsString() {
+	case "16:9":
+		asr = 9.0 / 16
+	case "9:16":
+		asr = 16.0 / 9
+		// case "1:1":
+	}
+
+	sizeString := w.Card.Properties.Get("size").AsString()
+	s, _ := strconv.Atoi(sizeString[:len(sizeString)-1])
+	size := float64(s)
+
+	width := size * (1 / asr)
+	if asr > 1 {
+		width = size
+	}
+	return math.Round(width)
+}
+
+func (w *WebContents) Height() float64 {
+
+	asr := 1.0
+
+	switch w.Card.Properties.Get("aspect ratio").AsString() {
+	case "16:9":
+		asr = 9.0 / 16
+	case "9:16":
+		asr = 16.0 / 9
+		// case "1:1":
+	}
+
+	sizeString := w.Card.Properties.Get("size").AsString()
+	s, _ := strconv.Atoi(sizeString[:len(sizeString)-1])
+	size := float64(s)
+
+	height := size * asr
+	if asr < 1 {
+		height = size
+	}
+	return math.Round(height)
+}
+
+func (w *WebContents) makeMouseAction(x, y float64, inputType input.MouseType, opts ...chromedp.MouseOption) chromedp.ActionFunc {
+
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		p := &input.DispatchMouseEventParams{
+			Type:       inputType,
+			X:          x,
+			Y:          y,
+			Button:     input.Left,
+			ClickCount: 1,
+		}
+
+		// apply opts
+		for _, o := range opts {
+			p = o(p)
+		}
+
+		if err := p.Do(ctx); err != nil {
+			return err
+		}
+
+		p.Type = input.MouseReleased
+		return p.Do(ctx)
+	})
+
+}
+
+func (w *WebContents) Update() {
+
+	if w.RefreshedTexture.CompareAndSwap(true, false) {
+		w.ImageTexture.Update(nil, unsafe.Pointer(&w.RawImage[0]), w.BufferWidth*4)
+		w.ValidBrowserTexture = true
+	}
+
+	if w.LoadingWebpage.Load() {
+		currentLocation := ""
+		chromedp.Run(w.Context, chromedp.Location(&currentLocation))
+		w.Card.Properties.Get("url").Set(currentLocation)
+		w.CurrentURL = currentLocation
+	}
+
+	// loc := ""
+	// chromedp.Run(w.Context, chromedp.Location(&loc))
+	// fmt.Println(loc)
+
+	mousePos := globals.Mouse.WorldPosition()
+
+	if w.Card.selected {
+
+		w.HorizontalScrollbar.Update()
+		w.VerticalScrollbar.Update()
+
+		newDst := *w.Card.DisplayRect
+		newDst.X += newDst.W
+		newDst.W = 32
+		newDst.H = 32
+
+		// if ImmediateIconButton(newDst, sdl.Rect{272, 192, 32, 32}, 1, true) {
+		// 	chromedp.Run(w.Context, chromedp.KeyEvent(kb.PageUp))
+		// }
+		// newDst.Y += 32
+		// if ImmediateIconButton(newDst, sdl.Rect{272, 224, 32, 32}, 1, true) {
+		// 	chromedp.Run(w.Context, chromedp.KeyEvent(kb.PageDown))
+		// }
+
+		if w.ValidBrowserTexture {
+
+			if globals.Keybindings.Pressed(KBWebRecordInputs) {
+				w.ToggleRecordInput()
+				globals.Keybindings.Shortcuts[KBWebRecordInputs].ConsumeKeys()
+
+			} else if globals.Keybindings.Pressed(KBWebOpenPage) {
+				w.OpenURLInBrowser()
+			} else if w.RecordInput {
+
+				globals.State = StateTextEditing
+
+				modifiers := map[sdl.Keycode]input.Modifier{
+					sdl.K_LSHIFT: input.ModifierShift,
+					sdl.K_RSHIFT: input.ModifierShift,
+					sdl.K_LCTRL:  input.ModifierCtrl,
+					sdl.K_RCTRL:  input.ModifierCtrl,
+					sdl.K_LALT:   input.ModifierAlt,
+					sdl.K_RALT:   input.ModifierAlt,
+				}
+
+				if mousePos.Inside(w.Card.DisplayRect) {
+
+					globals.Mouse.SetCursor(CursorWebArrow)
+
+					browserPos := mousePos
+
+					browserPos.X -= w.Card.DisplayRect.X
+					browserPos.Y -= w.Card.DisplayRect.Y
+					browserPos.X /= w.Card.DisplayRect.W
+					browserPos.Y /= w.Card.DisplayRect.H
+
+					bx := float64(browserPos.X * float32(w.DeviceInfo.Width))
+					by := float64(browserPos.Y * float32(w.DeviceInfo.Height))
+
+					// chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MouseMoved))
+
+					var activeMod input.Modifier = 0
+					for sdlMod, chromeDPMod := range modifiers {
+						if globals.Keyboard.Key(sdlMod).Held() {
+							activeMod += chromeDPMod
+							// modifierSlice = append(modifierSlice, chromeDPMod)
+						}
+					}
+
+					for sdlButton, chromeDPButtonString := range map[uint8]string{
+						sdl.BUTTON_LEFT:   "left",
+						sdl.BUTTON_MIDDLE: "middle",
+						sdl.BUTTON_RIGHT:  "right",
+					} {
+
+						button := globals.Mouse.Button(sdlButton)
+						if button.Pressed() {
+							chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MousePressed, chromedp.Button(chromeDPButtonString)))
+						} else if button.Held() {
+							chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MouseMoved, chromedp.Button(chromeDPButtonString)))
+						} else if button.Released() {
+							chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MouseReleased, chromedp.Button(chromeDPButtonString)))
+						}
+
+					}
+
+					if wheel := globals.Mouse.wheel; wheel != 0 {
+						globals.Mouse.wheel = 0
+						wheelEvent := input.DispatchMouseEvent(input.MouseWheel, bx, by)
+						wheel *= -100
+						wheelEvent.DeltaY = float64(wheel)
+						wheelEvent.Modifiers = activeMod
+						chromedp.Run(w.Context, wheelEvent)
+					}
+
+				}
+
+				chromedp.Run(w.Context, chromedp.KeyEvent(string(globals.InputText)))
+
+				specialKeys := map[sdl.Keycode]string{
+					sdl.K_RETURN:    kb.Enter,
+					sdl.K_KP_ENTER:  kb.Enter,
+					sdl.K_BACKSPACE: kb.Backspace,
+					sdl.K_F1:        kb.F1,
+					sdl.K_F2:        kb.F2,
+					sdl.K_F3:        kb.F3,
+					sdl.K_F4:        kb.F4,
+					sdl.K_F5:        kb.F5,
+					sdl.K_F6:        kb.F6,
+					sdl.K_F7:        kb.F7,
+					sdl.K_F8:        kb.F8,
+					sdl.K_F9:        kb.F9,
+					sdl.K_F10:       kb.F10,
+					sdl.K_F11:       kb.F11,
+					sdl.K_F12:       kb.F12,
+					sdl.K_F13:       kb.F13,
+					sdl.K_F14:       kb.F14,
+					sdl.K_F15:       kb.F15,
+					sdl.K_F16:       kb.F16,
+					sdl.K_F17:       kb.F17,
+					sdl.K_F18:       kb.F18,
+					sdl.K_F19:       kb.F19,
+					sdl.K_F20:       kb.F20,
+					sdl.K_F21:       kb.F21,
+					sdl.K_F22:       kb.F22,
+					sdl.K_F23:       kb.F23,
+					sdl.K_F24:       kb.F24,
+					sdl.K_INSERT:    kb.Insert,
+					sdl.K_HOME:      kb.Home,
+					sdl.K_PAGEUP:    kb.PageUp,
+					sdl.K_DELETE:    kb.Delete,
+					sdl.K_END:       kb.End,
+					sdl.K_PAGEDOWN:  kb.PageDown,
+					sdl.K_TAB:       kb.Tab,
+					sdl.K_LEFT:      kb.ArrowLeft,
+					sdl.K_RIGHT:     kb.ArrowRight,
+					sdl.K_UP:        kb.ArrowUp,
+					sdl.K_DOWN:      kb.ArrowDown,
+				}
+
+				letterKeys := map[sdl.Keycode]string{
+					sdl.K_KP_0:   "0",
+					sdl.K_KP_00:  "00",
+					sdl.K_KP_000: "000",
+					sdl.K_KP_1:   "1",
+					sdl.K_KP_2:   "2",
+					sdl.K_KP_3:   "3",
+					sdl.K_KP_4:   "4",
+					sdl.K_KP_5:   "5",
+					sdl.K_KP_6:   "6",
+					sdl.K_KP_7:   "7",
+					sdl.K_KP_8:   "8",
+					sdl.K_KP_9:   "9",
+					sdl.K_0:      "0",
+					sdl.K_1:      "1",
+					sdl.K_2:      "2",
+					sdl.K_3:      "3",
+					sdl.K_4:      "4",
+					sdl.K_5:      "5",
+					sdl.K_6:      "6",
+					sdl.K_7:      "7",
+					sdl.K_8:      "8",
+					sdl.K_9:      "9",
+					sdl.K_a:      "a",
+					sdl.K_b:      "b",
+					sdl.K_c:      "c",
+					sdl.K_d:      "d",
+					sdl.K_e:      "e",
+					sdl.K_f:      "f",
+					sdl.K_g:      "g",
+					sdl.K_h:      "h",
+					sdl.K_i:      "i",
+					sdl.K_j:      "j",
+					sdl.K_k:      "k",
+					sdl.K_l:      "l",
+					sdl.K_m:      "m",
+					sdl.K_n:      "n",
+					sdl.K_o:      "o",
+					sdl.K_p:      "p",
+					sdl.K_q:      "q",
+					sdl.K_r:      "r",
+					sdl.K_s:      "s",
+					sdl.K_t:      "t",
+					sdl.K_u:      "u",
+					sdl.K_v:      "v",
+					sdl.K_w:      "w",
+					sdl.K_x:      "x",
+					sdl.K_y:      "y",
+					sdl.K_z:      "z",
+				}
+
+				for sdlKey, chromeDPKey := range specialKeys {
+
+					modifierSlice := []input.Modifier{}
+					for sdlMod, chromeDPMod := range modifiers {
+						if globals.Keyboard.Key(sdlMod).Held() {
+							modifierSlice = append(modifierSlice, chromeDPMod)
+						}
+					}
+
+					if key := globals.Keyboard.Key(sdlKey); key.Pressed() {
+						chromedp.Run(w.Context, chromedp.KeyEvent(chromeDPKey, chromedp.KeyModifiers(modifierSlice...)))
+						// chromedp.Run(w.Context, chromedp.KeyEvent(chromeDPKey))
+						key.Consume()
+					}
+				}
+
+				for sdlKey, chromeDPKey := range letterKeys {
+					modifierSlice := []input.Modifier{}
+
+					for sdlMod, chromeDPMod := range modifiers {
+						// Shift + a letter key is just a capitlized letter, so we can ignore it
+						if chromeDPMod == input.ModifierShift {
+							continue
+						}
+						if globals.Keyboard.Key(sdlMod).Held() {
+							modifierSlice = append(modifierSlice, chromeDPMod)
+						}
+					}
+
+					if key := globals.Keyboard.Key(sdlKey); key.Pressed() && len(modifierSlice) > 0 {
+						chromedp.Run(w.Context, chromedp.KeyEvent(chromeDPKey, chromedp.KeyModifiers(modifierSlice...)))
+						key.Consume()
+					}
+				}
+
+			}
+
+			if !w.VerticalScrollbar.Dragging {
+
+				scrollYPerc := 0.0
+
+				chromedp.Run(w.Context, chromedp.Evaluate(`
+
+			var body = document.body;
+			var html = document.documentElement;
+			var pageHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+
+			window.scrollY / (pageHeight - window.innerHeight);
+			`, &scrollYPerc))
+
+				w.VerticalScrollbar.TargetValue = float32(scrollYPerc)
+
+			}
+
+		}
+
+		if w.Card.selected {
+
+			for i, b := range w.Buttons {
+				b.Rect.X = w.Card.DisplayRect.X + float32(i*32)
+				b.Rect.Y = w.Card.DisplayRect.Y - 32
+				b.Update()
+			}
+
+		}
+
+	}
+
+}
+
+func (w *WebContents) ToggleRecordInput() {
+	w.RecordInput = !w.RecordInput
+	if !w.RecordInput {
+		globals.State = StateNeutral
+		globals.EventLog.Log("Disabling web card input passthrough.", false)
+	} else {
+		globals.EventLog.Log("Enabling web card input passthrough.", false)
+	}
+
+}
+
+// func (w *WebContents) EnableRecordInput() {
+// 	w.RecordInput = true
+// 	globals.EventLog.Log("Enabling web card input passthrough.", false)
+// }
+
+func (w *WebContents) DisableRecordInput() {
+	w.RecordInput = false
+	globals.EventLog.Log("Disabling web card input passthrough.", false)
+}
+
+func (w *WebContents) Draw() {
+
+	w.HorizontalScrollbar.Rect.X = w.Card.DisplayRect.X
+	w.HorizontalScrollbar.Rect.Y = w.Card.DisplayRect.Y + w.Card.DisplayRect.H - w.HorizontalScrollbar.Rect.H
+	w.HorizontalScrollbar.Rect.W = w.Card.DisplayRect.W - 16
+
+	w.VerticalScrollbar.Rect.X = w.Card.DisplayRect.X + w.Card.DisplayRect.W - w.VerticalScrollbar.Rect.W
+	w.VerticalScrollbar.Rect.Y = w.Card.DisplayRect.Y
+	w.VerticalScrollbar.Rect.H = w.Card.DisplayRect.H - 16
+
+	camera := w.Card.Page.Project.Camera
+
+	if w.ValidBrowserTexture {
+		dst := camera.TranslateRect(w.Card.DisplayRect)
+		globals.Renderer.CopyF(w.ImageTexture, nil, dst)
+
+		if w.LoadingWebpage.Load() {
+			rect := &sdl.FRect{w.Card.DisplayRect.X + 32, w.Card.DisplayRect.Y, 32, 32}
+			globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{272, 256, 32, 32}, camera.TranslateRect(rect), globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+		}
+
+	} else {
+		w.DisableRecordInput()
+		target := *w.Card.DisplayRect
+		target.W = 32
+		target.H = 32
+		target.X += (w.Card.DisplayRect.W / 2) - (target.W / 2)
+		target.Y += (w.Card.DisplayRect.H / 2) - (target.H / 2)
+		dst := camera.TranslateRect(&target)
+		globals.GUITexture.Texture.SetBlendMode(sdl.BLENDMODE_ADD)
+		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{272, 256, 32, 32}, dst, globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+		globals.GUITexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+	}
+
+	if w.RecordInput {
+		rect := &sdl.FRect{w.Card.DisplayRect.X + 4, w.Card.DisplayRect.Y, 16, 16}
+		globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{496, 80, 16, 16}, camera.TranslateRect(rect))
+	}
+
+	if w.Card.selected {
+
+		for _, b := range w.Buttons {
+			b.Draw()
+		}
+
+	}
+
+	if w.Card.selected {
+		w.HorizontalScrollbar.Draw()
+		w.VerticalScrollbar.Draw()
+	}
+
+	mousePos := globals.Mouse.WorldPosition()
+
+	// This is here to allow you to click out of the window and deselect / undo input recording, but also allow you to click on buttons in the header
+	if !mousePos.Inside(w.Card.DisplayRect) && globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+		w.Card.Deselect()
+		globals.State = StateNeutral
+		// w.DisableRecordInput()
+	}
+
+}
+
+// func (w *WebContents) CopyActiveURLToCard() {
+// 	currentLocation := ""
+// 	chromedp.Run(w.Context, chromedp.Location(&currentLocation))
+// 	w.Card.Properties.Get("url").Set(currentLocation)
+// 	globals.EventLog.Log("Copied current URL [ %s ] to card.", false, currentLocation)
+// }
+
+func (w *WebContents) Color() Color {
+	color := getThemeColor(GUITableColor)
+	if w.Card.CustomColor != nil {
+		color = w.Card.CustomColor
+	}
+	return color
+}
+
+func (w *WebContents) ReceiveMessage(msg *Message) {
+	if msg.Type == MessageCardDeleted {
+		w.CancelFunc()
+		w.ContextValid.Store(false)
+		w.ValidBrowserTexture = false
+		w.RefreshedTexture.Store(false)
+	} else if msg.Type == MessageCardRestored {
+		w.NavigatedURL = ""
+		w.TargetURL = w.CurrentURL
+		w.ReinitContext()
+		w.UpdateBufferSize()
+		// } else if msg.Type == MessageUndoRedo {
+		// 	w.NavigatedURL = ""
+	} else if msg.Type == MessageUndoRedo {
+		if w.ContextValid.Load() {
+			w.UpdateBufferSize()
+		}
+	}
+}
+
+func (w *WebContents) DefaultSize() Point {
+	return Point{float32(w.Width()), float32(w.Height())}.LockToGrid()
+}
+
+func (w *WebContents) Trigger(triggerType int) {}
+
+func (w *WebContents) CompletionLevel() float32 { return 0 }
+
+func (w *WebContents) MaximumCompletionLevel() float32 { return 0 }
+
+// type WebContents struct {
+// 	DefaultContents
+// 	Action chromedp.Action
+// }
+
+// func NewWebContents(card *Card) *WebContents {
+// 	web := &WebContents{
+// 		DefaultContents: newDefaultContents(card),
+// 	}
+
+// 	// create context
+// 	ctx, cancel := chromedp.NewContext(
+// 		context.Background(),
+// 		// chromedp.WithDebugf(log.Printf),
+// 	)
+// 	defer cancel()
+
+// 	// fullScreenshot takes a screenshot of the entire browser viewport.
+// 	//
+// 	// Note: chromedp.FullScreenshot overrides the device's emulation settings. Use
+// 	// device.Reset to reset the emulation and viewport settings.
+// 	fullScreenshot := func(urlstr string, quality int, res *[]byte) chromedp.Tasks {
+// 		return chromedp.Tasks{
+// 			chromedp.Navigate(urlstr),
+// 			chromedp.FullScreenshot(res, quality),
+// 		}
+// 	}
+
+// 	// capture screenshot of an element
+// 	var buf []byte
+
+// 	// capture entire browser viewport, returning png with quality=90
+// 	if err := chromedp.Run(ctx, fullScreenshot(`https://brank.as/`, 1, &buf)); err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	if err := os.WriteFile("fullScreenshot.png", buf, 0o644); err != nil {
+// 		log.Fatal(err)
+// 	}
+
+// 	log.Printf("wrote elementScreenshot.png and fullScreenshot.png")
+
+// 	// ctx, cancel := chromedp.NewContext(
+// 	// 	context.Background(),
+
+// 	// 	// chromedp.WindowSize(320, 240),
+// 	// 	// chromedp.WithDebugf(log.Printf),
+// 	// )
+// 	// // chromedp.EmulateViewport(320, 240, chromedp.EmulateLandscape)
+
+// 	// defer cancel()
+
+// 	// // create a timeout
+// 	// ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
+// 	// defer cancel()
+
+// 	// buffer := []byte{}
+
+// 	// err := chromedp.Run(ctx,
+// 	// 	chromedp.Navigate(`https://www.google.com`),
+// 	// 	// wait for footer element is visible (ie, page is loaded)
+// 	// 	chromedp.WaitVisible(`body > footer`),
+// 	// 	// chromedp.CaptureScreenshot(&buffer),
+// 	// 	chromedp.FullScreenshot(&buffer, 1),
+// 	// 	// // find and click "Example" link
+// 	// 	// chromedp.Click(`#example-After`, chromedp.NodeVisible),
+// 	// 	// // retrieve the text of the textarea
+// 	// 	// chromedp.Value(`#example-After textarea`, &example),
+// 	// )
+
+// 	// fmt.Println(err, buffer)
+
+// 	// ctx, cancel := chromedp.NewContext(context.Background())
+
+// 	// options := append(chromedp.DefaultExecAllocatorOptions[:],
+// 	// 	chromedp.Headless,
+// 	// 	chromedp.Flag("enable-automation", false),
+// 	// 	chromedp.Flag("no-sandbox", true),
+// 	// 	chromedp.WindowSize(1920, 1080),
+// 	// 	chromedp.Flag("disk-cache-dir", "/tmp/browser-disk-cache-dir"),
+// 	// 	// chromedp.Env("TZ="+"Asia/Shanghai"),
+// 	// 	chromedp.ExecPath("/usr/bin/chromium"),
+// 	// )
+
+// 	// // c := chromedp.FromContext(context.Background())
+// 	// c, cancel := chromedp.NewExecAllocator(context.Background(), options...)
+
+// 	// fmt.Println(c)
+
+// 	// defer cancel()
+
+// 	// byteBuffer := []byte{}
+
+// 	// actions := chromedp.Tasks{
+// 	// 	// chromedp.Navigate("google.com"),
+// 	// 	// chromedp.FullScreenshot(&byteBuffer, 100),
+// 	// }
+
+// 	// err := chromedp.Run(c, actions)
+
+// 	// fmt.Println(err, byteBuffer)
+
+// 	// action.Do(cdp.WithExecutor(context.Background(), chromedp.FromContext(c).Target))
+
+// 	// fmt.Println("ctx, cancel:", ctx, cancel)
+
+// 	// defer cancel()
+
+// 	// context, cancel := chromedp.New
+// 	// // context, cancel := chromedp.NewExecAllocator(ctx, chromedp.ExecPath("org.chromium.Chromium"))
+
+// 	// byteBuffer := []byte{}
+
+// 	// err := chromedp.Run(context, chromedp.Tasks{
+// 	// 	chromedp.Navigate("google.com"),
+// 	// 	chromedp.FullScreenshot(&byteBuffer, 100),
+// 	// })
+
+// 	// fmt.Println(err, byteBuffer)
+
+// 	// err := chromedp.Run(context, chromedp.Navigate("google.com"))
+
+// 	return web
+// }
 
 // type Calendar struct {
 // 	DefaultContents

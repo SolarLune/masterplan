@@ -52,6 +52,8 @@ const (
 	SettingsHideGridOnZoomOut            = "Hide Grid on Zoom out"
 	SettingsDisplayNumberedPercentagesAs = "Display Numbered Percentages"
 	SettingsShowTableHeaders             = "Display Table Headers"
+	SettingsBrowserPath                  = "Browser Path"
+	SettingsBrowserUserDataPath          = "Browser User Data Path"
 	// SettingsCacheAudioBeforePlayback     = "Cache Audio Before Playback"
 
 	SettingsAudioVolume     = "AudioVolume"
@@ -163,6 +165,8 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsReversePan).Set(false)
 	props.Get(SettingsCustomFontPath).Set("")
 	props.Get(SettingsScreenshotPath).Set("")
+	props.Get(SettingsBrowserPath).Set("")
+	props.Get(SettingsBrowserUserDataPath).Set("")
 	props.Get(SettingsAutoLoadLastProject).Set(false)
 	props.Get(SettingsSmoothMovement).Set(true)
 	props.Get(SettingsNumberTopLevelCards).Set(true)
@@ -242,7 +246,7 @@ func SaveSettings() {
 
 	saveData, _ := sjson.Set("{}", "version", globals.Version.String())
 
-	saveData, _ = sjson.SetRaw(saveData, "properties", globals.Settings.Serialize())
+	saveData, _ = sjson.SetRaw(saveData, "properties", globals.Settings.Serialize(false))
 
 	saveData, _ = sjson.Set(saveData, "recent files", globals.RecentFiles)
 

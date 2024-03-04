@@ -2,12 +2,37 @@
 [x] Taking screenshots crash MP
 [x] Can't go up sub-pages via keybinding while in Link Mode
 
+For Web card :
+[x] -- Mode to enable clicking in card / entering text
+[x] -- Menu to change backing buffer size, update frequency (ASAP, once per second, never, as well as those options only when on-screen, only when selected, etc)
+[x] -- Add vertical and horizontal scrollbar?
+[ ] -- Save scroll, ideally? 
+[x] -- Open current URL in another card
+[x] -- Open current URL in browser
+[x] -- Fix deleting card making goroutine crash
+[x] -- Button to open browser to website URL
+[x] -- Fix going back and forward
+[ ] -- See if it's possible to use alternative browsers : Edge, Brave, Opera, Vivaldi, Ungoogled-Chromium (?)
+[ ] -- Options for Chrome-based browsers to prefer
+[ ] -- See if there's a smooth way to share as much data as possible between multiple Web Cards - each Card is a single Chrome process currently, I think
+[ ] -- Cache last taken shot so that if MasterPlan opens without a connection, it displays that instead?
+[x] -- Make URLs write directly to property on card to allow you to save the project and save the currently viewed URL
+[ ] -- Add the ability to resize browser backing texture size by dragging card? Maybe not, because people are going to try to make massive browser sizes.
+[ ] -- Some way to speed up texture uploading
+[x] -- Fix clicking in URL text area deselecting URL
+[x] -- Optimize texture streaming; EDIT: There's no further way to do this, I think?
+[ ] -- Fix text UI not scrolling when typing
+[ ] -- Video card using ffmpeg-go?
+[ ] -- Reimplement URL buttons in text
+
 [x] Show shortcut collisions in input menu
+
+[ ] -- Possibly some kind of visual scripting something or other
+
 [ ] Make shortcuts be aware of the contexts in which they operate, so that true shortcut conflicts can be reported
 [x] Link text is essentially blank (Doesn't seem to be that way for me right now)
 [ ] Redirect STDOUT to messages at the bottom-left for programs that run
 [ ] Deleting cards should move the rest of the cards up (new shortcut?)
-[ ] Investigate web - maybe I can render a website to an image and then link to it? - chromedp to have an actual visible website?
 [ ] State testing could be drastically simplified
 [ ] Consolidate card contents text editing (see project.go:1348)
 
@@ -20,6 +45,8 @@
 
 [ ] Remove sub-page cards entirely, replacing them with simply adding or removing pages from the Hierarchy menu
 
+[ ] -- Add the ability to open a new window for multiple screens?
+[ ] -- Moving lines with points doesn't move the points using the keyboard keys
 [ ] Examine memory leaks and optimization - for example, seems like memory increases while playing audio? Maybe something is happening that shouldn't be.
 [ ] Undoing and redoing changes the result depending on what text overflow mode you're in. This shouldn't be the case.
 [ ] Label.IndexToWorld is pretty heavy - this could be optimized. This is particularly an issue when drawing highlights around selected text blocks
@@ -126,7 +153,7 @@
 [ ] ESC key to exit common menu when entering paths for images or sounds
 [ ] Add button to reload images
 [ ] Make "-" also work for automatic newlines for editable labels (so "-" is valid to split a line on)
-[ ] Package pre-made icons for maps (somehow?)
+[x] Package pre-made icons for maps (somehow?)
 [x] Fix bug where downloaded images don't display on reloading project - maybe fixed?
 [x] Auto-backups
 [x] Keybindings for opening the different panels (find, create, edit, etc).

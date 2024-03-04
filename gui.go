@@ -56,6 +56,7 @@ const (
 	GUISubBoardColor   = "Sub-Page Color"
 	GUILinkColor       = "Link Color"
 	GUITableColor      = "Table Color"
+	GUIWebColor        = "Web Color"
 )
 
 const (
@@ -336,20 +337,31 @@ func (iconButton *IconButton) SetRectangle(rect *sdl.FRect) {
 	iconButton.Rect.H = rect.H
 }
 
-func ImmediateIconButton(dst sdl.FRect, src sdl.Rect, scale float32, worldSpace bool) bool {
+type ImmediateIconButtonSettings struct {
+	Src        sdl.Rect
+	Dst        sdl.FRect
+	Rotation   float64
+	Scale      float32
+	WorldSpace bool
+	Flip       sdl.RendererFlip
+}
+
+func ImmediateIconButton(settings ImmediateIconButtonSettings) bool {
 
 	clicked := false
 
-	dst.W *= scale
-	dst.H *= scale
+	dst := &settings.Dst
+	dst.W *= settings.Scale
+	dst.H *= settings.Scale
 
-	if worldSpace {
-		dst = *globals.Project.Camera.TranslateRect(&dst)
+	var insideButton = false
+	if settings.WorldSpace {
+		insideButton = globals.Mouse.RawWorldPosition().Inside(dst)
+	} else {
+		insideButton = globals.Mouse.RawPosition().Inside(dst)
 	}
 
-	insideButton := globals.Mouse.RawPosition().Inside(&dst)
-
-	if RawClickedInRect(&dst, false) {
+	if RawClickedInRect(dst, settings.WorldSpace) {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		clicked = true
 	}
@@ -365,13 +377,10 @@ func ImmediateIconButton(dst sdl.FRect, src sdl.Rect, scale float32, worldSpace 
 	guiTex.SetColorMod(tint, tint, tint)
 	guiTex.SetAlphaMod(255)
 
-	// clipRect := globals.Renderer.GetClipRect()
-
-	// globals.Renderer.SetClipRect(nil)
-
-	globals.Renderer.CopyF(guiTex, &src, &dst)
-
-	// globals.Renderer.SetClipRect(&clipRect)
+	if settings.WorldSpace {
+		settings.Dst = *globals.Project.Camera.TranslateRect(dst)
+	}
+	globals.Renderer.CopyExF(guiTex, &settings.Src, dst, settings.Rotation, &sdl.FPoint{float32(settings.Src.W / 2), float32(settings.Src.H / 2)}, settings.Flip)
 
 	return clicked
 
@@ -380,18 +389,20 @@ func ImmediateIconButton(dst sdl.FRect, src sdl.Rect, scale float32, worldSpace 
 type Checkbox struct {
 	IconButton
 	// Checked bool
-	Property      *Property
-	Rect          *sdl.FRect
-	Checked       bool
-	Clickable     bool
-	MultiCheckbox bool
-	OnChange      func()
+	Property *Property
+	Rect     *sdl.FRect
+	Checked  bool
+	OnChange func()
+
+	ActiveSrcPos   Point
+	InactiveSrcPos Point
 }
 
 func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 	checkbox := &Checkbox{
-		IconButton: *NewIconButton(x, y, &sdl.Rect{48, 0, 32, 32}, globals.GUITexture, worldSpace, nil),
-		Clickable:  true,
+		IconButton:     *NewIconButton(x, y, &sdl.Rect{48, 0, 32, 32}, globals.GUITexture, worldSpace, nil),
+		InactiveSrcPos: Point{48, 0},
+		ActiveSrcPos:   Point{48, 32},
 	}
 
 	r := *checkbox.IconButton.Rect
@@ -401,7 +412,7 @@ func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 
 	checkbox.OnPressed = func() {
 
-		if !checkbox.Clickable {
+		if !checkbox.CanPress {
 			return
 		}
 
@@ -424,25 +435,21 @@ func (checkbox *Checkbox) Update() {
 
 	checkbox.IconButton.Update()
 
+	checked := checkbox.InactiveSrcPos
+
 	if checkbox.Property != nil {
 		if checkbox.Property.AsBool() {
-			checkbox.IconSrc.Y = 32
-		} else {
-			checkbox.IconSrc.Y = 0
+			checked = checkbox.ActiveSrcPos
 		}
 	} else {
 
 		if checkbox.Checked {
-			checkbox.IconSrc.Y = 32
-		} else {
-			checkbox.IconSrc.Y = 0
+			checked = checkbox.ActiveSrcPos
 		}
 	}
 
-	checkbox.IconSrc.X = 48
-	if checkbox.MultiCheckbox {
-		checkbox.IconSrc.X += 32
-	}
+	checkbox.IconSrc.X = int32(checked.X)
+	checkbox.IconSrc.Y = int32(checked.Y)
 
 }
 
@@ -532,16 +539,22 @@ type NumberSpinner struct {
 	Increase *IconButton
 	Decrease *IconButton
 	Property *Property
+	Visible  bool
 	Value    float64
 	MaxValue float64
 	MinValue float64
 	OnChange func()
+
+	Dragging  bool
+	DragStart Point
+	DragTick  float64
 }
 
 func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *NumberSpinner {
 
 	spinner := &NumberSpinner{
 		Rect:     rect,
+		Visible:  true,
 		Property: property,
 		MinValue: -math.MaxFloat32,
 		MaxValue: math.MaxFloat32,
@@ -611,24 +624,66 @@ func (spinner *NumberSpinner) EnforceCaps(v float64) float64 {
 
 func (spinner *NumberSpinner) Update() {
 
-	if !spinner.Label.Editing {
-		if spinner.Property != nil {
-			v := spinner.Property.AsFloat()
-			str := strconv.FormatFloat(v, 'f', 0, 64)
-			spinner.Label.SetText([]rune(str))
-		} else {
-			str := strconv.FormatFloat(spinner.Value, 'f', 0, 64)
-			spinner.Label.SetText([]rune(str))
-		}
-	}
+	if spinner.Visible {
 
-	spinner.Label.Update()
-	spinner.Increase.Update()
-	spinner.Decrease.Update()
+		if !spinner.Label.Editing {
+			if spinner.Property != nil {
+				v := spinner.Property.AsFloat()
+				str := strconv.FormatFloat(v, 'f', 0, 64)
+				spinner.Label.SetText([]rune(str))
+			} else {
+				str := strconv.FormatFloat(spinner.Value, 'f', 0, 64)
+				spinner.Label.SetText([]rune(str))
+			}
+		}
+
+		spinner.Label.Update()
+		spinner.Increase.Update()
+		spinner.Decrease.Update()
+
+		// After the Label so pressing the label or buttons works
+
+		mousePos := globals.Mouse.WorldPosition()
+		if mousePos.Inside(spinner.Rect) {
+			if btn := globals.Mouse.Button(sdl.BUTTON_LEFT); btn.Pressed() {
+				spinner.Dragging = true
+				spinner.DragStart = globals.Mouse.RawPosition()
+				btn.Consume()
+			}
+			// globals.Mouse.SetCursor(CursorHand)
+		}
+
+		if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
+			spinner.Dragging = false
+		}
+
+		if spinner.Dragging {
+			pos := globals.Mouse.RawPosition()
+			globals.Mouse.SetCursor(CursorHand)
+			if pos.Y < spinner.DragStart.Y-16 {
+				spinner.DragTick += float64(spinner.DragStart.Y-pos.Y) / 512
+			} else if pos.Y > spinner.DragStart.Y+16 {
+				spinner.DragTick += float64(pos.Y-spinner.DragStart.Y) / 512
+			}
+			if spinner.DragTick >= 1 {
+				spinner.DragTick = 0
+				if pos.Y < spinner.DragStart.Y {
+					spinner.Increase.OnPressed()
+				} else {
+					spinner.Decrease.OnPressed()
+				}
+			}
+		}
+
+	}
 
 }
 
 func (spinner *NumberSpinner) Draw() {
+
+	if !spinner.Visible {
+		return
+	}
 
 	spinner.Label.Draw()
 	spinner.Increase.Draw()
@@ -639,6 +694,9 @@ func (spinner *NumberSpinner) Draw() {
 func (spinner *NumberSpinner) Destroy() {}
 
 func (spinner *NumberSpinner) Rectangle() *sdl.FRect {
+	if !spinner.Visible {
+		return &sdl.FRect{}
+	}
 	return &sdl.FRect{
 		spinner.Rect.X,
 		spinner.Rect.Y,
@@ -880,6 +938,17 @@ func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), pro
 
 }
 
+func (dropdown *Dropdown) UpdateProperty(prop *Property) {
+	choice := prop.AsString()
+	for ci, c := range dropdown.Options {
+		if choice == c {
+			dropdown.ChosenIndex = ci
+			break
+		}
+	}
+	dropdown.Property = prop
+}
+
 func (dropdown *Dropdown) SetOptions(options ...string) {
 
 	dropdown.Options = append([]string{}, options...)
@@ -895,6 +964,11 @@ func (dropdown *Dropdown) SetOptions(options ...string) {
 		b := NewButton(o, nil, nil, dropdown.WorldSpace, func() {
 			dropdown.ChosenIndex = index
 			dropdown.Open = false
+
+			if dropdown.Property != nil {
+				dropdown.Property.Set(dropdown.Options[dropdown.ChosenIndex])
+			}
+
 			if dropdown.OnChoose != nil {
 				dropdown.OnChoose(index)
 			}
@@ -939,10 +1013,6 @@ func (dropdown *Dropdown) Update() {
 	}
 
 	dropdown.Button.Label.SetText([]rune(dropdown.Options[dropdown.ChosenIndex]))
-
-	if dropdown.Property != nil {
-		dropdown.Property.Set(dropdown.Options[dropdown.ChosenIndex])
-	}
 
 }
 
@@ -3069,16 +3139,17 @@ func (image *GUIImage) SetRectangle(rect *sdl.FRect) {
 func (image *GUIImage) Destroy() {}
 
 type Scrollbar struct {
-	Rect        *sdl.FRect
-	Value       float32
-	TargetValue float32
-	Soft        bool // Controls if sliding the scrollbar is smooth or not
-	WorldSpace  bool
-	OnValueSet  func()
-	OnRelease   func()
-	Highlighter *Highlighter
-	Dragging    bool
-	Property    *Property
+	Rect                     *sdl.FRect
+	Value                    float32
+	TargetValue              float32
+	Soft                     bool // Controls if sliding the scrollbar is smooth or not
+	WorldSpace               bool
+	OnValueSet               func()
+	OnRelease                func()
+	Highlighter              *Highlighter
+	Dragging                 bool
+	Property                 *Property
+	DrawOnlyWhenMouseIsClose bool
 }
 
 func NewScrollbar(rect *sdl.FRect, worldSpace bool, property *Property) *Scrollbar {
@@ -3165,6 +3236,18 @@ func (scrollbar *Scrollbar) Draw() {
 
 	if scrollbar.Rect.W < 0 || scrollbar.Rect.H < 0 {
 		return
+	}
+
+	if scrollbar.DrawOnlyWhenMouseIsClose {
+
+		mousePos := globals.Mouse.Position()
+		if scrollbar.WorldSpace {
+			mousePos = globals.Mouse.WorldPosition()
+		}
+
+		if mousePos.DistanceToRect(scrollbar.Rect) > 64 {
+			return
+		}
 	}
 
 	sr := *scrollbar.Rect

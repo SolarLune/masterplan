@@ -215,10 +215,6 @@ func (menu *Menu) Update() {
 
 	if menu.Opened {
 
-		if globals.Mouse.Position().Inside(menu.Rect) {
-			globals.Mouse.SetCursor(CursorNormal)
-		}
-
 		if menu.Dragging {
 			diff := globals.Mouse.Position().Sub(menu.DragStart)
 			menu.Rect.X = menu.DragStart.X + diff.X - menu.DragOffset.X
@@ -404,6 +400,9 @@ func (menu *Menu) Update() {
 
 			if menu.Resizing != "" {
 
+				// If resizing, use that cursor
+				globals.Mouse.SetCursor(globals.Mouse.CurrentCursor)
+
 				switch menu.Resizing {
 				case ResizeR:
 					menu.ResizingRect.X2 = globals.Mouse.Position().X
@@ -467,7 +466,7 @@ func (menu *Menu) Update() {
 
 		}
 
-		if menu.Draggable {
+		if menu.Draggable && globals.Mouse.CurrentCursor == CursorNormal {
 
 			if button.Pressed() && globals.Mouse.Position().Inside(menu.Rect) {
 				button.Consume()

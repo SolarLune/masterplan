@@ -142,6 +142,9 @@ const (
 	KBTableDeleteRow    = "Table: Remove 1 Row"
 	KBTableDeleteColumn = "Table: Remove 1 Column"
 
+	KBWebRecordInputs = "Web: Toggle Input Pass-through"
+	KBWebOpenPage     = "Web: Open Page in Browser"
+
 	// KBURLButton               = "Show URL Buttons"
 	// KBSelectAllTasks          = "Select All Tasks"
 	// KBCopyTasks               = "Copy Tasks"
@@ -549,6 +552,9 @@ func (kb *Keybindings) Default() {
 
 	kb.DefineKeyShortcut(KBLinkEditText, sdl.K_RETURN)
 	kb.DefineKeyShortcut(KBActivateLink, sdl.K_RETURN, sdl.K_LSHIFT)
+
+	kb.DefineKeyShortcut(KBWebRecordInputs, sdl.K_SPACE, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBWebOpenPage, sdl.K_RETURN, sdl.K_LSHIFT, sdl.K_LCTRL)
 
 	kb.DefineKeyShortcut(KBResizeMultiple, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 

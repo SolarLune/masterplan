@@ -333,6 +333,8 @@ type Card struct {
 	changedProperty *Property
 	currentColor    Color
 	colorFadeSpeed  float64
+
+	onScreen bool
 }
 
 var globalCardID = int64(0)
@@ -717,7 +719,7 @@ func (card *Card) Update() {
 		if globals.Keybindings.Pressed(KBLinkCard) && (globals.State == StateNeutral || globals.State == StateCardArrow) {
 
 			globals.State = StateCardArrow
-			globals.Mouse.SetCursor(CursorArrow)
+			globals.Mouse.SetCursor(CursorLink)
 
 			if ClickedInRect(card.Rect, true) && card.Page.Arrowing == nil {
 				card.Page.Arrowing = card
@@ -893,6 +895,11 @@ func (card *Card) Update() {
 		}
 
 	}
+
+	area := card.Page.Project.Camera.ViewArea()
+	viewArea := &sdl.FRect{float32(area.X), float32(area.Y), float32(area.W), float32(area.H)}
+	_, intersecting := card.DisplayRect.Intersect(viewArea)
+	card.onScreen = intersecting && card.Page.IsCurrent()
 
 }
 
@@ -1329,11 +1336,7 @@ func (card *Card) DrawCard() {
 }
 
 func (card *Card) Onscreen() bool {
-	area := card.Page.Project.Camera.ViewArea()
-	viewArea := &sdl.FRect{float32(area.X), float32(area.Y), float32(area.W), float32(area.H)}
-	_, intersecting := card.DisplayRect.Intersect(viewArea)
-	return intersecting
-
+	return card.onScreen
 }
 
 func (card *Card) DrawLinks() {
@@ -1555,7 +1558,7 @@ func (card *Card) Completable() bool {
 	return card.ContentType == ContentTypeCheckbox || card.ContentType == ContentTypeNumbered
 }
 
-func (card *Card) Serialize() string {
+func (card *Card) Serialize(toSave bool) string {
 
 	data := "{}"
 	data, _ = sjson.Set(data, "id", card.ID)
@@ -1571,7 +1574,7 @@ func (card *Card) Serialize() string {
 	if card.FontColor != nil {
 		data, _ = sjson.Set(data, "font color", card.FontColor.ToHexString())
 	}
-	data, _ = sjson.SetRaw(data, "properties", card.Properties.Serialize())
+	data, _ = sjson.SetRaw(data, "properties", card.Properties.Serialize(toSave))
 
 	if len(card.Links) > 0 {
 
@@ -2058,6 +2061,8 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewLinkContents(card)
 		case ContentTypeTable:
 			card.Contents = NewTableContents(card)
+		case ContentTypeWeb:
+			card.Contents = NewWebContents(card)
 		default:
 			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}

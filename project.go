@@ -148,7 +148,8 @@ func (project *Project) CreateGridTexture() {
 
 			project.GridTexture.Recreate(512, 512)
 
-			gridColor := getThemeColor(GUIGridColor)
+			gridColor := getThemeColor(GUIGridColor).Mix(getThemeColor(GUIBGColor), 0.5)
+
 			guiTex.Texture.SetColorMod(gridColor.RGB())
 			guiTex.Texture.SetAlphaMod(gridColor[3])
 
@@ -244,10 +245,6 @@ func (project *Project) Update() {
 	project.Camera.Update()
 
 	globals.Mouse.HiddenPosition = false
-
-	globals.Mouse.ApplyCursor()
-
-	globals.Mouse.SetCursor(CursorNormal)
 
 	for _, page := range project.Pages {
 		if page.Valid() {
@@ -381,7 +378,7 @@ func (project *Project) Save() {
 		cache.Set(project.PathToRelative(cache.AsString(), true))
 	}
 
-	saveData, _ = sjson.SetRaw(saveData, "properties", project.Properties.Serialize())
+	saveData, _ = sjson.SetRaw(saveData, "properties", project.Properties.Serialize(true))
 
 	if cache := project.Properties.Get(ProjectCacheDirectory); cache.AsString() != "" {
 		cache.Set(project.PathToAbsolute(cache.AsString(), true))

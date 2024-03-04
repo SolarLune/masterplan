@@ -255,7 +255,7 @@ func (page *Page) Serialize() string {
 	})
 
 	for _, card := range cards {
-		pageData, _ = sjson.SetRaw(pageData, "cards.-1", card.Serialize())
+		pageData, _ = sjson.SetRaw(pageData, "cards.-1", card.Serialize(true))
 	}
 
 	return pageData

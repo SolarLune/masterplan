@@ -8,11 +8,12 @@ import (
 )
 
 type Property struct {
-	Properties *Properties
-	Name       string
-	data       interface{}
-	InUse      bool
-	OnChange   func()
+	Properties           *Properties
+	Name                 string
+	data                 interface{}
+	InUse                bool
+	OnChange             func()
+	OnlySerializeInSaves bool
 }
 
 func NewProperty(name string, properties *Properties) *Property {
@@ -174,6 +175,12 @@ func (properties *Properties) Get(name string) *Property {
 
 }
 
+func (properties *Properties) SetDefault(propertyName string, value any) {
+	if !properties.Has(propertyName) {
+		properties.Get(propertyName).Set(value)
+	}
+}
+
 func (properties *Properties) GetIfExists(propertyName string) *Property {
 	if properties.Has(propertyName) {
 		return properties.Get(propertyName)
@@ -194,13 +201,13 @@ func (properties *Properties) Remove(propertyName string) {
 
 }
 
-func (properties *Properties) Serialize() string {
+func (properties *Properties) Serialize(saving bool) string {
 
 	data := "{}"
 
 	for _, name := range properties.DefinitionOrder {
 		prop := properties.Props[name]
-		if prop.InUse {
+		if prop.InUse && (!prop.OnlySerializeInSaves || saving) {
 			data, _ = sjson.Set(data, name, prop.data)
 		}
 	}

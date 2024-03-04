@@ -494,6 +494,8 @@ func main() {
 			}
 		}
 
+		globals.Mouse.SetCursor(CursorNormal)
+
 		globals.MenuSystem.Update()
 
 		globals.Project.Update()
@@ -508,6 +510,8 @@ func main() {
 
 			globals.MenuSystem.Draw()
 
+			globals.Mouse.ApplyCursor()
+
 			if globals.State == StateNeutral && !globals.MenuSystem.ExclusiveMenuOpen() && globals.Keybindings.Pressed(KBAddToSelection) {
 				pos := globals.Mouse.Position()
 				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{480, 80, 8, 8}, &sdl.FRect{pos.X + 20, pos.Y - 8, 8, 8})
@@ -520,7 +524,7 @@ func main() {
 			if globals.DebugMode {
 				fps, _ := gfx.GetFramerate(fpsManager)
 				s := strconv.FormatFloat(float64(fps), 'f', 0, 64)
-				globals.TextRenderer.QuickRenderText(s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, ColorBlack, AlignRight)
+				globals.TextRenderer.QuickRenderText("FPS : "+s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, ColorBlack, AlignRight)
 				globals.TextRenderer.QuickRenderText(fmt.Sprintf("(%d, %d)", int(globals.Project.Camera.Position.X), int(globals.Project.Camera.Position.Y)), Point{globals.ScreenSize.X - 64, 32}, 1, ColorWhite, ColorBlack, AlignRight)
 			}
 
@@ -1262,6 +1266,10 @@ func ConstructMenus() {
 
 	root.AddRow(AlignCenter).Add("create new table", NewButton("Table", nil, icons[ContentTypeTable], false, func() {
 		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeTable), true)
+	}))
+
+	root.AddRow(AlignCenter).Add("create new web", NewButton("Web", nil, icons[ContentTypeWeb], false, func() {
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeWeb), true)
 	}))
 
 	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+64, createMenu.Pages["root"].IdealSize().Y+16)
@@ -2110,6 +2118,65 @@ from this directory.`))
 	row.Add("", NewButton("Clear", nil, nil, false, func() {
 		globals.Project.Properties.Get(ProjectCacheDirectory).Set("")
 	}))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Where to find the browser to use for Web Cards.
+Defaults to your local Chrome / Chromium installation.
+Only Chrome or recent Chrome-based browsers are supported.
+If no Chrome-based browsers are installed, Web Cards will not work.`))
+	row.Add("", NewLabel("Custom Browser Path:", nil, false, AlignLeft))
+	browserPath := NewLabel("", nil, false, AlignLeft)
+	browserPath.Editable = true
+	browserPath.RegexString = RegexNoNewlines
+	browserPath.Property = globals.Settings.Get(SettingsBrowserPath)
+	row.Add("", browserPath)
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewButton("Browse", nil, nil, false, func() {
+
+		if path, err := zenity.SelectFile(zenity.Title("Select Chrome-based Browser Path")); err == nil {
+			globals.Settings.Get(SettingsBrowserPath).Set(path)
+		}
+
+	}))
+
+	row.Add("", NewButton("Clear", nil, nil, false, func() {
+		globals.Settings.Get(SettingsBrowserPath).Set("Browser path")
+	}))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Where to find the user data directory to use
+for the browser when using Web cards.
+When this is set correctly, cookies, sessions, and other
+user data will be loaded from the browser for use with Web Cards.
+This folder should be something like:
+"~/.config/chromium/Default/", or "%LOCALAPPDATA%\Google\Chrome\User Data".
+`))
+	row.Add("", NewLabel("Browser User-Data Path:", nil, false, AlignLeft))
+	browserUserDataPath := NewLabel("", nil, false, AlignLeft)
+	browserUserDataPath.Editable = true
+	browserUserDataPath.RegexString = RegexNoNewlines
+	browserUserDataPath.Property = globals.Settings.Get(SettingsBrowserUserDataPath)
+	row.Add("", browserUserDataPath)
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewButton("Browse", nil, nil, false, func() {
+
+		if path, err := zenity.SelectFile(zenity.Title("Select Chrome-based Browser Path"), zenity.Directory()); err == nil {
+			globals.Settings.Get(SettingsBrowserUserDataPath).Set(path)
+		}
+
+	}))
+
+	row.Add("", NewButton("Clear", nil, nil, false, func() {
+		globals.Settings.Get(SettingsBrowserUserDataPath).Set("Browser path")
+	}))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
 
 	row = general.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
@@ -3372,7 +3439,6 @@ horizontally.`))
 
 	tableMenu := globals.MenuSystem.Add(NewMenu("table settings menu", &sdl.FRect{999999, 0, 500, 275}, MenuCloseButton), false)
 	tableMenu.Resizeable = true
-	tableMenu.CloseMethod = MenuCloseButton
 	tableMenu.Draggable = true
 	tableMenu.AnchorMode = MenuAnchorTopRight
 
@@ -3408,6 +3474,195 @@ horizontally.`))
 			}
 		}
 	}))
+
+	// Web menu
+
+	webMenu := globals.MenuSystem.Add(NewMenu("web card settings", &sdl.FRect{99999, 0, 650, 400}, MenuCloseButton), false)
+	webMenu.Resizeable = true
+	webMenu.Draggable = true
+	webMenu.AnchorMode = MenuAnchorTopRight
+
+	root = webMenu.Pages["root"]
+	row = root.AddRow(AlignCenter)
+	row.Add("", NewLabel("Web Card Settings", nil, false, AlignCenter))
+
+	var activeCard *Card
+
+	autoResize := NewCheckbox(0, 0, false, nil)
+	autoResize.Checked = true
+
+	sizeDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
+		if activeCard != nil {
+			wc := activeCard.Contents.(*WebContents)
+			wc.UpdateBufferSize()
+			if autoResize.Checked {
+				originalCenter := activeCard.Center()
+				activeCard.Rect.W = float32(wc.BufferWidth)
+				activeCard.Rect.H = float32(wc.BufferHeight)
+				activeCard.Rect.X = originalCenter.X - (activeCard.Rect.W / 2)
+				activeCard.Rect.Y = originalCenter.Y - (activeCard.Rect.H / 2)
+				activeCard.LockPosition()
+			}
+		}
+	}, nil, WebCardSize256, WebCardSize320, WebCardSize512, WebCardSize1024)
+
+	aspectRatioDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
+		if activeCard != nil {
+			wc := activeCard.Contents.(*WebContents)
+			wc.UpdateBufferSize()
+			if autoResize.Checked {
+				originalCenter := activeCard.Center()
+				activeCard.Rect.W = float32(wc.BufferWidth)
+				activeCard.Rect.H = float32(wc.BufferHeight)
+				activeCard.Rect.X = originalCenter.X - (activeCard.Rect.W / 2)
+				activeCard.Rect.Y = originalCenter.Y - (activeCard.Rect.H / 2)
+				activeCard.LockPosition()
+			}
+		}
+	}, nil, WebCardAspectRatioWide, WebCardAspectRatioSquare, WebCardAspectRatioTall)
+
+	updateFramerateDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardFPS1FPS, WebCardFPS10FPS, WebCardFPSAsOftenAsPossible)
+
+	updateOnlyWhenDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardUpdateOptionAlways, WebCardUpdateOptionWhenRecordingInputs, WebCardUpdateOptionWhenSelected)
+
+	urlLabel := NewLabel("https://www.google.com", nil, false, AlignLeft)
+	urlLabel.Editable = true
+	urlLabel.RegexString = RegexNoNewlines
+
+	row = root.AddRow(AlignCenter)
+	row.Add("label", NewLabel("Size:", nil, false, AlignCenter))
+	row = root.AddRow(AlignCenter)
+	row.Add("card size", sizeDropdown)
+	row.Add("card aspect ratio", aspectRatioDropdown)
+	row.ExpandElementSet.SelectAll()
+
+	row = root.AddRow(AlignCenter)
+	row.Add("label", NewLabel("Auto-resize Card on Size Change:", nil, false, AlignCenter))
+	row.Add("card aspect ratio", autoResize)
+	row.ExpandElementSet.SelectAll()
+
+	row = root.AddRow(AlignCenter)
+	row.Add("label", NewLabel("Update FPS:", nil, false, AlignCenter))
+	row.Add("fps", updateFramerateDropdown)
+	row.ExpandElementSet.SelectAll()
+
+	row = root.AddRow(AlignCenter)
+	row.Add("label", NewLabel("Update Card Visuals When:", nil, false, AlignCenter))
+	row.Add("fps", updateOnlyWhenDropdown)
+	row.ExpandElementSet.SelectAll()
+
+	row = root.AddRow(AlignCenter)
+	row.Add("url", NewLabel("URL:", nil, false, AlignCenter))
+	row = root.AddRow(AlignCenter)
+	row.Add("urlLink", urlLabel)
+	row.ExpandElementSet.SelectAll()
+
+	row = root.AddRow(AlignCenter)
+	row.Add("open browser", NewButton("Open URL In Browser", nil, nil, false, func() {
+		if activeCard != nil {
+			activeCard.Contents.(*WebContents).OpenURLInBrowser()
+		}
+	}))
+	// row = root.AddRow(AlignCenter)
+	// row.Add("urlcopy", NewButton("Copy Current URL To Card", nil, nil, false, func() {
+
+	// 	if activeCard != nil {
+	// 		activeCard.Contents.(*WebContents).CopyActiveURLToCard()
+	// 	}
+
+	// }))
+
+	root.OnUpdate = func() {
+
+		if activeCard != nil && !activeCard.Valid {
+			activeCard = nil
+		}
+
+		for _, card := range globals.Project.CurrentPage.Cards {
+			if card.Valid && card.selected && card.ContentType == ContentTypeWeb {
+				if activeCard != card {
+					activeCard = card
+					sizeDropdown.UpdateProperty(card.Properties.Get("size"))
+					aspectRatioDropdown.UpdateProperty(card.Properties.Get("aspect ratio"))
+					updateFramerateDropdown.UpdateProperty(card.Properties.Get("update framerate"))
+					updateOnlyWhenDropdown.UpdateProperty(card.Properties.Get("update only when"))
+
+					if urlLabel.Property != card.Properties.Get("url") {
+						urlLabel.Property = card.Properties.Get("url")
+						urlLabel.SetText([]rune(urlLabel.Property.AsString()))
+					}
+
+					urlLabel.OnClickOut = func() {
+						card.Contents.(*WebContents).Navigate(urlLabel.TextAsString())
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// row = root.AddRow(AlignCenter)
+	// row.Add("label", NewLabel("Size:", nil, false, AlignCenter))
+	// row = root.AddRow(AlignCenter)
+	// row.Add("card size", NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
+	// 	switch index {
+	// 	case 0:
+	// 		size = 256
+	// 	case 1:
+	// 		size = 320
+	// 	case 2:
+	// 		size = 512
+	// 	case 3:
+	// 		size = 1024
+	// 	}
+	// }, nil, "256p", "320p", "512p", "1024p"))
+	// row.ExpandElementSet.SelectAll()
+
+	// row = root.AddRow(AlignCenter)
+	// row.Add("label", NewLabel("Aspect Ratio:", nil, false, AlignCenter))
+	// row = root.AddRow(AlignCenter)
+	// row.Add("card aspect ratio", NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
+	// 	switch index {
+	// 	case 0:
+	// 		asr = 9.0 / 16.0
+	// 	case 1:
+	// 		asr = 1.0
+	// 	case 2:
+	// 		asr = 16.0 / 9.0
+	// 	}
+	// }, nil, "16:9", "1:1", "9:16"))
+	// row.ExpandElementSet.SelectAll()
+
+	// row = root.AddRow(AlignCenter)
+	// row.Add("label", NewLabel("Update Frequency:", nil, false, AlignCenter))
+	// row = root.AddRow(AlignCenter)
+	// row.Add("update frequency", NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
+	// 	updateFrequency = index
+	// }, nil, "As often as possible", "Every second", "Only when recording inputs"))
+	// row.ExpandElementSet.SelectAll()
+
+	// row = root.AddRow(AlignCenter)
+	// row.Add("", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
+	// row = root.AddRow(AlignCenter)
+	// row.Add("apply", NewButton("Apply Settings to Selected Cards", &sdl.FRect{0, 0, 32, 32}, nil, false, func() {
+	// 	for card := range globals.Project.CurrentPage.Selection.Cards {
+	// 		if card.ContentType == ContentTypeWeb {
+	// 			card.Properties.Get("size").Set(size)
+	// 			card.Properties.Get("aspect ratio").Set(asr)
+	// 			card.Properties.Get("update frequency").Set(updateFrequency)
+	// 			card.Contents.(*WebContents).UpdateBufferSize()
+	// 		}
+	// 	}
+	// }))
+	// row.ExpandElementSet.SelectAll()
+
+	// row.Add("card size", NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
+	// 	for card := range globals.Project.CurrentPage.Selection.Cards {
+	// 		if card.ContentType == ContentTypeWeb {
+	// 			card.Contents.(*WebContents).ResizeBuffer(index) // index = 0, 1, or 2, which corresponds to WebBufferSmall/Medium/Large
+	// 		}
+	// 	}
+	// }, nil, "Small", "Medium", "Large"))
 
 }
 
