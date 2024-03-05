@@ -2139,24 +2139,16 @@ func (label *Label) Draw() {
 
 	if label.RendererResult != nil && len(label.Text) > 0 {
 
-		baseline := float32(globals.Font.Ascent()) / 4
-
 		w := int32(label.RendererResult.Image.Size.X)
-
-		if w > int32(label.Rect.W) {
-			w = int32(label.Rect.W)
-		}
 
 		h := int32(label.RendererResult.Image.Size.Y)
 
-		if h > int32(label.Rect.H+baseline) {
-			h = int32(label.Rect.H + baseline)
-		}
-
 		src := &sdl.Rect{0, 0, w, h}
 
+		scaleup := float32(4)
+
 		// Floor the rectangle to avoid aliasing artifacts when rendering with nearest neighbour
-		newRect := &sdl.FRect{float32(math.Floor(float64(label.Rect.X + label.Offset.X))), float32(math.Floor(float64(label.Rect.Y + label.Offset.Y))), float32(w), float32(h)}
+		newRect := &sdl.FRect{float32(math.Floor(float64(label.Rect.X + label.Offset.X))), float32(math.Floor(float64(label.Rect.Y + label.Offset.Y))), float32(w) / scaleup, float32(h) / scaleup}
 
 		// newRect.Y -= baseline // Center it
 

@@ -251,6 +251,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 		sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "2")
 		finalW := globals.GridSize
 
+		scaleup := 4
 		x := 0
 		y := 0
 
@@ -261,7 +262,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 		type renderPair struct {
 			Glyph *Glyph
-			Rect  *sdl.Rect
+			Rect  *sdl.FRect
 		}
 
 		toRender := []*renderPair{}
@@ -326,7 +327,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 			toRender = append(toRender, &renderPair{
 				Glyph: glyph,
-				Rect:  &sdl.Rect{int32(x), int32(y), glyph.Width(), glyph.Height()},
+				Rect:  &sdl.FRect{float32(x * scaleup), float32(y * scaleup), float32(glyph.Width() * 4), float32(glyph.Height() * 4)},
 			})
 
 			x += int(glyph.Width())
@@ -353,7 +354,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 		lineIndex := 0
 
-		var lw int32
+		var lw float32
 
 		for _, ch := range toRender {
 			if ch == nil {
@@ -362,9 +363,9 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 			}
 
 			if horizontalAlignment == AlignCenter {
-				lw = int32((finalW - result.LineSizes[lineIndex].X) / 2)
+				lw = float32((finalW - result.LineSizes[lineIndex].X) / 2)
 			} else if horizontalAlignment == AlignRight {
-				lw = int32(finalW - result.LineSizes[lineIndex].X)
+				lw = float32(finalW - result.LineSizes[lineIndex].X)
 			}
 
 			ch.Rect.X += lw
@@ -375,7 +376,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 		// Now render
 
-		renderTexture.Recreate(int32(result.TextSize.X), int32(result.TextSize.Y))
+		renderTexture.Recreate(int32(result.TextSize.X) * int32(scaleup), int32(result.TextSize.Y) * int32(scaleup))
 
 		renderTexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 
@@ -392,7 +393,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 			if r == nil {
 				continue
 			}
-			globals.Renderer.Copy(r.Glyph.Texture(), nil, r.Rect)
+			globals.Renderer.CopyF(r.Glyph.Texture(), nil, r.Rect)
 		}
 
 	}

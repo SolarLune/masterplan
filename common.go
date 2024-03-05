@@ -360,7 +360,7 @@ func HandleFontReload() {
 			// For silver.ttf, 21 is the ideal font size. Otherwise, 30 seems to be reasonable.
 
 			// loadedFont, err := ttf.OpenFont(fontPath, int(globals.Settings.Get(SettingsFontSize).AsFloat()))
-			loadedFont, err := ttf.OpenFont(fontPath, 48)
+			loadedFont, err := ttf.OpenFont(fontPath, 96)
 
 			if err != nil {
 				panic(err)
