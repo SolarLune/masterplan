@@ -2145,7 +2145,7 @@ func (label *Label) Draw() {
 
 		src := &sdl.Rect{0, 0, w, h}
 
-		scaleup := float32(4)
+		scaleup := float32(globals.TextSupersampling);
 
 		// Floor the rectangle to avoid aliasing artifacts when rendering with nearest neighbour
 		newRect := &sdl.FRect{float32(math.Floor(float64(label.Rect.X + label.Offset.X))), float32(math.Floor(float64(label.Rect.Y + label.Offset.Y))), float32(w) / scaleup, float32(h) / scaleup}

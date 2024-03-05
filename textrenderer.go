@@ -251,7 +251,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 		sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "2")
 		finalW := globals.GridSize
 
-		scaleup := 4
+		scaleup := globals.TextSupersampling;
 		x := 0
 		y := 0
 
@@ -327,7 +327,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 			toRender = append(toRender, &renderPair{
 				Glyph: glyph,
-				Rect:  &sdl.FRect{float32(x * scaleup), float32(y * scaleup), float32(glyph.Width() * 4), float32(glyph.Height() * 4)},
+				Rect:  &sdl.FRect{float32(x * scaleup), float32(y * scaleup), float32(glyph.Width() * int32(scaleup)), float32(glyph.Height() * int32(scaleup))},
 			})
 
 			x += int(glyph.Width())
