@@ -58,6 +58,7 @@ func init() {
 	globals.Mouse.Dummy = &nm
 	globals.Resources = NewResourceBank()
 	globals.GridSize = 32
+	globals.TextSupersampling = 8
 	globals.InputText = []rune{}
 	globals.CopyBuffer = NewCopyBuffer()
 	globals.State = StateNeutral

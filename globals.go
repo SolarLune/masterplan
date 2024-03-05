@@ -51,6 +51,7 @@ type Globals struct {
 	DeltaTime         float32
 	Frame             int64
 	GridSize          float32
+	TextSupersampling int
 	ScreenSize        Point
 	ScreenSizePrev    Point
 	ScreenSizeChanged bool
