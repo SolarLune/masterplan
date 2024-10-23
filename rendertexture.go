@@ -79,7 +79,7 @@ func (rt *RenderTexture) Recreate(newW, newH int32) {
 
 }
 
-// NewRenderTexture creates a new *RenderTexture. However, it does NOT return the RenderTexture created; instead, it allows you to specify
+// NewRenderTexture creates a new *RenderTexture. You should specify
 // a function to be called when the Texture needs to be rendered (i.e. directly after calling ewRenderTexture(), as well as whenever SDL loses context
 // and render textures need to be rebuilt (see: https://wiki.libsdl.org/SDL_EventType, SDL_RENDER_TARGETS_RESET)). This is a bit of a doozy.
 func NewRenderTexture() *RenderTexture {

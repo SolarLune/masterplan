@@ -2389,6 +2389,24 @@ func (mc *MapContents) Update() {
 		mc.LineStart.Y = -1
 	}
 
+	if globals.Keybindings.Pressed(KBMapShiftRight) {
+		globals.Keybindings.Shortcuts[KBMapShiftRight].ConsumeKeys()
+		mc.MapData.Push(1, 0)
+		globals.EventLog.Log("Map shifted by 1 to the right.", false)
+	} else if globals.Keybindings.Pressed(KBMapShiftLeft) {
+		globals.Keybindings.Shortcuts[KBMapShiftLeft].ConsumeKeys()
+		mc.MapData.Push(-1, 0)
+		globals.EventLog.Log("Map shifted by 1 to the left.", false)
+	} else if globals.Keybindings.Pressed(KBMapShiftUp) {
+		globals.Keybindings.Shortcuts[KBMapShiftUp].ConsumeKeys()
+		mc.MapData.Push(0, -1)
+		globals.EventLog.Log("Map shifted by 1 upwards.", false)
+	} else if globals.Keybindings.Pressed(KBMapShiftDown) {
+		globals.Keybindings.Shortcuts[KBMapShiftDown].ConsumeKeys()
+		mc.MapData.Push(0, 1)
+		globals.EventLog.Log("Map shifted by 1 downwards.", false)
+	}
+
 }
 
 func (mc *MapContents) Draw() {
@@ -2696,7 +2714,7 @@ type SubPageContents struct {
 	DefaultContents
 	SubPage           *Page
 	NameLabel         *Label
-	SubpageScreenshot *sdl.Texture
+	SubpageScreenshot *RenderTexture
 	ScreenshotImage   *GUIImage
 	ScreenshotRow     *ContainerRow
 }
@@ -2706,25 +2724,6 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	sb := &SubPageContents{
 		DefaultContents: newDefaultContents(card),
 	}
-
-	srcW := int32(SubpageScreenshotSize.X)
-	srcH := int32(SubpageScreenshotSize.Y)
-
-	scrsh, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, srcW, srcH)
-	if err != nil {
-		panic(err)
-	}
-
-	scrsh.SetBlendMode(sdl.BLENDMODE_BLEND)
-
-	sb.SubpageScreenshot = scrsh
-
-	sb.ScreenshotImage = NewGUIImage(
-		&sdl.FRect{0, 0, SubpageScreenshotSize.X, SubpageScreenshotSize.Y},
-		&sdl.Rect{0, 0, srcW, srcH},
-		sb.SubpageScreenshot, true)
-	sb.ScreenshotImage.TintByFontColor = false
-	sb.ScreenshotImage.Border = true
 
 	row := sb.container.AddRow(AlignCenter)
 	row.Add("icon", NewGUIImage(nil, &sdl.Rect{48, 256, 32, 32}, globals.GUITexture.Texture, true))
@@ -2762,6 +2761,56 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	if sb.SubPage == nil {
 		sb.SubPage = project.AddPage()
 	}
+
+	srcW := int32(SubpageScreenshotSize.X)
+	srcH := int32(SubpageScreenshotSize.Y)
+
+	sb.SubpageScreenshot = NewRenderTexture()
+
+	sb.SubpageScreenshot.RenderFunc = func() {
+
+		sb.SubpageScreenshot.Recreate(srcW, srcH)
+
+		sb.SubpageScreenshot.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+		SetRenderTarget(sb.SubpageScreenshot.Texture)
+		globals.Renderer.SetDrawColor(0, 0, 0, 0)
+		globals.Renderer.Clear()
+
+		globals.Renderer.SetDrawColor(1, 1, 1, 1)
+		globals.Renderer.FillRect(nil)
+
+		camera := sb.Card.Page.Project.Camera
+
+		originalPos := camera.Position
+		originalZoom := camera.Zoom
+
+		ssPos := globals.ScreenSize
+		camera.JumpTo(ssPos, float32(SubpageScreenshotZoom))
+
+		prevPage := sb.SubPage.Project.CurrentPage
+		sb.SubPage.Project.CurrentPage = sb.SubPage
+		sb.SubPage.IgnoreWritePan = true
+
+		sb.SubPage.Update()
+		sb.SubPage.Draw()
+		sb.SubPage.IgnoreWritePan = false
+		sb.SubPage.Project.CurrentPage = prevPage
+
+		camera.JumpTo(originalPos, originalZoom)
+
+		SetRenderTarget(nil)
+
+	}
+
+	sb.SubpageScreenshot.RenderFunc()
+
+	sb.ScreenshotImage = NewGUIImage(
+		&sdl.FRect{0, 0, SubpageScreenshotSize.X, SubpageScreenshotSize.Y},
+		&sdl.Rect{0, 0, srcW, srcH},
+		sb.SubpageScreenshot.Texture, true)
+
+	sb.ScreenshotImage.TintByFontColor = false
+	sb.ScreenshotImage.Border = true
 
 	sb.SubPage.PointingSubpageCard = card
 	sb.Card.Properties.Get("subpage").Set(float64(sb.SubPage.ID)) // We have to set as a float because JSON only has floats as numbers, not ints
@@ -2850,32 +2899,8 @@ func (sb *SubPageContents) TakeScreenshot() {
 
 	// Render the screenshot
 
-	SetRenderTarget(sb.SubpageScreenshot)
-	globals.Renderer.SetDrawColor(0, 0, 0, 0)
-	globals.Renderer.Clear()
-
-	camera := sb.Card.Page.Project.Camera
-
-	originalPos := camera.Position
-	originalZoom := camera.Zoom
-
-	ssPos := globals.ScreenSize
-	camera.JumpTo(ssPos, float32(SubpageScreenshotZoom))
-
-	prevPage := sb.SubPage.Project.CurrentPage
-	sb.SubPage.Project.CurrentPage = sb.SubPage
-	sb.SubPage.IgnoreWritePan = true
-
-	sb.SubPage.Update()
-	sb.SubPage.Draw()
-	sb.SubPage.IgnoreWritePan = false
-	sb.SubPage.Project.CurrentPage = prevPage
-
-	camera.JumpTo(originalPos, originalZoom)
-
-	SetRenderTarget(nil)
-
-	sb.ScreenshotImage.Texture = sb.SubpageScreenshot
+	sb.SubpageScreenshot.RenderFunc()
+	sb.ScreenshotImage.Texture = sb.SubpageScreenshot.Texture
 
 }
 
@@ -4176,6 +4201,7 @@ const (
 	WebCardSize1024 = "1024p"
 
 	WebCardFPSAsOftenAsPossible = "As Often As Possible"
+	WebCardFPS20FPS             = "20 FPS"
 	WebCardFPS10FPS             = "10 FPS"
 	WebCardFPS1FPS              = "1 FPS"
 
@@ -4195,7 +4221,6 @@ type WebContents struct {
 	BufferWidth, BufferHeight int
 	Context                   context.Context
 	ContextValid              atomic.Bool
-	CancelFunc                context.CancelFunc
 
 	TargetURL    string
 	NavigatedURL string
@@ -4208,7 +4233,6 @@ type WebContents struct {
 
 	PauseRefresh     sync.Mutex
 	LoadingWebpage   atomic.Bool
-	ShouldRefresh    bool
 	RefreshedOnce    atomic.Bool
 	RefreshedTexture atomic.Bool
 
@@ -4222,14 +4246,16 @@ type WebContents struct {
 
 	VerticalScrollbar   *Scrollbar
 	HorizontalScrollbar *Scrollbar
+
+	inputSent     atomic.Bool
+	URLCheckTimer time.Time
 }
 
 func NewWebContents(card *Card) *WebContents {
 
 	web := &WebContents{
 		DefaultContents:     newDefaultContents(card),
-		ShouldRefresh:       true,
-		Actions:             make(chan chromedp.Action),
+		Actions:             make(chan chromedp.Action, 1),
 		VerticalScrollbar:   NewScrollbar(&sdl.FRect{0, 0, 16, 16}, true, nil),
 		HorizontalScrollbar: NewScrollbar(&sdl.FRect{0, 0, 16, 16}, true, nil),
 	}
@@ -4333,25 +4359,14 @@ func NewWebContents(card *Card) *WebContents {
 		case "backward":
 			button = NewIconButton(
 				0, 0, &sdl.Rect{368, 0, 32, 32}, globals.GUITexture, true, func() {
-					entries := []*page.NavigationEntry{}
-					currentEntry := int64(0)
-					chromedp.Run(web.Context, chromedp.NavigationEntries(&currentEntry, &entries))
-					if int(currentEntry) >= 1 {
-						// web.Actions = append(web.Actions, chromedp.NavigateToHistoryEntry(currentEntry-1))
-						web.Actions <- chromedp.NavigateBack()
-					}
+					web.NavigateBack()
 				},
 			)
 			button.Flip = sdl.FLIP_HORIZONTAL
 		case "forward":
 			button = NewIconButton(
 				0, 0, &sdl.Rect{368, 0, 32, 32}, globals.GUITexture, true, func() {
-					entries := []*page.NavigationEntry{}
-					currentEntry := int64(0)
-					chromedp.Run(web.Context, chromedp.NavigationEntries(&currentEntry, &entries))
-					if int(currentEntry) < len(entries) {
-						web.Actions <- chromedp.NavigateForward()
-					}
+					web.NavigateForward()
 				},
 			)
 		case "x1":
@@ -4405,7 +4420,10 @@ func NewWebContents(card *Card) *WebContents {
 
 	// web.Buttons = []*IconButton{}
 
-	web.ReinitContext()
+	if err := web.ReinitContext(); err != nil {
+		fmt.Println("error initializing context; returning nil")
+		return nil
+	}
 
 	web.UpdateBufferSize()
 
@@ -4415,12 +4433,40 @@ func NewWebContents(card *Card) *WebContents {
 	return web
 }
 
-func (w *WebContents) ReinitContext() {
+func (w *WebContents) ReinitContext() error {
 
 	if globals.BrowserContext == nil {
 
 		// opts := append(chromedp.DefaultExecAllocatorOptions[:], chromedp.Flag("headless", true))
-		opts := append(chromedp.DefaultExecAllocatorOptions[:], chromedp.Headless, chromedp.NoDefaultBrowserCheck, chromedp.Flag("mute-audio", false))
+		opts := append([]func(*chromedp.ExecAllocator){},
+			chromedp.Flag("hide-scrollbars", true), // Not sure if we want this or not
+			chromedp.Flag("headless", true),
+			chromedp.Flag("no-first-run", true),
+			chromedp.Flag("no-default-browser-check", true),
+			chromedp.Flag("mute-audio", false),
+			// chromedp.Flag("disable-background-networking", true),
+			// chromedp.Flag("enable-features", "NetworkService,NetworkServiceInProcess"),
+			// chromedp.Flag("disable-background-timer-throttling", true),
+			// chromedp.Flag("disable-backgrounding-occluded-windows", true),
+			// chromedp.Flag("disable-breakpad", true),
+			// chromedp.Flag("disable-client-side-phishing-detection", true),
+			// chromedp.Flag("disable-default-apps", true),
+			// chromedp.Flag("disable-dev-shm-usage", true),
+			chromedp.Flag("disable-extensions", false),
+			// // chromedp.Flag("disable-features", "site-per-process,Translate,BlinkGenPropertyTrees"),
+			// chromedp.Flag("disable-hang-monitor", true),
+			// chromedp.Flag("disable-ipc-flooding-protection", true),
+			chromedp.Flag("disable-popup-blocking", false),
+			// chromedp.Flag("disable-prompt-on-repost", true),
+			// chromedp.Flag("disable-renderer-backgrounding", true),
+			// chromedp.Flag("disable-sync", true),
+			// chromedp.Flag("force-color-profile", "srgb"),
+			// chromedp.Flag("metrics-recording-only", true),
+			// chromedp.Flag("safebrowsing-disable-auto-update", true),
+			// chromedp.Flag("enable-automation", true),
+			// chromedp.Flag("password-store", "basic"),
+			// chromedp.Flag("use-mock-keychain", true),
+		)
 
 		if browserPath := globals.Settings.Get(SettingsBrowserPath).AsString(); browserPath != "" {
 			opts = append(opts, chromedp.ExecPath(browserPath))
@@ -4431,20 +4477,35 @@ func (w *WebContents) ReinitContext() {
 		}
 
 		alloc, _ := chromedp.NewExecAllocator(context.Background(), opts...)
-		browserContext, _ := chromedp.NewContext(alloc)
-		globals.BrowserContext = browserContext
-		globals.EventLog.Log("Created Chrome context.", false)
+		browserContext, cancel := chromedp.NewContext(alloc)
 
+		// Try context to confirm it exists and is good
+		if err := chromedp.Run(browserContext, chromedp.Reload()); err != nil {
+			globals.EventLog.Log("Error creating web card: %s", true, err.Error())
+			cancel() // Cancel the broken browser context
+			return err
+		}
+
+		globals.BrowserContext = browserContext
+
+		globals.EventLog.Log("Created web context using.", false)
 	}
 
 	// create context
-	ctx, cancel := chromedp.NewContext(
+	ctx, _ := chromedp.NewContext(
 		globals.BrowserContext,
 	)
+
+	// Attempt to run something; this should create a new tab
+	if err := chromedp.Run(ctx, chromedp.Reload()); err != nil {
+		globals.EventLog.Log("Error creating web card: %s", true, err.Error())
+		return err
+	}
 
 	chromedp.ListenTarget(ctx, func(ev interface{}) {
 		switch e := ev.(type) {
 		case *page.EventLifecycleEvent:
+			// This allows us to see when a page is strictly loading (i.e. not all HTML / JS elements have loaded)
 			if e.Name == "DOMContentLoaded" {
 				w.LoadingWebpage.Store(true)
 				// fmt.Println("load start")
@@ -4458,15 +4519,32 @@ func (w *WebContents) ReinitContext() {
 
 	w.ContextValid.Store(true)
 	w.Context = ctx
-	w.CancelFunc = cancel
 	w.PauseRefresh = sync.Mutex{}
 
 	go func() {
 
+		capTime := time.Duration(0)
+		actions := []chromedp.Action{}
+
 		for {
 
+			fmt.Println("update", w.Card.ID)
+
+			if !w.ContextValid.Load() {
+				globals.EventLog.Log("web context ended", true)
+				return
+			}
+
+			actions = actions[:0]
+
+			for len(w.Actions) > 0 {
+				fmt.Println("action pull bef")
+				actions = append(actions, <-w.Actions)
+				fmt.Println("action pull after")
+			}
+
 			if !w.Card.Onscreen() {
-				time.Sleep(time.Second / 10)
+				time.Sleep(time.Second / 250)
 				continue
 			}
 
@@ -4475,34 +4553,25 @@ func (w *WebContents) ReinitContext() {
 				switch w.Card.Properties.Get("update only when").AsString() {
 				// case WebCardUpdateOptionAlways:
 				case WebCardUpdateOptionWhenRecordingInputs:
+					// If not recording inputs, then we can sleep for a bit and then try again later in the thread
 					if !w.RecordInput {
-						time.Sleep(time.Second / 10)
+						time.Sleep(time.Second / 250)
 						continue
 					}
 				case WebCardUpdateOptionWhenSelected:
 					if !w.Card.selected {
-						time.Sleep(time.Second / 10)
+						time.Sleep(time.Second / 250)
 						continue
 					}
 				}
 
-				switch w.Card.Properties.Get("update framerate").AsString() {
-				// case WebCardFPSAsOftenAsPossible:
-
-				case WebCardFPS10FPS:
-					time.Sleep(time.Second / 10)
-				case WebCardFPS1FPS:
-					time.Sleep(time.Second)
-				}
-
 			}
 
-			if !w.ContextValid.Load() {
-				globals.EventLog.Log("web context ended", true)
-				return
-			}
+			captureStart := time.Now()
 
+			fmt.Println("pause refresh lock")
 			w.PauseRefresh.Lock()
+			fmt.Println("pause refresh unlock")
 
 			if w.NavigatedURL != w.TargetURL {
 				w.NavigatedURL = w.TargetURL
@@ -4525,9 +4594,7 @@ func (w *WebContents) ReinitContext() {
 				}
 			}
 
-			select {
-
-			case action := <-w.Actions:
+			for _, action := range actions {
 
 				if err := chromedp.Run(w.Context, action); err != nil {
 					if errors.Is(err, context.Canceled) {
@@ -4535,14 +4602,10 @@ func (w *WebContents) ReinitContext() {
 						return
 					}
 					globals.EventLog.Log(err.Error(), true)
-					if err != nil {
-						fmt.Println("error happened while running action: ", action, err.Error())
-					}
 					w.PauseRefresh.Unlock()
 					continue
 				}
 
-			default:
 			}
 
 			// fmt.Println(w.Actions)
@@ -4555,6 +4618,7 @@ func (w *WebContents) ReinitContext() {
 			// }
 
 			if err := chromedp.Run(w.Context, chromedp.CaptureScreenshot(&w.ImageBuffer)); err != nil {
+				fmt.Println("capture screenshot fail")
 				if errors.Is(err, context.Canceled) {
 					w.PauseRefresh.Unlock()
 					w.ContextValid.Store(false)
@@ -4565,6 +4629,8 @@ func (w *WebContents) ReinitContext() {
 				w.PauseRefresh.Unlock()
 				continue
 			}
+
+			fmt.Println("capture screenshot success")
 
 			decoded, err := png.Decode(bytes.NewReader(w.ImageBuffer))
 
@@ -4586,6 +4652,8 @@ func (w *WebContents) ReinitContext() {
 				}
 			}
 
+			fmt.Println("refreshed texture store")
+
 			w.RefreshedTexture.Store(true)
 
 			// w.Actions = w.Actions[:0]
@@ -4599,9 +4667,61 @@ func (w *WebContents) ReinitContext() {
 
 			w.RefreshedOnce.Store(true)
 
+			// Sleep to hit target FPS
+
+			capTime = time.Since(captureStart)
+
+			if w.RefreshedOnce.Load() {
+
+				switch w.Card.Properties.Get("update only when").AsString() {
+				// case WebCardUpdateOptionAlways:
+				case WebCardUpdateOptionWhenRecordingInputs:
+					// If not recording inputs, then we can sleep for a bit and then try again later in the thread
+					if !w.RecordInput {
+						time.Sleep(time.Second / 250)
+						continue
+					}
+				case WebCardUpdateOptionWhenSelected:
+					if !w.Card.selected {
+						time.Sleep(time.Second / 250)
+						continue
+					}
+				}
+
+				// If we get here, then we are recording inputs or selecting the card when appropriate
+
+				target := time.Duration(0)
+
+				switch w.Card.Properties.Get("update framerate").AsString() {
+				// case WebCardFPSAsOftenAsPossible:
+
+				case WebCardFPS20FPS:
+					target = time.Second / 20
+				case WebCardFPS10FPS:
+					target = time.Second / 10
+				case WebCardFPS1FPS:
+					target = time.Second
+				}
+
+				target -= capTime
+
+				if target > 0 {
+					for {
+						if time.Since(captureStart) >= target || w.inputSent.Load() {
+							break
+						}
+					}
+				}
+
+				w.inputSent.Store(false)
+
+			}
+
 		}
 
 	}()
+
+	return nil
 
 }
 
@@ -4733,6 +4853,25 @@ func (w *WebContents) makeMouseAction(x, y float64, inputType input.MouseType, o
 
 }
 
+func (w *WebContents) NavigateBack() {
+	entries := []*page.NavigationEntry{}
+	currentEntry := int64(0)
+	chromedp.Run(w.Context, chromedp.NavigationEntries(&currentEntry, &entries))
+	if int(currentEntry) >= 1 {
+		// web.Actions = append(web.Actions, chromedp.NavigateToHistoryEntry(currentEntry-1))
+		w.Actions <- chromedp.NavigateBack()
+	}
+}
+
+func (w *WebContents) NavigateForward() {
+	entries := []*page.NavigationEntry{}
+	currentEntry := int64(0)
+	chromedp.Run(w.Context, chromedp.NavigationEntries(&currentEntry, &entries))
+	if int(currentEntry) < len(entries) {
+		w.Actions <- chromedp.NavigateForward()
+	}
+}
+
 func (w *WebContents) Update() {
 
 	if w.RefreshedTexture.CompareAndSwap(true, false) {
@@ -4740,11 +4879,14 @@ func (w *WebContents) Update() {
 		w.ValidBrowserTexture = true
 	}
 
-	if w.LoadingWebpage.Load() {
+	// This used to be w.LoadingWebpage.Load(), but this would make
+	// if w.LoadingWebpage.Load() {
+	if time.Now().After(w.URLCheckTimer) {
 		currentLocation := ""
 		chromedp.Run(w.Context, chromedp.Location(&currentLocation))
 		w.Card.Properties.Get("url").Set(currentLocation)
 		w.CurrentURL = currentLocation
+		w.URLCheckTimer = time.Now().Add(time.Second / 4)
 	}
 
 	// loc := ""
@@ -4792,6 +4934,18 @@ func (w *WebContents) Update() {
 					sdl.K_RALT:   input.ModifierAlt,
 				}
 
+				if button := globals.Mouse.Button(sdl.BUTTON_X1); button.Pressed() {
+					w.inputSent.Store(true)
+					w.NavigateBack()
+					button.Consume()
+				}
+
+				if button := globals.Mouse.Button(sdl.BUTTON_X2); button.Pressed() {
+					w.inputSent.Store(true)
+					w.NavigateForward()
+					button.Consume()
+				}
+
 				if mousePos.Inside(w.Card.DisplayRect) {
 
 					globals.Mouse.SetCursor(CursorWebArrow)
@@ -4825,10 +4979,16 @@ func (w *WebContents) Update() {
 						button := globals.Mouse.Button(sdlButton)
 						if button.Pressed() {
 							chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MousePressed, chromedp.Button(chromeDPButtonString)))
+							w.inputSent.Store(true)
+							button.Consume()
 						} else if button.Held() {
 							chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MouseMoved, chromedp.Button(chromeDPButtonString)))
+							w.inputSent.Store(true)
+							button.Consume()
 						} else if button.Released() {
 							chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MouseReleased, chromedp.Button(chromeDPButtonString)))
+							w.inputSent.Store(true)
+							button.Consume()
 						}
 
 					}
@@ -4840,11 +5000,15 @@ func (w *WebContents) Update() {
 						wheelEvent.DeltaY = float64(wheel)
 						wheelEvent.Modifiers = activeMod
 						chromedp.Run(w.Context, wheelEvent)
+						w.inputSent.Store(true)
 					}
 
 				}
 
-				chromedp.Run(w.Context, chromedp.KeyEvent(string(globals.InputText)))
+				if len(globals.InputText) > 0 {
+					chromedp.Run(w.Context, chromedp.KeyEvent(string(globals.InputText)))
+					w.inputSent.Store(true)
+				}
 
 				specialKeys := map[sdl.Keycode]string{
 					sdl.K_RETURN:    kb.Enter,
@@ -4951,6 +5115,7 @@ func (w *WebContents) Update() {
 						chromedp.Run(w.Context, chromedp.KeyEvent(chromeDPKey, chromedp.KeyModifiers(modifierSlice...)))
 						// chromedp.Run(w.Context, chromedp.KeyEvent(chromeDPKey))
 						key.Consume()
+						w.inputSent.Store(true)
 					}
 				}
 
@@ -4970,6 +5135,7 @@ func (w *WebContents) Update() {
 					if key := globals.Keyboard.Key(sdlKey); key.Pressed() && len(modifierSlice) > 0 {
 						chromedp.Run(w.Context, chromedp.KeyEvent(chromeDPKey, chromedp.KeyModifiers(modifierSlice...)))
 						key.Consume()
+						w.inputSent.Store(true)
 					}
 				}
 
@@ -4990,6 +5156,8 @@ func (w *WebContents) Update() {
 
 				w.VerticalScrollbar.TargetValue = float32(scrollYPerc)
 
+			} else {
+				w.inputSent.Store(true)
 			}
 
 		}
@@ -5109,7 +5277,6 @@ func (w *WebContents) Color() Color {
 
 func (w *WebContents) ReceiveMessage(msg *Message) {
 	if msg.Type == MessageCardDeleted {
-		w.CancelFunc()
 		w.ContextValid.Store(false)
 		w.ValidBrowserTexture = false
 		w.RefreshedTexture.Store(false)
@@ -5118,8 +5285,7 @@ func (w *WebContents) ReceiveMessage(msg *Message) {
 		w.TargetURL = w.CurrentURL
 		w.ReinitContext()
 		w.UpdateBufferSize()
-		// } else if msg.Type == MessageUndoRedo {
-		// 	w.NavigatedURL = ""
+		w.inputSent.Store(true) // Send the input sent to indicate that it should update the texture regardless of FPS, update settings, etc.
 	} else if msg.Type == MessageUndoRedo {
 		if w.ContextValid.Load() {
 			w.UpdateBufferSize()

@@ -1382,6 +1382,21 @@ func (ts *TextSelection) Select(start, end int) {
 
 	ts.CaretPos = ts.End
 
+	scrollAmount := 32
+
+	caretPosInWorld := ts.Label.IndexToWorld(ts.CaretPos)
+
+	for ts.Label.ScrollW < int(ts.Label.RendererResult.TextSize.X)-64 && caretPosInWorld.X > ts.Label.Rect.X+ts.Label.RendererResult.TextSize.X-float32(scrollAmount*2) {
+		ts.Label.ScrollW += scrollAmount
+		caretPosInWorld.X += float32(scrollAmount)
+	}
+
+	for ts.Label.ScrollW >= 32 && caretPosInWorld.X < ts.Label.Rect.X+float32(scrollAmount) {
+		ts.Label.ScrollW -= scrollAmount
+		caretPosInWorld.X -= float32(scrollAmount)
+	}
+	fmt.Println(caretPosInWorld, ts.Label.ScrollW)
+
 }
 
 func (ts *TextSelection) SelectAll() {
@@ -1424,6 +1439,7 @@ type Label struct {
 	WorldSpace     bool
 	Highlighter    *Highlighter
 
+	ScrollW            int // The index for scrolling the label when typing or clicking and its length is longer than its visible length
 	Editable           bool
 	Editing            bool
 	DrawLineUnderTitle bool
@@ -2172,8 +2188,8 @@ func (label *Label) Draw() {
 		}
 
 		if label.MousedOver {
-			t := (1 + math.Sin(globals.Time*math.Pi*2)) * 0.5
-			color = color.Mix(color.Invert(), t*0.75)
+			t := (1 + math.Sin(globals.Time*math.Pi*2)) * 0.25
+			color = color.Mix(color.Invert(), t)
 		}
 		label.RendererResult.Image.Texture.SetColorMod(color.RGB())
 		label.currentAlpha += (label.Alpha - label.currentAlpha) * 0.2

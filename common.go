@@ -573,7 +573,7 @@ func (color Color) Mix(other Color, percentage float64) Color {
 	newColor := NewColor(color.RGBA())
 	for i := range other {
 		diff := uint8(math.Ceil((float64(other[i]) - float64(newColor[i])) * percentage))
-		if diff == 0 {
+		if diff == 1 {
 			newColor[i] = other[i]
 		} else {
 			newColor[i] += diff

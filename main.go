@@ -2144,7 +2144,7 @@ If no Chrome-based browsers are installed, Web Cards will not work.`))
 	}))
 
 	row.Add("", NewButton("Clear", nil, nil, false, func() {
-		globals.Settings.Get(SettingsBrowserPath).Set("Browser path")
+		globals.Settings.Get(SettingsBrowserPath).Set("")
 	}))
 
 	row = general.AddRow(AlignCenter)
@@ -2172,7 +2172,7 @@ This folder should be something like:
 	}))
 
 	row.Add("", NewButton("Clear", nil, nil, false, func() {
-		globals.Settings.Get(SettingsBrowserUserDataPath).Set("Browser path")
+		globals.Settings.Get(SettingsBrowserUserDataPath).Set("")
 	}))
 
 	row = general.AddRow(AlignCenter)
@@ -2739,7 +2739,7 @@ where the cursor is over the window.`))
 	filter := 0
 
 	iconGroup := NewIconButtonGroup(nil, false, func(index int) { filter = index }, nil,
-		&sdl.Rect{176, 192, 32, 32},
+		&sdl.Rect{176, 192, 32, 64},
 		icons[ContentTypeCheckbox],
 		icons[ContentTypeNumbered],
 		icons[ContentTypeNote],
@@ -2749,6 +2749,8 @@ where the cursor is over the window.`))
 		icons[ContentTypeMap],
 		icons[ContentTypeSubpage],
 		icons[ContentTypeLink],
+		icons[ContentTypeTable],
+		icons[ContentTypeWeb],
 	)
 	iconGroup.Spacing = 3
 
@@ -3521,7 +3523,7 @@ horizontally.`))
 		}
 	}, nil, WebCardAspectRatioWide, WebCardAspectRatioSquare, WebCardAspectRatioTall)
 
-	updateFramerateDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardFPS1FPS, WebCardFPS10FPS, WebCardFPSAsOftenAsPossible)
+	updateFramerateDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardFPS1FPS, WebCardFPS10FPS, WebCardFPS20FPS, WebCardFPSAsOftenAsPossible)
 
 	updateOnlyWhenDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardUpdateOptionAlways, WebCardUpdateOptionWhenRecordingInputs, WebCardUpdateOptionWhenSelected)
 

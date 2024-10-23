@@ -123,6 +123,10 @@ const (
 	KBMapLineTool      = "Map: Line Tool"
 	KBMapQuickLineTool = "Map: Quick Line"
 	KBMapPalette       = "Map: Open Palette"
+	KBMapShiftUp       = "Map: Shift Map Up"
+	KBMapShiftDown     = "Map: Shift Map Down"
+	KBMapShiftRight    = "Map: Shift Map Right"
+	KBMapShiftLeft     = "Map: Shift Map Left"
 
 	KBFindNext = "Find: Next Card"
 	KBFindPrev = "Find: Prev. Card"
@@ -542,6 +546,11 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBMapLineTool, sdl.K_v)
 	kb.DefineKeyShortcut(KBMapQuickLineTool, sdl.K_LSHIFT).triggerMode = TriggerModeHold
 	kb.DefineKeyShortcut(KBMapPalette, sdl.K_g)
+
+	kb.DefineKeyShortcut(KBMapShiftUp, sdl.K_UP, sdl.K_LCTRL, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBMapShiftRight, sdl.K_RIGHT, sdl.K_LCTRL, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBMapShiftDown, sdl.K_DOWN, sdl.K_LCTRL, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBMapShiftLeft, sdl.K_LEFT, sdl.K_LCTRL, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBFindNext, sdl.K_f, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBFindPrev, sdl.K_f, sdl.K_LCTRL, sdl.K_LSHIFT)

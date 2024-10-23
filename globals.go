@@ -88,7 +88,6 @@ type Globals struct {
 	DrawOnTop DrawOnTop
 
 	BrowserContext context.Context
-	// BrowserCancel
 }
 
 var globals = &Globals{

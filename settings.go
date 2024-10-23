@@ -181,7 +181,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsCardShadows).Set(true)
 	props.Get(SettingsFlashDeadlines).Set(true)
 	props.Get(SettingsMaxInternalImageSize).Set(ImageBufferSize2048)
-	props.Get(SettingsPlaceNewCardsInStack).Set(false)
+	props.Get(SettingsPlaceNewCardsInStack).Set(true)
 	props.Get(SettingsHideGridOnZoomOut).Set(true)
 	props.Get(SettingsDisplayNumberedPercentagesAs).Set(NumberedPercentagePercent)
 	props.Get(SettingsShowTableHeaders).Set(TableHeadersSelected)

@@ -946,6 +946,10 @@ func (card *Card) Name() string {
 		}
 	case ContentTypeMap:
 		text = "Map"
+	case ContentTypeTable:
+		text = "Table"
+	case ContentTypeWeb:
+		text = "Web"
 	default:
 		text = card.Properties.Get("description").AsString()
 	}
@@ -2062,7 +2066,13 @@ func (card *Card) SetContents(contentType string) {
 		case ContentTypeTable:
 			card.Contents = NewTableContents(card)
 		case ContentTypeWeb:
-			card.Contents = NewWebContents(card)
+			webCard := NewWebContents(card)
+			if webCard == nil {
+				// Web card couldn't be created, probably because of browser shenanigans
+				card.Contents = NewCheckboxContents(card)
+			} else {
+				card.Contents = webCard
+			}
 		default:
 			panic("Creation of card contents that haven't been implemented: " + contentType)
 		}

@@ -1,6 +1,10 @@
 [x] Editing card pushes lower cards up
 [x] Taking screenshots crash MP
 [x] Can't go up sub-pages via keybinding while in Link Mode
+[ ] -- Fix text UI not scrolling when typing
+[ ] -- Make caret glow partially instead of blink
+[ ] -- Double-pressing Enter doesn't update the card's size by twice, but rather only once
+[ ] -- Label-able Lines?-
 
 For Web card :
 [x] -- Mode to enable clicking in card / entering text
@@ -21,7 +25,6 @@ For Web card :
 [ ] -- Some way to speed up texture uploading
 [x] -- Fix clicking in URL text area deselecting URL
 [x] -- Optimize texture streaming; EDIT: There's no further way to do this, I think?
-[ ] -- Fix text UI not scrolling when typing
 [ ] -- Video card using ffmpeg-go?
 [ ] -- Reimplement URL buttons in text
 
