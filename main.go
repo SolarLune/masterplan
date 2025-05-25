@@ -39,6 +39,7 @@ import (
 
 var windowTitle = "MasterPlan"
 var quit = false
+var saveandquit = false
 var targetFPS = 60
 
 var cpuProfileStart = time.Time{}
@@ -762,6 +763,10 @@ func main() {
 		globals.Settings.Get(SettingsWindowPosition).Set(sdl.Rect{wX, wY, wW, wH})
 	}
 
+	if saveandquit {
+		globals.Project.Save()
+	}
+
 	log.Println("MasterPlan exited successfully.")
 
 	globals.Project.Destroy()
@@ -938,10 +943,14 @@ func ConstructMenus() {
 		browser.OpenURL("https://github.com/SolarLune/masterplan/wiki")
 	}))
 	root.AddRow(AlignCenter).Add("Quit", NewButton("Quit", nil, nil, false, func() {
-		confirmQuit := globals.MenuSystem.Get("confirm quit")
-		confirmQuit.Center()
-		confirmQuit.Open()
-		fileMenu.Close()
+		if globals.Project.Modified {
+			confirmQuit := globals.MenuSystem.Get("confirm quit")
+			confirmQuit.Center()
+			confirmQuit.Open()
+			fileMenu.Close()
+		} else {
+			quit = true
+		}
 	}))
 
 	// Export sub-menu
@@ -1818,9 +1827,12 @@ func ConstructMenus() {
 	root = confirmQuit.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to quit?", nil, false, AlignCenter))
 	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
-	row = root.AddRow(AlignCenter)
-	row.Add("yes", NewButton("Yes, Quit", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { quit = true }))
-	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmQuit.Close() }))
+	root.AddRow(AlignCenter).Add("save", NewButton("Save and Quit", &sdl.FRect{0, 0, 256, 32}, nil, false, func() {
+		quit = true
+		saveandquit = true
+	}))
+	root.AddRow(AlignCenter).Add("yes", NewButton("Quit Without Saving", &sdl.FRect{0, 0, 256, 32}, nil, false, func() { quit = true }))
+	root.AddRow(AlignCenter).Add("no", NewButton("Cancel", &sdl.FRect{0, 0, 256, 32}, nil, false, func() { confirmQuit.Close() }))
 	confirmQuit.Recreate(root.IdealSize().X+48, root.IdealSize().Y+32)
 
 	confirmNewProject := globals.MenuSystem.Add(NewMenu("confirm new project", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)

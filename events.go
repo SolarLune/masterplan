@@ -352,12 +352,16 @@ func handleEvents() {
 			}
 
 		case *sdl.QuitEvent:
-			confirmQuit := globals.MenuSystem.Get("confirm quit")
-			if confirmQuit.Opened {
+			if globals.Project.Modified {
+				confirmQuit := globals.MenuSystem.Get("confirm quit")
+				if confirmQuit.Opened {
+					quit = true
+				}
+				confirmQuit.Center()
+				confirmQuit.Open()
+			} else {
 				quit = true
 			}
-			confirmQuit.Center()
-			confirmQuit.Open()
 
 		case *sdl.KeyboardEvent:
 
