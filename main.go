@@ -39,7 +39,6 @@ import (
 
 var windowTitle = "MasterPlan"
 var quit = false
-var saveandquit = false
 var targetFPS = 60
 
 var cpuProfileStart = time.Time{}
@@ -761,10 +760,6 @@ func main() {
 		wX, wY := window.GetPosition()
 		wW, wH := window.GetSize()
 		globals.Settings.Get(SettingsWindowPosition).Set(sdl.Rect{wX, wY, wW, wH})
-	}
-
-	if saveandquit {
-		globals.Project.Save()
 	}
 
 	log.Println("MasterPlan exited successfully.")
@@ -1828,8 +1823,8 @@ func ConstructMenus() {
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to quit?", nil, false, AlignCenter))
 	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
 	root.AddRow(AlignCenter).Add("save", NewButton("Save and Quit", &sdl.FRect{0, 0, 256, 32}, nil, false, func() {
+		globals.Project.Save()
 		quit = true
-		saveandquit = true
 	}))
 	root.AddRow(AlignCenter).Add("yes", NewButton("Quit Without Saving", &sdl.FRect{0, 0, 256, 32}, nil, false, func() { quit = true }))
 	root.AddRow(AlignCenter).Add("no", NewButton("Cancel", &sdl.FRect{0, 0, 256, 32}, nil, false, func() { confirmQuit.Close() }))
