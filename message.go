@@ -8,6 +8,7 @@ const (
 	MessageCardDeleted                   = "MessageCardDeleted"
 	MessageCardRestored                  = "MessageCardRestored"
 	MessageCardMoveStack                 = "MessageCardMoveStack"
+	MessageCardDestroyed                 = "MessageCardDestroyed"
 	MessageContentSwitched               = "MessageContentSwitched"
 	MessageThemeChange                   = "MessageThemeChange"
 	MessageUndoRedo                      = "MessageUndoRedo"

@@ -48,6 +48,7 @@ const (
 	SettingsFlashDeadlines               = "Flash Deadlines"
 	SettingsDeadlineDisplay              = "Display Deadlines As"
 	SettingsMaxInternalImageSize         = "Max Internal Image Buffer Size"
+	SettingsWebCardZoomLevel             = "Web Card Zoom Level"
 	SettingsPlaceNewCardsInStack         = "Position New Cards in Stack"
 	SettingsHideGridOnZoomOut            = "Hide Grid on Zoom out"
 	SettingsDisplayNumberedPercentagesAs = "Display Numbered Percentages"
@@ -145,7 +146,7 @@ const (
 	TableHeadersAlways   = "Always"
 )
 
-func NewProgramSettings() *Properties {
+func NewProgramSettings(load bool) *Properties {
 
 	// We're setting the defaults here; after setting them, we'll attempt to load settings from a preferences file below
 
@@ -185,6 +186,7 @@ func NewProgramSettings() *Properties {
 	props.Get(SettingsHideGridOnZoomOut).Set(true)
 	props.Get(SettingsDisplayNumberedPercentagesAs).Set(NumberedPercentagePercent)
 	props.Get(SettingsShowTableHeaders).Set(TableHeadersSelected)
+	props.Get(SettingsWebCardZoomLevel).Set(0.75)
 
 	// Audio settings; not shown in MasterPlan because it's very rarely necessary to tweak
 	props.Get(SettingsAudioVolume).Set(80.0)
@@ -206,30 +208,34 @@ func NewProgramSettings() *Properties {
 		}
 	}
 
-	path, _ := xdg.ConfigFile(SettingsPath)
+	if load {
 
-	// Attempt to load the properties here
-	if FileExists(path) {
-		jsonData, err := os.ReadFile(path)
-		if err != nil {
-			panic(err)
-		}
+		path, _ := xdg.ConfigFile(SettingsPath)
 
-		globals.SettingsLoaded = true
-
-		data := gjson.Get(string(jsonData), "properties").String()
-
-		props.Deserialize(data)
-
-		recentFiles := gjson.Get(string(jsonData), "recent files")
-		if recentFiles.Exists() {
-			array := recentFiles.Array()
-			for i := 0; i < len(array); i++ {
-				globals.RecentFiles = append(globals.RecentFiles, array[i].String())
+		// Attempt to load the properties here
+		if FileExists(path) {
+			jsonData, err := os.ReadFile(path)
+			if err != nil {
+				panic(err)
 			}
-		}
 
-		globals.Keybindings.Deserialize(string(jsonData))
+			globals.SettingsLoaded = true
+
+			data := gjson.Get(string(jsonData), "properties").String()
+
+			props.Deserialize(data)
+
+			recentFiles := gjson.Get(string(jsonData), "recent files")
+			if recentFiles.Exists() {
+				array := recentFiles.Array()
+				for i := 0; i < len(array); i++ {
+					globals.RecentFiles = append(globals.RecentFiles, array[i].String())
+				}
+			}
+
+			globals.Keybindings.Deserialize(string(jsonData))
+
+		}
 
 	}
 

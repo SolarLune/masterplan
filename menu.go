@@ -466,9 +466,9 @@ func (menu *Menu) Update() {
 
 		}
 
-		if menu.Draggable && globals.Mouse.CurrentCursor == CursorNormal {
+		if menu.Draggable {
 
-			if button.Pressed() && globals.Mouse.Position().Inside(menu.Rect) {
+			if button.Pressed() && globals.Mouse.CurrentCursor == CursorNormal && globals.Mouse.Position().Inside(menu.Rect) {
 				button.Consume()
 				menu.Dragging = true
 				menu.AnchorMode = MenuAnchorNone
@@ -486,6 +486,7 @@ func (menu *Menu) Update() {
 
 		if globals.Mouse.Position().Inside(menu.Rect) {
 			globals.Mouse.HiddenPosition = true
+			globals.Mouse.OverGUI = true
 		}
 
 	} else {

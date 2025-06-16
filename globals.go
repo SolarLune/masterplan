@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/blang/semver"
@@ -73,9 +72,9 @@ type Globals struct {
 	RecentFiles           []string
 	HTTPClient            *http.Client
 
-	DebugMode          bool
 	TriggerReloadFonts bool
 	ClipRects          []*sdl.Rect
+	DebugMode          int
 
 	Dispatcher *Dispatcher
 
@@ -87,10 +86,17 @@ type Globals struct {
 
 	DrawOnTop DrawOnTop
 
-	BrowserContext context.Context
+	// ChromeBrowser *ChromeBrowser
 }
 
 var globals = &Globals{
 	ReleaseMode: ReleaseModeDev,
 	ClipRects:   []*sdl.Rect{},
+	// ChromeBrowser: &ChromeBrowser{},
 }
+
+const (
+	DebugModeNone = iota
+	DebugModeUI
+	DebugModeCards
+)

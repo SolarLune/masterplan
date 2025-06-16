@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"image/png"
 	"log"
 	"math"
 	"os/exec"
@@ -13,18 +10,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
-	"unsafe"
 
 	"github.com/chromedp/cdproto/input"
-	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
-	"github.com/chromedp/chromedp/device"
 	"github.com/chromedp/chromedp/kb"
 	"github.com/gen2brain/beeep"
-	"github.com/goware/urlx"
 	"github.com/ncruces/zenity"
 	"github.com/pkg/browser"
 	"github.com/skratchdot/open-golang/open"
@@ -90,6 +81,19 @@ type Contents interface {
 	Container() *Container
 }
 
+type CollapseableContents interface {
+	Collapseable() bool
+}
+
+// type CollapseableContents interface {
+// 	CollapseSize() float32
+// }
+
+// AutosetSizer is for automatically setting the size of a Card when loading it from v0.7.
+type AutosetSizer interface {
+	AutosetSize()
+}
+
 type DefaultContents struct {
 	Card      *Card
 	container *Container
@@ -151,12 +155,13 @@ func commonTextEditingResizing(label *Label, card *Card) {
 		prevHeight := card.Contents.DefaultSize().Y
 
 		target := lineCount*globals.GridSize + (prevHeight - globals.GridSize)
-		if card.Collapsed == CollapsedShade {
-			target = lineCount * globals.GridSize
-		}
 		card.Recreate(size, target)
 
-		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
+		// Uncollapse if editing
+		if card.Collapsed == CollapsedShade {
+			card.Collapse()
+		}
+
 		if label.MultiEditing && label.Property != nil {
 			card.SyncProperty(label.Property, true)
 		}
@@ -191,11 +196,6 @@ func NewCheckboxContents(card *Card) *CheckboxContents {
 
 }
 
-// AutosetSizer is for automatically setting the size of a Card when loading it from v0.7.
-type AutosetSizer interface {
-	AutosetSize()
-}
-
 func (cc *CheckboxContents) AutosetSize() {
 
 	txt := cc.Card.Properties.Get("description").AsString()
@@ -206,7 +206,7 @@ func (cc *CheckboxContents) AutosetSize() {
 
 func (cc *CheckboxContents) Update() {
 
-	cc.Label.SetMaxSize(cc.container.Rect.W-32, cc.container.Rect.H)
+	cc.Label.SetMaxSize(cc.container.Rect.W-32, cc.Label.maxSize.Y)
 
 	// rect := cc.Label.Rectangle()
 	// rect.W = cc.Container.Rect.W - rect.X + cc.Container.Rect.X
@@ -741,7 +741,7 @@ func (nc *NoteContents) Update() {
 
 	nc.DefaultContents.Update()
 
-	nc.Label.SetMaxSize(nc.container.Rect.W-32, nc.container.Rect.H)
+	nc.Label.SetMaxSize(nc.container.Rect.W-32, nc.Label.maxSize.Y)
 
 	kb := globals.Keybindings
 
@@ -782,7 +782,7 @@ func NewSoundContents(card *Card) *SoundContents {
 	soundContents := &SoundContents{
 		DefaultContents: newDefaultContents(card),
 		SoundNameLabel:  NewLabel("No sound loaded", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft),
-		SeekBar:         NewScrollbar(&sdl.FRect{0, 0, 128, 16}, true, nil),
+		SeekBar:         NewScrollbar(&sdl.FRect{0, 0, 128, 16}, 0, 1, true, nil),
 	}
 
 	soundContents.SeekBar.Soft = false
@@ -1105,7 +1105,7 @@ func (sc *SoundContents) ReceiveMessage(msg *Message) {
 
 	if sc.Sound != nil {
 
-		if msg.Type == MessageCardDeleted {
+		if msg.Type == MessageCardDeleted || msg.Type == MessageCardDestroyed {
 			sc.Sound.Pause()
 			// if globals.Settings.Get(SettingsCacheAudioBeforePlayback).AsBool() {
 			sc.Sound.Destroy()
@@ -1201,7 +1201,7 @@ func NewImageContents(card *Card) *ImageContents {
 	imageContents.Buttons = []*IconButton{
 
 		// Browse
-		NewIconButton(0, 0, &sdl.Rect{400, 224, 32, 32}, globals.GUITexture, true, func() {
+		NewIconButtonTintless(0, 0, &sdl.Rect{400, 224, 32, 32}, globals.GUITexture, true, func() {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			if imageContents.Resource != nil && imageContents.Resource.SaveFile {
 				globals.EventLog.Log("This is an image that has been directly pasted into the project; it cannot change to point to another image file.", true)
@@ -1216,7 +1216,7 @@ func NewImageContents(card *Card) *ImageContents {
 		}),
 
 		// Edit Path
-		NewIconButton(0, 0, &sdl.Rect{400, 256, 32, 32}, globals.GUITexture, true, func() {
+		NewIconButtonTintless(0, 0, &sdl.Rect{400, 256, 32, 32}, globals.GUITexture, true, func() {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			commonMenu := globals.MenuSystem.Get("common")
 			commonMenu.Pages["root"].Clear()
@@ -1236,7 +1236,7 @@ func NewImageContents(card *Card) *ImageContents {
 		}),
 
 		// 1:1 / 100% button
-		NewIconButton(0, 0, &sdl.Rect{368, 224, 32, 32}, globals.GUITexture, true, func() {
+		NewIconButtonTintless(0, 0, &sdl.Rect{368, 224, 32, 32}, globals.GUITexture, true, func() {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
@@ -1259,10 +1259,6 @@ func NewImageContents(card *Card) *ImageContents {
 
 		// rotateLeft,
 		// rotateRight,
-	}
-
-	for _, button := range imageContents.Buttons {
-		button.Tint = ColorWhite
 	}
 
 	return imageContents
@@ -1506,62 +1502,110 @@ const (
 
 type TimerContents struct {
 	DefaultContents
-	Name               *Label
-	ClockLabel         *Label
-	ClockMaxTime       *Label
+	Name              *Label
+	ClockLabel        *Label
+	ClockMaxTimeSub   *IconButton
+	ClockMaxTimeLabel *Label
+	ClockMaxTimeAdd   *IconButton
+	MaxTimeRow        *ContainerRow
+
+	ClockScheduleTimeSub   *IconButton
+	ClockScheduleTimeLabel *Label
+	ClockScheduleTimeAdd   *IconButton
+	ScheduleTimeRow        *ContainerRow
+	ClockBecameInPhase     bool
+
 	Running            bool
 	TimerValue         time.Duration
 	Pie                *Pie
+	PieRow             *ContainerRow
 	StartButton        *IconButton
 	RestartButton      *IconButton
 	MaxTime            time.Duration
+	ScheduleTime       time.Duration
 	Mode               *IconButtonGroup
 	TriggerMode        *IconButtonGroup
 	AlarmSound         *Sound
+	ClockSound         *Sound
 	PercentageComplete float32
 }
 
 func NewTimerContents(card *Card) *TimerContents {
 
 	tc := &TimerContents{
-		DefaultContents: newDefaultContents(card),
-		Name:            NewLabel("New Timer", nil, true, AlignLeft),
-		ClockLabel:      NewLabel("00:00", &sdl.FRect{0, 0, 128, 32}, true, AlignCenter),
-		ClockMaxTime:    NewLabel("00:00", &sdl.FRect{0, 0, 0, 0}, true, AlignCenter),
+		DefaultContents:        newDefaultContents(card),
+		Name:                   NewLabel("New Timer", nil, true, AlignLeft),
+		ClockLabel:             NewLabel("00:00", &sdl.FRect{0, 0, 96, 32}, true, AlignCenter),
+		ClockMaxTimeLabel:      NewLabel("00:00", &sdl.FRect{0, 0, 96, 32}, true, AlignCenter),
+		ClockScheduleTimeLabel: NewLabel("00:00", &sdl.FRect{0, 0, 96, 32}, true, AlignCenter),
+		ClockBecameInPhase:     true,
 	}
 
+	tc.Card.Properties.SetDefault("mode group", 0.0)
+	tc.Card.Properties.SetDefault("trigger mode", 0.0)
+	tc.Card.Properties.SetDefault("schedule hour", 8.0)
+	tc.Card.Properties.SetDefault("schedule minute", 0.0)
 	tc.Name.Property = card.Properties.Get("description")
 
-	tc.ClockMaxTime.Property = card.Properties.Get("max time")
-	tc.ClockMaxTime.RegexString = RegexOnlyDigitsAndColon
-	tc.ClockMaxTime.MaxLength = 8
-
-	tc.ClockMaxTime.OnClickOut = func() {
-
-		text := tc.ClockMaxTime.TextAsString()
-		if !strings.Contains(text, ":") {
-			tc.ClockMaxTime.SetTextRaw([]rune("00:" + text))
-		}
-		timeUnits := strings.Split(tc.ClockMaxTime.TextAsString(), ":")
-
-		minutes, _ := strconv.Atoi(timeUnits[0])
-		seconds, _ := strconv.Atoi(timeUnits[1])
-
-		tc.SetMaxTime(minutes, seconds)
-
+	if card.Properties.Has("max time") {
+		split := strings.Split(card.Properties.Get("max time").AsString(), ":")
+		card.Properties.Get("max minutes").Set(split[0])
+		card.Properties.Get("max seconds").Set(split[1])
+		card.Properties.Remove("max time")
+	} else {
+		card.Properties.SetDefault("max seconds", 0)
+		card.Properties.SetDefault("max minutes", 1)
 	}
+
+	tc.ClockMaxTimeLabel.RegexString = RegexOnlyDigitsColonAndDot
+	tc.ClockMaxTimeLabel.MaxLength = 8
+	tc.ClockMaxTimeLabel.OnClickOut = func() {
+		text := tc.ClockMaxTimeLabel.TextAsString()
+		if !strings.ContainsAny(text, ":.") {
+			text = "00:" + text
+		}
+
+		timeUnits := SplitStringOnAny(text, ":.")
+		m, _ := strconv.Atoi(timeUnits[0])
+		s, _ := strconv.Atoi(timeUnits[1])
+
+		tc.SetMaxTime(m, s) // Read the label and set that for the max time
+	}
+	tc.SetMaxTime(card.Properties.Get("max minutes").AsInt(), card.Properties.Get("max seconds").AsInt())
+
+	tc.ClockScheduleTimeLabel.RegexString = RegexOnlyDigitsColonAndDot
+	tc.ClockScheduleTimeLabel.MaxLength = 8
+	tc.ClockScheduleTimeLabel.OnClickOut = func() {
+
+		text := tc.ClockScheduleTimeLabel.TextAsString()
+		if !strings.ContainsAny(text, ":.") {
+			text = "00:" + text
+		}
+
+		timeUnits := SplitStringOnAny(text, ":.")
+		h, _ := strconv.Atoi(timeUnits[0])
+		m, _ := strconv.Atoi(timeUnits[1])
+
+		tc.SetScheduleTime(h, m) // Read the label and set that for the max time
+	}
+
+	tc.SetScheduleTime(card.Properties.Get("schedule hour").AsInt(), card.Properties.Get("schedule minute").AsInt())
 
 	tc.Mode = NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, true, func(index int) {
 		tc.Running = false
 		if index == 0 {
 			globals.EventLog.Log("Timer Mode changed to Stopwatch.", false)
-		} else {
+		} else if index == 1 {
 			globals.EventLog.Log("Timer Mode changed to Countdown.", false)
+		} else {
+			globals.EventLog.Log("Timer Mode changed to Clock.", false)
 		}
 	}, card.Properties.Get("mode group"),
 		&sdl.Rect{48, 192, 32, 32},
 		&sdl.Rect{80, 192, 32, 32},
+		&sdl.Rect{80, 64, 32, 32},
 	)
+	tc.Mode.Spacing = 16
 
 	tc.TriggerMode = NewIconButtonGroup(&sdl.FRect{0, 0, 96, 32}, true, func(index int) {
 		if index == 0 {
@@ -1581,7 +1625,9 @@ func NewTimerContents(card *Card) *TimerContents {
 		commonTextEditingResizing(tc.Name, card)
 	}
 
-	tc.StartButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, true, func() { tc.Running = !tc.Running })
+	tc.StartButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, true, func() {
+		tc.Running = !tc.Running
+	})
 	tc.RestartButton = NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, globals.GUITexture, true, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 })
 	tc.Pie = NewPie(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color().Add(40), true)
 
@@ -1593,14 +1639,39 @@ func NewTimerContents(card *Card) *TimerContents {
 	row.Add("icon", NewGUIImage(nil, &sdl.Rect{80, 64, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("name", tc.Name)
 
-	row = tc.container.AddRow(AlignCenter)
-	row.Add("clock", tc.ClockLabel)
-	row.Add("max", tc.ClockMaxTime)
+	tc.MaxTimeRow = tc.container.AddRow(AlignCenter)
+	tc.MaxTimeRow.Add("clock", tc.ClockLabel)
 
-	row = tc.container.AddRow(AlignCenter)
-	row.Add("pie", tc.Pie)
-	row.Add("start button", tc.StartButton)
-	row.Add("restart button", tc.RestartButton)
+	tc.ClockMaxTimeSub = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, globals.GUITexture, true, func() {
+		tc.SetMaxTime(0, int(tc.MaxTime.Seconds()-1))
+	})
+
+	tc.ClockMaxTimeAdd = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, globals.GUITexture, true, func() {
+		tc.SetMaxTime(0, int(tc.MaxTime.Seconds()+1))
+	})
+
+	tc.MaxTimeRow.Add("subMax", tc.ClockMaxTimeSub)
+	tc.MaxTimeRow.Add("max", tc.ClockMaxTimeLabel)
+	tc.MaxTimeRow.Add("addMax", tc.ClockMaxTimeAdd)
+
+	tc.ScheduleTimeRow = tc.container.AddRow(AlignCenter)
+
+	tc.ClockScheduleTimeSub = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, globals.GUITexture, true, func() {
+		tc.SetScheduleTime(0, int(tc.ScheduleTime.Minutes()-1))
+	})
+
+	tc.ClockScheduleTimeAdd = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, globals.GUITexture, true, func() {
+		tc.SetScheduleTime(0, int(tc.ScheduleTime.Minutes()+1))
+	})
+
+	tc.ScheduleTimeRow.Add("subSchedule", tc.ClockScheduleTimeSub)
+	tc.ScheduleTimeRow.Add("schedule", tc.ClockScheduleTimeLabel)
+	tc.ScheduleTimeRow.Add("addSchedule", tc.ClockScheduleTimeAdd)
+
+	tc.PieRow = tc.container.AddRow(AlignCenter)
+	tc.PieRow.Add("pie", tc.Pie)
+	tc.PieRow.Add("start button", tc.StartButton)
+	tc.PieRow.Add("restart button", tc.RestartButton)
 
 	row = tc.container.AddRow(AlignCenter)
 	row.Add("", NewLabel("Mode:  ", nil, true, AlignRight))
@@ -1615,16 +1686,46 @@ func NewTimerContents(card *Card) *TimerContents {
 
 func (tc *TimerContents) SetMaxTime(minutes, seconds int) string {
 
+	if minutes <= 0 && seconds <= 0 {
+		minutes = 0
+		seconds = 1
+	}
+
 	for seconds >= 60 {
 		seconds -= 60
 		minutes++
 	}
 
-	tc.ClockMaxTime.SetTextRaw([]rune(fmt.Sprintf("%02d", minutes) + ":" + fmt.Sprintf("%02d", seconds)))
-
+	tc.Card.Properties.Get("max minutes").Set(minutes)
+	tc.Card.Properties.Get("max seconds").Set(seconds)
+	tc.ClockMaxTimeLabel.SetTextRaw([]rune(fmt.Sprintf("%02d", minutes) + ":" + fmt.Sprintf("%02d", seconds)))
 	tc.MaxTime = time.Duration((minutes * int(time.Minute)) + (seconds * int(time.Second)))
 
-	return tc.ClockMaxTime.TextAsString()
+	return tc.ClockMaxTimeLabel.TextAsString()
+
+}
+
+func (tc *TimerContents) SetScheduleTime(hour, minute int) string {
+
+	if hour <= 0 && minute < 1 {
+		hour = 23
+		minute = 59
+	} else if hour == 24 && minute >= 0 || minute >= 1440 {
+		hour = 0
+		minute = 1
+	}
+
+	for minute >= 60 {
+		minute -= 60
+		hour++
+	}
+
+	tc.Card.Properties.Get("schedule hour").Set(hour)
+	tc.Card.Properties.Get("schedule minute").Set(minute)
+	tc.ClockScheduleTimeLabel.SetTextRaw([]rune(fmt.Sprintf("%02d", hour) + ":" + fmt.Sprintf("%02d", minute)))
+	tc.ScheduleTime = time.Duration((hour * int(time.Hour)) + (minute * int(time.Minute)))
+
+	return tc.ClockScheduleTimeLabel.TextAsString()
 
 }
 
@@ -1637,6 +1738,11 @@ func (tc *TimerContents) Update() {
 	if r.H < gs {
 		r.H = gs
 	}
+
+	tc.PieRow.Visible = tc.Card.Properties.Get("mode group").AsInt() < 2
+	tc.ScheduleTimeRow.Visible = tc.Card.Properties.Get("mode group").AsInt() == 2
+	tc.MaxTimeRow.Visible = tc.Card.Properties.Get("mode group").AsInt() < 2
+
 	tc.Name.SetRectangle(r)
 
 	tc.StartButton.IconSrc.X = 112
@@ -1655,6 +1761,7 @@ func (tc *TimerContents) Update() {
 
 		modeGroup := int(tc.Card.Properties.Get("mode group").AsFloat())
 
+		// Timer
 		if tc.TimerValue > tc.MaxTime && modeGroup == 1 {
 
 			elapsedMessage := "Timer [" + tc.Name.TextAsString() + "] elapsed."
@@ -1674,8 +1781,7 @@ func (tc *TimerContents) Update() {
 			}
 
 			for _, link := range tc.Card.Links {
-
-				if link.End.Contents != nil {
+				if link.End.Contents != nil && link.End != tc.Card {
 					link.End.Contents.Trigger(tt)
 				}
 			}
@@ -1699,19 +1805,25 @@ func (tc *TimerContents) Update() {
 
 	}
 
-	modeGroup := tc.Card.Properties.Get("mode group").AsFloat()
-
-	if modeGroup == 0 {
-		tc.ClockMaxTime.SetRectangle(&sdl.FRect{0, 0, 0, 0})
-		tc.ClockMaxTime.Editable = false
-	} else {
-		tc.ClockMaxTime.SetRectangle(&sdl.FRect{0, 0, 128, 32})
-		tc.ClockMaxTime.Editable = true
-	}
-
 	tc.ClockLabel.SetText([]rune(formatTime(tc.TimerValue, false)))
 
 	if tc.Card.IsSelected() {
+
+		modeGroup := tc.Card.Properties.Get("mode group").AsFloat()
+
+		tc.ClockMaxTimeLabel.Editable = modeGroup == 1
+
+		if modeGroup == 0 {
+			tc.ClockMaxTimeSub.SetRectangle(&sdl.FRect{0, 0, 0, 0})
+			tc.ClockMaxTimeAdd.SetRectangle(&sdl.FRect{0, 0, 0, 0})
+			tc.ClockMaxTimeLabel.SetRectangle(&sdl.FRect{0, 0, 0, 0})
+		} else {
+			tc.ClockMaxTimeLabel.SetRectangle(&sdl.FRect{0, 0, 96, 32})
+			tc.ClockMaxTimeSub.SetRectangle(&sdl.FRect{0, 0, 32, 32})
+			tc.ClockMaxTimeAdd.SetRectangle(&sdl.FRect{0, 0, 32, 32})
+		}
+
+		tc.ClockScheduleTimeLabel.Editable = modeGroup == 2
 
 		if globals.State == StateNeutral && globals.Keybindings.Pressed(KBTimerStartStop) {
 			tc.Running = !tc.Running
@@ -1728,6 +1840,52 @@ func (tc *TimerContents) Update() {
 
 	tc.DefaultContents.Update()
 
+	top := tc.Card.Stack.Top()
+
+	on := true
+	if top != nil && top != tc.Card {
+		if check, ok := top.Contents.(*CheckboxContents); ok && check.CompletionLevel() == 0 {
+			tc.ClockBecameInPhase = false
+			on = false
+		}
+	}
+
+	if on {
+
+		if tc.ClockInPhase() {
+
+			if !tc.ClockBecameInPhase {
+
+				elapsedMessage := fmt.Sprintf("Clock '%s' became active.", tc.Name.TextAsString())
+
+				globals.EventLog.Log(elapsedMessage, true)
+
+				if globals.Settings.Get(SettingsFocusOnElapsedTimers).AsBool() {
+					tc.Card.Page.Project.Camera.FocusOn(false, tc.Card)
+				}
+
+				if globals.Settings.Get(SettingsNotifyOnElapsedTimers).AsBool() && globals.WindowFlags&sdl.WINDOW_INPUT_FOCUS == 0 {
+					beeep.Notify("MasterPlan", elapsedMessage, "")
+				}
+
+				if tc.ClockSound != nil {
+					tc.ClockSound.Destroy()
+				}
+				tc.ClockSound, _ = globals.Resources.Get(LocalRelativePath("assets/clocksound.wav")).AsNewSound()
+				tc.ClockSound.Play()
+				tc.ClockBecameInPhase = true
+			}
+
+		}
+
+		if tc.ClockBecameInPhase {
+			if !tc.ClockInPhase() {
+				tc.ClockBecameInPhase = false
+			}
+		}
+
+	}
+
 }
 
 func (tc *TimerContents) Draw() {
@@ -1735,12 +1893,17 @@ func (tc *TimerContents) Draw() {
 	p := float32(0)
 
 	// Numbered mode
-	if int(tc.Card.Properties.Get("mode group").AsFloat()) != 0 && tc.MaxTime > 0 {
+
+	modeGroup := int(tc.Card.Properties.Get("mode group").AsFloat())
+
+	if modeGroup == 1 && tc.MaxTime > 0 {
 
 		if tc.TimerValue > 0 {
 			p = float32(tc.TimerValue) / float32(tc.MaxTime)
 		}
 
+	} else if tc.ClockBecameInPhase {
+		p = 1
 	}
 	tc.PercentageComplete += (p - tc.PercentageComplete) * 6 * globals.DeltaTime
 
@@ -1767,6 +1930,36 @@ func (tc *TimerContents) Draw() {
 
 	tc.DefaultContents.Draw()
 
+	if modeGroup == 2 && !tc.ClockScheduleTimeLabel.Editing {
+		DrawLabel(Point{dst.X - 48, dst.Y + 8}, tc.ClockScheduleTimeLabel.TextAsString())
+		// DrawLabel(Point{dst.X - 64, dst.Y + 8}, fmt.Sprintf("%d:%d %s", int(tc.ScheduleTime.Hours()), int(tc.ScheduleTime.Minutes()), amPM))
+	}
+
+}
+
+func (tc *TimerContents) ClockInPhase() bool {
+
+	modeGroup := int(tc.Card.Properties.Get("mode group").AsFloat())
+	if modeGroup != 2 {
+		return false
+	}
+
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	scheduledTime := todayStart.Add(tc.ScheduleTime)
+	inPhase := false
+	if now.After(scheduledTime) {
+		inPhase = true
+		tc.Card.Stack.ForEachInTail(func(c *Card) bool {
+			if clock, ok := c.Contents.(*TimerContents); ok && clock.ClockInPhase() {
+				inPhase = false
+				return false
+			}
+			return true
+		})
+	}
+
+	return inPhase
 }
 
 func (tc *TimerContents) Trigger(triggerType int) {
@@ -1804,7 +1997,7 @@ func (tc *TimerContents) Color() Color {
 }
 
 func (tc *TimerContents) DefaultSize() Point {
-	return Point{globals.GridSize * 8, globals.GridSize * 6}
+	return Point{globals.GridSize * 9, globals.GridSize * 6}
 }
 
 type MapData struct {
@@ -1820,6 +2013,9 @@ func NewMapData(contents *MapContents) *MapData {
 }
 
 func (mapData *MapData) Resize(w, h int) {
+
+	// NOTE: I think it's possible for rows to have uneven lengths.
+	// There's nothing I really want to do about this at the moment, lol
 
 	for y := 0; y < h; y++ {
 
@@ -1842,31 +2038,48 @@ func (mapData *MapData) Resize(w, h int) {
 
 }
 
-func (mapData *MapData) Push(dx, dy int) {
+func (mapData *MapData) Push(dx, dy int, loop bool) {
 
 	newData := [][]int{}
 
 	for y := 0; y < len(mapData.Data); y++ {
 		newData = append(newData, []int{})
-		for x := 0; x < len(mapData.Data[y]); x++ {
+		for x := 0; x < len(mapData.Data[0]); x++ {
 
-			cy := y - dy
-			for cy >= len(mapData.Data) {
-				cy -= len(mapData.Data)
-			}
-			for cy < 0 {
-				cy += len(mapData.Data)
+			var value int
+
+			if loop {
+				// Loop
+
+				cy := y - dy
+				for cy >= len(mapData.Data) {
+					cy -= len(mapData.Data)
+				}
+				for cy < 0 {
+					cy += len(mapData.Data)
+				}
+
+				cx := x - dx
+				for cx >= len(mapData.Data[0]) {
+					cx -= len(mapData.Data[0])
+				}
+				for cx < 0 {
+					cx += len(mapData.Data[0])
+				}
+
+				value = mapData.Data[cy][cx]
+
+			} else {
+
+				cy := y - dy
+				cx := x - dx
+				if cy >= 0 && cy < len(mapData.Data) && cx >= 0 && cx < len(mapData.Data[cy]) {
+					value = mapData.Data[cy][cx]
+				}
+
 			}
 
-			cx := x - dx
-			for cx >= len(mapData.Data[cy]) {
-				cx -= len(mapData.Data[cy])
-			}
-			for cx < 0 {
-				cx += len(mapData.Data[cy])
-			}
-
-			newData[y] = append(newData[y], mapData.Data[cy][cx])
+			newData[y] = append(newData[y], value)
 		}
 	}
 
@@ -1920,7 +2133,6 @@ func (mapData *MapData) Rotate(direction int) {
 	newHeight := float32(mapData.Width) * globals.GridSize
 
 	mapData.Contents.Card.Recreate(newWidth, newHeight)
-	mapData.Contents.ReceiveMessage(NewMessage(MessageCardResizeCompleted, nil, nil))
 
 	mapData.Data = [][]int{}
 	mapData.Resize(int(newWidth/globals.GridSize), int(newHeight/globals.GridSize))
@@ -1943,6 +2155,56 @@ func (mapData *MapData) Rotate(direction int) {
 	contents.SetRaw(mapData.Serialize())
 
 	mapData.Contents.Card.CreateUndoState = true
+
+	if direction > 0 {
+		globals.EventLog.Log("Map rotated 90 degrees counter-clockwise.", false)
+	} else {
+		globals.EventLog.Log("Map rotated 90 degrees clockwise.", false)
+	}
+
+}
+
+func (mapData *MapData) Flip(vertical bool) {
+
+	oldData := [][]int{}
+
+	for y := range mapData.Data {
+		if y >= mapData.Height {
+			break
+		}
+		oldData = append(oldData, []int{})
+		for x := range mapData.Data[y] {
+			if x >= mapData.Width {
+				break
+			}
+			oldData[y] = append(oldData[y], mapData.Data[y][x])
+		}
+	}
+
+	for y := range mapData.Data {
+		for x := range mapData.Data[y] {
+			if vertical {
+				invY := len(oldData) - 1 - y
+				mapData.Data[invY][x] = oldData[y][x]
+			} else {
+				invX := len(oldData[y]) - 1 - x
+				mapData.Data[y][invX] = oldData[y][x]
+			}
+		}
+	}
+
+	mapData.Contents.UpdateTexture()
+
+	contents := mapData.Contents.Card.Properties.Get("contents")
+	contents.SetRaw(mapData.Serialize())
+
+	mapData.Contents.Card.CreateUndoState = true
+
+	if vertical {
+		globals.EventLog.Log("Map flipped vertically.", false)
+	} else {
+		globals.EventLog.Log("Map flipped horizontally.", false)
+	}
 
 }
 
@@ -2017,6 +2279,7 @@ type MapContents struct {
 	LineStart      Point
 	MapData        *MapData
 	PatternButtons map[int]*Button
+	PrevPos        Point
 }
 
 var MapDrawingColor = 1
@@ -2063,35 +2326,44 @@ func NewMapContents(card *Card) *MapContents {
 
 	for index, iconSrc := range toolButtons {
 		i := index
-		button := NewIconButton(0, 0, iconSrc, globals.GUITexture, true, func() {
+		button := NewIconButtonTintless(0, 0, iconSrc, globals.GUITexture, true, func() {
 			if i != MapEditToolColors {
 				mc.Tool = i
 			} else {
 				globals.MenuSystem.Get("map palette menu").Open()
 			}
 		})
-		button.Tint = ColorWhite
 		mc.Buttons = append(mc.Buttons, button)
 
 	}
 
 	// Rotation buttons
 
-	rotateRight := NewIconButton(0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
-		mc.MapData.Rotate(1)
-		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-	})
-	rotateRight.Tint = ColorWhite
-	mc.Buttons = append(mc.Buttons, rotateRight)
+	// rotateRight := NewIconButtonTintless(0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
+	// 	mc.MapData.Rotate(1)
+	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	// })
+	// mc.Buttons = append(mc.Buttons, rotateRight)
 
-	rotateLeft := NewIconButton(0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
-		mc.MapData.Rotate(-1)
-		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-	})
-	rotateLeft.Tint = ColorWhite
-	rotateLeft.Flip = sdl.FLIP_HORIZONTAL
+	// rotateLeft := NewIconButtonTintless(0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
+	// 	mc.MapData.Rotate(-1)
+	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	// })
+	// rotateLeft.Flip = sdl.FLIP_HORIZONTAL
 
-	mc.Buttons = append(mc.Buttons, rotateLeft)
+	// flipHorizontal := NewIconButtonTintless(0, 0, &sdl.Rect{400, 416, 32, 32}, globals.GUITexture, true, func() {
+	// 	mc.MapData.Flip(false)
+	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	// })
+	// flipHorizontal.Flip = sdl.FLIP_NONE
+
+	// flipVertical := NewIconButtonTintless(0, 0, &sdl.Rect{400, 416, 32, 32}, globals.GUITexture, true, func() {
+	// 	mc.MapData.Flip(true)
+	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+	// })
+	// flipVertical.Rotation = 90
+
+	// mc.Buttons = append(mc.Buttons, rotateLeft)
 
 	mc.container.AddRow(AlignLeft).Add("icon", NewGUIImage(nil, &sdl.Rect{112, 96, 32, 32}, globals.GUITexture.Texture, true))
 
@@ -2165,13 +2437,34 @@ func (mc *MapContents) Update() {
 		}
 	}
 
-	if mc.Card.Resizing != "" && int(mc.Card.Rect.W) != mc.MapData.Width*int(globals.GridSize) || int(mc.Card.Rect.H) != mc.MapData.Height*int(globals.GridSize) {
+	// if mc.Card.Resizing != "" && int(mc.Card.Rect.W) != mc.MapData.Width*int(globals.GridSize) || int(mc.Card.Rect.H) != mc.MapData.Height*int(globals.GridSize) {
 
-		mc.RecreateTexture()
-		mc.UpdateTexture()
-		mc.LineStart.X = -1
-		mc.LineStart.Y = -1
-	}
+	// 	// ogMapWidth := mc.MapData.Width
+	// 	// ogMapHeight := mc.MapData.Height
+
+	// 	mc.RecreateTexture()
+	// 	mc.UpdateTexture()
+
+	// 	// if pos := mc.Card.Position(); mc.PrevPos != pos {
+	// 	// 	dx := 0
+	// 	// 	dy := 0
+
+	// 	// 	if diffX := mc.PrevPos.X - pos.X; diffX != 0 {
+	// 	// 		hResizing := int(mc.Card.Rect.W) - ogMapWidth*int(globals.GridSize)
+	// 	// 		dx = hResizing / int(globals.GridSize)
+	// 	// 	}
+
+	// 	// 	if diffY := mc.PrevPos.Y - pos.Y; diffY != 0 {
+	// 	// 		vResizing := int(mc.Card.Rect.H) - ogMapHeight*int(globals.GridSize)
+	// 	// 		dy = vResizing / int(globals.GridSize)
+	// 	// 	}
+
+	// 	// 	mc.MapData.Push(dx, dy)
+	// 	// }
+
+	// 	mc.LineStart.X = -1
+	// 	mc.LineStart.Y = -1
+	// }
 
 	if mc.Card.IsSelected() {
 
@@ -2379,6 +2672,8 @@ func (mc *MapContents) Update() {
 			button.Update()
 		}
 
+		mc.PrevPos = Point{mc.Card.Rect.X, mc.Card.Rect.Y}
+
 	} else {
 
 		if mc.Tool != MapEditToolNone {
@@ -2391,19 +2686,19 @@ func (mc *MapContents) Update() {
 
 	if globals.Keybindings.Pressed(KBMapShiftRight) {
 		globals.Keybindings.Shortcuts[KBMapShiftRight].ConsumeKeys()
-		mc.MapData.Push(1, 0)
+		mc.MapData.Push(1, 0, true)
 		globals.EventLog.Log("Map shifted by 1 to the right.", false)
 	} else if globals.Keybindings.Pressed(KBMapShiftLeft) {
 		globals.Keybindings.Shortcuts[KBMapShiftLeft].ConsumeKeys()
-		mc.MapData.Push(-1, 0)
+		mc.MapData.Push(-1, 0, true)
 		globals.EventLog.Log("Map shifted by 1 to the left.", false)
 	} else if globals.Keybindings.Pressed(KBMapShiftUp) {
 		globals.Keybindings.Shortcuts[KBMapShiftUp].ConsumeKeys()
-		mc.MapData.Push(0, -1)
+		mc.MapData.Push(0, -1, true)
 		globals.EventLog.Log("Map shifted by 1 upwards.", false)
 	} else if globals.Keybindings.Pressed(KBMapShiftDown) {
 		globals.Keybindings.Shortcuts[KBMapShiftDown].ConsumeKeys()
-		mc.MapData.Push(0, 1)
+		mc.MapData.Push(0, 1, true)
 		globals.EventLog.Log("Map shifted by 1 downwards.", false)
 	}
 
@@ -2428,11 +2723,19 @@ func (mc *MapContents) Draw() {
 	if mc.RenderTexture != nil {
 
 		dst := &sdl.FRect{mc.Card.DisplayRect.X, mc.Card.DisplayRect.Y, mc.Card.Rect.W, mc.Card.Rect.H}
-		dst = globals.Project.Camera.TranslateRect(dst)
+
 		alpha := uint8(255)
 		if mc.Tool != MapEditToolNone {
 			alpha = 200 // Slightly transparent to show things behind the map when it's being edited and is in front
 		}
+
+		if mc.Card.Resizing != "" {
+			alpha = 128
+			dst = mc.Card.RectPreResize
+		}
+
+		dst = globals.Project.Camera.TranslateRect(dst)
+
 		mc.RenderTexture.Texture.SetAlphaMod(alpha)
 		globals.Renderer.CopyF(mc.RenderTexture.Texture, nil, dst)
 
@@ -2685,7 +2988,8 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 
 	if msg.Type == MessageThemeChange || msg.Type == MessageRenderTextureRefresh {
 		mc.UpdateTexture()
-	} else if msg.Type == MessageUndoRedo || msg.Type == MessageCardResizeCompleted {
+	} else if msg.Type == MessageUndoRedo {
+
 		// Recreate texture first so the MapData has the correct size before deserialization
 		mc.RecreateTexture()
 		if msg.Type == MessageUndoRedo {
@@ -2694,6 +2998,21 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 		mc.MapData.Deserialize(mc.Card.Properties.Get("contents").AsString())
 		mc.Card.Properties.Get("contents").SetRaw(mc.MapData.Serialize())
 		mc.UpdateTexture()
+
+	} else if msg.Type == MessageCardResizeCompleted {
+
+		// Recreate texture first so the MapData has the correct size before deserialization
+		mc.RecreateTexture()
+
+		px := mc.Card.RectPreResize.X - mc.Card.Rect.X
+		py := mc.Card.RectPreResize.Y - mc.Card.Rect.Y
+		if px != 0 || py != 0 {
+			mc.MapData.Push(int(px/globals.GridSize), int(py/globals.GridSize), false)
+		}
+		mc.MapData.Clip() // We call Clip() here so if you undo or redo and the size changes, values outside of that range are deleted
+
+		mc.UpdateTexture()
+
 	} else if msg.Type == MessageContentSwitched {
 		mc.Card.Draggable = true
 		mc.Tool = MapEditToolNone
@@ -2706,6 +3025,10 @@ func (mc *MapContents) Color() Color {
 }
 
 func (mc *MapContents) DefaultSize() Point { return Point{globals.GridSize * 8, globals.GridSize * 8} }
+
+func (m *MapContents) Collapseable() bool {
+	return false
+}
 
 var SubpageScreenshotSize = Point{256, 256}
 var SubpageScreenshotZoom = 0.5
@@ -3063,11 +3386,7 @@ func (lc *LinkContents) Update() {
 		lc.Label.BeginEditing()
 	}
 
-	h := lc.container.Rect.H - lc.container.MinimumHeight() + globals.GridSize
-	if h < globals.GridSize {
-		h = globals.GridSize
-	}
-	lc.Label.SetMaxSize(lc.container.Rect.W-32, h)
+	lc.Label.SetMaxSize(lc.container.Rect.W-32, lc.Label.maxSize.Y)
 
 	lc.DefaultContents.Update()
 
@@ -4047,13 +4366,12 @@ func NewTableContents(card *Card) *TableContents {
 		}
 	}
 
-	tc.SettingsButton = NewIconButton(0, 0, &sdl.Rect{400, 160, 32, 32}, globals.GUITexture, true, func() {
+	tc.SettingsButton = NewIconButtonTintless(0, 0, &sdl.Rect{400, 160, 32, 32}, globals.GUITexture, true, func() {
 		menu := globals.MenuSystem.Get("table settings menu")
 		menu.Open()
 		mode := menu.Pages["root"].FindElement("table mode", false).(*ButtonGroup)
 		mode.ChosenIndex = tc.TableData.ValueDisplayMode
 	})
-	tc.SettingsButton.Tint = ColorWhite
 
 	// row := tc.container.AddRow(AlignCenter)
 
@@ -4078,7 +4396,7 @@ func (tc *TableContents) Update() {
 	tc.TableData.Update()
 	tc.Card.ForceDrawing = tc.TableData.EditingLabel != nil
 
-	if globals.State == StateNeutral {
+	if globals.State == StateNeutral && tc.Card.selected {
 
 		if globals.Keybindings.Pressed(KBTableAddColumn) {
 			tc.Card.Recreate(tc.Card.Rect.W+globals.GridSize, tc.Card.Rect.H)
@@ -4194,7 +4512,12 @@ func (tc *TableContents) MaximumCompletionLevel() float32 {
 	return tc.TableData.MaximumCompletionLevel()
 }
 
+func (t *TableContents) Collapseable() bool {
+	return false
+}
+
 const (
+	WebCardSize128  = "128p"
 	WebCardSize256  = "256p"
 	WebCardSize320  = "320p"
 	WebCardSize512  = "512p"
@@ -4205,9 +4528,9 @@ const (
 	WebCardFPS10FPS             = "10 FPS"
 	WebCardFPS1FPS              = "1 FPS"
 
-	WebCardAspectRatioWide   = "16:9"
-	WebCardAspectRatioTall   = "9:16"
-	WebCardAspectRatioSquare = "1:1"
+	WebCardAspectRatioWide   = "16:9 (Horizontal)"
+	WebCardAspectRatioTall   = "9:16 (Vertical)"
+	WebCardAspectRatioSquare = "1:1 (Square)"
 
 	WebCardUpdateOptionAlways              = "Always"
 	WebCardUpdateOptionWhenRecordingInputs = "Only When Recording Input"
@@ -4216,48 +4539,27 @@ const (
 
 type WebContents struct {
 	DefaultContents
-	DeviceInfo device.Info
 
-	BufferWidth, BufferHeight int
-	Context                   context.Context
-	ContextValid              atomic.Bool
+	BrowserTab *BrowserTab
 
-	TargetURL    string
-	NavigatedURL string
-	CurrentURL   string
-
-	ImageBuffer []byte
-	RawImage    []byte
-	// ImageSurface *sdl.Surface
-	ImageTexture *sdl.Texture
-
-	PauseRefresh     sync.Mutex
-	LoadingWebpage   atomic.Bool
-	RefreshedOnce    atomic.Bool
-	RefreshedTexture atomic.Bool
-
-	ValidBrowserTexture bool
-	RecordInput         bool
-
-	Actions chan chromedp.Action
-	// Actions chromedp.Tasks
+	RecordInput bool
 
 	Buttons []*IconButton
 
 	VerticalScrollbar   *Scrollbar
 	HorizontalScrollbar *Scrollbar
 
-	inputSent     atomic.Bool
-	URLCheckTimer time.Time
+	ScrollbarUpdateTimer time.Time
+	URLCheckTimer        time.Time
+	SetURL               string
 }
 
 func NewWebContents(card *Card) *WebContents {
 
 	web := &WebContents{
 		DefaultContents:     newDefaultContents(card),
-		Actions:             make(chan chromedp.Action, 1),
-		VerticalScrollbar:   NewScrollbar(&sdl.FRect{0, 0, 16, 16}, true, nil),
-		HorizontalScrollbar: NewScrollbar(&sdl.FRect{0, 0, 16, 16}, true, nil),
+		VerticalScrollbar:   NewScrollbar(&sdl.FRect{0, 0, 16, 16}, 0, 1, true, nil),
+		HorizontalScrollbar: NewScrollbar(&sdl.FRect{0, 0, 16, 16}, 0, 1, true, nil),
 	}
 
 	web.VerticalScrollbar.DrawOnlyWhenMouseIsClose = true
@@ -4265,60 +4567,62 @@ func NewWebContents(card *Card) *WebContents {
 
 	web.VerticalScrollbar.OnValueSet = func() {
 
-		tv := strconv.FormatFloat(float64(web.VerticalScrollbar.TargetValue), 'f', -1, 32)
+		if web.BrowserTab != nil {
 
-		err := chromedp.Run(web.Context, chromedp.Evaluate(`
+			tv := strconv.FormatFloat(float64(web.VerticalScrollbar.TargetValue), 'f', -1, 32)
 
-		var body = document.body;
-		var html = document.documentElement;
+			web.BrowserTab.Do(
 
-		// Get the max height of the webpage
-		var pageHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+				chromedp.Evaluate(`
+			
+				var body = document.body;
+				var html = document.documentElement;
+				
+				// Get the max height of the webpage
+				var pageHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+		
+				var targetY = `+tv+` * pageHeight - window.innerHeight;
+				if (targetY < 0) {
+					targetY = 0;
+				}
+		
+				window.scroll(window.scrollX, targetY)`, nil),
+			)
 
-		var targetY = `+tv+` * pageHeight - window.innerHeight;
-		if (targetY < 0) {
-			targetY = 0;
-		}
-
-		window.scroll(window.scrollX, targetY)
-	`, nil))
-
-		if err != nil {
-			globals.EventLog.Log("error: %s", false, err.Error())
 		}
 
 	}
 
 	web.HorizontalScrollbar.OnValueSet = func() {
 
-		tv := strconv.FormatFloat(float64(web.HorizontalScrollbar.TargetValue), 'f', -1, 32)
+		if web.BrowserTab != nil {
 
-		err := chromedp.Run(web.Context, chromedp.Evaluate(`
+			tv := strconv.FormatFloat(float64(web.HorizontalScrollbar.TargetValue), 'f', -1, 32)
+
+			web.BrowserTab.Do(chromedp.Evaluate(`
 
 		var body = document.body;
 		var html = document.documentElement;
 
 		// Get the max height of the webpage
 		var pageWidth = Math.max(body.scrollWidth, body.offsetWidth, html.clientWidth, html.scrollWidth, html.offsetWidth);
-
+		
 		var targetX = `+tv+` * pageWidth - window.innerWidth;
 		if (targetX < 0) {
 			targetX = 0;
-		}
+			}
+			
+			window.scroll(targetX, window.scrollY)
+			`, nil))
 
-		window.scroll(targetX, window.scrollY)
-	`, nil))
-
-		if err != nil {
-			globals.EventLog.Log("error: %s", false, err.Error())
 		}
 
 	}
 
 	web.Card.Properties.SetDefault("size", WebCardSize256)
 	web.Card.Properties.SetDefault("aspect ratio", WebCardAspectRatioWide)
-	web.Card.Properties.SetDefault("update framerate", WebCardFPSAsOftenAsPossible)
-	web.Card.Properties.SetDefault("update only when", WebCardUpdateOptionAlways)
+	web.Card.Properties.SetDefault("update framerate", WebCardFPS10FPS)
+	web.Card.Properties.SetDefault("update only when", WebCardUpdateOptionWhenSelected)
 	web.Card.Properties.SetDefault("url", "https://www.duckduckgo.com/")
 	web.Card.Properties.Get("url").OnlySerializeInSaves = true
 	// web.Card.Properties.SetDefault("aspect ratio width", 1)
@@ -4351,62 +4655,68 @@ func NewWebContents(card *Card) *WebContents {
 		switch b {
 
 		case "edit":
-			button = NewIconButton(
-				0, 0, &sdl.Rect{400, 32, 32, 32}, globals.GUITexture, true, func() {
+			button = NewIconButtonTintless(
+				0, 0, &sdl.Rect{X: 400, Y: 32, W: 32, H: 32}, globals.GUITexture, true, func() {
 					web.ToggleRecordInput()
 				},
 			)
 		case "backward":
-			button = NewIconButton(
-				0, 0, &sdl.Rect{368, 0, 32, 32}, globals.GUITexture, true, func() {
-					web.NavigateBack()
+			button = NewIconButtonTintless(
+				0, 0, &sdl.Rect{X: 368, Y: 256, W: 32, H: 32}, globals.GUITexture, true, func() {
+					if web.BrowserTab != nil {
+						web.BrowserTab.ForceRefresh.Store(true)
+						web.BrowserTab.NavigateBack()
+					}
 				},
 			)
 			button.Flip = sdl.FLIP_HORIZONTAL
 		case "forward":
-			button = NewIconButton(
-				0, 0, &sdl.Rect{368, 0, 32, 32}, globals.GUITexture, true, func() {
-					web.NavigateForward()
+			button = NewIconButtonTintless(
+				0, 0, &sdl.Rect{X: 368, Y: 256, W: 32, H: 32}, globals.GUITexture, true, func() {
+					if web.BrowserTab != nil {
+						web.BrowserTab.ForceRefresh.Store(true)
+						web.BrowserTab.NavigateForward()
+					}
 				},
 			)
 		case "x1":
-			button = NewIconButton(
-				0, 0, &sdl.Rect{304, 192, 32, 32}, globals.GUITexture, true, func() {
-					web.Card.Rect.W = float32(web.BufferWidth)
-					web.Card.Rect.H = float32(web.BufferHeight)
+			button = NewIconButtonTintless(
+				0, 0, &sdl.Rect{X: 304, Y: 192, W: 32, H: 32}, globals.GUITexture, true, func() {
+					web.Card.Rect.W = float32(web.BrowserTab.BufferWidth)
+					web.Card.Rect.H = float32(web.BrowserTab.BufferHeight)
 					web.Card.LockPosition()
 				},
 			)
 		case "x2":
-			button = NewIconButton(
-				0, 0, &sdl.Rect{304, 224, 32, 32}, globals.GUITexture, true, func() {
-					web.Card.Rect.W = float32(web.BufferWidth) * 2
-					web.Card.Rect.H = float32(web.BufferHeight) * 2
+			button = NewIconButtonTintless(
+				0, 0, &sdl.Rect{X: 304, Y: 224, W: 32, H: 32}, globals.GUITexture, true, func() {
+					web.Card.Rect.W = float32(web.BrowserTab.BufferWidth) * 2
+					web.Card.Rect.H = float32(web.BrowserTab.BufferHeight) * 2
 					web.Card.LockPosition()
 				},
 			)
 		case "x3":
-			button = NewIconButton(
-				0, 0, &sdl.Rect{304, 256, 32, 32}, globals.GUITexture, true, func() {
-					web.Card.Rect.W = float32(web.BufferWidth) * 3
-					web.Card.Rect.H = float32(web.BufferHeight) * 3
+			button = NewIconButtonTintless(
+				0, 0, &sdl.Rect{X: 304, Y: 256, W: 32, H: 32}, globals.GUITexture, true, func() {
+					web.Card.Rect.W = float32(web.BrowserTab.BufferWidth) * 3
+					web.Card.Rect.H = float32(web.BrowserTab.BufferHeight) * 3
 					web.Card.LockPosition()
 				},
 			)
 
 		case "menu":
 
-			button = NewIconButton(
-				0, 0, &sdl.Rect{400, 160, 32, 32}, globals.GUITexture, true, func() {
+			button = NewIconButtonTintless(
+				0, 0, &sdl.Rect{X: 400, Y: 160, W: 32, H: 32}, globals.GUITexture, true, func() {
 					globals.MenuSystem.Get("web card settings").Open()
 				},
 			)
 
 		case "refresh":
 
-			button = NewIconButton(
-				0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
-					web.Actions <- chromedp.Reload()
+			button = NewIconButtonTintless(
+				0, 0, &sdl.Rect{X: 400, Y: 192, W: 32, H: 32}, globals.GUITexture, true, func() {
+					web.BrowserTab.Do(chromedp.Reload())
 				},
 			)
 
@@ -4421,13 +4731,11 @@ func NewWebContents(card *Card) *WebContents {
 	// web.Buttons = []*IconButton{}
 
 	if err := web.ReinitContext(); err != nil {
-		fmt.Println("error initializing context; returning nil")
+		globals.EventLog.Log("error (re-)initializing context:"+err.Error(), true)
 		return nil
 	}
 
-	web.UpdateBufferSize()
-
-	web.Navigate(web.Card.Properties.Get("url").AsString())
+	// web.Navigate(web.Card.Properties.Get("url").AsString())
 	// web.Navigate("https://solarlunedev.tumblr.com/")
 
 	return web
@@ -4435,458 +4743,132 @@ func NewWebContents(card *Card) *WebContents {
 
 func (w *WebContents) ReinitContext() error {
 
-	if globals.BrowserContext == nil {
+	log.Println("spin up web context")
 
-		// opts := append(chromedp.DefaultExecAllocatorOptions[:], chromedp.Flag("headless", true))
-		opts := append([]func(*chromedp.ExecAllocator){},
-			chromedp.Flag("hide-scrollbars", true), // Not sure if we want this or not
-			chromedp.Flag("headless", true),
-			chromedp.Flag("no-first-run", true),
-			chromedp.Flag("no-default-browser-check", true),
-			chromedp.Flag("mute-audio", false),
-			// chromedp.Flag("disable-background-networking", true),
-			// chromedp.Flag("enable-features", "NetworkService,NetworkServiceInProcess"),
-			// chromedp.Flag("disable-background-timer-throttling", true),
-			// chromedp.Flag("disable-backgrounding-occluded-windows", true),
-			// chromedp.Flag("disable-breakpad", true),
-			// chromedp.Flag("disable-client-side-phishing-detection", true),
-			// chromedp.Flag("disable-default-apps", true),
-			// chromedp.Flag("disable-dev-shm-usage", true),
-			chromedp.Flag("disable-extensions", false),
-			// // chromedp.Flag("disable-features", "site-per-process,Translate,BlinkGenPropertyTrees"),
-			// chromedp.Flag("disable-hang-monitor", true),
-			// chromedp.Flag("disable-ipc-flooding-protection", true),
-			chromedp.Flag("disable-popup-blocking", false),
-			// chromedp.Flag("disable-prompt-on-repost", true),
-			// chromedp.Flag("disable-renderer-backgrounding", true),
-			// chromedp.Flag("disable-sync", true),
-			// chromedp.Flag("force-color-profile", "srgb"),
-			// chromedp.Flag("metrics-recording-only", true),
-			// chromedp.Flag("safebrowsing-disable-auto-update", true),
-			// chromedp.Flag("enable-automation", true),
-			// chromedp.Flag("password-store", "basic"),
-			// chromedp.Flag("use-mock-keychain", true),
-		)
+	// if err := globals.ChromeBrowser.Init(); err != nil {
+	// 	return err
+	// }
 
-		if browserPath := globals.Settings.Get(SettingsBrowserPath).AsString(); browserPath != "" {
-			opts = append(opts, chromedp.ExecPath(browserPath))
-		}
+	log.Println("browser web context initialized")
 
-		if userDataPath := globals.Settings.Get(SettingsBrowserUserDataPath).AsString(); userDataPath != "" {
-			opts = append(opts, chromedp.UserDataDir(userDataPath))
-		}
-
-		alloc, _ := chromedp.NewExecAllocator(context.Background(), opts...)
-		browserContext, cancel := chromedp.NewContext(alloc)
-
-		// Try context to confirm it exists and is good
-		if err := chromedp.Run(browserContext, chromedp.Reload()); err != nil {
-			globals.EventLog.Log("Error creating web card: %s", true, err.Error())
-			cancel() // Cancel the broken browser context
+	if w.BrowserTab == nil {
+		// tab, err := globals.ChromeBrowser.CreateTab(w.Width(), w.Height(), w)
+		tab, err := NewBrowser(w.Width(), w.Height(), w)
+		if err != nil {
 			return err
 		}
 
-		globals.BrowserContext = browserContext
+		url := w.Card.Properties.Get("url").AsString()
+		log.Println("browser tab " + url + " created")
 
-		globals.EventLog.Log("Created web context using.", false)
+		w.BrowserTab = tab
+		w.BrowserTab.Navigate(url)
+
+		log.Println("Navigate done")
+
 	}
-
-	// create context
-	ctx, _ := chromedp.NewContext(
-		globals.BrowserContext,
-	)
-
-	// Attempt to run something; this should create a new tab
-	if err := chromedp.Run(ctx, chromedp.Reload()); err != nil {
-		globals.EventLog.Log("Error creating web card: %s", true, err.Error())
-		return err
-	}
-
-	chromedp.ListenTarget(ctx, func(ev interface{}) {
-		switch e := ev.(type) {
-		case *page.EventLifecycleEvent:
-			// This allows us to see when a page is strictly loading (i.e. not all HTML / JS elements have loaded)
-			if e.Name == "DOMContentLoaded" {
-				w.LoadingWebpage.Store(true)
-				// fmt.Println("load start")
-			}
-			if e.Name == "networkIdle" {
-				// fmt.Println("idling")
-				w.LoadingWebpage.Store(false)
-			}
-		}
-	})
-
-	w.ContextValid.Store(true)
-	w.Context = ctx
-	w.PauseRefresh = sync.Mutex{}
-
-	go func() {
-
-		capTime := time.Duration(0)
-		actions := []chromedp.Action{}
-
-		for {
-
-			fmt.Println("update", w.Card.ID)
-
-			if !w.ContextValid.Load() {
-				globals.EventLog.Log("web context ended", true)
-				return
-			}
-
-			actions = actions[:0]
-
-			for len(w.Actions) > 0 {
-				fmt.Println("action pull bef")
-				actions = append(actions, <-w.Actions)
-				fmt.Println("action pull after")
-			}
-
-			if !w.Card.Onscreen() {
-				time.Sleep(time.Second / 250)
-				continue
-			}
-
-			if w.RefreshedOnce.Load() {
-
-				switch w.Card.Properties.Get("update only when").AsString() {
-				// case WebCardUpdateOptionAlways:
-				case WebCardUpdateOptionWhenRecordingInputs:
-					// If not recording inputs, then we can sleep for a bit and then try again later in the thread
-					if !w.RecordInput {
-						time.Sleep(time.Second / 250)
-						continue
-					}
-				case WebCardUpdateOptionWhenSelected:
-					if !w.Card.selected {
-						time.Sleep(time.Second / 250)
-						continue
-					}
-				}
-
-			}
-
-			captureStart := time.Now()
-
-			fmt.Println("pause refresh lock")
-			w.PauseRefresh.Lock()
-			fmt.Println("pause refresh unlock")
-
-			if w.NavigatedURL != w.TargetURL {
-				w.NavigatedURL = w.TargetURL
-
-				w.LoadingWebpage.Store(true)
-				parsed, err := urlx.Parse(w.TargetURL)
-
-				if err == nil {
-					err = chromedp.Run(w.Context, chromedp.Tasks{
-						chromedp.Navigate(parsed.String()),
-					})
-
-				}
-
-				if err != nil {
-					globals.EventLog.Log("Error navigating to website: [ %s ];\nAre you sure the website URL is correct?\nError: [ %s ]", true, w.TargetURL, err.Error())
-					w.RefreshedTexture.Store(false)
-					w.PauseRefresh.Unlock()
-					continue
-				}
-			}
-
-			for _, action := range actions {
-
-				if err := chromedp.Run(w.Context, action); err != nil {
-					if errors.Is(err, context.Canceled) {
-						w.PauseRefresh.Unlock()
-						return
-					}
-					globals.EventLog.Log(err.Error(), true)
-					w.PauseRefresh.Unlock()
-					continue
-				}
-
-			}
-
-			// fmt.Println(w.Actions)
-
-			// if err := chromedp.Run(w.Context, w.Actions); err != nil {
-			// 	if errors.Is(err, context.Canceled) {
-			// 		return
-			// 	}
-			// 	globals.EventLog.Log(err.Error(), true)
-			// }
-
-			if err := chromedp.Run(w.Context, chromedp.CaptureScreenshot(&w.ImageBuffer)); err != nil {
-				fmt.Println("capture screenshot fail")
-				if errors.Is(err, context.Canceled) {
-					w.PauseRefresh.Unlock()
-					w.ContextValid.Store(false)
-					return
-				}
-				// globals.EventLog.Log(err.Error(), true)
-				log.Println(err.Error()) // Errors might happen when screenshotting a page in-navigation; that's fine
-				w.PauseRefresh.Unlock()
-				continue
-			}
-
-			fmt.Println("capture screenshot success")
-
-			decoded, err := png.Decode(bytes.NewReader(w.ImageBuffer))
-
-			if err != nil {
-				globals.EventLog.Log(err.Error(), true)
-				w.PauseRefresh.Unlock()
-				return
-			}
-
-			i := 0
-			for y := 0; y < decoded.Bounds().Dy(); y++ {
-				for x := 0; x < decoded.Bounds().Dx(); x++ {
-					r, g, b, a := decoded.At(x, y).RGBA()
-					w.RawImage[i] = byte(a)
-					w.RawImage[i+1] = byte(b)
-					w.RawImage[i+2] = byte(g)
-					w.RawImage[i+3] = byte(r)
-					i += 4
-				}
-			}
-
-			fmt.Println("refreshed texture store")
-
-			w.RefreshedTexture.Store(true)
-
-			// w.Actions = w.Actions[:0]
-
-			// if len(w.PauseRefresh) > 0 {
-			// 	<-w.PauseRefresh
-			// 	w.PauseRefresh <- true
-			// }
-
-			w.PauseRefresh.Unlock()
-
-			w.RefreshedOnce.Store(true)
-
-			// Sleep to hit target FPS
-
-			capTime = time.Since(captureStart)
-
-			if w.RefreshedOnce.Load() {
-
-				switch w.Card.Properties.Get("update only when").AsString() {
-				// case WebCardUpdateOptionAlways:
-				case WebCardUpdateOptionWhenRecordingInputs:
-					// If not recording inputs, then we can sleep for a bit and then try again later in the thread
-					if !w.RecordInput {
-						time.Sleep(time.Second / 250)
-						continue
-					}
-				case WebCardUpdateOptionWhenSelected:
-					if !w.Card.selected {
-						time.Sleep(time.Second / 250)
-						continue
-					}
-				}
-
-				// If we get here, then we are recording inputs or selecting the card when appropriate
-
-				target := time.Duration(0)
-
-				switch w.Card.Properties.Get("update framerate").AsString() {
-				// case WebCardFPSAsOftenAsPossible:
-
-				case WebCardFPS20FPS:
-					target = time.Second / 20
-				case WebCardFPS10FPS:
-					target = time.Second / 10
-				case WebCardFPS1FPS:
-					target = time.Second
-				}
-
-				target -= capTime
-
-				if target > 0 {
-					for {
-						if time.Since(captureStart) >= target || w.inputSent.Load() {
-							break
-						}
-					}
-				}
-
-				w.inputSent.Store(false)
-
-			}
-
-		}
-
-	}()
 
 	return nil
 
 }
 
-func (w *WebContents) UpdateBufferSize() {
-
-	w.PauseRefresh.Lock()
-	defer w.PauseRefresh.Unlock()
-
-	w.RefreshedOnce.Store(false)
-
-	deviceInfo := device.Reset.Device()
-	deviceInfo.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59"
-	// deviceInfo.UserAgent = "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4812.0 Mobile Safari/537.36"
-
-	deviceInfo.Width = int64(w.Width())
-	deviceInfo.Height = int64(w.Height())
-	deviceInfo.Scale = 1
-	deviceInfo.Touch = false
-	deviceInfo.Mobile = false
-	deviceInfo.Landscape = true
-	width := float64(deviceInfo.Width) * deviceInfo.Scale
-	height := float64(deviceInfo.Height) * deviceInfo.Scale
-
-	w.BufferWidth = int(width)
-	w.BufferHeight = int(height)
-	w.RawImage = make([]byte, int(width*height*4))
-	w.DeviceInfo = deviceInfo
-	w.ImageBuffer = []byte{}
-
-	if tex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_STREAMING, int32(width), int32(height)); err != nil {
-		globals.EventLog.Log(err.Error(), true)
-	} else {
-		w.ImageTexture = tex
-	}
-
-	if err := chromedp.Run(w.Context, chromedp.Tasks{
-		chromedp.Emulate(w.DeviceInfo),
-	}); err != nil {
-		log.Fatal(err)
-	}
-
-}
-
-func (w *WebContents) Navigate(targetURL string) {
-	if w.NavigatedURL != targetURL {
-		w.TargetURL = targetURL
-		w.NavigatedURL = ""
-	}
-}
-
 func (w *WebContents) OpenURLInBrowser() {
-	// url := activeCard.Contents.(*WebContents).TargetURL
-	err := browser.OpenURL(w.CurrentURL)
-	globals.EventLog.Log("URL [ %s ] opened in default browser.", false, w.CurrentURL)
-	if err != nil {
-		globals.EventLog.Log("Error opening URL in default browser: [ %s ]", true, err.Error())
+	if w.BrowserTab != nil {
+
+		// url := activeCard.Contents.(*WebContents).TargetURL
+		err := browser.OpenURL(w.BrowserTab.CurrentURL)
+		globals.EventLog.Log("URL [ %s ] opened in default browser.", false, w.BrowserTab.CurrentURL)
+		if err != nil {
+			globals.EventLog.Log("Error opening URL in default browser: [ %s ]", true, err.Error())
+		}
 	}
 }
 
-func (w *WebContents) Width() float64 {
+func (w *WebContents) Width() int {
 
-	asr := 1.0
+	asrString := w.Card.Properties.Get("aspect ratio").AsString()
+	split := strings.FieldsFunc(asrString, func(r rune) bool { return r == ':' || r == ' ' })
 
-	switch w.Card.Properties.Get("aspect ratio").AsString() {
-	case "16:9":
-		asr = 9.0 / 16
-	case "9:16":
-		asr = 16.0 / 9
-		// case "1:1":
-	}
+	width, _ := strconv.Atoi(split[0])
+	height, _ := strconv.Atoi(split[1])
+
+	asr := float64(height) / float64(width)
 
 	sizeString := w.Card.Properties.Get("size").AsString()
 	s, _ := strconv.Atoi(sizeString[:len(sizeString)-1])
 	size := float64(s)
 
-	width := size * (1 / asr)
+	fWidth := size * (1 / asr)
 	if asr > 1 {
-		width = size
+		fWidth = size
 	}
-	return math.Round(width)
+	return int(math.Round(fWidth))
 }
 
-func (w *WebContents) Height() float64 {
+func (w *WebContents) Height() int {
 
-	asr := 1.0
+	asrString := w.Card.Properties.Get("aspect ratio").AsString()
+	split := strings.FieldsFunc(asrString, func(r rune) bool { return r == ':' || r == ' ' })
 
-	switch w.Card.Properties.Get("aspect ratio").AsString() {
-	case "16:9":
-		asr = 9.0 / 16
-	case "9:16":
-		asr = 16.0 / 9
-		// case "1:1":
-	}
+	width, _ := strconv.Atoi(split[0])
+	height, _ := strconv.Atoi(split[1])
+
+	asr := float64(height) / float64(width)
 
 	sizeString := w.Card.Properties.Get("size").AsString()
 	s, _ := strconv.Atoi(sizeString[:len(sizeString)-1])
 	size := float64(s)
 
-	height := size * asr
+	fHeight := size * asr
 	if asr < 1 {
-		height = size
+		fHeight = size
 	}
-	return math.Round(height)
+	return int(math.Round(fHeight))
 }
 
-func (w *WebContents) makeMouseAction(x, y float64, inputType input.MouseType, opts ...chromedp.MouseOption) chromedp.ActionFunc {
+// func (w *WebContents) makeMouseAction(x, y float64, inputType input.MouseType, opts ...chromedp.MouseOption) chromedp.MouseAction {
 
-	return chromedp.ActionFunc(func(ctx context.Context) error {
-		p := &input.DispatchMouseEventParams{
-			Type:       inputType,
-			X:          x,
-			Y:          y,
-			Button:     input.Left,
-			ClickCount: 1,
-		}
+// 	// return chromedp.MouseEvent(input.MousePressed, x, y, opts...)
 
-		// apply opts
-		for _, o := range opts {
-			p = o(p)
-		}
+// 	// return chromedp.ActionFunc(func(ctx context.Context) error {
 
-		if err := p.Do(ctx); err != nil {
-			return err
-		}
+// 	// })
 
-		p.Type = input.MouseReleased
-		return p.Do(ctx)
-	})
+// 	// return chromedp.ActionFunc(func(ctx context.Context) error {
+// 	// 	p := &input.DispatchMouseEventParams{
+// 	// 		Type:       inputType,
+// 	// 		X:          x,
+// 	// 		Y:          y,
+// 	// 		Button:     input.Left,
+// 	// 		ClickCount: 1,
+// 	// 	}
 
-}
+// 	// 	// apply opts
+// 	// 	for _, o := range opts {
+// 	// 		p = o(p)
+// 	// 	}
 
-func (w *WebContents) NavigateBack() {
-	entries := []*page.NavigationEntry{}
-	currentEntry := int64(0)
-	chromedp.Run(w.Context, chromedp.NavigationEntries(&currentEntry, &entries))
-	if int(currentEntry) >= 1 {
-		// web.Actions = append(web.Actions, chromedp.NavigateToHistoryEntry(currentEntry-1))
-		w.Actions <- chromedp.NavigateBack()
-	}
-}
+// 	// 	if err := p.Do(ctx); err != nil {
+// 	// 		return err
+// 	// 	}
 
-func (w *WebContents) NavigateForward() {
-	entries := []*page.NavigationEntry{}
-	currentEntry := int64(0)
-	chromedp.Run(w.Context, chromedp.NavigationEntries(&currentEntry, &entries))
-	if int(currentEntry) < len(entries) {
-		w.Actions <- chromedp.NavigateForward()
-	}
-}
+// 	// 	p.Type = input.MouseReleased
+// 	// 	return p.Do(ctx)
+// 	// })
+
+// }
 
 func (w *WebContents) Update() {
 
-	if w.RefreshedTexture.CompareAndSwap(true, false) {
-		w.ImageTexture.Update(nil, unsafe.Pointer(&w.RawImage[0]), w.BufferWidth*4)
-		w.ValidBrowserTexture = true
-	}
+	// if w.RefreshedTexture.CompareAndSwap(true, false) {
+	// 	w.ImageTexture.Update(nil, unsafe.Pointer(&w.RawImage[0]), w.BrowserTab.BufferWidth*4)
+	// }
 
 	// This used to be w.LoadingWebpage.Load(), but this would make
 	// if w.LoadingWebpage.Load() {
-	if time.Now().After(w.URLCheckTimer) {
-		currentLocation := ""
-		chromedp.Run(w.Context, chromedp.Location(&currentLocation))
-		w.Card.Properties.Get("url").Set(currentLocation)
-		w.CurrentURL = currentLocation
-		w.URLCheckTimer = time.Now().Add(time.Second / 4)
+	if w.BrowserTab != nil && w.SetURL != w.BrowserTab.CurrentURL {
+		w.SetURL = w.BrowserTab.CurrentURL
+		w.Card.Properties.Get("url").Set(w.BrowserTab.CurrentURL)
 	}
 
 	// loc := ""
@@ -4900,20 +4882,7 @@ func (w *WebContents) Update() {
 		w.HorizontalScrollbar.Update()
 		w.VerticalScrollbar.Update()
 
-		newDst := *w.Card.DisplayRect
-		newDst.X += newDst.W
-		newDst.W = 32
-		newDst.H = 32
-
-		// if ImmediateIconButton(newDst, sdl.Rect{272, 192, 32, 32}, 1, true) {
-		// 	chromedp.Run(w.Context, chromedp.KeyEvent(kb.PageUp))
-		// }
-		// newDst.Y += 32
-		// if ImmediateIconButton(newDst, sdl.Rect{272, 224, 32, 32}, 1, true) {
-		// 	chromedp.Run(w.Context, chromedp.KeyEvent(kb.PageDown))
-		// }
-
-		if w.ValidBrowserTexture {
+		if w.BrowserTab != nil && w.BrowserTab.Valid() {
 
 			if globals.Keybindings.Pressed(KBWebRecordInputs) {
 				w.ToggleRecordInput()
@@ -4921,9 +4890,10 @@ func (w *WebContents) Update() {
 
 			} else if globals.Keybindings.Pressed(KBWebOpenPage) {
 				w.OpenURLInBrowser()
-			} else if w.RecordInput {
+				globals.Keybindings.Shortcuts[KBWebOpenPage].ConsumeKeys()
+			} else if w.RecordInput && w.BrowserTab != nil {
 
-				globals.State = StateTextEditing
+				globals.State = StateTextEditing // So that pressing keys doesn't trigger shortcuts
 
 				modifiers := map[sdl.Keycode]input.Modifier{
 					sdl.K_LSHIFT: input.ModifierShift,
@@ -4934,19 +4904,19 @@ func (w *WebContents) Update() {
 					sdl.K_RALT:   input.ModifierAlt,
 				}
 
-				if button := globals.Mouse.Button(sdl.BUTTON_X1); button.Pressed() {
-					w.inputSent.Store(true)
-					w.NavigateBack()
-					button.Consume()
-				}
+				if mousePos.Inside(w.Card.DisplayRect) && !globals.Mouse.OverGUI {
 
-				if button := globals.Mouse.Button(sdl.BUTTON_X2); button.Pressed() {
-					w.inputSent.Store(true)
-					w.NavigateForward()
-					button.Consume()
-				}
+					if button := globals.Mouse.Button(sdl.BUTTON_X1); button.Pressed() {
+						w.BrowserTab.ForceRefresh.Store(true)
+						w.BrowserTab.NavigateBack()
+						button.Consume()
+					}
 
-				if mousePos.Inside(w.Card.DisplayRect) {
+					if button := globals.Mouse.Button(sdl.BUTTON_X2); button.Pressed() {
+						w.BrowserTab.ForceRefresh.Store(true)
+						w.BrowserTab.NavigateForward()
+						button.Consume()
+					}
 
 					globals.Mouse.SetCursor(CursorWebArrow)
 
@@ -4957,8 +4927,8 @@ func (w *WebContents) Update() {
 					browserPos.X /= w.Card.DisplayRect.W
 					browserPos.Y /= w.Card.DisplayRect.H
 
-					bx := float64(browserPos.X * float32(w.DeviceInfo.Width))
-					by := float64(browserPos.Y * float32(w.DeviceInfo.Height))
+					bx := float64(browserPos.X * float32(w.BrowserTab.DeviceInfo.Device().Width))
+					by := float64(browserPos.Y * float32(w.BrowserTab.DeviceInfo.Device().Height))
 
 					// chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MouseMoved))
 
@@ -4970,44 +4940,46 @@ func (w *WebContents) Update() {
 						}
 					}
 
-					for sdlButton, chromeDPButtonString := range map[uint8]string{
-						sdl.BUTTON_LEFT:   "left",
-						sdl.BUTTON_MIDDLE: "middle",
-						sdl.BUTTON_RIGHT:  "right",
-					} {
+					if !w.HorizontalScrollbar.Dragging && !w.VerticalScrollbar.Dragging {
 
-						button := globals.Mouse.Button(sdlButton)
-						if button.Pressed() {
-							chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MousePressed, chromedp.Button(chromeDPButtonString)))
-							w.inputSent.Store(true)
-							button.Consume()
-						} else if button.Held() {
-							chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MouseMoved, chromedp.Button(chromeDPButtonString)))
-							w.inputSent.Store(true)
-							button.Consume()
-						} else if button.Released() {
-							chromedp.Run(w.Context, w.makeMouseAction(bx, by, input.MouseReleased, chromedp.Button(chromeDPButtonString)))
-							w.inputSent.Store(true)
-							button.Consume()
+						for sdlButton, chromeDPButtonString := range map[uint8]string{
+							sdl.BUTTON_LEFT:   "left",
+							sdl.BUTTON_MIDDLE: "middle",
+							sdl.BUTTON_RIGHT:  "right",
+						} {
+
+							button := globals.Mouse.Button(sdlButton)
+							if button.Pressed() {
+								w.BrowserTab.Do(w.makeMouseAction(bx, by, input.MousePressed, chromedp.Button(chromeDPButtonString)))
+								w.BrowserTab.ForceRefresh.Store(true)
+								button.Consume()
+							} else if button.HeldRaw() {
+								w.BrowserTab.Do(w.makeMouseAction(bx, by, input.MouseMoved, chromedp.Button(chromeDPButtonString)))
+								w.BrowserTab.ForceRefresh.Store(true)
+							} else if button.ReleasedRaw() {
+								w.BrowserTab.Do(w.makeMouseAction(bx, by, input.MouseReleased, chromedp.Button(chromeDPButtonString)))
+								w.BrowserTab.ForceRefresh.Store(true)
+							}
+
 						}
 
-					}
+						if wheel := globals.Mouse.wheel; wheel != 0 {
+							globals.Mouse.wheel = 0 // Consume the mouse action
+							wheelEvent := input.DispatchMouseEvent(input.MouseWheel, bx, by)
+							wheel *= -100
+							wheelEvent.DeltaY = float64(wheel)
+							wheelEvent.Modifiers = activeMod
+							w.BrowserTab.Do(wheelEvent)
+							w.BrowserTab.ForceRefresh.Store(true)
+						}
 
-					if wheel := globals.Mouse.wheel; wheel != 0 {
-						globals.Mouse.wheel = 0
-						wheelEvent := input.DispatchMouseEvent(input.MouseWheel, bx, by)
-						wheel *= -100
-						wheelEvent.DeltaY = float64(wheel)
-						wheelEvent.Modifiers = activeMod
-						chromedp.Run(w.Context, wheelEvent)
-						w.inputSent.Store(true)
 					}
 
 				}
 
 				if len(globals.InputText) > 0 {
-					chromedp.Run(w.Context, chromedp.KeyEvent(string(globals.InputText)))
-					w.inputSent.Store(true)
+					w.BrowserTab.Do(chromedp.KeyEvent(string(globals.InputText)))
+					w.BrowserTab.ForceRefresh.Store(true)
 				}
 
 				specialKeys := map[sdl.Keycode]string{
@@ -5112,10 +5084,9 @@ func (w *WebContents) Update() {
 					}
 
 					if key := globals.Keyboard.Key(sdlKey); key.Pressed() {
-						chromedp.Run(w.Context, chromedp.KeyEvent(chromeDPKey, chromedp.KeyModifiers(modifierSlice...)))
-						// chromedp.Run(w.Context, chromedp.KeyEvent(chromeDPKey))
+						w.BrowserTab.Do(chromedp.KeyEvent(chromeDPKey, chromedp.KeyModifiers(modifierSlice...)))
 						key.Consume()
-						w.inputSent.Store(true)
+						w.BrowserTab.ForceRefresh.Store(true)
 					}
 				}
 
@@ -5133,31 +5104,62 @@ func (w *WebContents) Update() {
 					}
 
 					if key := globals.Keyboard.Key(sdlKey); key.Pressed() && len(modifierSlice) > 0 {
-						chromedp.Run(w.Context, chromedp.KeyEvent(chromeDPKey, chromedp.KeyModifiers(modifierSlice...)))
+						w.BrowserTab.Do(chromedp.KeyEvent(chromeDPKey, chromedp.KeyModifiers(modifierSlice...)))
 						key.Consume()
-						w.inputSent.Store(true)
+						w.BrowserTab.ForceRefresh.Store(true)
 					}
 				}
 
 			}
 
-			if !w.VerticalScrollbar.Dragging {
+			if !w.HorizontalScrollbar.Dragging {
 
-				scrollYPerc := 0.0
+				if time.Since(w.ScrollbarUpdateTimer) > time.Second/4 && w.HorizontalScrollbar.MouseClose {
 
-				chromedp.Run(w.Context, chromedp.Evaluate(`
+					scrollXPerc := 0.0
 
-			var body = document.body;
-			var html = document.documentElement;
-			var pageHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+					chromedp.Run(w.BrowserTab.Context, chromedp.Evaluate(`
 
-			window.scrollY / (pageHeight - window.innerHeight);
-			`, &scrollYPerc))
+				var body = document.body;
+				var html = document.documentElement;
+				var pageWidth = Math.max(body.scrollWidth, body.offsetWidth, html.clientWidth, html.scrollWidth, html.offsetWidth);
+	
+				window.scrollX / (pageWidth - window.innerWidth);
+				`, &scrollXPerc))
 
-				w.VerticalScrollbar.TargetValue = float32(scrollYPerc)
+					w.HorizontalScrollbar.TargetValue = float32(scrollXPerc)
+
+					w.ScrollbarUpdateTimer = time.Now()
+
+				}
 
 			} else {
-				w.inputSent.Store(true)
+				w.BrowserTab.ForceRefresh.Store(true)
+			}
+
+			if !w.VerticalScrollbar.Dragging {
+
+				if time.Since(w.ScrollbarUpdateTimer) > time.Second/4 && w.VerticalScrollbar.MouseClose {
+
+					scrollYPerc := 0.0
+
+					chromedp.Run(w.BrowserTab.Context, chromedp.Evaluate(`
+
+				var body = document.body;
+				var html = document.documentElement;
+				var pageHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+	
+				window.scrollY / (pageHeight - window.innerHeight);
+				`, &scrollYPerc))
+
+					w.VerticalScrollbar.TargetValue = float32(scrollYPerc)
+
+					w.ScrollbarUpdateTimer = time.Now()
+
+				}
+
+			} else {
+				w.BrowserTab.ForceRefresh.Store(true)
 			}
 
 		}
@@ -5172,7 +5174,40 @@ func (w *WebContents) Update() {
 
 		}
 
+	} else if w.RecordInput && globals.State == StateTextEditing {
+		// If we're recording input and the card loses focus, then reset the global state to neutral
+		// and disallow recording input on the card
+		w.RecordInput = false
+		globals.State = StateNeutral
 	}
+
+}
+
+func (w *WebContents) makeMouseAction(x, y float64, inputType input.MouseType, opts ...chromedp.MouseOption) chromedp.ActionFunc {
+
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		p := &input.DispatchMouseEventParams{
+			Type:       inputType,
+			X:          x,
+			Y:          y,
+			Button:     input.Left,
+			ClickCount: 1,
+		}
+
+		// apply opts
+		for _, o := range opts {
+			p = o(p)
+		}
+
+		if err := p.Do(ctx); err != nil {
+			return err
+		}
+
+		return nil
+
+		// p.Type = input.MouseReleased
+		// return p.Do(ctx)
+	})
 
 }
 
@@ -5209,31 +5244,40 @@ func (w *WebContents) Draw() {
 
 	camera := w.Card.Page.Project.Camera
 
-	if w.ValidBrowserTexture {
-		dst := camera.TranslateRect(w.Card.DisplayRect)
-		globals.Renderer.CopyF(w.ImageTexture, nil, dst)
+	if w.BrowserTab != nil {
 
-		if w.LoadingWebpage.Load() {
-			rect := &sdl.FRect{w.Card.DisplayRect.X + 32, w.Card.DisplayRect.Y, 32, 32}
-			globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{272, 256, 32, 32}, camera.TranslateRect(rect), globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+		w.BrowserTab.UpdateTexture()
+
+		if w.BrowserTab.ImageTexture != nil {
+
+			if w.BrowserTab.Valid() {
+				dst := camera.TranslateRect(w.Card.DisplayRect)
+				globals.Renderer.CopyF(w.BrowserTab.ImageTexture, nil, dst)
+			}
+
+			if w.BrowserTab.LoadingWebpage.Load() {
+				rect := &sdl.FRect{w.Card.DisplayRect.X + 32, w.Card.DisplayRect.Y, 32, 32}
+				globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{272, 256, 32, 32}, camera.TranslateRect(rect), globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+			}
+
+		} else {
+			w.DisableRecordInput()
+			target := *w.Card.DisplayRect
+			target.W = 32
+			target.H = 32
+			target.X += (w.Card.DisplayRect.W / 2) - (target.W / 2)
+			target.Y += (w.Card.DisplayRect.H / 2) - (target.H / 2)
+			dst := camera.TranslateRect(&target)
+			globals.GUITexture.Texture.SetBlendMode(sdl.BLENDMODE_ADD)
+			globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{272, 256, 32, 32}, dst, globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+			globals.GUITexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 		}
 
-	} else {
-		w.DisableRecordInput()
-		target := *w.Card.DisplayRect
-		target.W = 32
-		target.H = 32
-		target.X += (w.Card.DisplayRect.W / 2) - (target.W / 2)
-		target.Y += (w.Card.DisplayRect.H / 2) - (target.H / 2)
-		dst := camera.TranslateRect(&target)
-		globals.GUITexture.Texture.SetBlendMode(sdl.BLENDMODE_ADD)
-		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{272, 256, 32, 32}, dst, globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
-		globals.GUITexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
-	}
+		if w.RecordInput {
+			rect := &sdl.FRect{w.Card.DisplayRect.X + 4, w.Card.DisplayRect.Y + 4, 32, 16}
+			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{480, 96, 32, 16}, camera.TranslateRect(rect))
+		}
 
-	if w.RecordInput {
-		rect := &sdl.FRect{w.Card.DisplayRect.X + 4, w.Card.DisplayRect.Y, 16, 16}
-		globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{496, 80, 16, 16}, camera.TranslateRect(rect))
 	}
 
 	if w.Card.selected {
@@ -5251,7 +5295,7 @@ func (w *WebContents) Draw() {
 
 	mousePos := globals.Mouse.WorldPosition()
 
-	// This is here to allow you to click out of the window and deselect / undo input recording, but also allow you to click on buttons in the header
+	// This is here to allow you to click out of the window and deselect but also allow you to click on buttons in the header
 	if !mousePos.Inside(w.Card.DisplayRect) && globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
 		w.Card.Deselect()
 		globals.State = StateNeutral
@@ -5277,19 +5321,19 @@ func (w *WebContents) Color() Color {
 
 func (w *WebContents) ReceiveMessage(msg *Message) {
 	if msg.Type == MessageCardDeleted {
-		w.ContextValid.Store(false)
-		w.ValidBrowserTexture = false
-		w.RefreshedTexture.Store(false)
+		w.BrowserTab.Destroy()
+		w.BrowserTab = nil
 	} else if msg.Type == MessageCardRestored {
-		w.NavigatedURL = ""
-		w.TargetURL = w.CurrentURL
 		w.ReinitContext()
-		w.UpdateBufferSize()
-		w.inputSent.Store(true) // Send the input sent to indicate that it should update the texture regardless of FPS, update settings, etc.
-	} else if msg.Type == MessageUndoRedo {
-		if w.ContextValid.Load() {
-			w.UpdateBufferSize()
+		if w.BrowserTab != nil {
+			w.BrowserTab.ForceRefresh.Store(true) // Send the input sent to indicate that it should update the texture regardless of FPS, update settings, etc.
 		}
+	} else if msg.Type == MessageUndoRedo {
+		if w.BrowserTab != nil {
+			w.BrowserTab.UpdateBufferSize(w.Width(), w.Height())
+		}
+	} else if msg.Type == MessageCardDestroyed {
+		w.BrowserTab.Destroy()
 	}
 }
 
@@ -5302,6 +5346,10 @@ func (w *WebContents) Trigger(triggerType int) {}
 func (w *WebContents) CompletionLevel() float32 { return 0 }
 
 func (w *WebContents) MaximumCompletionLevel() float32 { return 0 }
+
+func (w *WebContents) Collapseable() bool {
+	return false
+}
 
 // type WebContents struct {
 // 	DefaultContents

@@ -88,7 +88,7 @@ func NewResource(resourcePath string) (*Resource, error) {
 
 	} else {
 
-		log.Println("possible online resource")
+		log.Println("possible online resource: ", resourcePath)
 
 		project := globals.Project
 

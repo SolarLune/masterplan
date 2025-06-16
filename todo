@@ -1,36 +1,98 @@
+[ ] Add the ability to pack all relevant files into the .plan file?
+[ ] Add the ability to create new pages from the pages view?
+[x] Add a clock-type task?
+[ ] Nodes for flowcharting?
+[x] Fix collapsing to maybe just alternate between full and single-line?
+[ ] Fix bug where it crashes when zooming in or out and panning (might require moving to SDL3)
+[ ] Maybe use zenity's Calendar for deadline date selection?
+
+[ ] Maybe add the ability to point Sub-plan cards to existing pages?
+[ ] Add button to reset settings to default
+[ ] Fix Web card issues:
+[ ] -- Freeze when loading a project with a web card in it
+[ ] -- Can't copy text from a web card and paste it outside of the browser
+[ ] -- Click and dragging works, but is laggy
+[ ] -- Shouldn't be able to auto-trigger a 00:00 timer
+[ ] Something weird going on with not being able to double-click text areas with the web card in existence?
 [x] Editing card pushes lower cards up
 [x] Taking screenshots crash MP
 [x] Can't go up sub-pages via keybinding while in Link Mode
-[ ] -- Fix text UI not scrolling when typing
+[ ] Timer card issues:
+[x] -- When a timer is set to 0, it goes off constantly
+[x] -- Timer can be set to 0
+[x] -- When a timer finishes, it automatically restarts when linked
+[x] -- When restarting the program, all timers need to be manually reset (See https://discord.com/channels/339550825154347008/758009278756946040/1341895256240689223)
+[ ] Do something about the text being slightly blurry in a bad way? Like, some letters aren't blurring correctly ('c', for example).
+[ ] You can draw on maps (as an example; other tools are probably also usable) through a GUI window; this is difficult to solve because the UI updates last, I think?
+[ ] Maybe it would be nice to introduce a "Map Layer" that allows you to easily put things on top of the map and can be shown / hidden at will?
+[ ] It would probably be cool to add multiple floors for maps as well
+
+[ ] -- It would be cool if you could type into notes and then compress them down into a single tile; when you hover over them, they expand
+[x] -- It might be nice to make maps stay in place when resizing, rather than needing to shift manually?
+[ ] -- Fix text UI not scrolling when typing (this can be resolved by just splitting by character count / width if no other splittable characters (space, newline, hyphen) exist)
 [ ] -- Make caret glow partially instead of blink
 [ ] -- Double-pressing Enter doesn't update the card's size by twice, but rather only once
 [ ] -- Label-able Lines?-
+[ ] -- Add auto-save for unsaved projects
+[ ] -- Add some method of layering images (as an example) to place things on top of others and still swap them around as necessary.
+
+For modding:
+
+[ ] Implement goja
+[ ] Idea cards to ensure things work properly:
+[ ] -- Calculator Card
+[ ] -- Weather Card
+[ ] Define content type in script
+[ ] Implement basic modding API; functionality:
+[ ] -- Draw and check quick buttons in header
+[ ] -- Implement custom settings options
+[ ] -- Implement properties
+[ ] -- Implement loading and drawing an image
+[ ] -- Implement loading and playing a sound
+[ ] -- Ensure all GUI elements are available
+[ ] -- -- Checkbox
+[ ] -- -- Label
+[ ] -- -- Button
+[ ] -- -- ButtonGroup
+[ ] -- -- Dropdown
+[ ] -- -- NumberSpinner
+[ ] -- -- Spacer
+[ ] -- -- Tooltip
+[ ] -- -- ProgressBar
+[ ] -- -- IconButton (ImmediateIconButton?)
+[ ] -- -- ContainerRow?
+[ ] -- -- GUIImage
+[ ] -- -- Scrollbar
+[ ] -- -- ColorWheel
+[ ] -- -- Highlighter?
+[ ] -- -- DraggableSpace (maybe not, this is for numbered contents)
+[ ] -- -- DraggableLabel (probably not, this is for tables)
+[ ] -- -- Pie
 
 For Web card :
-[x] -- Mode to enable clicking in card / entering text
-[x] -- Menu to change backing buffer size, update frequency (ASAP, once per second, never, as well as those options only when on-screen, only when selected, etc)
-[x] -- Add vertical and horizontal scrollbar?
-[ ] -- Save scroll, ideally? 
-[x] -- Open current URL in another card
-[x] -- Open current URL in browser
-[x] -- Fix deleting card making goroutine crash
-[x] -- Button to open browser to website URL
-[x] -- Fix going back and forward
-[ ] -- See if it's possible to use alternative browsers : Edge, Brave, Opera, Vivaldi, Ungoogled-Chromium (?)
-[ ] -- Options for Chrome-based browsers to prefer
-[ ] -- See if there's a smooth way to share as much data as possible between multiple Web Cards - each Card is a single Chrome process currently, I think
-[ ] -- Cache last taken shot so that if MasterPlan opens without a connection, it displays that instead?
-[x] -- Make URLs write directly to property on card to allow you to save the project and save the currently viewed URL
-[ ] -- Add the ability to resize browser backing texture size by dragging card? Maybe not, because people are going to try to make massive browser sizes.
-[ ] -- Some way to speed up texture uploading
-[x] -- Fix clicking in URL text area deselecting URL
-[x] -- Optimize texture streaming; EDIT: There's no further way to do this, I think?
+[x] Menu to change backing buffer size, update frequency (ASAP, once per second, never, as well as those options only when on-screen, only when selected, etc)
+[x] Mode to enable clicking in card / entering text
+[x] Add vertical and horizontal scrollbar?
+[ ] Save scroll, ideally?
+[x] Open current URL in another card
+[x] Open current URL in browser
+[x] Fix deleting card making goroutine crash
+[x] Button to open browser to website URL
+[x] Fix going back and forward
+[?] See if it's possible to use alternative browsers : Edge, Brave, Opera, Vivaldi, Ungoogled-Chromium (?) (I think this works if you point the executable path to the alternative Chrome-based browser)
+[ ] Options for Chrome-based browsers to prefer
+[ ] See if there's a smooth way to share as much data as possible between multiple Web Cards - each Card is a single Chrome process currently, I think
+[ ] Cache last taken shot so that if MasterPlan opens without a connection, it displays that instead?
+[x] Make URLs write directly to property on card to allow you to save the project and save the currently viewed URL
+[ ] Add the ability to resize browser backing texture size by dragging card? Maybe not, because people are going to try to make massive browser sizes.
+[ ] Some way to speed up texture uploading
+[x] Fix clicking in URL text area deselecting URL
+[x] Optimize texture streaming; EDIT: There's no further way to do this, I think?
+
 [ ] -- Video card using ffmpeg-go?
 [ ] -- Reimplement URL buttons in text
 
 [x] Show shortcut collisions in input menu
-
-[ ] -- Possibly some kind of visual scripting something or other
 
 [ ] Make shortcuts be aware of the contexts in which they operate, so that true shortcut conflicts can be reported
 [x] Link text is essentially blank (Doesn't seem to be that way for me right now)
@@ -60,18 +122,18 @@ For Web card :
 
 3. Some kind of collaboration. You can host a room and anyone else can be able to join the room, so he can edit things in real time with you (SL: Definitely collaboration)
 1. Document/Video card. Will be able to display vids and documents (SL: No document card, maybe video card?)
-4. Improve link card. If linked to .exe or any other launcher file, it will display the icon of it. Also the "locate" button, that will send you to the folder the linked file is located in (will be very easy to launch and locate game versions)
-5. Optional markdown support on note card. Self-explanatory (SL: MAYBE MD support?)
-6. Be able to launch code (python, pascal, etc) on button click (in note card as example) (SL: You should be able to do this with a Link card?)
-7. Group card. Will be able to group cards in the group, that can be minimized and maximized (some kind of sub-page, but more efficient for ppl, maybe set as a toggle in settings if you want to use normal sub pages or that kind)
-8. Encryption. Basically you will be able to encrypt things in settings (and set the encryption code). You'll need to enter the code every time you are on new Operating system, or every boot up
-11. Color picker card. Self explanatory
-13. Overlapping settings. Check if the card will always stay on top, change the layer the card will be on, etc (the visibility of these settings will be optional in settings)
+1. Improve link card. If linked to .exe or any other launcher file, it will display the icon of it. Also the "locate" button, that will send you to the folder the linked file is located in (will be very easy to launch and locate game versions)
+1. Optional markdown support on note card. Self-explanatory (SL: MAYBE MD support?)
+1. Be able to launch code (python, pascal, etc) on button click (in note card as example) (SL: You should be able to do this with a Link card?)
+1. Group card. Will be able to group cards in the group, that can be minimized and maximized (some kind of sub-page, but more efficient for ppl, maybe set as a toggle in settings if you want to use normal sub pages or that kind)
+1. Encryption. Basically you will be able to encrypt things in settings (and set the encryption code). You'll need to enter the code every time you are on new Operating system, or every boot up
+1. Color picker card. Self explanatory
+1. Overlapping settings. Check if the card will always stay on top, change the layer the card will be on, etc (the visibility of these settings will be optional in settings)
 
-2. Web card. Will be able to display and save website data/etc.
-12. Create window settings. Will be able to let you choose what do you want to see on the windows and in what order. Also will add three dots to see all hidden cards
-9. Better animations? Not gonna explain why, I just feel like the dragging anims rn are stiff (it's fine if you don't want to make them better, anyways functionality prevails over design xd) 
-10. 3-D model viewer. I already know it's hard to do cuz things, etc, but libraries can ease up the process
+1. Web card. Will be able to display and save website data/etc.
+1. Create window settings. Will be able to let you choose what do you want to see on the windows and in what order. Also will add three dots to see all hidden cards
+1. Better animations? Not gonna explain why, I just feel like the dragging anims rn are stiff (it's fine if you don't want to make them better, anyways functionality prevails over design xd)
+1. 3-D model viewer. I already know it's hard to do cuz things, etc, but libraries can ease up the process
 
 [ ] Look into compiling for M1 Macs - could be possible to build into build_script with custom compilation flags: https://github.com/veandco/go-sdl2/issues/479#issuecomment-949781196
 [ ] Add the ability for clipboard images to be saved in the MasterPlan download cache directory.
@@ -80,21 +142,20 @@ For Web card :
 [x] Resizing cards makes new neighbors, even before finishing the resize process.
 [ ] Simplify clipboard image loading / saving; it might not be necessary to write them to temporary files, as this could be loaded from memory.
 [ ] Add tags or icon functionality to prioritize Cards; they can also be searchable in the Find / Hierarchy dialogs.
-    That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
-    See: https://discord.com/channels/339550825154347008/758009278756946040/906326736965357628
+That said, it's not working on M1 Macs currently because of possibly SDL_ttf - this means that it might work if we didn't rely on SDL_ttf...?
+See: https://discord.com/channels/339550825154347008/758009278756946040/906326736965357628
 [x] You can't click on menus if you're editing maps and the menu covers the map
 [x] If loading a sound file fails (see: https://discordapp.com/channels/339550825154347008/900240962792620052/1019084852131278878), MasterPlan should inform the user, not silently crash
 [x] Home or End + Shift to select text using those keys
 [x] Disable debug options in release build
-[ ] Timeline card? Some kind of grid where you can place cards and they will be sorted in chronological order?
-    - Maybe this should be a "view"? So various cards can be 
+[ ] Timeline card? Some kind of grid where you can place cards and they will be sorted in chronological order? - Maybe this should be a "view"? So various cards can be
 [ ] Add shadows for Maps and Images
 [ ] Add ability to join Cards together to move them together
 [ ] Timers trigger Numbered Cards and increment / decrement instead of filling entirely
 [x] Add draggable sliders to change Numbered Card values
-  [x] The sliders must always be visible
-  [x] Add ability to display current amount or current out of maximum for Numbered cards
-  [ ] Changing text in a collapsed Card shouldn't uncollapse it
+[x] The sliders must always be visible
+[x] Add ability to display current amount or current out of maximum for Numbered cards
+[ ] Changing text in a collapsed Card shouldn't uncollapse it
 [ ] Add ability to change fill skin for Numbered cards
 [ ] Add templating system for frequently-altered collections of Cards
 [ ] Add ability to enter < 0 minimum values
@@ -107,7 +168,7 @@ For Web card :
 [x] Option to disable shadows on cards
 [x] Reimplement relative filepaths
 [ ] Spreadsheet support to represent them in MasterPlan as a table?
-[x] Add a view for upcoming deadlines 
+[x] Add a view for upcoming deadlines
 [x] PDF / PNG output (See: https://github.com/signintech/gopdf, or https://github.com/tdewolff/canvas)
 [x] Add method to copy colors from one card to others
 [x] Reimplement automatic relative paths
@@ -115,36 +176,37 @@ For Web card :
 [x] Prefer discrete GPU
 [x] Fix crashing / panics not reporting things to log files
 [x] Add option to save downloaded images in the project
-  - [ ] Do something about deleting downloaded images if necessary?
-[ ] Navigating between GUI options using tab + shift+tab (at some point; not as high a priority since most elements can be modified directly on the board, so there's less menu navigation).
-[ ] Add option to disable icons on Cards
-[ ] Parented Checkbox and Numbered Cards don't flash properly
-[ ] Fix sub-page title text not being centered / not editing properly with newlines
-[x] Make it so if images surpass the GPU's maximum texture size, they get sized down
-[x] What should we do if we're using media from another drive?
-[ ] Optimize - seems like there's a memory leak somewhere
-  [ ] Loop through slices to perform a function instead of making a duplicate slice to iterate through
-[ ] Show keybinding conflicts in the Keybindings menu
-[x] Make all text fields in Cards (like their title / description) consistent in terms of their capabilities
-[ ] Fix storing a card in collapsed mode doesn't allow it to become uncollapsed; guess we'll need to store the uncollapsed size to revert to.
-[ ] Option to zip export output?
-[ ] Registry menu or something where you can set shortcuts to jump to specific cards / parts of your project? Maybe you can tag pages from the Hierarchy menu?
-[ ] Box Card that expands to highlight / "cover" a selection of cards. You can manually resize it, or press a button to enclose a selection of Cards. You can also hide cards inside of this "box".
-[ ] Tables, both for completion, as well as for organizing text. See the image here for an example of how tables should look: https://discord.com/channels/339550825154347008/944383281145733131/984075751865348116
-[ ] Add an option to represent dates as "d/m/y" or "m/d/y" or "y/d/m" or whatever
-[ ] Disconnecting a monitor crashes MasterPlan
-[ ] Use dispatcher for Hierarchy as necessary
-[ ] Option to draw background / outer square for images
-[ ] Don't save empty / null properties in save file (?)
-[ ] Crystal (additive blending) graphical mode for Cards
-[ ] Splash-screen? IDK if I should have it or not.
-[ ] Add options to rotate images
-[ ] Double-clicking to select editable labels shouldn't place the caret at the end of the text
-[ ] Add additional prompt if files already exist with one or more of the exported filenames. 
-[ ] Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
-[ ] Add templates, see: https://steamcommunity.com/app/1269310/discussions/0/3418808914582580976/
 
-- Lines, Maps
+-   [ ] Do something about deleting downloaded images if necessary?
+        [ ] Navigating between GUI options using tab + shift+tab (at some point; not as high a priority since most elements can be modified directly on the board, so there's less menu navigation).
+        [ ] Add option to disable icons on Cards
+        [ ] Parented Checkbox and Numbered Cards don't flash properly
+        [ ] Fix sub-page title text not being centered / not editing properly with newlines
+        [x] Make it so if images surpass the GPU's maximum texture size, they get sized down
+        [x] What should we do if we're using media from another drive?
+        [ ] Optimize - seems like there's a memory leak somewhere
+        [ ] Loop through slices to perform a function instead of making a duplicate slice to iterate through
+        [ ] Show keybinding conflicts in the Keybindings menu
+        [x] Make all text fields in Cards (like their title / description) consistent in terms of their capabilities
+        [ ] Fix storing a card in collapsed mode doesn't allow it to become uncollapsed; guess we'll need to store the uncollapsed size to revert to.
+        [ ] Option to zip export output?
+        [ ] Registry menu or something where you can set shortcuts to jump to specific cards / parts of your project? Maybe you can tag pages from the Hierarchy menu?
+        [ ] Box Card that expands to highlight / "cover" a selection of cards. You can manually resize it, or press a button to enclose a selection of Cards. You can also hide cards inside of this "box".
+        [ ] Tables, both for completion, as well as for organizing text. See the image here for an example of how tables should look: https://discord.com/channels/339550825154347008/944383281145733131/984075751865348116
+        [ ] Add an option to represent dates as "d/m/y" or "m/d/y" or "y/d/m" or whatever
+        [ ] Disconnecting a monitor crashes MasterPlan
+        [ ] Use dispatcher for Hierarchy as necessary
+        [ ] Option to draw background / outer square for images
+        [ ] Don't save empty / null properties in save file (?)
+        [ ] Crystal (additive blending) graphical mode for Cards
+        [ ] Splash-screen? IDK if I should have it or not.
+        [ ] Add options to rotate images
+        [ ] Double-clicking to select editable labels shouldn't place the caret at the end of the text
+        [ ] Add additional prompt if files already exist with one or more of the exported filenames.
+        [ ] Dragging a task over a stack should attempt to insert it - might also be acceptable to simply make the keyboard shortcut to slide Tasks do this
+        [ ] Add templates, see: https://steamcommunity.com/app/1269310/discussions/0/3418808914582580976/
+
+-   Lines, Maps
 
 [x] Document orphan pages
 [x] Document hierarchy
@@ -165,23 +227,23 @@ For Web card :
 [ ] Speed up saving screenshots in the project file - it's EXTREMELY slow
 [ ] Follow caret as you type when editing text
 [ ] Maybe don't use render textures for cards considering rendering 9 textures might just be faster than rendering a massive texture??? Not sure of the trade-off in terms of speed, but not
-    every computer has really large texture limits
+every computer has really large texture limits
 [ ] Add text when you first save or load a project so you know it's doing it, maybe?
 
 [ ] Save menu positions across sessions
 [ ] Re-add the tutorial
 [ ] Rework directional card selection to work better with cards inside of other cards
 [ ] Feature to loop timers
-  [ ] Feature to loop timer chains (i.e. once timer A makes timer B happen, it can loop back around somehow)
+[ ] Feature to loop timer chains (i.e. once timer A makes timer B happen, it can loop back around somehow)
 [ ] Add version check to themes - if a theme doesn't have the version check, don't load it (and specify the error in the message at the bottom-left)???
 [ ] Add hours / days (?) to timer: https://discord.com/channels/339550825154347008/758009278756946040/967082808386400276
 [ ] Limit size of notes, maybe? Or make multiple textures for each "part" of a huge note or something like that, IDK
-  [ ] Software renderer - Create manual software fallback - this way, computers with poor VRAM or maximum texture sizes won't have such problems
+[ ] Software renderer - Create manual software fallback - this way, computers with poor VRAM or maximum texture sizes won't have such problems
 [x] Don't auto-load project if loading it doesn't work
 [x] Fix Cut not working???
 [ ] Copying sub-pages should copy the contents, rather than copying the card itself only
 [ ] Hover hints (i.e. hovering over certain elements will display a message relevant to the element you're hovering over). It would be nice if they had some visuals as well to assist with explanation (like screenshots).
-  [ ] Hover over Cards to display more information about them (full task, creation date, completion date, etc).
+[ ] Hover over Cards to display more information about them (full task, creation date, completion date, etc).
 [ ] "Higher-quality" text rendering? : https://steamcommunity.com/app/1269310/discussions/0/3183484867126950856/
 [ ] Hide map background when zoomed out enough to make it seem "contiguous"
 [ ] Add alternate borders for maps for terrain
@@ -191,7 +253,7 @@ For Web card :
 [x] Things that modify cards (undo / redo, timer elapsing, find) activates that page
 [x] Deleting a sub-page card invalidates that page so find doesn't find it; it should no longer be updated
 [ ] Add some sort of "ball" object that allows you to test simple physics / motions / spaces???
-Add (?) bubbles that you can hover over to get some text / information. This would probably best be done with a GUI element to 
+Add (?) bubbles that you can hover over to get some text / information. This would probably best be done with a GUI element to
 [x] Unlock Aspect Ratio isn't working
 [x] Make it so menus on the edges are anchored there, and won't move regardless of window resizing
 [x] Fix pasting sub-page in itself, which prevents you from being able to get out???
@@ -200,12 +262,12 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [x] Card movement!
 
 [ ] Due dates
-  [ ] Calendar? https://github.com/SolarLune/masterplan/issues/74
+[ ] Calendar? https://github.com/SolarLune/masterplan/issues/74
 [ ] Time unit estimation should be better
-  [ ] Fix time unit estimation to handle large months (i.e. many years) properly
+[ ] Fix time unit estimation to handle large months (i.e. many years) properly
 [x] Window Transparency / make window transparent if mouse isn't in window
 [ ] Ability to point to different cards (maybe this is a specific card type?)
-  [ ] Ability to run commands / execute functions?
+[ ] Ability to run commands / execute functions?
 [ ] Key to jump to ends of arrow cards
 [ ] Ability to search / list Cards by type
 [ ] Ability to edit Card contents using buttons to cycle through the controls
@@ -237,7 +299,7 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [ ] Copy shapes in maps
 [x] Fix the text somehow, it still looks bad
 [x] Implement searching shortcuts
-[x] Replace double-click setting with drop-down for nothing, checkbox, last Card type: https://discord.com/channels/339550825154347008/758009278756946040/90482710  7102851164
+[x] Replace double-click setting with drop-down for nothing, checkbox, last Card type: https://discord.com/channels/339550825154347008/758009278756946040/90482710 7102851164
 [x] Fix inability to click nodes on top of other Cards
 [x] Loading doesn't link properly: https://discord.com/channels/339550825154347008/900240962792620052/902289884541239306
 [ ] Add Touch support: https://wiki.libsdl.org/SDL_TouchFingerEvent
@@ -284,7 +346,7 @@ Add (?) bubbles that you can hover over to get some text / information. This wou
 [ ] Add a means to link to locations on your board (this might be better done after Boards have been re-implemented)
 
 [ ] Rethink RenderTexture system - it'd be cool if it worked with reloading fonts (which means text can be different sizes, and the TextRenderer.RenderText() function would inform this; perhaps
-    the RenderTexture system should return a RenderTexture if given something that implements an interface somehow? It needs more flexibility, I think, is what I'm saying.)
+the RenderTexture system should return a RenderTexture if given something that implements an interface somehow? It needs more flexibility, I think, is what I'm saying.)
 
 [x] Line for editable text goes underneath first line for title?
 Number top-level tasks option
@@ -307,9 +369,9 @@ Split shortcut - use this when editing textboxes to split a Note, Checkbox, etc.
 Draw shadow underneath Map
 Note card becoming too large crashes due to exceeding graphics card texture limits
 
-- [ ] Execution of files somehow (either through evaluating text as a file link, or through a Card that accepts a path that will open it with the default application). It'd
-  be nice if I could click for example on an executable to run it, or on a markdown file to open it in a markdown editor (if I have it set up like that on my computer).
-- [ ] Calculator
+-   [ ] Execution of files somehow (either through evaluating text as a file link, or through a Card that accepts a path that will open it with the default application). It'd
+        be nice if I could click for example on an executable to run it, or on a markdown file to open it in a markdown editor (if I have it set up like that on my computer).
+-   [ ] Calculator
 
 [x] Space bar (or any keyboard key, or mouse click) to pan
 [x] Drag and drop plan to load project
@@ -329,36 +391,36 @@ Note card becoming too large crashes due to exceeding graphics card texture limi
 [x] Count-down Timer
 [ ] Reimplement Timers doing things on connected things on completion
 
-- A
-- Progression Task
-- Pasting Images
-- Create a roadmap; post on itch and Steam.
+-   A
+-   Progression Task
+-   Pasting Images
+-   Create a roadmap; post on itch and Steam.
 
-- Double-clicking on different Card to background creates Card
-- Project setting for importing images at their original size
-- Add option to not create new Tasks when double-clicking
-- Buttons for loading images, etc.
-- Maps should have a border to differentiate between them
+-   Double-clicking on different Card to background creates Card
+-   Project setting for importing images at their original size
+-   Add option to not create new Tasks when double-clicking
+-   Buttons for loading images, etc.
+-   Maps should have a border to differentiate between them
 
-- [x] Drag and drop images
-- [x] Map should be lower depth, if possible?
+-   [x] Drag and drop images
+-   [x] Map should be lower depth, if possible?
 
-- Wheel scrolling should be more sensitive
-- Two-finger slide to pan project?
-- Different camera pan locations for different Pages; that way switching between them doesn't necessitate moving the camera all of the time.
-- Export to One-Note / to image / PDF
-- When loading projects from previous versions of MasterPlan, focus on all Cards after load; otherwise, the camera pan should be saved, too.
-- Add "Quick Label" mode or something - something that would allow Labels to draw glyphs directly to the screen rather than to a texture first, which would be good for Labels that change often, like time indicators
-- Detect when an error causes a crash within the first, say, second; if it happens then on restart, suggest that there could've been an issue and ask if the user wishes to load the settings.
+-   Wheel scrolling should be more sensitive
+-   Two-finger slide to pan project?
+-   Different camera pan locations for different Pages; that way switching between them doesn't necessitate moving the camera all of the time.
+-   Export to One-Note / to image / PDF
+-   When loading projects from previous versions of MasterPlan, focus on all Cards after load; otherwise, the camera pan should be saved, too.
+-   Add "Quick Label" mode or something - something that would allow Labels to draw glyphs directly to the screen rather than to a texture first, which would be good for Labels that change often, like time indicators
+-   Detect when an error causes a crash within the first, say, second; if it happens then on restart, suggest that there could've been an issue and ask if the user wishes to load the settings.
 
 Short-term:
 
-- Different wording for options in context menu (Copy Cards -> Copy Card when only one is selected, Delete Cards > Delete 34 Cards when 34 are selected )
-- Status bar?
-- Messages when soemthing happens?
-- When zoomed out, text shouldn't draw or should be simplified
-- Card snapping
-- Hover over stuff to get a hint
+-   Different wording for options in context menu (Copy Cards -> Copy Card when only one is selected, Delete Cards > Delete 34 Cards when 34 are selected )
+-   Status bar?
+-   Messages when soemthing happens?
+-   When zoomed out, text shouldn't draw or should be simplified
+-   Card snapping
+-   Hover over stuff to get a hint
 
 Can't click and drag on Checkboxes when it's just 1x1
 
@@ -370,62 +432,63 @@ Instead of the current Board tab system, it would be better to implement a hiera
 
 RESOLVED
 
-- FIX?: MasterPlan no longer crashes when typing End and Delete in a Textbox? Specifically the backup one. - This doesn't seem to happen anymore.
-- Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800 - This actually isn't a bug, the user probably didn't specify a font that has Thai characters in it and the default (my font) doesn't have those characters.
+-   FIX?: MasterPlan no longer crashes when typing End and Delete in a Textbox? Specifically the backup one. - This doesn't seem to happen anymore.
+-   Thai language isn't working? : https://discord.com/channels/339550825154347008/606565892142399488/817717202488524800 - This actually isn't a bug, the user probably didn't specify a font that has Thai characters in it and the default (my font) doesn't have those characters.
 
 TODO
 
 [ ] v0.8 Refactor
-  - Rounded, cleaner, more visually appealing and bright, energetic design. No outlines (maybe even no anti-aliasing?)
-  - Cards
-    - Cards serve the same purpose as Tasks, but are slightly more advanced (and "Cards" as a name are more interesting and correct when compared to "Tasks", considering not every Task is completable)
-    - Cards can be attached to other Cards visually, as well as by "pinning" them, making it possible to move a Card by moving its parent
-    - Cards can be freely resized
-      - Resized cards should go at a minimum size to comfortably house all non-customizeable elements on the Card
-    - Cards can be edited largely right from the overview screen, without needing to open a separate Panel.
-      - The maximum value for Progression Cards can be modified by simply double-clicking on the relevant text box.
-    - Cards can be linked to show relationships by holding a key (Alt, for example), and clicking between Cards. These are explicit links; implicit links are still created by means of neighboring, as in MasterPlan v0.7.2.
-      - These lines should be "bendable" in a customizeable way. Arrows or dots or something should maybe stream from Card to Card through these lines, thereby showing "flow".
-    - Any text on Cards fade out if the Card isn't large enough to display the text element (a title, for example) fully
-    - Text is parsed for URLs or program / OS file or program links
-    - Cards are now at least 32x32 (test with higher-resolution fonts; if this isn't enough, then bump it up)
-  - Re-implement Progression Cards
-  [ ] Completable Tasks can have time estimations tied to them in some way.
-  [x] Note Cards
-    - Note Cards can contain stacks of information in a single Note.
-  [x] Sound Cards
-    - Add Seek bar
-    - Add Volume bar
-  [x] Image / GIF Cards
-    - Freely rotatable by clicking and dragging outside of the corners
-    - Paste images from system clipboard? See: https://github.com/golang-design/clipboard - Probably need to save image in project file itself in this case.
-  - Line Tasks no longer exist (for now)
-  - Copying Cards should now be global, rather than being localized to a single Project; maybe even better, it copies Cards straight to the OS buffer, which can be doubly-used for serialization and allows us to easily copy Cards between Projects, even with two Projects open at the same time
-  - Top menu, for file / project settings, task editing, project information
-    - Project information: Number of Tasks, number completed, time estimation
-  - [x] Boards no longer exist; they are superceded by a Folder / Window / Board Card, which allows you to tie existing Cards to some mental and spatial context (a location on your project, as an example).
-  - Custom shortcuts to, say, focus on a specific Card (so you can make a shortcut to jump to a Card, for example)
-  - Themes - Maybe just straight-up replace them with images? It'd be kind of insane and futuristic to simply make it so that you can edit Themes by literally editing images so you can actually see what they look like?
-  - Add ability to rebind selection + panning from being hard-coded to left and right-click, respectively.
-  - Timer Cards
-    - Timers should be able to count down.
-  - Table Cards
-    - Click on a + to add a new Row or Column,
-    - Drag a row or column to reorder. Drag away from a Table to destroy that Row or Column.
-    - Add numbers (?) for tables to allow for adding together the sums for comparison purposes - maybe an ability to switch it from Checkbox to Numbered Tables.
-  - Sort Cards alphabetically? (somehow)
-  - More zoom gradation? Might be doable if the cards are rendered at a high-enough resolution.
-  - Template Cards - Could be useful if you have a "template" that you want to extend, like "Character Cards" with an image, a space for a description, and a space for class and skills,
-  - Map Cards
-    - Different colors for different zones
-    - Icons for things like elevators, bricks, save points, player start position, town, enemies, npcs, etc
-    - Legend for displaying text corresponding to icons or zones
-      - Text from the legend should display behind the colors for each zone if possible (should be hide-able, perhaps only display if the Legend is open)
-  - Calendar Card
-  - Re-implement Project Settings
-  - Re-implement copying and pasting text to and from MasterPlan to represent Card types.
-  - Card Text cannot exceed 32768x32768; this can happen if the text or file is generally long. Some alternative to rendering the full text needs to be implemented. 
-    - A possible solution could be to render the text from a file to a surface, which then gets clipped when rendering to a texture?
+
+-   Rounded, cleaner, more visually appealing and bright, energetic design. No outlines (maybe even no anti-aliasing?)
+-   Cards
+    -   Cards serve the same purpose as Tasks, but are slightly more advanced (and "Cards" as a name are more interesting and correct when compared to "Tasks", considering not every Task is completable)
+    -   Cards can be attached to other Cards visually, as well as by "pinning" them, making it possible to move a Card by moving its parent
+    -   Cards can be freely resized
+        -   Resized cards should go at a minimum size to comfortably house all non-customizeable elements on the Card
+    -   Cards can be edited largely right from the overview screen, without needing to open a separate Panel.
+        -   The maximum value for Progression Cards can be modified by simply double-clicking on the relevant text box.
+    -   Cards can be linked to show relationships by holding a key (Alt, for example), and clicking between Cards. These are explicit links; implicit links are still created by means of neighboring, as in MasterPlan v0.7.2.
+        -   These lines should be "bendable" in a customizeable way. Arrows or dots or something should maybe stream from Card to Card through these lines, thereby showing "flow".
+    -   Any text on Cards fade out if the Card isn't large enough to display the text element (a title, for example) fully
+    -   Text is parsed for URLs or program / OS file or program links
+    -   Cards are now at least 32x32 (test with higher-resolution fonts; if this isn't enough, then bump it up)
+-   Re-implement Progression Cards
+    [ ] Completable Tasks can have time estimations tied to them in some way.
+    [x] Note Cards
+    -   Note Cards can contain stacks of information in a single Note.
+        [x] Sound Cards
+    -   Add Seek bar
+    -   Add Volume bar
+        [x] Image / GIF Cards
+    -   Freely rotatable by clicking and dragging outside of the corners
+    -   Paste images from system clipboard? See: https://github.com/golang-design/clipboard - Probably need to save image in project file itself in this case.
+-   Line Tasks no longer exist (for now)
+-   Copying Cards should now be global, rather than being localized to a single Project; maybe even better, it copies Cards straight to the OS buffer, which can be doubly-used for serialization and allows us to easily copy Cards between Projects, even with two Projects open at the same time
+-   Top menu, for file / project settings, task editing, project information
+    -   Project information: Number of Tasks, number completed, time estimation
+-   [x] Boards no longer exist; they are superceded by a Folder / Window / Board Card, which allows you to tie existing Cards to some mental and spatial context (a location on your project, as an example).
+-   Custom shortcuts to, say, focus on a specific Card (so you can make a shortcut to jump to a Card, for example)
+-   Themes - Maybe just straight-up replace them with images? It'd be kind of insane and futuristic to simply make it so that you can edit Themes by literally editing images so you can actually see what they look like?
+-   Add ability to rebind selection + panning from being hard-coded to left and right-click, respectively.
+-   Timer Cards
+    -   Timers should be able to count down.
+-   Table Cards
+    -   Click on a + to add a new Row or Column,
+    -   Drag a row or column to reorder. Drag away from a Table to destroy that Row or Column.
+    -   Add numbers (?) for tables to allow for adding together the sums for comparison purposes - maybe an ability to switch it from Checkbox to Numbered Tables.
+-   Sort Cards alphabetically? (somehow)
+-   More zoom gradation? Might be doable if the cards are rendered at a high-enough resolution.
+-   Template Cards - Could be useful if you have a "template" that you want to extend, like "Character Cards" with an image, a space for a description, and a space for class and skills,
+-   Map Cards
+    -   Different colors for different zones
+    -   Icons for things like elevators, bricks, save points, player start position, town, enemies, npcs, etc
+    -   Legend for displaying text corresponding to icons or zones
+        -   Text from the legend should display behind the colors for each zone if possible (should be hide-able, perhaps only display if the Legend is open)
+-   Calendar Card
+-   Re-implement Project Settings
+-   Re-implement copying and pasting text to and from MasterPlan to represent Card types.
+-   Card Text cannot exceed 32768x32768; this can happen if the text or file is generally long. Some alternative to rendering the full text needs to be implemented.
+    -   A possible solution could be to render the text from a file to a surface, which then gets clipped when rendering to a texture?
 
 TTF font loading efficiently : foreign characters shouldn’t “cost” extra
 Font base size “knowledge”
@@ -433,7 +496,7 @@ Text drawing efficiently
 IME support (entry of foreign characters)
 Ideally, different locale support (detection of the name of a key from a different locale, so the Q key becomes the A key on a FR keyboard locale)
 
-Dialog editor of some description??? Seems like it could be sick to have some kind of system that would allow you to 
+Dialog editor of some description??? Seems like it could be sick to have some kind of system that would allow you to
 
 [ ] Flow-charts? See: https://discord.com/channels/339550825154347008/758009278756946040/848704269388742717 and https://discord.com/channels/339550825154347008/758009278756946040/848707386487341056
 
@@ -451,29 +514,24 @@ Dialog editor of some description??? Seems like it could be sick to have some ki
 [ ] Time for Timer > Date Mode
 [ ] Dedicated media folder (drag and dropped files get automatically copied to a customizeable location): https://itch.io/t/1275925/option-to-copy-dragged-and-dropped-images-into-a-specific-folder-inside-masterplans-directory?before=3#post-2901238
 [ ] Replace MapImage.Data's [][]int32 with [][]bool
-[ ] Shifting drawings messes them up? 
+[ ] Shifting drawings messes them up?
 [ ] Define UTI for Mac OS .plan files - seems like it should work if properly done? : https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/understanding_utis/understand_utis_declare/understand_utis_declare.html#//apple_ref/doc/uid/TP40001319-CH204-SW1
 [ ] Autosave should only happen when an UndoState is generated (possibly also when undoing / redoing); that's how we can know something happened.
 [ ] Crash when pressing Reset Image Size on an unloaded image? : https://steamcommunity.com/app/1269310/discussions/1/3105766884450239608/
 [ ] Make backup timer textbox move in steps of 5 minutes.
 [ ] Lines shouldn't have to point in a specific direction / shouldn't point towards each other if possible
-[ ] Implement text displaying better for fonts of different size; seems like they rarely line up properly 
+[ ] Implement text displaying better for fonts of different size; seems like they rarely line up properly
 [ ] Re-implement progress bar behind timer
 [ ] Pasting the contents of a clipboard after directly copying a file prints some illegible characters which also mess up the textbox?
 [ ] Can't make shortcut on Mac?
 [ ] Building MasterPlan doesn't work sometimes?: https://github.com/SolarLune/masterplan/issues/39
 [ ] See about implementing a backend system, switching from Raylib to SDL for (HOPEFULLY!) more up-to-date fundamentals (render-to-texture, texture unloading, better font support, better IME support).
 [ ] Maybe a "Zone" type to "count" Tasks that exist within it for completion? Could be simpler than wiring a lot of Lines. Also, Zones could be collapsible, allowing you to hide Zones for simplicity and readability.
-[ ] Calendar Task, allowing you to put Tasks on specific days (see TreeSheets: http://strlen.com/treesheets/docs/screenshots.html)
-    - This will probably necessitate a Calendar UI element as well.
-      - Maybe just a Calendar mode for the Table? That would basically turn it into a Table that has slots for each day in the month, and you could cycle through it using < and > buttons. It would have a max of 31 slots so the size is consistent, and the column headers would just be the day of the month. 
-      - This should be more "in line with the design philosophy of MasterPlan", though; simply making it a Calendar works OK, but you can't put things into a Table. Maybe you should be able to? Maybe Note Tasks could be placed in there??? Maybe you could just put Zones into Tasks.
+[ ] Calendar Task, allowing you to put Tasks on specific days (see TreeSheets: http://strlen.com/treesheets/docs/screenshots.html) - This will probably necessitate a Calendar UI element as well. - Maybe just a Calendar mode for the Table? That would basically turn it into a Table that has slots for each day in the month, and you could cycle through it using < and > buttons. It would have a max of 31 slots so the size is consistent, and the column headers would just be the day of the month. - This should be more "in line with the design philosophy of MasterPlan", though; simply making it a Calendar works OK, but you can't put things into a Table. Maybe you should be able to? Maybe Note Tasks could be placed in there??? Maybe you could just put Zones into Tasks.
 [ ] High-res fonts that are rendered to an image (for Notes, for example) is low-res
-[ ] Optimize text rendering (just load at least the number of characters that we need?)
-     - If I could reload fonts during run without crashing, that would be great
-     - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
+[ ] Optimize text rendering (just load at least the number of characters that we need?) - If I could reload fonts during run without crashing, that would be great - Another option would be to load 256 characters until you type a different character, then reload the font for that index? Something like that? Detect what characters you enter, and then reload the font up to the next stop beyond that character?
 [ ] Remove Project.RetrieveResource()?
-[ ] IMPLEMENT RL.UNLOADTEXTURE(), BECAUSE THIS VRAM MEMORY LEAK IS ANNOYING AS H*CK
+[ ] IMPLEMENT RL.UNLOADTEXTURE(), BECAUSE THIS VRAM MEMORY LEAK IS ANNOYING AS H\*CK
 [ ] Implement button to return all settings to default
 [ ] Note renderering could use a grayscale texture for limited VRAM usage, as it's not necessary for Notes to be colored (for now)
 [ ] Make a video talking a bit about what MasterPlan is and why it's useful. It helps you think, it helps you create links between tasks, it allows you to complete things that need to be done, and it helps you to say no. This video could be accessible from the Steam forums, or from the MasterPlan Settings (?) menu.
@@ -505,7 +563,7 @@ Dialog editor of some description??? Seems like it could be sick to have some ki
 [ ] Re-make Dino Riki? Aw Nuts!? 7DRL on 3/4/21?!?!?!
 [ ] Time estimations per Task - these can be set as a project-level default (i.e. something like 30 minutes per-Task), and then further specified (maybe specifying something like 3 hours for a specific Task, as an example).
 [ ] Add manual typing entry for month / day / year for deadlines / Timer Dates
-    Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
+Add option for MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD
 [ ] Optimize Table text size checks
 [ ] Table: Option to make coumn and row names invisible (so that you could for example put images there).
 [ ] Table: Add button to turn a column into a row, or vice-versa
@@ -515,14 +573,7 @@ Dialog editor of some description??? Seems like it could be sick to have some ki
 [ ] Changing font size shouldn't take so long - This could be simplified by making a selection for how many glyphs to load
 [ ] Add seek option for Sounds - maybe they should be vertically two spaces tall? Maybe they should be able to EXPAND :O?
 [ ] Deadline write-up by BiRD: https://discordapp.com/channels/339550825154347008/758009278756946040/810779087449751593
-The summary is:
-    - Use timers for timing and calendars for deadlines. Calendars are:
-        - Visually focused (no extraneous information)
-        - Intuitive (click a day = set the day)
-        - Efficient (fewer actions to do the same thing)
-        - Improvable (as a result of more available screen space)
-        - Reusable (calendars can be used for more than just setting deadlines)
-        - Fun (not sure what to write for this one)
+The summary is: - Use timers for timing and calendars for deadlines. Calendars are: - Visually focused (no extraneous information) - Intuitive (click a day = set the day) - Efficient (fewer actions to do the same thing) - Improvable (as a result of more available screen space) - Reusable (calendars can be used for more than just setting deadlines) - Fun (not sure what to write for this one)
 [ ] Icon beside board name when due, deadlined, or late
 [ ] Timers should be able to retroactively trigger if a set time was passed (somehow)
 [ ] Task streaks (not sure exactly how this will work; maybe you can turn it on, and it will reset if a day passes between the previous time it was completed and the current day?)
@@ -538,11 +589,11 @@ The summary is:
 [ ] Searchable shortcuts
 [ ] Consolidate image and sounds into one task type?
 [ ] Review libraries to see if the licenses are compatible with my own chosen license
-[ ] Graph view that allows you to see your plan as a visual "node graph"? 
-    See Nuclino: https://www.nuclino.com - It says it allows you to work in Boards and Graphs, 
-    so maybe the Nodes on the Graphs should be clickable to reveal more information / reveal 
-    the Task on the Board
-[ ] Smooth out panel scrolling according to texture coords?       
+[ ] Graph view that allows you to see your plan as a visual "node graph"?
+See Nuclino: https://www.nuclino.com - It says it allows you to work in Boards and Graphs,
+so maybe the Nodes on the Graphs should be clickable to reveal more information / reveal
+the Task on the Board
+[ ] Smooth out panel scrolling according to texture coords?  
 [ ] Consolidate logging messages so messages that are the same get "compounded". For example:
 
 00:00:00: "Selected 1 Tasks."
@@ -552,14 +603,14 @@ becomes
 
 00:00:00: "Selected 2 Tasks."
 
-[ ] Improve search functionalities - present a list of Tasks that fulfill a set of 
+[ ] Improve search functionalities - present a list of Tasks that fulfill a set of
 [ ] Add image backgrounds instead of the grid.
 [ ] Add other unicode characters to default font (←№⎢¡°ᚃ√⇒∄±∑∌≠αβχδεφγηιϑΧΔΦΓ)
 [ ] Whiteboard resolution could be increased
 [ ] Replace Board-level Undo with Project-level Undo, focus on Tasks when undoing or redoing
 [ ] Clicking in the window when the window wasn't focused should be discarded
-[ ] Display size for Tasks should be dependant on maximum theoretical feasible size (for example, a Progression Task should have a maximum size that 
-  includes a current number and maximum number of 999 each, so that they don't change size when incrementing or decrementing)
+[ ] Display size for Tasks should be dependant on maximum theoretical feasible size (for example, a Progression Task should have a maximum size that
+includes a current number and maximum number of 999 each, so that they don't change size when incrementing or decrementing)
 [ ] Password protection
 [ ] Copying tasks between Projects
 [ ] Rotating and mirroring images
@@ -575,29 +626,29 @@ becomes
 [ ] Resizeable Notes / Collapsible Notes
 [ ] Background hint text for text entry (i.e. "Enter date in MM/DD/YYYY Format" behind something that allows you to enter a date)
 
-
 Long-term Goals
 
-- Multitask Editing
-- Do stuff on the overview, rather than needing to open a Panel. This is requested pretty regularly, but I'm not 100% on how to do so seamlessly.
-- Collaboration - Real quick idea: 
-    - Clone the plan to all connected users' computers.
-    - One person is host and the others are guests. This is mostly for internal purposes, the actual implementation shouldn't really make a huge distinction here.
-    - Show each user's (colored / numbered, like P1, P2, etc., haha) mouse cursor on your screen.
-    - Each Task can only be edited by one person at a time.
-    - When a Task is changed (i.e. an UndoState is generated), send the updated version of the Task over the network to the other connected users.
-    - Periodically, the host sends the entire serialized Project to all connected users for syncing.
-    - Test ping to each person and suggest a host based on that.
-    - Connection should be able to be done from within MasterPlan.
-        - Through IP addresses. This could be simplified into some sort of simple alphabet-based code?
-        - Perhaps through straight up some sort of code system so that you can easily join other "planners". It'd be interesting to join random "games", though 
-        this would open up the possiblity of using MasterPlan for illegal or otherwise horrible activities, so this is probably not feasible.
-    - Sending data should be UDP. Data could probably be compressed in some way so as not to send actual string data.
-    - Chat window, of course
+-   Multitask Editing
+-   Do stuff on the overview, rather than needing to open a Panel. This is requested pretty regularly, but I'm not 100% on how to do so seamlessly.
+-   Collaboration - Real quick idea:
 
-- Git integration (git messages can refer to Task IDs to automatically complete them)
-- GUI Scaling
-- Video streaming (i.e. from YouTube / Vimeo)
-- Music streaming (i.e. from Spotify / SoundCloud (not sure if this is feasible, but I'd like to do it))
-- Internationalization and translation to other common languages
-- Charts and data visualization
+    -   Clone the plan to all connected users' computers.
+    -   One person is host and the others are guests. This is mostly for internal purposes, the actual implementation shouldn't really make a huge distinction here.
+    -   Show each user's (colored / numbered, like P1, P2, etc., haha) mouse cursor on your screen.
+    -   Each Task can only be edited by one person at a time.
+    -   When a Task is changed (i.e. an UndoState is generated), send the updated version of the Task over the network to the other connected users.
+    -   Periodically, the host sends the entire serialized Project to all connected users for syncing.
+    -   Test ping to each person and suggest a host based on that.
+    -   Connection should be able to be done from within MasterPlan.
+        -   Through IP addresses. This could be simplified into some sort of simple alphabet-based code?
+        -   Perhaps through straight up some sort of code system so that you can easily join other "planners". It'd be interesting to join random "games", though
+            this would open up the possiblity of using MasterPlan for illegal or otherwise horrible activities, so this is probably not feasible.
+    -   Sending data should be UDP. Data could probably be compressed in some way so as not to send actual string data.
+    -   Chat window, of course
+
+-   Git integration (git messages can refer to Task IDs to automatically complete them)
+-   GUI Scaling
+-   Video streaming (i.e. from YouTube / Vimeo)
+-   Music streaming (i.e. from Spotify / SoundCloud (not sure if this is feasible, but I'd like to do it))
+-   Internationalization and translation to other common languages
+-   Charts and data visualization

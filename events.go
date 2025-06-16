@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 )
@@ -84,6 +86,10 @@ func (is *InputState) Released() bool {
 	return !is.Down && is.upTime == globals.Time
 }
 
+func (is *InputState) ReleasedRaw() bool {
+	return !is.Down && is.upTime == globals.Time
+}
+
 func (is *InputState) Consume() {
 	is.consumed = true
 }
@@ -146,6 +152,7 @@ type Mouse struct {
 	CurrentCursor string
 	NextCursor    string
 
+	OverGUI        bool
 	HiddenPosition bool
 	HiddenButtons  bool
 	Dummy          *Mouse
@@ -237,7 +244,7 @@ func (mouse *Mouse) RawWorldPosition() Point {
 func (mouse *Mouse) WorldPosition() Point {
 
 	if mouse.HiddenPosition {
-		return mouse.Dummy.WorldPosition()
+		return Point{float32(math.NaN()), float32(math.NaN())}
 	}
 
 	return mouse.RawWorldPosition()

@@ -292,6 +292,7 @@ type Card struct {
 	Page                    *Page
 	Rect                    *sdl.FRect
 	DisplayRect             *sdl.FRect
+	RectPreResize           *sdl.FRect
 	Contents                Contents
 	ContentType             string
 	ContentsLibrary         map[string]Contents
@@ -321,8 +322,7 @@ type Card struct {
 	Stack       *Stack
 	Drawable    *Drawable
 
-	Collapsed       string
-	UncollapsedSize Point
+	Collapsed string
 
 	Highlighter     *Highlighter
 	DrawHighlighter bool
@@ -335,6 +335,9 @@ type Card struct {
 	colorFadeSpeed  float64
 
 	onScreen bool
+
+	debugUpdateTime time.Duration
+	debugDrawTime   time.Duration
 }
 
 var globalCardID = int64(0)
@@ -380,6 +383,12 @@ func NewCard(page *Page, contentType string) *Card {
 }
 
 func (card *Card) Update() {
+
+	card.debugDrawTime = 0
+	card.debugUpdateTime = 0
+
+	t := time.Now()
+	defer func() { card.debugUpdateTime += time.Since(t) }()
 
 	if card.Page.IsCurrent() {
 
@@ -778,42 +787,54 @@ func (card *Card) Update() {
 					card.CreateUndoState = true
 				}
 
+				if card.selected && globals.Keybindings.Pressed(KBResetCardSize) {
+					ogSize := card.Contents.DefaultSize()
+					card.Rect.W = ogSize.X
+					card.Rect.H = ogSize.Y
+					card.StopResizing()
+					card.CreateUndoState = true
+				}
+
 				if card.selected && (len(card.Page.Selection.Cards) == 1 || globals.Keybindings.Pressed(KBResizeMultiple)) {
 
-					if i := globals.Mouse.WorldPosition().InsideShape(card.ResizeShape); i >= 0 && card.Resizing == "" {
+					if !globals.Mouse.OverGUI {
 
-						sides := []string{
-							"resizecorner_ul",
-							"resizevertical_u",
-							"resizecorner_ur",
-							"resizehorizontal_r",
-							"resizecorner_dr",
-							"resizevertical_d",
-							"resizecorner_dl",
-							"resizehorizontal_l",
-						}
+						if i := globals.Mouse.WorldPosition().InsideShape(card.ResizeShape); i >= 0 && card.Resizing == "" {
 
-						side := sides[i%len(sides)]
-
-						cursorName := strings.Split(side, "_")[0]
-
-						if i == 2 || i == 6 {
-							cursorName += "_flipped"
-						}
-
-						globals.Mouse.SetCursor(cursorName)
-
-						if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
-							if !card.selected && !globals.Keybindings.Pressed(KBAddToSelection) {
-								card.Page.Selection.Clear()
-							}
-							card.Page.Selection.Add(card)
-
-							for card := range card.Page.Selection.Cards {
-								card.StartResizing(card.ResizeShape.Rects[i], side)
+							sides := []string{
+								"resizecorner_ul",
+								"resizevertical_u",
+								"resizecorner_ur",
+								"resizehorizontal_r",
+								"resizecorner_dr",
+								"resizevertical_d",
+								"resizecorner_dl",
+								"resizehorizontal_l",
 							}
 
-							globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+							side := sides[i%len(sides)]
+
+							cursorName := strings.Split(side, "_")[0]
+
+							if i == 2 || i == 6 {
+								cursorName += "_flipped"
+							}
+
+							globals.Mouse.SetCursor(cursorName)
+
+							if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+								if !card.selected && !globals.Keybindings.Pressed(KBAddToSelection) {
+									card.Page.Selection.Clear()
+								}
+								card.Page.Selection.Add(card)
+
+								for card := range card.Page.Selection.Cards {
+									card.StartResizing(card.ResizeShape.Rects[i], side)
+								}
+
+								globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+							}
+
 						}
 
 					}
@@ -910,6 +931,7 @@ func (card *Card) Destroy() {
 	if card.Contents != nil {
 		container := card.Contents.Container()
 		container.Destroy()
+		card.Contents.ReceiveMessage(NewMessage(MessageCardDestroyed, nil, nil))
 	}
 
 }
@@ -955,6 +977,10 @@ func (card *Card) Name() string {
 	}
 
 	return text
+}
+
+func (card *Card) Position() Point {
+	return Point{card.Rect.X, card.Rect.Y}
 }
 
 // Link creates a link between the current Card and the other, provided Card, and returns it, along with a boolean indicating if the link was just created.
@@ -1023,6 +1049,9 @@ func (card *Card) UnlinkAll() {
 }
 
 func (card *Card) DrawShadow() {
+
+	t := time.Now()
+	defer func() { card.debugDrawTime += time.Since(t) }()
 
 	if !globals.Settings.Get(SettingsCardShadows).AsBool() || !card.Onscreen() {
 		return
@@ -1198,6 +1227,9 @@ func (card *Card) DeadlineText() string {
 
 func (card *Card) DrawCard() {
 
+	t := time.Now()
+	defer func() { card.debugDrawTime += time.Since(t) }()
+
 	if card.Completable() && card.Properties.Has("deadline") {
 
 		deadlineTarget := 0.0
@@ -1335,6 +1367,18 @@ func (card *Card) DrawCard() {
 		globals.Renderer.CopyF(card.Result.Texture, nil, tp)
 	}
 
+	// if card.Contents.Container().IdealSize().Y != card.Rect.H {
+	if card.Collapsed == CollapsedShade {
+		r := *card.DisplayRect
+		r.X += r.W - 8
+		r.Y += r.H - 8
+		r.W = 16
+		r.H = 16
+		globals.GUITexture.Texture.SetColorMod(255, 255, 255)
+		globals.GUITexture.Texture.SetAlphaMod(255)
+		globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{480, 80, 16, 16}, card.Page.Project.Camera.TranslateRect(&r))
+	}
+
 	card.DrawContents()
 
 }
@@ -1417,6 +1461,9 @@ func (card *Card) SyncProperty(property *Property, syncSize bool) {
 }
 
 func (card *Card) HandleUndos() {
+
+	t := time.Now()
+	defer func() { card.debugUpdateTime += time.Since(t) }()
 
 	if card.CreateUndoState {
 
@@ -1569,8 +1616,6 @@ func (card *Card) Serialize(toSave bool) string {
 
 	data, _ = sjson.Set(data, "rect", card.Rect)
 	data, _ = sjson.Set(data, "collapsed", card.Collapsed)
-	data, _ = sjson.Set(data, "uncollapsedSizeX", card.UncollapsedSize.X)
-	data, _ = sjson.Set(data, "uncollapsedSizeY", card.UncollapsedSize.Y)
 	data, _ = sjson.Set(data, "contents", card.ContentType)
 	if card.CustomColor != nil {
 		data, _ = sjson.Set(data, "custom color", card.CustomColor.ToHexString())
@@ -1630,8 +1675,6 @@ func (card *Card) Deserialize(data string) {
 
 	if gjson.Get(data, "collapsed").Exists() {
 		card.Collapsed = gjson.Get(data, "collapsed").String()
-		card.UncollapsedSize.X = float32(gjson.Get(data, "uncollapsedSizeX").Float())
-		card.UncollapsedSize.Y = float32(gjson.Get(data, "uncollapsedSizeY").Float())
 	}
 
 	if card.Page.Project.Loading && gjson.Get(data, "id").Exists() {
@@ -1728,6 +1771,9 @@ func (card *Card) StopDragging() {
 
 func (card *Card) StartResizing(rect *sdl.FRect, side string) {
 
+	r := *card.Rect
+	card.RectPreResize = &r
+
 	card.Resizing = side
 	card.ResizingRect.X1 = card.Rect.X
 	card.ResizingRect.Y1 = card.Rect.Y
@@ -1745,10 +1791,8 @@ func (card *Card) StopResizing() {
 
 	if card.Rect.H > globals.GridSize {
 		card.Collapsed = CollapsedNone
-		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
 	} else {
 		card.Collapsed = CollapsedShade
-		card.UncollapsedSize = Point{card.Rect.W, card.UncollapsedSize.Y}
 	}
 
 	card.CreateUndoState = true
@@ -2105,8 +2149,10 @@ func (card *Card) SetContents(contentType string) {
 
 func (card *Card) Collapse() {
 
-	if card.UncollapsedSize.X == 0 || card.UncollapsedSize.Y == 0 {
-		card.UncollapsedSize = Point{card.Rect.W, card.Rect.H}
+	if col, ok := card.Contents.(CollapseableContents); ok {
+		if !col.Collapseable() {
+			return
+		}
 	}
 
 	switch card.Collapsed {
@@ -2117,9 +2163,10 @@ func (card *Card) Collapse() {
 	}
 
 	if card.Collapsed == CollapsedNone {
-		card.Recreate(card.UncollapsedSize.X, card.UncollapsedSize.Y)
+
+		card.Recreate(card.Rect.W, card.Contents.Container().IdealSize().Y)
 	} else {
-		card.Recreate(card.UncollapsedSize.X, globals.GridSize)
+		card.Recreate(card.Rect.W, globals.GridSize)
 	}
 
 }

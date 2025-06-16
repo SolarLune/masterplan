@@ -197,6 +197,12 @@ func (page *Page) Draw() {
 
 	page.UpdateLinks()
 
+	if globals.DebugMode == DebugModeCards {
+		for _, c := range page.Cards {
+			globals.TextRenderer.QuickRenderText("Update:"+c.debugUpdateTime.String()+"\nDraw:"+c.debugDrawTime.String(), page.Project.Camera.TranslatePoint(Point{c.DisplayRect.X, c.DisplayRect.Y}), 1, ColorWhite, ColorBlack, AlignLeft)
+		}
+	}
+
 }
 
 func (page *Page) Destroy() {

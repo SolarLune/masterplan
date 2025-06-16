@@ -179,6 +179,23 @@ func (stack *Stack) Tail() []*Card {
 	return rest
 }
 
+func (s *Stack) ForEachInTail(f func(c *Card) bool) {
+
+	below := s.Below
+	tested := map[*Card]bool{}
+	for below != nil {
+		if !f(below) {
+			return
+		}
+		if _, exists := tested[below]; exists {
+			break
+		}
+		tested[below] = true
+		below = below.Stack.Below
+	}
+
+}
+
 func (stack *Stack) Children() []*Card {
 	children := []*Card{}
 	for _, c := range stack.Tail() {
@@ -190,6 +207,35 @@ func (stack *Stack) Children() []*Card {
 		}
 	}
 	return children
+}
+
+func (s *Stack) ForEachInHead(f func(c *Card) bool) {
+
+	above := s.Above
+	tested := map[*Card]bool{}
+	for above != nil {
+		if !f(above) {
+			return
+		}
+		if _, exists := tested[above]; exists {
+			break
+		}
+		tested[above] = true
+		above = above.Stack.Above
+	}
+
+}
+
+func (stack *Stack) Parent() *Card {
+	var parent *Card
+	stack.ForEachInHead(func(c *Card) bool {
+		if c.Stack.Number.IsParentOf(stack.Number) {
+			parent = c
+			return false
+		}
+		return true
+	})
+	return parent
 }
 
 func (stack *Stack) TopNumberable() *Card {

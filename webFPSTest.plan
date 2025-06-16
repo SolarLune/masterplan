@@ -1,0 +1,45 @@
+{
+  "version": "0.8.0-alpha.8.1",
+  "pan": {
+    "X": 164.59047,
+    "Y": 138.61588
+  },
+  "zoom": 0.8999999761581421,
+  "currentPage": 0,
+  "properties": {
+    "CacheDirectory": ""
+  },
+  "pages": [
+    {
+      "id": 0,
+      "pan": {
+        "X": 164.46504,
+        "Y": 138.41707
+      },
+      "zoom": 0.8999999761581421,
+      "cards": [
+        {
+          "id": 0,
+          "rect": {
+            "X": -896,
+            "Y": -512,
+            "W": 1824,
+            "H": 1024
+          },
+          "collapsed": "CollapsedNone",
+          "uncollapsedSizeX": 0,
+          "uncollapsedSizeY": 0,
+          "contents": "web",
+          "properties": {
+            "size": "1024p",
+            "aspect ratio": "16:9",
+            "update framerate": "As Often As Possible",
+            "update only when": "Always",
+            "url": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fi.pinimg.com%2Foriginals%2F4a%2F3b%2Fca%2F4a3bca43c434135534bbb3a734ac669e.gif&f=1&nofb=1&ipt=b3dbd1d6c9b525987877aa61681377266d3f8304344d0581e3ac039d5c6909e7&ipo=images"
+          }
+        }
+      ]
+    }
+  ],
+  "savedimages": {}
+}

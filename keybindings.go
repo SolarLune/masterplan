@@ -79,9 +79,10 @@ const (
 	KBOpenContextMenu     = "Open Context Menu"
 	KBResizeMultiple      = "Resize Multiple Cards Modifier"
 
-	KBCollapseCard = "Card: Collapse"
-	KBLinkCard     = "Card: Connect Cards"
-	KBUnlinkCard   = "Card: Disconnect From All Cards"
+	KBCollapseCard  = "Card: Collapse"
+	KBResetCardSize = "Card: Reset Size"
+	KBLinkCard      = "Card: Connect Cards"
+	KBUnlinkCard    = "Card: Disconnect From All Cards"
 
 	KBCopyText      = "Textbox: Copy Selected Text"
 	KBCutText       = "Textbox: Cut Selected Text"
@@ -516,6 +517,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBSwitchWrapMode, sdl.K_w, sdl.K_LCTRL)
 
 	kb.DefineKeyShortcut(KBCollapseCard, sdl.K_c, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBResetCardSize, sdl.K_r, sdl.K_LSHIFT)
 
 	kb.DefineKeyShortcut(KBUndo, sdl.K_z, sdl.K_LCTRL)
 	kb.DefineKeyShortcut(KBRedo, sdl.K_z, sdl.K_LCTRL, sdl.K_LSHIFT)

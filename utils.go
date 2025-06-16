@@ -198,21 +198,21 @@ func (point Point) Negated() Point {
 }
 
 func ClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
-	if worldSpace {
+	if worldSpace && !globals.Mouse.OverGUI {
 		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.WorldPosition().Inside(rect)
 	}
 	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.Position().Inside(rect)
 }
 
 func RawClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
-	if worldSpace {
+	if worldSpace && !globals.Mouse.OverGUI {
 		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.RawWorldPosition().Inside(rect)
 	}
 	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && globals.Mouse.RawPosition().Inside(rect)
 }
 
 func ClickedOutRect(rect *sdl.FRect, worldSpace bool) bool {
-	if worldSpace {
+	if worldSpace && !globals.Mouse.OverGUI {
 		return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.WorldPosition().Inside(rect)
 	}
 	return globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && !globals.Mouse.Position().Inside(rect)
@@ -904,12 +904,33 @@ func placeCardInStack(card *Card, centerIfNoSelection bool) {
 
 }
 
+// const RegexOnlyDigitsAndColon = `[\d:]`
 const RegexNoNewlines = `[^\n]`
 const RegexOnlyDigits = `[\d]`
 const RegexNoDigits = `[^\d]`
-const RegexOnlyDigitsAndColon = `[\d:]`
+const RegexOnlyDigitsColonAndDot = `[\d:.]`
 const RegexHex = `[#a-fA-F\d]`
 
 type DrawOnTop interface {
 	DrawOnTop()
+}
+
+func SplitStringOnAny(input string, chars string) (out []string) {
+	for _, c := range chars {
+		char := string(c)
+		if strings.Contains(input, char) {
+			out = strings.Split(input, char)
+			return
+		}
+	}
+	return
+}
+
+func Sign[n int | int32 | int64 | float32 | float64](v n) int {
+	if v > 0 {
+		return 1
+	} else if v < 0 {
+		return -1
+	}
+	return 0
 }

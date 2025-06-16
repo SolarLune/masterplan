@@ -41,6 +41,10 @@ var windowTitle = "MasterPlan"
 var quit = false
 var targetFPS = 60
 
+var frametimeStart time.Time
+var frametimeCount int
+var currentDebugFPS int
+
 var cpuProfileStart = time.Time{}
 
 func init() {
@@ -65,7 +69,7 @@ func init() {
 	globals.MenuSystem = NewMenuSystem()
 	globals.Keybindings = NewKeybindings()
 	globals.RecentFiles = []string{}
-	globals.Settings = NewProgramSettings()
+	globals.Settings = NewProgramSettings(true)
 	globals.HTTPClient = &http.Client{
 		Timeout: time.Second * 10,
 	}
@@ -200,8 +204,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "2")
 
 	// Should default to hardware accelerators, if available
 	renderer, err := sdl.CreateRenderer(window, 0, sdl.RENDERER_ACCELERATED+sdl.RENDERER_SOFTWARE)
@@ -467,7 +469,10 @@ func main() {
 		if globals.ReleaseMode == ReleaseModeDev {
 
 			if globals.Keybindings.Pressed(KBDebugToggle) {
-				globals.DebugMode = !globals.DebugMode
+				globals.DebugMode++
+				if globals.DebugMode > DebugModeCards {
+					globals.DebugMode = 0
+				}
 			}
 
 			if globals.Keyboard.Key(sdl.K_F7).Pressed() {
@@ -496,6 +501,8 @@ func main() {
 
 		globals.Mouse.SetCursor(CursorNormal)
 
+		globals.Mouse.OverGUI = false
+
 		globals.MenuSystem.Update()
 
 		globals.Project.Update()
@@ -521,10 +528,8 @@ func main() {
 				globals.DrawOnTop.DrawOnTop()
 			}
 
-			if globals.DebugMode {
-				fps, _ := gfx.GetFramerate(fpsManager)
-				s := strconv.FormatFloat(float64(fps), 'f', 0, 64)
-				globals.TextRenderer.QuickRenderText("FPS : "+s, Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, ColorBlack, AlignRight)
+			if globals.DebugMode != DebugModeNone {
+				globals.TextRenderer.QuickRenderText("FPS : "+strconv.Itoa(currentDebugFPS), Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, ColorBlack, AlignRight)
 				globals.TextRenderer.QuickRenderText(fmt.Sprintf("(%d, %d)", int(globals.Project.Camera.Position.X), int(globals.Project.Camera.Position.Y)), Point{globals.ScreenSize.X - 64, 32}, 1, ColorWhite, ColorBlack, AlignRight)
 			}
 
@@ -753,6 +758,14 @@ func main() {
 			s.TempOverride = false
 		}
 
+		frametimeCount++
+
+		if time.Since(frametimeStart) >= time.Second {
+			frametimeStart = time.Now()
+			currentDebugFPS = frametimeCount
+			frametimeCount = 0
+		}
+
 	}
 
 	if globals.Settings.Get(SettingsSaveWindowPosition).AsBool() {
@@ -845,20 +858,20 @@ func ConstructMenus() {
 
 	row.Add("file menu", fileButton)
 
-	var viewButton *Button
+	var menusButton *Button
 
-	viewButton = NewButton("View", nil, nil, false, func() {
-		viewMenu := globals.MenuSystem.Get("view")
-		viewMenu.Rect.X = viewButton.Rectangle().X - 48
+	menusButton = NewButton("Menu", nil, nil, false, func() {
+		viewMenu := globals.MenuSystem.Get("menu")
+		viewMenu.Rect.X = menusButton.Rectangle().X - 48
 		if mainMenu.Rect.Y > globals.ScreenSize.Y/2 {
-			viewMenu.Rect.Y = viewButton.Rectangle().Y - viewMenu.Rect.H
+			viewMenu.Rect.Y = menusButton.Rectangle().Y - viewMenu.Rect.H
 		} else {
-			viewMenu.Rect.Y = viewButton.Rectangle().Y + 32
+			viewMenu.Rect.Y = menusButton.Rectangle().Y + 32
 		}
 		viewMenu.Open()
 	})
 
-	row.Add("view menu", viewButton)
+	row.Add("open menus", menusButton)
 
 	var toolsButton *Button
 
@@ -1134,24 +1147,24 @@ func ConstructMenus() {
 
 	}))
 
-	// View Menu
+	// Menus Menu
 
-	viewMenu := globals.MenuSystem.Add(NewMenu("view", &sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), false)
-	root = viewMenu.Pages["root"]
+	menusMenu := globals.MenuSystem.Add(NewMenu("menu", &sdl.FRect{48, 48, 300, 250}, MenuCloseClickOut), false)
+	root = menusMenu.Pages["root"]
 
 	root.AddRow(AlignCenter).Add("Create Menu", NewButton("Create", nil, nil, false, func() {
 		globals.MenuSystem.Get("create").Open()
-		viewMenu.Close()
+		menusMenu.Close()
 	}))
 
 	root.AddRow(AlignCenter).Add("Edit Menu", NewButton("Edit", nil, nil, false, func() {
 		globals.MenuSystem.Get("edit").Open()
-		viewMenu.Close()
+		menusMenu.Close()
 	}))
 
 	root.AddRow(AlignCenter).Add("Find Menu", NewButton("Find", nil, nil, false, func() {
 		globals.MenuSystem.Get("find").Open()
-		viewMenu.Close()
+		menusMenu.Close()
 	}))
 
 	// root.AddRow(AlignCenter).Add("Tools Menu", NewButton("Tools", nil, nil, false, func() {
@@ -1161,17 +1174,17 @@ func ConstructMenus() {
 
 	root.AddRow(AlignCenter).Add("Hierarchy Menu", NewButton("Hierarchy", nil, nil, false, func() {
 		globals.MenuSystem.Get("hierarchy").Open()
-		viewMenu.Close()
+		menusMenu.Close()
 	}))
 
 	root.AddRow(AlignCenter).Add("Stats", NewButton("Stats", nil, nil, false, func() {
 		globals.MenuSystem.Get("stats").Open()
-		viewMenu.Close()
+		menusMenu.Close()
 	}))
 
 	root.AddRow(AlignCenter).Add("Deadlines", NewButton("Deadlines", nil, nil, false, func() {
 		globals.MenuSystem.Get("deadlines").Open()
-		viewMenu.Close()
+		menusMenu.Close()
 	}))
 
 	loadRecent := globals.MenuSystem.Add(NewMenu("load recent", &sdl.FRect{128, 96, 512, 128}, MenuCloseClickOut), false)
@@ -2152,8 +2165,9 @@ If no Chrome-based browsers are installed, Web Cards will not work.`))
 for the browser when using Web cards.
 When this is set correctly, cookies, sessions, and other
 user data will be loaded from the browser for use with Web Cards.
-This folder should be something like:
-"~/.config/chromium/Default/", or "%LOCALAPPDATA%\Google\Chrome\User Data".
+If it exists already, this folder should be something like:
+"~/.config/chromium/", or "%LOCALAPPDATA%\Google\Chrome\User Data".
+The folder you specify should already have a "Default" folder within it.
 `))
 	row.Add("", NewLabel("Browser User-Data Path:", nil, false, AlignLeft))
 	browserUserDataPath := NewLabel("", nil, false, AlignLeft)
@@ -2209,6 +2223,46 @@ This folder should be something like:
 		})
 	}
 
+	themeDropdown := NewDropdown(&sdl.FRect{0, 0, 128, 32}, false, func(index int) {
+		globals.Settings.Get(SettingsTheme).Set(availableThemes[index])
+		refreshThemes()
+	}, nil, availableThemes...)
+
+	confirmResetSettings := globals.MenuSystem.Add(NewMenu("confirm reset settings", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
+	confirmResetSettings.Draggable = true
+	root = confirmResetSettings.Pages["root"]
+	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to\nreset settings to default?", nil, false, AlignCenter))
+	row = root.AddRow(AlignCenter)
+	row.Add("yes", NewButton("Yes, Reset Settings", &sdl.FRect{0, 0, 128, 32}, nil, false, func() {
+		globals.Settings = NewProgramSettings(false)
+		SaveSettings()
+		refreshThemes()
+		confirmResetSettings.Close()
+
+		for i, k := range availableThemes {
+			if globals.Settings.Get(SettingsTheme).AsString() == k {
+				themeDropdown.ChosenIndex = i
+				break
+			}
+		}
+
+		globals.EventLog.Log("Settings reset to default.", true)
+
+	}))
+	row.Add("no", NewButton("No", &sdl.FRect{0, 0, 128, 32}, nil, false, func() { confirmResetSettings.Close() }))
+	confirmResetSettings.Recreate(root.IdealSize().X+48, root.IdealSize().Y+32)
+
+	general.AddRow(AlignCenter).Add("", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("", NewButton("Reset Settings To Default", nil, nil, false, func() {
+		settings := globals.MenuSystem.Get("settings")
+		settings.Close()
+
+		confirmResetSettings.Open()
+		confirmResetSettings.Center()
+	}))
+
 	// Visual options
 
 	visual := settings.AddPage("visual")
@@ -2227,24 +2281,19 @@ This folder should be something like:
 	row = visual.AddRow(AlignCenter)
 	row.Add("theme label", NewLabel("Color Theme:", nil, false, AlignLeft))
 
-	drop := NewDropdown(&sdl.FRect{0, 0, 128, 32}, false, func(index int) {
-		globals.Settings.Get(SettingsTheme).Set(availableThemes[index])
-		refreshThemes()
-	}, nil, availableThemes...)
-
-	drop.OnOpen = func() {
+	themeDropdown.OnOpen = func() {
 		loadThemes()
-		drop.SetOptions(availableThemes...)
+		themeDropdown.SetOptions(availableThemes...)
 	}
 
 	for i, k := range availableThemes {
 		if globals.Settings.Get(SettingsTheme).AsString() == k {
-			drop.ChosenIndex = i
+			themeDropdown.ChosenIndex = i
 			break
 		}
 	}
 
-	row.Add("theme dropdown", drop)
+	row.Add("theme dropdown", themeDropdown)
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("theme info", NewLabel("While Visual Settings menu is open,\nthemes will be automatically hotloaded.", nil, false, AlignCenter))
@@ -2329,7 +2378,7 @@ images. The higher the buffer size, the more GPU memory it takes
 to display, but the higher the effective maximum resolution 
 of images can be.`))
 	row.Add("", NewLabel("Image Buffer Max Size:", nil, false, AlignLeft))
-	group := NewButtonGroup(&sdl.FRect{0, 0, 256, 64}, false, nil, globals.Settings.Get(SettingsMaxInternalImageSize),
+	group := NewButtonGroup(&sdl.FRect{0, 0, 256, 32 * 3}, false, nil, globals.Settings.Get(SettingsMaxInternalImageSize),
 		ImageBufferSize512,
 		ImageBufferSize1024,
 		ImageBufferSize2048,
@@ -2348,6 +2397,25 @@ of images can be.`))
 	row.Add("", group)
 
 	row = visual.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`Web Card Zoom Level:
+	The zoom level of web cards. Smaller zoom levels means you can see more
+	without needing to up the resolution; higher zoom levels means text and visual
+	elements appear larger.`))
+	row.Add("", NewLabel("Web Card Zoom Level:", nil, false, AlignLeft))
+	scrollbar := NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0.25, 2, false, globals.Settings.Get(SettingsWebCardZoomLevel))
+	scrollbar.DisplayValue = true
+	scrollbar.OnRelease = func() {
+		for _, page := range globals.Project.Pages {
+			for _, card := range page.Cards {
+				if web, ok := card.Contents.(*WebContents); ok {
+					web.BrowserTab.UpdateZoom()
+				}
+			}
+		}
+	}
+	row.Add("", scrollbar)
+
+	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
@@ -2360,7 +2428,9 @@ of images can be.`))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Window Transparency:", nil, false, AlignLeft))
-	row.Add("", NewScrollbar(&sdl.FRect{0, 0, 64, 32}, false, globals.Settings.Get(SettingsWindowTransparency)))
+	scrollbar = NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0, 1, false, globals.Settings.Get(SettingsWindowTransparency))
+	scrollbar.DisplayValue = true
+	row.Add("", scrollbar)
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Transparency Mode:", nil, false, AlignLeft))
@@ -3384,7 +3454,7 @@ horizontally.`))
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Push(-int(number.Value), 0)
+				card.Contents.(*MapContents).MapData.Push(-int(number.Value), 0, true)
 			}
 		}
 		globals.EventLog.Log("Map shifted by %d to the left.", false, int(number.Value))
@@ -3395,7 +3465,7 @@ horizontally.`))
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Push(int(number.Value), 0)
+				card.Contents.(*MapContents).MapData.Push(int(number.Value), 0, true)
 			}
 		}
 		globals.EventLog.Log("Map shifted by %d to the right.", false, int(number.Value))
@@ -3406,7 +3476,7 @@ horizontally.`))
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Push(0, -int(number.Value))
+				card.Contents.(*MapContents).MapData.Push(0, -int(number.Value), true)
 			}
 		}
 
@@ -3418,7 +3488,7 @@ horizontally.`))
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Push(0, int(number.Value))
+				card.Contents.(*MapContents).MapData.Push(0, int(number.Value), true)
 			}
 		}
 
@@ -3436,6 +3506,64 @@ horizontally.`))
 
 	row = root.AddRow(AlignCenter)
 	row.Add("shift down", down)
+
+	root.AddRow(AlignCenter).Add("rotate label", NewLabel("Rotate", nil, false, AlignCenter))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("rotate left", NewButton("Left", nil, nil, false, func() {
+
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			if card.ContentType == ContentTypeMap {
+				card.Contents.(*MapContents).MapData.Rotate(-1)
+			}
+		}
+
+		globals.EventLog.Log("Map rotated 90 degrees counter-clockwise.", false)
+
+	}))
+
+	row.Add("spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
+
+	row.Add("rotate right", NewButton("Right", nil, nil, false, func() {
+
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			if card.ContentType == ContentTypeMap {
+				card.Contents.(*MapContents).MapData.Rotate(1)
+			}
+		}
+
+		globals.EventLog.Log("Map rotated 90 degrees clockwise.", false)
+
+	}))
+
+	root.AddRow(AlignCenter).Add("flip label", NewLabel("Flip", nil, false, AlignCenter))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("flip horizontally", NewButton("Horizontally", nil, nil, false, func() {
+
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			if card.ContentType == ContentTypeMap {
+				card.Contents.(*MapContents).MapData.Flip(false)
+			}
+		}
+
+		globals.EventLog.Log("Map flipped horizontally.", false)
+
+	}))
+
+	row = root.AddRow(AlignCenter)
+
+	row.Add("flip vertically", NewButton("Vertically", nil, nil, false, func() {
+
+		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
+			if card.ContentType == ContentTypeMap {
+				card.Contents.(*MapContents).MapData.Flip(true)
+			}
+		}
+
+		globals.EventLog.Log("Map flipped horizontally.", false)
+
+	}))
 
 	// Table menu
 
@@ -3479,7 +3607,7 @@ horizontally.`))
 
 	// Web menu
 
-	webMenu := globals.MenuSystem.Add(NewMenu("web card settings", &sdl.FRect{99999, 0, 650, 400}, MenuCloseButton), false)
+	webMenu := globals.MenuSystem.Add(NewMenu("web card settings", &sdl.FRect{99999, 0, 650, 440}, MenuCloseButton), false)
 	webMenu.Resizeable = true
 	webMenu.Draggable = true
 	webMenu.AnchorMode = MenuAnchorTopRight
@@ -3496,26 +3624,30 @@ horizontally.`))
 	sizeDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
 		if activeCard != nil {
 			wc := activeCard.Contents.(*WebContents)
-			wc.UpdateBufferSize()
+			if wc.BrowserTab != nil {
+				wc.BrowserTab.UpdateBufferSize(wc.Width(), wc.Height())
+			}
 			if autoResize.Checked {
 				originalCenter := activeCard.Center()
-				activeCard.Rect.W = float32(wc.BufferWidth)
-				activeCard.Rect.H = float32(wc.BufferHeight)
+				activeCard.Rect.W = float32(wc.BrowserTab.BufferWidth)
+				activeCard.Rect.H = float32(wc.BrowserTab.BufferHeight)
 				activeCard.Rect.X = originalCenter.X - (activeCard.Rect.W / 2)
 				activeCard.Rect.Y = originalCenter.Y - (activeCard.Rect.H / 2)
 				activeCard.LockPosition()
 			}
 		}
-	}, nil, WebCardSize256, WebCardSize320, WebCardSize512, WebCardSize1024)
+	}, nil, WebCardSize128, WebCardSize256, WebCardSize320, WebCardSize512, WebCardSize1024)
 
 	aspectRatioDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
 		if activeCard != nil {
 			wc := activeCard.Contents.(*WebContents)
-			wc.UpdateBufferSize()
+			if wc.BrowserTab != nil {
+				wc.BrowserTab.UpdateBufferSize(wc.Width(), wc.Height())
+			}
 			if autoResize.Checked {
 				originalCenter := activeCard.Center()
-				activeCard.Rect.W = float32(wc.BufferWidth)
-				activeCard.Rect.H = float32(wc.BufferHeight)
+				activeCard.Rect.W = float32(wc.BrowserTab.BufferWidth)
+				activeCard.Rect.H = float32(wc.BrowserTab.BufferHeight)
 				activeCard.Rect.X = originalCenter.X - (activeCard.Rect.W / 2)
 				activeCard.Rect.Y = originalCenter.Y - (activeCard.Rect.H / 2)
 				activeCard.LockPosition()
@@ -3525,7 +3657,7 @@ horizontally.`))
 
 	updateFramerateDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardFPS1FPS, WebCardFPS10FPS, WebCardFPS20FPS, WebCardFPSAsOftenAsPossible)
 
-	updateOnlyWhenDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardUpdateOptionAlways, WebCardUpdateOptionWhenRecordingInputs, WebCardUpdateOptionWhenSelected)
+	updateOnlyWhenDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardUpdateOptionWhenRecordingInputs, WebCardUpdateOptionWhenSelected, WebCardUpdateOptionAlways)
 
 	urlLabel := NewLabel("https://www.google.com", nil, false, AlignLeft)
 	urlLabel.Editable = true
@@ -3559,6 +3691,7 @@ horizontally.`))
 	row.Add("urlLink", urlLabel)
 	row.ExpandElementSet.SelectAll()
 
+	root.AddRow(AlignCenter).Add("Spacer", NewSpacer(&sdl.FRect{0, 0, 16, 16}))
 	row = root.AddRow(AlignCenter)
 	row.Add("open browser", NewButton("Open URL In Browser", nil, nil, false, func() {
 		if activeCard != nil {
@@ -3595,7 +3728,9 @@ horizontally.`))
 					}
 
 					urlLabel.OnClickOut = func() {
-						card.Contents.(*WebContents).Navigate(urlLabel.TextAsString())
+						if wc := card.Contents.(*WebContents); wc.BrowserTab != nil {
+							wc.BrowserTab.Navigate(urlLabel.TextAsString())
+						}
 					}
 					break
 				}

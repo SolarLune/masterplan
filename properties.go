@@ -66,6 +66,13 @@ func (prop *Property) AsFloat() float64 {
 	return prop.data.(float64)
 }
 
+func (prop *Property) AsInt() int {
+	if prop.data == nil {
+		prop.data = 0
+	}
+	return int(prop.data.(float64))
+}
+
 func (prop *Property) AsMap() map[string]interface{} {
 	if prop.data == nil {
 		prop.data = map[string]interface{}{}

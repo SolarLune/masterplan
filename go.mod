@@ -15,7 +15,7 @@ require (
 	github.com/goware/urlx v0.3.1
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/mholt/archiver v3.1.1+incompatible
-	github.com/ncruces/zenity v0.8.7
+	github.com/ncruces/zenity v0.10.14
 	github.com/otiai10/copy v1.7.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/signintech/gopdf v0.12.0
@@ -50,7 +50,7 @@ require (
 	github.com/icza/bitio v1.0.0 // indirect
 	github.com/jfreymuth/oggvorbis v1.0.3 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
-	github.com/josephspurrier/goversioninfo v1.4.0 // indirect
+	github.com/josephspurrier/goversioninfo v1.4.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mewkiz/flac v1.0.7 // indirect
@@ -67,9 +67,9 @@ require (
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	golang.org/x/exp v0.0.0-20220128181451-c853b6ddb95e // indirect
-	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9 // indirect
+	golang.org/x/image v0.20.0 // indirect
 	golang.org/x/mobile v0.0.0-20220112015953-858099ff7816 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/text v0.18.0 // indirect
 )

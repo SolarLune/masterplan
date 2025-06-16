@@ -238,7 +238,7 @@ func (tr *TextRenderer) MeasureTextAutowrap(maxWidth float32, text string) Point
 
 }
 
-func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignment string) *TextRendererResult {
+func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignment string, editable bool) *TextRendererResult {
 
 	result := &TextRendererResult{}
 
@@ -271,47 +271,45 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 			line = append(line, c)
 
 			if c == '\n' {
+
 				x = 0
 				y += int(globals.GridSize)
 				result.TextLines = append(result.TextLines, line)
 				line = []rune{}
 				toRender = append(toRender, nil)
 				continue
-			} else {
 
-				if c == ' ' && maxSize.X > 0 {
+			} else if c == ' ' && maxSize.X > 0 {
 
-					end := strings.IndexAny(text[i+1:], " \n")
-					if len(text)-i < end || end < 0 {
-						end = len(text) - i
-					}
+				end := strings.IndexAny(text[i+1:], " \n")
+				if len(text)-i < end || end < 0 {
+					end = len(text) - i
+				}
 
-					nextStart := i
-					nextEnd := nextStart + end + 1
+				nextStart := i
+				nextEnd := nextStart + end + 1
 
-					if nextStart > len(text) {
-						nextStart = len(text)
-					}
+				if nextStart > len(text) {
+					nextStart = len(text)
+				}
 
-					if nextEnd > len(text) {
-						nextEnd = len(text)
-					}
+				if nextEnd > len(text) {
+					nextEnd = len(text)
+				}
 
-					nextWord := text[nextStart:nextEnd]
+				nextWord := text[nextStart:nextEnd]
 
-					wordWidth := int32(tr.MeasureText([]rune(nextWord), 1).X)
+				wordWidth := int32(tr.MeasureText([]rune(nextWord), 1).X)
 
-					if float32(x+int(wordWidth)) > maxSize.X {
+				if float32(x+int(wordWidth)) > maxSize.X {
 
-						x = 0
-						y += int(globals.GridSize)
-						toRender = append(toRender, nil)
-						line = append(line[:len(line)-1], '\n') // Swap out the space for a newline character
-						result.TextLines = append(result.TextLines, line)
-						line = []rune{}
-						continue
-
-					}
+					x = 0
+					y += int(globals.GridSize)
+					toRender = append(toRender, nil)
+					line = append(line[:len(line)-1], '\n') // Swap out the space for a newline character
+					result.TextLines = append(result.TextLines, line)
+					line = []rune{}
+					continue
 
 				}
 
@@ -334,9 +332,17 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 				finalW = float32(x)
 			}
 
+			if editable && maxSize.X > 0 && x+32 >= int(maxSize.X) && i < len(text) && strings.IndexAny(string(line), " \n") < 0 {
+				// split any character if it's near the edge for editable labels
+				x = 0
+				y += int(globals.GridSize)
+				result.TextLines = append(result.TextLines, line)
+				line = []rune{}
+				toRender = append(toRender, nil)
+			}
+
 		}
 
-		sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, hint)
 		result.TextLines = append(result.TextLines, line)
 		result.TextSize.X = finalW
 		result.TextSize.Y = float32(math.Max(float64(globals.GridSize), float64(len(result.TextLines)*int(globals.GridSize))))
@@ -394,6 +400,8 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 			}
 			globals.Renderer.Copy(r.Glyph.Texture(), nil, r.Rect)
 		}
+
+		sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, hint)
 
 	}
 
