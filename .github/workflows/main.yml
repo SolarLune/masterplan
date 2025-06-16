@@ -10,12 +10,12 @@ on:
 jobs:
 
   buildLinux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v5
       with:
         go-version: 1.17
 
@@ -32,26 +32,26 @@ jobs:
     - name: Build
       run: go run ./build_script/main.go -b -os linux -c
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
-        name: _GH-Actions-MasterPlan-Linux-Release-v0.8.0.a4
-        path: ./bin/linux-0.8-Release-64.tar.gz
+        name: _GH-Actions-MasterPlan-Linux-Release-v0.9.0.a1
+        path: ./bin/linux-0.9-Release-64.tar.gz
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
-        name: _GH-Actions-MasterPlan-Linux-Demo-v0.8.0.a4
-        path: ./bin/linux-0.8-Demo-64.tar.gz
+        name: _GH-Actions-MasterPlan-Linux-Demo-v0.9.0.a1
+        path: ./bin/linux-0.9-Demo-64.tar.gz
 
 
   # For some reason, building on Windows creates a terminal window despite specifying -H=windowsgui in the build settings. For now, I'll crosscompile on my machine.
 
   buildWindows:
-    runs-on: windows-2019
+    runs-on: windows-2025
     defaults:
       run:
         shell: msys2 {0}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW64
@@ -64,24 +64,24 @@ jobs:
     - name: Build
       run: go run ./build_script/main.go -b -os windows -c 
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
-        name: _GH-Actions-MasterPlan-Windows-Release-v0.8.0.a4
-        path: ./bin/windows-0.8-Release-64.zip
+        name: _GH-Actions-MasterPlan-Windows-Release-v0.9.0.a1
+        path: ./bin/windows-0.9-Release-64.zip
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
-        name: _GH-Actions-MasterPlan-Windows-Demo-v0.8.0.a4
-        path: ./bin/windows-0.8-Demo-64.zip
+        name: _GH-Actions-MasterPlan-Windows-Demo-v0.9.0.a1
+        path: ./bin/windows-0.9-Demo-64.zip
 
 
   buildMac:
-    runs-on: macos-10.15
+    runs-on: macos-13
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v5
       with:
         go-version: 1.17
 
@@ -92,28 +92,28 @@ jobs:
       run: go run ./build_script/main.go -b -os darwin
 
     - name: Bundle Dependencies
-      run: dylibbundler -od -b -x ./bin/macos-0.8-Release-64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/macos-0.8-Release-64/MasterPlan.app/Contents/libs -p @executable_path/../libs
+      run: dylibbundler -od -b -x ./bin/macos-0.9-Release-64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/macos-0.9-Release-64/MasterPlan.app/Contents/libs -p @executable_path/../libs
 
     - name: Compress
       run: go run ./build_script/main.go -c
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
-        name: _GH-Actions-MasterPlan-MacOS-Release-v0.8.0.a4
-        path: bin/macos-0.8-Release-64.tar.gz
+        name: _GH-Actions-MasterPlan-MacOS-Release-v0.9.0.a1
+        path: bin/macos-0.9-Release-64.tar.gz
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
-        name: _GH-Actions-MasterPlan-MacOS-Demo-v0.8.0.a4
-        path: bin/macos-0.8-Demo-64.tar.gz
+        name: _GH-Actions-MasterPlan-MacOS-Demo-v0.9.0.a1
+        path: bin/macos-0.9-Demo-64.tar.gz
 
-  buildMac12:
-    runs-on: macos-12
+  buildMacM1:
+    runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v5
       with:
         go-version: 1.17
 
@@ -124,17 +124,17 @@ jobs:
       run: go run ./build_script/main.go -b
 
     - name: Bundle Dependencies
-      run: dylibbundler -od -b -x ./bin/macos-0.8-Release-64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/macos-0.8-Release-64/MasterPlan.app/Contents/libs -p @executable_path/../libs
+      run: dylibbundler -od -b -x ./bin/macos-0.9-Release-64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/macos-0.9-Release-64/MasterPlan.app/Contents/libs -p @executable_path/../libs
 
     - name: Compress
       run: go run ./build_script/main.go -c
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
-        name: _GH-Actions-MasterPlan-MacOS-12-Release-v0.8.0.a4
-        path: bin/macos-0.8-Release-64.tar.gz
+        name: _GH-Actions-MasterPlan-MacOS-M1-Release-v0.9.0.a1
+        path: bin/macos-0.9-Release-64.tar.gz
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
-        name: _GH-Actions-MasterPlan-MacOS-12-Demo-v0.8.0.a4
-        path: bin/macos-0.8-Demo-64.tar.gz
+        name: _GH-Actions-MasterPlan-MacOS-M1-Demo-v0.9.0.a1
+        path: bin/macos-0.9-Demo-64.tar.gz
