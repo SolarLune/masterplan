@@ -14,7 +14,7 @@ import (
 	"github.com/otiai10/copy"
 )
 
-func build(baseDir string, releaseMode string, targetOS string) {
+func build(baseDir string, releaseMode string, targetOS, targetArch string) {
 
 	fmt.Println(`< Beginning build to "` + baseDir + `" for ` + targetOS + `. >`)
 
@@ -78,10 +78,8 @@ func build(baseDir string, releaseMode string, targetOS string) {
 	var c *exec.Cmd
 	var err error
 
-	os.Setenv("CGO_ENABLED", "1")
 	os.Setenv(`GOOS`, targetOS)
-	os.Setenv(`GOARCH`, "amd64")
-	// os.Setenv(`CGO_LDFLAGS`, "-lSDL2 -lSDL2_gfx") // This makes static building on Linux not be actually static for SDL; I guess because it's linking against the system's SDL2, rather than the local library
+	os.Setenv(`GOARCH`, targetArch)
 
 	// cross-compile:
 	if forWin && runtime.GOOS == "linux" {
@@ -96,15 +94,16 @@ func build(baseDir string, releaseMode string, targetOS string) {
 		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w -H windowsgui`, `-tags`, releaseMode, `-o`, filename, `./`)
 	} else {
 		// When a command is more than a single word and is separated by spaces, it has to be in a single "space" (i.e. "static " + releaseMode)
-		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w`, `-tags`, `static `+releaseMode, `-o`, filename, `./`)
+		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w`, `-tags`, releaseMode, `-o`, filename, `./`)
 	}
 
 	fmt.Println("<Building binary with args: ", c.Args, ".>")
 
-	_, err = c.CombinedOutput()
+	text, err := c.CombinedOutput()
 
 	if err != nil {
 		fmt.Println("<ERROR: ", string(err.Error())+">")
+		fmt.Println(string(text))
 	}
 
 	// Add the stuff for Mac
@@ -209,37 +208,24 @@ func main() {
 
 	buildMP := flag.Bool("b", false, "Build MasterPlan into the bin directory.")
 	osFlag := flag.String("os", "", "What target OS to build MasterPlan for. Omitting this flag will build MasterPlan for the current operating system.")
+	archFlag := flag.String("arch", "", "What target arch to build MasterPlan for (either 'amd64' or 'arm64'). Omitting this flag will build MasterPlan for the current architecture.")
 	compressMP := flag.Bool("c", false, "Compress build output.")
 	itch := flag.Bool("i", false, "Upload build to itch.io.")
 
 	flag.Parse()
 
 	if *buildMP {
-		fmt.Println(*osFlag)
-		if *osFlag == "all" {
-			build(filepath.Join("bin", "linux-0.9-Release-64"), "release", "linux")
-			build(filepath.Join("bin", "linux-0.9-Demo-64"), "demo", "linux")
-			build(filepath.Join("bin", "windows-0.9-Release-64"), "release", "windows")
-			build(filepath.Join("bin", "windows-0.9-Demo-64"), "demo", "windows")
-			build(filepath.Join("bin", "macos-0.9-Release-64"), "release", "darwin")
-			build(filepath.Join("bin", "macos-0.9-Demo-64"), "demo", "darwin")
-		} else if *osFlag != "" {
-			targetName := *osFlag
-			if strings.Contains(targetName, "darwin") {
-				targetName = "macos"
-			}
-			build(filepath.Join("bin", targetName+"-0.9-Release-64"), "release", *osFlag)
-			build(filepath.Join("bin", targetName+"-0.9-Demo-64"), "demo", *osFlag)
-		} else {
-			targetName := runtime.GOOS
-			if strings.Contains(targetName, "darwin") {
-				targetName = "macos"
-			}
-			build(filepath.Join("bin", targetName+"-0.9-Release-64"), "release", runtime.GOOS)
-			build(filepath.Join("bin", targetName+"-0.9-Demo-64"), "demo", runtime.GOOS)
+		targetName := runtime.GOOS
+		targetArch := runtime.GOARCH
+		if *osFlag != "" {
+			targetName = *osFlag
 		}
-		// Demo builds are paused until MasterPlan v0.9 is the main version.
-		// build(filepath.Join("bin", fmt.Sprintf("MasterPlan-%s-Demo", target)), "-X main.releaseMode=true -X main.demoMode=DEMO", *targetOS)
+		if *archFlag != "" {
+			targetArch = *archFlag
+		}
+
+		build(filepath.Join("bin", targetName+"-0.9-Release-"+targetArch), "release", targetName, targetArch)
+		build(filepath.Join("bin", targetName+"-0.9-Demo-"+targetArch), "demo", targetName, targetArch)
 	}
 	if *compressMP {
 		compress() // Compresses all built binary folders in the ./bin folder
@@ -254,12 +240,13 @@ func main() {
 			"MASTERPLAN BUILD SCRIPT:\n",
 			"To use this script, you can use the following arguments:\n",
 			"\n",
-			"-b to build MasterPlan for the current OS. If you're on Linux, you can cross-compile to Windows or Mac by specifying the target OS name.\n",
-			"Example to build for Mac: >go run ./build_script/main.go -b -os darwin/amd64 \n",
-			"Example to build for Windows: >go run ./build_script/main.go -b -os windows/amd64 \n",
-			"Example to build for Linux: >go run ./build_script/main.go -b -os linux/amd64 \n",
+			"-b to build MasterPlan for the current OS; cross-platform builds aren't fully supported yet. ",
 			"\n",
-			"Passing all for the OS name (e.g. -b all) creates a 64-bit build for all operating systems.\n",
+			"Example to build for current OS, current architecture: go run ./build_script/main.go -b\n",
+			"Example to build for AMD64 Windows: go run ./build_script/main.go -b -os windows -arch amd64 \n",
+			"Example to build for ARM64 Mac: go run ./build_script/main.go -b -os darwin -arch arm64 \n",
+			"Example to build for Mac, current arch: go run ./build_script/main.go -b -os darwin\n",
+			"Example to build for Linux: go run ./build_script/main.go -b -os linux \n",
 			"\n",
 			"-c to compress the build output, as a .tar.gz file for Linux or Mac, or a .zip file for Windows.\n",
 			"\n",

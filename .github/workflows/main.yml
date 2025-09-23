@@ -1,47 +1,39 @@
 name: Build MasterPlan
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [ sdl-rework ]
-  # pull_request:
-  #   branches: [ sdl-rework ]
+on: [workflow_dispatch, push]
 
 jobs:
-
   buildLinux:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: 1.17
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
 
-    - name: Download Pre-reqs
-      run: |
-        sudo apt update
-        sudo apt-get install libsdl2-dev -y
-        sudo apt-get install libsdl2-image-dev -y
-        sudo apt-get install libsdl2-mixer-dev -y
-        sudo apt-get install libsdl2-ttf-dev -y
-        sudo apt-get install libsdl2-gfx-dev -y
-        sudo apt-get install libxss-dev -y
+      - name: Download Pre-reqs
+        run: |
+          sudo apt update
+          sudo apt install libx11-dev -y
+          sudo apt install libasound2-dev
 
-    - name: Build
-      run: go run ./build_script/main.go -b -os linux -c
+      - name: Build
+        run: go run ./build_script/main.go -b -c
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: _GH-Actions-MasterPlan-Linux-Release-v0.9.0.a1
-        path: ./bin/linux-0.9-Release-64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: _gh-actions-masterplan-linux-release-amd64-v0.9
+          path: ./bin/linux-0.9-Release-amd64.tar.gz
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: _GH-Actions-MasterPlan-Linux-Demo-v0.9.0.a1
-        path: ./bin/linux-0.9-Demo-64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: _gh-actions-masterplan-linux-demo-amd64-v0.9
+          path: ./bin/linux-0.9-Demo-amd64.tar.gz
 
+      - name: Test
+        run: go run .
 
   # For some reason, building on Windows creates a terminal window despite specifying -H=windowsgui in the build settings. For now, I'll crosscompile on my machine.
 
@@ -51,90 +43,98 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-    - uses: actions/checkout@v4
-    - uses: msys2/setup-msys2@v2
-      with:
-        msystem: MINGW64
-        update: true
-        install: git
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git
 
-    - name: Download SDL2 Dependencies
-      run: pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2{,_image,_ttf,_gfx} mingw-w64-x86_64-go --noconfirm
+      - name: Download Dependencies
+        run: pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-go --noconfirm
 
-    - name: Build
-      run: go run ./build_script/main.go -b -os windows -c 
+      - name: Build
+        run: go run ./build_script/main.go -b -c
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: _GH-Actions-MasterPlan-Windows-Release-v0.9.0.a1
-        path: ./bin/windows-0.9-Release-64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: _GH-Actions-MasterPlan-Windows-amd64-Release-v0.9
+          path: ./bin/windows-0.9-Release-amd64.zip
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: _GH-Actions-MasterPlan-Windows-Demo-v0.9.0.a1
-        path: ./bin/windows-0.9-Demo-64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: _GH-Actions-MasterPlan-Windows-amd64-Demo-v0.9
+          path: ./bin/windows-0.9-Demo-amd64.zip
 
+      - name: Test
+        run: go run .
 
-  buildMac:
-    runs-on: macos-13
+  buildMacAmd64:
+    runs-on: macos-13 # Earliest MacOS, deprecated
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: 1.17
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
 
-    - name: Download Pre-reqs
-      run: brew install sdl2{,_image,_mixer,_ttf,_gfx} pkg-config dylibbundler
+      - name: Download Pre-reqs
+        run: brew install pkg-config dylibbundler
 
-    - name: Build
-      run: go run ./build_script/main.go -b -os darwin
+      - name: Build
+        run: go run ./build_script/main.go -b
 
-    - name: Bundle Dependencies
-      run: dylibbundler -od -b -x ./bin/macos-0.9-Release-64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/macos-0.9-Release-64/MasterPlan.app/Contents/libs -p @executable_path/../libs
+      - name: Bundle Dependencies
+        run: dylibbundler -od -b -x ./bin/darwin-0.9-Release-amd64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Release-amd64/MasterPlan.app/Contents/libs -p @executable_path/../libs
 
-    - name: Compress
-      run: go run ./build_script/main.go -c
+      - name: Compress
+        run: go run ./build_script/main.go -c
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: _GH-Actions-MasterPlan-MacOS-Release-v0.9.0.a1
-        path: bin/macos-0.9-Release-64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: _GH-Actions-MasterPlan-MacOS-amd64-Release-v0.9
+          path: ./bin/darwin-0.9-Release-amd64.tar.gz
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: _GH-Actions-MasterPlan-MacOS-Demo-v0.9.0.a1
-        path: bin/macos-0.9-Demo-64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: _GH-Actions-MasterPlan-MacOS-Demo-amd64-v0.9
+          path: ./bin/darwin-0.9-Release-amd64.tar.gz
 
-  buildMacM1:
-    runs-on: macos-latest
+      - name: Test
+        run: go run .
+
+  buildMacArm64:
+    runs-on: macos-14 # Deprecated, earliest ARM64 on GH Runners
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: 1.17
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
 
-    - name: Download Pre-reqs
-      run: brew install sdl2{,_image,_mixer,_ttf,_gfx} pkg-config dylibbundler
+      - name: Download Pre-reqs
+        run: brew install pkg-config dylibbundler
 
-    - name: Build
-      run: go run ./build_script/main.go -b
+      - name: Build
+        run: go run ./build_script/main.go -b -os darwin -arch arm64
 
-    - name: Bundle Dependencies
-      run: dylibbundler -od -b -x ./bin/macos-0.9-Release-64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/macos-0.9-Release-64/MasterPlan.app/Contents/libs -p @executable_path/../libs
+      - name: Bundle Dependencies
+        run: dylibbundler -od -b -x ./bin/darwin-0.9-Release-arm64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Release-arm64/MasterPlan.app/Contents/libs -p @executable_path/../libs
 
-    - name: Compress
-      run: go run ./build_script/main.go -c
+      - name: Compress
+        run: go run ./build_script/main.go -c
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: _GH-Actions-MasterPlan-MacOS-M1-Release-v0.9.0.a1
-        path: bin/macos-0.9-Release-64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: _GH-Actions-MasterPlan-MacOS-arm64-Release-v0.9
+          path: bin/darwin-0.9-Release-arm64.tar.gz
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: _GH-Actions-MasterPlan-MacOS-M1-Demo-v0.9.0.a1
-        path: bin/macos-0.9-Demo-64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: _GH-Actions-MasterPlan-MacOS-arm64-Demo-v0.9
+          path: bin/darwin-0.9-Demo-arm64.tar.gz
+
+      - name: Test
+        run: go run .
