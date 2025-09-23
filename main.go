@@ -19,6 +19,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Zyko0/go-sdl3/bin/binimg"
+	"github.com/Zyko0/go-sdl3/bin/binsdl"
+	"github.com/Zyko0/go-sdl3/bin/binttf"
+	"github.com/Zyko0/go-sdl3/img"
+	"github.com/Zyko0/go-sdl3/sdl"
+	"github.com/Zyko0/go-sdl3/ttf"
 	"github.com/adrg/xdg"
 	"github.com/blang/semver"
 	"github.com/cavaliergopher/grab/v3"
@@ -27,10 +33,6 @@ import (
 	"github.com/hako/durafmt"
 	"github.com/ncruces/zenity"
 	"github.com/pkg/browser"
-	"github.com/veandco/go-sdl2/gfx"
-	"github.com/veandco/go-sdl2/img"
-	"github.com/veandco/go-sdl2/sdl"
-	"github.com/veandco/go-sdl2/ttf"
 
 	_ "github.com/silbinarywolf/preferdiscretegpu"
 )
@@ -43,7 +45,6 @@ var targetFPS = 60
 
 var frametimeStart time.Time
 var frametimeCount int
-var currentDebugFPS int
 
 var cpuProfileStart = time.Time{}
 
@@ -51,7 +52,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.9.0-alpha.1.0")
+	globals.Version = semver.MustParse("0.9.0")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -79,6 +80,16 @@ func init() {
 }
 
 func main() {
+
+	defer binsdl.Load().Unload()
+	defer binimg.Load().Unload()
+	defer binttf.Load().Unload()
+	defer sdl.Quit()
+
+	// sdl.GL_SetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
+	// sdl.GL_SetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
+	// sdl.GL_SetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, 1)
+	// sdl.Init(sdl.INIT_VIDEO)
 
 	// We want this here because releaseMode can change because of build tags, so we want to be sure all init() functions run to ensure the releaseMode variable is accurate
 	if globals.ReleaseMode != ReleaseModeDev {
@@ -174,8 +185,8 @@ func main() {
 
 	globals.EventLog = NewEventLog()
 
-	x := int32(sdl.WINDOWPOS_UNDEFINED)
-	y := int32(sdl.WINDOWPOS_UNDEFINED)
+	x := int32(0)
+	y := int32(0)
 	w := int32(960)
 	h := int32(540)
 
@@ -187,7 +198,7 @@ func main() {
 		h = int32(windowData["H"].(float64))
 	}
 
-	windowFlags := uint32(sdl.WINDOW_RESIZABLE)
+	windowFlags := sdl.WINDOW_RESIZABLE
 
 	if globals.Settings.Get(SettingsBorderlessWindow).AsBool() {
 		windowFlags |= sdl.WINDOW_BORDERLESS
@@ -199,22 +210,29 @@ func main() {
 
 	InitSpeaker()
 
-	// window, renderer, err := sdl.CreateWindowAndRenderer(w, h, windowFlags)
-	window, err := sdl.CreateWindow("MasterPlan", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, w, h, windowFlags)
+	props, err := sdl.CreateProperties()
 	if err != nil {
 		panic(err)
 	}
 
-	// Should default to hardware accelerators, if available
-	renderer, err := sdl.CreateRenderer(window, 0, sdl.RENDERER_ACCELERATED+sdl.RENDERER_SOFTWARE)
+	props.SetStringProperty(SDL_PROP_WINDOW_CREATE_TITLE_STRING, "MasterPlan")
+	props.SetNumberProperty(SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, int64(w))
+	props.SetNumberProperty(SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, int64(h))
+	props.SetBooleanProperty(SDL_PROP_WINDOW_CREATE_TRANSPARENT_BOOLEAN, true)
+	props.SetBooleanProperty(SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true)
+
+	window, err := sdl.CreateWindowWithProperties(props)
+	// window, renderer, err := sdl.CreateWindowAndRenderer("MasterPlan", int(w), int(h), windowFlags)
 	if err != nil {
 		panic(err)
 	}
 
-	rendererInfo, err := renderer.GetInfo()
+	renderer, err := window.CreateRenderer("")
 	if err != nil {
 		panic(err)
 	}
+
+	rendererInfo := renderer.Properties()
 
 	globals.RendererInfo = rendererInfo
 
@@ -223,23 +241,10 @@ func main() {
 		panic(err)
 	}
 
-	globals.ScreenshotSurf, err = sdl.CreateRGBSurfaceWithFormat(0, w, h, 32, sdl.PIXELFORMAT_ARGB8888)
-	if err != nil {
-		panic(err)
-	}
-
-	globals.ExportSurf, err = sdl.CreateRGBSurfaceWithFormat(0, w, h, 32, sdl.PIXELFORMAT_ARGB8888)
-	if err != nil {
-		panic(err)
-	}
-
-	if err := img.Init(img.INIT_JPG | img.INIT_PNG | img.INIT_TIF | img.INIT_WEBP); err != nil {
-		panic(err)
-	}
-
 	LoadCursors()
 
 	icon, err := img.Load(LocalRelativePath("assets/window_icon.png"))
+
 	if err != nil {
 		panic(err)
 	}
@@ -251,22 +256,34 @@ func main() {
 	window.SetBordered(!borderless)
 
 	sdl.SetHint(sdl.HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0")
-	sdl.SetHint(sdl.HINT_RENDER_BATCHING, "1")
-	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "0")
 
 	globals.Window = window
 	globals.Renderer = renderer
+	surf, err := sdl.CreateSurface(2, 2, sdl.PIXELFORMAT_RGBA8888)
+	if err != nil {
+		panic(err)
+	}
+	surf.FillRect(nil, 0xFFFFFFFF)
+	globals.PlainWhiteTexture, err = renderer.CreateTextureFromSurface(surf)
+	if err != nil {
+		panic(err)
+	}
+
+	// renderer.SetRenderTarget(globals.PlainWhiteTexture)
+	// renderer.SetDrawColor(255, 255, 255, 255)
+	// renderer.RenderFillRect(nil)
 
 	res := globals.Resources.Get(LocalRelativePath("assets/gui.png"))
 	res.Destructible = false
 	globals.GUITexture = res.AsImage()
+	globals.GUITexture.Texture.SetScaleMode(sdl.SCALEMODE_NEAREST)
 
 	globals.Resources.Get(LocalRelativePath("assets/empty_image.png")).Destructible = false
 
 	globals.Dispatcher = NewDispatcher()
 
 	globals.TextRenderer = NewTextRenderer()
-	globals.ScreenSize = Point{float32(w), float32(h)}
+	globals.ScreenSize = Vector{float32(w), float32(h)}
 
 	globals.TriggerReloadFonts = true
 	HandleFontReload()
@@ -279,10 +296,11 @@ func main() {
 
 	showedAboutDialog := false
 
-	fpsManager := &gfx.FPSmanager{}
+	// fpsManager := &gfx.FPSmanager{}
+	// gfx.InitFramerate(fpsManager)
+	// gfx.SetFramerate(fpsManager, 60)
 
-	gfx.InitFramerate(fpsManager)
-	gfx.SetFramerate(fpsManager, 60)
+	fpsManager := NewFPSManager()
 
 	log.Println("MasterPlan initialized successfully.")
 
@@ -347,52 +365,38 @@ func main() {
 
 	}
 
+	windowTransparency := 1.0
+
 	for !quit {
 
+		fpsManager.Start()
+
 		wtMode := globals.Settings.Get(SettingsWindowTransparencyMode).AsString()
-		wtLevel := globals.Settings.Get(SettingsWindowTransparency).AsFloat()
 
-		if wtLevel < 0.02 {
-			wtLevel = 0
-		} else if wtLevel > 0.98 {
-			wtLevel = 1
-		}
-
-		minimum := 0.25
-		maximum := 1.0 - minimum
+		transparent := false
 
 		switch wtMode {
 		case WindowTransparencyAlways:
-			globals.WindowTargetTransparency = minimum + (wtLevel * maximum)
+			transparent = true
 		case WindowTransparencyMouse:
-			if globals.Mouse.InsideWindow {
-				globals.WindowTargetTransparency = 1
-			} else {
-				globals.WindowTargetTransparency = minimum + (wtLevel * maximum)
-			}
+			transparent = !globals.Mouse.InsideWindow
 		case WindowTransparencyWindow:
-			if (window.GetFlags()&sdl.WINDOW_INPUT_FOCUS > 0) || (window.GetFlags()&sdl.WINDOW_INPUT_GRABBED > 0) {
-				globals.WindowTargetTransparency = 1
-			} else {
-				globals.WindowTargetTransparency = minimum + (wtLevel * maximum)
-			}
-		default:
-			globals.WindowTargetTransparency = 1
+			transparent = (window.Flags()&sdl.WINDOW_INPUT_FOCUS == 0) && (window.Flags()&sdl.WINDOW_KEYBOARD_GRABBED == 0) && (window.Flags()&sdl.WINDOW_MOUSE_GRABBED == 0)
+			// default:
+			// 	transparency = false
 		}
 
-		diff := (globals.WindowTargetTransparency - globals.WindowTransparency) * 0.4
+		targetBGAlpha := 1.0
 
-		if math.Abs(diff) > 0.0001 {
-			globals.WindowTransparency += diff
-			globals.Window.SetWindowOpacity(float32(globals.WindowTransparency))
-		} else if globals.WindowTransparency != globals.WindowTargetTransparency {
-			globals.WindowTransparency = globals.WindowTargetTransparency
-			globals.Window.SetWindowOpacity(float32(globals.WindowTransparency))
+		if transparent {
+			targetBGAlpha = globals.Settings.Get(SettingsWindowTransparency).AsFloat()
 		}
+
+		windowTransparency += (float64(targetBGAlpha) - windowTransparency) * 0.1
 
 		globals.MenuSystem.Get("main").Pages["root"].FindElement("time label", false).(*Label).SetText([]rune(time.Now().Format("Mon Jan 2 2006")))
 
-		screenWidth, screenHeight, err := globals.Renderer.GetOutputSize()
+		screenWidth, screenHeight, err := globals.Renderer.CurrentOutputSize()
 
 		if err != nil {
 			panic(err)
@@ -413,11 +417,9 @@ func main() {
 		// This will make menus in MasterPlan disappear, which is, understandably, bad.
 		if screenWidth > 0 && screenHeight > 0 && (screenWidth != int32(globals.ScreenSize.X) || screenHeight != int32(globals.ScreenSize.Y)) {
 
-			globals.ScreenSize = Point{float32(screenWidth), float32(screenHeight)} // We have to set the screen size before we create the screenshot surface, duh~
+			globals.ScreenSize = Vector{float32(screenWidth), float32(screenHeight)} // We have to set the screen size before we create the screenshot surface, duh~
 			globals.ScreenSizeChanged = true
 			globals.ScreenSizePrev = globals.ScreenSize
-			globals.ScreenshotSurf.Free()
-			globals.ScreenshotSurf, err = sdl.CreateRGBSurfaceWithFormat(0, int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y), 32, sdl.PIXELFORMAT_ARGB8888)
 			if err != nil {
 				panic(err)
 			}
@@ -431,7 +433,11 @@ func main() {
 		}
 		globals.Frame++
 
+		window.StartTextInput()
+
 		handleEvents()
+
+		window.StopTextInput()
 
 		// currentTime := time.Now()
 
@@ -442,21 +448,20 @@ func main() {
 		// }
 
 		if globals.Keybindings.Pressed(KBToggleFullscreen) {
-			fullscreen = !fullscreen
-			if fullscreen {
-				window.SetFullscreen(sdl.WINDOW_FULLSCREEN_DESKTOP)
-			} else {
-				window.SetFullscreen(0)
-			}
+			window.SetFullscreen(!fullscreen)
 		}
 
-		globals.WindowFlags = window.GetFlags()
+		globals.WindowFlags = window.Flags()
 		windowFocused := globals.WindowFlags&sdl.WINDOW_MINIMIZED == 0 && globals.WindowFlags&sdl.WINDOW_HIDDEN == 0
 
 		// if windowFlags&byte(rl.FlagWindowTransparent) > 0 {
 		// 	clearColor = rl.Color{}
 		// }
 		clearColor := getThemeColor(GUIBGColor)
+		clearColor[0] = uint8(float64(clearColor[0]) * windowTransparency)
+		clearColor[1] = uint8(float64(clearColor[1]) * windowTransparency)
+		clearColor[2] = uint8(float64(clearColor[2]) * windowTransparency)
+		clearColor[3] = uint8(windowTransparency * 255)
 		renderer.SetDrawColor(clearColor.RGBA())
 		renderer.Clear()
 
@@ -475,11 +480,11 @@ func main() {
 				}
 			}
 
-			if globals.Keyboard.Key(sdl.K_F7).Pressed() {
+			if globals.Keyboard.Key(SDLK_F7).Pressed() {
 				profileCPU()
 			}
 
-			if globals.Keyboard.Key(sdl.K_F8).Pressed() {
+			if globals.Keyboard.Key(SDLK_F8).Pressed() {
 				profileHeap()
 			}
 
@@ -515,13 +520,27 @@ func main() {
 
 			globals.Renderer.SetScale(1, 1)
 
+			lightboxEffect := float32(globals.Settings.Get(SettingsLightboxEffect).AsFloat())
+
+			if lightboxEffect > 0 {
+				gradient := globals.Resources.Get(LocalRelativePath("assets/light_gradient.png")).AsImage().Texture
+
+				menuColor := getThemeColor(GUICompletedColor)
+				gradient.SetColorMod(menuColor.Mult(0.4 * lightboxEffect).RGB())
+
+				gradient.SetBlendMode(sdl.BLENDMODE_ADD)
+				globals.Renderer.RenderTexture(gradient, nil, &sdl.FRect{0, 0, float32(screenWidth), float32(screenHeight / 2)})
+				gradient.SetBlendMode(sdl.BLENDMODE_BLEND)
+				gradient.SetColorMod(255, 255, 255)
+			}
+
 			globals.MenuSystem.Draw()
 
 			globals.Mouse.ApplyCursor()
 
 			if globals.State == StateNeutral && !globals.MenuSystem.ExclusiveMenuOpen() && globals.Keybindings.Pressed(KBAddToSelection) {
 				pos := globals.Mouse.Position()
-				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{480, 80, 8, 8}, &sdl.FRect{pos.X + 20, pos.Y - 8, 8, 8})
+				globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{480, 80, 8, 8}, &sdl.FRect{pos.X + 20, pos.Y - 8, 8, 8})
 			}
 
 			if globals.DrawOnTop != nil {
@@ -529,8 +548,8 @@ func main() {
 			}
 
 			if globals.DebugMode != DebugModeNone {
-				globals.TextRenderer.QuickRenderText("FPS : "+strconv.Itoa(currentDebugFPS), Point{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, ColorBlack, AlignRight)
-				globals.TextRenderer.QuickRenderText(fmt.Sprintf("(%d, %d)", int(globals.Project.Camera.Position.X), int(globals.Project.Camera.Position.Y)), Point{globals.ScreenSize.X - 64, 32}, 1, ColorWhite, ColorBlack, AlignRight)
+				globals.TextRenderer.QuickRenderText("FPS : "+strconv.Itoa(fpsManager.DebugFPS()), Vector{globals.ScreenSize.X - 64, 0}, 1, ColorWhite, ColorBlack, AlignRight)
+				globals.TextRenderer.QuickRenderText(fmt.Sprintf("(%d, %d)", int(globals.Project.Camera.Position.X), int(globals.Project.Camera.Position.Y)), Vector{globals.ScreenSize.X - 64, 32}, 1, ColorWhite, ColorBlack, AlignRight)
 			}
 
 		}
@@ -553,8 +572,8 @@ func main() {
 		// y := int32(0)
 
 		// for _, event := range eventLogBuffer {
-		// 	src := &sdl.Rect{0, 0, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
-		// 	dst := &sdl.Rect{0, y, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
+		// 	src := &sdl.FRect{0, 0, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
+		// 	dst := &sdl.FRect{0, y, int32(event.Texture.Image.Size.X), int32(event.Texture.Image.Size.Y)}
 		// 	globals.Renderer.Copy(event.Texture.Image.Texture, src, dst)
 		// 	y += src.H
 		// }
@@ -640,7 +659,7 @@ func main() {
 			fontColor[3] = fade
 
 			FillRect(dst.X, dst.Y-dst.H, dst.W, dst.H, bgColor)
-			globals.TextRenderer.QuickRenderText(text, Point{0, event.Y - dst.H}, msgSize, fontColor, nil, AlignLeft)
+			globals.TextRenderer.QuickRenderText(text, Vector{0, event.Y - dst.H}, msgSize, fontColor, nil, AlignLeft)
 
 			eventY -= dst.H
 
@@ -694,8 +713,6 @@ func main() {
 
 		// }
 
-		renderer.Present()
-
 		if globals.Keybindings.Pressed(KBTakeScreenshot) {
 			TakeScreenshot(nil)
 		}
@@ -743,14 +760,10 @@ func main() {
 
 		if targetFPS != newTarget {
 			targetFPS = newTarget
-			gfx.SetFramerate(fpsManager, uint32(targetFPS))
+			fpsManager.SetTargetFPS(newTarget)
 		}
 
-		dt := float32(gfx.FramerateDelay(fpsManager)) / 1000
-
-		if dt > 0 && dt < float32(math.Inf(1)) {
-			globals.DeltaTime = dt
-		}
+		globals.DeltaTime = fpsManager.DeltaTime()
 
 		HandleFontReload()
 
@@ -758,21 +771,23 @@ func main() {
 			s.TempOverride = false
 		}
 
-		frametimeCount++
+		renderer.Present()
 
-		if time.Since(frametimeStart) >= time.Second {
-			frametimeStart = time.Now()
-			currentDebugFPS = frametimeCount
-			frametimeCount = 0
-		}
+		fpsManager.End()
 
 	}
 
 	if globals.Settings.Get(SettingsSaveWindowPosition).AsBool() {
 		// This is outside the main loop because we can save the window properties just before quitting
-		wX, wY := window.GetPosition()
-		wW, wH := window.GetSize()
-		globals.Settings.Get(SettingsWindowPosition).Set(sdl.Rect{wX, wY, wW, wH})
+		wX, wY, err := window.Position()
+		if err != nil {
+			panic(err)
+		}
+		wW, wH, err := window.Size()
+		if err != nil {
+			panic(err)
+		}
+		globals.Settings.Get(SettingsWindowPosition).Set(sdl.FRect{float32(wX), float32(wY), float32(wW), float32(wH)})
 	}
 
 	log.Println("MasterPlan exited successfully.")
@@ -780,8 +795,6 @@ func main() {
 	globals.Project.Destroy()
 
 	globals.Resources.Destroy()
-
-	sdl.Quit()
 
 }
 
@@ -845,7 +858,7 @@ func ConstructMenus() {
 
 	var fileButton *Button
 
-	fileButton = NewButton("File", nil, &sdl.Rect{144, 0, 32, 32}, false, func() {
+	fileButton = NewButton("File", nil, &sdl.FRect{144, 0, 32, 32}, false, func() {
 		fileMenu := globals.MenuSystem.Get("file")
 		fileMenu.Rect.X = fileButton.Rectangle().X - 48
 		if mainMenu.Rect.Y > globals.ScreenSize.Y/2 {
@@ -1115,7 +1128,7 @@ func ConstructMenus() {
 					rootPage := project.Pages[0]
 					rootPage.Selection.Clear()
 
-					for _, card := range rootPage.PasteCards(Point{offsetX - pageOffsetX, 0}, false) {
+					for _, card := range rootPage.PasteCards(Vector{offsetX - pageOffsetX, 0}, false) {
 						rootPage.Selection.Add(card)
 					}
 
@@ -1281,8 +1294,8 @@ func ConstructMenus() {
 		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeTable), true)
 	}))
 
-	root.AddRow(AlignCenter).Add("create new web", NewButton("Web", nil, icons[ContentTypeWeb], false, func() {
-		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeWeb), true)
+	root.AddRow(AlignCenter).Add("create new web", NewButton("Internet", nil, icons[ContentTypeInternet], false, func() {
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeInternet), true)
 	}))
 
 	createMenu.Recreate(createMenu.Pages["root"].IdealSize().X+64, createMenu.Pages["root"].IdealSize().Y+16)
@@ -1355,14 +1368,14 @@ func ConstructMenus() {
 
 	row = setColor.AddRow(AlignCenter)
 
-	img := NewGUIImage(nil, &sdl.Rect{208, 256, 32, 32}, globals.GUITexture.Texture, false)
+	img := NewGUIImage(nil, &sdl.FRect{208, 256, 32, 32}, globals.GUITexture.Texture, false)
 	img.TintByFontColor = false
 	row.Add("icon", img)
 
 	row.Add("applyLabel", NewLabel("Apply to :    ", nil, false, AlignCenter))
 
 	row = setColor.AddRow(AlignCenter)
-	button := NewButton("BG", nil, &sdl.Rect{208, 288, 32, 32}, false, func() {
+	button := NewButton("BG", nil, &sdl.FRect{208, 288, 32, 32}, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards
 		for card := range selectedCards {
 			card.CustomColor = colorWheel.SampledColor.Clone()
@@ -1373,7 +1386,7 @@ func ConstructMenus() {
 	button.TintByFontColor = false
 	row.Add("applyBG", button)
 
-	button = NewButton("Text", nil, &sdl.Rect{240, 288, 32, 32}, false, func() {
+	button = NewButton("Text", nil, &sdl.FRect{240, 288, 32, 32}, false, func() {
 		selectedCards := globals.Project.CurrentPage.Selection.Cards
 		for card := range selectedCards {
 			card.FontColor = colorWheel.SampledColor.Clone()
@@ -1394,7 +1407,7 @@ func ConstructMenus() {
 
 	row = setColor.AddRow(AlignCenter)
 
-	img = NewGUIImage(nil, &sdl.Rect{240, 256, 32, 32}, globals.GUITexture.Texture, false)
+	img = NewGUIImage(nil, &sdl.FRect{240, 256, 32, 32}, globals.GUITexture.Texture, false)
 	img.TintByFontColor = false
 	row.Add("icon", img)
 
@@ -1402,7 +1415,7 @@ func ConstructMenus() {
 
 	row = setColor.AddRow(AlignCenter)
 
-	button = NewButton("BG", nil, &sdl.Rect{208, 320, 32, 32}, false, func() {
+	button = NewButton("BG", nil, &sdl.FRect{208, 320, 32, 32}, false, func() {
 
 		selectedCards := globals.Project.CurrentPage.Selection.AsSlice()
 		if len(selectedCards) > 0 {
@@ -1415,7 +1428,7 @@ func ConstructMenus() {
 	button.TintByFontColor = false
 	row.Add("grabBG", button)
 
-	button = NewButton("Text", nil, &sdl.Rect{240, 320, 32, 32}, false, func() {
+	button = NewButton("Text", nil, &sdl.FRect{240, 320, 32, 32}, false, func() {
 
 		selectedCards := globals.Project.CurrentPage.Selection.AsSlice()
 		if len(selectedCards) > 0 {
@@ -1520,7 +1533,7 @@ func ConstructMenus() {
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 
-	prevMonthButton := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
+	prevMonthButton := NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		bg.ChosenIndex = -1
 		now = time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, now.Location())
 	})
@@ -1530,14 +1543,14 @@ func ConstructMenus() {
 
 	row.Add("prev month", prevMonthButton)
 	row.Add("month label", NewLabel("Month", nil, false, AlignCenter))
-	row.Add("next month", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
+	row.Add("next month", NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		bg.ChosenIndex = -1
 		now = time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, now.Location())
 	}))
 
 	row = setDeadline.AddRow(AlignCenter)
 
-	prevYearButton := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
+	prevYearButton := NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		bg.ChosenIndex = -1
 		now = time.Date(now.Year()-1, now.Month(), 1, 0, 0, 0, 0, now.Location())
 	})
@@ -1553,12 +1566,12 @@ func ConstructMenus() {
 	}
 	row.Add("year label", yearLabel)
 
-	row.Add("next year", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
+	row.Add("next year", NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		bg.ChosenIndex = -1
 		now = time.Date(now.Year()+1, now.Month(), 1, 0, 0, 0, 0, now.Location())
 	}))
 
-	row.Add("reset date", NewIconButton(0, 0, &sdl.Rect{208, 192, 32, 32}, globals.GUITexture, false, func() {
+	row.Add("reset date", NewIconButton(0, 0, &sdl.FRect{208, 192, 32, 32}, globals.GUITexture, false, func() {
 		today := time.Now()
 		now = time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, now.Location())
 		bg.ChosenIndex = -1
@@ -1673,7 +1686,7 @@ func ConstructMenus() {
 						if DatesAreEqual(today, date) && !card.Completed() && card.Completable() {
 							globals.GUITexture.Texture.SetColorMod(255, 255, 255)
 							globals.GUITexture.Texture.SetAlphaMod(255)
-							globals.Renderer.Copy(globals.GUITexture.Texture, &sdl.Rect{0, 240, 32, 32}, &sdl.Rect{int32(buttonRect.X), int32(buttonRect.Y), 32, 32})
+							globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{0, 240, 32, 32}, &sdl.FRect{float32(buttonRect.X), float32(buttonRect.Y), 32, 32})
 							// globals.TextRenderer.QuickRenderText(strconv.Itoa(date.Day()), card.Page.Project.Camera.TranslatePoint(Point{card.Rect.X, card.Rect.Y}), 1, ColorWhite, ColorBlack, AlignLeft)
 							break
 						}
@@ -1738,7 +1751,7 @@ func ConstructMenus() {
 
 			icon := iconImgs[i+j]
 
-			button := NewIconButton(0, 0, &sdl.Rect{0, 0, int32(icon.Image.Size.X), int32(icon.Image.Size.X)}, icon.Image, false, func() {
+			button := NewIconButton(0, 0, &sdl.FRect{0, 0, float32(icon.Image.Size.X), float32(icon.Image.Size.X)}, icon.Image, false, func() {
 				n := globals.Project.CurrentPage.CreateNewCard(ContentTypeImage)
 				n.Rect.X = globals.Project.Camera.Position.X
 				n.Rect.Y = globals.Project.Camera.Position.Y
@@ -1792,7 +1805,7 @@ func ConstructMenus() {
 	}))
 
 	root.AddRow(AlignCenter).Add("paste cards", NewButton("Paste Cards", &sdl.FRect{0, 0, 192, 32}, nil, false, func() {
-		menuPos := Point{globals.MenuSystem.Get("context").Rect.X, globals.MenuSystem.Get("context").Rect.Y}
+		menuPos := Vector{globals.MenuSystem.Get("context").Rect.X, globals.MenuSystem.Get("context").Rect.Y}
 		offset := globals.Mouse.Position().Sub(menuPos)
 		globals.Project.CurrentPage.PasteCards(offset, true)
 		contextMenu.Close()
@@ -1810,7 +1823,7 @@ func ConstructMenus() {
 	// root = urlMenu.Pages["root"]
 
 	// row = root.AddRow(AlignLeft)
-	// row.Add("favicon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{0, 0, 32, 32}, nil, false))
+	// row.Add("favicon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.FRect{0, 0, 32, 32}, nil, false))
 	// tl := NewLabel("---", nil, false, AlignLeft)
 	// // tl.AutoExpand = true
 	// row.Add("title", tl)
@@ -1828,6 +1841,7 @@ func ConstructMenus() {
 
 	confirmQuit := globals.MenuSystem.Add(NewMenu("confirm quit", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
 	confirmQuit.Draggable = true
+	confirmQuit.IsAConfirmMenu = true
 	root = confirmQuit.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Are you sure you wish to quit?", nil, false, AlignCenter))
 	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
@@ -1838,6 +1852,7 @@ func ConstructMenus() {
 
 	confirmNewProject := globals.MenuSystem.Add(NewMenu("confirm new project", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
 	confirmNewProject.Draggable = true
+	confirmNewProject.IsAConfirmMenu = true
 	root = confirmNewProject.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Create a new project?", nil, false, AlignCenter))
 	root.AddRow(AlignCenter).Add("label-2", NewLabel("Any unsaved changes will be lost.", nil, false, AlignCenter))
@@ -1852,6 +1867,7 @@ func ConstructMenus() {
 
 	confirmLoad := globals.MenuSystem.Add(NewMenu("confirm load", &sdl.FRect{0, 0, 32, 32}, MenuCloseButton), true)
 	confirmLoad.Draggable = true
+	confirmLoad.IsAConfirmMenu = true
 	root = confirmLoad.Pages["root"]
 	root.AddRow(AlignCenter).Add("label", NewLabel("Load the following project?", nil, false, AlignCenter))
 	confirmLoadFilepath := NewLabel("Project Filepath: ", &sdl.FRect{0, 0, 800, 32}, false, AlignCenter)
@@ -1923,20 +1939,40 @@ func ConstructMenus() {
 
 	sound := settings.AddPage("sound")
 
+	sound.DefaultMargin = 16
+
 	row = sound.AddRow(AlignCenter)
 	row.Add("", NewLabel("Sound Settings", nil, false, AlignCenter))
 
 	row = sound.AddRow(AlignCenter)
-	row.Add("", NewLabel("Timers Play Alarm Sound:", nil, false, AlignCenter))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsPlayAlarmSound)))
-
-	row = sound.AddRow(AlignCenter)
-	row.Add("", NewLabel("Audio Volume:", nil, false, AlignCenter))
-	number := NewNumberSpinner(&sdl.FRect{0, 0, 256, 32}, false, globals.Settings.Get(SettingsAudioVolume))
-	number.OnChange = func() {
+	row.Add("", NewLabel("Sound Card Volume:", nil, false, AlignCenter))
+	volumeSlider := NewScrollbar(&sdl.FRect{0, 0, 256, 32}, 0, 1, false, globals.Settings.Get(SettingsAudioSoundVolume))
+	volumeSlider.DisplayValue = true
+	volumeSlider.OnRelease = func() {
 		globals.Project.SendMessage(NewMessage(MessageVolumeChange, nil, nil))
 	}
-	row.Add("", number)
+	row.Add("", volumeSlider)
+
+	row = sound.AddRow(AlignCenter)
+	row.Add("", NewLabel("UI Sound Volume:", nil, false, AlignCenter))
+	uiVolumeSlider := NewScrollbar(&sdl.FRect{0, 0, 256, 32}, 0, 1, false, globals.Settings.Get(SettingsAudioUIVolume))
+	uiVolumeSlider.DisplayValue = true
+	row.Add("", uiVolumeSlider)
+
+	row = sound.AddRow(AlignCenter)
+	row.Add("", NewButton("Reset To Default", nil, nil, false, func() {
+		volumeSlider.SetValue(0.8)
+		uiVolumeSlider.SetValue(0.8)
+		// globals.Settings.Get(SettingsAudioSoundVolume).Set(0.8)
+		// globals.Settings.Get(SettingsAudioUIVolume).Set(0.8)
+	}))
+
+	row = sound.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
+
+	row = sound.AddRow(AlignCenter)
+	row.Add("", NewLabel("Timers Play Alarm Sound:", nil, false, AlignCenter))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsPlayAlarmSound)))
 
 	row = sound.AddRow(AlignCenter)
 	row.Add("", NewTooltip(`Playback Buffer Size:
@@ -2019,7 +2055,7 @@ MasterPlan to take effect.`))
 	// General options
 
 	general := settings.AddPage("general")
-	general.DefaultMargin = 32
+	general.DefaultMargin = 16
 
 	row = general.AddRow(AlignCenter)
 	row.Add("header", NewLabel("General Settings", nil, false, AlignCenter))
@@ -2169,6 +2205,7 @@ If it exists already, this folder should be something like:
 "~/.config/chromium/", or "%LOCALAPPDATA%\Google\Chrome\User Data".
 The folder you specify should already have a "Default" folder within it.
 `))
+
 	row.Add("", NewLabel("Browser User-Data Path:", nil, false, AlignLeft))
 	browserUserDataPath := NewLabel("", nil, false, AlignLeft)
 	browserUserDataPath.Editable = true
@@ -2187,6 +2224,22 @@ The folder you specify should already have a "Default" folder within it.
 
 	row.Add("", NewButton("Clear", nil, nil, false, func() {
 		globals.Settings.Get(SettingsBrowserUserDataPath).Set("")
+	}))
+
+	row = general.AddRow(AlignCenter)
+	row.Add("hint", NewTooltip(`What URL to open new Web Cards to.`))
+
+	row.Add("", NewLabel("New Web Card URL:", nil, false, AlignLeft))
+	browserNewWebCardURL := NewLabel("", nil, false, AlignLeft)
+	browserNewWebCardURL.Editable = true
+	browserNewWebCardURL.RegexString = RegexNoNewlines
+	browserNewWebCardURL.Property = globals.Settings.Get(SettingsBrowserDefaultURL)
+	row.Add("", browserNewWebCardURL)
+
+	row = general.AddRow(AlignCenter)
+
+	row.Add("", NewButton("Reset To Default", nil, nil, false, func() {
+		globals.Settings.Get(SettingsBrowserDefaultURL).Set("https://www.duckduckgo.com")
 	}))
 
 	row = general.AddRow(AlignCenter)
@@ -2273,7 +2326,7 @@ The folder you specify should already have a "Default" folder within it.
 		refreshThemes()
 	}
 
-	visual.DefaultMargin = 32
+	visual.DefaultMargin = 16
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("header", NewLabel("Visual Settings", nil, false, AlignCenter))
@@ -2296,7 +2349,31 @@ The folder you specify should already have a "Default" folder within it.
 	row.Add("theme dropdown", themeDropdown)
 
 	row = visual.AddRow(AlignCenter)
+	row.Add("lightbox label", NewLabel("Lightbox Effect:", nil, false, AlignLeft))
+	lightboxScrollbar := NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0, 1, false, globals.Settings.Get(SettingsLightboxEffect))
+	lightboxScrollbar.DisplayValue = true
+	row.Add("lightbox scrollbar", lightboxScrollbar)
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("spacer", NewSpacer(nil))
+	row.Add("lightbox reset", NewButton("Reset to Default", nil, nil, false, func() { lightboxScrollbar.SetValue(0.5) }))
+
+	row = visual.AddRow(AlignCenter)
 	row.Add("theme info", NewLabel("While Visual Settings menu is open,\nthemes will be automatically hotloaded.", nil, false, AlignCenter))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("spacer", NewSpacer(nil))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Card Shadows:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsCardShadows)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Flash Selected Cards:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFlashSelected)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("spacer", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("hint", NewTooltip(`Always Show Numbering:
@@ -2305,6 +2382,29 @@ are always shown. When disabled, ordering is only displayed when
 a stack is selected.`))
 	row.Add("", NewLabel("Always Show Numbering:", nil, false, AlignLeft))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsAlwaysShowNumbering)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Number top-level cards:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNumberTopLevelCards)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Card Numbering Style:", nil, false, AlignLeft))
+	row.Add("", NewDropdown(nil, false, nil, globals.Settings.Get(SettingsNumberingStyle), NumberingStyleNumber, NumberingStyleLetterUppercase, NumberingStyleLetterLowercase))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Card Numbering Separator:", nil, false, AlignLeft))
+	numberingSeparator := NewLabel("numbering separator", nil, false, AlignCenter)
+	numberingSeparator.Property = globals.Settings.Get(SettingsNumberingSeparator)
+	numberingSeparator.Editable = true
+	numberingSeparator.RegexString = RegexNoNewlines
+	row.Add("", numberingSeparator)
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Display Numbered Card Percentages as:", nil, false, AlignLeft))
+	row.Add("", NewButtonGroup(nil, false, nil, globals.Settings.Get(SettingsDisplayNumberedPercentagesAs), NumberedPercentagePercent, NumberedPercentageCurrentMax, NumberedPercentageOff))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("spacer", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Show Status Messages:", nil, false, AlignLeft))
@@ -2317,10 +2417,17 @@ a stack is selected.`))
 	row.Add("", num)
 
 	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Smooth panning + zoom:", nil, false, AlignLeft))
+	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSmoothMovement)))
+
+	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Unfocused FPS:", nil, false, AlignLeft))
 	num = NewNumberSpinner(nil, false, globals.Settings.Get(SettingsUnfocusedFPS))
 	num.MinValue = 5
 	row.Add("", num)
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("spacer", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Show Grid:", nil, false, AlignLeft))
@@ -2331,28 +2438,11 @@ a stack is selected.`))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsHideGridOnZoomOut)))
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Flash Selected Cards:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsFlashSelected)))
-
-	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Smooth panning + zoom:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsSmoothMovement)))
-
-	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Number top-level cards:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsNumberTopLevelCards)))
-
-	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Display Numbered Card Percentages as:", nil, false, AlignLeft))
-	row.Add("", NewButtonGroup(nil, false, nil, globals.Settings.Get(SettingsDisplayNumberedPercentagesAs), NumberedPercentagePercent, NumberedPercentageCurrentMax, NumberedPercentageOff))
+	row.Add("spacer", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Display Table Headers:", nil, false, AlignLeft))
 	row.Add("", NewButtonGroup(nil, false, nil, globals.Settings.Get(SettingsShowTableHeaders), TableHeadersSelected, TableHeadersHover, TableHeadersAlways))
-
-	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Card Shadows:", nil, false, AlignLeft))
-	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsCardShadows)))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Flash Deadlines:", nil, false, AlignLeft))
@@ -2366,7 +2456,7 @@ a stack is selected.`))
 	row.Add("", NewSpacer(nil))
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel(fmt.Sprintf("Maximum Texture Size Supported by\nGraphics Card: %d x %d", globals.RendererInfo.MaxTextureWidth, globals.RendererInfo.MaxTextureHeight), nil, false, AlignCenter))
+	row.Add("", NewLabel(fmt.Sprintf("Maximum Texture Size Supported by\nGraphics Card: %d x %d", globals.RendererInfo.NumberProperty(SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0), globals.RendererInfo.NumberProperty(SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0)), nil, false, AlignCenter))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
@@ -2402,19 +2492,35 @@ of images can be.`))
 	without needing to up the resolution; higher zoom levels means text and visual
 	elements appear larger.`))
 	row.Add("", NewLabel("Web Card Zoom Level:", nil, false, AlignLeft))
-	scrollbar := NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0.25, 2, false, globals.Settings.Get(SettingsWebCardZoomLevel))
-	scrollbar.DisplayValue = true
-	scrollbar.OnRelease = func() {
+	webcardZoomScrollbar := NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0.25, 2, false, globals.Settings.Get(SettingsWebCardZoomLevel))
+	webcardZoomScrollbar.DisplayValue = true
+
+	updateWebCardZoom := func() {
+
 		for _, page := range globals.Project.Pages {
 			for _, card := range page.Cards {
-				if web, ok := card.Contents.(*WebContents); ok {
+				if web, ok := card.Contents.(*InternetContents); ok {
 					web.BrowserTab.UpdateZoom()
 				}
 			}
 		}
-	}
-	row.Add("", scrollbar)
 
+	}
+
+	webcardZoomScrollbar.OnRelease = func() {
+		updateWebCardZoom()
+	}
+	row.Add("", webcardZoomScrollbar)
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("reset", NewButton("Reset to Default", nil, nil, false, func() {
+		// globals.Settings.Get(SettingsWebCardZoomLevel).Set(0.75)
+		webcardZoomScrollbar.SetValueRaw(0.75)
+		updateWebCardZoom()
+	}))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewSpacer(nil))
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))
 
@@ -2428,13 +2534,13 @@ of images can be.`))
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Window Transparency:", nil, false, AlignLeft))
-	scrollbar = NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0, 1, false, globals.Settings.Get(SettingsWindowTransparency))
+	scrollbar := NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0, 1, false, globals.Settings.Get(SettingsWindowTransparency))
 	scrollbar.DisplayValue = true
 	row.Add("", scrollbar)
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Transparency Mode:", nil, false, AlignLeft))
-	transparencyDropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsWindowTransparencyMode), WindowTransparencyNever, WindowTransparencyAlways, WindowTransparencyMouse, WindowTransparencyWindow)
+	row.Add("", NewLabel("Transparent when:", nil, false, AlignLeft))
+	transparencyDropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsWindowTransparencyMode), WindowTransparencyAlways, WindowTransparencyMouse, WindowTransparencyWindow)
 	row.Add("", transparencyDropdown)
 	// row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsWindowTransparencyMode)))
 
@@ -2484,7 +2590,7 @@ of images can be.`))
 	heldButtons := []uint8{}
 
 	input := settings.AddPage("input")
-	input.DefaultMargin = 32
+	input.DefaultMargin = 16
 
 	input.OnUpdate = func() {
 
@@ -2509,7 +2615,7 @@ of images can be.`))
 
 			rebindingKey.Label.SetText([]rune("Rebinding..."))
 
-			if globals.Keyboard.Key(sdl.K_ESCAPE).Pressed() {
+			if globals.Keyboard.Key(SDLK_ESCAPE).Pressed() {
 				rebindingKey = nil
 				rebindingShortcut = nil
 			} else {
@@ -2633,7 +2739,7 @@ where the cursor is over the window.`))
 
 	}
 	row.Add("search editable", searchKeybindingsLabel)
-	row.Add("clear button", NewIconButton(0, 0, &sdl.Rect{176, 0, 32, 32}, globals.GUITexture, false, func() {
+	row.Add("clear button", NewIconButton(0, 0, &sdl.FRect{176, 0, 32, 32}, globals.GUITexture, false, func() {
 		searchKeybindingsLabel.SetText([]rune(""))
 	}))
 	// row.ExpandElements = true
@@ -2685,6 +2791,13 @@ where the cursor is over the window.`))
 		// row.ExpandElementSet.SelectAll()
 	}
 
+	for _, row := range input.Rows {
+		row.ExpandElementSet.SelectIf(func(me MenuElement) bool {
+			_, isTooltip := me.(*Tooltip)
+			return !isTooltip && row.FindElement("key-", true) == nil
+		})
+	}
+
 	about := settings.AddPage("about")
 
 	row = about.AddRow(AlignCenter)
@@ -2696,18 +2809,18 @@ where the cursor is over the window.`))
 
 	row = about.AddRow(AlignCenter)
 	if globals.ReleaseMode == "demo" {
-		row.Add("", NewLabel("This is a demo of the next update, v0.8.0. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet. Being in demo mode means you can't save, but you can still get a feel for using the program.", &sdl.FRect{0, 0, 512, 200}, false, AlignLeft))
+		row.Add("", NewLabel(fmt.Sprintf("This is a demo of the next update, %s. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet. Being in demo mode means you can't save, but you can still get a feel for using the program.", globals.Version), &sdl.FRect{0, 0, 512, 200}, false, AlignLeft))
 	} else {
-		row.Add("", NewLabel("This is an alpha of the next update, v0.8.0. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet.", &sdl.FRect{0, 0, 512, 128}, false, AlignLeft))
+		row.Add("", NewLabel(fmt.Sprintf("This is an alpha %s. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet.", globals.Version), &sdl.FRect{0, 0, 512, 128}, false, AlignLeft))
 	}
 
 	row = about.AddRow(AlignCenter)
 	row.Add("", NewLabel("That said, I think this is already FAR better than v0.7 and am very excited to get people using it and get some feedback on the new changes. Please do let me know your thoughts! (And don't forget to do frequent back-ups!) ~ SolarLune", &sdl.FRect{0, 0, 512, 160}, false, AlignLeft))
 
 	row = about.AddRow(AlignCenter)
-	row.Add("", NewButton("Discord", nil, &sdl.Rect{48, 224, 32, 32}, false, func() { browser.OpenURL("https://discord.gg/tRVf7qd") }))
+	row.Add("", NewButton("Discord", nil, &sdl.FRect{48, 224, 32, 32}, false, func() { browser.OpenURL("https://discord.gg/tRVf7qd") }))
 	row.Add("", NewSpacer(nil))
-	row.Add("", NewButton("Twitter", nil, &sdl.Rect{80, 224, 32, 32}, false, func() { browser.OpenURL("https://twitter.com/MasterPlanApp") }))
+	row.Add("", NewButton("BlueSky", nil, &sdl.FRect{80, 224, 32, 32}, false, func() { browser.OpenURL("https://bsky.app/profile/solarlune.com") }))
 
 	for _, row := range about.Rows {
 		row.ExpandElementSet.SelectAll()
@@ -2793,9 +2906,9 @@ where the cursor is over the window.`))
 	row.Add("", NewLabel("Sorting : ", nil, false, AlignLeft))
 
 	sortAZ := NewIconButtonGroup(nil, false, func(index int) { sorting = index }, nil,
-		&sdl.Rect{48, 288, 32, 32},
-		&sdl.Rect{80, 288, 32, 32},
-		&sdl.Rect{112, 288, 32, 32},
+		&sdl.FRect{48, 288, 32, 32},
+		&sdl.FRect{80, 288, 32, 32},
+		&sdl.FRect{112, 288, 32, 32},
 	)
 	sortAZ.Spacing = 12
 
@@ -2809,7 +2922,7 @@ where the cursor is over the window.`))
 	filter := 0
 
 	iconGroup := NewIconButtonGroup(nil, false, func(index int) { filter = index }, nil,
-		&sdl.Rect{176, 192, 32, 64},
+		&sdl.FRect{176, 192, 32, 64},
 		icons[ContentTypeCheckbox],
 		icons[ContentTypeNumbered],
 		icons[ContentTypeNote],
@@ -2820,7 +2933,7 @@ where the cursor is over the window.`))
 		icons[ContentTypeSubpage],
 		icons[ContentTypeLink],
 		icons[ContentTypeTable],
-		icons[ContentTypeWeb],
+		icons[ContentTypeInternet],
 	)
 	iconGroup.Spacing = 3
 
@@ -3037,7 +3150,7 @@ where the cursor is over the window.`))
 	}
 
 	var caseSensitiveButton *IconButton
-	caseSensitiveButton = NewIconButton(0, 0, &sdl.Rect{112, 224, 32, 32}, globals.GUITexture, false, func() {
+	caseSensitiveButton = NewIconButton(0, 0, &sdl.FRect{112, 224, 32, 32}, globals.GUITexture, false, func() {
 		caseSensitive = !caseSensitive
 		if caseSensitive {
 			caseSensitiveButton.IconSrc.X = 144
@@ -3048,7 +3161,7 @@ where the cursor is over the window.`))
 	})
 	row.Add("", caseSensitiveButton)
 
-	row.Add("", NewIconButton(0, 0, &sdl.Rect{176, 96, 32, 32}, globals.GUITexture, false, func() {
+	row.Add("", NewIconButton(0, 0, &sdl.FRect{176, 96, 32, 32}, globals.GUITexture, false, func() {
 		searchLabel.SetText([]rune(""))
 	}))
 
@@ -3056,7 +3169,7 @@ where the cursor is over the window.`))
 
 	row = root.AddRow(AlignCenter)
 
-	prev := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
+	prev := NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		foundIndex--
 		findFunc()
 	})
@@ -3065,7 +3178,7 @@ where the cursor is over the window.`))
 
 	row.Add("", foundLabel)
 
-	row.Add("", NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, false, func() {
+	row.Add("", NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, globals.GUITexture, false, func() {
 		foundIndex++
 		findFunc()
 	}))
@@ -3115,7 +3228,7 @@ Extend: As you type, the card will expand
 horizontally.`))
 
 	row.Add("label", NewLabel("Wrap Mode : ", nil, false, AlignCenter))
-	iconButtonGroup := NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, false, func(index int) {}, globals.textEditingWrap, &sdl.Rect{208, 352, 32, 32}, &sdl.Rect{208, 384, 32, 32})
+	iconButtonGroup := NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, false, func(index int) {}, globals.textEditingWrap, &sdl.FRect{208, 352, 32, 32}, &sdl.FRect{208, 384, 32, 32})
 	for _, b := range iconButtonGroup.Buttons {
 		b.Tint = ColorWhite
 	}
@@ -3200,7 +3313,7 @@ horizontally.`))
 							})
 							deadlineRow.AlternateBGColor = true
 							deadlineRow.Add("left spacer", NewSpacer(&sdl.FRect{0, 0, 32, 32}))
-							deadlineRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{240, 160, 32, 32}, globals.GUITexture.Texture, false))
+							deadlineRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.FRect{240, 160, 32, 32}, globals.GUITexture.Texture, false))
 							deadlineRow.Add("button", button)
 							deadlineRow.Add("date", NewLabel("Due on 9999-99-9999", nil, false, AlignCenter))
 							deadlineRow.Add("right spacer", NewSpacer(&sdl.FRect{0, 0, 64, 32}))
@@ -3215,13 +3328,13 @@ horizontally.`))
 						date := db.Row.Elements["date"].(*Label)
 						switch card.DeadlineState() {
 						case DeadlineStateTimeRemains:
-							iconObj.SrcRect = &sdl.Rect{240, 160, 32, 32}
+							iconObj.SrcRect = &sdl.FRect{240, 160, 32, 32}
 						case DeadlineStateDueToday:
-							iconObj.SrcRect = &sdl.Rect{272, 160, 32, 32}
+							iconObj.SrcRect = &sdl.FRect{272, 160, 32, 32}
 						case DeadlineStateOverdue:
-							iconObj.SrcRect = &sdl.Rect{304, 160, 32, 32}
+							iconObj.SrcRect = &sdl.FRect{304, 160, 32, 32}
 						case DeadlineStateDone:
-							iconObj.SrcRect = &sdl.Rect{336, 160, 32, 32}
+							iconObj.SrcRect = &sdl.FRect{336, 160, 32, 32}
 						}
 						buttonObj.Label.SetText([]rune(card.Name()))
 						date.SetText([]rune("Due on " + deadlineStr))
@@ -3403,7 +3516,7 @@ horizontally.`))
 
 	// Map palette menu
 
-	paletteMenu := globals.MenuSystem.Add(NewMenu("map palette menu", &sdl.FRect{0, 0, 200, 560}, MenuCloseButton), false)
+	paletteMenu := globals.MenuSystem.Add(NewMenu("map palette menu", &sdl.FRect{0, 0, 300, 560}, MenuCloseButton), false)
 	paletteMenu.Center()
 	paletteMenu.Draggable = true
 	paletteMenu.Resizeable = true
@@ -3420,44 +3533,44 @@ horizontally.`))
 			row = root.AddRow(AlignCenter)
 		}
 		index := i
-		iconButton := NewIconButton(0, 0, &sdl.Rect{48, 128, 32, 32}, globals.GUITexture, false, func() { MapDrawingColor = index + 1 })
-		iconButton.BGIconSrc = &sdl.Rect{144, 96, 32, 32}
+		iconButton := NewIconButton(0, 0, &sdl.FRect{48, 128, 32, 32}, globals.GUITexture, false, func() { MapDrawingColor = index + 1 })
+		iconButton.BGIconSrc = &sdl.FRect{144, 96, 32, 32}
 		iconButton.Tint = color
 		row.Add("paletteColor"+strconv.Itoa(i), iconButton)
 	}
 
 	root.AddRow(AlignCenter).Add("pattern label", NewLabel("Patterns", nil, false, AlignCenter))
 
-	button = NewButton("Solid", nil, &sdl.Rect{48, 128, 32, 32}, false, func() { MapPattern = MapPatternSolid })
+	button = NewButton("Solid", nil, &sdl.FRect{48, 128, 32, 32}, false, func() { MapPattern = MapPatternSolid })
 	row = root.AddRow(AlignCenter)
 	row.Add("pattern solid", button)
 
 	row = root.AddRow(AlignCenter)
-	button = NewButton("Crossed", nil, &sdl.Rect{80, 128, 32, 32}, false, func() { MapPattern = MapPatternCrossed })
+	button = NewButton("Crossed", nil, &sdl.FRect{80, 128, 32, 32}, false, func() { MapPattern = MapPatternCrossed })
 	row.Add("pattern crossed", button)
 
-	button = NewButton("Dotted", nil, &sdl.Rect{112, 128, 32, 32}, false, func() { MapPattern = MapPatternDotted })
+	button = NewButton("Dotted", nil, &sdl.FRect{112, 128, 32, 32}, false, func() { MapPattern = MapPatternDotted })
 	row = root.AddRow(AlignCenter)
 	row.Add("pattern dotted", button)
 
-	button = NewButton("Checked", nil, &sdl.Rect{144, 128, 32, 32}, false, func() { MapPattern = MapPatternChecked })
+	button = NewButton("Checked", nil, &sdl.FRect{144, 128, 32, 32}, false, func() { MapPattern = MapPatternChecked })
 	row = root.AddRow(AlignCenter)
 	row.Add("pattern checked", button)
 
 	root.AddRow(AlignCenter).Add("shift label", NewLabel("Shift", nil, false, AlignCenter))
 
-	number = NewNumberSpinner(&sdl.FRect{0, 0, 128, 32}, false, nil)
-	number.SetLimits(1, math.MaxFloat64)
-	root.AddRow(AlignCenter).Add("shift number", number)
+	shiftNumberSpinner := NewNumberSpinner(&sdl.FRect{0, 0, 128, 32}, false, nil)
+	shiftNumberSpinner.SetLimits(1, math.MaxFloat64)
+	root.AddRow(AlignCenter).Add("shift number", shiftNumberSpinner)
 
 	left := NewButton("Left", nil, nil, false, func() {
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Push(-int(number.Value), 0, true)
+				card.Contents.(*MapContents).MapData.Push(-int(shiftNumberSpinner.Value), 0, true)
 			}
 		}
-		globals.EventLog.Log("Map shifted by %d to the left.", false, int(number.Value))
+		globals.EventLog.Log("Map shifted by %d to the left.", false, int(shiftNumberSpinner.Value))
 
 	})
 
@@ -3465,10 +3578,10 @@ horizontally.`))
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Push(int(number.Value), 0, true)
+				card.Contents.(*MapContents).MapData.Push(int(shiftNumberSpinner.Value), 0, true)
 			}
 		}
-		globals.EventLog.Log("Map shifted by %d to the right.", false, int(number.Value))
+		globals.EventLog.Log("Map shifted by %d to the right.", false, int(shiftNumberSpinner.Value))
 
 	})
 
@@ -3476,11 +3589,11 @@ horizontally.`))
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Push(0, -int(number.Value), true)
+				card.Contents.(*MapContents).MapData.Push(0, -int(shiftNumberSpinner.Value), true)
 			}
 		}
 
-		globals.EventLog.Log("Map shifted by %d upward.", false, int(number.Value))
+		globals.EventLog.Log("Map shifted by %d upward.", false, int(shiftNumberSpinner.Value))
 
 	})
 
@@ -3488,11 +3601,11 @@ horizontally.`))
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Push(0, int(number.Value), true)
+				card.Contents.(*MapContents).MapData.Push(0, int(shiftNumberSpinner.Value), true)
 			}
 		}
 
-		globals.EventLog.Log("Map shifted by %d downward.", false, int(number.Value))
+		globals.EventLog.Log("Map shifted by %d downward.", false, int(shiftNumberSpinner.Value))
 
 	})
 
@@ -3579,7 +3692,17 @@ horizontally.`))
 	row = root.AddRow(AlignCenter)
 	row.Add("label", NewLabel("Visualize As:", nil, false, AlignCenter))
 	row = root.AddRow(AlignCenter)
-	row.Add("table mode", NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) { tableModeChanged = true }, nil, "Checkmarks", "Letters", "Numbers"))
+	row.Add("table mode", NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
+
+		mode := tableMenu.Pages["root"].FindElement("table mode", false).(*ButtonGroup)
+		for _, card := range globals.Project.CurrentPage.Cards {
+			if card.IsSelected() && card.ContentType == ContentTypeTable {
+				card.Contents.(*TableContents).TableData.ValueDisplayMode = mode.ChosenIndex
+				card.Contents.(*TableContents).TableData.Changed = true
+			}
+		}
+
+	}, nil, "Checkmarks", "Letters", "Numbers"))
 	row.ExpandElementSet.SelectAll()
 
 	row = root.AddRow(AlignCenter)
@@ -3607,12 +3730,13 @@ horizontally.`))
 
 	// Web menu
 
-	webMenu := globals.MenuSystem.Add(NewMenu("web card settings", &sdl.FRect{99999, 0, 650, 440}, MenuCloseButton), false)
+	webMenu := globals.MenuSystem.Add(NewMenu("web card settings", &sdl.FRect{99999, 0, 650, 460}, MenuCloseButton), false)
 	webMenu.Resizeable = true
 	webMenu.Draggable = true
 	webMenu.AnchorMode = MenuAnchorTopRight
 
 	root = webMenu.Pages["root"]
+	root.DefaultMargin = 16
 	row = root.AddRow(AlignCenter)
 	row.Add("", NewLabel("Web Card Settings", nil, false, AlignCenter))
 
@@ -3623,7 +3747,7 @@ horizontally.`))
 
 	sizeDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
 		if activeCard != nil {
-			wc := activeCard.Contents.(*WebContents)
+			wc := activeCard.Contents.(*InternetContents)
 			if wc.BrowserTab != nil {
 				wc.BrowserTab.UpdateBufferSize(wc.Width(), wc.Height())
 			}
@@ -3636,11 +3760,11 @@ horizontally.`))
 				activeCard.LockPosition()
 			}
 		}
-	}, nil, WebCardSize128, WebCardSize256, WebCardSize320, WebCardSize512, WebCardSize1024)
+	}, nil, InternetCardSize128, InternetCardSize256, InternetCardSize320, InternetCardSize512, InternetCardSize1024)
 
 	aspectRatioDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
 		if activeCard != nil {
-			wc := activeCard.Contents.(*WebContents)
+			wc := activeCard.Contents.(*InternetContents)
 			if wc.BrowserTab != nil {
 				wc.BrowserTab.UpdateBufferSize(wc.Width(), wc.Height())
 			}
@@ -3653,11 +3777,11 @@ horizontally.`))
 				activeCard.LockPosition()
 			}
 		}
-	}, nil, WebCardAspectRatioWide, WebCardAspectRatioSquare, WebCardAspectRatioTall)
+	}, nil, InternetCardAspectRatioWide, InternetCardAspectRatioSquare, InternetCardAspectRatioTall)
 
-	updateFramerateDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardFPS1FPS, WebCardFPS10FPS, WebCardFPS20FPS, WebCardFPSAsOftenAsPossible)
+	updateFramerateDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, InternetCardFPS1FPS, InternetCardFPS10FPS, InternetCardFPS20FPS, InternetCardFPSAsOftenAsPossible)
 
-	updateOnlyWhenDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, WebCardUpdateOptionWhenRecordingInputs, WebCardUpdateOptionWhenSelected, WebCardUpdateOptionAlways)
+	updateOnlyWhenDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, nil, nil, InternetCardUpdateOptionWhenRecordingInputs, InternetCardUpdateOptionWhenSelected, InternetCardUpdateOptionAlways)
 
 	urlLabel := NewLabel("https://www.google.com", nil, false, AlignLeft)
 	urlLabel.Editable = true
@@ -3695,9 +3819,66 @@ horizontally.`))
 	row = root.AddRow(AlignCenter)
 	row.Add("open browser", NewButton("Open URL In Browser", nil, nil, false, func() {
 		if activeCard != nil {
-			activeCard.Contents.(*WebContents).OpenURLInBrowser()
+			activeCard.Contents.(*InternetContents).OpenURLInBrowser()
 		}
 	}))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("spacer", NewSpacer(nil))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("copy label", NewLabel("Copy to Destination Cards", nil, false, AlignLeft))
+
+	row = root.AddRow(AlignCenter)
+	row.Add("copy settings", NewButton("Copy Settings", nil, nil, false, func() {
+		for card := range globals.Project.CurrentPage.Selection.Cards {
+			if card.Valid && card.selected && card.ContentType == ContentTypeInternet && activeCard != card {
+
+				prevURL := ""
+
+				if card.Properties.Has("url") {
+					prevURL = card.Properties.Get("url").AsString()
+				}
+
+				card.Properties.CopyFrom(activeCard.Properties)
+
+				if prevURL != "" {
+					card.Properties.Get("url").Set(prevURL)
+				} else {
+					card.Properties.Remove("url")
+				}
+
+				w := card.Contents.(*InternetContents)
+
+				if w.BrowserTab != nil {
+					w.BrowserTab.UpdateBufferSize(w.Width(), w.Height())
+					card.Rect.W = float32(activeCard.Rect.W)
+					card.Rect.H = float32(activeCard.Rect.H)
+					card.LockPosition()
+
+				}
+
+			}
+		}
+	}))
+
+	row.Add("copy url", NewButton("Copy URL", nil, nil, false, func() {
+
+		for card := range globals.Project.CurrentPage.Selection.Cards {
+
+			if card.Valid && card.selected && card.ContentType == ContentTypeInternet && activeCard != card {
+
+				card.Properties.Get("url").Set(activeCard.Properties.Get("url").AsString())
+				card.Contents.(*InternetContents).BrowserTab.Navigate(card.Properties.Get("url").AsString())
+
+			}
+
+		}
+
+	}))
+
+	row.ExpandElementSet.SelectAll()
+
 	// row = root.AddRow(AlignCenter)
 	// row.Add("urlcopy", NewButton("Copy Current URL To Card", nil, nil, false, func() {
 
@@ -3709,13 +3890,10 @@ horizontally.`))
 
 	root.OnUpdate = func() {
 
-		if activeCard != nil && !activeCard.Valid {
-			activeCard = nil
-		}
+		if (activeCard != nil && (!activeCard.Valid || !activeCard.selected)) || activeCard == nil {
 
-		for _, card := range globals.Project.CurrentPage.Cards {
-			if card.Valid && card.selected && card.ContentType == ContentTypeWeb {
-				if activeCard != card {
+			for card := range globals.Project.CurrentPage.Selection.Cards {
+				if card.Valid && card.selected && card.ContentType == ContentTypeInternet {
 					activeCard = card
 					sizeDropdown.UpdateProperty(card.Properties.Get("size"))
 					aspectRatioDropdown.UpdateProperty(card.Properties.Get("aspect ratio"))
@@ -3728,14 +3906,16 @@ horizontally.`))
 					}
 
 					urlLabel.OnClickOut = func() {
-						if wc := card.Contents.(*WebContents); wc.BrowserTab != nil {
+						if wc := card.Contents.(*InternetContents); wc.BrowserTab != nil {
 							wc.BrowserTab.Navigate(urlLabel.TextAsString())
 						}
 					}
 					break
 				}
 			}
+
 		}
+
 	}
 
 	// row = root.AddRow(AlignCenter)
@@ -3783,7 +3963,7 @@ horizontally.`))
 	// row = root.AddRow(AlignCenter)
 	// row.Add("apply", NewButton("Apply Settings to Selected Cards", &sdl.FRect{0, 0, 32, 32}, nil, false, func() {
 	// 	for card := range globals.Project.CurrentPage.Selection.Cards {
-	// 		if card.ContentType == ContentTypeWeb {
+	// 		if card.ContentType == ContentTypeInternet {
 	// 			card.Properties.Get("size").Set(size)
 	// 			card.Properties.Get("aspect ratio").Set(asr)
 	// 			card.Properties.Get("update frequency").Set(updateFrequency)
@@ -3795,7 +3975,7 @@ horizontally.`))
 
 	// row.Add("card size", NewButtonGroup(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
 	// 	for card := range globals.Project.CurrentPage.Selection.Cards {
-	// 		if card.ContentType == ContentTypeWeb {
+	// 		if card.ContentType == ContentTypeInternet {
 	// 			card.Contents.(*WebContents).ResizeBuffer(index) // index = 0, 1, or 2, which corresponds to WebBufferSmall/Medium/Large
 	// 		}
 	// 	}
@@ -3814,7 +3994,7 @@ func profileCPU() {
 	pprof.StartCPUProfile(cpuProfFile)
 	globals.EventLog.Log("CPU Profiling begun.", false)
 
-	time.AfterFunc(time.Second*2, func() {
+	time.AfterFunc(time.Second*10, func() {
 		globals.EventLog.Log("CPU Profiling finished.", false)
 		cpuProfileStart = time.Time{}
 		pprof.StopCPUProfile()

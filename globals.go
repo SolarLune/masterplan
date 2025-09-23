@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"net/http"
+	"sync"
 
+	"github.com/Zyko0/go-sdl3/sdl"
+	"github.com/Zyko0/go-sdl3/ttf"
 	"github.com/blang/semver"
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/faiface/beep"
-	"github.com/veandco/go-sdl2/sdl"
-	"github.com/veandco/go-sdl2/ttf"
 )
 
 const (
@@ -27,19 +29,18 @@ const (
 )
 
 type Globals struct {
-	Project                  *Project
-	NextProject              *Project
-	Window                   *sdl.Window
-	WindowTransparency       float64
-	WindowTargetTransparency float64
-	GUITexture               Image
+	Project            *Project
+	NextProject        *Project
+	Window             *sdl.Window
+	WindowTransparency float64
+	GUITexture         Image
+	LightTexture       Image
 
 	Renderer          *sdl.Renderer
+	PlainWhiteTexture *sdl.Texture
 	ScreenshotTexture *sdl.Texture
-	ScreenshotSurf    *sdl.Surface
-	ExportSurf        *sdl.Surface
 
-	RendererInfo      sdl.RendererInfo
+	RendererInfo      sdl.PropertiesID
 	Font              *ttf.Font
 	TextRenderer      *TextRenderer
 	LoadedFontPath    string
@@ -50,8 +51,8 @@ type Globals struct {
 	DeltaTime         float32
 	Frame             int64
 	GridSize          float32
-	ScreenSize        Point
-	ScreenSizePrev    Point
+	ScreenSize        Vector
+	ScreenSizePrev    Vector
 	ScreenSizeChanged bool
 	CopyBuffer        *CopyBuffer
 	Version           semver.Version
@@ -60,7 +61,7 @@ type Globals struct {
 	GrabClient        *grab.Client
 	MenuSystem        *MenuSystem
 	EventLog          *EventLog
-	WindowFlags       uint32
+	WindowFlags       sdl.WindowFlags
 	ReleaseMode       string
 
 	Settings              *Properties
@@ -85,6 +86,11 @@ type Globals struct {
 	textEditingWrap *Property
 
 	DrawOnTop DrawOnTop
+
+	BrowserContext context.Context
+
+	BrowserTabs []*BrowserTab
+	BrowserLock sync.Mutex
 
 	// ChromeBrowser *ChromeBrowser
 }

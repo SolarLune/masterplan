@@ -10,7 +10,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/Zyko0/go-sdl3/img"
+	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/cavaliergopher/grab/v3"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/flac"
@@ -18,8 +21,6 @@ import (
 	"github.com/faiface/beep/vorbis"
 	"github.com/faiface/beep/wav"
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/veandco/go-sdl2/img"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 type ResourceBank map[string]*Resource
@@ -224,13 +225,13 @@ func (resource *Resource) Parse() {
 					h = internalSizeMax
 				}
 
-				newSurf, _ := sdl.CreateRGBSurfaceWithFormat(0, w, h, int32(surface.Format.BitsPerPixel), surface.Format.Format)
+				newSurf, _ := sdl.CreateSurface(int(w), int(h), surface.Format)
 
-				surface.BlitScaled(nil, newSurf, &sdl.Rect{0, 0, w, h})
+				surface.BlitScaled(nil, newSurf, &sdl.Rect{0, 0, w, h}, sdl.SCALEMODE_NEAREST)
 
 				ogSurf := surface
 				surface = newSurf
-				ogSurf.Free()
+				ogSurf.Destroy()
 
 			}
 
@@ -244,9 +245,10 @@ func (resource *Resource) Parse() {
 				panic(err)
 			}
 			texture.SetBlendMode(sdl.BLENDMODE_BLEND)
+			texture.SetScaleMode(sdl.SCALEMODE_NEAREST)
 
 			resource.Data = Image{
-				Size:    Point{float32(surface.W), float32(surface.H)},
+				Size:    Vector{float32(surface.W), float32(surface.H)},
 				Texture: texture,
 				// Surface: surface,
 			}
@@ -318,7 +320,15 @@ func (resource *Resource) IsSound() bool {
 	return false
 }
 
-func (resource *Resource) AsNewSound() (*Sound, error) {
+var playingSounds = map[string]time.Time{}
+
+func (resource *Resource) AsNewSound(limitPlayback bool, channel int) (*Sound, error) {
+
+	if limitPlayback {
+		if s, ok := playingSounds[resource.LocalFilepath]; ok && time.Since(s) < time.Millisecond*100 {
+			return nil, nil
+		}
+	}
 
 	originalFile, err := os.Open(resource.LocalFilepath)
 	if err != nil {
@@ -342,7 +352,10 @@ func (resource *Resource) AsNewSound() (*Sound, error) {
 		return nil, err
 	}
 
-	return NewSound(originalStream, format), nil
+	s := NewSound(originalStream, format, channel)
+	s.filepath = resource.LocalFilepath
+	s.limitPlayback = limitPlayback
+	return s, nil
 }
 
 func (resource *Resource) Destroy() {

@@ -4,7 +4,7 @@ import (
 	"log"
 	"math"
 
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 type GridCell struct {
@@ -48,14 +48,14 @@ func (cell *GridCell) Remove(card *Card) {
 }
 
 type GridSelection struct {
-	Start, End Point
+	Start, End Vector
 	Grid       *Grid
 }
 
 func NewGridSelection(x, y, x2, y2 float32, grid *Grid) GridSelection {
 	selection := GridSelection{
-		Start: Point{x, y},
-		End:   Point{x2, y2},
+		Start: Vector{x, y},
+		End:   Vector{x2, y2},
 		Grid:  grid,
 	}
 
@@ -292,7 +292,7 @@ func (grid *Grid) CardsInArea(x, y, w, h float32) []*Card {
 
 func (grid *Grid) NeighboringCards(x, y float32) []*Card {
 
-	directions := []Point{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
+	directions := []Vector{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
 	neighbors := []*Card{}
 
 	gs := globals.GridSize

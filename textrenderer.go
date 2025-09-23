@@ -4,7 +4,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 type Glyph struct {
@@ -18,43 +18,47 @@ func (glyph *Glyph) Texture() *sdl.Texture {
 		return glyph.Image.Texture
 	}
 
-	surf, err := globals.Font.RenderUTF8Shaded(string(glyph.Rune), sdl.Color{255, 255, 255, 255}, sdl.Color{0, 0, 0, 255})
+	surf, err := globals.Font.RenderGlyphLCD(glyph.Rune, sdl.Color{255, 255, 255, 255}, sdl.Color{0, 0, 0, 255})
 
 	if err != nil {
 		// If there's an error rendering a glyph, we just assume it doesn't exist in the fontset
 		return nil
 	}
 
-	defer surf.Free()
+	defer surf.Destroy()
 
-	newSurf, _ := surf.ConvertFormat(sdl.PIXELFORMAT_RGBA8888, 0)
+	newSurf, _ := surf.Convert(sdl.PIXELFORMAT_RGBA8888)
 
-	defer newSurf.Free()
+	defer newSurf.Destroy()
 
 	// Here we manually draw the glyph to set the color to white, but modulate the alpha
 	// based on the color values
+
+	// Format seems to be AGBR, not RGBA?
+	formatDetails, err := newSurf.Format.Details()
+	if err != nil {
+		panic(err)
+	}
 
 	pixels := newSurf.Pixels()
 
 	for y := 0; y < int(surf.H); y++ {
 		for x := 0; x < int(surf.W); x++ {
-			// Format seems to be AGBR, not RGBA?
-			i := int32(y)*newSurf.Pitch + int32(x)*int32(newSurf.Format.BytesPerPixel)
+
+			i := int32(y)*newSurf.Pitch + int32(x)*int32(formatDetails.BytesPerPixel)
 
 			// This would be to get the color unmodified.
 			// return color.RGBA{pixels[i+3], pixels[i+2], pixels[i+1], pixels[i]}
-			newSurf.Set(x, y, sdl.RGBA8888{0xff, 0xff, 0xff, pixels[i+3]})
+			newSurf.WritePixel(int32(x), int32(y), 0xff, 0xff, 0xff, pixels[i+3])
 		}
 	}
 
-	// newSurf.SetBlendMode(sdl.BLENDMODE_ADD)
-
 	texture, err := globals.Renderer.CreateTextureFromSurface(newSurf)
-	// sdl.ComposeCustomBlendMode()
+
 	if err != nil {
 		panic(err)
 	}
-	// texture.SetBlendMode(sdl.ComposeCustomBlendMode(sdl.BLENDFACTOR_ONE, sdl.BLENDFACTOR_DST_COLOR, sdl.BLENDOPERATION_ADD, sdl.BLENDFACTOR_SRC_ALPHA, sdl.BLENDFACTOR_SRC_ALPHA, sdl.BLENDOPERATION_ADD))
+	// texture.SetScaleMode(sdl.SCALEMODE_NEAREST)
 
 	glyph.Image.Texture = texture
 	glyph.Image.Size.X = float32(surf.W)
@@ -83,16 +87,16 @@ func (glyph *Glyph) Destroy() {
 	if glyph.Image.Texture != nil {
 		glyph.Image.Texture.Destroy()
 		glyph.Image.Texture = nil
-		glyph.Image.Size = Point{}
+		glyph.Image.Size = Vector{}
 	}
 }
 
 type TextRendererResult struct {
 	Image           *RenderTexture
 	TextLines       [][]rune
-	LineSizes       []Point
-	TextSize        Point
-	AlignmentOffset Point
+	LineSizes       []Vector
+	TextSize        Vector
+	AlignmentOffset Vector
 }
 
 func (trr *TextRendererResult) Destroy() {
@@ -141,9 +145,9 @@ func (tr *TextRenderer) GlyphsForRunes(word []rune) []*Glyph {
 	return glyphs
 }
 
-func (tr *TextRenderer) MeasureText(word []rune, sizeMultiplier float32) Point {
+func (tr *TextRenderer) MeasureText(word []rune, sizeMultiplier float32) Vector {
 
-	size := Point{}
+	size := Vector{}
 
 	lineCount := strings.Count(string(word), "\n") + 1
 
@@ -169,7 +173,7 @@ func (tr *TextRenderer) MeasureText(word []rune, sizeMultiplier float32) Point {
 
 }
 
-func (tr *TextRenderer) MeasureTextAutowrap(maxWidth float32, text string) Point {
+func (tr *TextRenderer) MeasureTextAutowrap(maxWidth float32, text string) Vector {
 
 	x := 0
 	y := 0
@@ -234,11 +238,11 @@ func (tr *TextRenderer) MeasureTextAutowrap(maxWidth float32, text string) Point
 
 	}
 
-	return Point{maxWidth, float32(y)}
+	return Vector{maxWidth, float32(y)}
 
 }
 
-func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignment string, editable bool) *TextRendererResult {
+func (tr *TextRenderer) RenderText(text string, maxSize Vector, horizontalAlignment string, editable bool) *TextRendererResult {
 
 	result := &TextRendererResult{}
 
@@ -247,21 +251,19 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 	result.Image = renderTexture
 
 	renderTexture.RenderFunc = func() {
-		hint := sdl.GetHint(sdl.HINT_RENDER_SCALE_QUALITY)
-		sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "2")
 		finalW := globals.GridSize
 
 		x := 0
 		y := 0
 
 		result.TextLines = [][]rune{}
-		result.LineSizes = []Point{}
+		result.LineSizes = []Vector{}
 
 		line := []rune{}
 
 		type renderPair struct {
 			Glyph *Glyph
-			Rect  *sdl.Rect
+			Rect  *sdl.FRect
 		}
 
 		toRender := []*renderPair{}
@@ -324,7 +326,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 
 			toRender = append(toRender, &renderPair{
 				Glyph: glyph,
-				Rect:  &sdl.Rect{int32(x), int32(y), glyph.Width(), glyph.Height()},
+				Rect:  &sdl.FRect{float32(x), float32(y), float32(glyph.Width()), float32(glyph.Height())},
 			})
 
 			x += int(glyph.Width())
@@ -332,8 +334,9 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 				finalW = float32(x)
 			}
 
-			if editable && maxSize.X > 0 && x+32 >= int(maxSize.X) && i < len(text) && strings.IndexAny(string(line), " \n") < 0 {
+			if editable && maxSize.X > 0 && x+32 >= int(maxSize.X) && i < len(text)-1 && strings.IndexAny(string(line), " \n") < 0 {
 				// split any character if it's near the edge for editable labels
+
 				x = 0
 				y += int(globals.GridSize)
 				result.TextLines = append(result.TextLines, line)
@@ -373,7 +376,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 				lw = int32(finalW - result.LineSizes[lineIndex].X)
 			}
 
-			ch.Rect.X += lw
+			ch.Rect.X += float32(lw)
 
 		}
 
@@ -398,10 +401,8 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 			if r == nil {
 				continue
 			}
-			globals.Renderer.Copy(r.Glyph.Texture(), nil, r.Rect)
+			globals.Renderer.RenderTexture(r.Glyph.Texture(), nil, r.Rect)
 		}
-
-		sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, hint)
 
 	}
 
@@ -410,7 +411,7 @@ func (tr *TextRenderer) RenderText(text string, maxSize Point, horizontalAlignme
 	return result
 }
 
-func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier float32, color, outlineColor Color, alignment string) {
+func (tr *TextRenderer) QuickRenderText(text string, pos Vector, sizeMultiplier float32, color, outlineColor Color, alignment string) {
 
 	textSize := tr.MeasureText([]rune(text), sizeMultiplier)
 
@@ -451,7 +452,7 @@ func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier f
 					dst := &sdl.FRect{pos.X + float32(x), pos.Y + float32(y), float32(glyph.Width()) * sizeMultiplier, float32(glyph.Height()) * sizeMultiplier}
 					tex.SetColorMod(outlineColor.RGB())
 					tex.SetAlphaMod(outlineColor[3])
-					globals.Renderer.CopyF(tex, nil, dst)
+					globals.Renderer.RenderTexture(tex, nil, dst)
 				}
 			}
 		}
@@ -461,7 +462,7 @@ func (tr *TextRenderer) QuickRenderText(text string, pos Point, sizeMultiplier f
 		tex.SetColorMod(color.RGB())
 		tex.SetAlphaMod(color[3])
 
-		globals.Renderer.CopyF(tex, nil, dst)
+		globals.Renderer.RenderTexture(tex, nil, dst)
 		pos.X += float32(glyph.Width()) * sizeMultiplier
 
 	}

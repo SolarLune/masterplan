@@ -3,12 +3,12 @@ package main
 import (
 	"math"
 
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 type Camera struct {
-	Position       Point
-	TargetPosition Point
+	Position       Vector
+	TargetPosition Vector
 	Zoom           float32
 	TargetZoom     float32
 	Softness       float32
@@ -42,7 +42,7 @@ func (camera *Camera) Update() {
 
 }
 
-func (camera *Camera) JumpTo(pos Point, zoom float32) {
+func (camera *Camera) JumpTo(pos Vector, zoom float32) {
 	camera.TargetPosition = pos
 	camera.Position = pos
 	camera.TargetZoom = zoom
@@ -79,19 +79,20 @@ func (camera *Camera) AddZoom(zoomInAmount float32) {
 
 }
 
-func (camera *Camera) Offset() Point {
+func (camera *Camera) Offset() Vector {
 
 	width := globals.ScreenSize.X / 2 / camera.Zoom
 	height := globals.ScreenSize.Y / 2 / camera.Zoom
 
-	point := Point{(camera.Position.X - width), (camera.Position.Y - height)}.Rounded()
+	// Rounded makes movement more stuttery, but also removes subpixel wobbling a bit, sigh, can't have everything
+	point := Vector{(camera.Position.X - width), (camera.Position.Y - height)}.Rounded()
 	return point
 
 }
 
 func (camera *Camera) TranslateRect(rect *sdl.FRect) *sdl.FRect {
 
-	pos := camera.TranslatePoint(Point{rect.X, rect.Y})
+	pos := camera.TranslatePoint(Vector{rect.X, rect.Y})
 
 	return &sdl.FRect{
 		X: pos.X,
@@ -102,11 +103,11 @@ func (camera *Camera) TranslateRect(rect *sdl.FRect) *sdl.FRect {
 
 }
 
-func (camera *Camera) TranslatePoint(point Point) Point {
+func (camera *Camera) TranslatePoint(point Vector) Vector {
 	return point.Sub(camera.Offset())
 }
 
-func (camera *Camera) UntranslatePoint(point Point) Point {
+func (camera *Camera) UntranslatePoint(point Vector) Vector {
 	point = point.Add(camera.Offset().Inverted())
 	return point
 }
@@ -136,8 +137,8 @@ func (camera *Camera) FocusOn(zoom bool, cards ...*Card) {
 	// Focus on the first page of the card
 	globals.Project.SetPage(cards[0].Page)
 
-	topLeft := Point{math.MaxFloat32, math.MaxFloat32}
-	bottomRight := Point{-math.MaxFloat32, -math.MaxFloat32}
+	topLeft := Vector{math.MaxFloat32, math.MaxFloat32}
+	bottomRight := Vector{-math.MaxFloat32, -math.MaxFloat32}
 
 	for _, c := range cards {
 

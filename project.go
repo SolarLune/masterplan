@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/blang/semver"
 	"github.com/ncruces/zenity"
 	"github.com/pkg/browser"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 // const (
@@ -138,7 +138,7 @@ func (project *Project) CreateGridTexture() {
 
 	// project.GridTexture = TileTexture(guiTex, &sdl.Rect{480, 0, 32, 32}, 512, 512)
 
-	srcRect := &sdl.Rect{480, 0, 32, 32}
+	srcRect := &sdl.FRect{480, 0, 32, 32}
 
 	if project.GridTexture == nil {
 
@@ -147,6 +147,8 @@ func (project *Project) CreateGridTexture() {
 		project.GridTexture.RenderFunc = func() {
 
 			project.GridTexture.Recreate(512, 512)
+
+			project.GridTexture.Image.Texture.SetScaleMode(sdl.SCALEMODE_NEAREST)
 
 			gridColor := getThemeColor(GUIGridColor).Mix(getThemeColor(GUIBGColor), 0.5)
 
@@ -157,13 +159,13 @@ func (project *Project) CreateGridTexture() {
 
 			SetRenderTarget(project.GridTexture.Texture)
 
-			dst := &sdl.Rect{0, 0, srcRect.W, srcRect.H}
+			dst := &sdl.FRect{0, 0, srcRect.W, srcRect.H}
 
-			for y := int32(0); y < int32(project.GridTexture.Size.Y); y += srcRect.H {
-				for x := int32(0); x < int32(project.GridTexture.Size.X); x += srcRect.W {
+			for y := float32(0); y < project.GridTexture.Size.Y; y += srcRect.H {
+				for x := float32(0); x < project.GridTexture.Size.X; x += srcRect.W {
 					dst.X = x
 					dst.Y = y
-					globals.Renderer.Copy(guiTex.Texture, srcRect, dst)
+					globals.Renderer.RenderTexture(guiTex.Texture, srcRect, dst)
 				}
 			}
 
@@ -279,7 +281,7 @@ func (project *Project) SetModifiedState() {
 
 func (project *Project) DrawGrid() {
 	drawGridPiece := func(x, y float32) {
-		globals.Renderer.CopyF(project.GridTexture.Texture, nil, &sdl.FRect{x, y, project.GridTexture.Size.X, project.GridTexture.Size.Y})
+		globals.Renderer.RenderTexture(project.GridTexture.Texture, nil, &sdl.FRect{x, y, project.GridTexture.Size.X, project.GridTexture.Size.Y})
 	}
 
 	extent := float32(10)
@@ -294,8 +296,8 @@ func (project *Project) DrawGrid() {
 
 	halfW := float32(project.Camera.ViewArea().W / 2)
 	halfH := float32(project.Camera.ViewArea().H / 2)
-	ThickLine(project.Camera.TranslatePoint(Point{project.Camera.Position.X - halfW, 0}), project.Camera.TranslatePoint(Point{project.Camera.Position.X + halfW, 0}), 2, getThemeColor(GUIGridColor))
-	ThickLine(project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y - halfH}), project.Camera.TranslatePoint(Point{0, project.Camera.Position.Y + halfH}), 2, getThemeColor(GUIGridColor))
+	ThickLine(project.Camera.TranslatePoint(Vector{project.Camera.Position.X - halfW, 0}), project.Camera.TranslatePoint(Vector{project.Camera.Position.X + halfW, 0}), 2, getThemeColor(GUIGridColor))
+	ThickLine(project.Camera.TranslatePoint(Vector{0, project.Camera.Position.Y - halfH}), project.Camera.TranslatePoint(Vector{0, project.Camera.Position.Y + halfH}), 2, getThemeColor(GUIGridColor))
 
 	if project.CurrentPage.UpwardPage != nil {
 
@@ -304,8 +306,8 @@ func (project *Project) DrawGrid() {
 		text := project.CurrentPage.PointingSubpageCard.Properties.Get("description").AsString()
 		textSize := globals.TextRenderer.MeasureText([]rune(text), 1).CeilToGrid()
 		globals.Renderer.SetDrawColor(gridColor.RGBA())
-		globals.Renderer.FillRectF(project.Camera.TranslateRect(&sdl.FRect{0, -globals.GridSize, textSize.X, textSize.Y}))
-		globals.TextRenderer.QuickRenderText(text, project.Camera.TranslatePoint(Point{textSize.X / 2, -globals.GridSize}), 1, getThemeColor(GUIBGColor), nil, AlignCenter)
+		globals.Renderer.RenderFillRect(project.Camera.TranslateRect(&sdl.FRect{0, -globals.GridSize, textSize.X, textSize.Y}))
+		globals.TextRenderer.QuickRenderText(text, project.Camera.TranslatePoint(Vector{textSize.X / 2, -globals.GridSize}), 1, getThemeColor(GUIBGColor), nil, AlignCenter)
 
 		// globals.Renderer.DrawRectF(project.Camera.TranslateRect(&sdl.FRect{0, 0, SubpageScreenshotSize.X, SubpageScreenshotSize.Y}))
 
@@ -314,7 +316,7 @@ func (project *Project) DrawGrid() {
 		guiTex := globals.Resources.Get(LocalRelativePath("assets/gui.png")).AsImage()
 		guiTex.Texture.SetColorMod(gridColor.RGB())
 		guiTex.Texture.SetAlphaMod(gridColor[3])
-		globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{80, 256, 32, 32}, &sdl.FRect{ssRect.X, ssRect.Y, 32, 32})
+		globals.Renderer.RenderTexture(guiTex.Texture, &sdl.FRect{80, 256, 32, 32}, &sdl.FRect{ssRect.X, ssRect.Y, 32, 32})
 
 	}
 
@@ -362,6 +364,8 @@ func (project *Project) Draw() {
 }
 
 func (project *Project) Save() {
+
+	project.SendMessage(NewMessage(MessageProjectSaveInitiated, nil, nil))
 
 	if globals.ReleaseMode == ReleaseModeDemo {
 		globals.EventLog.Log("Cannot save in demo mode of MasterPlan.", true)
@@ -505,9 +509,12 @@ func (project *Project) Save() {
 		globals.EventLog.Log("Project back-up successfully saved.", false)
 	} else {
 		globals.EventLog.Log("Project saved successfully.", false)
+
+		// Don't add backups to recent files list.
+		AddFileToRecentFilesList(project.Filepath)
 	}
 
-	AddFileToRecentFilesList(project.Filepath)
+	project.SendMessage(NewMessage(MessageProjectSaveCompleted, nil, nil))
 
 	project.Modified = false
 
@@ -623,15 +630,15 @@ func OpenProjectFrom(filename string) {
 
 			type Line struct {
 				Page    *Page
-				Start   Point
-				Endings []Point
+				Start   Vector
+				Endings []Vector
 			}
 
 			newLine := func(page *Page, x, y float32) Line {
 				return Line{
 					Page:    page,
-					Start:   Point{x, y},
-					Endings: []Point{},
+					Start:   Vector{x, y},
+					Endings: []Vector{},
 				}
 			}
 
@@ -663,7 +670,7 @@ func OpenProjectFrom(filename string) {
 					line := newLine(newProject.Pages[boardIndex], float32(task.Get(`Position\.X`).Float()*2), float32(task.Get(`Position\.Y`).Float()*2))
 					endings := task.Get(`LineEndings`).Array()
 					for i := 0; i < len(endings); i += 2 {
-						line.Endings = append(line.Endings, Point{float32(endings[i].Float() * 2), float32(endings[i+1].Float() * 2)})
+						line.Endings = append(line.Endings, Vector{float32(endings[i].Float() * 2), float32(endings[i+1].Float() * 2)})
 					}
 					linePositions = append(linePositions, line)
 					continue // Lines don't exist, so we do our best to connect cards that lines wwere connected to and move on
@@ -1269,7 +1276,7 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if kb.Pressed(KBReturnToOrigin) {
-			project.Camera.TargetPosition = Point{}
+			project.Camera.TargetPosition = Vector{}
 			kb.Shortcuts[KBReturnToOrigin].ConsumeKeys()
 		}
 
@@ -1323,6 +1330,11 @@ func (project *Project) GlobalShortcuts() {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeTable)
 			kb.Shortcuts[KBNewTableCard].ConsumeKeys()
+
+		} else if kb.Pressed(KBNewInternetCard) {
+
+			newCard = project.CurrentPage.CreateNewCard(ContentTypeInternet)
+			kb.Shortcuts[KBNewInternetCard].ConsumeKeys()
 
 		}
 
@@ -1386,7 +1398,7 @@ func (project *Project) GlobalShortcuts() {
 		}
 
 		if kb.Pressed(KBPasteCards) {
-			project.CurrentPage.PasteCards(Point{}, true)
+			project.CurrentPage.PasteCards(Vector{}, true)
 			kb.Shortcuts[KBPasteCards].ConsumeKeys()
 		}
 
@@ -1506,6 +1518,8 @@ func (project *Project) GlobalShortcuts() {
 
 					card.CreateUndoState = true
 
+					PlayUISound(UISoundTypeTap)
+
 				}
 
 				if globals.Settings.Get(SettingsFocusOnSelectingWithKeys).AsBool() {
@@ -1543,12 +1557,12 @@ func (project *Project) GlobalShortcuts() {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		}
 
-		if globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() || globals.Keyboard.Key(sdl.K_ESCAPE).Pressed() {
+		if globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() || globals.Keyboard.Key(SDLK_ESCAPE).Pressed() {
 			globals.State = StateNeutral
 			globals.EventLog.Log("Card linking canceled.", false)
 			project.LinkingCard = nil
 			globals.Mouse.Button(sdl.BUTTON_RIGHT).Consume()
-			globals.Keyboard.Key(sdl.K_ESCAPE).Consume()
+			globals.Keyboard.Key(SDLK_ESCAPE).Consume()
 		}
 
 	}

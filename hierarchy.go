@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 type HierarchyCategoryElement struct {
@@ -48,12 +48,12 @@ func (hier *Hierarchy) AddPage(page *Page) {
 
 		cat.UI.Add("page name", NewLabel(page.Name(), &sdl.FRect{0, 0, 250, 32}, false, AlignRight))
 
-		cat.UI.Add("jump button", NewIconButton(0, 0, &sdl.Rect{176, 256, 32, 32}, globals.GUITexture, false, func() {
+		cat.UI.Add("jump button", NewIconButton(0, 0, &sdl.FRect{176, 256, 32, 32}, globals.GUITexture, false, func() {
 			page.Project.SetPage(page)
 		}))
 
 		var expandButton *IconButton
-		expandButton = NewIconButton(0, 0, &sdl.Rect{202, 32, 32, 32}, globals.GUITexture, false, func() {
+		expandButton = NewIconButton(0, 0, &sdl.FRect{202, 32, 32, 32}, globals.GUITexture, false, func() {
 			cat.Expanded = !cat.Expanded
 			if cat.Expanded {
 				expandButton.IconSrc.X = 208

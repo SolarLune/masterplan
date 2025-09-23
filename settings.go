@@ -22,6 +22,8 @@ const (
 	SettingsOutlineWindow                = "OutlineWindow"
 	SettingsAlwaysShowNumbering          = "AlwaysShowNumbering"
 	SettingsNumberTopLevelCards          = "NumberTopLevelCards"
+	SettingsNumberingStyle               = "NumberingStyle"
+	SettingsNumberingSeparator           = "NumberingSeparator"
 	SettingsDisplayMessages              = "DisplayMessages"
 	SettingsDoubleClickMode              = "DoubleClickMode"
 	SettingsShowGrid                     = "ShowGrid"
@@ -55,11 +57,13 @@ const (
 	SettingsShowTableHeaders             = "Display Table Headers"
 	SettingsBrowserPath                  = "Browser Path"
 	SettingsBrowserUserDataPath          = "Browser User Data Path"
-	// SettingsCacheAudioBeforePlayback     = "Cache Audio Before Playback"
+	SettingsBrowserDefaultURL            = "Browser Default URL"
+	SettingsLightboxEffect               = "Window Lightbox Effect"
 
-	SettingsAudioVolume     = "AudioVolume"
-	SettingsAudioBufferSize = "Audio Playback Buffer Size"
-	SettingsAudioSampleRate = "Audio Playback Sample Rate"
+	SettingsAudioSoundVolume = "SoundVolume"
+	SettingsAudioBufferSize  = "Audio Playback Buffer Size"
+	SettingsAudioSampleRate  = "Audio Playback Sample Rate"
+	SettingsAudioUIVolume    = "UIVolume"
 
 	DeadlineDisplayCountdown = "Days"
 	DeadlineDisplayDate      = "Date"
@@ -69,16 +73,21 @@ const (
 	DoubleClickCheckbox = "Creates Checkbox card"
 	DoubleClickNothing  = "Does nothing"
 
-	WindowTransparencyNever  = "Never"
 	WindowTransparencyAlways = "Always"
-	WindowTransparencyMouse  = "When mouse is outside window"
-	WindowTransparencyWindow = "When window is inactive"
+	WindowTransparencyMouse  = "Mouse not in window"
+	WindowTransparencyWindow = "Window not active"
 )
 
 const (
 	NumberedPercentagePercent    = "Percent"
 	NumberedPercentageOff        = "Off"
 	NumberedPercentageCurrentMax = "X / Y"
+)
+
+const (
+	NumberingStyleNumber          = "Number : 1"
+	NumberingStyleLetterUppercase = "Uppercase Letter : A"
+	NumberingStyleLetterLowercase = "Lowercase Letter : a"
 )
 
 const (
@@ -152,6 +161,7 @@ func NewProgramSettings(load bool) *Properties {
 
 	props := NewProperties()
 	props.Get(SettingsTheme).Set("Moonlight")
+	props.Get(SettingsLightboxEffect).Set(0.25)
 	props.Get(SettingsTargetFPS).Set(60.0)
 	props.Get(SettingsUnfocusedFPS).Set(60.0)
 	props.Get(SettingsDisplayMessages).Set(true)
@@ -167,10 +177,13 @@ func NewProgramSettings(load bool) *Properties {
 	props.Get(SettingsCustomFontPath).Set("")
 	props.Get(SettingsScreenshotPath).Set("")
 	props.Get(SettingsBrowserPath).Set("")
+	props.Get(SettingsBrowserDefaultURL).Set("https://www.duckduckgo.com/")
 	props.Get(SettingsBrowserUserDataPath).Set("")
 	props.Get(SettingsAutoLoadLastProject).Set(false)
 	props.Get(SettingsSmoothMovement).Set(true)
 	props.Get(SettingsNumberTopLevelCards).Set(true)
+	props.Get(SettingsNumberingStyle).Set(NumberingStyleNumber)
+	props.Get(SettingsNumberingSeparator).Set(".")
 	props.Get(SettingsFocusOnSelectingWithKeys).Set(true)
 	props.Get(SettingsFocusOnUndo).Set(true)
 	props.Get(SettingsOutlineWindow).Set(false)
@@ -188,17 +201,15 @@ func NewProgramSettings(load bool) *Properties {
 	props.Get(SettingsShowTableHeaders).Set(TableHeadersSelected)
 	props.Get(SettingsWebCardZoomLevel).Set(0.75)
 
+	props.Get(SettingsAudioSoundVolume).Set(0.8)
+	props.Get(SettingsAudioUIVolume).Set(0.8)
+
 	// Audio settings; not shown in MasterPlan because it's very rarely necessary to tweak
-	props.Get(SettingsAudioVolume).Set(80.0)
 	props.Get(SettingsAudioSampleRate).Set(AudioSampleRate44100)
 	props.Get(SettingsAudioBufferSize).Set(AudioBufferSize512)
 
-	transparency := props.Get(SettingsWindowTransparency)
-	transparency.Set(1.0)
-	transparency.OnChange = func() {
-		globals.WindowTargetTransparency = transparency.AsFloat()
-	}
-	props.Get(SettingsWindowTransparencyMode).Set(WindowTransparencyNever)
+	props.Get(SettingsWindowTransparency).Set(1)
+	props.Get(SettingsWindowTransparencyMode).Set(WindowTransparencyAlways)
 
 	borderless := props.Get(SettingsBorderlessWindow)
 	borderless.Set(false)

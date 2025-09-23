@@ -1,3 +1,9 @@
+[ ] Fix whatever's up with the timer not making the end time visible?
+[ ] Investigate frame drops - not sure if it's just OBS? (I think it's the web card?)
+[ ] Fix web card goroutine not quitting
+[x] Add audio when moving cards around
+[ ] Add ambient bgm???
+
 [ ] Add the ability to pack all relevant files into the .plan file?
 [ ] Add the ability to create new pages from the pages view?
 [x] Add a clock-type task?
@@ -6,6 +12,7 @@
 [ ] Fix bug where it crashes when zooming in or out and panning (might require moving to SDL3)
 [ ] Maybe use zenity's Calendar for deadline date selection?
 
+[ ] Add plan backgrounds?
 [ ] Maybe add the ability to point Sub-plan cards to existing pages?
 [ ] Add button to reset settings to default
 [ ] Fix Web card issues:

@@ -1,9 +1,11 @@
 module github.com/solarlune/masterplan
 
-go 1.18
+go 1.23.0
+
+toolchain go1.24.3
 
 require (
-	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/Zyko0/go-sdl3 v0.0.0-20250601142725-2fefbd8ac5cd
 	github.com/adrg/xdg v0.4.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cavaliergopher/grab/v3 v3.0.1
@@ -31,11 +33,12 @@ require (
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
+	github.com/Zyko0/purego-gen v0.0.0-20250601142424-aec919327f6e // indirect
 	github.com/akavel/rsrc v0.10.2 // indirect
-	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/dchest/jsmin v0.0.0-20220218165748-59f39799265f // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
+	github.com/ebitengine/purego v0.9.0-alpha.2.0.20250124174847-29f0104e3c2b // indirect
 	github.com/frankban/quicktest v1.14.1 // indirect
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect

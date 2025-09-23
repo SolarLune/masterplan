@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 var renderTextures = []*RenderTexture{}
@@ -47,12 +47,14 @@ func (rt *RenderTexture) StopTracking() {
 
 func (rt *RenderTexture) Recreate(newW, newH int32) {
 
-	if newW > globals.RendererInfo.MaxTextureWidth {
-		newW = globals.RendererInfo.MaxTextureWidth
+	maxTextureSize := int32(globals.RendererInfo.NumberProperty(SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0))
+
+	if newW > maxTextureSize {
+		newW = maxTextureSize
 	}
 
-	if newH > globals.RendererInfo.MaxTextureHeight {
-		newH = globals.RendererInfo.MaxTextureHeight
+	if newH > maxTextureSize {
+		newH = maxTextureSize
 	}
 
 	// SDL Texture size can't be 0x0 (this should never happen, but it seems to be happening on Windows periodically for certain users?)
@@ -70,10 +72,11 @@ func (rt *RenderTexture) Recreate(newW, newH int32) {
 		rt.Texture.Destroy()
 	}
 
-	newTex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int32(rt.Size.X), int32(rt.Size.Y))
+	newTex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int(rt.Size.X), int(rt.Size.Y))
 	if err != nil {
 		panic(err)
 	}
+	newTex.SetScaleMode(sdl.SCALEMODE_NEAREST)
 
 	rt.Texture = newTex
 

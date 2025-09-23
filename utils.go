@@ -10,9 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/veandco/go-sdl2/gfx"
-	"github.com/veandco/go-sdl2/sdl"
-	"github.com/veandco/go-sdl2/ttf"
+	"github.com/Zyko0/go-sdl3/sdl"
+	"github.com/Zyko0/go-sdl3/ttf"
 )
 
 // import (
@@ -94,11 +93,11 @@ func LocalRelativePath(localPath string) string {
 
 }
 
-type Point struct {
+type Vector struct {
 	X, Y float32
 }
 
-func (point Point) Inside(rect *sdl.FRect) bool {
+func (point Vector) Inside(rect *sdl.FRect) bool {
 	return point.X >= float32(rect.X) && point.X <= float32(rect.X+rect.W) && point.Y >= float32(rect.Y) && point.Y <= float32(rect.Y+rect.H)
 }
 
@@ -111,7 +110,7 @@ func (point Point) Inside(rect *sdl.FRect) bool {
 // 	return false
 // }
 
-func (point Point) InsideShape(shape *Shape) int {
+func (point Vector) InsideShape(shape *Shape) int {
 	for index, rect := range shape.Rects {
 		if point.Inside(rect) {
 			return index
@@ -120,81 +119,110 @@ func (point Point) InsideShape(shape *Shape) int {
 	return -1
 }
 
-func (point Point) Sub(other Point) Point {
-	return Point{point.X - other.X, point.Y - other.Y}
+func (point Vector) Sub(other Vector) Vector {
+	return Vector{point.X - other.X, point.Y - other.Y}
 }
 
-func (point Point) Add(other Point) Point {
-	return Point{point.X + other.X, point.Y + other.Y}
+func (point Vector) Add(other Vector) Vector {
+	return Vector{point.X + other.X, point.Y + other.Y}
 }
 
-func (point Point) AddF(x, y float32) Point {
-	return Point{point.X + x, point.Y + y}
+func (point Vector) AddF(x, y float32) Vector {
+	return Vector{point.X + x, point.Y + y}
 }
 
-func (point Point) Mult(factor float32) Point {
-	return Point{point.X * factor, point.Y * factor}
+func (point Vector) Mult(factor float32) Vector {
+	return Vector{point.X * factor, point.Y * factor}
 }
 
-func (point Point) Div(factor float32) Point {
-	return Point{point.X / factor, point.Y / factor}
+func (point Vector) Div(factor float32) Vector {
+	return Vector{point.X / factor, point.Y / factor}
 }
 
-func (point Point) Inverted() Point {
-	return Point{-point.X, -point.Y}
+func (point Vector) Inverted() Vector {
+	return Vector{-point.X, -point.Y}
 }
 
-func (point Point) DistanceSquared(other Point) float32 {
+func (point Vector) DistanceSquared(other Vector) float32 {
 	return float32(math.Pow(float64(other.X-point.X), 2) + math.Pow(float64(other.Y-point.Y), 2))
 }
 
-func (point Point) Distance(other Point) float32 {
+func (point Vector) Distance(other Vector) float32 {
 	return float32(math.Sqrt(float64(point.DistanceSquared(other))))
 }
 
-func (point Point) DistanceToRect(rect *sdl.FRect) float32 {
+func (point Vector) DistanceToRect(rect *sdl.FRect) float32 {
 	closestX := math.Max(float64(rect.X), math.Min(float64(point.X), float64(rect.X+rect.W)))
 	closestY := math.Max(float64(rect.Y), math.Min(float64(point.Y), float64(rect.Y+rect.H)))
-	return point.Distance(Point{float32(closestX), float32(closestY)})
+	return point.Distance(Vector{float32(closestX), float32(closestY)})
 }
 
-func (point Point) Length() float32 {
-	return point.Distance(Point{0, 0})
+func (point Vector) Length() float32 {
+	return point.Distance(Vector{0, 0})
 }
 
-func (point Point) Equals(other Point) bool {
+func (point Vector) Equals(other Vector) bool {
 	return math.Abs(float64(point.X-other.X)) < 0.1 && math.Abs(float64(point.Y-other.Y)) < 0.1
 }
 
-func (point Point) Normalized() Point {
-	dist := point.Distance(Point{0, 0})
-	return Point{point.X / dist, point.Y / dist}
+func (point Vector) Normalized() Vector {
+	dist := point.Distance(Vector{0, 0})
+	return Vector{point.X / dist, point.Y / dist}
 }
 
-func (point Point) Rounded() Point {
-	return Point{float32(math.Round(float64(point.X))), float32(math.Round(float64(point.Y)))}
+func (point Vector) Rounded() Vector {
+	return Vector{float32(math.Round(float64(point.X))), float32(math.Round(float64(point.Y)))}
 }
 
-func (point Point) LockToGrid() Point {
-	return Point{
+func (point Vector) LockToGrid() Vector {
+	return Vector{
 		X: float32(math.Round(float64(point.X/globals.GridSize)) * float64(globals.GridSize)),
 		Y: float32(math.Round(float64(point.Y/globals.GridSize)) * float64(globals.GridSize)),
 	}
 }
 
-func (point Point) CeilToGrid() Point {
-	return Point{
+func (point Vector) CeilToGrid() Vector {
+	return Vector{
 		X: float32(math.Ceil(float64(point.X/globals.GridSize)) * float64(globals.GridSize)),
 		Y: float32(math.Ceil(float64(point.Y/globals.GridSize)) * float64(globals.GridSize)),
 	}
 }
 
-func (point Point) Angle() float32 {
+func (point Vector) Angle() float32 {
 	return float32(math.Atan2(-float64(point.Y), float64(point.X)))
 }
 
-func (point Point) Negated() Point {
-	return Point{-point.X, -point.Y}
+// Magnitude returns the length of the Point.
+func (point Vector) Magnitude() float32 {
+	return float32(math.Sqrt(float64(point.X*point.X + point.Y*point.Y)))
+}
+
+func (point Vector) Scale(scalar float32) Vector {
+	point.X *= scalar
+	point.Y *= scalar
+	return point
+}
+
+func (point Vector) Unit() Vector {
+	l := point.Magnitude()
+	if l < 1e-8 || l == 1 {
+		// If it's 0, then don't modify the vector
+		return point
+	}
+	point.X, point.Y = point.X/l, point.Y/l
+	return point
+}
+
+func (point Vector) Rotate(angle float32) Vector {
+	x := point.X
+	y := point.Y
+	point.X = x*float32(math.Cos(float64(angle))) - y*float32(math.Sin(float64(angle)))
+	point.Y = x*float32(math.Sin(float64(angle))) + y*float32(math.Cos(float64(angle)))
+	return point
+}
+
+func (point Vector) Negated() Vector {
+	return Vector{-point.X, -point.Y}
 }
 
 func ClickedInRect(rect *sdl.FRect, worldSpace bool) bool {
@@ -240,8 +268,8 @@ func (cr CorrectingRect) AddXY(x, y float32) CorrectingRect {
 	return cr
 }
 
-func (cr CorrectingRect) TopLeft() Point {
-	return Point{cr.X1, cr.Y1}
+func (cr CorrectingRect) TopLeft() Vector {
+	return Vector{cr.X1, cr.Y1}
 }
 
 // func (cr CorrectingRect) CorrectBounds() {
@@ -256,8 +284,8 @@ func (cr CorrectingRect) Height() float32 {
 	return cr.Y2 - cr.Y1
 }
 
-func (cr CorrectingRect) Center() Point {
-	return Point{cr.X1 + (cr.Width() / 2), cr.Y1 + (cr.Height() / 2)}
+func (cr CorrectingRect) Center() Vector {
+	return Vector{cr.X1 + (cr.Width() / 2), cr.Y1 + (cr.Height() / 2)}
 }
 
 func (cr CorrectingRect) SDLRect() *sdl.FRect {
@@ -285,7 +313,7 @@ func (cr CorrectingRect) SDLRect() *sdl.FRect {
 }
 
 type Image struct {
-	Size    Point
+	Size    Vector
 	Texture *sdl.Texture
 	// Surface *sdl.Surface
 }
@@ -402,10 +430,7 @@ func RefreshRenderTextures() {
 }
 
 func SmallestRendererMaxTextureSize() int32 {
-	if globals.RendererInfo.MaxTextureWidth < globals.RendererInfo.MaxTextureHeight {
-		return globals.RendererInfo.MaxTextureWidth
-	}
-	return globals.RendererInfo.MaxTextureHeight
+	return int32(globals.RendererInfo.NumberProperty(SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0))
 }
 
 type Drawable struct {
@@ -513,6 +538,8 @@ func (color Color) Sub(value uint8) Color {
 
 		if c < value {
 			newColor[i] = 0
+		} else if int(c)-int(value) > 255 {
+			newColor[i] = 1
 		} else {
 			newColor[i] -= value
 		}
@@ -573,8 +600,10 @@ func (color Color) Mix(other Color, percentage float64) Color {
 	newColor := NewColor(color.RGBA())
 	for i := range other {
 		diff := uint8(math.Ceil((float64(other[i]) - float64(newColor[i])) * percentage))
-		if diff == 1 {
+		if percentage >= 1 {
 			newColor[i] = other[i]
+		} else if percentage <= 0 {
+			newColor[i] = color[i]
 		} else {
 			newColor[i] += diff
 		}
@@ -586,8 +615,23 @@ func (color Color) Clone() Color {
 	return NewColor(color.RGBA())
 }
 
+func (color Color) Lerp(other Color, perc float32) Color {
+
+	newColor := NewColor(color.RGBA())
+	newColor[0] = newColor[0] + uint8(float32(other[0]-color[0])*perc)
+	newColor[1] = newColor[1] + uint8(float32(other[1]-color[1])*perc)
+	newColor[2] = newColor[2] + uint8(float32(other[2]-color[2])*perc)
+
+	return newColor
+
+}
+
 func (color Color) SDLColor() sdl.Color {
 	return sdl.Color{color[0], color[1], color[2], color[3]}
+}
+
+func (color Color) SDLFColor() sdl.FColor {
+	return sdl.FColor{float32(color[0]) / 255, float32(color[1]) / 255, float32(color[2]) / 255, float32(color[3]) / 255}
 }
 
 func (color Color) ToHexString() string {
@@ -653,7 +697,11 @@ func ColorAt(surface *sdl.Surface, x, y int32) (r, g, b, a uint8) {
 
 	// Format seems to be AGBR, not RGBA?
 	pixels := surface.Pixels()
-	bpp := int32(surface.Format.BytesPerPixel)
+	info, err := surface.Format.Details()
+	if err != nil {
+		panic(err)
+	}
+	bpp := int32(info.BytesPerPixel)
 	i := (y * surface.Pitch) + (x * bpp)
 	return pixels[i+2], pixels[i+1], pixels[i+0], pixels[i+3] // BGRA???
 
@@ -670,24 +718,138 @@ func SmoothLerpTowards(target, current, softness float32) float32 {
 func FillRect(x, y, w, h float32, color Color) {
 	globals.Renderer.SetDrawColor(color.RGBA())
 	globals.Renderer.SetDrawBlendMode(sdl.BLENDMODE_BLEND)
-	globals.Renderer.FillRectF(&sdl.FRect{x, y, w, h})
+	globals.Renderer.RenderFillRect(&sdl.FRect{x, y, w, h})
 }
 
 func ThickRect(x, y, w, h, thickness int32, color Color) {
 
-	gfx.ThickLineRGBA(globals.Renderer, x, y, x+w, y, thickness, color[0], color[1], color[2], color[3])
-	gfx.ThickLineRGBA(globals.Renderer, x+w, y, x+w, y+h, thickness, color[0], color[1], color[2], color[3])
-	gfx.ThickLineRGBA(globals.Renderer, x+w, y+h, x, y+h, thickness, color[0], color[1], color[2], color[3])
-	gfx.ThickLineRGBA(globals.Renderer, x, y+h, x, y, thickness, color[0], color[1], color[2], color[3])
+	ThickLine(Vector{float32(x), float32(y)}, Vector{float32(x + w), float32(y)}, float32(thickness), color)
+	ThickLine(Vector{float32(x + w), float32(y)}, Vector{float32(x + w), float32(y + h)}, float32(thickness), color)
+	ThickLine(Vector{float32(x + w), float32(y + h)}, Vector{float32(x), float32(y + h)}, float32(thickness), color)
+	ThickLine(Vector{float32(x), float32(y + h)}, Vector{float32(x), float32(y)}, float32(thickness), color)
 
 }
 
-func ThickLine(start, end Point, thickness int32, color Color) {
-	gfx.ThickLineRGBA(globals.Renderer, int32(start.X), int32(start.Y), int32(end.X), int32(end.Y), thickness, color[0], color[1], color[2], color[3])
+func RectTopLeft(rect sdl.FRect) Vector {
+	return Vector{rect.X, rect.Y}
+}
+
+func RectTopRight(rect sdl.FRect) Vector {
+	return Vector{rect.X + rect.W, rect.Y}
+}
+
+func RectBottomLeft(rect sdl.FRect) Vector {
+	return Vector{rect.X, rect.Y + rect.H}
+}
+
+func RectBottomRight(rect sdl.FRect) Vector {
+	return Vector{rect.X + rect.W, rect.Y + rect.H}
+}
+
+var vertices []sdl.Vertex
+var indices []int32
+
+func ThickLine(start, end Vector, thickness float32, color Color) {
+
+	th := thickness
+
+	// line := end.Sub(start).Unit()
+	// hori := line.Rotate(math.Pi / 2).Unit()
+	diagStart1 := start.Sub(end).Unit().Rotate(math.Pi / 4).Scale(th)
+	diagStart2 := start.Sub(end).Unit().Rotate(-math.Pi / 4).Scale(th)
+
+	diagEnd1 := end.Sub(start).Unit().Rotate(math.Pi / 4).Scale(th)
+	diagEnd2 := end.Sub(start).Unit().Rotate(-math.Pi / 4).Scale(th)
+
+	vertices = append(vertices[:0],
+		sdl.Vertex{
+			Position: sdl.FPoint{
+				start.X + diagStart1.X,
+				start.Y + diagStart1.Y,
+			},
+			Color: color.SDLFColor(),
+		},
+
+		sdl.Vertex{
+			Position: sdl.FPoint{
+				start.X + diagStart2.X,
+				start.Y + diagStart2.Y,
+			},
+			Color: color.SDLFColor(),
+		},
+
+		sdl.Vertex{
+			Position: sdl.FPoint{
+				end.X + diagEnd1.X,
+				end.Y + diagEnd1.Y,
+			},
+			Color: color.SDLFColor(),
+		},
+
+		sdl.Vertex{
+			Position: sdl.FPoint{
+				end.X + diagEnd2.X,
+				end.Y + diagEnd2.Y,
+			},
+			Color: color.SDLFColor(),
+		},
+	)
+
+	indices = append(indices[:0],
+		0, 1, 3,
+		1, 2, 3,
+	)
+
+	globals.Renderer.RenderGeometry(globals.PlainWhiteTexture, vertices, indices)
+
+	// log.Println("Unimplemented thickline()")
+	// gfx.ThickLineRGBA(globals.Renderer, int32(start.X), int32(start.Y), int32(end.X), int32(end.Y), thickness, color[0], color[1], color[2], color[3])
+}
+
+func FilledCircleColor(x, y, radius int32, color Color) {
+
+	vertexCount := 32
+
+	vertices = append(vertices[:0], sdl.Vertex{
+		Position: sdl.FPoint{
+			float32(x),
+			float32(y),
+		},
+		Color: color.SDLFColor(),
+	})
+
+	indices = indices[:0]
+
+	for i := range vertexCount - 1 {
+		vertices = append(vertices, sdl.Vertex{
+			Position: sdl.FPoint{
+				float32(x) + float32(math.Sin(float64(i)/float64(vertexCount-1)*math.Pi*2)*float64(radius)),
+				float32(y) + float32(math.Cos(float64(i)/float64(vertexCount-1)*math.Pi*2)*float64(radius)),
+			},
+			Color: color.SDLFColor(),
+		})
+		if i < vertexCount-2 {
+			indices = append(indices, 0, int32(i+1), int32(i+2))
+		} else if i == vertexCount-2 {
+			indices = append(indices, 0, int32(i+1), 1)
+		}
+	}
+
+	err := globals.Renderer.RenderGeometry(globals.PlainWhiteTexture, vertices, indices)
+
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func RoundedBoxColor(renderer *sdl.Renderer, x1 int32, y1 int32, x2 int32, y2 int32, rad int32, color Color) {
+	// gfx.RoundedBoxColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+rect.H), 4, highlightColor)
+	// log.Println("Unimplemented RoundedBoxColor()")
 }
 
 // DrawLabel draws a small paper-like label of the specified text at the X and Y position specified.
-func DrawLabel(pos Point, text string) {
+func DrawLabel(pos Vector, text string, menuColor Color) {
 
 	textSize := globals.TextRenderer.MeasureText([]rune(text), 0.5)
 	textSize.X += 16
@@ -697,29 +859,28 @@ func DrawLabel(pos Point, text string) {
 	}
 
 	guiTexture := globals.GUITexture.Texture
-	menuColor := getThemeColor(GUIMenuColor)
 
 	guiTexture.SetColorMod(menuColor.RGB())
 	guiTexture.SetAlphaMod(menuColor[3])
 
-	src := &sdl.Rect{480, 48, 8, 24}
+	src := &sdl.FRect{480, 48, 8, 24}
 	dst := &sdl.FRect{pos.X, pos.Y, float32(src.W), float32(src.H)}
-	globals.Renderer.CopyF(guiTexture, src, dst)
+	globals.Renderer.RenderTexture(guiTexture, src, dst)
 
 	dst.X += float32(src.W)
 	src.X += 8
 	dst.W = textSize.X - 16
 	if dst.W > 0 {
-		globals.Renderer.CopyF(guiTexture, src, dst)
+		globals.Renderer.RenderTexture(guiTexture, src, dst)
 	}
 
 	dst.X += dst.W
 	src.X += 8
 	src.W = 16
 	dst.W = float32(src.W)
-	globals.Renderer.CopyF(guiTexture, src, dst)
+	globals.Renderer.RenderTexture(guiTexture, src, dst)
 
-	globals.TextRenderer.QuickRenderText(text, Point{pos.X + (textSize.X / 2), pos.Y}, 0.5, getThemeColor(GUIFontColor), nil, AlignCenter)
+	globals.TextRenderer.QuickRenderText(text, Vector{pos.X + (textSize.X / 2), pos.Y}, 0.5, getThemeColor(GUIFontColor), nil, AlignCenter)
 
 }
 
@@ -909,6 +1070,7 @@ const RegexNoNewlines = `[^\n]`
 const RegexOnlyDigits = `[\d]`
 const RegexNoDigits = `[^\d]`
 const RegexOnlyDigitsColonAndDot = `[\d:.]`
+const RegexOnlyDigitsColonAndDotAMPM = `[\d:.APMapm]`
 const RegexHex = `[#a-fA-F\d]`
 
 type DrawOnTop interface {

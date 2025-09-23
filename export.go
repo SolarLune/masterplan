@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/signintech/gopdf"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -70,27 +70,23 @@ func TakeScreenshot(options *ScreenshotOptions) {
 
 }
 
-func createScreenshotImage(surf *sdl.Surface, width, height int32) *image.RGBA {
+func createScreenshotImage(width, height int32) *image.RGBA {
 
-	surf.FillRect(nil, 0x00000000)
+	surf, err := globals.Renderer.ReadPixels(&sdl.Rect{0, 0, width, height})
 
-	if err := globals.Renderer.ReadPixels(nil, surf.Format.Format, surf.Data(), int(surf.Pitch)); err != nil {
+	if err != nil {
 		globals.EventLog.Log(err.Error(), false)
-	} else {
-
-		img := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
-		for y := 0; y < int(height); y++ {
-			for x := 0; x < int(width); x++ {
-				r, g, b, a := ColorAt(surf, int32(x), int32(y))
-				img.Set(x, y, color.RGBA{r, g, b, a})
-			}
-		}
-
-		return img
-
 	}
 
-	return nil
+	img := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
+	for y := 0; y < int(height); y++ {
+		for x := 0; x < int(width); x++ {
+			r, g, b, a := ColorAt(surf, int32(x), int32(y))
+			img.Set(x, y, color.RGBA{r, g, b, a})
+		}
+	}
+
+	return img
 
 }
 
@@ -126,7 +122,7 @@ func handleScreenshots() {
 
 			// For an ordinary screenshot, we don't have to do much; we just take a screenshot using the already bound backing globals.Renderer render target, and export it.
 
-			shot := createScreenshotImage(globals.ScreenshotSurf, int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y))
+			shot := createScreenshotImage(int32(globals.ScreenSize.X), int32(globals.ScreenSize.Y))
 
 			activeScreenshotOutputs = []screenshotOutput{{
 				Page:       globals.Project.CurrentPage,
@@ -233,7 +229,7 @@ func handleScreenshots() {
 					}
 
 					pieces = append(pieces, shotPiece{
-						Piece:  createScreenshotImage(globals.ExportSurf, int32(screenshotWidth), int32(screenshotHeight)), // We've binded the screenshot texture for this, which is 1920x1080
+						Piece:  createScreenshotImage(int32(screenshotWidth), int32(screenshotHeight)), // We've binded the screenshot texture for this, which is 1920x1080
 						Offset: image.Point{offsetX, offsetY},
 					})
 

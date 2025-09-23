@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/tidwall/gjson"
@@ -29,7 +30,7 @@ type Page struct {
 	ToRaise      []*Card
 
 	IgnoreWritePan bool
-	Pan            Point
+	Pan            Vector
 	Zoom           float32
 
 	Arrowing             *Card // The card that we're in the process of linking from one to another
@@ -198,9 +199,26 @@ func (page *Page) Draw() {
 	page.UpdateLinks()
 
 	if globals.DebugMode == DebugModeCards {
+
+		totalDebugUpdateTime := time.Duration(0)
+		totalDebugDrawTime := time.Duration(0)
+
 		for _, c := range page.Cards {
-			globals.TextRenderer.QuickRenderText("Update:"+c.debugUpdateTime.String()+"\nDraw:"+c.debugDrawTime.String(), page.Project.Camera.TranslatePoint(Point{c.DisplayRect.X, c.DisplayRect.Y}), 1, ColorWhite, ColorBlack, AlignLeft)
+			totalDebugUpdateTime += c.debugUpdateTime
+			totalDebugDrawTime += c.debugDrawTime
+			globals.TextRenderer.QuickRenderText("Update:"+c.debugUpdateTime.String()+"\nDraw:"+c.debugDrawTime.String(), page.Project.Camera.TranslatePoint(Vector{c.DisplayRect.X, c.DisplayRect.Y}), 1, ColorWhite, ColorBlack, AlignLeft)
 		}
+
+		ogScaleX, ogScaleY, err := globals.Renderer.Scale()
+		if err != nil {
+			log.Println(err)
+		} else {
+			globals.Renderer.SetScale(1, 1)
+			globals.TextRenderer.QuickRenderText("Total Update Frametime:"+totalDebugUpdateTime.String(), Vector{0, globals.ScreenSize.Y - 64}, 1, ColorWhite, ColorBlack, AlignLeft)
+			globals.TextRenderer.QuickRenderText("Total Draw Frametime:"+totalDebugDrawTime.String(), Vector{0, globals.ScreenSize.Y - 32}, 1, ColorWhite, ColorBlack, AlignLeft)
+			globals.Renderer.SetScale(ogScaleX, ogScaleY)
+		}
+
 	}
 
 }
@@ -352,7 +370,7 @@ func (page *Page) UpdateLinks() {
 
 func (page *Page) CreateNewCard(contentType string) *Card {
 
-	if !page.Project.Loading {
+	if !page.Project.Loading && contentType != ContentTypeNull {
 		page.Project.LastCardType = contentType
 	}
 
@@ -424,7 +442,7 @@ func (page *Page) CopySelectedCards() {
 	}
 }
 
-func (page *Page) PasteCards(offset Point, adhereToMousePosition bool) []*Card {
+func (page *Page) PasteCards(offset Vector, adhereToMousePosition bool) []*Card {
 
 	prevEventLog := globals.EventLog.On
 	globals.EventLog.On = false
@@ -486,7 +504,7 @@ func (page *Page) PasteCards(offset Point, adhereToMousePosition bool) []*Card {
 	if adhereToMousePosition {
 
 		for _, card := range newCards {
-			offset = offset.Add(Point{card.Rect.X + (card.Rect.W / 2), card.Rect.Y + (card.Rect.H / 2)})
+			offset = offset.Add(Vector{card.Rect.X + (card.Rect.W / 2), card.Rect.Y + (card.Rect.H / 2)})
 		}
 
 		offset = offset.Div(float32(len(newCards)))
@@ -621,6 +639,17 @@ func (page *Page) HandleExternalPaste() {
 
 				card := page.CreateNewCard(ContentTypeSound)
 				card.Contents.(*SoundContents).LoadFileFrom(text)
+
+			} else if strings.Contains(res.MimeType, "text") {
+
+				card := page.CreateNewCard(ContentTypeNote)
+				noteContents := card.Contents.(*NoteContents)
+				// noteContents.Label.Editing = true
+
+				// TODO: Fix this
+				noteContents.Label.SetText([]rune(text))
+				// noteContents.Label.Editing = false
+				// card.Properties.Get("description").Set(text)
 
 			} else {
 				globals.EventLog.Log("WARNING: Unsure of type of file at pasted link:\n%s\nNo card was created for this link.", true, text)

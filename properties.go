@@ -162,6 +162,12 @@ func NewProperties() *Properties {
 	}
 }
 
+func (p *Properties) CopyFrom(other *Properties) {
+	for _, propName := range other.DefinitionOrder {
+		p.Get(propName).Set(other.Get(propName).data)
+	}
+}
+
 func (properties *Properties) Has(name string) bool {
 	if _, exists := properties.Props[name]; exists {
 		return true

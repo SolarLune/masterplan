@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 const (
@@ -136,15 +136,16 @@ const (
 )
 
 type Menu struct {
-	Name        string
-	Rect        *sdl.FRect
-	MinSize     Point
-	Pages       map[string]*Container
-	CurrentPage string
-	NextPage    string
-	Orientation int
-	BGTexture   *RenderTexture
-	Spacing     string
+	Name           string
+	IsAConfirmMenu bool
+	Rect           *sdl.FRect
+	MinSize        Vector
+	Pages          map[string]*Container
+	CurrentPage    string
+	NextPage       string
+	Orientation    int
+	BGTexture      *RenderTexture
+	Spacing        string
 
 	CloseMethod       int
 	Opened            bool
@@ -153,14 +154,14 @@ type Menu struct {
 
 	Draggable  bool
 	Dragging   bool
-	DragStart  Point
-	DragOffset Point
+	DragStart  Vector
+	DragOffset Vector
 
 	Resizeable   bool
 	Resizing     string
 	ResizingRect CorrectingRect
 	ResizeShape  *Shape
-	ResizeStart  Point
+	ResizeStart  Vector
 	PageThread   []string
 
 	OnOpen     func()
@@ -174,7 +175,7 @@ func NewMenu(name string, rect *sdl.FRect, closeMethod int) *Menu {
 	menu := &Menu{
 		Name:        name,
 		Rect:        &sdl.FRect{rect.X, rect.Y, 0, 0},
-		MinSize:     Point{32, 32},
+		MinSize:     Vector{32, 32},
 		Pages:       map[string]*Container{},
 		CloseMethod: closeMethod,
 		ResizeShape: NewShape(8),
@@ -186,8 +187,8 @@ func NewMenu(name string, rect *sdl.FRect, closeMethod int) *Menu {
 		menu.Name = strconv.Itoa(int(rand.Int31()))
 	}
 
-	menu.closeButtonButton = NewIconButton(0, 0, &sdl.Rect{176, 0, 32, 32}, globals.GUITexture, false, func() { menu.Close() })
-	menu.BackButton = NewIconButton(0, 0, &sdl.Rect{208, 0, 32, 32}, globals.GUITexture, false, func() { menu.SetPrevPage() })
+	menu.closeButtonButton = NewIconButton(0, 0, &sdl.FRect{176, 0, 32, 32}, globals.GUITexture, false, func() { menu.Close() })
+	menu.BackButton = NewIconButton(0, 0, &sdl.FRect{208, 0, 32, 32}, globals.GUITexture, false, func() { menu.SetPrevPage() })
 
 	menu.AddPage("root")
 	menu.SetPage("root")
@@ -473,7 +474,7 @@ func (menu *Menu) Update() {
 				menu.Dragging = true
 				menu.AnchorMode = MenuAnchorNone
 				menu.DragStart = globals.Mouse.Position()
-				menu.DragOffset = globals.Mouse.Position().Sub(Point{menu.Rect.X, menu.Rect.Y})
+				menu.DragOffset = globals.Mouse.Position().Sub(Vector{menu.Rect.X, menu.Rect.Y})
 			}
 			if button.Released() {
 
@@ -538,7 +539,7 @@ func (menu *Menu) Draw() {
 
 	menu.closeButtonButton.Tint = getThemeColor(GUIFontColor)
 
-	globals.Renderer.CopyF(menu.BGTexture.Texture, nil, menu.Rect)
+	globals.Renderer.RenderTexture(menu.BGTexture.Texture, nil, menu.Rect)
 
 	if menu.CurrentPage != "" {
 		menu.Pages[menu.CurrentPage].Draw()
@@ -644,21 +645,21 @@ func (menu *Menu) Recreate(newW, newH float32) {
 				{menu.Rect.W - cornerSize, menu.Rect.H - cornerSize, cornerSize, cornerSize},
 			}
 
-			src := &sdl.Rect{0, 96, int32(cornerSize), int32(cornerSize)}
+			src := &sdl.FRect{0, 96, float32(cornerSize), float32(cornerSize)}
 
 			drawPatches := func() {
 
 				for _, patch := range patches {
 
 					if patch.W > 0 && patch.H > 0 {
-						globals.Renderer.CopyF(guiTexture, src, patch)
+						globals.Renderer.RenderTexture(guiTexture, src, patch)
 					}
 
 					src.X += src.W
 
-					if src.X > int32(cornerSize)*2 {
+					if src.X > float32(cornerSize)*2 {
 						src.X = 0
-						src.Y += int32(cornerSize)
+						src.Y += float32(cornerSize)
 					}
 
 				}
@@ -696,6 +697,11 @@ func (menu *Menu) Open() {
 	}
 	if menu.CurrentPage != "" && menu.Pages[menu.CurrentPage].OnOpen != nil {
 		menu.Pages[menu.CurrentPage].OnOpen()
+	}
+
+	// For confirmation menus, they play a "progress" sound when they open
+	if menu.IsAConfirmMenu {
+		PlayUISound(UISoundTypeProgress)
 	}
 }
 

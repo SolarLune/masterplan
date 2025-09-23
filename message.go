@@ -21,6 +21,8 @@ const (
 	MessageRenderTextureRefresh          = "MessageRenderTextureRefresh"
 	MessageProjectLoadingAllCardsCreated = "MessageProjectLoadingAllCardsCreated"
 	MessageProjectLoaded                 = "MessageProjectLoaded"
+	MessageProjectSaveInitiated          = "MessageProjectSaveInitiated"
+	MessageProjectSaveCompleted          = "MessageProjectSaveCompleted"
 	// MessageCardDeserialized = "MessageCardDeserialized"
 )
 

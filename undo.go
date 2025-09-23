@@ -116,7 +116,16 @@ func (history *UndoHistory) Undo() bool {
 		}
 
 		if globals.Settings.Get(SettingsFocusOnUndo).AsBool() {
-			history.Project.Camera.FocusOn(false, affected...)
+			focus := false
+			for _, a := range affected {
+				if !a.Onscreen() {
+					focus = true
+					break
+				}
+			}
+			if focus {
+				history.Project.Camera.FocusOn(false, affected...)
+			}
 		}
 
 		for _, page := range history.Project.Pages {
@@ -178,7 +187,16 @@ func (history *UndoHistory) Redo() bool {
 		}
 
 		if globals.Settings.Get(SettingsFocusOnUndo).AsBool() {
-			history.Project.Camera.FocusOn(false, affected...)
+			focus := false
+			for _, a := range affected {
+				if !a.Onscreen() {
+					focus = true
+					break
+				}
+			}
+			if focus {
+				history.Project.Camera.FocusOn(false, affected...)
+			}
 		}
 
 		for _, page := range history.Project.Pages {

@@ -1,0 +1,17 @@
+{
+    "Background Color":[200, 220, 230, 255],
+    "Grid Color":[180, 200, 220, 255],
+    "Menu Color":[210, 220, 240, 255],
+    "Font Color":[50, 70, 80, 255],
+    "Checkbox Color": [180, 210, 220, 255],
+    "Number Color": [160, 190, 203, 255],
+    "Completed Color": [220, 240, 255, 255],
+    "Note Color": [150, 197, 255, 255],
+    "Sound Color": [114, 154, 133, 255],
+    "Blank Image Color": [255, 255, 255, 255],
+    "Timer Color": [144, 188, 204, 255],
+    "Map Color": [50, 55, 60, 255],
+    "Sub-Page Color": [130, 150, 170, 255],
+    "Link Color": [180, 200, 255, 255],
+    "Table Color": [100, 120, 140, 255]
+}

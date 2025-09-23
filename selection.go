@@ -1,15 +1,14 @@
 package main
 
 import (
-	"github.com/veandco/go-sdl2/gfx"
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 type Selection struct {
 	Page         *Page
 	Cards        map[*Card]bool
 	BoxSelecting bool
-	BoxStart     Point
+	BoxStart     Vector
 }
 
 func NewSelection(board *Page) *Selection {
@@ -21,6 +20,9 @@ func (selection *Selection) Update() {
 	if globals.State == StateNeutral {
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
+
+			PlayUISound(UISoundTypeTap)
+
 			selection.BoxSelecting = true
 			selection.BoxStart = globals.Mouse.WorldPosition()
 		}
@@ -36,7 +38,7 @@ func (selection *Selection) Update() {
 			if globals.Keybindings.Pressed(KBRemoveFromSelection) {
 
 				for _, card := range selection.Page.Cards {
-					if card.Rect.HasIntersection(selectionRect) {
+					if RectIntersecting(card.Rect, selectionRect) {
 						selection.Remove(card)
 					}
 				}
@@ -44,7 +46,7 @@ func (selection *Selection) Update() {
 			} else {
 
 				for _, card := range selection.Page.Cards {
-					if card.Rect.HasIntersection(selectionRect) {
+					if RectIntersecting(card.Rect, selectionRect) {
 						selection.Add(card)
 					}
 				}
@@ -100,13 +102,32 @@ func (selection *Selection) Draw() {
 	if selection.BoxSelecting {
 		globals.Renderer.SetScale(1, 1)
 		unprojected := selection.Page.Project.Camera.UntranslatePoint(selection.BoxStart)
-		unprojected = unprojected.Mult(globals.Project.Camera.Zoom)
-		other := globals.Mouse.Position()
-		boxColor := getThemeColor(GUIMenuColor).SDLColor()
-		gfx.ThickLineColor(globals.Renderer, int32(unprojected.X), int32(unprojected.Y), int32(other.X), int32(unprojected.Y), 4, boxColor)
-		gfx.ThickLineColor(globals.Renderer, int32(unprojected.X), int32(unprojected.Y), int32(unprojected.X), int32(other.Y), 4, boxColor)
-		gfx.ThickLineColor(globals.Renderer, int32(other.X), int32(unprojected.Y), int32(other.X), int32(other.Y), 4, boxColor)
-		gfx.ThickLineColor(globals.Renderer, int32(unprojected.X), int32(other.Y), int32(other.X), int32(other.Y), 4, boxColor)
+		unprojected = unprojected.Mult(globals.Project.Camera.Zoom).Rounded()
+		other := globals.Mouse.Position().Rounded()
+		boxColor := getThemeColor(GUIMenuColor)
+
+		oxuy := Vector{
+			other.X,
+			unprojected.Y,
+		}
+
+		uxoy := Vector{
+			unprojected.X,
+			other.Y,
+		}
+
+		t := float32(5)
+
+		for i := 0; i < 2; i++ {
+			ThickLine(unprojected, oxuy, t, boxColor)
+			ThickLine(unprojected, uxoy, t, boxColor)
+			ThickLine(oxuy, other, t, boxColor)
+			ThickLine(uxoy, other, t, boxColor)
+
+			boxColor = getThemeColor(GUIFontColor)
+
+			t = 4
+		}
 
 	}
 }

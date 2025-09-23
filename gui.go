@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"image/color"
 	"log"
 	"math"
 	"math/rand"
@@ -15,10 +14,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/tanema/gween"
 	"github.com/tanema/gween/ease"
-	"github.com/veandco/go-sdl2/gfx"
-	"github.com/veandco/go-sdl2/sdl"
 	"golang.design/x/clipboard"
 )
 
@@ -171,17 +169,17 @@ type HighPriorityDrawMenuElement interface {
 }
 
 type IconButton struct {
-	Scale                   Point
-	originalSize            Point
+	Scale                   Vector
+	originalSize            Vector
 	Rect                    *sdl.FRect
-	IconSrc                 *sdl.Rect
+	IconSrc                 *sdl.FRect
 	WorldSpace              bool
 	OnPressed               func()
 	OnRightClickPressed     func()
 	Tint                    Color
-	Flip                    sdl.RendererFlip
+	Flip                    sdl.FlipMode
 	Rotation                float64
-	BGIconSrc               *sdl.Rect
+	BGIconSrc               *sdl.FRect
 	BGIconTint              Color
 	Highlighter             *Highlighter
 	HighlightingTargetColor float32
@@ -194,11 +192,11 @@ type IconButton struct {
 	tween *gween.Tween
 }
 
-func NewIconButton(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool, onClicked func()) *IconButton {
+func NewIconButton(x, y float32, iconSrc *sdl.FRect, image Image, worldSpace bool, onClicked func()) *IconButton {
 
 	iconButton := &IconButton{
 		Rect:                    &sdl.FRect{x, y, float32(iconSrc.W), float32(iconSrc.H)},
-		originalSize:            Point{float32(iconSrc.W), float32(iconSrc.H)},
+		originalSize:            Vector{float32(iconSrc.W), float32(iconSrc.H)},
 		IconSrc:                 iconSrc,
 		WorldSpace:              worldSpace,
 		OnPressed:               onClicked,
@@ -206,7 +204,7 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool
 		Active:                  true,
 		FadeOnInactive:          true,
 		Image:                   image,
-		Scale:                   Point{1, 1},
+		Scale:                   Vector{1, 1},
 		BGIconTint:              ColorWhite.Clone(),
 		tween:                   gween.New(1.4, 1, 0.1, ease.InCirc),
 		CanPress:                true,
@@ -217,7 +215,7 @@ func NewIconButton(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool
 
 }
 
-func NewIconButtonTintless(x, y float32, iconSrc *sdl.Rect, image Image, worldSpace bool, onClicked func()) *IconButton {
+func NewIconButtonTintless(x, y float32, iconSrc *sdl.FRect, image Image, worldSpace bool, onClicked func()) *IconButton {
 	b := NewIconButton(x, y, iconSrc, image, worldSpace, onClicked)
 	b.Tint = ColorWhite
 	return b
@@ -233,12 +231,23 @@ func (iconButton *IconButton) Update() {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		iconButton.OnPressed()
 		iconButton.tween.Reset()
+
+		snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/tap_01.wav").AsNewSound(true, AudioChannelUI)
+		if snd != nil {
+			snd.Play()
+		}
+
 	}
 
 	if iconButton.CanPress && globals.Mouse.CurrentCursor == CursorNormal && iconButton.OnRightClickPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active && globals.Mouse.WorldPosition().Inside(iconButton.Rect) && globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
 		globals.Mouse.Button(sdl.BUTTON_RIGHT).Consume()
 		iconButton.OnRightClickPressed()
 		iconButton.tween.Reset()
+
+		snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/tap_01.wav").AsNewSound(true, AudioChannelUI)
+		if snd != nil {
+			snd.Play()
+		}
 	}
 
 	iconButton.Rect.W = iconButton.originalSize.X * iconButton.Scale.X
@@ -280,7 +289,7 @@ func (iconButton *IconButton) Draw() {
 
 	iconButton.HighlightingTargetColor += (targetSub - iconButton.HighlightingTargetColor) * 0.1
 
-	drawSrc := func(src *sdl.Rect, x, y float32, color Color, rotation float64, flip sdl.RendererFlip) {
+	drawSrc := func(src *sdl.FRect, x, y float32, color Color, rotation float64, flip sdl.FlipMode) {
 
 		guiTex.SetColorMod(color.RGB())
 		guiTex.SetAlphaMod(color[3] - uint8(iconButton.HighlightingTargetColor*255))
@@ -288,7 +297,7 @@ func (iconButton *IconButton) Draw() {
 		r := *rect
 		r.X += x
 		r.Y += y
-		globals.Renderer.CopyExF(guiTex, src, &r, rotation, nil, flip)
+		globals.Renderer.RenderTextureRotated(guiTex, src, &r, rotation, nil, flip)
 
 	}
 
@@ -321,7 +330,7 @@ func (iconButton *IconButton) Draw() {
 		}
 
 		globals.Renderer.SetDrawColor(255, 128, 128, 255)
-		globals.Renderer.FillRectF(dst)
+		globals.Renderer.RenderFillRect(dst)
 	}
 
 	guiTex.SetColorMod(255, 255, 255)
@@ -353,12 +362,12 @@ func (iconButton *IconButton) SetRectangle(rect *sdl.FRect) {
 }
 
 type ImmediateIconButtonSettings struct {
-	Src        sdl.Rect
+	Src        sdl.FRect
 	Dst        sdl.FRect
 	Rotation   float64
 	Scale      float32
 	WorldSpace bool
-	Flip       sdl.RendererFlip
+	Flip       sdl.FlipMode
 }
 
 func ImmediateIconButton(settings ImmediateIconButtonSettings) bool {
@@ -395,7 +404,7 @@ func ImmediateIconButton(settings ImmediateIconButtonSettings) bool {
 	if settings.WorldSpace {
 		settings.Dst = *globals.Project.Camera.TranslateRect(dst)
 	}
-	globals.Renderer.CopyExF(guiTex, &settings.Src, dst, settings.Rotation, &sdl.FPoint{float32(settings.Src.W / 2), float32(settings.Src.H / 2)}, settings.Flip)
+	globals.Renderer.RenderTextureRotated(guiTex, &settings.Src, dst, settings.Rotation, &sdl.FPoint{float32(settings.Src.W / 2), float32(settings.Src.H / 2)}, settings.Flip)
 
 	return clicked
 
@@ -409,15 +418,15 @@ type Checkbox struct {
 	Checked  bool
 	OnChange func()
 
-	ActiveSrcPos   Point
-	InactiveSrcPos Point
+	ActiveSrcPos   Vector
+	InactiveSrcPos Vector
 }
 
 func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 	checkbox := &Checkbox{
-		IconButton:     *NewIconButton(x, y, &sdl.Rect{48, 0, 32, 32}, globals.GUITexture, worldSpace, nil),
-		InactiveSrcPos: Point{48, 0},
-		ActiveSrcPos:   Point{48, 32},
+		IconButton:     *NewIconButton(x, y, &sdl.FRect{48, 0, 32, 32}, globals.GUITexture, worldSpace, nil),
+		InactiveSrcPos: Vector{48, 0},
+		ActiveSrcPos:   Vector{48, 32},
 	}
 
 	r := *checkbox.IconButton.Rect
@@ -429,6 +438,11 @@ func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 
 		if !checkbox.CanPress {
 			return
+		}
+
+		snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/select.wav").AsNewSound(true, AudioChannelUI)
+		if snd != nil {
+			snd.Play()
 		}
 
 		if checkbox.Property != nil {
@@ -463,8 +477,8 @@ func (checkbox *Checkbox) Update() {
 		}
 	}
 
-	checkbox.IconSrc.X = int32(checked.X)
-	checkbox.IconSrc.Y = int32(checked.Y)
+	checkbox.IconSrc.X = checked.X
+	checkbox.IconSrc.Y = checked.Y
 
 }
 
@@ -504,7 +518,7 @@ func (pb *ProgressBar) Draw() {
 	text := fmt.Sprintf("%d%%", int(pb.Percentage*100))
 	textHeight := globals.TextRenderer.MeasureText([]rune(text), 1).Y
 
-	p := Point{r.X + (r.W / 2), r.Y + (r.H / 2) - (textHeight / 2)}
+	p := Vector{r.X + (r.W / 2), r.Y + (r.H / 2) - (textHeight / 2)}
 
 	if pb.WorldSpace {
 		r = globals.Project.Camera.TranslateRect(r)
@@ -514,7 +528,7 @@ func (pb *ProgressBar) Draw() {
 	renderer := globals.Renderer
 
 	renderer.SetDrawColor(getThemeColor(GUIFontColor).RGBA())
-	renderer.FillRectF(r)
+	renderer.RenderFillRect(r)
 
 	margin := float32(2)
 	r.X += margin
@@ -523,12 +537,12 @@ func (pb *ProgressBar) Draw() {
 	r.H -= margin * 2
 
 	renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
-	renderer.FillRectF(r)
+	renderer.RenderFillRect(r)
 
 	r.W *= pb.Percentage
 
 	renderer.SetDrawColor(getThemeColor(GUICompletedColor).RGBA())
-	renderer.FillRectF(r)
+	renderer.RenderFillRect(r)
 
 	globals.TextRenderer.QuickRenderText(text, p, 1, ColorWhite, ColorBlack, AlignCenter)
 
@@ -561,7 +575,7 @@ type NumberSpinner struct {
 	OnChange func()
 
 	Dragging  bool
-	DragStart Point
+	DragStart Vector
 	DragTick  float64
 }
 
@@ -594,7 +608,7 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 		}
 	}
 
-	spinner.Increase = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, globals.GUITexture, worldSpace, func() {
+	spinner.Increase = NewIconButton(0, 0, &sdl.FRect{48, 96, 32, 32}, globals.GUITexture, worldSpace, func() {
 		if spinner.Property != nil {
 			f := spinner.Property.AsFloat()
 			spinner.Property.Set(spinner.EnforceCaps(f + 1))
@@ -606,7 +620,7 @@ func NewNumberSpinner(rect *sdl.FRect, worldSpace bool, property *Property) *Num
 		}
 	})
 
-	spinner.Decrease = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, globals.GUITexture, worldSpace, func() {
+	spinner.Decrease = NewIconButton(0, 0, &sdl.FRect{80, 96, 32, 32}, globals.GUITexture, worldSpace, func() {
 		if spinner.Property != nil {
 			f := spinner.Property.AsFloat()
 			spinner.Property.Set(spinner.EnforceCaps(f - 1))
@@ -747,7 +761,7 @@ func (spinner *NumberSpinner) SetRectangle(rect *sdl.FRect) {
 type Button struct {
 	Label           *Label
 	BackgroundColor Color
-	IconSrc         *sdl.Rect
+	IconSrc         *sdl.FRect
 	LineWidth       float32
 	Disabled        bool
 	WorldSpace      bool
@@ -757,7 +771,7 @@ type Button struct {
 	TintByFontColor bool
 }
 
-func NewButton(labelText string, rect *sdl.FRect, iconSrcRect *sdl.Rect, worldSpace bool, pressedFunc func()) *Button {
+func NewButton(labelText string, rect, iconSrcRect *sdl.FRect, worldSpace bool, pressedFunc func()) *Button {
 
 	button := &Button{
 		Label:           NewLabel(labelText, rect, worldSpace, AlignCenter),
@@ -805,6 +819,12 @@ func (button *Button) Update() {
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateContextMenu || globals.State == StateMapEditing || globals.State == StateTextEditing) {
 			if button.OnPressed != nil {
+
+				snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/tap_01.wav").AsNewSound(true, AudioChannelUI)
+				if snd != nil {
+					snd.Play()
+				}
+
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 				button.OnPressed()
 			}
@@ -835,7 +855,7 @@ func (button *Button) Draw() {
 	if button.BackgroundColor[3] > 0 {
 		// gfx.RoundedRectangleColor(globals.Renderer, int32(buttonRect.X), int32(buttonRect.Y), int32(buttonRect.X)+int32(buttonRect.W), int32(buttonRect.Y)+int32(buttonRect.H), 4, button.BackgroundColor.SDLColor())
 		globals.Renderer.SetDrawColor(button.BackgroundColor.RGBA())
-		globals.Renderer.FillRectF(buttonRect)
+		globals.Renderer.RenderFillRect(buttonRect)
 	}
 
 	if len(button.Label.Text) > 0 {
@@ -878,7 +898,7 @@ func (button *Button) Draw() {
 			dst = globals.Project.Camera.TranslateRect(dst)
 		}
 
-		globals.Renderer.CopyF(guiTexture, button.IconSrc, dst)
+		globals.Renderer.RenderTexture(guiTexture, button.IconSrc, dst)
 
 	}
 
@@ -889,7 +909,7 @@ func (button *Button) Draw() {
 		}
 
 		globals.Renderer.SetDrawColor(255, 0, 0, 255)
-		globals.Renderer.FillRectF(dst)
+		globals.Renderer.RenderFillRect(dst)
 	}
 
 }
@@ -917,6 +937,9 @@ type Dropdown struct {
 	OnChoose        func(index int)
 	WorldSpace      bool
 	Property        *Property
+
+	LeftButton  *IconButton
+	RightButton *IconButton
 }
 
 func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), property *Property, options ...string) *Dropdown {
@@ -926,6 +949,43 @@ func NewDropdown(rect *sdl.FRect, worldSpace bool, onChoose func(index int), pro
 		WorldSpace: worldSpace,
 		OnChoose:   onChoose,
 		Property:   property,
+	}
+
+	dropdown.LeftButton = NewIconButton(0, 0, &sdl.FRect{48, 320, 32, 32}, globals.GUITexture, false, func() {
+		dropdown.ChosenIndex--
+		if dropdown.ChosenIndex >= len(dropdown.Choices) {
+			dropdown.ChosenIndex = 0
+		} else if dropdown.ChosenIndex < 0 {
+			dropdown.ChosenIndex = len(dropdown.Choices) - 1
+		}
+		if dropdown.Property != nil {
+			dropdown.Property.Set(dropdown.Options[dropdown.ChosenIndex])
+		}
+		if dropdown.OnChoose != nil {
+			dropdown.OnChoose(dropdown.ChosenIndex)
+		}
+	})
+
+	dropdown.LeftButton.Flip = sdl.FLIP_HORIZONTAL
+
+	dropdown.RightButton = NewIconButton(0, 0, &sdl.FRect{48, 320, 32, 32}, globals.GUITexture, false, func() {
+		dropdown.ChosenIndex++
+		if dropdown.ChosenIndex >= len(dropdown.Choices) {
+			dropdown.ChosenIndex = 0
+		} else if dropdown.ChosenIndex < 0 {
+			dropdown.ChosenIndex = len(dropdown.Choices) - 1
+		}
+		if dropdown.Property != nil {
+			dropdown.Property.Set(dropdown.Options[dropdown.ChosenIndex])
+		}
+		if dropdown.OnChoose != nil {
+			dropdown.OnChoose(dropdown.ChosenIndex)
+		}
+	})
+
+	if rect != nil {
+		rect.X += 32
+		rect.W -= 64
 	}
 
 	dropdown.Button = NewButton(options[0], rect, nil, worldSpace, func() {
@@ -1006,6 +1066,19 @@ func (dropdown *Dropdown) Update() {
 	dropdown.Button.Update()
 	y := float32(buttonRect.H)
 
+	r := dropdown.LeftButton.Rectangle()
+	r.X = dropdown.Button.Rectangle().X - r.W
+	r.Y = dropdown.Button.Rectangle().Y
+	dropdown.LeftButton.SetRectangle(r)
+
+	r = dropdown.RightButton.Rectangle()
+	r.X = dropdown.Button.Rectangle().X + dropdown.Button.Rectangle().W
+	r.Y = dropdown.Button.Rectangle().Y
+	dropdown.RightButton.SetRectangle(r)
+
+	dropdown.LeftButton.Update()
+	dropdown.RightButton.Update()
+
 	if dropdown.Open {
 
 		for i, b := range dropdown.Choices {
@@ -1029,11 +1102,15 @@ func (dropdown *Dropdown) Update() {
 
 	dropdown.Button.Label.SetText([]rune(dropdown.Options[dropdown.ChosenIndex]))
 
+	// buttonRect.W -= 64
 }
 
 func (dropdown *Dropdown) Draw() {
 
 	dropdown.Button.Draw()
+
+	dropdown.LeftButton.Draw()
+	dropdown.RightButton.Draw()
 
 	if dropdown.Open {
 		for i, b := range dropdown.Choices {
@@ -1047,28 +1124,41 @@ func (dropdown *Dropdown) Draw() {
 }
 
 func (dropdown *Dropdown) Rectangle() *sdl.FRect {
+	var rect *sdl.FRect
 	if dropdown.Open {
 		r := dropdown.Button.Rectangle()
 		r.H = 0
 		for _, o := range dropdown.Choices {
 			r.H += o.Rectangle().H
 		}
-		return r
+		rect = r
 	} else {
-		return dropdown.Button.Rectangle()
+		rect = dropdown.Button.Rectangle()
 	}
+
+	rect.X -= 32
+	rect.W += 64
+
+	return rect
 }
 
 func (dropdown *Dropdown) SetRectangle(rect *sdl.FRect) {
 	// r := *rect
 	// dropdown.Rect = &r
+
+	newRect := *rect
+
+	newRect.X += 32
+	newRect.W -= 64
+
 	if dropdown.Open {
 		r := dropdown.Button.Rectangle()
-		r.Y = rect.Y
-		r.X = rect.X
+		r.Y = newRect.Y
+		r.X = newRect.X
+		r.W = newRect.W
 		dropdown.Button.SetRectangle(r)
 	} else {
-		dropdown.Button.SetRectangle(rect)
+		dropdown.Button.SetRectangle(&newRect)
 	}
 
 }
@@ -1199,7 +1289,7 @@ func (bg *ButtonGroup) Draw() {
 
 	if globals.DebugMode == DebugModeUI {
 		globals.Renderer.SetDrawColor(255, 0, 0, 255)
-		globals.Renderer.FillRectF(bg.Rect)
+		globals.Renderer.RenderFillRect(bg.Rect)
 	}
 
 	for _, l := range bg.Labels {
@@ -1234,7 +1324,7 @@ func (bg *ButtonGroup) Destroy() {
 type IconButtonGroup struct {
 	Buttons     []*IconButton
 	Rect        *sdl.FRect
-	Icons       []*sdl.Rect
+	Icons       []*sdl.FRect
 	OnChoose    func(index int)
 	Property    *Property
 	ChosenIndex int
@@ -1242,7 +1332,7 @@ type IconButtonGroup struct {
 	Spacing     float32
 }
 
-func NewIconButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index int), property *Property, icons ...*sdl.Rect) *IconButtonGroup {
+func NewIconButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index int), property *Property, icons ...*sdl.FRect) *IconButtonGroup {
 
 	group := &IconButtonGroup{
 		Rect:       rect,
@@ -1266,7 +1356,7 @@ func NewIconButtonGroup(rect *sdl.FRect, worldSpace bool, onChoose func(index in
 
 }
 
-func (bg *IconButtonGroup) SetButtons(icons ...*sdl.Rect) {
+func (bg *IconButtonGroup) SetButtons(icons ...*sdl.FRect) {
 
 	for _, b := range bg.Buttons {
 		b.Destroy()
@@ -1463,13 +1553,13 @@ type Label struct {
 	RegexString string
 
 	HorizontalAlignment string
-	Offset              Point
+	Offset              Vector
 	Alpha               float32
 	currentAlpha        float32
 	OnChange            func()
 	OnClickOut          func()
 	textChanged         bool
-	maxSize             Point
+	maxSize             Vector
 	Property            *Property
 	MaxLength           int
 	MousedOver          bool
@@ -1584,16 +1674,16 @@ func (label *Label) Update() {
 
 				globals.State = StateTextEditing
 
-				if ClickedOutRect(activeRect, label.WorldSpace) || globals.Keyboard.Key(sdl.K_ESCAPE).Pressed() {
+				if ClickedOutRect(activeRect, label.WorldSpace) || globals.Keyboard.Key(SDLK_ESCAPE).Pressed() {
 					label.EndEditing()
 					clickedOut = true
 				}
 
-				if globals.Keyboard.Key(sdl.K_RIGHT).Pressed() {
+				if globals.Keyboard.Key(SDLK_RIGHT).Pressed() {
 
 					advance := 1
 
-					if globals.Keyboard.Key(sdl.K_LCTRL).Held() {
+					if globals.Keyboard.Key(SDLK_LCTRL).Held() {
 
 						start := label.Selection.CaretPos
 						offset := 0
@@ -1614,7 +1704,7 @@ func (label *Label) Update() {
 						advance = next + offset
 					}
 
-					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+					if globals.Keyboard.Key(SDLK_LSHIFT).Held() {
 						label.Selection.Select(label.Selection.Start, label.Selection.End+advance)
 					} else {
 						if label.Selection.Length() == 0 {
@@ -1626,15 +1716,15 @@ func (label *Label) Update() {
 					}
 				}
 
-				if globals.Keyboard.Key(sdl.K_LEFT).Pressed() {
+				if globals.Keyboard.Key(SDLK_LEFT).Pressed() {
 
 					advance := -1
 
-					if globals.Keyboard.Key(sdl.K_LCTRL).Held() {
+					if globals.Keyboard.Key(SDLK_LCTRL).Held() {
 						advance = label.MoveCaretBackOneWord()
 					}
 
-					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+					if globals.Keyboard.Key(SDLK_LSHIFT).Held() {
 						label.Selection.Select(label.Selection.Start, label.Selection.End+advance)
 					} else {
 						if label.Selection.Length() == 0 {
@@ -1649,7 +1739,7 @@ func (label *Label) Update() {
 				caretLineNum := label.LineNumber(label.Selection.CaretPos)
 				caretPos := label.IndexInLine(label.Selection.CaretPos)
 
-				if globals.Keyboard.Key(sdl.K_UP).Pressed() {
+				if globals.Keyboard.Key(SDLK_UP).Pressed() {
 
 					prevLineLength := 0
 
@@ -1669,7 +1759,7 @@ func (label *Label) Update() {
 
 					start := prev
 
-					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+					if globals.Keyboard.Key(SDLK_LSHIFT).Held() {
 						start = label.Selection.Start
 					}
 
@@ -1677,7 +1767,7 @@ func (label *Label) Update() {
 
 				}
 
-				if globals.Keyboard.Key(sdl.K_DOWN).Pressed() {
+				if globals.Keyboard.Key(SDLK_DOWN).Pressed() {
 
 					caretLineNum := label.LineNumber(label.Selection.CaretPos)
 					caretPos := label.IndexInLine(label.Selection.CaretPos)
@@ -1705,7 +1795,7 @@ func (label *Label) Update() {
 
 					start := next
 
-					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+					if globals.Keyboard.Key(SDLK_LSHIFT).Held() {
 						start = label.Selection.Start
 					}
 
@@ -1713,25 +1803,25 @@ func (label *Label) Update() {
 
 				}
 
-				if globals.Keyboard.Key(sdl.K_HOME).Pressed() {
+				if globals.Keyboard.Key(SDLK_HOME).Pressed() {
 					start := 0
-					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+					if globals.Keyboard.Key(SDLK_LSHIFT).Held() {
 						label.Selection.Select(start, label.Selection.CaretPos)
 					} else {
 						label.Selection.Select(start, start)
 					}
 				}
 
-				if globals.Keyboard.Key(sdl.K_END).Pressed() {
+				if globals.Keyboard.Key(SDLK_END).Pressed() {
 					end := len(label.Text)
-					if globals.Keyboard.Key(sdl.K_LSHIFT).Held() {
+					if globals.Keyboard.Key(SDLK_LSHIFT).Held() {
 						label.Selection.Select(end, label.Selection.CaretPos)
 					} else {
 						label.Selection.Select(end, end)
 					}
 				}
 
-				if globals.Keyboard.Key(sdl.K_PAGEUP).Pressed() {
+				if globals.Keyboard.Key(SDLK_PAGEUP).Pressed() {
 					lineCount := 5
 					newIndex := label.Selection.CaretPos
 					for lineCount > 0 {
@@ -1742,7 +1832,7 @@ func (label *Label) Update() {
 					label.Selection.Select(newIndex, newIndex)
 				}
 
-				if globals.Keyboard.Key(sdl.K_PAGEDOWN).Pressed() {
+				if globals.Keyboard.Key(SDLK_PAGEDOWN).Pressed() {
 					lineCount := 5
 					newIndex := label.Selection.CaretPos
 					for lineCount > 0 {
@@ -1761,7 +1851,7 @@ func (label *Label) Update() {
 
 					if button.Pressed() || button.Held() || button.Released() {
 
-						pos := Point{label.Rect.X + label.Offset.X, label.Rect.Y + label.Offset.Y + globals.GridSize/2}
+						pos := Vector{label.Rect.X + label.Offset.X, label.Rect.Y + label.Offset.Y + globals.GridSize/2}
 
 						cIndex := 0
 						dist := float32(-1)
@@ -1849,9 +1939,11 @@ func (label *Label) Update() {
 
 				}
 
-				if globals.Keyboard.Key(sdl.K_BACKSPACE).Pressed() {
+				if globals.Keyboard.Key(SDLK_BACKSPACE).Pressed() {
 
-					if globals.Keyboard.Key(sdl.K_LCTRL).Held() {
+					prevLen := len(label.Text)
+
+					if globals.Keyboard.Key(SDLK_LCTRL).Held() {
 						start := label.Selection.Start
 						end := start + label.MoveCaretBackOneWord()
 						label.Selection.Select(start, end)
@@ -1865,9 +1957,15 @@ func (label *Label) Update() {
 						label.DeleteSelectedChars()
 					}
 
+					if len(label.Text) != prevLen {
+
+						PlayUISound(UISoundTypeType)
+
+					}
+
 				}
 
-				if globals.Keyboard.Key(sdl.K_DELETE).Pressed() {
+				if globals.Keyboard.Key(SDLK_DELETE).Pressed() {
 
 					if label.Selection.Length() == 0 {
 						next := label.Selection.Start
@@ -1907,14 +2005,17 @@ func (label *Label) Update() {
 					label.Selection.SelectAll()
 				}
 
-				enter := globals.Keyboard.Key(sdl.K_KP_ENTER).Pressed() || globals.Keyboard.Key(sdl.K_RETURN).Pressed() || globals.Keyboard.Key(sdl.K_RETURN2).Pressed()
+				enter := globals.Keyboard.Key(SDLK_KP_ENTER).Pressed() || globals.Keyboard.Key(SDLK_RETURN).Pressed() || globals.Keyboard.Key(SDLK_RETURN2).Pressed()
 				if enter {
-					globals.Keyboard.Key(sdl.K_KP_ENTER).Consume()
-					globals.Keyboard.Key(sdl.K_RETURN).Consume()
+					globals.Keyboard.Key(SDLK_KP_ENTER).Consume()
+					globals.Keyboard.Key(SDLK_RETURN).Consume()
 					if label.NewlinesAllowed() {
 						label.DeleteSelectedChars()
 						label.InsertRunesAtIndex([]rune{'\n'}, label.Selection.CaretPos)
 						label.Selection.AdvanceCaret(1)
+
+						PlayUISound(UISoundTypeType)
+
 					} else {
 						label.EndEditing()
 						clickedOut = true
@@ -1924,6 +2025,9 @@ func (label *Label) Update() {
 				// Typing
 				if !clickedOut && len(globals.InputText) > 0 {
 					label.DeleteSelectedChars()
+
+					PlayUISound(UISoundTypeType)
+
 					label.InsertRunesAtIndex(globals.InputText, label.Selection.CaretPos)
 					label.Selection.AdvanceCaret(len(globals.InputText))
 				}
@@ -2106,14 +2210,14 @@ func (label *Label) Draw() {
 			lineY = label.Rect.Y + label.Rect.H
 		}
 
-		start := Point{label.Rect.X, lineY + thickness}
+		start := Vector{label.Rect.X, lineY + thickness}
 		end := start.AddF(label.Rect.W-8, 0)
 		if label.WorldSpace {
 			start = globals.Project.Camera.TranslatePoint(start)
 			end = globals.Project.Camera.TranslatePoint(end)
 		}
 
-		ThickLine(start, end, int32(thickness), getThemeColor(GUIFontColor))
+		ThickLine(start, end, thickness, getThemeColor(GUIFontColor))
 
 	}
 
@@ -2144,7 +2248,7 @@ func (label *Label) Draw() {
 				}
 
 				globals.Renderer.SetDrawColor(color.RGBA())
-				globals.Renderer.FillRectF(tp)
+				globals.Renderer.RenderFillRect(tp)
 
 				// gfx.RectangleColor(globals.Renderer, int32(tp.X), int32(tp.Y), int32(tp.X+tp.W), int32(tp.Y+tp.H), color.SDLColor())
 
@@ -2159,7 +2263,7 @@ func (label *Label) Draw() {
 		}
 
 		if label.Selection.Length() == 0 && math.Sin(globals.Time*(math.Pi*4)) > 0 {
-			ThickLine(pos, pos.Add(Point{0, globals.GridSize}), 4, getThemeColor(GUIFontColor))
+			ThickLine(pos, pos.Add(Vector{0, globals.GridSize}), 4, getThemeColor(GUIFontColor))
 		}
 
 		if mousePos.Inside(label.Rect) {
@@ -2184,7 +2288,7 @@ func (label *Label) Draw() {
 			h = int32(label.Rect.H + baseline)
 		}
 
-		src := &sdl.Rect{0, 0, w, h}
+		src := &sdl.FRect{0, 0, float32(w), float32(h)}
 
 		// Floor the rectangle to avoid aliasing artifacts when rendering with nearest neighbour
 		newRect := &sdl.FRect{float32(math.Floor(float64(label.Rect.X + label.Offset.X))), float32(math.Floor(float64(label.Rect.Y + label.Offset.Y))), float32(w), float32(h)}
@@ -2210,7 +2314,7 @@ func (label *Label) Draw() {
 		label.currentAlpha += (label.Alpha - label.currentAlpha) * 0.2
 		label.RendererResult.Image.Texture.SetAlphaMod(uint8(label.currentAlpha * 255))
 
-		globals.Renderer.CopyF(label.RendererResult.Image.Texture, src, newRect)
+		globals.Renderer.RenderTexture(label.RendererResult.Image.Texture, src, newRect)
 
 	}
 
@@ -2221,7 +2325,7 @@ func (label *Label) Draw() {
 		}
 
 		globals.Renderer.SetDrawColor(255, 255, 0, 255)
-		globals.Renderer.FillRectF(dst)
+		globals.Renderer.RenderFillRect(dst)
 	}
 
 	label.textChanged = false
@@ -2343,7 +2447,7 @@ func (label *Label) RecreateTexture() {
 	// If there's no max size limit, then the size should be the label's rect width and height
 	size := label.maxSize
 	if size.X <= 0 && size.Y <= 0 {
-		size = Point{label.Rect.W, label.Rect.H}
+		size = Vector{label.Rect.W, label.Rect.H}
 	}
 
 	label.RendererResult = globals.TextRenderer.RenderText(string(label.Text), size, label.HorizontalAlignment, label.Editable)
@@ -2379,7 +2483,7 @@ func (label *Label) TextAsInt() int {
 	return i
 }
 
-func (label *Label) TextSize() Point {
+func (label *Label) TextSize() Vector {
 	return globals.TextRenderer.MeasureText(label.Text, 1)
 }
 
@@ -2449,9 +2553,9 @@ func (label *Label) NewlinesAllowed() bool {
 	return false
 }
 
-func (label *Label) IndexToWorld(index int) Point {
+func (label *Label) IndexToWorld(index int) Vector {
 
-	point := Point{}
+	point := Vector{}
 
 	if index > len(label.Text) {
 		index = len(label.Text)
@@ -2619,7 +2723,7 @@ type ContainerRow struct {
 	ExpandElementSet     ExpandElementSet
 	HorizontalMargin     float32
 	Visible              bool
-	ForcedSize           Point
+	ForcedSize           Vector
 	AlternateBGColor     bool
 	alternateBGColorFlag bool
 	rect                 *sdl.FRect
@@ -2733,9 +2837,9 @@ func (row *ContainerRow) Draw() {
 		}
 
 		if row.Container.WorldSpace {
-			globals.Renderer.FillRectF(globals.Project.Camera.TranslateRect(row.rect))
+			globals.Renderer.RenderFillRect(globals.Project.Camera.TranslateRect(row.rect))
 		} else {
-			globals.Renderer.FillRectF(row.rect)
+			globals.Renderer.RenderFillRect(row.rect)
 		}
 
 	}
@@ -2870,7 +2974,7 @@ func (container *Container) Update() {
 	}
 
 	container.overallHeight = float32(0)
-	y := float32(-perc * container.Rect.H)
+	y := float32(math.Round(float64(-perc * container.Rect.H)))
 	for _, row := range container.Rows {
 		if row.Visible {
 			diff := row.Update(y)
@@ -3053,9 +3157,9 @@ func (container *Container) NeedScroll() bool {
 }
 
 // IdealSize returns the ideal size for the container to encompass all its GUI Elements.
-func (container *Container) IdealSize() Point {
+func (container *Container) IdealSize() Vector {
 
-	size := Point{}
+	size := Vector{}
 
 	for _, row := range container.Rows {
 
@@ -3106,14 +3210,14 @@ func (container *Container) MinimumHeight() float32 {
 type GUIImage struct {
 	Texture         *sdl.Texture
 	Rect            *sdl.FRect
-	SrcRect         *sdl.Rect
+	SrcRect         *sdl.FRect
 	WorldSpace      bool
 	Border          bool
 	TintByFontColor bool
 	Visible         bool
 }
 
-func NewGUIImage(rect *sdl.FRect, srcRect *sdl.Rect, texture *sdl.Texture, worldSpace bool) *GUIImage {
+func NewGUIImage(rect, srcRect *sdl.FRect, texture *sdl.Texture, worldSpace bool) *GUIImage {
 	icon := &GUIImage{Rect: rect, SrcRect: srcRect, Texture: texture, WorldSpace: worldSpace, TintByFontColor: true, Visible: true}
 	if icon.Rect == nil {
 		icon.Rect = &sdl.FRect{
@@ -3147,11 +3251,11 @@ func (image *GUIImage) Draw() {
 		rect = globals.Project.Camera.TranslateRect(rect)
 	}
 
-	globals.Renderer.CopyF(image.Texture, image.SrcRect, rect)
+	globals.Renderer.RenderTexture(image.Texture, image.SrcRect, rect)
 
 	if image.Border {
 		globals.Renderer.SetDrawColor(getThemeColor(GUIFontColor).RGBA())
-		globals.Renderer.DrawRectF(rect)
+		globals.Renderer.RenderRect(rect)
 	}
 
 	if globals.DebugMode == DebugModeUI {
@@ -3161,7 +3265,7 @@ func (image *GUIImage) Draw() {
 		}
 
 		globals.Renderer.SetDrawColor(255, 0, 255, 255)
-		globals.Renderer.FillRectF(dst)
+		globals.Renderer.RenderFillRect(dst)
 	}
 
 }
@@ -3215,94 +3319,126 @@ func NewScrollbar(rect *sdl.FRect, valueMin, valueMax float32, worldSpace bool, 
 	return scrollbar
 }
 
-func (scrollbar *Scrollbar) Update() {
+func (s *Scrollbar) Update() {
 
 	pos := globals.Mouse.Position()
-	if scrollbar.WorldSpace {
+	if s.WorldSpace {
 		pos = globals.Mouse.WorldPosition()
 	}
 
-	scrollbar.Highlighter.Highlighting = pos.Inside(scrollbar.Rect) || scrollbar.Dragging
-	scrollbar.Highlighter.SetRect(scrollbar.Rect)
+	s.Highlighter.Highlighting = pos.Inside(s.Rect) || s.Dragging
+	s.Highlighter.SetRect(s.Rect)
 	button := globals.Mouse.Button(sdl.BUTTON_LEFT)
 
-	if pos.Inside(scrollbar.Rect) {
+	if pos.Inside(s.Rect) {
 
 		if button.Pressed() {
+
+			PlayUISound(UISoundTypeTap)
+
 			button.Consume()
-			scrollbar.Dragging = true
+			s.Dragging = true
 		}
 
 	}
 
 	if !button.HeldRaw() {
-		if scrollbar.Dragging && scrollbar.OnRelease != nil {
-			scrollbar.OnRelease()
+
+		if s.Dragging {
+
+			if s.OnRelease != nil {
+				s.OnRelease()
+			}
+
+			PlayUISound(UISoundTypeTap)
 
 		}
-		scrollbar.Dragging = false
+
+		s.Dragging = false
+
 	}
 
-	if scrollbar.Dragging && button.HeldRaw() {
+	if s.Dragging && button.HeldRaw() {
 
-		if scrollbar.Vertical() {
-			scrollbar.SetValue((pos.Y - 32 - scrollbar.Rect.Y) / (scrollbar.Rect.H - 64))
+		pos = globals.Mouse.RawPosition()
+		if s.WorldSpace {
+			pos = globals.Mouse.RawWorldPosition()
+		}
+
+		prevValue := s.TargetValue
+
+		margin := float32(8)
+
+		if s.Vertical() {
+			s.SetValue((pos.Y - margin - s.Rect.Y) / (s.Rect.H - (margin * 2)))
 		} else {
-			scrollbar.SetValue((pos.X - 32 - scrollbar.Rect.X) / (scrollbar.Rect.W - 64))
+			s.SetValue((pos.X - margin - s.Rect.X) / (s.Rect.W - (margin * 2)))
+		}
+
+		rounded := float32(math.Round(float64(prevValue*10))) / 10
+
+		if (prevValue < rounded && s.TargetValue > rounded) || (prevValue > rounded && s.TargetValue < rounded) {
+			PlayUISound(UISoundTypeTap)
 		}
 
 	}
 
-	if scrollbar.Soft && globals.Settings.Get(SettingsSmoothMovement).AsBool() {
-		scrollbar.Value += (scrollbar.TargetValue - scrollbar.Value) * 12 * globals.DeltaTime
+	if s.Soft && globals.Settings.Get(SettingsSmoothMovement).AsBool() {
+		s.Value += (s.TargetValue - s.Value) * 12 * globals.DeltaTime
 	} else {
-		scrollbar.Value = scrollbar.TargetValue
+		s.Value = s.TargetValue
 	}
 
 }
 
-func (scrollbar *Scrollbar) SetValue(value float32) {
-	scrollbar.TargetValue = value
+func (s *Scrollbar) SetValue(value float32) {
+	s.TargetValue = value
 
-	if scrollbar.TargetValue < 0 {
-		scrollbar.TargetValue = 0
-	} else if scrollbar.TargetValue > 1 {
-		scrollbar.TargetValue = 1
+	if s.TargetValue < 0 {
+		s.TargetValue = 0
+	} else if s.TargetValue > 1 {
+		s.TargetValue = 1
 	}
 
-	if scrollbar.OnValueSet != nil {
-		scrollbar.OnValueSet()
+	if s.OnValueSet != nil {
+		s.OnValueSet()
 	}
 
-	if scrollbar.Property != nil {
-		tv := scrollbar.ValueMin + ((scrollbar.ValueMax - scrollbar.ValueMin) * scrollbar.TargetValue)
-		scrollbar.Property.Set(float64(tv))
+	if s.Property != nil {
+		tv := s.ValueMin + ((s.ValueMax - s.ValueMin) * s.TargetValue)
+		s.Property.Set(float64(tv))
 	}
 
 }
 
-func (scrollbar *Scrollbar) Draw() {
+func (s *Scrollbar) SetValueRaw(value float32) {
 
-	scrollbar.MouseClose = false
+	s.SetValue((value - s.ValueMin) / (s.ValueMax - s.ValueMin))
 
-	if scrollbar.Rect.W < 0 || scrollbar.Rect.H < 0 {
+}
+
+func (s *Scrollbar) Draw() {
+
+	s.MouseClose = false
+
+	if s.Rect.W < 0 || s.Rect.H < 0 {
 		return
 	}
 
 	mousePos := globals.Mouse.Position()
-	if scrollbar.WorldSpace {
+	if s.WorldSpace {
 		mousePos = globals.Mouse.WorldPosition()
 	}
 
-	scrollbar.MouseClose = mousePos.DistanceToRect(scrollbar.Rect) <= 16
+	s.MouseClose = mousePos.DistanceToRect(s.Rect) <= 16
 
-	if scrollbar.DrawOnlyWhenMouseIsClose && !scrollbar.MouseClose {
+	if s.DrawOnlyWhenMouseIsClose && !s.MouseClose {
 		return
 	}
 
-	sr := *scrollbar.Rect
+	sr := *s.Rect
 	rect := &sr
-	if scrollbar.WorldSpace {
+	if s.WorldSpace {
 		rect = globals.Project.Camera.TranslateRect(rect)
 	}
 
@@ -3310,121 +3446,136 @@ func (scrollbar *Scrollbar) Draw() {
 	FillRect(rect.X+2, rect.Y+2, rect.W-4, rect.H-4, getThemeColor(GUIFontColor))
 
 	//Inside
-	FillRect(rect.X+4, rect.Y+(scrollbar.Rect.H-rect.H)/2+4, rect.W-8, rect.H-8, getThemeColor(GUIMenuColor))
+	FillRect(rect.X+4, rect.Y+(s.Rect.H-rect.H)/2+4, rect.W-8, rect.H-8, getThemeColor(GUIMenuColor))
 
 	headRect := *rect
 
-	if scrollbar.Vertical() {
+	if s.Vertical() {
 
 		// head
-		scroll := scrollbar.Rect.H*scrollbar.Value - (12 * scrollbar.Value)
+		scroll := s.Rect.H*s.Value - (12 * s.Value)
 		headRect.X = rect.X + 4
 		headRect.Y = rect.Y + 4 + scroll
 		headRect.W = rect.W - 8
 		headRect.H = 4
-		FillRect(headRect.X, headRect.Y, headRect.W, headRect.H, getThemeColor(GUICompletedColor))
+		FillRect(headRect.X, headRect.Y, headRect.W, headRect.H, getThemeColor(GUIFontColor))
 
 	} else {
 
 		// head
-		scroll := scrollbar.Rect.W*scrollbar.Value - (12 * scrollbar.Value)
+		scroll := s.Rect.W*s.Value - (12 * s.Value)
 
 		headRect.X = rect.X + 4 + scroll
 		headRect.Y = rect.Y + 4
 		headRect.W = 4
 		headRect.H = rect.H - 8
 
-		FillRect(headRect.X, headRect.Y, headRect.W, headRect.H, getThemeColor(GUICompletedColor))
+		FillRect(headRect.X, headRect.Y, headRect.W, headRect.H, getThemeColor(GUIFontColor))
 
 	}
 
-	scrollbar.Highlighter.Draw()
+	s.Highlighter.Draw()
 
-	if (scrollbar.MouseClose || scrollbar.Dragging) && scrollbar.DisplayValue {
+}
+
+func (s *Scrollbar) DrawOnTop() {
+
+	rect := s.Rect
+	if s.WorldSpace {
+		rect = globals.Project.Camera.TranslateRect(rect)
+	}
+
+	headRect := *rect
+
+	if s.Vertical() {
+		scroll := s.Rect.H*s.Value - (12 * s.Value)
+		headRect.X = rect.X + 4
+		headRect.Y = rect.Y + 4 + scroll
+	} else {
+		scroll := s.Rect.W*s.Value - (12 * s.Value)
+		headRect.X = rect.X + 4 + scroll
+		headRect.Y = rect.Y + 4
+	}
+
+	if (s.MouseClose || s.Dragging) && s.DisplayValue {
 		// gfx.RoundedBoxColor(globals.Renderer, x, y, x+64, y+48, 4, getThemeColor(GUICompletedColor).SDLColor())
 
-		DrawLabel(Point{headRect.X - 16, headRect.Y - 16}, fmt.Sprintf("%.0f%%", (scrollbar.ValueMin+(scrollbar.ValueMax-scrollbar.ValueMin)*scrollbar.TargetValue)*100))
+		DrawLabel(Vector{headRect.X - 16, headRect.Y - 16}, fmt.Sprintf("%.0f%%", (s.ValueMin+(s.ValueMax-s.ValueMin)*s.TargetValue)*100), getThemeColor(GUIMenuColor))
 	}
 
 }
 
-func (scrollbar *Scrollbar) Vertical() bool { return scrollbar.Rect.H > scrollbar.Rect.W }
+func (s *Scrollbar) Vertical() bool { return s.Rect.H > s.Rect.W }
 
-func (scrollbar *Scrollbar) Rectangle() *sdl.FRect {
-	return &sdl.FRect{scrollbar.Rect.X, scrollbar.Rect.Y, scrollbar.Rect.W, scrollbar.Rect.H}
+func (s *Scrollbar) Rectangle() *sdl.FRect {
+	return &sdl.FRect{s.Rect.X, s.Rect.Y, s.Rect.W, s.Rect.H}
 }
 
-func (scrollbar *Scrollbar) SetRectangle(rect *sdl.FRect) {
-	scrollbar.Rect.X = rect.X
-	scrollbar.Rect.Y = rect.Y
-	scrollbar.Rect.W = rect.W
-	scrollbar.Rect.H = rect.H
+func (s *Scrollbar) SetRectangle(rect *sdl.FRect) {
+	s.Rect.X = rect.X
+	s.Rect.Y = rect.Y
+	s.Rect.W = rect.W
+	s.Rect.H = rect.H
 }
 
-func (scrollbar *Scrollbar) Destroy() {}
+func (s *Scrollbar) Destroy() {}
 
-type Pie struct {
-	Rect         *sdl.FRect
-	FillPercent  float32
-	WorldSpace   bool
-	EdgeColor    Color
-	FillColor    Color
-	flippedColor bool
+type UIClock struct {
+	Rect       *sdl.FRect
+	Rotation   float32 // The rotation for the hand, from 0 to 1.
+	WorldSpace bool
+	EdgeColor  Color
+	FillColor  Color
 }
 
-func NewPie(rect *sdl.FRect, edgeColor, fillColor Color, worldSpace bool) *Pie {
-	pie := &Pie{
-		Rect:        &sdl.FRect{},
-		EdgeColor:   edgeColor,
-		FillColor:   fillColor,
-		WorldSpace:  worldSpace,
-		FillPercent: 0,
+func NewUIClockIcon(rect *sdl.FRect, edgeColor, fillColor Color, worldSpace bool) *UIClock {
+	pie := &UIClock{
+		Rect:       &sdl.FRect{},
+		EdgeColor:  edgeColor,
+		FillColor:  fillColor,
+		WorldSpace: worldSpace,
+		Rotation:   0,
 	}
 	pie.SetRectangle(rect)
 	return pie
 }
 
-func (pie *Pie) Update() {}
+func (c *UIClock) Update() {}
 
-func (pie *Pie) Draw() {
+func (c *UIClock) Draw() {
 
-	rect := pie.Rect
-	if pie.WorldSpace {
+	rect := c.Rect
+	if c.WorldSpace {
 		rect = globals.Project.Camera.TranslateRect(rect)
 	}
 
-	for pie.FillPercent > 1 {
-		pie.FillPercent -= 1
-		pie.flippedColor = !pie.flippedColor
-	}
-	for pie.FillPercent < 0 {
-		pie.FillPercent += 1
-		pie.flippedColor = !pie.flippedColor
+	center := Vector{
+		rect.X + (rect.W / 2),
+		rect.Y + (rect.H / 2),
 	}
 
-	gfx.FilledCircleColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2), pie.EdgeColor.SDLColor())
-	if pie.flippedColor {
-		gfx.FilledCircleColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2)-4, pie.EdgeColor.SDLColor())
-		// gfx.FilledPieColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2)-4, -90, int32(360*(-pie.FillPercent+1)-90), pie.FillColor.SDLColor())
-		gfx.FilledPieColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2)-4, int32(360*pie.FillPercent-90), -90, pie.FillColor.SDLColor())
-	} else {
-		gfx.FilledPieColor(globals.Renderer, int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(rect.W/2)-4, -90, int32(360*pie.FillPercent-90), pie.FillColor.SDLColor())
-	}
+	radius := rect.W / 2
+
+	end := center.Add(Vector{0, -radius + 8}.Rotate(c.Rotation * math.Pi * 2))
+
+	FilledCircleColor(int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(radius-4), c.EdgeColor)
+	FilledCircleColor(int32(rect.X+(rect.W/2)), int32(rect.Y+(rect.H/2)), int32(radius-8), c.FillColor)
+	ThickLine(center, end, 4, getThemeColor(GUIFontColor))
 
 }
 
-func (pie *Pie) Rectangle() *sdl.FRect {
-	return pie.Rect
+func (c *UIClock) Rectangle() *sdl.FRect {
+	return c.Rect
 }
 
-func (pie *Pie) SetRectangle(rect *sdl.FRect) {
-	pie.Rect.X = rect.X
-	pie.Rect.Y = rect.Y
-	pie.Rect.W = rect.W
-	pie.Rect.H = rect.H
+func (c *UIClock) SetRectangle(rect *sdl.FRect) {
+	c.Rect.X = rect.X
+	c.Rect.Y = rect.Y
+	c.Rect.W = rect.W
+	c.Rect.H = rect.H
 }
 
-func (pie *Pie) Destroy() {}
+func (c *UIClock) Destroy() {}
 
 type ColorWheel struct {
 	Rect          *sdl.FRect
@@ -3451,12 +3602,12 @@ func NewColorWheel() *ColorWheel {
 	// value = 32
 	// color preview = 32
 
-	hueSurf, err := sdl.CreateRGBSurface(0, 192, 192, 32, 0, 0, 0, 0)
+	hueSurf, err := sdl.CreateSurface(192, 192, sdl.PIXELFORMAT_RGBA8888)
 	if err != nil {
 		panic(err)
 	}
 
-	valueSurf, err := sdl.CreateRGBSurface(0, 192, 32, 32, 0, 0, 0, 0)
+	valueSurf, err := sdl.CreateSurface(192, 32, sdl.PIXELFORMAT_RGBA8888)
 	if err != nil {
 		panic(err)
 	}
@@ -3479,12 +3630,12 @@ func (cw *ColorWheel) UpdateColorSurfaces() {
 		for y := 0; y < int(cw.HueStrip.H); y++ {
 			c := NewColorFromHSV(float64(x)/float64(cw.HueStrip.W)*360, float64(y)/float64(cw.HueStrip.H), 1)
 			r, g, b, _ := c.RGBA()
-			cw.HueStrip.Set(x, y, color.RGBA{
-				R: r,
-				G: g,
-				B: b,
-				A: 255,
-			})
+			cw.HueStrip.WritePixel(int32(x), int32(y),
+				r,
+				g,
+				b,
+				255,
+			)
 		}
 	}
 
@@ -3504,12 +3655,12 @@ func (cw *ColorWheel) UpdateColorSurfaces() {
 	for x := 0; x < int(cw.ValueStrip.W); x++ {
 		for y := 0; y < int(cw.ValueStrip.H); y++ {
 			v := uint8(float64(x) / float64(cw.ValueStrip.W) * 255)
-			cw.ValueStrip.Set(x, y, color.RGBA{
-				R: v,
-				G: v,
-				B: v,
-				A: 255,
-			})
+			cw.ValueStrip.WritePixel(int32(x), int32(y),
+				v,
+				v,
+				v,
+				255,
+			)
 		}
 	}
 
@@ -3622,32 +3773,32 @@ func (cw *ColorWheel) Draw() {
 
 	hueRect := *cw.Rect
 	hueRect.H = float32(cw.HueStrip.H)
-	globals.Renderer.CopyExF(cw.HueTexture, nil, &hueRect, 0, nil, 0)
+	globals.Renderer.RenderTexture(cw.HueTexture, nil, &hueRect)
 
 	valueRect := hueRect
 	valueRect.Y = hueRect.Y + hueRect.H
 	valueRect.H = float32(cw.ValueStrip.H)
-	globals.Renderer.CopyExF(cw.ValueTexture, nil, &valueRect, 0, nil, 0)
+	globals.Renderer.RenderTexture(cw.ValueTexture, nil, &valueRect)
 
 	guiTex := globals.GUITexture.Texture
 	guiTex.SetAlphaMod(255)
-	src := &sdl.Rect{0, 240, 8, 8}
-	dst := &sdl.Rect{int32(cw.Rect.X) + cw.SampledPosX - 4, int32(cw.Rect.Y) + cw.SampledPosY - 4, 8, 8}
-	globals.Renderer.Copy(guiTex, src, dst)
+	src := &sdl.FRect{0, 240, 8, 8}
+	dst := &sdl.FRect{cw.Rect.X + float32(cw.SampledPosX) - 4, cw.Rect.Y + float32(cw.SampledPosY) - 4, 8, 8}
+	globals.Renderer.RenderTexture(guiTex, src, dst)
 
-	ThickLine(Point{cw.Rect.X + (cw.SampledValue * float32(cw.ValueStrip.W)), cw.Rect.Y + float32(cw.HueStrip.H)},
-		Point{cw.Rect.X + (cw.SampledValue * float32(cw.ValueStrip.W)), cw.Rect.Y + float32(cw.HueStrip.H) + float32(cw.ValueStrip.H)},
+	ThickLine(Vector{cw.Rect.X + (cw.SampledValue * float32(cw.ValueStrip.W)), cw.Rect.Y + float32(cw.HueStrip.H)},
+		Vector{cw.Rect.X + (cw.SampledValue * float32(cw.ValueStrip.W)), cw.Rect.Y + float32(cw.HueStrip.H) + float32(cw.ValueStrip.H)},
 		4, ColorBlack,
 	)
 
-	ThickLine(Point{valueRect.X + (cw.SampledValue * valueRect.W), valueRect.Y},
-		Point{valueRect.X + (cw.SampledValue * valueRect.W), valueRect.Y + valueRect.H},
+	ThickLine(Vector{valueRect.X + (cw.SampledValue * valueRect.W), valueRect.Y},
+		Vector{valueRect.X + (cw.SampledValue * valueRect.W), valueRect.Y + valueRect.H},
 		2, ColorWhite,
 	)
 
 	// Color preview
 	globals.Renderer.SetDrawColor(cw.SampledColor.RGBA())
-	globals.Renderer.FillRectF(&sdl.FRect{valueRect.X, valueRect.Y + valueRect.H, valueRect.W, 32})
+	globals.Renderer.RenderFillRect(&sdl.FRect{valueRect.X, valueRect.Y + valueRect.H, valueRect.W, 32})
 
 }
 
@@ -3725,13 +3876,13 @@ func (highlighter *Highlighter) Draw() {
 	rect.W += padding * 2
 	rect.H += padding * 2
 
-	var highlightColor sdl.Color
+	var highlightColor Color
 
 	if highlighter.Color == nil {
-		highlightColor = getThemeColor(GUICompletedColor).SDLColor()
-		highlightColor.A = 255
+		highlightColor = getThemeColor(GUICompletedColor)
+		highlightColor[3] = 255
 	} else {
-		highlightColor = highlighter.Color.SDLColor()
+		highlightColor = highlighter.Color
 	}
 
 	switch highlighter.HighlightMode {
@@ -3739,8 +3890,8 @@ func (highlighter *Highlighter) Draw() {
 	case HighlightColor:
 
 		if highlighter.HighlightPercentage > 0.01 {
-			highlightColor.A = uint8(highlighter.HighlightPercentage * float32(highlightColor.A) * 0.5)
-			gfx.RoundedBoxColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+rect.H), 4, highlightColor)
+			highlightColor[3] = uint8(highlighter.HighlightPercentage * float32(highlightColor[3]) * 0.5)
+			RoundedBoxColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+rect.H), 4, highlightColor)
 		}
 
 	case HighlightRing:
@@ -3758,16 +3909,19 @@ func (highlighter *Highlighter) Draw() {
 		h := rect.H * firstPerc
 
 		if w > 1 && h > 1 {
-			gfx.ThickLineColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X+w), int32(rect.Y), 2, highlightColor)
-			gfx.ThickLineColor(globals.Renderer, int32(rect.X), int32(rect.Y), int32(rect.X), int32(rect.Y+h), 2, highlightColor)
+			ThickLine(Vector{rect.X, rect.Y}, Vector{rect.X + w, rect.Y}, 2, highlightColor)
+			ThickLine(Vector{rect.X, rect.Y}, Vector{rect.X, rect.Y + h}, 2, highlightColor)
 		}
 
 		w = rect.W * secondPerc
 		h = rect.H * secondPerc
 
+		// gfx.ThickLineColor(globals.Renderer, int32(rect.X+rect.W), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+h), 2, highlightColor)
+		// gfx.ThickLineColor(globals.Renderer, int32(rect.X), int32(rect.Y+rect.H), int32(rect.X+w), int32(rect.Y+rect.H), 2, highlightColor)
+
 		if w > 1 && h > 1 {
-			gfx.ThickLineColor(globals.Renderer, int32(rect.X+rect.W), int32(rect.Y), int32(rect.X+rect.W), int32(rect.Y+h), 2, highlightColor)
-			gfx.ThickLineColor(globals.Renderer, int32(rect.X), int32(rect.Y+rect.H), int32(rect.X+w), int32(rect.Y+rect.H), 2, highlightColor)
+			ThickLine(Vector{rect.X + rect.W, rect.Y}, Vector{rect.X + rect.W, rect.Y + h}, 2, highlightColor)
+			ThickLine(Vector{rect.X, rect.Y + rect.H}, Vector{rect.X + w, rect.Y + rect.H}, 2, highlightColor)
 		}
 
 	// case HighlightSmallDiamond:
@@ -3777,17 +3931,22 @@ func (highlighter *Highlighter) Draw() {
 	// 		guiTex := globals.Resources.Get(LocalPath("assets/gui.png")).AsImage()
 	// 		guiTex.Texture.SetAlphaMod(highlightColor.A)
 	// 		guiTex.Texture.SetColorMod(highlightColor.R, highlightColor.G, highlightColor.B)
-	// 		globals.Renderer.CopyF(guiTex.Texture, &sdl.Rect{480, 32, 16, 16}, &rect)
+	// 		globals.Renderer.CopyF(guiTex.Texture, &sdl.FRect{480, 32, 16, 16}, &rect)
 	// 	}
 
 	case HighlightUnderline:
 
-		center := Point{rect.X + rect.W/2, rect.Y + rect.H}
+		center := Vector{rect.X + rect.W/2, rect.Y + rect.H}
 		w := rect.W * highlighter.HighlightPercentage
 
 		if highlighter.HighlightPercentage > 0.05 {
 
-			gfx.ThickLineColor(globals.Renderer, int32(center.X-w/2), int32(center.Y), int32(center.X+w/2), int32(center.Y), 2, highlightColor)
+			start := center
+			start.X -= w / 2
+			end := center
+			end.X += w / 2
+
+			ThickLine(start, end, 2, highlightColor)
 
 		}
 
@@ -3832,7 +3991,7 @@ func (ds *DraggableSpace) Draw() {
 	}
 
 	stepWidth := ds.Rect.W / float32(ds.Max-ds.Min)
-	dragHandlePoint := Point{ds.Rect.X + (stepWidth * float32(current)), ds.Rect.Y + ds.Rect.H}
+	dragHandlePoint := Vector{ds.Rect.X + (stepWidth * float32(current)), ds.Rect.Y + ds.Rect.H}
 	cursorPos := globals.Mouse.WorldPosition()
 	lmb := globals.Mouse.Button(sdl.BUTTON_LEFT)
 
@@ -3876,7 +4035,7 @@ func (ds *DraggableSpace) Draw() {
 
 	globals.GUITexture.Texture.SetColorMod(255, 255, 255)
 	globals.GUITexture.Texture.SetAlphaMod(255)
-	globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{0, 240, 8, 8}, &sdl.FRect{dragHandlePoint.X - 4, dragHandlePoint.Y, 8, 8})
+	globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{0, 240, 8, 8}, &sdl.FRect{dragHandlePoint.X - 4, dragHandlePoint.Y, 8, 8})
 
 }
 
@@ -3929,6 +4088,7 @@ func (ds *DraggableLabel) Update() {
 			ds.Dragging = true
 			ds.Label.EndEditing()
 			ds.TableData.DraggingLabel = ds
+			PlayUISound(UISoundTypeToggleOff)
 		}
 
 	}
@@ -3946,6 +4106,7 @@ func (ds *DraggableLabel) Update() {
 			ds.Dragging = false
 			ds.TableData.DraggingLabel = nil
 			ds.TableData.TableHeaderDropped(ds)
+			PlayUISound(UISoundTypeToggleOn)
 		}
 	}
 
@@ -3977,7 +4138,7 @@ func (ds *DraggableLabel) Update() {
 
 		ds.TargetRect.W = globals.GridSize
 
-		nw := float32(math.Ceil(float64(ds.TargetRect.H-dragArea.H-32)/32) * 32)
+		nw := float32(math.Ceil(float64(ds.TargetRect.H-dragArea.H-32)/32)*32) + 8
 
 		ds.Label.SetRectangle(&sdl.FRect{ds.TargetRect.X + dragArea.H, ds.TargetRect.Y, nw, ds.TargetRect.W})
 
@@ -3993,7 +4154,7 @@ func (ds *DraggableLabel) Update() {
 
 		ds.TargetRect.H = globals.GridSize
 
-		nw := float32(math.Ceil(float64(ds.TargetRect.W-dragArea.W-32)/32) * 32)
+		nw := float32(math.Ceil(float64(ds.TargetRect.W-dragArea.W-32)/32)*32) + 8
 
 		ds.Label.SetRectangle(&sdl.FRect{ds.TargetRect.X + dragArea.W, ds.TargetRect.Y, nw, ds.TargetRect.H})
 
@@ -4062,7 +4223,7 @@ func (ds *DraggableLabel) Draw() {
 	// Draggable icon
 	globals.GUITexture.Texture.SetColorMod(fontColor.RGB())
 	globals.GUITexture.Texture.SetAlphaMod(128)
-	globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{0, 288, 32, 32}, &sdl.FRect{rect.X, rect.Y, 32, 32})
+	globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{0, 288, 32, 32}, &sdl.FRect{rect.X, rect.Y, 32, 32})
 
 	if !ds.Vertical || ds.verticalEditing {
 		ds.Label.Draw()
@@ -4090,7 +4251,7 @@ func (ds *DraggableLabel) Draw() {
 		}
 		rect.H = labelSize.Y
 
-		globals.Renderer.CopyExF(ds.Label.RendererResult.Image.Texture, nil, globals.Project.Camera.TranslateRect(&rect), 90, &sdl.FPoint{-16, 16}, sdl.FLIP_NONE)
+		globals.Renderer.RenderTextureRotated(ds.Label.RendererResult.Image.Texture, nil, globals.Project.Camera.TranslateRect(&rect), 90, &sdl.FPoint{-16, 16}, sdl.FLIP_NONE)
 	}
 
 }
@@ -4105,7 +4266,7 @@ func (ds *DraggableLabel) CenterX() float32 {
 
 type Tooltip struct {
 	Button     *IconButton
-	SpawnStart Point
+	SpawnStart Vector
 	Displaying bool
 	Text       string
 	Visible    bool
@@ -4113,13 +4274,13 @@ type Tooltip struct {
 
 func NewTooltip(text string) *Tooltip {
 	tt := &Tooltip{
-		Button:  NewIconButtonTintless(0, 0, &sdl.Rect{240, 352, 32, 32}, globals.GUITexture, false, nil),
+		Button:  NewIconButtonTintless(0, 0, &sdl.FRect{240, 352, 32, 32}, globals.GUITexture, false, nil),
 		Text:    text,
 		Visible: true,
 	}
 	tt.Button.OnPressed = func() {
 		tt.Displaying = !tt.Displaying
-		tt.SpawnStart = Point{tt.Button.Rect.X, tt.Button.Rect.Y}
+		tt.SpawnStart = Vector{tt.Button.Rect.X, tt.Button.Rect.Y}
 	}
 	return tt
 }
@@ -4198,7 +4359,7 @@ func (tt *Tooltip) DrawOnTop() {
 		FillRect(dst.X, dst.Y, dst.W, dst.H, fontColor)
 		FillRect(dst.X+2, dst.Y+2, dst.W-4, dst.H-4, menuColor)
 
-		globals.TextRenderer.QuickRenderText(tt.Text, Point{dst.X + (margin / 2), dst.Y + (margin / 2)}, fontSizeMult, getThemeColor(GUIFontColor), nil, AlignLeft)
+		globals.TextRenderer.QuickRenderText(tt.Text, Vector{dst.X + (margin / 2), dst.Y + (margin / 2)}, fontSizeMult, getThemeColor(GUIFontColor), nil, AlignLeft)
 
 	} else if globals.DrawOnTop == tt {
 		globals.DrawOnTop = nil

@@ -11,7 +11,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
+	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/chromedp/cdproto/input"
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/kb"
@@ -21,7 +23,6 @@ import (
 	"github.com/skratchdot/open-golang/open"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -35,15 +36,17 @@ const (
 	ContentTypeSubpage  = "Sub-Page"
 	ContentTypeLink     = "Link"
 	ContentTypeTable    = "Table"
-	ContentTypeWeb      = "web"
+	ContentTypeInternet = "Internet"
+	ContentTypeNull     = ""
 )
 const (
-	TriggerTypeSet = iota
+	TriggerTypeNone = 0
+	TriggerTypeSet  = iota
 	TriggerTypeToggle
 	TriggerTypeClear
 )
 
-var icons map[string]*sdl.Rect = map[string]*sdl.Rect{
+var icons map[string]*sdl.FRect = map[string]*sdl.FRect{
 	ContentTypeCheckbox: {48, 32, 32, 32},
 	ContentTypeNumbered: {48, 96, 32, 32},
 	ContentTypeNote:     {112, 160, 32, 32},
@@ -54,7 +57,7 @@ var icons map[string]*sdl.Rect = map[string]*sdl.Rect{
 	ContentTypeSubpage:  {48, 256, 32, 32},
 	ContentTypeLink:     {112, 256, 32, 32},
 	ContentTypeTable:    {176, 224, 32, 32},
-	ContentTypeWeb:      {144, 288, 32, 32},
+	ContentTypeInternet: {144, 288, 32, 32},
 }
 
 var contentOrder = map[string]int{
@@ -68,7 +71,7 @@ var contentOrder = map[string]int{
 	ContentTypeSubpage:  7,
 	ContentTypeLink:     8,
 	ContentTypeTable:    9,
-	ContentTypeWeb:      10,
+	ContentTypeInternet: 10,
 }
 
 type Contents interface {
@@ -76,7 +79,7 @@ type Contents interface {
 	Draw()
 	ReceiveMessage(*Message)
 	Color() Color
-	DefaultSize() Point
+	DefaultSize() Vector
 	Trigger(triggerType int)
 	Container() *Container
 }
@@ -224,6 +227,12 @@ func (cc *CheckboxContents) Update() {
 			if cc.Checkbox.CanPress {
 				prop := cc.Card.Properties.Get("checked")
 				prop.Set(!prop.AsBool())
+
+				snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/select.wav").AsNewSound(true, AudioChannelUI)
+				if snd != nil {
+					snd.Play()
+				}
+
 			}
 		} else if kb.Pressed(KBCheckboxEditText) {
 			kb.Shortcuts[KBCheckboxEditText].ConsumeKeys()
@@ -269,13 +278,24 @@ func (cc *CheckboxContents) Draw() {
 
 		if maximum > 0 {
 			p := completed / maximum
+
+			prev := cc.PercentageOfChildrenComplete
+
 			cc.PercentageOfChildrenComplete += (p - cc.PercentageOfChildrenComplete) * 6 * globals.DeltaTime
-			if cc.PercentageOfChildrenComplete > 1 {
+
+			if cc.PercentageOfChildrenComplete > 0.99 {
+				if prev <= 0.99 {
+					snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/select.wav").AsNewSound(true, AudioChannelUI)
+					if snd != nil {
+						snd.Play()
+					}
+				}
 				cc.PercentageOfChildrenComplete = 1
 			}
 
-			src := &sdl.Rect{0, 0, int32(cc.Card.Rect.W * cc.PercentageOfChildrenComplete), int32(cc.Card.Rect.H)}
-			dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
+			// Fill up the checkbox card by percentage of children complete
+			src := &sdl.FRect{0, 0, cc.Card.Rect.W * cc.PercentageOfChildrenComplete, cc.Card.Rect.H}
+			dst := &sdl.FRect{0, 0, src.W, src.H}
 			dst.X = cc.Card.DisplayRect.X
 			dst.Y = cc.Card.DisplayRect.Y
 			dst = cc.Card.Page.Project.Camera.TranslateRect(dst)
@@ -285,7 +305,7 @@ func (cc *CheckboxContents) Draw() {
 				color = NewColorFromHSV(h+30, s-0.2, v+0.2)
 			}
 			cc.Card.Result.Texture.SetColorMod(color.RGB())
-			globals.Renderer.CopyF(cc.Card.Result.Texture, src, dst)
+			globals.Renderer.RenderTexture(cc.Card.Result.Texture, src, dst)
 
 		}
 
@@ -294,8 +314,8 @@ func (cc *CheckboxContents) Draw() {
 	cc.DefaultContents.Draw()
 
 	if len(dependentCards) > 0 {
-		dstPoint := Point{cc.Card.DisplayRect.X + cc.Card.DisplayRect.W - 32, cc.Card.DisplayRect.Y}
-		DrawLabel(cc.Card.Page.Project.Camera.TranslatePoint(dstPoint), fmt.Sprintf("%d/%d", int(completed), int(maximum)))
+		dstPoint := Vector{cc.Card.DisplayRect.X + cc.Card.DisplayRect.W - 32, cc.Card.DisplayRect.Y}
+		DrawLabel(cc.Card.Page.Project.Camera.TranslatePoint(dstPoint), fmt.Sprintf("%d/%d", int(completed), int(maximum)), getThemeColor(GUIMenuColor))
 	}
 
 	// for _, button := range cc.URLButtons.Buttons {
@@ -355,8 +375,8 @@ func (cc *CheckboxContents) Color() Color {
 	return color
 }
 
-func (cc *CheckboxContents) DefaultSize() Point {
-	return Point{globals.GridSize * 9, globals.GridSize}
+func (cc *CheckboxContents) DefaultSize() Vector {
+	return Vector{globals.GridSize * 9, globals.GridSize}
 }
 
 func (cc *CheckboxContents) Trigger(triggerType int) {
@@ -610,7 +630,7 @@ func (nc *NumberedContents) Draw() {
 
 		nc.PercentageComplete += (p - nc.PercentageComplete) * 6 * globals.DeltaTime
 
-		src := &sdl.Rect{0, 0, int32(nc.Card.DisplayRect.W * nc.PercentageComplete), int32(nc.Card.DisplayRect.H)}
+		src := &sdl.FRect{0, 0, nc.Card.DisplayRect.W * nc.PercentageComplete, nc.Card.DisplayRect.H}
 		dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
 		dst.X = nc.Card.DisplayRect.X
 		dst.Y = nc.Card.DisplayRect.Y
@@ -623,7 +643,7 @@ func (nc *NumberedContents) Draw() {
 		}
 
 		nc.Card.Result.Texture.SetColorMod(completionColor.RGB())
-		globals.Renderer.CopyF(nc.Card.Result.Texture, src, dst)
+		globals.Renderer.RenderTexture(nc.Card.Result.Texture, src, dst)
 
 	}
 
@@ -631,14 +651,14 @@ func (nc *NumberedContents) Draw() {
 
 	if !nc.Card.Properties.Get("hideMax").AsBool() && nc.Max.Property.AsFloat() > 0 {
 
-		dstPoint := Point{nc.Card.DisplayRect.X + nc.Card.DisplayRect.W - 32, nc.Card.DisplayRect.Y}
+		dstPoint := Vector{nc.Card.DisplayRect.X + nc.Card.DisplayRect.W - 32, nc.Card.DisplayRect.Y}
 		np := globals.Settings.Get(SettingsDisplayNumberedPercentagesAs).AsString()
 		if np == NumberedPercentagePercent {
 			perc := strconv.FormatFloat(float64(p*100), 'f', 0, 32) + "%"
-			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc, getThemeColor(GUIMenuColor))
 		} else if np == NumberedPercentageCurrentMax {
 			perc := fmt.Sprintf("%.0f / %.0f", nc.Current.Property.AsFloat(), nc.Max.Property.AsFloat())
-			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc)
+			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc, getThemeColor(GUIMenuColor))
 		}
 
 	}
@@ -684,9 +704,9 @@ func (nc *NumberedContents) Trigger(triggerType int) {
 
 }
 
-func (nc *NumberedContents) DefaultSize() Point {
+func (nc *NumberedContents) DefaultSize() Vector {
 	gs := globals.GridSize
-	return Point{gs * 8, gs * 2}
+	return Vector{gs * 8, gs * 2}
 }
 
 func (nc *NumberedContents) CompletionLevel() float32 {
@@ -722,7 +742,7 @@ func NewNoteContents(card *Card) *NoteContents {
 	}
 
 	row := nc.container.AddRow(AlignLeft)
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{112, 160, 32, 32}, globals.GUITexture.Texture, true))
+	row.Add("icon", NewGUIImage(nil, &sdl.FRect{112, 160, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("label", nc.Label)
 
 	return nc
@@ -759,8 +779,8 @@ func (nc *NoteContents) Color() Color {
 	return getThemeColor(GUINoteColor)
 }
 
-func (nc *NoteContents) DefaultSize() Point {
-	return Point{globals.GridSize * 8, globals.GridSize * 1}
+func (nc *NoteContents) DefaultSize() Vector {
+	return Vector{globals.GridSize * 8, globals.GridSize * 1}
 }
 
 type SoundContents struct {
@@ -795,12 +815,12 @@ func NewSoundContents(card *Card) *SoundContents {
 		}
 	}
 
-	soundContents.PlayButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, true, nil)
+	soundContents.PlayButton = NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, globals.GUITexture, true, nil)
 	soundContents.PlayButton.OnPressed = func() {
 		soundContents.TogglePlayback()
 	}
 
-	repeatButton := NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, globals.GUITexture, true, func() {
+	repeatButton := NewIconButton(0, 0, &sdl.FRect{176, 32, 32, 32}, globals.GUITexture, true, func() {
 
 		if soundContents.Resource == nil {
 			return
@@ -813,7 +833,7 @@ func NewSoundContents(card *Card) *SoundContents {
 	soundContents.PlaybackLabel = NewLabel("", &sdl.FRect{0, 0, -1, -1}, true, AlignLeft)
 
 	firstRow := soundContents.container.AddRow(AlignLeft)
-	firstRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.Rect{144, 160, 32, 32}, globals.GUITexture.Texture, true))
+	firstRow.Add("icon", NewGUIImage(&sdl.FRect{0, 0, 32, 32}, &sdl.FRect{144, 160, 32, 32}, globals.GUITexture.Texture, true))
 	firstRow.Add("sound name label", soundContents.SoundNameLabel)
 
 	soundContents.FilepathLabel = NewLabel("sound file path", nil, false, AlignLeft)
@@ -937,7 +957,7 @@ func (sc *SoundContents) Update() {
 
 				}
 
-				sound, err := sc.Resource.AsNewSound()
+				sound, err := sc.Resource.AsNewSound(false, AudioChannelSoundCard)
 				sc.SeekBar.SetValue(0)
 
 				if err != nil {
@@ -1093,8 +1113,8 @@ func (sc *SoundContents) Color() Color {
 	return getThemeColor(GUISoundColor)
 }
 
-func (sc *SoundContents) DefaultSize() Point {
-	return Point{globals.GridSize * 10, globals.GridSize * 4}
+func (sc *SoundContents) DefaultSize() Vector {
+	return Vector{globals.GridSize * 10, globals.GridSize * 4}
 }
 
 func (sc *SoundContents) ReceiveMessage(msg *Message) {
@@ -1156,7 +1176,7 @@ func NewImageContents(card *Card) *ImageContents {
 
 	imageContents.LoadFile()
 
-	// rotateRight := NewIconButton(0, 0, &sdl.Rect{368, 192, 32, 32}, true, func() {
+	// rotateRight := NewIconButton(0, 0, &sdl.FRect{368, 192, 32, 32}, true, func() {
 
 	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
@@ -1173,7 +1193,7 @@ func NewImageContents(card *Card) *ImageContents {
 
 	// })
 
-	// rotateLeft := NewIconButton(0, 0, &sdl.Rect{368, 192, 32, 32}, true, func() {
+	// rotateLeft := NewIconButton(0, 0, &sdl.FRect{368, 192, 32, 32}, true, func() {
 
 	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
@@ -1201,7 +1221,7 @@ func NewImageContents(card *Card) *ImageContents {
 	imageContents.Buttons = []*IconButton{
 
 		// Browse
-		NewIconButtonTintless(0, 0, &sdl.Rect{400, 224, 32, 32}, globals.GUITexture, true, func() {
+		NewIconButtonTintless(0, 0, &sdl.FRect{400, 224, 32, 32}, globals.GUITexture, true, func() {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			if imageContents.Resource != nil && imageContents.Resource.SaveFile {
 				globals.EventLog.Log("This is an image that has been directly pasted into the project; it cannot change to point to another image file.", true)
@@ -1216,7 +1236,7 @@ func NewImageContents(card *Card) *ImageContents {
 		}),
 
 		// Edit Path
-		NewIconButtonTintless(0, 0, &sdl.Rect{400, 256, 32, 32}, globals.GUITexture, true, func() {
+		NewIconButtonTintless(0, 0, &sdl.FRect{400, 256, 32, 32}, globals.GUITexture, true, func() {
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 			commonMenu := globals.MenuSystem.Get("common")
 			commonMenu.Pages["root"].Clear()
@@ -1236,7 +1256,7 @@ func NewImageContents(card *Card) *ImageContents {
 		}),
 
 		// 1:1 / 100% button
-		NewIconButtonTintless(0, 0, &sdl.Rect{368, 224, 32, 32}, globals.GUITexture, true, func() {
+		NewIconButtonTintless(0, 0, &sdl.FRect{368, 224, 32, 32}, globals.GUITexture, true, func() {
 
 			globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 
@@ -1377,7 +1397,7 @@ func (ic *ImageContents) Draw() {
 
 			texture.SetColorMod(color.RGB())
 
-			globals.Renderer.CopyF(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
+			globals.Renderer.RenderTexture(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
 
 		} else {
 
@@ -1391,14 +1411,14 @@ func (ic *ImageContents) Draw() {
 			rect.W = ic.Card.DisplayRect.W * float32(perc)
 			outRect := ic.Card.Page.Project.Camera.TranslateRect(&rect)
 			globals.Renderer.SetDrawColor(getThemeColor(GUIMenuColor).RGBA())
-			globals.Renderer.FillRectF(outRect)
+			globals.Renderer.RenderFillRect(outRect)
 
 			if resource.IsGIF() {
 				rect.Y += rect.H
 				rect.W = ic.Card.DisplayRect.W * float32(resource.AsGIF().LoadingProgress())
 				globals.Renderer.SetDrawColor(getThemeColor(GUICheckboxColor).RGBA())
 				outRect = ic.Card.Page.Project.Camera.TranslateRect(&rect)
-				globals.Renderer.FillRectF(outRect)
+				globals.Renderer.RenderFillRect(outRect)
 
 			}
 
@@ -1485,8 +1505,8 @@ func (ic *ImageContents) Color() Color {
 	return ColorTransparent
 }
 
-func (ic *ImageContents) DefaultSize() Point {
-	return Point{globals.GridSize * 4, globals.GridSize * 4}
+func (ic *ImageContents) DefaultSize() Vector {
+	return Vector{globals.GridSize * 4, globals.GridSize * 4}
 }
 
 func (ic *ImageContents) ReceiveMessage(msg *Message) {
@@ -1517,8 +1537,8 @@ type TimerContents struct {
 
 	Running            bool
 	TimerValue         time.Duration
-	Pie                *Pie
-	PieRow             *ContainerRow
+	ClockIcon          *UIClock
+	ClockIconRow       *ContainerRow
 	StartButton        *IconButton
 	RestartButton      *IconButton
 	MaxTime            time.Duration
@@ -1528,6 +1548,7 @@ type TimerContents struct {
 	AlarmSound         *Sound
 	ClockSound         *Sound
 	PercentageComplete float32
+	CheckboxOn         bool
 }
 
 func NewTimerContents(card *Card) *TimerContents {
@@ -1535,9 +1556,9 @@ func NewTimerContents(card *Card) *TimerContents {
 	tc := &TimerContents{
 		DefaultContents:        newDefaultContents(card),
 		Name:                   NewLabel("New Timer", nil, true, AlignLeft),
-		ClockLabel:             NewLabel("00:00", &sdl.FRect{0, 0, 96, 32}, true, AlignCenter),
-		ClockMaxTimeLabel:      NewLabel("00:00", &sdl.FRect{0, 0, 96, 32}, true, AlignCenter),
-		ClockScheduleTimeLabel: NewLabel("00:00", &sdl.FRect{0, 0, 96, 32}, true, AlignCenter),
+		ClockLabel:             NewLabel("00:00", &sdl.FRect{0, 0, 112, 32}, true, AlignCenter),
+		ClockMaxTimeLabel:      NewLabel("00:00", &sdl.FRect{0, 0, 112, 32}, true, AlignCenter),
+		ClockScheduleTimeLabel: NewLabel("00:00", &sdl.FRect{0, 0, 112, 32}, true, AlignCenter),
 		ClockBecameInPhase:     true,
 	}
 
@@ -1573,18 +1594,43 @@ func NewTimerContents(card *Card) *TimerContents {
 	}
 	tc.SetMaxTime(card.Properties.Get("max minutes").AsInt(), card.Properties.Get("max seconds").AsInt())
 
-	tc.ClockScheduleTimeLabel.RegexString = RegexOnlyDigitsColonAndDot
+	tc.ClockScheduleTimeLabel.RegexString = RegexOnlyDigitsColonAndDotAMPM
 	tc.ClockScheduleTimeLabel.MaxLength = 8
 	tc.ClockScheduleTimeLabel.OnClickOut = func() {
 
-		text := tc.ClockScheduleTimeLabel.TextAsString()
-		if !strings.ContainsAny(text, ":.") {
-			text = "00:" + text
+		text := strings.ToLower(tc.ClockScheduleTimeLabel.TextAsString())
+		// if !strings.ContainsAny(text, ":.") {
+		// 	text = "00:" + text
+		// }
+
+		var h, m int
+
+		if strings.ContainsAny(text, ":.") {
+			timeUnits := SplitStringOnAny(text, ":.")
+			h, _ = strconv.Atoi(timeUnits[0])
+
+			s := ""
+			for _, v := range timeUnits[1] {
+				if unicode.IsNumber(v) {
+					s += string(v)
+				}
+			}
+			m, _ = strconv.Atoi(s)
+		} else {
+			s := ""
+			for _, v := range text {
+				if unicode.IsNumber(v) {
+					s += string(v)
+				}
+			}
+			h, _ = strconv.Atoi(s)
 		}
 
-		timeUnits := SplitStringOnAny(text, ":.")
-		h, _ := strconv.Atoi(timeUnits[0])
-		m, _ := strconv.Atoi(timeUnits[1])
+		if strings.Contains(text, "a") && h >= 12 {
+			h -= 12
+		} else if strings.Contains(text, "p") && h < 12 {
+			h += 12
+		}
 
 		tc.SetScheduleTime(h, m) // Read the label and set that for the max time
 	}
@@ -1601,9 +1647,9 @@ func NewTimerContents(card *Card) *TimerContents {
 			globals.EventLog.Log("Timer Mode changed to Clock.", false)
 		}
 	}, card.Properties.Get("mode group"),
-		&sdl.Rect{48, 192, 32, 32},
-		&sdl.Rect{80, 192, 32, 32},
-		&sdl.Rect{80, 64, 32, 32},
+		&sdl.FRect{48, 192, 32, 32},
+		&sdl.FRect{80, 192, 32, 32},
+		&sdl.FRect{80, 64, 32, 32},
 	)
 	tc.Mode.Spacing = 16
 
@@ -1616,37 +1662,37 @@ func NewTimerContents(card *Card) *TimerContents {
 			globals.EventLog.Log("Timer Trigger Mode changed to Clear.", false)
 		}
 	}, card.Properties.Get("trigger mode"),
-		&sdl.Rect{112, 192, 32, 32},
-		&sdl.Rect{48, 160, 32, 32},
-		&sdl.Rect{144, 192, 32, 32},
+		&sdl.FRect{112, 192, 32, 32},
+		&sdl.FRect{48, 160, 32, 32},
+		&sdl.FRect{144, 192, 32, 32},
 	)
 
 	tc.Name.OnChange = func() {
 		commonTextEditingResizing(tc.Name, card)
 	}
 
-	tc.StartButton = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, globals.GUITexture, true, func() {
+	tc.StartButton = NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, globals.GUITexture, true, func() {
 		tc.Running = !tc.Running
 	})
-	tc.RestartButton = NewIconButton(0, 0, &sdl.Rect{176, 32, 32, 32}, globals.GUITexture, true, func() { tc.TimerValue = 0; tc.Pie.FillPercent = 0 })
-	tc.Pie = NewPie(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color().Add(40), true)
+	tc.RestartButton = NewIconButton(0, 0, &sdl.FRect{176, 32, 32, 32}, globals.GUITexture, true, func() { tc.TimerValue = 0; tc.ClockIcon.Rotation = 0 })
+	tc.ClockIcon = NewUIClockIcon(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color().Add(40), true)
 
 	tc.Name.Editable = true
 	// tc.Name.AutoExpand = true
 	// tc.ClockLabel.AutoExpand = true
 
 	row := tc.container.AddRow(AlignLeft)
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{80, 64, 32, 32}, globals.GUITexture.Texture, true))
+	row.Add("icon", NewGUIImage(nil, &sdl.FRect{80, 64, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("name", tc.Name)
 
 	tc.MaxTimeRow = tc.container.AddRow(AlignCenter)
 	tc.MaxTimeRow.Add("clock", tc.ClockLabel)
 
-	tc.ClockMaxTimeSub = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, globals.GUITexture, true, func() {
+	tc.ClockMaxTimeSub = NewIconButton(0, 0, &sdl.FRect{80, 96, 32, 32}, globals.GUITexture, true, func() {
 		tc.SetMaxTime(0, int(tc.MaxTime.Seconds()-1))
 	})
 
-	tc.ClockMaxTimeAdd = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, globals.GUITexture, true, func() {
+	tc.ClockMaxTimeAdd = NewIconButton(0, 0, &sdl.FRect{48, 96, 32, 32}, globals.GUITexture, true, func() {
 		tc.SetMaxTime(0, int(tc.MaxTime.Seconds()+1))
 	})
 
@@ -1656,11 +1702,11 @@ func NewTimerContents(card *Card) *TimerContents {
 
 	tc.ScheduleTimeRow = tc.container.AddRow(AlignCenter)
 
-	tc.ClockScheduleTimeSub = NewIconButton(0, 0, &sdl.Rect{80, 96, 32, 32}, globals.GUITexture, true, func() {
+	tc.ClockScheduleTimeSub = NewIconButton(0, 0, &sdl.FRect{80, 96, 32, 32}, globals.GUITexture, true, func() {
 		tc.SetScheduleTime(0, int(tc.ScheduleTime.Minutes()-1))
 	})
 
-	tc.ClockScheduleTimeAdd = NewIconButton(0, 0, &sdl.Rect{48, 96, 32, 32}, globals.GUITexture, true, func() {
+	tc.ClockScheduleTimeAdd = NewIconButton(0, 0, &sdl.FRect{48, 96, 32, 32}, globals.GUITexture, true, func() {
 		tc.SetScheduleTime(0, int(tc.ScheduleTime.Minutes()+1))
 	})
 
@@ -1668,10 +1714,10 @@ func NewTimerContents(card *Card) *TimerContents {
 	tc.ScheduleTimeRow.Add("schedule", tc.ClockScheduleTimeLabel)
 	tc.ScheduleTimeRow.Add("addSchedule", tc.ClockScheduleTimeAdd)
 
-	tc.PieRow = tc.container.AddRow(AlignCenter)
-	tc.PieRow.Add("pie", tc.Pie)
-	tc.PieRow.Add("start button", tc.StartButton)
-	tc.PieRow.Add("restart button", tc.RestartButton)
+	tc.ClockIconRow = tc.container.AddRow(AlignCenter)
+	tc.ClockIconRow.Add("pie", tc.ClockIcon)
+	tc.ClockIconRow.Add("start button", tc.StartButton)
+	tc.ClockIconRow.Add("restart button", tc.RestartButton)
 
 	row = tc.container.AddRow(AlignCenter)
 	row.Add("", NewLabel("Mode:  ", nil, true, AlignRight))
@@ -1707,7 +1753,7 @@ func (tc *TimerContents) SetMaxTime(minutes, seconds int) string {
 
 func (tc *TimerContents) SetScheduleTime(hour, minute int) string {
 
-	if hour <= 0 && minute < 1 {
+	if hour <= 0 && minute < 0 {
 		hour = 23
 		minute = 59
 	} else if hour == 24 && minute >= 0 || minute >= 1440 {
@@ -1718,6 +1764,10 @@ func (tc *TimerContents) SetScheduleTime(hour, minute int) string {
 	for minute >= 60 {
 		minute -= 60
 		hour++
+	}
+
+	for hour > 24 {
+		hour -= 24
 	}
 
 	tc.Card.Properties.Get("schedule hour").Set(hour)
@@ -1739,9 +1789,10 @@ func (tc *TimerContents) Update() {
 		r.H = gs
 	}
 
-	tc.PieRow.Visible = tc.Card.Properties.Get("mode group").AsInt() < 2
-	tc.ScheduleTimeRow.Visible = tc.Card.Properties.Get("mode group").AsInt() == 2
-	tc.MaxTimeRow.Visible = tc.Card.Properties.Get("mode group").AsInt() < 2
+	modeGroup := tc.Card.Properties.Get("mode group").AsInt()
+
+	tc.ScheduleTimeRow.Visible = modeGroup == 2
+	tc.MaxTimeRow.Visible = modeGroup < 2
 
 	tc.Name.SetRectangle(r)
 
@@ -1757,7 +1808,7 @@ func (tc *TimerContents) Update() {
 
 		tc.StartButton.IconSrc.X = 144
 		tc.TimerValue += time.Duration(globals.DeltaTime * float32(time.Second))
-		tc.Pie.FillPercent += globals.DeltaTime
+		tc.ClockIcon.Rotation += globals.DeltaTime
 
 		modeGroup := int(tc.Card.Properties.Get("mode group").AsFloat())
 
@@ -1768,21 +1819,16 @@ func (tc *TimerContents) Update() {
 
 			tc.Running = false
 			globals.EventLog.Log(elapsedMessage, false)
-			tc.Pie.FillPercent = 0
+			tc.ClockIcon.Rotation = 0
 			tc.TimerValue = 0
 
 			triggerMode := int(tc.Card.Properties.Get("trigger mode").AsFloat())
 
-			tt := TriggerTypeToggle
-			if triggerMode == 1 {
-				tt = TriggerTypeSet
-			} else if triggerMode == 2 {
-				tt = TriggerTypeClear
-			}
-
-			for _, link := range tc.Card.Links {
-				if link.End.Contents != nil && link.End != tc.Card {
-					link.End.Contents.Trigger(tt)
+			if triggerMode != TriggerTypeNone {
+				for _, link := range tc.Card.Links {
+					if link.End.Contents != nil && link.End != tc.Card {
+						link.End.Contents.Trigger(triggerMode)
+					}
 				}
 			}
 
@@ -1797,12 +1843,15 @@ func (tc *TimerContents) Update() {
 				if tc.AlarmSound != nil {
 					tc.AlarmSound.Destroy()
 				}
-				tc.AlarmSound, _ = globals.Resources.Get(LocalRelativePath("assets/alarm.wav")).AsNewSound()
+				tc.AlarmSound, _ = globals.Resources.Get(LocalRelativePath("assets/alarm.wav")).AsNewSound(false, AudioChannelUI)
 				tc.AlarmSound.Play()
 			}
 
 		}
 
+	} else if modeGroup == 2 {
+		tc.ClockIcon.Rotation = (float32(time.Now().Second()) / 60)
+		// tc.ClockIcon.Rotation += globals.DeltaTime
 	}
 
 	tc.ClockLabel.SetText([]rune(formatTime(tc.TimerValue, false)))
@@ -1842,15 +1891,15 @@ func (tc *TimerContents) Update() {
 
 	top := tc.Card.Stack.Top()
 
-	on := true
+	tc.CheckboxOn = true
 	if top != nil && top != tc.Card {
 		if check, ok := top.Contents.(*CheckboxContents); ok && check.CompletionLevel() == 0 {
 			tc.ClockBecameInPhase = false
-			on = false
+			tc.CheckboxOn = false
 		}
 	}
 
-	if on {
+	if tc.CheckboxOn {
 
 		if tc.ClockInPhase() {
 
@@ -1859,6 +1908,18 @@ func (tc *TimerContents) Update() {
 				elapsedMessage := fmt.Sprintf("Clock '%s' became active.", tc.Name.TextAsString())
 
 				globals.EventLog.Log(elapsedMessage, true)
+
+				triggerMode := int(tc.Card.Properties.Get("trigger mode").AsFloat())
+
+				if triggerMode != TriggerTypeNone {
+
+					for _, link := range tc.Card.Links {
+						if link.End.Contents != nil && link.End != tc.Card {
+							link.End.Contents.Trigger(triggerMode)
+						}
+					}
+
+				}
 
 				if globals.Settings.Get(SettingsFocusOnElapsedTimers).AsBool() {
 					tc.Card.Page.Project.Camera.FocusOn(false, tc.Card)
@@ -1871,7 +1932,7 @@ func (tc *TimerContents) Update() {
 				if tc.ClockSound != nil {
 					tc.ClockSound.Destroy()
 				}
-				tc.ClockSound, _ = globals.Resources.Get(LocalRelativePath("assets/clocksound.wav")).AsNewSound()
+				tc.ClockSound, _ = globals.Resources.Get(LocalRelativePath("assets/clocksound.wav")).AsNewSound(false, AudioChannelUI)
 				tc.ClockSound.Play()
 				tc.ClockBecameInPhase = true
 			}
@@ -1913,7 +1974,7 @@ func (tc *TimerContents) Draw() {
 		tc.PercentageComplete = 1
 	}
 
-	src := &sdl.Rect{0, 0, int32(tc.Card.Rect.W * tc.PercentageComplete), int32(tc.Card.Rect.H)}
+	src := &sdl.FRect{0, 0, tc.Card.Rect.W * tc.PercentageComplete, tc.Card.Rect.H}
 	dst := &sdl.FRect{0, 0, float32(src.W), float32(src.H)}
 	dst.X = tc.Card.DisplayRect.X
 	dst.Y = tc.Card.DisplayRect.Y
@@ -1926,12 +1987,30 @@ func (tc *TimerContents) Draw() {
 	tc.Card.Result.Texture.SetColorMod(barColor.RGB())
 
 	tc.Card.Result.Texture.SetAlphaMod(255)
-	globals.Renderer.CopyF(tc.Card.Result.Texture, src, dst)
+	globals.Renderer.RenderTexture(tc.Card.Result.Texture, src, dst)
 
 	tc.DefaultContents.Draw()
 
 	if modeGroup == 2 && !tc.ClockScheduleTimeLabel.Editing {
-		DrawLabel(Point{dst.X - 48, dst.Y + 8}, tc.ClockScheduleTimeLabel.TextAsString())
+		txt := tc.ClockScheduleTimeLabel.TextAsString()
+		color := getThemeColor(GUIMenuColor)
+		x := float32(0)
+
+		if tc.CheckboxOn {
+			if tc.ClockInPhase() {
+				txt = "Active: " + txt
+				color = getThemeColor(GUICompletedColor)
+			} else {
+				color = getThemeColor(GUICheckboxColor)
+			}
+			// x += 46
+		}
+
+		textSize := globals.TextRenderer.MeasureText([]rune(txt), 0.5)
+
+		x -= textSize.X + 16
+
+		DrawLabel(Vector{dst.X + x, dst.Y + 8}, txt, color)
 		// DrawLabel(Point{dst.X - 64, dst.Y + 8}, fmt.Sprintf("%d:%d %s", int(tc.ScheduleTime.Hours()), int(tc.ScheduleTime.Minutes()), amPM))
 	}
 
@@ -1977,8 +2056,8 @@ func (tc *TimerContents) Trigger(triggerType int) {
 
 func (tc *TimerContents) ReceiveMessage(msg *Message) {
 	if msg.Type == MessageThemeChange {
-		tc.Pie.EdgeColor = tc.Color().Sub(80)
-		tc.Pie.FillColor = tc.Color().Add(40)
+		tc.ClockIcon.EdgeColor = tc.Color().Sub(80)
+		tc.ClockIcon.FillColor = tc.Color().Add(40)
 	} else if msg.Type == MessageVolumeChange {
 		if tc.AlarmSound != nil {
 			tc.AlarmSound.UpdateVolume()
@@ -1996,8 +2075,8 @@ func (tc *TimerContents) Color() Color {
 
 }
 
-func (tc *TimerContents) DefaultSize() Point {
-	return Point{globals.GridSize * 9, globals.GridSize * 6}
+func (tc *TimerContents) DefaultSize() Vector {
+	return Vector{globals.GridSize * 9, globals.GridSize * 6}
 }
 
 type MapData struct {
@@ -2217,7 +2296,10 @@ func (mapData *MapData) SetI(x, y, value int) bool {
 	return true
 }
 
-func (mapData *MapData) Set(point Point, value int) bool {
+func (mapData *MapData) Set(point Vector, value int) bool {
+	if mapData.GetI(int(point.X), int(point.Y)) != value {
+		PlayUISound(UISoundTypeTap)
+	}
 	return mapData.SetI(int(point.X), int(point.Y), value)
 }
 
@@ -2228,7 +2310,7 @@ func (mapData *MapData) GetI(x, y int) int {
 	return mapData.Data[y][x]
 }
 
-func (mapData *MapData) Get(point Point) int {
+func (mapData *MapData) Get(point Vector) int {
 	return mapData.GetI(int(point.X), int(point.Y))
 }
 
@@ -2258,12 +2340,12 @@ func (mapData *MapData) Deserialize(data string) {
 }
 
 const (
-	MapEditToolNone = iota
+	MapEditToolColors = iota
+	MapEditToolNone
 	MapEditToolPencil
 	MapEditToolEraser
 	MapEditToolFill
 	MapEditToolLine
-	MapEditToolColors
 
 	MapPatternSolid   = 0
 	MapPatternCrossed = 16
@@ -2276,10 +2358,10 @@ type MapContents struct {
 	Tool           int
 	RenderTexture  *RenderTexture
 	Buttons        []*IconButton
-	LineStart      Point
+	LineStart      Vector
 	MapData        *MapData
 	PatternButtons map[int]*Button
-	PrevPos        Point
+	PrevPos        Vector
 }
 
 var MapDrawingColor = 1
@@ -2315,13 +2397,14 @@ func NewMapContents(card *Card) *MapContents {
 
 	mc.MapData = NewMapData(mc)
 
-	toolButtons := []*sdl.Rect{
+	toolButtons := []*sdl.FRect{
+		{368, 160, 32, 32}, // MapEditToolColors
+
 		{368, 0, 32, 32},   // MapEditToolNone
 		{368, 32, 32, 32},  // MapEditToolPencil
 		{368, 64, 32, 32},  // MapEditToolEraser
 		{368, 96, 32, 32},  // MapEditToolBucket
 		{368, 128, 32, 32}, // MapEditToolLine
-		{368, 160, 32, 32}, // MapEditToolColors
 	}
 
 	for index, iconSrc := range toolButtons {
@@ -2334,30 +2417,29 @@ func NewMapContents(card *Card) *MapContents {
 			}
 		})
 		mc.Buttons = append(mc.Buttons, button)
-
 	}
 
 	// Rotation buttons
 
-	// rotateRight := NewIconButtonTintless(0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
+	// rotateRight := NewIconButtonTintless(0, 0, &sdl.FRect{400, 192, 32, 32}, globals.GUITexture, true, func() {
 	// 	mc.MapData.Rotate(1)
 	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	// })
 	// mc.Buttons = append(mc.Buttons, rotateRight)
 
-	// rotateLeft := NewIconButtonTintless(0, 0, &sdl.Rect{400, 192, 32, 32}, globals.GUITexture, true, func() {
+	// rotateLeft := NewIconButtonTintless(0, 0, &sdl.FRect{400, 192, 32, 32}, globals.GUITexture, true, func() {
 	// 	mc.MapData.Rotate(-1)
 	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	// })
 	// rotateLeft.Flip = sdl.FLIP_HORIZONTAL
 
-	// flipHorizontal := NewIconButtonTintless(0, 0, &sdl.Rect{400, 416, 32, 32}, globals.GUITexture, true, func() {
+	// flipHorizontal := NewIconButtonTintless(0, 0, &sdl.FRect{400, 416, 32, 32}, globals.GUITexture, true, func() {
 	// 	mc.MapData.Flip(false)
 	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	// })
 	// flipHorizontal.Flip = sdl.FLIP_NONE
 
-	// flipVertical := NewIconButtonTintless(0, 0, &sdl.Rect{400, 416, 32, 32}, globals.GUITexture, true, func() {
+	// flipVertical := NewIconButtonTintless(0, 0, &sdl.FRect{400, 416, 32, 32}, globals.GUITexture, true, func() {
 	// 	mc.MapData.Flip(true)
 	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 	// })
@@ -2365,7 +2447,7 @@ func NewMapContents(card *Card) *MapContents {
 
 	// mc.Buttons = append(mc.Buttons, rotateLeft)
 
-	mc.container.AddRow(AlignLeft).Add("icon", NewGUIImage(nil, &sdl.Rect{112, 96, 32, 32}, globals.GUITexture.Texture, true))
+	mc.container.AddRow(AlignLeft).Add("icon", NewGUIImage(nil, &sdl.FRect{112, 96, 32, 32}, globals.GUITexture.Texture, true))
 
 	mc.MapData.Resize(int(mc.Card.Rect.W/globals.GridSize), int(mc.Card.Rect.H/globals.GridSize))
 
@@ -2605,8 +2687,8 @@ func (mc *MapContents) Update() {
 
 					globals.Mouse.SetCursor(CursorBucket)
 
-					neighbors := map[Point]bool{gp: true}
-					checked := map[Point]bool{}
+					neighbors := map[Vector]bool{gp: true}
+					checked := map[Vector]bool{}
 
 					if leftMB.Pressed() || rightMB.Pressed() {
 
@@ -2619,7 +2701,7 @@ func (mc *MapContents) Update() {
 
 						if empty != fill {
 
-							addIfNotAdded := func(point Point, value int) {
+							addIfNotAdded := func(point Vector, value int) {
 
 								if _, exist := checked[point]; !exist && mc.MapData.Get(point) == value {
 									neighbors[point] = true
@@ -2672,7 +2754,7 @@ func (mc *MapContents) Update() {
 			button.Update()
 		}
 
-		mc.PrevPos = Point{mc.Card.Rect.X, mc.Card.Rect.Y}
+		mc.PrevPos = Vector{mc.Card.Rect.X, mc.Card.Rect.Y}
 
 	} else {
 
@@ -2709,7 +2791,7 @@ func (mc *MapContents) Draw() {
 	if mc.Card.IsSelected() {
 
 		for index, button := range mc.Buttons {
-			srcX := int32(368)
+			srcX := float32(368)
 			if mc.Tool == index {
 				srcX += 32
 			}
@@ -2737,7 +2819,7 @@ func (mc *MapContents) Draw() {
 		dst = globals.Project.Camera.TranslateRect(dst)
 
 		mc.RenderTexture.Texture.SetAlphaMod(alpha)
-		globals.Renderer.CopyF(mc.RenderTexture.Texture, nil, dst)
+		globals.Renderer.RenderTexture(mc.RenderTexture.Texture, nil, dst)
 
 		if mc.UsingLineTool() && (mc.LineStart.X >= 0 || mc.LineStart.Y >= 0) {
 
@@ -2817,12 +2899,12 @@ func (mc *MapContents) ColorIndexToColor(index int) int {
 	return c
 }
 
-func (mc *MapContents) GridCursorPosition() Point {
+func (mc *MapContents) GridCursorPosition() Vector {
 
 	mp := globals.Mouse.WorldPosition()
 	mp = globals.Project.Camera.UntranslatePoint(mp)
 
-	mp = mp.Sub(globals.Project.Camera.TranslatePoint(Point{mc.Card.Rect.X, mc.Card.Rect.Y}))
+	mp = mp.Sub(globals.Project.Camera.TranslatePoint(Vector{mc.Card.Rect.X, mc.Card.Rect.Y}))
 
 	// cardPos := Point{mc.Card.Rect.X, mc.Card.Rect.Y}
 
@@ -2849,7 +2931,7 @@ func (mc *MapContents) GridCursorPosition() Point {
 
 func (mc *MapContents) RecreateTexture() {
 
-	rectSize := Point{mc.Card.Rect.W, mc.Card.Rect.H}
+	rectSize := Vector{mc.Card.Rect.W, mc.Card.Rect.H}
 
 	if rectSize.X <= 0 || rectSize.Y <= 0 {
 		rectSize = mc.DefaultSize()
@@ -2882,7 +2964,7 @@ func (mc *MapContents) UpdateTexture() {
 		SetRenderTarget(mc.RenderTexture.Texture)
 
 		globals.Renderer.SetDrawColor(getThemeColor(GUIMapColor).RGBA())
-		globals.Renderer.FillRect(nil)
+		globals.Renderer.RenderFillRect(nil)
 
 		guiTex := globals.GUITexture.Texture
 
@@ -2895,7 +2977,7 @@ func (mc *MapContents) UpdateTexture() {
 
 				value := mc.MapData.GetI(x, y)
 
-				src := &sdl.Rect{208, 64, 32, 32}
+				src := &sdl.FRect{208, 64, 32, 32}
 				dst := &sdl.FRect{float32(x) * globals.GridSize, float32(y) * globals.GridSize, globals.GridSize, globals.GridSize}
 				rot := float64(0)
 				color := NewColor(255, 255, 255, 255)
@@ -2973,7 +3055,7 @@ func (mc *MapContents) UpdateTexture() {
 				guiTex.SetColorMod(color.RGB())
 				guiTex.SetAlphaMod(color[3])
 
-				globals.Renderer.CopyExF(guiTex, src, dst, rot, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+				globals.Renderer.RenderTextureRotated(guiTex, src, dst, rot, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 
 			}
 
@@ -3021,17 +3103,19 @@ func (mc *MapContents) ReceiveMessage(msg *Message) {
 }
 
 func (mc *MapContents) Color() Color {
-	return ColorTransparent
+	return getThemeColor(GUIMapColor) // No color for maps
 }
 
-func (mc *MapContents) DefaultSize() Point { return Point{globals.GridSize * 8, globals.GridSize * 8} }
+func (mc *MapContents) DefaultSize() Vector {
+	return Vector{globals.GridSize * 8, globals.GridSize * 8}
+}
 
 func (m *MapContents) Collapseable() bool {
 	return false
 }
 
-var SubpageScreenshotSize = Point{256, 256}
-var SubpageScreenshotZoom = 0.5
+var SubpageScreenshotSize = Vector{256, 256}
+var SubpageScreenshotZoom = 0.45
 
 type SubPageContents struct {
 	DefaultContents
@@ -3049,7 +3133,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	}
 
 	row := sb.container.AddRow(AlignCenter)
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{48, 256, 32, 32}, globals.GUITexture.Texture, true))
+	row.Add("icon", NewGUIImage(nil, &sdl.FRect{48, 256, 32, 32}, globals.GUITexture.Texture, true))
 	sb.NameLabel = NewLabel("New Sub-Page", nil, true, AlignLeft)
 	sb.NameLabel.OnChange = func() {
 		commonTextEditingResizing(sb.NameLabel, card)
@@ -3093,21 +3177,22 @@ func NewSubPageContents(card *Card) *SubPageContents {
 	sb.SubpageScreenshot.RenderFunc = func() {
 
 		sb.SubpageScreenshot.Recreate(srcW, srcH)
+		sb.SubpageScreenshot.Texture.SetScaleMode(sdl.SCALEMODE_LINEAR)
 
 		sb.SubpageScreenshot.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 		SetRenderTarget(sb.SubpageScreenshot.Texture)
+
 		globals.Renderer.SetDrawColor(0, 0, 0, 0)
 		globals.Renderer.Clear()
 
-		globals.Renderer.SetDrawColor(1, 1, 1, 1)
-		globals.Renderer.FillRect(nil)
-
-		camera := sb.Card.Page.Project.Camera
+		camera := sb.SubPage.Project.Camera
 
 		originalPos := camera.Position
 		originalZoom := camera.Zoom
 
 		ssPos := globals.ScreenSize
+		ssPos.X += SubpageScreenshotSize.X
+		ssPos.Y += SubpageScreenshotSize.Y / 2
 		camera.JumpTo(ssPos, float32(SubpageScreenshotZoom))
 
 		prevPage := sb.SubPage.Project.CurrentPage
@@ -3116,6 +3201,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 		sb.SubPage.Update()
 		sb.SubPage.Draw()
+
 		sb.SubPage.IgnoreWritePan = false
 		sb.SubPage.Project.CurrentPage = prevPage
 
@@ -3129,7 +3215,7 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 	sb.ScreenshotImage = NewGUIImage(
 		&sdl.FRect{0, 0, SubpageScreenshotSize.X, SubpageScreenshotSize.Y},
-		&sdl.Rect{0, 0, srcW, srcH},
+		&sdl.FRect{0, 0, float32(srcW), float32(srcH)},
 		sb.SubpageScreenshot.Texture, true)
 
 	sb.ScreenshotImage.TintByFontColor = false
@@ -3238,9 +3324,9 @@ func (sb *SubPageContents) Color() Color {
 	return color
 }
 
-func (sb *SubPageContents) DefaultSize() Point {
+func (sb *SubPageContents) DefaultSize() Vector {
 	gs := globals.GridSize
-	return Point{gs * 9, gs * 10}
+	return Vector{gs * 9, gs * 10}
 }
 
 func (sb *SubPageContents) Trigger(triggerType int) {}
@@ -3283,7 +3369,7 @@ func NewLinkContents(card *Card) *LinkContents {
 	}
 
 	row := lc.container.AddRow(AlignLeft)
-	row.Add("icon", NewGUIImage(nil, &sdl.Rect{112, 256, 32, 32}, globals.GUITexture.Texture, true))
+	row.Add("icon", NewGUIImage(nil, &sdl.FRect{112, 256, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("label", lc.Label)
 	lc.CardRow = lc.container.AddRow(AlignCenter)
 	lc.CardRow.HorizontalSpacing = 16
@@ -3311,7 +3397,7 @@ func NewLinkContents(card *Card) *LinkContents {
 		}
 	}))
 
-	lc.ProgramRow.Add("edit", NewIconButton(0, 0, &sdl.Rect{176, 160, 32, 32}, globals.GUITexture, true, func() {
+	lc.ProgramRow.Add("edit", NewIconButton(0, 0, &sdl.FRect{176, 160, 32, 32}, globals.GUITexture, true, func() {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		commonMenu := globals.MenuSystem.Get("common")
 		commonMenu.Pages["root"].Clear()
@@ -3370,10 +3456,10 @@ func NewLinkContents(card *Card) *LinkContents {
 
 	row = lc.container.AddRow(AlignCenter)
 	row.HorizontalSpacing = 16
-	lc.linkedIcon = NewGUIImage(nil, &sdl.Rect{176, 126, 32, 32}, globals.GUITexture.Texture, true)
+	lc.linkedIcon = NewGUIImage(nil, &sdl.FRect{176, 126, 32, 32}, globals.GUITexture.Texture, true)
 	row.Add("", lc.linkedIcon)
 	row.Add("", NewLabel("Link Mode:", nil, true, AlignCenter))
-	row.Add("group", NewIconButtonGroup(nil, true, func(index int) {}, card.Properties.Get("link mode"), &sdl.Rect{144, 256, 32, 32}, &sdl.Rect{144, 0, 32, 32}))
+	row.Add("group", NewIconButtonGroup(nil, true, func(index int) {}, card.Properties.Get("link mode"), &sdl.FRect{144, 256, 32, 32}, &sdl.FRect{144, 0, 32, 32}))
 
 	return lc
 }
@@ -3509,8 +3595,8 @@ func (lc *LinkContents) Color() Color {
 	return color
 }
 
-func (lc *LinkContents) DefaultSize() Point {
-	return Point{globals.GridSize * 13, globals.GridSize * 3}
+func (lc *LinkContents) DefaultSize() Vector {
+	return Vector{globals.GridSize * 13, globals.GridSize * 3}
 }
 
 func (lc *LinkContents) Trigger(triggerType int) {}
@@ -3663,14 +3749,14 @@ func (td *TableData) Resize(w, h int) {
 
 			tdc := &TableDataContents{TableData: td}
 
-			button := NewIconButton(0, 0, &sdl.Rect{0, 488, 24, 24}, globals.GUITexture, true, func() {
+			button := NewIconButton(0, 0, &sdl.FRect{0, 488, 24, 24}, globals.GUITexture, true, func() {
 				tdc.OnClick(false)
 			})
 			button.OnRightClickPressed = func() {
 				tdc.OnClick(true)
 			}
 			button.Highlighter.HighlightMode = HighlightRing
-			button.BGIconSrc = &sdl.Rect{0, 488, 24, 24}
+			button.BGIconSrc = &sdl.FRect{0, 488, 24, 24}
 			button.FadeOnInactive = false
 
 			tdc.Button = button
@@ -3696,8 +3782,6 @@ func (td *TableData) Update() {
 
 	x := td.Table.Card.DisplayRect.X
 	y := td.Table.Card.DisplayRect.Y
-
-	maxSize := float32(0)
 
 	// Buttons
 
@@ -3726,9 +3810,9 @@ func (td *TableData) Update() {
 				content.Button.Rect.X = x + 4
 				content.Button.Rect.Y = y + 4
 				content.Button.Update()
-				content.Button.IconSrc.X = (int32(content.Value) * 24) + 24
+				content.Button.IconSrc.X = (float32(content.Value) * 24) + 24
 				x += 32
-				content.Button.IconSrc.Y = 488 - (int32(td.ValueDisplayMode) * 24)
+				content.Button.IconSrc.Y = 488 - (float32(td.ValueDisplayMode) * 24)
 
 				content.Button.BGIconTint = ColorWhite
 
@@ -3793,6 +3877,8 @@ func (td *TableData) Update() {
 		return
 	}
 
+	td.updateMaxLabelSizes()
+
 	// Rows
 
 	x = td.Table.Card.DisplayRect.X
@@ -3856,10 +3942,6 @@ func (td *TableData) Update() {
 				}
 			}
 
-			if maxSize < heading.Label.TextSize().X {
-				maxSize = heading.Label.TextSize().X
-			}
-
 			heading.TargetRect.Y += (targetY - heading.TargetRect.Y) * 0.4
 			if td.EditingLabel != heading {
 				heading.Update()
@@ -3873,10 +3955,8 @@ func (td *TableData) Update() {
 	}
 
 	for _, heading := range td.RowHeadings {
-		heading.MaxSize = maxSize
+		heading.MaxSize = td.MaxLabelWidth
 	}
-
-	td.MaxLabelWidth = maxSize
 
 	var prevOrder []*DraggableLabel
 	verticalChange := false
@@ -3887,8 +3967,6 @@ func (td *TableData) Update() {
 	}
 
 	// Columns
-
-	maxSize = 0
 
 	x = td.Table.Card.DisplayRect.X
 	y = td.Table.Card.DisplayRect.Y
@@ -3915,10 +3993,6 @@ func (td *TableData) Update() {
 				}
 			}
 
-			if maxSize < heading.Label.TextSize().X {
-				maxSize = heading.Label.TextSize().X
-			}
-
 			heading.TargetRect.X += (targetX - heading.TargetRect.X) * 0.4
 			heading.TargetRect.Y = y - heading.TargetRect.H
 			if td.EditingLabel != heading {
@@ -3933,10 +4007,8 @@ func (td *TableData) Update() {
 	}
 
 	for _, heading := range td.ColumnHeadings {
-		heading.MaxSize = maxSize
+		heading.MaxSize = td.MaxLabelHeight
 	}
-
-	td.MaxLabelHeight = maxSize
 
 	if td.DraggingLabel != nil && td.DraggingLabel.Vertical {
 		prevOrder = append([]*DraggableLabel{}, td.ColumnHeadings...)
@@ -3983,6 +4055,34 @@ func (td *TableData) Update() {
 
 }
 
+func (td *TableData) updateMaxLabelSizes() {
+
+	maxSize := float32(0)
+
+	for i, heading := range td.RowHeadings {
+		if i < td.Width {
+			if maxSize < heading.Label.TextSize().X {
+				maxSize = heading.Label.TextSize().X
+			}
+		}
+	}
+
+	td.MaxLabelWidth = maxSize
+
+	maxSize = 0
+
+	for i, heading := range td.ColumnHeadings {
+		if i < td.Height {
+			if maxSize < heading.Label.TextSize().X {
+				maxSize = heading.Label.TextSize().X
+			}
+		}
+	}
+
+	td.MaxLabelHeight = maxSize
+
+}
+
 func (td *TableData) Draw() {
 
 	for y := range td.Data {
@@ -4008,7 +4108,7 @@ func (td *TableData) Draw() {
 			heading.Draw()
 		}
 
-		// globals.Renderer.SetClipRect(&sdl.Rect{int32(td.Table.Card.Rect.X), int32(td.Table.Card.Rect.Y), int32(td.Table.Card.Rect.W), int32(td.Table.Card.Rect.H)})
+		// globals.Renderer.SetClipRect(&sdl.FRect{int32(td.Table.Card.Rect.X), int32(td.Table.Card.Rect.Y), int32(td.Table.Card.Rect.W), int32(td.Table.Card.Rect.H)})
 		// globals.Renderer.SetClipRect(nil)
 
 	}
@@ -4133,6 +4233,11 @@ func (td *TableData) RowCompletion(index int, column bool) float32 {
 
 	}
 
+	// Fix table cards being stuck at 0 if you cycle through a row or column with all X's
+	if max == 0 {
+		return 1
+	}
+
 	return completion / max
 
 }
@@ -4251,6 +4356,30 @@ func (td *TableData) Deserialize(data string) {
 
 		td.ValueDisplayMode = int(gjson.Get(data, "mode").Int())
 
+		td.updateMaxLabelSizes()
+
+		for _, heading := range td.RowHeadings {
+			heading.MaxSize = td.MaxLabelWidth
+		}
+		for _, heading := range td.ColumnHeadings {
+			heading.MaxSize = td.MaxLabelHeight
+		}
+
+		for i, rn := range gjson.Get(data, "rows").Array() {
+			if i >= len(td.RowHeadings) {
+				break
+			}
+			td.RowHeadings[i].Label.SetTextRaw([]rune(rn.String()))
+		}
+
+		for i, rn := range gjson.Get(data, "columns").Array() {
+			if i >= len(td.ColumnHeadings) {
+				break
+			}
+			td.ColumnHeadings[i].Label.SetTextRaw([]rune(rn.String()))
+			td.ColumnHeadings[i].Update()
+			td.ColumnHeadings[i].Label.RecreateTexture()
+		}
 	}
 
 }
@@ -4366,7 +4495,7 @@ func NewTableContents(card *Card) *TableContents {
 		}
 	}
 
-	tc.SettingsButton = NewIconButtonTintless(0, 0, &sdl.Rect{400, 160, 32, 32}, globals.GUITexture, true, func() {
+	tc.SettingsButton = NewIconButtonTintless(0, 0, &sdl.FRect{400, 160, 32, 32}, globals.GUITexture, true, func() {
 		menu := globals.MenuSystem.Get("table settings menu")
 		menu.Open()
 		mode := menu.Pages["root"].FindElement("table mode", false).(*ButtonGroup)
@@ -4388,8 +4517,6 @@ func NewTableContents(card *Card) *TableContents {
 
 	return tc
 }
-
-var tableModeChanged bool
 
 func (tc *TableContents) Update() {
 	tc.DefaultContents.Update()
@@ -4431,17 +4558,6 @@ func (tc *TableContents) Update() {
 	if tc.TableData.EditingLabel != nil {
 		tc.Card.Select()
 	}
-
-	if tableModeChanged {
-
-		menu := globals.MenuSystem.Get("table settings menu")
-		mode := menu.Pages["root"].FindElement("table mode", false).(*ButtonGroup)
-		tc.TableData.ValueDisplayMode = mode.ChosenIndex
-		tc.TableData.Changed = true
-
-	}
-
-	tableModeChanged = false
 
 	tc.SettingsButton.Rect.X = tc.Card.DisplayRect.X
 	tc.SettingsButton.Rect.Y = tc.Card.DisplayRect.Y + tc.Card.DisplayRect.H
@@ -4497,9 +4613,9 @@ func (tc *TableContents) ReceiveMessage(msg *Message) {
 	}
 }
 
-func (tc *TableContents) DefaultSize() Point {
+func (tc *TableContents) DefaultSize() Vector {
 	gs := globals.GridSize
-	return Point{gs * 4, gs * 4}
+	return Vector{gs * 4, gs * 4}
 }
 
 func (tc *TableContents) Trigger(triggerType int) {}
@@ -4517,27 +4633,27 @@ func (t *TableContents) Collapseable() bool {
 }
 
 const (
-	WebCardSize128  = "128p"
-	WebCardSize256  = "256p"
-	WebCardSize320  = "320p"
-	WebCardSize512  = "512p"
-	WebCardSize1024 = "1024p"
+	InternetCardSize128  = "128p"
+	InternetCardSize256  = "256p"
+	InternetCardSize320  = "320p"
+	InternetCardSize512  = "512p"
+	InternetCardSize1024 = "1024p"
 
-	WebCardFPSAsOftenAsPossible = "As Often As Possible"
-	WebCardFPS20FPS             = "20 FPS"
-	WebCardFPS10FPS             = "10 FPS"
-	WebCardFPS1FPS              = "1 FPS"
+	InternetCardFPSAsOftenAsPossible = "As Often As Possible"
+	InternetCardFPS20FPS             = "20 FPS"
+	InternetCardFPS10FPS             = "10 FPS"
+	InternetCardFPS1FPS              = "1 FPS"
 
-	WebCardAspectRatioWide   = "16:9 (Horizontal)"
-	WebCardAspectRatioTall   = "9:16 (Vertical)"
-	WebCardAspectRatioSquare = "1:1 (Square)"
+	InternetCardAspectRatioWide   = "16:9 (Horizontal)"
+	InternetCardAspectRatioTall   = "9:16 (Vertical)"
+	InternetCardAspectRatioSquare = "1:1 (Square)"
 
-	WebCardUpdateOptionAlways              = "Always"
-	WebCardUpdateOptionWhenRecordingInputs = "Only When Recording Input"
-	WebCardUpdateOptionWhenSelected        = "Only When Selected"
+	InternetCardUpdateOptionAlways              = "Always"
+	InternetCardUpdateOptionWhenRecordingInputs = "Only When Recording Input"
+	InternetCardUpdateOptionWhenSelected        = "Only When Selected"
 )
 
-type WebContents struct {
+type InternetContents struct {
 	DefaultContents
 
 	BrowserTab *BrowserTab
@@ -4554,9 +4670,9 @@ type WebContents struct {
 	SetURL               string
 }
 
-func NewWebContents(card *Card) *WebContents {
+func NewInternetContents(card *Card) *InternetContents {
 
-	web := &WebContents{
+	web := &InternetContents{
 		DefaultContents:     newDefaultContents(card),
 		VerticalScrollbar:   NewScrollbar(&sdl.FRect{0, 0, 16, 16}, 0, 1, true, nil),
 		HorizontalScrollbar: NewScrollbar(&sdl.FRect{0, 0, 16, 16}, 0, 1, true, nil),
@@ -4619,11 +4735,11 @@ func NewWebContents(card *Card) *WebContents {
 
 	}
 
-	web.Card.Properties.SetDefault("size", WebCardSize256)
-	web.Card.Properties.SetDefault("aspect ratio", WebCardAspectRatioWide)
-	web.Card.Properties.SetDefault("update framerate", WebCardFPS10FPS)
-	web.Card.Properties.SetDefault("update only when", WebCardUpdateOptionWhenSelected)
-	web.Card.Properties.SetDefault("url", "https://www.duckduckgo.com/")
+	web.Card.Properties.SetDefault("size", InternetCardSize256)
+	web.Card.Properties.SetDefault("aspect ratio", InternetCardAspectRatioWide)
+	web.Card.Properties.SetDefault("update framerate", InternetCardFPS10FPS)
+	web.Card.Properties.SetDefault("update only when", InternetCardUpdateOptionWhenSelected)
+	web.Card.Properties.SetDefault("url", globals.Settings.Get(SettingsBrowserDefaultURL).AsString())
 	web.Card.Properties.Get("url").OnlySerializeInSaves = true
 	// web.Card.Properties.SetDefault("aspect ratio width", 1)
 	// web.Card.Properties.SetDefault("aspect ratio height", 1)
@@ -4656,13 +4772,13 @@ func NewWebContents(card *Card) *WebContents {
 
 		case "edit":
 			button = NewIconButtonTintless(
-				0, 0, &sdl.Rect{X: 400, Y: 32, W: 32, H: 32}, globals.GUITexture, true, func() {
+				0, 0, &sdl.FRect{X: 400, Y: 32, W: 32, H: 32}, globals.GUITexture, true, func() {
 					web.ToggleRecordInput()
 				},
 			)
 		case "backward":
 			button = NewIconButtonTintless(
-				0, 0, &sdl.Rect{X: 368, Y: 256, W: 32, H: 32}, globals.GUITexture, true, func() {
+				0, 0, &sdl.FRect{X: 368, Y: 256, W: 32, H: 32}, globals.GUITexture, true, func() {
 					if web.BrowserTab != nil {
 						web.BrowserTab.ForceRefresh.Store(true)
 						web.BrowserTab.NavigateBack()
@@ -4672,7 +4788,7 @@ func NewWebContents(card *Card) *WebContents {
 			button.Flip = sdl.FLIP_HORIZONTAL
 		case "forward":
 			button = NewIconButtonTintless(
-				0, 0, &sdl.Rect{X: 368, Y: 256, W: 32, H: 32}, globals.GUITexture, true, func() {
+				0, 0, &sdl.FRect{X: 368, Y: 256, W: 32, H: 32}, globals.GUITexture, true, func() {
 					if web.BrowserTab != nil {
 						web.BrowserTab.ForceRefresh.Store(true)
 						web.BrowserTab.NavigateForward()
@@ -4681,7 +4797,7 @@ func NewWebContents(card *Card) *WebContents {
 			)
 		case "x1":
 			button = NewIconButtonTintless(
-				0, 0, &sdl.Rect{X: 304, Y: 192, W: 32, H: 32}, globals.GUITexture, true, func() {
+				0, 0, &sdl.FRect{X: 304, Y: 192, W: 32, H: 32}, globals.GUITexture, true, func() {
 					web.Card.Rect.W = float32(web.BrowserTab.BufferWidth)
 					web.Card.Rect.H = float32(web.BrowserTab.BufferHeight)
 					web.Card.LockPosition()
@@ -4689,7 +4805,7 @@ func NewWebContents(card *Card) *WebContents {
 			)
 		case "x2":
 			button = NewIconButtonTintless(
-				0, 0, &sdl.Rect{X: 304, Y: 224, W: 32, H: 32}, globals.GUITexture, true, func() {
+				0, 0, &sdl.FRect{X: 304, Y: 224, W: 32, H: 32}, globals.GUITexture, true, func() {
 					web.Card.Rect.W = float32(web.BrowserTab.BufferWidth) * 2
 					web.Card.Rect.H = float32(web.BrowserTab.BufferHeight) * 2
 					web.Card.LockPosition()
@@ -4697,7 +4813,7 @@ func NewWebContents(card *Card) *WebContents {
 			)
 		case "x3":
 			button = NewIconButtonTintless(
-				0, 0, &sdl.Rect{X: 304, Y: 256, W: 32, H: 32}, globals.GUITexture, true, func() {
+				0, 0, &sdl.FRect{X: 304, Y: 256, W: 32, H: 32}, globals.GUITexture, true, func() {
 					web.Card.Rect.W = float32(web.BrowserTab.BufferWidth) * 3
 					web.Card.Rect.H = float32(web.BrowserTab.BufferHeight) * 3
 					web.Card.LockPosition()
@@ -4707,7 +4823,7 @@ func NewWebContents(card *Card) *WebContents {
 		case "menu":
 
 			button = NewIconButtonTintless(
-				0, 0, &sdl.Rect{X: 400, Y: 160, W: 32, H: 32}, globals.GUITexture, true, func() {
+				0, 0, &sdl.FRect{X: 400, Y: 160, W: 32, H: 32}, globals.GUITexture, true, func() {
 					globals.MenuSystem.Get("web card settings").Open()
 				},
 			)
@@ -4715,8 +4831,8 @@ func NewWebContents(card *Card) *WebContents {
 		case "refresh":
 
 			button = NewIconButtonTintless(
-				0, 0, &sdl.Rect{X: 400, Y: 192, W: 32, H: 32}, globals.GUITexture, true, func() {
-					web.BrowserTab.Do(chromedp.Reload())
+				0, 0, &sdl.FRect{X: 400, Y: 192, W: 32, H: 32}, globals.GUITexture, true, func() {
+					web.ReloadPage()
 				},
 			)
 
@@ -4741,19 +4857,19 @@ func NewWebContents(card *Card) *WebContents {
 	return web
 }
 
-func (w *WebContents) ReinitContext() error {
+func (w *InternetContents) ReinitContext() error {
 
-	log.Println("spin up web context")
+	// log.Println("spin up web context")
 
 	// if err := globals.ChromeBrowser.Init(); err != nil {
 	// 	return err
 	// }
 
-	log.Println("browser web context initialized")
+	// log.Println("browser web context initialized")
 
 	if w.BrowserTab == nil {
 		// tab, err := globals.ChromeBrowser.CreateTab(w.Width(), w.Height(), w)
-		tab, err := NewBrowser(w.Width(), w.Height(), w)
+		tab, err := NewBrowserTab(w.Width(), w.Height(), w)
 		if err != nil {
 			return err
 		}
@@ -4772,7 +4888,13 @@ func (w *WebContents) ReinitContext() error {
 
 }
 
-func (w *WebContents) OpenURLInBrowser() {
+func (w *InternetContents) ReloadPage() {
+	if w.BrowserTab != nil {
+		w.BrowserTab.Do(chromedp.Reload())
+	}
+}
+
+func (w *InternetContents) OpenURLInBrowser() {
 	if w.BrowserTab != nil {
 
 		// url := activeCard.Contents.(*WebContents).TargetURL
@@ -4784,7 +4906,7 @@ func (w *WebContents) OpenURLInBrowser() {
 	}
 }
 
-func (w *WebContents) Width() int {
+func (w *InternetContents) Width() int {
 
 	asrString := w.Card.Properties.Get("aspect ratio").AsString()
 	split := strings.FieldsFunc(asrString, func(r rune) bool { return r == ':' || r == ' ' })
@@ -4805,7 +4927,7 @@ func (w *WebContents) Width() int {
 	return int(math.Round(fWidth))
 }
 
-func (w *WebContents) Height() int {
+func (w *InternetContents) Height() int {
 
 	asrString := w.Card.Properties.Get("aspect ratio").AsString()
 	split := strings.FieldsFunc(asrString, func(r rune) bool { return r == ':' || r == ' ' })
@@ -4858,24 +4980,51 @@ func (w *WebContents) Height() int {
 
 // }
 
-func (w *WebContents) Update() {
+func (w *InternetContents) Update() {
 
-	// if w.RefreshedTexture.CompareAndSwap(true, false) {
-	// 	w.ImageTexture.Update(nil, unsafe.Pointer(&w.RawImage[0]), w.BrowserTab.BufferWidth*4)
-	// }
+	mousePos := globals.Mouse.WorldPosition()
 
-	// This used to be w.LoadingWebpage.Load(), but this would make
-	// if w.LoadingWebpage.Load() {
+	/////////
+
+	// This is here to allow you to click out of the window and deselect the card while recording input
+	// but also click on buttons in the header
+
+	rects := []*sdl.FRect{
+		w.Card.DisplayRect,
+	}
+
+	for _, b := range w.Buttons {
+		rects = append(rects, b.Rect)
+	}
+
+	outside := true
+
+	for _, r := range rects {
+		if mousePos.Inside(r) {
+			outside = false
+		}
+	}
+
+	if w.Card.selected && outside && globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && w.RecordInput {
+		w.Card.Deselect()
+		globals.State = StateNeutral
+	}
+
+	///////
+
+	// True for a frame before the card is restored after undoing a deletion
+	if w.BrowserTab == nil {
+		return
+	}
+
+	if !globals.Keybindings.Pressed(KBUnlockImageASR) {
+		w.Card.LockResizingAspectRatio = float32(w.BrowserTab.BufferHeight) / float32(w.BrowserTab.BufferWidth)
+	}
+
 	if w.BrowserTab != nil && w.SetURL != w.BrowserTab.CurrentURL {
 		w.SetURL = w.BrowserTab.CurrentURL
 		w.Card.Properties.Get("url").Set(w.BrowserTab.CurrentURL)
 	}
-
-	// loc := ""
-	// chromedp.Run(w.Context, chromedp.Location(&loc))
-	// fmt.Println(loc)
-
-	mousePos := globals.Mouse.WorldPosition()
 
 	if w.Card.selected {
 
@@ -4891,17 +5040,17 @@ func (w *WebContents) Update() {
 			} else if globals.Keybindings.Pressed(KBWebOpenPage) {
 				w.OpenURLInBrowser()
 				globals.Keybindings.Shortcuts[KBWebOpenPage].ConsumeKeys()
-			} else if w.RecordInput && w.BrowserTab != nil {
+			} else if w.RecordInput {
 
 				globals.State = StateTextEditing // So that pressing keys doesn't trigger shortcuts
 
 				modifiers := map[sdl.Keycode]input.Modifier{
-					sdl.K_LSHIFT: input.ModifierShift,
-					sdl.K_RSHIFT: input.ModifierShift,
-					sdl.K_LCTRL:  input.ModifierCtrl,
-					sdl.K_RCTRL:  input.ModifierCtrl,
-					sdl.K_LALT:   input.ModifierAlt,
-					sdl.K_RALT:   input.ModifierAlt,
+					SDLK_LSHIFT: input.ModifierShift,
+					SDLK_RSHIFT: input.ModifierShift,
+					SDLK_LCTRL:  input.ModifierCtrl,
+					SDLK_RCTRL:  input.ModifierCtrl,
+					SDLK_LALT:   input.ModifierAlt,
+					SDLK_RALT:   input.ModifierAlt,
 				}
 
 				if mousePos.Inside(w.Card.DisplayRect) && !globals.Mouse.OverGUI {
@@ -4942,7 +5091,7 @@ func (w *WebContents) Update() {
 
 					if !w.HorizontalScrollbar.Dragging && !w.VerticalScrollbar.Dragging {
 
-						for sdlButton, chromeDPButtonString := range map[uint8]string{
+						for sdlButton, chromeDPButtonString := range map[sdl.MouseButtonFlags]string{
 							sdl.BUTTON_LEFT:   "left",
 							sdl.BUTTON_MIDDLE: "middle",
 							sdl.BUTTON_RIGHT:  "right",
@@ -4950,14 +5099,14 @@ func (w *WebContents) Update() {
 
 							button := globals.Mouse.Button(sdlButton)
 							if button.Pressed() {
-								w.BrowserTab.Do(w.makeMouseAction(bx, by, input.MousePressed, chromedp.Button(chromeDPButtonString)))
+								w.BrowserTab.Do(w.makeMouseAction(bx, by, input.MousePressed, chromedp.Button(chromeDPButtonString), chromedp.ButtonModifiers(activeMod)))
 								w.BrowserTab.ForceRefresh.Store(true)
 								button.Consume()
 							} else if button.HeldRaw() {
-								w.BrowserTab.Do(w.makeMouseAction(bx, by, input.MouseMoved, chromedp.Button(chromeDPButtonString)))
+								w.BrowserTab.Do(w.makeMouseAction(bx, by, input.MouseMoved, chromedp.Button(chromeDPButtonString), chromedp.ButtonModifiers(activeMod)))
 								w.BrowserTab.ForceRefresh.Store(true)
 							} else if button.ReleasedRaw() {
-								w.BrowserTab.Do(w.makeMouseAction(bx, by, input.MouseReleased, chromedp.Button(chromeDPButtonString)))
+								w.BrowserTab.Do(w.makeMouseAction(bx, by, input.MouseReleased, chromedp.Button(chromeDPButtonString), chromedp.ButtonModifiers(activeMod)))
 								w.BrowserTab.ForceRefresh.Store(true)
 							}
 
@@ -4983,95 +5132,95 @@ func (w *WebContents) Update() {
 				}
 
 				specialKeys := map[sdl.Keycode]string{
-					sdl.K_RETURN:    kb.Enter,
-					sdl.K_KP_ENTER:  kb.Enter,
-					sdl.K_BACKSPACE: kb.Backspace,
-					sdl.K_F1:        kb.F1,
-					sdl.K_F2:        kb.F2,
-					sdl.K_F3:        kb.F3,
-					sdl.K_F4:        kb.F4,
-					sdl.K_F5:        kb.F5,
-					sdl.K_F6:        kb.F6,
-					sdl.K_F7:        kb.F7,
-					sdl.K_F8:        kb.F8,
-					sdl.K_F9:        kb.F9,
-					sdl.K_F10:       kb.F10,
-					sdl.K_F11:       kb.F11,
-					sdl.K_F12:       kb.F12,
-					sdl.K_F13:       kb.F13,
-					sdl.K_F14:       kb.F14,
-					sdl.K_F15:       kb.F15,
-					sdl.K_F16:       kb.F16,
-					sdl.K_F17:       kb.F17,
-					sdl.K_F18:       kb.F18,
-					sdl.K_F19:       kb.F19,
-					sdl.K_F20:       kb.F20,
-					sdl.K_F21:       kb.F21,
-					sdl.K_F22:       kb.F22,
-					sdl.K_F23:       kb.F23,
-					sdl.K_F24:       kb.F24,
-					sdl.K_INSERT:    kb.Insert,
-					sdl.K_HOME:      kb.Home,
-					sdl.K_PAGEUP:    kb.PageUp,
-					sdl.K_DELETE:    kb.Delete,
-					sdl.K_END:       kb.End,
-					sdl.K_PAGEDOWN:  kb.PageDown,
-					sdl.K_TAB:       kb.Tab,
-					sdl.K_LEFT:      kb.ArrowLeft,
-					sdl.K_RIGHT:     kb.ArrowRight,
-					sdl.K_UP:        kb.ArrowUp,
-					sdl.K_DOWN:      kb.ArrowDown,
+					SDLK_RETURN:    kb.Enter,
+					SDLK_KP_ENTER:  kb.Enter,
+					SDLK_BACKSPACE: kb.Backspace,
+					SDLK_F1:        kb.F1,
+					SDLK_F2:        kb.F2,
+					SDLK_F3:        kb.F3,
+					SDLK_F4:        kb.F4,
+					SDLK_F5:        kb.F5,
+					SDLK_F6:        kb.F6,
+					SDLK_F7:        kb.F7,
+					SDLK_F8:        kb.F8,
+					SDLK_F9:        kb.F9,
+					SDLK_F10:       kb.F10,
+					SDLK_F11:       kb.F11,
+					SDLK_F12:       kb.F12,
+					SDLK_F13:       kb.F13,
+					SDLK_F14:       kb.F14,
+					SDLK_F15:       kb.F15,
+					SDLK_F16:       kb.F16,
+					SDLK_F17:       kb.F17,
+					SDLK_F18:       kb.F18,
+					SDLK_F19:       kb.F19,
+					SDLK_F20:       kb.F20,
+					SDLK_F21:       kb.F21,
+					SDLK_F22:       kb.F22,
+					SDLK_F23:       kb.F23,
+					SDLK_F24:       kb.F24,
+					SDLK_INSERT:    kb.Insert,
+					SDLK_HOME:      kb.Home,
+					SDLK_PAGEUP:    kb.PageUp,
+					SDLK_DELETE:    kb.Delete,
+					SDLK_END:       kb.End,
+					SDLK_PAGEDOWN:  kb.PageDown,
+					SDLK_TAB:       kb.Tab,
+					SDLK_LEFT:      kb.ArrowLeft,
+					SDLK_RIGHT:     kb.ArrowRight,
+					SDLK_UP:        kb.ArrowUp,
+					SDLK_DOWN:      kb.ArrowDown,
 				}
 
 				letterKeys := map[sdl.Keycode]string{
-					sdl.K_KP_0:   "0",
-					sdl.K_KP_00:  "00",
-					sdl.K_KP_000: "000",
-					sdl.K_KP_1:   "1",
-					sdl.K_KP_2:   "2",
-					sdl.K_KP_3:   "3",
-					sdl.K_KP_4:   "4",
-					sdl.K_KP_5:   "5",
-					sdl.K_KP_6:   "6",
-					sdl.K_KP_7:   "7",
-					sdl.K_KP_8:   "8",
-					sdl.K_KP_9:   "9",
-					sdl.K_0:      "0",
-					sdl.K_1:      "1",
-					sdl.K_2:      "2",
-					sdl.K_3:      "3",
-					sdl.K_4:      "4",
-					sdl.K_5:      "5",
-					sdl.K_6:      "6",
-					sdl.K_7:      "7",
-					sdl.K_8:      "8",
-					sdl.K_9:      "9",
-					sdl.K_a:      "a",
-					sdl.K_b:      "b",
-					sdl.K_c:      "c",
-					sdl.K_d:      "d",
-					sdl.K_e:      "e",
-					sdl.K_f:      "f",
-					sdl.K_g:      "g",
-					sdl.K_h:      "h",
-					sdl.K_i:      "i",
-					sdl.K_j:      "j",
-					sdl.K_k:      "k",
-					sdl.K_l:      "l",
-					sdl.K_m:      "m",
-					sdl.K_n:      "n",
-					sdl.K_o:      "o",
-					sdl.K_p:      "p",
-					sdl.K_q:      "q",
-					sdl.K_r:      "r",
-					sdl.K_s:      "s",
-					sdl.K_t:      "t",
-					sdl.K_u:      "u",
-					sdl.K_v:      "v",
-					sdl.K_w:      "w",
-					sdl.K_x:      "x",
-					sdl.K_y:      "y",
-					sdl.K_z:      "z",
+					SDLK_KP_0:   "0",
+					SDLK_KP_00:  "00",
+					SDLK_KP_000: "000",
+					SDLK_KP_1:   "1",
+					SDLK_KP_2:   "2",
+					SDLK_KP_3:   "3",
+					SDLK_KP_4:   "4",
+					SDLK_KP_5:   "5",
+					SDLK_KP_6:   "6",
+					SDLK_KP_7:   "7",
+					SDLK_KP_8:   "8",
+					SDLK_KP_9:   "9",
+					SDLK_0:      "0",
+					SDLK_1:      "1",
+					SDLK_2:      "2",
+					SDLK_3:      "3",
+					SDLK_4:      "4",
+					SDLK_5:      "5",
+					SDLK_6:      "6",
+					SDLK_7:      "7",
+					SDLK_8:      "8",
+					SDLK_9:      "9",
+					SDLK_A:      "a",
+					SDLK_B:      "b",
+					SDLK_C:      "c",
+					SDLK_D:      "d",
+					SDLK_E:      "e",
+					SDLK_F:      "f",
+					SDLK_G:      "g",
+					SDLK_H:      "h",
+					SDLK_I:      "i",
+					SDLK_J:      "j",
+					SDLK_K:      "k",
+					SDLK_L:      "l",
+					SDLK_M:      "m",
+					SDLK_N:      "n",
+					SDLK_O:      "o",
+					SDLK_P:      "p",
+					SDLK_Q:      "q",
+					SDLK_R:      "r",
+					SDLK_S:      "s",
+					SDLK_T:      "t",
+					SDLK_U:      "u",
+					SDLK_V:      "v",
+					SDLK_W:      "w",
+					SDLK_X:      "x",
+					SDLK_Y:      "y",
+					SDLK_Z:      "z",
 				}
 
 				for sdlKey, chromeDPKey := range specialKeys {
@@ -5183,7 +5332,7 @@ func (w *WebContents) Update() {
 
 }
 
-func (w *WebContents) makeMouseAction(x, y float64, inputType input.MouseType, opts ...chromedp.MouseOption) chromedp.ActionFunc {
+func (w *InternetContents) makeMouseAction(x, y float64, inputType input.MouseType, opts ...chromedp.MouseOption) chromedp.ActionFunc {
 
 	return chromedp.ActionFunc(func(ctx context.Context) error {
 		p := &input.DispatchMouseEventParams{
@@ -5211,7 +5360,7 @@ func (w *WebContents) makeMouseAction(x, y float64, inputType input.MouseType, o
 
 }
 
-func (w *WebContents) ToggleRecordInput() {
+func (w *InternetContents) ToggleRecordInput() {
 	w.RecordInput = !w.RecordInput
 	if !w.RecordInput {
 		globals.State = StateNeutral
@@ -5227,12 +5376,12 @@ func (w *WebContents) ToggleRecordInput() {
 // 	globals.EventLog.Log("Enabling web card input passthrough.", false)
 // }
 
-func (w *WebContents) DisableRecordInput() {
+func (w *InternetContents) DisableRecordInput() {
 	w.RecordInput = false
 	globals.EventLog.Log("Disabling web card input passthrough.", false)
 }
 
-func (w *WebContents) Draw() {
+func (w *InternetContents) Draw() {
 
 	w.HorizontalScrollbar.Rect.X = w.Card.DisplayRect.X
 	w.HorizontalScrollbar.Rect.Y = w.Card.DisplayRect.Y + w.Card.DisplayRect.H - w.HorizontalScrollbar.Rect.H
@@ -5252,12 +5401,12 @@ func (w *WebContents) Draw() {
 
 			if w.BrowserTab.Valid() {
 				dst := camera.TranslateRect(w.Card.DisplayRect)
-				globals.Renderer.CopyF(w.BrowserTab.ImageTexture, nil, dst)
+				globals.Renderer.RenderTexture(w.BrowserTab.ImageTexture, nil, dst)
 			}
 
 			if w.BrowserTab.LoadingWebpage.Load() {
 				rect := &sdl.FRect{w.Card.DisplayRect.X + 32, w.Card.DisplayRect.Y, 32, 32}
-				globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{272, 256, 32, 32}, camera.TranslateRect(rect), globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+				globals.Renderer.RenderTextureRotated(globals.GUITexture.Texture, &sdl.FRect{272, 256, 32, 32}, camera.TranslateRect(rect), globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 			}
 
 		} else {
@@ -5269,13 +5418,13 @@ func (w *WebContents) Draw() {
 			target.Y += (w.Card.DisplayRect.H / 2) - (target.H / 2)
 			dst := camera.TranslateRect(&target)
 			globals.GUITexture.Texture.SetBlendMode(sdl.BLENDMODE_ADD)
-			globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{272, 256, 32, 32}, dst, globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+			globals.Renderer.RenderTextureRotated(globals.GUITexture.Texture, &sdl.FRect{272, 256, 32, 32}, dst, globals.Time*360*4, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 			globals.GUITexture.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 		}
 
 		if w.RecordInput {
 			rect := &sdl.FRect{w.Card.DisplayRect.X + 4, w.Card.DisplayRect.Y + 4, 32, 16}
-			globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{480, 96, 32, 16}, camera.TranslateRect(rect))
+			globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{480, 96, 32, 16}, camera.TranslateRect(rect))
 		}
 
 	}
@@ -5293,15 +5442,6 @@ func (w *WebContents) Draw() {
 		w.VerticalScrollbar.Draw()
 	}
 
-	mousePos := globals.Mouse.WorldPosition()
-
-	// This is here to allow you to click out of the window and deselect but also allow you to click on buttons in the header
-	if !mousePos.Inside(w.Card.DisplayRect) && globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() {
-		w.Card.Deselect()
-		globals.State = StateNeutral
-		// w.DisableRecordInput()
-	}
-
 }
 
 // func (w *WebContents) CopyActiveURLToCard() {
@@ -5311,7 +5451,7 @@ func (w *WebContents) Draw() {
 // 	globals.EventLog.Log("Copied current URL [ %s ] to card.", false, currentLocation)
 // }
 
-func (w *WebContents) Color() Color {
+func (w *InternetContents) Color() Color {
 	color := getThemeColor(GUITableColor)
 	if w.Card.CustomColor != nil {
 		color = w.Card.CustomColor
@@ -5319,35 +5459,38 @@ func (w *WebContents) Color() Color {
 	return color
 }
 
-func (w *WebContents) ReceiveMessage(msg *Message) {
-	if msg.Type == MessageCardDeleted {
+func (w *InternetContents) ReceiveMessage(msg *Message) {
+
+	switch msg.Type {
+	case MessageCardDeleted:
 		w.BrowserTab.Destroy()
 		w.BrowserTab = nil
-	} else if msg.Type == MessageCardRestored {
+	case MessageCardRestored:
 		w.ReinitContext()
 		if w.BrowserTab != nil {
 			w.BrowserTab.ForceRefresh.Store(true) // Send the input sent to indicate that it should update the texture regardless of FPS, update settings, etc.
 		}
-	} else if msg.Type == MessageUndoRedo {
+	case MessageUndoRedo:
 		if w.BrowserTab != nil {
 			w.BrowserTab.UpdateBufferSize(w.Width(), w.Height())
 		}
-	} else if msg.Type == MessageCardDestroyed {
+	case MessageCardDestroyed:
 		w.BrowserTab.Destroy()
 	}
+
 }
 
-func (w *WebContents) DefaultSize() Point {
-	return Point{float32(w.Width()), float32(w.Height())}.LockToGrid()
+func (w *InternetContents) DefaultSize() Vector {
+	return Vector{float32(w.Width()), float32(w.Height())}.LockToGrid()
 }
 
-func (w *WebContents) Trigger(triggerType int) {}
+func (w *InternetContents) Trigger(triggerType int) {}
 
-func (w *WebContents) CompletionLevel() float32 { return 0 }
+func (w *InternetContents) CompletionLevel() float32 { return 0 }
 
-func (w *WebContents) MaximumCompletionLevel() float32 { return 0 }
+func (w *InternetContents) MaximumCompletionLevel() float32 { return 0 }
 
-func (w *WebContents) Collapseable() bool {
+func (w *InternetContents) Collapseable() bool {
 	return false
 }
 
@@ -5501,9 +5644,9 @@ func (w *WebContents) Collapseable() bool {
 
 // 	containerRow := cal.Container.AddRow(AlignCenter)
 
-// 	containerRow.Add("icon", NewGUIImage(nil, &sdl.Rect{176, 224, 32, 32}, globals.GUITexture.Texture, true))
+// 	containerRow.Add("icon", NewGUIImage(nil, &sdl.FRect{176, 224, 32, 32}, globals.GUITexture.Texture, true))
 
-// 	button := NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() {
+// 	button := NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, true, func() {
 // 		cal.SelectedIndex = -1
 // 		value := card.Properties.Get("month").AsFloat()
 // 		card.Properties.Get("month").Set(value - 1)
@@ -5514,7 +5657,7 @@ func (w *WebContents) Collapseable() bool {
 
 // 	containerRow.Add("month label", NewLabel("month label", nil, true, AlignCenter))
 
-// 	button = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() {
+// 	button = NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, true, func() {
 // 		cal.SelectedIndex = -1
 // 		value := card.Properties.Get("month").AsFloat()
 // 		card.Properties.Get("month").Set(value + 1)
@@ -5525,7 +5668,7 @@ func (w *WebContents) Collapseable() bool {
 // 	// Year
 
 // 	containerRow = cal.Container.AddRow(AlignCenter)
-// 	button = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() {
+// 	button = NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, true, func() {
 // 		cal.SelectedIndex = -1
 // 		value := card.Properties.Get("year").AsFloat()
 // 		card.Properties.Get("year").Set(value - 1)
@@ -5536,7 +5679,7 @@ func (w *WebContents) Collapseable() bool {
 
 // 	containerRow.Add("year label", NewLabel("year label", nil, true, AlignCenter))
 
-// 	button = NewIconButton(0, 0, &sdl.Rect{112, 32, 32, 32}, true, func() {
+// 	button = NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, true, func() {
 // 		cal.SelectedIndex = -1
 // 		value := card.Properties.Get("year").AsFloat()
 // 		card.Properties.Get("year").Set(value + 1)
@@ -5544,7 +5687,7 @@ func (w *WebContents) Collapseable() bool {
 // 	})
 // 	containerRow.Add("next year", button)
 
-// 	containerRow.Add("reset date", NewIconButton(0, 0, &sdl.Rect{208, 192, 32, 32}, true, func() {
+// 	containerRow.Add("reset date", NewIconButton(0, 0, &sdl.FRect{208, 192, 32, 32}, true, func() {
 // 		cal.SelectedIndex = -1
 // 		cal.ResetDate()
 // 		cal.CalculateDays()
@@ -5666,7 +5809,7 @@ func (w *WebContents) Collapseable() bool {
 // 		focusColor := getThemeColor(GUIMenuColor)
 // 		globals.GUITexture.Texture.SetAlphaMod(255)
 // 		globals.GUITexture.Texture.SetColorMod(focusColor.RGB())
-// 		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{240, 0, 32, 32}, dst, 0, &sdl.FPoint{0, 0}, sdl.FLIP_NONE)
+// 		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.FRect{240, 0, 32, 32}, dst, 0, &sdl.FPoint{0, 0}, sdl.FLIP_NONE)
 // 	}
 
 // 	cal.Container.Draw()

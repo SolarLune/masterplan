@@ -3,7 +3,7 @@
     "Grid Color":[40, 40, 50, 255],
     "Menu Color":[60, 70, 80, 255],
     "Font Color":[245, 245, 245, 255],
-    "Checkbox Color": [90, 90, 90, 255],
+    "Checkbox Color": [130, 110, 90, 255],
     "Number Color": [110, 110, 100, 255],
     "Completed Color": [230, 161, 20, 255],
     "Note Color": [30, 40, 50, 255],

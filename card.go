@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/hako/durafmt"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -35,14 +35,14 @@ const (
 )
 
 type LinkJoint struct {
-	Position   Point
+	Position   Vector
 	Dragging   bool
-	DragOffset Point
+	DragOffset Vector
 }
 
 func NewLinkJoint(x, y float32) *LinkJoint {
 	return &LinkJoint{
-		Position: Point{x, y},
+		Position: Vector{x, y},
 	}
 }
 
@@ -120,7 +120,7 @@ func (le *LinkEnding) Update() {
 
 	}
 
-	points := []Point{}
+	points := []Vector{}
 	if len(le.Joints) == 0 {
 		points = append(points, le.Start.NearestPointInRect(le.End.Center(), true), le.End.NearestPointInRect(le.Start.Center(), true))
 	} else {
@@ -169,7 +169,7 @@ func (le *LinkEnding) Draw() {
 
 	if le.Start != nil && le.Start.Valid && le.Start.Contents != nil {
 
-		thickness := int32(4)
+		thickness := float32(4)
 		outlineColor := getThemeColor(GUIFontColor)
 		camera := le.Start.Page.Project.Camera
 		mainColor := le.Start.Color()
@@ -179,7 +179,7 @@ func (le *LinkEnding) Draw() {
 			outlineColor = ColorBlack
 		}
 
-		points := []Point{}
+		points := []Vector{}
 		if len(le.Joints) == 0 {
 			points = append(points, le.Start.NearestPointInRect(le.End.Center(), true), le.End.NearestPointInRect(le.Start.Center(), true))
 		} else {
@@ -201,11 +201,11 @@ func (le *LinkEnding) Draw() {
 		px := points[len(points)-1].Sub(delta.Normalized().Mult(16))
 		px = le.Start.Page.Project.Camera.TranslatePoint(px)
 		dir := delta.Angle() / (math.Pi * 2) * 360
-		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{240, 224, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+		globals.Renderer.RenderTextureRotated(globals.GUITexture.Texture, &sdl.FRect{240, 224, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 
 		globals.GUITexture.Texture.SetColorMod(mainColor.RGB())
 		globals.GUITexture.Texture.SetAlphaMod(255)
-		globals.Renderer.CopyExF(globals.GUITexture.Texture, &sdl.Rect{240, 192, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+		globals.Renderer.RenderTextureRotated(globals.GUITexture.Texture, &sdl.FRect{240, 192, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 
 		if points[0] == points[len(points)-1] {
 			return
@@ -247,7 +247,7 @@ func (le *LinkEnding) Draw() {
 
 }
 
-func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
+func (le *LinkEnding) DrawJoint(point Vector, alpha uint8, fixed bool) {
 
 	if alpha <= 10 {
 		return
@@ -272,8 +272,8 @@ func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
 	globals.GUITexture.Texture.SetColorMod(outlineColor.RGB())
 	globals.GUITexture.Texture.SetAlphaMod(alpha)
 
-	src := &sdl.Rect{208, 96, 32, 32}
-	globals.Renderer.CopyF(globals.GUITexture.Texture, src, dst)
+	src := &sdl.FRect{208, 96, 32, 32}
+	globals.Renderer.RenderTexture(globals.GUITexture.Texture, src, dst)
 
 	if le.Start.Contents != nil {
 		globals.GUITexture.Texture.SetColorMod(fillColor.RGB())
@@ -285,13 +285,14 @@ func (le *LinkEnding) DrawJoint(point Point, alpha uint8, fixed bool) {
 	} else {
 		src.Y += src.H * 2
 	}
-	globals.Renderer.CopyF(globals.GUITexture.Texture, src, dst)
+	globals.Renderer.RenderTexture(globals.GUITexture.Texture, src, dst)
 }
 
 type Card struct {
 	Page                    *Page
 	Rect                    *sdl.FRect
 	DisplayRect             *sdl.FRect
+	ShadowDisplayPosition   Vector
 	RectPreResize           *sdl.FRect
 	Contents                Contents
 	ContentType             string
@@ -299,15 +300,16 @@ type Card struct {
 	Properties              *Properties
 	selected                bool
 	Result                  *RenderTexture
+	ShadowTexture           *sdl.Texture
 	Dragging                bool
 	Draggable               bool
-	DragStart               Point
-	DragStartOffset         Point
+	DragStart               Vector
+	DragStartOffset         Vector
 	ID                      int64
 	LoadedID                int64
 	Resizing                string
 	ResizingRect            CorrectingRect
-	ResizeClickOffset       Point
+	ResizeClickOffset       Vector
 	ResizeShape             *Shape
 	LockResizingAspectRatio float32
 	CreateUndoState         bool
@@ -324,8 +326,7 @@ type Card struct {
 
 	Collapsed string
 
-	Highlighter     *Highlighter
-	DrawHighlighter bool
+	Highlighter *Highlighter
 
 	Links              []*LinkEnding
 	LinkRectPercentage float32
@@ -355,7 +356,6 @@ func NewCard(page *Page, contentType string) *Card {
 		Draggable:       true,
 		Links:           []*LinkEnding{},
 		ResizeShape:     NewShape(8),
-		DrawHighlighter: true,
 		currentColor:    NewColor(255, 255, 255, 255),
 		colorFadeSpeed:  0.1 + (rand.Float64() * 0.2),
 	}
@@ -644,6 +644,8 @@ func (card *Card) Update() {
 
 					}
 
+					PlayUISound(UISoundTypeTap)
+
 					card.Page.Selection.Add(nextCard)
 
 					kb.Shortcuts[KBSelectCardUp].ConsumeKeys()
@@ -700,8 +702,19 @@ func (card *Card) Update() {
 
 		softness := float32(0.4)
 
-		card.DisplayRect.X += SmoothLerpTowards(card.Rect.X, card.DisplayRect.X, softness)
-		card.DisplayRect.Y += SmoothLerpTowards(card.Rect.Y, card.DisplayRect.Y, softness)
+		tx := card.Rect.X
+		ty := card.Rect.Y
+
+		card.ShadowDisplayPosition.X += SmoothLerpTowards(tx, card.ShadowDisplayPosition.X, softness)
+		card.ShadowDisplayPosition.Y += SmoothLerpTowards(ty, card.ShadowDisplayPosition.Y, softness)
+
+		if card.Dragging {
+			tx -= 4
+			ty -= 12
+		}
+
+		card.DisplayRect.X += SmoothLerpTowards(tx, card.DisplayRect.X, softness)
+		card.DisplayRect.Y += SmoothLerpTowards(ty, card.DisplayRect.Y, softness)
 		card.DisplayRect.W += SmoothLerpTowards(card.Rect.W, card.DisplayRect.W, softness)
 		card.DisplayRect.H += SmoothLerpTowards(card.Rect.H, card.DisplayRect.H, softness)
 
@@ -711,19 +724,60 @@ func (card *Card) Update() {
 
 	}
 
+	if card.Page.IsCurrent() && card.selected {
+
+		if globals.State != StateExport {
+
+			if globals.Keybindings.Pressed(KBExpandCardHorizontally) {
+				globals.Keybindings.Shortcuts[KBExpandCardHorizontally].ConsumeKeys()
+				w := card.Rect.W
+				h := card.Rect.H
+				card.Recreate(w+globals.GridSize, h)
+				card.CreateUndoState = true
+			}
+
+			if globals.Keybindings.Pressed(KBShrinkCardHorizontally) {
+				globals.Keybindings.Shortcuts[KBShrinkCardHorizontally].ConsumeKeys()
+				w := card.Rect.W
+				h := card.Rect.H
+				card.Recreate(w-globals.GridSize, h)
+				card.CreateUndoState = true
+			}
+
+			if globals.Keybindings.Pressed(KBExpandCardVertically) {
+				globals.Keybindings.Shortcuts[KBExpandCardVertically].ConsumeKeys()
+				w := card.Rect.W
+				h := card.Rect.H
+				card.Recreate(w, h+globals.GridSize)
+				card.CreateUndoState = true
+			}
+
+			if globals.Keybindings.Pressed(KBShrinkCardVertically) {
+				globals.Keybindings.Shortcuts[KBShrinkCardVertically].ConsumeKeys()
+				w := card.Rect.W
+				h := card.Rect.H
+				card.Recreate(w, h-globals.GridSize)
+				card.CreateUndoState = true
+			}
+
+		}
+
+		if globals.State == StateNeutral && globals.Keybindings.Pressed(KBUnlinkCard) {
+			globals.Keybindings.Shortcuts[KBUnlinkCard].ConsumeKeys()
+			if len(card.Links) > 0 {
+				globals.EventLog.Log("Removed all connections from currently selected Card(s).", false)
+			}
+			card.UnlinkAll()
+		}
+
+	}
+
 	// We want the contents to update regardless of if the page is current if the card contains a timer
 	if card.Contents != nil && (card.Page.IsCurrent() || card.ContentType == ContentTypeTimer) {
 		card.Contents.Update()
 	}
 
 	if card.Page.IsCurrent() {
-
-		if card.selected && globals.Keybindings.Pressed(KBUnlinkCard) && globals.State == StateNeutral {
-			if len(card.Links) > 0 {
-				globals.EventLog.Log("Removed all connections from currently selected Card(s).", false)
-			}
-			card.UnlinkAll()
-		}
 
 		if globals.Keybindings.Pressed(KBLinkCard) && (globals.State == StateNeutral || globals.State == StateCardArrow) {
 
@@ -919,7 +973,7 @@ func (card *Card) Update() {
 
 	area := card.Page.Project.Camera.ViewArea()
 	viewArea := &sdl.FRect{float32(area.X), float32(area.Y), float32(area.W), float32(area.H)}
-	_, intersecting := card.DisplayRect.Intersect(viewArea)
+	intersecting := RectIntersecting(card.DisplayRect, viewArea)
 	card.onScreen = intersecting && card.Page.IsCurrent()
 
 }
@@ -928,6 +982,8 @@ func (card *Card) Destroy() {
 
 	card.Result.Destroy()
 	card.Result.StopTracking()
+	card.ShadowTexture.Destroy()
+	card.ShadowTexture = nil
 	if card.Contents != nil {
 		container := card.Contents.Container()
 		container.Destroy()
@@ -970,7 +1026,7 @@ func (card *Card) Name() string {
 		text = "Map"
 	case ContentTypeTable:
 		text = "Table"
-	case ContentTypeWeb:
+	case ContentTypeInternet:
 		text = "Web"
 	default:
 		text = card.Properties.Get("description").AsString()
@@ -979,8 +1035,8 @@ func (card *Card) Name() string {
 	return text
 }
 
-func (card *Card) Position() Point {
-	return Point{card.Rect.X, card.Rect.Y}
+func (card *Card) Position() Vector {
+	return Vector{card.Rect.X, card.Rect.Y}
 }
 
 // Link creates a link between the current Card and the other, provided Card, and returns it, along with a boolean indicating if the link was just created.
@@ -1061,20 +1117,25 @@ func (card *Card) DrawShadow() {
 
 	if color[3] > 0 {
 
-		tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
+		tp := card.Page.Project.Camera.TranslatePoint(card.ShadowDisplayPosition)
 		tp.X += 8
 		tp.Y += 8
 
-		color = color.Mult(0.5).Sub(20)
-		card.Result.Texture.SetColorMod(color.RGB())
-		card.Result.Texture.SetAlphaMod(192)
-		globals.Renderer.CopyF(card.Result.Texture, nil, tp)
+		color = color.Mult(0.8).Sub(20)
+		card.ShadowTexture.SetColorMod(color.RGB())
+		card.ShadowTexture.SetAlphaMod(192)
+		globals.Renderer.RenderTexture(card.ShadowTexture, nil, &sdl.FRect{
+			tp.X,
+			tp.Y,
+			card.DisplayRect.W,
+			card.DisplayRect.H,
+		})
 
 	}
 
 }
 
-func (card *Card) NearestPointInRect(in Point, perpendicular bool) Point {
+func (card *Card) NearestPointInRect(in Vector, perpendicular bool) Vector {
 
 	out := in
 
@@ -1252,7 +1313,7 @@ func (card *Card) DrawCard() {
 			timeDiffDuration := deadline.Sub(today).Round(time.Hour * 24)
 
 			start := card.Page.Project.Camera.TranslateRect(&sdl.FRect{card.DisplayRect.X - globals.GridSize, card.DisplayRect.Y, 32, 32})
-			left := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X, card.DisplayRect.Y}).X
+			left := card.Page.Project.Camera.TranslatePoint(Vector{card.DisplayRect.X, card.DisplayRect.Y}).X
 			left += (start.X - left) * float32(card.deadlineFade)
 			globals.Renderer.SetClipRect(&sdl.Rect{int32(left), int32(start.Y), 9999, int32(card.DisplayRect.H)})
 
@@ -1305,22 +1366,22 @@ func (card *Card) DrawCard() {
 				textSize.X += 16
 
 				start = card.Page.Project.Camera.TranslateRect(&sdl.FRect{card.DisplayRect.X - textSize.X - globals.GridSize, card.DisplayRect.Y, textSize.X, 16})
-				left = card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X, card.DisplayRect.Y}).X
+				left = card.Page.Project.Camera.TranslatePoint(Vector{card.DisplayRect.X, card.DisplayRect.Y}).X
 				left += (start.X - left) * float32(card.deadlineFade)
 				globals.Renderer.SetClipRect(&sdl.Rect{int32(left), int32(start.Y), 9999, int32(card.DisplayRect.H)})
 
 				// Center pieces of deadline frame
 				globals.GUITexture.Texture.SetColorMod(deadlineColor.RGB())
 				globals.GUITexture.Texture.SetAlphaMod(255)
-				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{240, 0, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
-				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{248, 0, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
+				globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{240, 0, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
+				globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{248, 0, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
 
 				// Outline
 				globals.GUITexture.Texture.SetColorMod(deadlineColor.Accent().RGB())
-				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{272, 128, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
-				globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{280, 128, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
+				globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{272, 128, 16, 32}, &sdl.FRect{start.X, start.Y, 16, 32})
+				globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{280, 128, 16, 32}, &sdl.FRect{start.X + 16, start.Y, textSize.X + 48, 32})
 
-				globals.TextRenderer.QuickRenderText(text, Point{start.X + 32, start.Y}, 1, getThemeColor(GUIFontColor), nil, AlignLeft)
+				globals.TextRenderer.QuickRenderText(text, Vector{start.X + 32, start.Y}, 1, getThemeColor(GUIFontColor), nil, AlignLeft)
 
 			}
 
@@ -1333,14 +1394,14 @@ func (card *Card) DrawCard() {
 			globals.GUITexture.Texture.SetColorMod(flash.RGB())
 			globals.GUITexture.Texture.SetAlphaMod(255)
 
-			src := &sdl.Rect{240, 160, 32, 32}
+			src := &sdl.FRect{240, 160, 32, 32}
 			if timeDiffDuration < 0 {
 				src.X = 304
 			} else if timeDiffDuration == 0 {
 				src.X = 272
 			}
 
-			globals.Renderer.CopyF(globals.GUITexture.Texture, src, &sdl.FRect{start.X, start.Y, 32, 32})
+			globals.Renderer.RenderTexture(globals.GUITexture.Texture, src, &sdl.FRect{start.X, start.Y, 32, 32})
 
 			globals.Renderer.SetClipRect(nil)
 
@@ -1364,10 +1425,11 @@ func (card *Card) DrawCard() {
 		card.currentColor = card.currentColor.Mix(color, card.colorFadeSpeed)
 		card.Result.Texture.SetColorMod(card.currentColor.RGB())
 		card.Result.Texture.SetAlphaMod(card.currentColor[3])
-		globals.Renderer.CopyF(card.Result.Texture, nil, tp)
+		globals.Renderer.RenderTexture(card.Result.Texture, nil, tp)
 	}
 
-	// if card.Contents.Container().IdealSize().Y != card.Rect.H {
+	card.DrawContents()
+
 	if card.Collapsed == CollapsedShade {
 		r := *card.DisplayRect
 		r.X += r.W - 8
@@ -1376,11 +1438,8 @@ func (card *Card) DrawCard() {
 		r.H = 16
 		globals.GUITexture.Texture.SetColorMod(255, 255, 255)
 		globals.GUITexture.Texture.SetAlphaMod(255)
-		globals.Renderer.CopyF(globals.GUITexture.Texture, &sdl.Rect{480, 80, 16, 16}, card.Page.Project.Camera.TranslateRect(&r))
+		globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{480, 80, 16, 16}, card.Page.Project.Camera.TranslateRect(&r))
 	}
-
-	card.DrawContents()
-
 }
 
 func (card *Card) Onscreen() bool {
@@ -1409,8 +1468,6 @@ func (card *Card) DrawContents() {
 
 	card.Highlighter.Highlighting = card.selected
 
-	card.Highlighter.Draw()
-
 	currentTheme := globals.Settings.Get(SettingsTheme).AsString()
 
 	var ogColor Color
@@ -1427,6 +1484,8 @@ func (card *Card) DrawContents() {
 	if card.FontColor != nil {
 		guiColors[currentTheme][GUIFontColor] = ogColor
 	}
+
+	card.Highlighter.Draw()
 
 }
 
@@ -1490,7 +1549,7 @@ func (card *Card) PostDraw() {
 
 	if card.Page.Arrowing == card {
 
-		translatedStart := card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)})
+		translatedStart := card.Page.Project.Camera.TranslatePoint(Vector{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)})
 		color := card.Color()
 
 		if color[3] <= 0 {
@@ -1499,7 +1558,7 @@ func (card *Card) PostDraw() {
 
 		outlineColor := getThemeColor(GUIFontColor)
 
-		thickness := int32(4)
+		thickness := float32(4)
 
 		// end := card.Page.Project.Camera.TranslatePoint(globals.Mouse.Position())
 		end := globals.Mouse.Position().Div(card.Page.Project.Camera.Zoom)
@@ -1532,9 +1591,9 @@ func (card *Card) PostDraw() {
 				}
 			}
 
-			start := cam.TranslatePoint(Point{leftMost - globals.GridSize, card.DisplayRect.Y})
+			start := cam.TranslatePoint(Vector{leftMost - globals.GridSize, card.DisplayRect.Y})
 			bottom := card.Stack.Bottom()
-			end := cam.TranslatePoint(Point{leftMost - globals.GridSize, bottom.DisplayRect.Y + bottom.DisplayRect.H})
+			end := cam.TranslatePoint(Vector{leftMost - globals.GridSize, bottom.DisplayRect.Y + bottom.DisplayRect.H})
 
 			// Draw "stack" line
 			ThickLine(start, end, 6, getThemeColor(GUIFontColor))
@@ -1546,6 +1605,9 @@ func (card *Card) PostDraw() {
 			return
 		}
 
+		separator := globals.Settings.Get(SettingsNumberingSeparator).AsString()
+		numberingStyle := globals.Settings.Get(SettingsNumberingStyle).AsString()
+
 		if card.Numberable() {
 
 			number := ""
@@ -1555,9 +1617,34 @@ func (card *Card) PostDraw() {
 			}
 			// for i, n := range card.Stack.Number {
 			for index < len(card.Stack.Number) {
-				number += strconv.Itoa(card.Stack.Number[index])
+
+				switch numberingStyle {
+				case NumberingStyleNumber:
+					number += strconv.Itoa(card.Stack.Number[index])
+				case NumberingStyleLetterUppercase:
+
+					stackValue := card.Stack.Number[index]
+
+					for stackValue > 26 {
+						stackValue -= 26
+					}
+
+					number += string(rune(stackValue + 64))
+
+				case NumberingStyleLetterLowercase:
+
+					stackValue := card.Stack.Number[index]
+
+					for stackValue > 26 {
+						stackValue -= 26
+					}
+
+					number += string(rune(stackValue + 96))
+
+				}
+
 				if index < len(card.Stack.Number)-1 {
-					number += "."
+					number += separator
 				}
 				index++
 			}
@@ -1565,7 +1652,7 @@ func (card *Card) PostDraw() {
 			// numberingStartX := card.DisplayRect.X + card.DisplayRect.W - 16 - textSize.X
 
 			if len(number) > 0 {
-				DrawLabel(card.Page.Project.Camera.TranslatePoint(Point{card.DisplayRect.X + (globals.GridSize * 0.75), card.DisplayRect.Y - 8}), number)
+				DrawLabel(card.Page.Project.Camera.TranslatePoint(Vector{card.DisplayRect.X + (globals.GridSize * 0.75), card.DisplayRect.Y - 8}), number, getThemeColor(GUIMenuColor))
 			}
 
 		}
@@ -1636,7 +1723,7 @@ func (card *Card) Serialize(toSave bool) string {
 				dataOut := "{}"
 				dataOut, _ = sjson.Set(dataOut, "start", link.Start.ID)
 				dataOut, _ = sjson.Set(dataOut, "end", link.End.ID)
-				jointPos := []Point{}
+				jointPos := []Vector{}
 				for _, p := range link.Joints {
 					jointPos = append(jointPos, p.Position)
 				}
@@ -1756,9 +1843,12 @@ func (card *Card) Deselect() {
 func (card *Card) StartDragging() {
 	if card.Draggable {
 		card.DragStart = globals.Mouse.WorldPosition()
-		card.DragStartOffset = card.DragStart.Sub(Point{card.Rect.X, card.Rect.Y})
+		card.DragStartOffset = card.DragStart.Sub(Vector{card.Rect.X, card.Rect.Y})
 		card.Dragging = true
 		card.CreateUndoState = true // TODO: DON'T FORGET TO DO THIS WHEN MOVING CARDS VIA SHORTCUTS
+
+		PlayUISound(UISoundTypeToggleOff)
+
 	}
 }
 
@@ -1767,6 +1857,8 @@ func (card *Card) StopDragging() {
 	card.LockPosition()
 
 	card.CreateUndoState = true
+
+	PlayUISound(UISoundTypeToggleOn)
 }
 
 func (card *Card) StartResizing(rect *sdl.FRect, side string) {
@@ -1779,7 +1871,7 @@ func (card *Card) StartResizing(rect *sdl.FRect, side string) {
 	card.ResizingRect.Y1 = card.Rect.Y
 	card.ResizingRect.X2 = card.Rect.X + card.Rect.W
 	card.ResizingRect.Y2 = card.Rect.Y + card.Rect.H
-	card.ResizeClickOffset = globals.Mouse.WorldPosition().Sub(Point{rect.X, rect.Y})
+	card.ResizeClickOffset = globals.Mouse.WorldPosition().Sub(Vector{rect.X, rect.Y})
 	card.ReceiveMessage(NewMessage(MessageCardResizeStart, card, nil))
 
 }
@@ -1791,7 +1883,7 @@ func (card *Card) StopResizing() {
 
 	if card.Rect.H > globals.GridSize {
 		card.Collapsed = CollapsedNone
-	} else {
+	} else if card.Rect.H < card.Contents.Container().IdealSize().Y {
 		card.Collapsed = CollapsedShade
 	}
 
@@ -1873,7 +1965,7 @@ func (card *Card) Move(dx, dy float32) {
 
 // }
 
-func (card *Card) SetCenter(position Point) {
+func (card *Card) SetCenter(position Vector) {
 
 	card.Rect.X = position.X - (card.Rect.W / 2)
 	card.Rect.Y = position.Y - (card.Rect.H / 2)
@@ -1890,12 +1982,12 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 	maxTextureSize := float32(SmallestRendererMaxTextureSize())
 	if maxWidth > maxTextureSize {
-		maxWidth = float32(globals.RendererInfo.MaxTextureWidth)
+		maxWidth = float32(globals.RendererInfo.NumberProperty(SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0))
 	}
 
 	maxHeight := float32(4096)
 	if maxHeight > maxTextureSize {
-		maxHeight = float32(globals.RendererInfo.MaxTextureHeight)
+		maxHeight = float32(globals.RendererInfo.NumberProperty(SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0))
 	}
 
 	// Let's just say this is the smallest size
@@ -1923,15 +2015,20 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 
 			card.Result.RenderFunc = func() {
 
+				if card.ShadowTexture != nil {
+					card.ShadowTexture.Destroy()
+				}
+
+				shadowTex, err := globals.Renderer.CreateTexture(sdl.PIXELFORMAT_RGBA8888, sdl.TEXTUREACCESS_TARGET, int(card.Rect.W), int(card.Rect.H))
+				if err != nil {
+					panic(err)
+				}
+
+				card.ShadowTexture = shadowTex
+				card.ShadowTexture.SetBlendMode(sdl.BLENDMODE_BLEND_PREMULTIPLIED)
+
 				card.Result.Recreate(int32(card.Rect.W), int32(card.Rect.H))
-
-				card.Result.Texture.SetBlendMode(sdl.BLENDMODE_BLEND)
-
-				SetRenderTarget(card.Result.Texture)
-
-				globals.Renderer.SetDrawColor(0, 0, 0, 0)
-
-				globals.Renderer.Clear()
+				card.Result.Texture.SetBlendMode(sdl.BLENDMODE_BLEND_PREMULTIPLIED)
 
 				cornerSize := float32(16)
 
@@ -1952,7 +2049,7 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 					{card.Rect.W - cornerSize, card.Rect.H - cornerSize, cornerSize, cornerSize},
 				}
 
-				src := &sdl.Rect{0, 0, int32(cornerSize), int32(cornerSize)}
+				src := &sdl.FRect{0, 0, float32(cornerSize), float32(cornerSize)}
 
 				guiTexture := globals.GUITexture.Texture
 
@@ -1961,28 +2058,26 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 					for _, patch := range patches {
 
 						if patch.W > 0 && patch.H > 0 {
-							globals.Renderer.CopyF(guiTexture, src, patch)
+							globals.Renderer.RenderTexture(guiTexture, src, patch)
 						}
 
 						src.X += src.W
 
-						if src.X > int32(cornerSize)*2 {
+						if src.X > float32(cornerSize)*2 {
 							src.X = 0
-							src.Y += int32(cornerSize)
+							src.Y += float32(cornerSize)
 						}
 
 					}
 
 				}
 
-				// This slight color blending looks great on dark colors, but trash for light ones, so forget it
-				// rand.Seed(card.ID)
-				// f := uint8(rand.Float32() * 32)
-				// guiTexture.SetColorMod(255-f, 255-f, 255-f)
-				// guiTexture.SetAlphaMod(255)
-
 				guiTexture.SetColorMod(255, 255, 255)
 				guiTexture.SetAlphaMod(255)
+
+				SetRenderTarget(card.Result.Texture)
+				globals.Renderer.SetDrawColor(0, 0, 0, 0)
+				globals.Renderer.Clear()
 
 				drawPatches()
 
@@ -1990,6 +2085,16 @@ func (card *Card) Recreate(newWidth, newHeight float32) {
 				src.X = 0
 				src.Y = 48
 				guiTexture.SetColorMod(192, 192, 192)
+				drawPatches()
+
+				SetRenderTarget(nil)
+
+				src.X = 0
+				src.Y = 192
+
+				SetRenderTarget(card.ShadowTexture)
+				globals.Renderer.SetDrawColor(0, 0, 0, 0)
+				globals.Renderer.Clear()
 				drawPatches()
 
 				guiTexture.SetColorMod(255, 255, 255)
@@ -2078,6 +2183,10 @@ func (card *Card) ReceiveMessage(message *Message) {
 
 func (card *Card) SetContents(contentType string) {
 
+	if contentType == ContentTypeNull {
+		return
+	}
+
 	prevContents := card.Contents
 
 	if existingContents, exists := card.ContentsLibrary[contentType]; exists {
@@ -2109,8 +2218,8 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewLinkContents(card)
 		case ContentTypeTable:
 			card.Contents = NewTableContents(card)
-		case ContentTypeWeb:
-			webCard := NewWebContents(card)
+		case ContentTypeInternet:
+			webCard := NewInternetContents(card)
 			if webCard == nil {
 				// Web card couldn't be created, probably because of browser shenanigans
 				card.Contents = NewCheckboxContents(card)
@@ -2149,6 +2258,10 @@ func (card *Card) SetContents(contentType string) {
 
 func (card *Card) Collapse() {
 
+	if card.Contents.Container().IdealSize().Y <= globals.GridSize {
+		return
+	}
+
 	if col, ok := card.Contents.(CollapseableContents); ok {
 		if !col.Collapseable() {
 			return
@@ -2163,14 +2276,14 @@ func (card *Card) Collapse() {
 	}
 
 	if card.Collapsed == CollapsedNone {
-
 		card.Recreate(card.Rect.W, card.Contents.Container().IdealSize().Y)
+
 	} else {
 		card.Recreate(card.Rect.W, globals.GridSize)
 	}
 
 }
 
-func (card *Card) Center() Point {
-	return Point{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)}
+func (card *Card) Center() Vector {
+	return Vector{card.DisplayRect.X + (card.DisplayRect.W / 2), card.DisplayRect.Y + (card.DisplayRect.H / 2)}
 }

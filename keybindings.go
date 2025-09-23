@@ -4,9 +4,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
@@ -50,6 +50,11 @@ const (
 	KBSelectCardNext           = "Select Next Card"
 	KBSelectCardPrev           = "Select Prev Card"
 
+	KBExpandCardHorizontally = "Make Card Wider on X axis"
+	KBShrinkCardHorizontally = "Make Card Thinner on X axis"
+	KBExpandCardVertically   = "Make Card Taller on Y axis"
+	KBShrinkCardVertically   = "Make Card Shorter on Y axis"
+
 	KBNewCheckboxCard = "New Checkbox Card"
 	KBNewNumberCard   = "New Number Card"
 	KBNewNoteCard     = "New Note Card"
@@ -60,6 +65,7 @@ const (
 	KBNewSubpageCard  = "New Sub-Page Card"
 	KBNewLinkCard     = "New Link Card"
 	KBNewTableCard    = "New Table Card"
+	KBNewInternetCard = "New Internet Card"
 
 	KBAddToSelection      = "Multi-Edit / Add to Selection Modifier"
 	KBRemoveFromSelection = "Remove From Selection Modifier"
@@ -264,13 +270,13 @@ func (shortcut *Shortcut) SetKeys(code sdl.Keycode, modCodes ...sdl.Keycode) {
 func (shortcut *Shortcut) SetButton(buttonIndex uint8, modCodes ...sdl.Keycode) {
 
 	shortcut.MouseButton = buttonIndex
-	shortcut.Key = -1
+	shortcut.Key = 0
 	shortcut.Modifiers = append([]sdl.Keycode{}, modCodes...)
 
 	if !shortcut.DefaultSet {
 		shortcut.DefaultMouseButton = buttonIndex
 		shortcut.DefaultModifiers = append([]sdl.Keycode{}, modCodes...)
-		shortcut.DefaultKey = -1
+		shortcut.DefaultKey = 0
 		shortcut.DefaultSet = true
 	}
 
@@ -280,21 +286,21 @@ func (shortcut *Shortcut) KeysToString() string {
 	name := ""
 
 	for _, mod := range shortcut.Modifiers {
-		name += sdl.GetKeyName(mod) + "+"
+		name += mod.KeyName() + "+"
 	}
 
-	if shortcut.MouseButton == sdl.BUTTON_LEFT {
+	if shortcut.MouseButton == uint8(sdl.BUTTON_LEFT) {
 		name += "Left Mouse Button"
-	} else if shortcut.MouseButton == sdl.BUTTON_MIDDLE {
+	} else if shortcut.MouseButton == uint8(sdl.BUTTON_MIDDLE) {
 		name += "Middle Mouse Button"
-	} else if shortcut.MouseButton == sdl.BUTTON_RIGHT {
+	} else if shortcut.MouseButton == uint8(sdl.BUTTON_RIGHT) {
 		name += "Right Mouse Button"
-	} else if shortcut.MouseButton == sdl.BUTTON_X1 {
+	} else if shortcut.MouseButton == uint8(sdl.BUTTON_X1) {
 		name += "Mouse Button X1"
-	} else if shortcut.MouseButton == sdl.BUTTON_X2 {
+	} else if shortcut.MouseButton == uint8(sdl.BUTTON_X2) {
 		name += "Mouse Button X2"
 	} else {
-		name += sdl.GetKeyName(shortcut.Key)
+		name += shortcut.Key.KeyName()
 	}
 
 	return name
@@ -308,7 +314,7 @@ func (shortcut *Shortcut) Keys() []sdl.Keycode {
 
 func (shortcut *Shortcut) ConsumeKeys() {
 	if shortcut.MouseButton < 255 {
-		globals.Mouse.Button(shortcut.MouseButton).Consume()
+		globals.Mouse.Button(sdl.MouseButtonFlags(shortcut.MouseButton)).Consume()
 	} else {
 		globals.Keyboard.Key(shortcut.Key).Consume()
 	}
@@ -382,7 +388,7 @@ func (shortcut *Shortcut) ResetToDefault() {
 func (shortcut *Shortcut) String() string {
 	keys := ""
 	for i, key := range shortcut.Keys() {
-		keys += sdl.GetKeyName(key)
+		keys += key.KeyName()
 		if i < len(shortcut.Keys())-1 {
 			keys += ", "
 		}
@@ -429,157 +435,163 @@ func (kb *Keybindings) DefineMouseShortcut(bindingName string, mouseButton uint8
 func (kb *Keybindings) Default() {
 
 	// kb.DefineKeyShortcut(KBDebugRestart, sdl.K_r)
-	kb.DefineKeyShortcut(KBDebugToggle, sdl.K_F12)
+	kb.DefineKeyShortcut(KBDebugToggle, SDLK_F12)
 
-	kb.DefineKeyShortcut(KBZoomLevel5, sdl.K_0)
-	kb.DefineKeyShortcut(KBZoomLevel25, sdl.K_1)
-	kb.DefineKeyShortcut(KBZoomLevel50, sdl.K_2)
-	kb.DefineKeyShortcut(KBZoomLevel100, sdl.K_3)
-	kb.DefineKeyShortcut(KBZoomLevel200, sdl.K_4)
-	kb.DefineKeyShortcut(KBZoomLevel400, sdl.K_5)
-	kb.DefineKeyShortcut(KBZoomLevel1000, sdl.K_6)
+	kb.DefineKeyShortcut(KBZoomLevel5, SDLK_0)
+	kb.DefineKeyShortcut(KBZoomLevel25, SDLK_1)
+	kb.DefineKeyShortcut(KBZoomLevel50, SDLK_2)
+	kb.DefineKeyShortcut(KBZoomLevel100, SDLK_3)
+	kb.DefineKeyShortcut(KBZoomLevel200, SDLK_4)
+	kb.DefineKeyShortcut(KBZoomLevel400, SDLK_5)
+	kb.DefineKeyShortcut(KBZoomLevel1000, SDLK_6)
 
-	// settings := kb.Define(KBOpenSettings, sdl.K_F1)
+	// settings := kb.Define(KBOpenSettings, SDLK_F1)
 	// settings.canClash = false
 
-	kb.DefineKeyShortcut(KBZoomIn, sdl.K_KP_PLUS)
-	kb.DefineKeyShortcut(KBZoomOut, sdl.K_KP_MINUS)
-	// kb.Define(KBShowFPS, sdl.K_F12)
-	kb.DefineKeyShortcut(KBTakeScreenshot, sdl.K_F11)
+	kb.DefineKeyShortcut(KBZoomIn, SDLK_KP_PLUS)
+	kb.DefineKeyShortcut(KBZoomOut, SDLK_KP_MINUS)
+	// kb.Define(KBShowFPS, SDLK_F12)
+	kb.DefineKeyShortcut(KBTakeScreenshot, SDLK_F11)
 
-	kb.DefineKeyShortcut(KBSaveProject, sdl.K_s, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBSaveProjectAs, sdl.K_s, sdl.K_LCTRL, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBOpenProject, sdl.K_o, sdl.K_LCTRL)
-	kb.DefineMouseShortcut(KBOpenContextMenu, sdl.BUTTON_RIGHT)
+	kb.DefineKeyShortcut(KBSaveProject, SDLK_S, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBSaveProjectAs, SDLK_S, SDLK_LCTRL, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBOpenProject, SDLK_O, SDLK_LCTRL)
+	kb.DefineMouseShortcut(KBOpenContextMenu, uint8(sdl.BUTTON_RIGHT))
 
-	kb.DefineKeyShortcut(KBPanUp, sdl.K_w).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBPanLeft, sdl.K_a).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBPanDown, sdl.K_s).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBPanRight, sdl.K_d).triggerMode = TriggerModeHold
-	kb.DefineMouseShortcut(KBPanModifier, sdl.BUTTON_MIDDLE).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBFastPan, sdl.K_LSHIFT).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBPanUp, SDLK_W).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBPanLeft, SDLK_A).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBPanDown, SDLK_S).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBPanRight, SDLK_D).triggerMode = TriggerModeHold
+	kb.DefineMouseShortcut(KBPanModifier, uint8(sdl.BUTTON_MIDDLE)).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBFastPan, SDLK_LSHIFT).triggerMode = TriggerModeHold
 
-	kb.DefineKeyShortcut(KBMoveCardDown, sdl.K_DOWN, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBMoveCardUp, sdl.K_UP, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBMoveCardRight, sdl.K_RIGHT, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBMoveCardLeft, sdl.K_LEFT, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBMoveCardDown, SDLK_DOWN, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBMoveCardUp, SDLK_UP, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBMoveCardRight, SDLK_RIGHT, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBMoveCardLeft, SDLK_LEFT, SDLK_LCTRL)
 
-	kb.DefineKeyShortcut(KBSelectCardDown, sdl.K_DOWN)
-	kb.DefineKeyShortcut(KBSelectCardUp, sdl.K_UP)
-	kb.DefineKeyShortcut(KBSelectCardRight, sdl.K_RIGHT)
-	kb.DefineKeyShortcut(KBSelectCardLeft, sdl.K_LEFT)
-	kb.DefineKeyShortcut(KBSelectCardTopStack, sdl.K_HOME)
-	kb.DefineKeyShortcut(KBSelectCardBottomStack, sdl.K_END)
-	kb.DefineKeyShortcut(KBSelectCardTopIndent, sdl.K_PAGEUP)
-	kb.DefineKeyShortcut(KBSelectCardBottomIndent, sdl.K_PAGEDOWN)
-	kb.DefineKeyShortcut(KBSelectCardsInIndentGroup, sdl.K_SPACE, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBSelectCardNext, sdl.K_TAB)
-	kb.DefineKeyShortcut(KBSelectCardPrev, sdl.K_TAB, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBSelectCardDown, SDLK_DOWN)
+	kb.DefineKeyShortcut(KBSelectCardUp, SDLK_UP)
+	kb.DefineKeyShortcut(KBSelectCardRight, SDLK_RIGHT)
+	kb.DefineKeyShortcut(KBSelectCardLeft, SDLK_LEFT)
+	kb.DefineKeyShortcut(KBSelectCardTopStack, SDLK_HOME)
+	kb.DefineKeyShortcut(KBSelectCardBottomStack, SDLK_END)
+	kb.DefineKeyShortcut(KBSelectCardTopIndent, SDLK_PAGEUP)
+	kb.DefineKeyShortcut(KBSelectCardBottomIndent, SDLK_PAGEDOWN)
+	kb.DefineKeyShortcut(KBSelectCardsInIndentGroup, SDLK_SPACE, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBSelectCardNext, SDLK_TAB)
+	kb.DefineKeyShortcut(KBSelectCardPrev, SDLK_TAB, SDLK_LSHIFT)
 
-	// kb.Define(KBFastPanUp, sdl.K_w, sdl.K_LSHIFT).triggerMode = TriggerModeHold
-	// kb.Define(KBFastPanLeft, sdl.K_a, sdl.K_LSHIFT).triggerMode = TriggerModeHold
-	// kb.Define(KBFastPanDown, sdl.K_s, sdl.K_LSHIFT).triggerMode = TriggerModeHold
-	// kb.Define(KBFastPanRight, sdl.K_d, sdl.K_LSHIFT).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBExpandCardHorizontally, SDLK_RIGHT, SDLK_LALT)
+	kb.DefineKeyShortcut(KBShrinkCardHorizontally, SDLK_LEFT, SDLK_LALT)
+	kb.DefineKeyShortcut(KBExpandCardVertically, SDLK_DOWN, SDLK_LALT)
+	kb.DefineKeyShortcut(KBShrinkCardVertically, SDLK_UP, SDLK_LALT)
 
-	kb.DefineKeyShortcut(KBNewCheckboxCard, sdl.K_1, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewNumberCard, sdl.K_2, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewNoteCard, sdl.K_3, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewSoundCard, sdl.K_4, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewImageCard, sdl.K_5, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewTimerCard, sdl.K_6, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewMapCard, sdl.K_7, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewSubpageCard, sdl.K_8, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewLinkCard, sdl.K_9, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewTableCard, sdl.K_0, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBNewCardOfPrevType, sdl.K_RETURN, sdl.K_LCTRL)
+	// kb.Define(KBFastPanUp, SDLK_W, SDLK_LSHIFT).triggerMode = TriggerModeHold
+	// kb.Define(KBFastPanLeft, SDLK_A, SDLK_LSHIFT).triggerMode = TriggerModeHold
+	// kb.Define(KBFastPanDown, SDLK_S, SDLK_LSHIFT).triggerMode = TriggerModeHold
+	// kb.Define(KBFastPanRight, SDLK_D, SDLK_LSHIFT).triggerMode = TriggerModeHold
 
-	kb.DefineKeyShortcut(KBAddToSelection, sdl.K_LSHIFT).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBRemoveFromSelection, sdl.K_LALT).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBLinkCard, sdl.K_z).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBUnlinkCard, sdl.K_z, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBDeleteCards, sdl.K_DELETE)
-	kb.DefineKeyShortcut(KBSelectAllCards, sdl.K_a, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBDeselectAllCards, sdl.K_a, sdl.K_LCTRL, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBNewCheckboxCard, SDLK_1, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewNumberCard, SDLK_2, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewNoteCard, SDLK_3, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewSoundCard, SDLK_4, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewImageCard, SDLK_5, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewTimerCard, SDLK_6, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewMapCard, SDLK_7, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewSubpageCard, SDLK_8, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewLinkCard, SDLK_9, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewTableCard, SDLK_0, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBNewInternetCard, SDLK_1, SDLK_LSHIFT, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBNewCardOfPrevType, SDLK_RETURN, SDLK_LCTRL)
 
-	kb.DefineKeyShortcut(KBCopyCards, sdl.K_c, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBCutCards, sdl.K_x, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBPasteCards, sdl.K_v, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBExternalPaste, sdl.K_v, sdl.K_LCTRL, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBAddToSelection, SDLK_LSHIFT).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBRemoveFromSelection, SDLK_LALT).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBLinkCard, SDLK_Z).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBUnlinkCard, SDLK_Z, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBDeleteCards, SDLK_DELETE)
+	kb.DefineKeyShortcut(KBSelectAllCards, SDLK_A, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBDeselectAllCards, SDLK_A, SDLK_LCTRL, SDLK_LSHIFT)
 
-	kb.DefineKeyShortcut(KBReturnToOrigin, sdl.K_BACKSPACE)
-	kb.DefineKeyShortcut(KBFocusOnCards, sdl.K_f, sdl.K_LSHIFT) // Shift + F because F is fill for maps
+	kb.DefineKeyShortcut(KBCopyCards, SDLK_C, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBCutCards, SDLK_X, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBPasteCards, SDLK_V, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBExternalPaste, SDLK_V, SDLK_LCTRL, SDLK_LSHIFT)
 
-	kb.DefineKeyShortcut(KBCopyText, sdl.K_c, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBCutText, sdl.K_x, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBPasteText, sdl.K_v, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBSelectAllText, sdl.K_a, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBReturnToOrigin, SDLK_BACKSPACE)
+	kb.DefineKeyShortcut(KBFocusOnCards, SDLK_F, SDLK_LSHIFT) // Shift + F because F is fill for maps
 
-	kb.DefineKeyShortcut(KBSwitchWrapMode, sdl.K_w, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBCopyText, SDLK_C, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBCutText, SDLK_X, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBPasteText, SDLK_V, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBSelectAllText, SDLK_A, SDLK_LCTRL)
 
-	kb.DefineKeyShortcut(KBCollapseCard, sdl.K_c, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBResetCardSize, sdl.K_r, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBSwitchWrapMode, SDLK_W, SDLK_LCTRL)
 
-	kb.DefineKeyShortcut(KBUndo, sdl.K_z, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBRedo, sdl.K_z, sdl.K_LCTRL, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBCollapseCard, SDLK_C, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBResetCardSize, SDLK_R, SDLK_LSHIFT)
 
-	kb.DefineKeyShortcut(KBWindowSizeSmall, sdl.K_F9)
-	kb.DefineKeyShortcut(KBWindowSizeNormal, sdl.K_F10)
-	kb.DefineKeyShortcut(KBToggleFullscreen, sdl.K_RETURN, sdl.K_LALT)
-	kb.DefineKeyShortcut(KBUnlockImageASR, sdl.K_LSHIFT).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBUndo, SDLK_Z, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBRedo, SDLK_Z, SDLK_LCTRL, SDLK_LSHIFT)
 
-	kb.DefineKeyShortcut(KBCheckboxToggleCompletion, sdl.K_SPACE)
-	kb.DefineKeyShortcut(KBCheckboxEditText, sdl.K_RETURN)
-	kb.DefineKeyShortcut(KBNoteEditText, sdl.K_RETURN)
-	kb.DefineKeyShortcut(KBNumberedEditText, sdl.K_RETURN)
-	kb.DefineKeyShortcut(KBTimerEditText, sdl.K_RETURN)
-	kb.DefineKeyShortcut(KBNumberedIncrement, sdl.K_SPACE)
-	kb.DefineKeyShortcut(KBNumberedDecrement, sdl.K_SPACE, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBSoundPlay, sdl.K_SPACE)
-	kb.DefineKeyShortcut(KBSoundStopAll, sdl.K_SPACE, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBSoundJumpForward, sdl.K_RIGHT, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBSoundJumpBackward, sdl.K_LEFT, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBTimerStartStop, sdl.K_SPACE)
+	kb.DefineKeyShortcut(KBWindowSizeSmall, SDLK_F9)
+	kb.DefineKeyShortcut(KBWindowSizeNormal, SDLK_F10)
+	kb.DefineKeyShortcut(KBToggleFullscreen, SDLK_RETURN, SDLK_LALT)
+	kb.DefineKeyShortcut(KBUnlockImageASR, SDLK_LSHIFT).triggerMode = TriggerModeHold
 
-	kb.DefineKeyShortcut(KBPickColor, sdl.K_LALT).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBMapNoTool, sdl.K_q)
-	kb.DefineKeyShortcut(KBMapPencilTool, sdl.K_e)
-	kb.DefineKeyShortcut(KBMapEraserTool, sdl.K_r)
-	kb.DefineKeyShortcut(KBMapFillTool, sdl.K_f)
-	kb.DefineKeyShortcut(KBMapLineTool, sdl.K_v)
-	kb.DefineKeyShortcut(KBMapQuickLineTool, sdl.K_LSHIFT).triggerMode = TriggerModeHold
-	kb.DefineKeyShortcut(KBMapPalette, sdl.K_g)
+	kb.DefineKeyShortcut(KBCheckboxToggleCompletion, SDLK_SPACE)
+	kb.DefineKeyShortcut(KBCheckboxEditText, SDLK_RETURN)
+	kb.DefineKeyShortcut(KBNoteEditText, SDLK_RETURN)
+	kb.DefineKeyShortcut(KBNumberedEditText, SDLK_RETURN)
+	kb.DefineKeyShortcut(KBTimerEditText, SDLK_RETURN)
+	kb.DefineKeyShortcut(KBNumberedIncrement, SDLK_SPACE)
+	kb.DefineKeyShortcut(KBNumberedDecrement, SDLK_SPACE, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBSoundPlay, SDLK_SPACE)
+	kb.DefineKeyShortcut(KBSoundStopAll, SDLK_SPACE, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBSoundJumpForward, SDLK_RIGHT, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBSoundJumpBackward, SDLK_LEFT, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBTimerStartStop, SDLK_SPACE)
 
-	kb.DefineKeyShortcut(KBMapShiftUp, sdl.K_UP, sdl.K_LCTRL, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBMapShiftRight, sdl.K_RIGHT, sdl.K_LCTRL, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBMapShiftDown, sdl.K_DOWN, sdl.K_LCTRL, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBMapShiftLeft, sdl.K_LEFT, sdl.K_LCTRL, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBPickColor, SDLK_LALT).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBMapNoTool, SDLK_Q)
+	kb.DefineKeyShortcut(KBMapPencilTool, SDLK_E)
+	kb.DefineKeyShortcut(KBMapEraserTool, SDLK_R)
+	kb.DefineKeyShortcut(KBMapFillTool, SDLK_F)
+	kb.DefineKeyShortcut(KBMapLineTool, SDLK_V)
+	kb.DefineKeyShortcut(KBMapQuickLineTool, SDLK_LSHIFT).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBMapPalette, SDLK_G)
 
-	kb.DefineKeyShortcut(KBFindNext, sdl.K_f, sdl.K_LCTRL)
-	kb.DefineKeyShortcut(KBFindPrev, sdl.K_f, sdl.K_LCTRL, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBMapShiftUp, SDLK_UP, SDLK_LCTRL, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBMapShiftRight, SDLK_RIGHT, SDLK_LCTRL, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBMapShiftDown, SDLK_DOWN, SDLK_LCTRL, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBMapShiftLeft, SDLK_LEFT, SDLK_LCTRL, SDLK_LSHIFT)
 
-	kb.DefineKeyShortcut(KBSubpageEditText, sdl.K_RETURN)
-	kb.DefineKeyShortcut(KBSubpageOpen, sdl.K_BACKQUOTE)
-	kb.DefineKeyShortcut(KBSubpageClose, sdl.K_BACKQUOTE)
+	kb.DefineKeyShortcut(KBFindNext, SDLK_F, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBFindPrev, SDLK_F, SDLK_LCTRL, SDLK_LSHIFT)
 
-	kb.DefineKeyShortcut(KBLinkEditText, sdl.K_RETURN)
-	kb.DefineKeyShortcut(KBActivateLink, sdl.K_RETURN, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBSubpageEditText, SDLK_RETURN)
+	kb.DefineKeyShortcut(KBSubpageOpen, SDLK_GRAVE)
+	kb.DefineKeyShortcut(KBSubpageClose, SDLK_GRAVE)
 
-	kb.DefineKeyShortcut(KBWebRecordInputs, sdl.K_SPACE, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBWebOpenPage, sdl.K_RETURN, sdl.K_LSHIFT, sdl.K_LCTRL)
+	kb.DefineKeyShortcut(KBLinkEditText, SDLK_RETURN)
+	kb.DefineKeyShortcut(KBActivateLink, SDLK_RETURN, SDLK_LSHIFT)
 
-	kb.DefineKeyShortcut(KBResizeMultiple, sdl.K_LSHIFT).triggerMode = TriggerModeHold
+	kb.DefineKeyShortcut(KBWebRecordInputs, SDLK_SPACE, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBWebOpenPage, SDLK_RETURN, SDLK_LSHIFT, SDLK_LCTRL)
 
-	kb.DefineKeyShortcut(KBHelp, sdl.K_F1)
-	kb.DefineKeyShortcut(KBOpenCreateMenu, sdl.K_F2)
-	kb.DefineKeyShortcut(KBOpenEditMenu, sdl.K_F3)
-	kb.DefineKeyShortcut(KBOpenHierarchyMenu, sdl.K_F4)
-	kb.DefineKeyShortcut(KBOpenStatsMenu, sdl.K_F5)
-	kb.DefineKeyShortcut(KBOpenDeadlinesMenu, sdl.K_F6)
+	kb.DefineKeyShortcut(KBResizeMultiple, SDLK_LSHIFT).triggerMode = TriggerModeHold
 
-	kb.DefineKeyShortcut(KBTableAddColumn, sdl.K_e)
-	kb.DefineKeyShortcut(KBTableDeleteColumn, sdl.K_e, sdl.K_LSHIFT)
-	kb.DefineKeyShortcut(KBTableAddRow, sdl.K_q)
-	kb.DefineKeyShortcut(KBTableDeleteRow, sdl.K_q, sdl.K_LSHIFT)
+	kb.DefineKeyShortcut(KBHelp, SDLK_F1)
+	kb.DefineKeyShortcut(KBOpenCreateMenu, SDLK_F2)
+	kb.DefineKeyShortcut(KBOpenEditMenu, SDLK_F3)
+	kb.DefineKeyShortcut(KBOpenHierarchyMenu, SDLK_F4)
+	kb.DefineKeyShortcut(KBOpenStatsMenu, SDLK_F5)
+	kb.DefineKeyShortcut(KBOpenDeadlinesMenu, SDLK_F6)
+
+	kb.DefineKeyShortcut(KBTableAddColumn, SDLK_E)
+	kb.DefineKeyShortcut(KBTableDeleteColumn, SDLK_E, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBTableAddRow, SDLK_Q)
+	kb.DefineKeyShortcut(KBTableDeleteRow, SDLK_Q, SDLK_LSHIFT)
 
 	kb.UpdateShortcutFamilies()
 
@@ -660,9 +672,9 @@ func (kb *Keybindings) Pressed(bindingName string) bool {
 		}
 
 		if sc.triggerMode == TriggerModeHold {
-			return globals.Mouse.Button(sc.MouseButton).Held()
+			return globals.Mouse.Button(sdl.MouseButtonFlags(sc.MouseButton)).Held()
 		} else if sc.triggerMode == TriggerModePress {
-			return globals.Mouse.Button(sc.MouseButton).Pressed()
+			return globals.Mouse.Button(sdl.MouseButtonFlags(sc.MouseButton)).Pressed()
 		}
 
 	} else {

@@ -3,7 +3,7 @@ package main
 import (
 	"image/gif"
 
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 type GifAnimation struct {
@@ -19,7 +19,7 @@ type GifAnimation struct {
 
 func NewGifAnimation(data *gif.GIF) *GifAnimation {
 
-	surf, _ := sdl.CreateRGBSurfaceWithFormat(0, int32(data.Image[0].Rect.Dx()), int32(data.Image[0].Rect.Dy()), 32, sdl.PIXELFORMAT_RGBA8888)
+	surf, _ := sdl.CreateSurface(data.Image[0].Rect.Dx(), data.Image[0].Rect.Dy(), sdl.PIXELFORMAT_ARGB8888)
 
 	anim := &GifAnimation{
 		Data:            data,
@@ -48,32 +48,38 @@ func (gifAnim *GifAnimation) Load() {
 			disposalMode = gifAnim.Data.Disposal[index-1]
 		}
 
-		empty := sdl.RGBA8888{0, 0, 0, 0}
+		// empty := sdl.RGBA8888{0, 0, 0, 0}
 
-		for y := 0; y < gifAnim.frameImg.Bounds().Size().Y; y++ {
+		w := gifAnim.frameImg.W
+		h := gifAnim.frameImg.H
 
-			for x := 0; x < gifAnim.frameImg.Bounds().Size().X; x++ {
+		for y := int32(0); y < h; y++ {
+
+			for x := int32(0); x < w; x++ {
 
 				// We clear each pixel of each frame, but only the pixels within the rectangle specified by the frame is plotted below, as
 				// some frames of GIFs can have a "changed rectangle", indicating which pixels in which rectangle need to actually change.
 
-				if disposalMode == gif.DisposalBackground {
-					gifAnim.frameImg.Set(x, y, empty)
-				} else if disposalMode == gif.DisposalPrevious {
-					r, g, b, a := gifAnim.Data.Image[prev].At(x, y).RGBA()
-					gifAnim.frameImg.Set(x, y, sdl.RGBA8888{byte(r), byte(g), byte(b), byte(a)})
+				if disposalMode == gif.DisposalBackground || disposalMode == gif.DisposalPrevious {
+					a, r, g, b := gifAnim.Data.Image[prev].At(int(x), int(y)).RGBA()
+					gifAnim.frameImg.WritePixel(x, y, uint8(r), uint8(g), uint8(b), uint8(a))
+				} else if disposalMode == gif.DisposalNone {
+					r, g, b, a := gifAnim.Data.Image[0].At(int(x), int(y)).RGBA()
+					gifAnim.frameImg.WritePixel(x, y, uint8(r), uint8(g), uint8(b), uint8(a))
 				}
 
 				if disposalMode != gif.DisposalPrevious {
 					prev = index
 				}
 
-				if x >= img.Bounds().Min.X && x < img.Bounds().Max.X && y >= img.Bounds().Min.Y && y < img.Bounds().Max.Y {
+				color := img.RGBA64At(int(x), int(y))
 
-					color := img.At(x, y)
-					if _, _, _, alpha := color.RGBA(); alpha > 0 {
+				if x >= int32(img.Rect.Min.X) && x < int32(img.Rect.Max.X) && y >= int32(img.Rect.Min.Y) && y < int32(img.Rect.Max.Y) {
+
+					// alpha is 65535 max
+					if _, _, _, alpha := color.RGBA(); alpha > 128 {
 						r, g, b, a := color.RGBA()
-						gifAnim.frameImg.Set(x, y, sdl.RGBA8888{byte(r), byte(g), byte(b), byte(a)})
+						gifAnim.frameImg.WritePixel(x, y, uint8(r), uint8(g), uint8(b), uint8(a))
 					}
 
 				}
@@ -82,7 +88,10 @@ func (gifAnim *GifAnimation) Load() {
 
 		}
 
-		newSurf, _ := gifAnim.frameImg.Duplicate()
+		newSurf, err := gifAnim.frameImg.Duplicate()
+		if err != nil {
+			panic(err)
+		}
 		gifAnim.Frames = append(gifAnim.Frames, newSurf)
 
 		delay := float32(gifAnim.Data.Delay[index]) / 100
@@ -107,7 +116,7 @@ func (gifAnim *GifAnimation) Load() {
 
 func (gifAnim *GifAnimation) Destroy() {
 	for _, frame := range gifAnim.Frames {
-		frame.Free()
+		frame.Destroy()
 	}
 }
 
@@ -164,6 +173,7 @@ func (gifPlayer *GifPlayer) Destroy() {
 func (gifPlayer *GifPlayer) Texture() *sdl.Texture {
 	for len(gifPlayer.Frames) <= gifPlayer.CurrentFrame {
 		frame, _ := globals.Renderer.CreateTextureFromSurface(gifPlayer.Animation.Frames[gifPlayer.CurrentFrame])
+		frame.SetScaleMode(sdl.SCALEMODE_NEAREST)
 		gifPlayer.Frames = append(gifPlayer.Frames, frame)
 	}
 	return gifPlayer.Frames[gifPlayer.CurrentFrame]

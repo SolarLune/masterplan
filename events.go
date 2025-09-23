@@ -3,8 +3,8 @@ package main
 import (
 	"math"
 
-	"github.com/veandco/go-sdl2/img"
-	"github.com/veandco/go-sdl2/sdl"
+	"github.com/Zyko0/go-sdl3/img"
+	"github.com/Zyko0/go-sdl3/sdl"
 )
 
 const (
@@ -145,8 +145,8 @@ func (keyboard Keyboard) PressedKeys() []sdl.Keycode {
 type Mouse struct {
 	buttonState    map[uint8]*InputState
 	wheel          int32
-	screenPosition Point
-	prevPosition   Point
+	screenPosition Vector
+	prevPosition   Vector
 
 	Cursors       map[string]*sdl.Cursor
 	CurrentCursor string
@@ -173,10 +173,12 @@ func NewMouse() Mouse {
 	}
 }
 
-func (mouse *Mouse) Button(buttonIndex uint8) *InputState {
+func (mouse *Mouse) Button(button sdl.MouseButtonFlags) *InputState {
+
+	buttonIndex := uint8(button)
 
 	if mouse.HiddenButtons {
-		return mouse.Dummy.Button(buttonIndex)
+		return mouse.Dummy.Button(sdl.MouseButtonFlags(buttonIndex))
 	}
 
 	if _, exists := mouse.buttonState[buttonIndex]; !exists {
@@ -187,7 +189,7 @@ func (mouse *Mouse) Button(buttonIndex uint8) *InputState {
 
 }
 
-func (mouse *Mouse) RelativeMovement() Point {
+func (mouse *Mouse) RelativeMovement() Vector {
 	if mouse.HiddenPosition {
 		return mouse.Dummy.RelativeMovement()
 	}
@@ -203,20 +205,20 @@ func (mouse *Mouse) Wheel() float32 {
 	return float32(mouse.wheel) * sensitivity
 }
 
-func (mouse *Mouse) RawPosition() Point {
+func (mouse *Mouse) RawPosition() Vector {
 	return mouse.screenPosition
 }
 
-func (mouse *Mouse) Position() Point {
+func (mouse *Mouse) Position() Vector {
 	if mouse.HiddenPosition {
 		return mouse.Dummy.Position()
 	}
 	return mouse.screenPosition
 }
 
-func (mouse *Mouse) RawWorldPosition() Point {
+func (mouse *Mouse) RawWorldPosition() Vector {
 
-	width, height, err := globals.Renderer.GetOutputSize()
+	width, height, err := globals.Renderer.CurrentOutputSize()
 
 	if err != nil {
 		panic(err)
@@ -237,14 +239,14 @@ func (mouse *Mouse) RawWorldPosition() Point {
 	// globals.Renderer.SetDrawColor(255, 0, 0, 255)
 	// globals.Renderer.DrawRectF(globals.Project.Camera.Translate(&sdl.FRect{wx, wy, 16, 16}))
 
-	return Point{wx, wy}
+	return Vector{wx, wy}
 
 }
 
-func (mouse *Mouse) WorldPosition() Point {
+func (mouse *Mouse) WorldPosition() Vector {
 
 	if mouse.HiddenPosition {
-		return Point{float32(math.NaN()), float32(math.NaN())}
+		return Vector{float32(math.NaN()), float32(math.NaN())}
 	}
 
 	return mouse.RawWorldPosition()
@@ -300,7 +302,7 @@ func LoadCursors() {
 			panic(err)
 		}
 
-		cursorSurf, err := sdl.CreateRGBSurfaceWithFormat(0, 48, 48, 32, sdl.PIXELFORMAT_RGBA8888)
+		cursorSurf, err := sdl.CreateSurface(48, 48, sdl.PIXELFORMAT_RGBA8888)
 		if err != nil {
 			panic(err)
 		}
@@ -313,7 +315,7 @@ func LoadCursors() {
 			for y := 0; y < 48; y++ {
 				for x := 0; x < 48; x++ {
 					r, g, b, a := ColorAt(cursorImg, srcX+int32(x), srcY+int32(y))
-					cursorSurf.Set(47-x, y, sdl.RGBA8888{r, g, b, a})
+					cursorSurf.WritePixel(int32(47-x), int32(y), r, g, b, a)
 				}
 			}
 
@@ -321,7 +323,13 @@ func LoadCursors() {
 			cursorImg.Blit(&sdl.Rect{srcX, srcY, 48, 48}, cursorSurf, nil)
 		}
 
-		return sdl.CreateColorCursor(cursorSurf, 24, 24)
+		cursor, err := cursorSurf.CreateColorCursor(24, 24)
+
+		if err != nil {
+			panic(err)
+		}
+
+		return cursor
 
 	}
 
@@ -349,16 +357,16 @@ func handleEvents() {
 	globals.Mouse.wheel = 0
 	globals.Mouse.prevPosition = globals.Mouse.screenPosition
 
-	for baseEvent := sdl.PollEvent(); baseEvent != nil; baseEvent = sdl.PollEvent() {
+	baseEvent := sdl.Event{}
 
-		switch event := baseEvent.(type) {
+	for sdl.PollEvent(&baseEvent) {
 
-		case *sdl.DropEvent:
-			if event.Type == sdl.DROPFILE {
-				globals.Project.CurrentPage.HandleDroppedFiles(event.File)
-			}
+		switch baseEvent.Type {
 
-		case *sdl.QuitEvent:
+		case sdl.EVENT_DROP_COMPLETE:
+			globals.Project.CurrentPage.HandleDroppedFiles(baseEvent.DropEvent().Data)
+
+		case sdl.EVENT_QUIT:
 			confirmQuit := globals.MenuSystem.Get("confirm quit")
 			if confirmQuit.Opened {
 				quit = true
@@ -366,54 +374,71 @@ func handleEvents() {
 			confirmQuit.Center()
 			confirmQuit.Open()
 
-		case *sdl.KeyboardEvent:
+		case sdl.EVENT_KEY_DOWN:
+			fallthrough
+		case sdl.EVENT_KEY_UP:
 
-			key := globals.Keyboard.Key(event.Keysym.Sym)
+			event := baseEvent.KeyboardEvent()
 
-			if event.State == sdl.PRESSED {
-				key.Mods = sdl.Keymod(event.Keysym.Mod)
+			key := globals.Keyboard.Key(event.Key)
+
+			if event.Down {
+				key.Mods = sdl.Keymod(event.Mod)
 				key.SetState(true)
 			} else {
-				key.Mods = sdl.KMOD_NONE
+				key.Mods = 0
 				key.SetState(false)
 			}
 
-		case *sdl.MouseMotionEvent:
+		case sdl.EVENT_WINDOW_MOUSE_ENTER:
+			globals.Mouse.InsideWindow = true
+			globals.Mouse.Dummy.InsideWindow = true
+
+		case sdl.EVENT_WINDOW_MOUSE_LEAVE:
+			globals.Mouse.InsideWindow = false
+			globals.Mouse.Dummy.InsideWindow = false
+
+		case sdl.EVENT_MOUSE_MOTION:
+
+			event := baseEvent.MouseMotionEvent()
 
 			globals.Mouse.screenPosition.X = float32(event.X)
 			globals.Mouse.screenPosition.Y = float32(event.Y)
-			if event.X == 0 || event.Y == 0 || event.X == int32(globals.ScreenSize.X-1) || event.Y == int32(globals.ScreenSize.Y-1) {
-				globals.Mouse.InsideWindow = false
-			} else {
-				globals.Mouse.InsideWindow = true
-			}
 
-		case *sdl.MouseButtonEvent:
+		case sdl.EVENT_MOUSE_BUTTON_DOWN:
+			fallthrough
+		case sdl.EVENT_MOUSE_BUTTON_UP:
 
-			mouseButton := globals.Mouse.Button(event.Button)
+			event := baseEvent.MouseButtonEvent()
 
-			if event.State == sdl.PRESSED {
+			mouseButton := globals.Mouse.Button(sdl.MouseButtonFlags(event.Button))
+
+			if event.Down {
 				mouseButton.SetState(true)
-			} else if event.State == sdl.RELEASED {
+			} else {
 				mouseButton.SetState(false)
 			}
 
-		case *sdl.MouseWheelEvent:
+		case sdl.EVENT_MOUSE_WHEEL:
 
-			globals.Mouse.wheel = event.Y
+			event := baseEvent.MouseWheelEvent()
+			wheel := event.Y
+			globals.Mouse.wheel = int32(wheel)
 
-		case *sdl.TextInputEvent:
+			// TODO: Add IME support; should be doable but I'm not sure how right now
 
-			globals.InputText = append(globals.InputText, []rune(event.GetText())...)
+		case sdl.EVENT_TEXT_INPUT:
 
-		case *sdl.RenderEvent:
+			globals.InputText = append(globals.InputText, []rune(baseEvent.TextInputEvent().Text)...)
 
-			// If the render targets reset, re-render all render textures
-			// if baseEvent.GetType() == sdl.RENDER_TARGETS_RESET || baseEvent.GetType() == sdl.RENDER_DEVICE_RESET || baseEvent.GetType() == sdl.WINDOWEVENT_MINIMIZED || baseEvent.GetType() == sdl.WINDOWEVENT_MAXIMIZED {
-			if baseEvent.GetType() == sdl.RENDER_TARGETS_RESET || baseEvent.GetType() == sdl.RENDER_DEVICE_RESET {
-				RefreshRenderTextures()
-				globals.Project.SendMessage(NewMessage(MessageRenderTextureRefresh, nil, nil))
-			}
+		case sdl.EVENT_RENDER_DEVICE_RESET:
+			fallthrough
+		case sdl.EVENT_RENDER_TARGETS_RESET:
+			fallthrough
+		case sdl.EVENT_RENDER_DEVICE_LOST:
+
+			RefreshRenderTextures()
+			globals.Project.SendMessage(NewMessage(MessageRenderTextureRefresh, nil, nil))
 
 		}
 
