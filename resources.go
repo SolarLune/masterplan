@@ -15,12 +15,12 @@ import (
 	"github.com/Zyko0/go-sdl3/img"
 	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/cavaliergopher/grab/v3"
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/flac"
-	"github.com/faiface/beep/mp3"
-	"github.com/faiface/beep/vorbis"
-	"github.com/faiface/beep/wav"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/gopxl/beep/v2"
+	"github.com/gopxl/beep/v2/flac"
+	"github.com/gopxl/beep/v2/mp3"
+	"github.com/gopxl/beep/v2/vorbis"
+	"github.com/gopxl/beep/v2/wav"
 )
 
 type ResourceBank map[string]*Resource

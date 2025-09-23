@@ -9,7 +9,7 @@ import (
 	"github.com/Zyko0/go-sdl3/ttf"
 	"github.com/blang/semver"
 	"github.com/cavaliergopher/grab/v3"
-	"github.com/faiface/beep"
+	"github.com/gopxl/beep/v2"
 )
 
 const (
