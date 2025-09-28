@@ -529,7 +529,7 @@ func main() {
 				gradient.SetColorMod(menuColor.Mult(0.4 * lightboxEffect).RGB())
 
 				gradient.SetBlendMode(sdl.BLENDMODE_ADD)
-				globals.Renderer.RenderTexture(gradient, nil, &sdl.FRect{0, 0, float32(screenWidth), float32(screenHeight / 2)})
+				globals.Renderer.RenderTexture(gradient, nil, &sdl.FRect{0, 0, float32(screenWidth), float32(screenHeight / 4 * 3)})
 				gradient.SetBlendMode(sdl.BLENDMODE_BLEND)
 				gradient.SetColorMod(255, 255, 255)
 			}
