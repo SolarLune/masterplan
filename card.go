@@ -303,6 +303,7 @@ type Card struct {
 	ShadowTexture           *sdl.Texture
 	Dragging                bool
 	Draggable               bool
+	VisualDragging          bool
 	DragStart               Vector
 	DragStartOffset         Vector
 	ID                      int64
@@ -378,6 +379,8 @@ func NewCard(page *Page, contentType string) *Card {
 
 	globals.Hierarchy.AddCard(card)
 
+	PlayUISound(UISoundTypeTap)
+
 	return card
 
 }
@@ -400,9 +403,15 @@ func (card *Card) Update() {
 		if card.Dragging {
 			card.Rect.X = -card.DragStartOffset.X + globals.Mouse.WorldPosition().X
 			card.Rect.Y = -card.DragStartOffset.Y + globals.Mouse.WorldPosition().Y
+
+			if card.DragStart.Sub(globals.Mouse.WorldPosition()).Magnitude() > 8 {
+				card.VisualDragging = true
+			}
+
 			if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
 				card.StopDragging()
 			}
+
 		}
 
 		rectSize := float32(8)
@@ -708,7 +717,7 @@ func (card *Card) Update() {
 		card.ShadowDisplayPosition.X += SmoothLerpTowards(tx, card.ShadowDisplayPosition.X, softness)
 		card.ShadowDisplayPosition.Y += SmoothLerpTowards(ty, card.ShadowDisplayPosition.Y, softness)
 
-		if card.Dragging {
+		if card.VisualDragging {
 			tx -= 4
 			ty -= 12
 		}
@@ -722,52 +731,52 @@ func (card *Card) Update() {
 
 		card.LockResizingAspectRatio = 0
 
-	}
+		if card.selected {
 
-	if card.Page.IsCurrent() && card.selected {
+			if globals.State != StateExport {
 
-		if globals.State != StateExport {
+				if globals.Keybindings.Pressed(KBExpandCardHorizontally) {
+					globals.Keybindings.Shortcuts[KBExpandCardHorizontally].ConsumeKeys()
+					w := card.Rect.W
+					h := card.Rect.H
+					card.Recreate(w+globals.GridSize, h)
+					card.CreateUndoState = true
+				}
 
-			if globals.Keybindings.Pressed(KBExpandCardHorizontally) {
-				globals.Keybindings.Shortcuts[KBExpandCardHorizontally].ConsumeKeys()
-				w := card.Rect.W
-				h := card.Rect.H
-				card.Recreate(w+globals.GridSize, h)
-				card.CreateUndoState = true
+				if globals.Keybindings.Pressed(KBShrinkCardHorizontally) {
+					globals.Keybindings.Shortcuts[KBShrinkCardHorizontally].ConsumeKeys()
+					w := card.Rect.W
+					h := card.Rect.H
+					card.Recreate(w-globals.GridSize, h)
+					card.CreateUndoState = true
+				}
+
+				if globals.Keybindings.Pressed(KBExpandCardVertically) {
+					globals.Keybindings.Shortcuts[KBExpandCardVertically].ConsumeKeys()
+					w := card.Rect.W
+					h := card.Rect.H
+					card.Recreate(w, h+globals.GridSize)
+					card.CreateUndoState = true
+				}
+
+				if globals.Keybindings.Pressed(KBShrinkCardVertically) {
+					globals.Keybindings.Shortcuts[KBShrinkCardVertically].ConsumeKeys()
+					w := card.Rect.W
+					h := card.Rect.H
+					card.Recreate(w, h-globals.GridSize)
+					card.CreateUndoState = true
+				}
+
 			}
 
-			if globals.Keybindings.Pressed(KBShrinkCardHorizontally) {
-				globals.Keybindings.Shortcuts[KBShrinkCardHorizontally].ConsumeKeys()
-				w := card.Rect.W
-				h := card.Rect.H
-				card.Recreate(w-globals.GridSize, h)
-				card.CreateUndoState = true
+			if globals.State == StateNeutral && globals.Keybindings.Pressed(KBUnlinkCard) {
+				globals.Keybindings.Shortcuts[KBUnlinkCard].ConsumeKeys()
+				if len(card.Links) > 0 {
+					globals.EventLog.Log("Removed all connections from currently selected Card(s).", false)
+				}
+				card.UnlinkAll()
 			}
 
-			if globals.Keybindings.Pressed(KBExpandCardVertically) {
-				globals.Keybindings.Shortcuts[KBExpandCardVertically].ConsumeKeys()
-				w := card.Rect.W
-				h := card.Rect.H
-				card.Recreate(w, h+globals.GridSize)
-				card.CreateUndoState = true
-			}
-
-			if globals.Keybindings.Pressed(KBShrinkCardVertically) {
-				globals.Keybindings.Shortcuts[KBShrinkCardVertically].ConsumeKeys()
-				w := card.Rect.W
-				h := card.Rect.H
-				card.Recreate(w, h-globals.GridSize)
-				card.CreateUndoState = true
-			}
-
-		}
-
-		if globals.State == StateNeutral && globals.Keybindings.Pressed(KBUnlinkCard) {
-			globals.Keybindings.Shortcuts[KBUnlinkCard].ConsumeKeys()
-			if len(card.Links) > 0 {
-				globals.EventLog.Log("Removed all connections from currently selected Card(s).", false)
-			}
-			card.UnlinkAll()
 		}
 
 	}
@@ -1027,7 +1036,7 @@ func (card *Card) Name() string {
 	case ContentTypeTable:
 		text = "Table"
 	case ContentTypeInternet:
-		text = "Web"
+		text = "Internet"
 	default:
 		text = card.Properties.Get("description").AsString()
 	}
@@ -1854,6 +1863,7 @@ func (card *Card) StartDragging() {
 
 func (card *Card) StopDragging() {
 	card.Dragging = false
+	card.VisualDragging = false
 	card.LockPosition()
 
 	card.CreateUndoState = true
@@ -2132,6 +2142,8 @@ func (card *Card) ReceiveMessage(message *Message) {
 		card.Page.Grid.Remove(card)
 		card.Page.UpdateStacks = true
 
+		PlayUISound(UISoundTypeTap)
+
 		for _, c := range card.Links {
 			if c.Start == card {
 				card.Unlink(c.End)
@@ -2145,6 +2157,7 @@ func (card *Card) ReceiveMessage(message *Message) {
 		card.Page.Project.UndoHistory.Capture(state)
 
 	} else if message.Type == MessageCardRestored {
+		PlayUISound(UISoundTypeTap)
 		card.Page.AddDrawable(card.Drawable)
 		card.Page.Grid.Put(card)
 		card.Page.UpdateStacks = true
@@ -2277,9 +2290,10 @@ func (card *Card) Collapse() {
 
 	if card.Collapsed == CollapsedNone {
 		card.Recreate(card.Rect.W, card.Contents.Container().IdealSize().Y)
-
+		PlayUISound(UISoundTypeTransitionUp)
 	} else {
 		card.Recreate(card.Rect.W, globals.GridSize)
+		PlayUISound(UISoundTypeTransitionDown)
 	}
 
 }

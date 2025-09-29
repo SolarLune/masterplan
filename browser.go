@@ -68,6 +68,7 @@ func NewBrowserTab(w, h int, contents *InternetContents) (*BrowserTab, error) {
 			chromedp.Flag("disable-background-timer-throttling", true),
 			chromedp.Flag("disable-backgrounding-occluded-windows", true),
 			chromedp.Flag("disable-renderer-backgrounding", true),
+			chromedp.Flag("disable-accelerated-2d-canvas", false),
 			// chromedp.Flag("disable-breakpad", true),
 			// chromedp.Flag("disable-client-side-phishing-detection", true),
 			// chromedp.Flag("disable-default-apps", true),
@@ -730,6 +731,10 @@ func (b *BrowserTab) Navigate(url string) {
 		globals.EventLog.Log("Error navigating to website: [ %s ];\nAre you sure the website URL is correct?\nError: [ %s ]", true, url, err.Error())
 		b.LoadingWebpage.Store(false)
 	}
+}
+
+func (b *BrowserTab) NavigateHome() {
+	b.Navigate(globals.Settings.Get(SettingsBrowserDefaultURL).AsString())
 }
 
 func (b *BrowserTab) Valid() bool {

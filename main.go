@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/fs"
 	"log"
@@ -91,8 +92,13 @@ func main() {
 	// sdl.GL_SetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, 1)
 	// sdl.Init(sdl.INIT_VIDEO)
 
-	// We want this here because releaseMode can change because of build tags, so we want to be sure all init() functions run to ensure the releaseMode variable is accurate
-	if globals.ReleaseMode != ReleaseModeDev {
+	originalStdout := os.Stdout
+	reader, writer, _ := os.Pipe()
+	os.Stdout = writer
+	os.Stderr = writer
+	log.SetOutput(writer)
+
+	go func() {
 
 		// Redirect STDERR and STDOUT to log.txt in release mode
 
@@ -108,17 +114,23 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		f, err := os.Create(logPath)
+
+		logFile, err := os.Create(logPath)
 		if err != nil {
 			panic(err)
 		}
 
-		os.Stderr = f
-		os.Stdout = f
+		defer logFile.Close()
 
-		log.SetOutput(f)
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			s := scanner.Text() + "\n"
+			logFile.WriteString(s)
+			logFile.Sync()
+			originalStdout.WriteString(s)
+		}
 
-	}
+	}()
 
 	// We want to defer a function to recover out of a crash if in release mode.
 	// We do this because by default, Go's stderr points directly to the OS's syserr buffer.
@@ -2204,6 +2216,8 @@ user data will be loaded from the browser for use with Web Cards.
 If it exists already, this folder should be something like:
 "~/.config/chromium/", or "%LOCALAPPDATA%\Google\Chrome\User Data".
 The folder you specify should already have a "Default" folder within it.
+
+If not specified, it defaults to the temporary directory for your OS.
 `))
 
 	row.Add("", NewLabel("Browser User-Data Path:", nil, false, AlignLeft))
@@ -3760,7 +3774,14 @@ horizontally.`))
 				activeCard.LockPosition()
 			}
 		}
-	}, nil, InternetCardSize128, InternetCardSize256, InternetCardSize320, InternetCardSize512, InternetCardSize1024)
+	}, nil,
+		InternetCardSize128,
+		InternetCardSize256,
+		InternetCardSize384,
+		InternetCardSize512,
+		InternetCardSize768,
+		InternetCardSize1024,
+	)
 
 	aspectRatioDropdown := NewDropdown(&sdl.FRect{0, 0, 32, 32}, false, func(index int) {
 		if activeCard != nil {
@@ -3827,7 +3848,7 @@ horizontally.`))
 	row.Add("spacer", NewSpacer(nil))
 
 	row = root.AddRow(AlignCenter)
-	row.Add("copy label", NewLabel("Copy to Destination Cards", nil, false, AlignLeft))
+	row.Add("copy label", NewLabel("Copy to Destination Internet Cards", nil, false, AlignLeft))
 
 	row = root.AddRow(AlignCenter)
 	row.Add("copy settings", NewButton("Copy Settings", nil, nil, false, func() {

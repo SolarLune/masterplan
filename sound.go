@@ -232,13 +232,16 @@ func init() {
 }
 
 const (
-	UISoundTypeSelect    UISoundType = "select"
-	UISoundTypeTap                   = "tap"
-	UISoundTypeSwipe                 = "swipe"
-	UISoundTypeType                  = "type"
-	UISoundTypeToggleOff             = "toggle_off"
-	UISoundTypeToggleOn              = "toggle_on"
-	UISoundTypeProgress              = "progress_loop"
+	UISoundTypeSelect         UISoundType = "select"
+	UISoundTypeButton         UISoundType = "button"
+	UISoundTypeTap            UISoundType = "tap"
+	UISoundTypeSwipe          UISoundType = "swipe"
+	UISoundTypeType           UISoundType = "type"
+	UISoundTypeToggleOff      UISoundType = "toggle_off"
+	UISoundTypeToggleOn       UISoundType = "toggle_on"
+	UISoundTypeProgress       UISoundType = "progress_loop"
+	UISoundTypeTransitionDown UISoundType = "transition_down"
+	UISoundTypeTransitionUp   UISoundType = "transition_up"
 )
 
 func PlayUISound(soundType UISoundType) {

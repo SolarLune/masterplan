@@ -3,6 +3,9 @@
 [ ] Fix web card goroutine not quitting
 [x] Add audio when moving cards around
 [ ] Add ambient bgm???
+[x] Fix cards not collapsing / uncollapsing properly when they're text cards and they have larger sizes.
+[ ] Add collapsing for web cards (maybe to just single-line shades with the web card icon and a label for the URL?)
+[ ] Add freezing / unfreezing for web cards
 
 [ ] Add the ability to pack all relevant files into the .plan file?
 [ ] Add the ability to create new pages from the pages view?

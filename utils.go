@@ -123,6 +123,10 @@ func (point Vector) Sub(other Vector) Vector {
 	return Vector{point.X - other.X, point.Y - other.Y}
 }
 
+func (point Vector) SubF(x, y float32) Vector {
+	return Vector{point.X - x, point.Y - y}
+}
+
 func (point Vector) Add(other Vector) Vector {
 	return Vector{point.X + other.X, point.Y + other.Y}
 }

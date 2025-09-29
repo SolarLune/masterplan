@@ -325,7 +325,7 @@ var playingSounds = map[string]time.Time{}
 func (resource *Resource) AsNewSound(limitPlayback bool, channel int) (*Sound, error) {
 
 	if limitPlayback {
-		if s, ok := playingSounds[resource.LocalFilepath]; ok && time.Since(s) < time.Millisecond*100 {
+		if s, ok := playingSounds[resource.LocalFilepath]; ok && time.Since(s) < time.Millisecond*50 {
 			return nil, nil
 		}
 	}

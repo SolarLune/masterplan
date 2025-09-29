@@ -596,13 +596,8 @@ func (nc *NumberedContents) Update() {
 
 	nc.DefaultContents.Update()
 
-	rect := nc.Label.Rectangle()
-	rect.W = nc.container.Rect.W - 32
-	rect.H = nc.container.Rect.H - 32
-	if rect.H < 32 {
-		rect.H = 32
-	}
-	nc.Label.SetRectangle(rect)
+	// This method correctly sets the label size such that Numbered Cards collapse properly.
+	nc.Label.SetMaxSize(nc.container.Rect.W-32, nc.Label.maxSize.Y)
 
 }
 
@@ -1774,6 +1769,9 @@ func (tc *TimerContents) SetScheduleTime(hour, minute int) string {
 }
 
 func (tc *TimerContents) Update() {
+
+	// This method correctly sets the label size such that Numbered Cards collapse properly.
+	tc.ClockLabel.SetMaxSize(tc.container.Rect.W-32, tc.ClockLabel.maxSize.Y)
 
 	gs := globals.GridSize
 	r := tc.Name.Rectangle()
@@ -3118,6 +3116,8 @@ type SubPageContents struct {
 	SubpageScreenshot *RenderTexture
 	ScreenshotImage   *GUIImage
 	ScreenshotRow     *ContainerRow
+
+	UncollapsedScreenshotSize Vector
 }
 
 func NewSubPageContents(card *Card) *SubPageContents {
@@ -3238,6 +3238,8 @@ func NewSubPageContents(card *Card) *SubPageContents {
 
 func (sb *SubPageContents) Update() {
 
+	sb.NameLabel.SetMaxSize(sb.container.Rect.W-32, sb.NameLabel.maxSize.Y)
+
 	kb := globals.Keybindings
 	if sb.Card.IsSelected() && globals.State == StateNeutral && kb.Pressed(KBSubpageEditText) {
 		kb.Shortcuts[KBSubpageEditText].ConsumeKeys()
@@ -3265,10 +3267,15 @@ func (sb *SubPageContents) Update() {
 
 	size := math.Min(float64(w), float64(h))
 
-	sb.ScreenshotImage.Rect.W = float32(size)
-	sb.ScreenshotImage.Rect.H = float32(size)
-	sb.ScreenshotRow.ForcedSize.X = float32(size)
-	sb.ScreenshotRow.ForcedSize.Y = float32(size)
+	if size != 0 && sb.Card.Collapsed == CollapsedNone {
+		sb.UncollapsedScreenshotSize.X = float32(size)
+		sb.UncollapsedScreenshotSize.Y = float32(size)
+	}
+
+	sb.ScreenshotImage.Rect.W = sb.UncollapsedScreenshotSize.X
+	sb.ScreenshotImage.Rect.H = sb.UncollapsedScreenshotSize.Y
+	sb.ScreenshotRow.ForcedSize.X = sb.UncollapsedScreenshotSize.X
+	sb.ScreenshotRow.ForcedSize.Y = sb.UncollapsedScreenshotSize.Y
 
 	sb.DefaultContents.Update()
 
@@ -4742,6 +4749,7 @@ func NewInternetContents(card *Card) *InternetContents {
 	buttonNames := []string{
 		"menu",
 		"edit",
+		"home",
 		"refresh",
 		"backward",
 		"forward",
@@ -4820,6 +4828,13 @@ func NewInternetContents(card *Card) *InternetContents {
 			button = NewIconButtonTintless(
 				0, 0, &sdl.FRect{X: 400, Y: 160, W: 32, H: 32}, globals.GUITexture, true, func() {
 					globals.MenuSystem.Get("web card settings").Open()
+				},
+			)
+
+		case "home":
+			button = NewIconButtonTintless(
+				0, 0, &sdl.FRect{X: 336, Y: 192, W: 32, H: 32}, globals.GUITexture, true, func() {
+					web.BrowserTab.NavigateHome()
 				},
 			)
 
