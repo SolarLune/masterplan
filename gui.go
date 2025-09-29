@@ -232,10 +232,7 @@ func (iconButton *IconButton) Update() {
 		iconButton.OnPressed()
 		iconButton.tween.Reset()
 
-		snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/tap_01.wav").AsNewSound(true, AudioChannelUI)
-		if snd != nil {
-			snd.Play()
-		}
+		PlayUISound(UISoundTypeTap)
 
 	}
 
@@ -244,10 +241,8 @@ func (iconButton *IconButton) Update() {
 		iconButton.OnRightClickPressed()
 		iconButton.tween.Reset()
 
-		snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/tap_01.wav").AsNewSound(true, AudioChannelUI)
-		if snd != nil {
-			snd.Play()
-		}
+		PlayUISound(UISoundTypeTap)
+
 	}
 
 	iconButton.Rect.W = iconButton.originalSize.X * iconButton.Scale.X
@@ -440,10 +435,7 @@ func NewCheckbox(x, y float32, worldSpace bool, property *Property) *Checkbox {
 			return
 		}
 
-		snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/select.wav").AsNewSound(true, AudioChannelUI)
-		if snd != nil {
-			snd.Play()
-		}
+		PlayUISound(UISoundTypeSelect)
 
 		if checkbox.Property != nil {
 			checkbox.Property.Set(!checkbox.Property.AsBool())
@@ -696,6 +688,9 @@ func (spinner *NumberSpinner) Update() {
 			}
 			if spinner.DragTick >= 1 {
 				spinner.DragTick = 0
+
+				PlayUISound(UISoundTypeType)
+
 				if pos.Y < spinner.DragStart.Y {
 					spinner.Increase.OnPressed()
 				} else {
@@ -820,10 +815,7 @@ func (button *Button) Update() {
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateContextMenu || globals.State == StateMapEditing || globals.State == StateTextEditing) {
 			if button.OnPressed != nil {
 
-				snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/tap_01.wav").AsNewSound(true, AudioChannelUI)
-				if snd != nil {
-					snd.Play()
-				}
+				PlayUISound(UISoundTypeTap)
 
 				globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 				button.OnPressed()
@@ -2083,7 +2075,7 @@ func (label *Label) Update() {
 
 			}
 
-			if label.Editable && (mousePos.Inside(label.Rect) || label.Editing) {
+			if !label.Editing && label.Editable && mousePos.Inside(label.Rect) {
 				rect := label.Rectangle()
 				rect.Y++
 				rect.W -= 1
@@ -4018,6 +4010,10 @@ func (ds *DraggableSpace) Draw() {
 		globals.Mouse.SetCursor(CursorHandGrab)
 
 		ds.NewCurrent = int(math.Round(float64((cursorPos.X - ds.Rect.X) / stepWidth)))
+
+		if ds.NewCurrent != ds.Current {
+			PlayUISound(UISoundTypeType)
+		}
 
 		if ds.NewCurrent < ds.Min {
 			ds.NewCurrent = ds.Min

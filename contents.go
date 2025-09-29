@@ -228,10 +228,7 @@ func (cc *CheckboxContents) Update() {
 				prop := cc.Card.Properties.Get("checked")
 				prop.Set(!prop.AsBool())
 
-				snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/select.wav").AsNewSound(true, AudioChannelUI)
-				if snd != nil {
-					snd.Play()
-				}
+				PlayUISound(UISoundTypeSelect)
 
 			}
 		} else if kb.Pressed(KBCheckboxEditText) {
@@ -285,10 +282,7 @@ func (cc *CheckboxContents) Draw() {
 
 			if cc.PercentageOfChildrenComplete > 0.99 {
 				if prev <= 0.99 {
-					snd, _ := globals.Resources.Get("assets/sounds/snddev_sine/select.wav").AsNewSound(true, AudioChannelUI)
-					if snd != nil {
-						snd.Play()
-					}
+					PlayUISound(UISoundTypeButton)
 				}
 				cc.PercentageOfChildrenComplete = 1
 			}
@@ -4635,8 +4629,9 @@ func (t *TableContents) Collapseable() bool {
 const (
 	InternetCardSize128  = "128p"
 	InternetCardSize256  = "256p"
-	InternetCardSize320  = "320p"
+	InternetCardSize384  = "384p"
 	InternetCardSize512  = "512p"
+	InternetCardSize768  = "768p"
 	InternetCardSize1024 = "1024p"
 
 	InternetCardFPSAsOftenAsPossible = "As Often As Possible"
