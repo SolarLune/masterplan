@@ -246,6 +246,11 @@ const (
 
 func PlayUISound(soundType UISoundType) {
 
+	// Don't play sounds when loading projects
+	if globals.NextProject != nil && globals.NextProject.Loading {
+		return
+	}
+
 	snd, _ := globals.Resources.Get(uiSounds[soundType][rand.IntN(len(uiSounds[soundType]))]).AsNewSound(true, AudioChannelUI)
 	if snd != nil {
 		snd.Play()

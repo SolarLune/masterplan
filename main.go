@@ -3927,7 +3927,7 @@ horizontally.`))
 					}
 
 					urlLabel.OnClickOut = func() {
-						if wc := card.Contents.(*InternetContents); wc.BrowserTab != nil {
+						if wc := card.Contents.(*InternetContents); wc.BrowserTab != nil && wc.BrowserTab.CurrentURL != urlLabel.TextAsString() {
 							wc.BrowserTab.Navigate(urlLabel.TextAsString())
 						}
 					}

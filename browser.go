@@ -105,8 +105,14 @@ func NewBrowserTab(w, h int, contents *InternetContents) (*BrowserTab, error) {
 
 		// Try context to confirm it exists and is good
 		if err := chromedp.Run(browserContext, chromedp.Reload()); err != nil {
-			globals.EventLog.Log("Error creating web card: %s", true, err.Error())
-			cancel() // Cancel the broken browser context
+			errText := err.Error()
+
+			if errText == `exec: "google-chrome": executable file not found in $PATH` {
+				errText = "Google Chrome executable not found;\nare you sure you have a recent version of Chrome (or a Chrome-based browser) installed?"
+			}
+			globals.EventLog.Log("Error creating web card: %s", true, errText)
+
+			cancel() // Cancel the broken browser context (unsure if this is strictly necessary)
 			return nil, err
 		}
 
