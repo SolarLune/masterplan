@@ -37,7 +37,7 @@ func build(baseDir string, releaseMode string, targetOS, targetArch string) {
 		panic(err)
 	}
 
-	copyTo(filepath.Join("..", "changelog.txt"), filepath.Join(baseDir, "changelog.txt"))
+	copyTo("changelog.txt", filepath.Join(baseDir, "changelog.txt"))
 
 	if forMac {
 		baseDir = filepath.Join(baseDir, "MasterPlan.app", "Contents", "MacOS")
@@ -45,7 +45,7 @@ func build(baseDir string, releaseMode string, targetOS, targetArch string) {
 
 	// Copy the assets folder to the bin directory
 
-	copyTo(filepath.Join("..", "assets"), filepath.Join(baseDir, "assets"))
+	copyTo("assets", filepath.Join(baseDir, "assets"))
 
 	fmt.Println("<Assets copied.>")
 
@@ -57,7 +57,7 @@ func build(baseDir string, releaseMode string, targetOS, targetArch string) {
 
 		// Copy the resources.syso so the executable has the generated icon and executable properties compiled in.
 		// This is done using go generate with goversioninfo downloaded and "// go:generate goversioninfo -64=true" in main.go.
-		copyTo(filepath.Join("..", "other_sources", "resource.syso"), filepath.Join("..", "resource.syso"))
+		copyTo(filepath.Join("other_sources", "resource.syso"), filepath.Join("..", "resource.syso"))
 
 		// Copy in the SDL requirements (.dll files)
 		filepath.Walk(filepath.Join("other_sources"), func(path string, info fs.FileInfo, err error) error {
@@ -96,9 +96,9 @@ func build(baseDir string, releaseMode string, targetOS, targetArch string) {
 
 		// Also note that I know it's weird that I'm joining the build script directory here because baseDir is already a folder up; this makes it so
 		// bin is the running directory
-		c = exec.Command(`go`, `build`, `-C`, `..`, `-ldflags`, `-s -w -H windowsgui`, `-tags`, releaseMode, `-o`, filepath.Join("build_script", outputFilepath), `.`)
+		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w -H windowsgui`, `-tags`, releaseMode, `-o`, outputFilepath, `.`)
 	} else {
-		c = exec.Command(`go`, `build`, `-C`, `..`, `-ldflags`, `-s -w`, `-tags`, releaseMode, `-o`, filepath.Join("build_script", outputFilepath), `.`)
+		c = exec.Command(`go`, `build`, `-ldflags`, `-s -w`, `-tags`, releaseMode, `-o`, outputFilepath, `.`)
 	}
 
 	fmt.Println("<Building binary with args: ", c.Args, ".>")
@@ -113,8 +113,8 @@ func build(baseDir string, releaseMode string, targetOS, targetArch string) {
 	// Add the stuff for Mac
 	if forMac {
 		baseDir = filepath.Clean(filepath.Join(baseDir, ".."))
-		copyTo(filepath.Join("..", "other_sources", "Info.plist"), filepath.Join(baseDir, "Info.plist"))
-		copyTo(filepath.Join("..", "other_sources", "macicons.icns"), filepath.Join(baseDir, "Resources", "macicons.icns"))
+		copyTo(filepath.Join("other_sources", "Info.plist"), filepath.Join(baseDir, "Info.plist"))
+		copyTo(filepath.Join("other_sources", "macicons.icns"), filepath.Join(baseDir, "Resources", "macicons.icns"))
 	}
 
 	// The final executable should be, well, executable for everybody. 0777 should do it for Mac and Linux.
@@ -127,7 +127,7 @@ func build(baseDir string, releaseMode string, targetOS, targetArch string) {
 
 	if forWin {
 		// Remove Resources; we don't need it in the root directory anymore after building.
-		os.Remove(filepath.Join("..", "resource.syso"))
+		os.Remove(filepath.Join("resource.syso"))
 	}
 
 }
@@ -255,8 +255,8 @@ func main() {
 			targetArch = *archFlag
 		}
 
-		build(filepath.Join("..", "bin", targetName+"-0.9-Release-"+targetArch), "release", targetName, targetArch)
-		build(filepath.Join("..", "bin", targetName+"-0.9-Demo-"+targetArch), "demo", targetName, targetArch)
+		build(filepath.Join("bin", targetName+"-0.9-Release-"+targetArch), "release", targetName, targetArch)
+		build(filepath.Join("bin", targetName+"-0.9-Demo-"+targetArch), "demo", targetName, targetArch)
 	}
 	if *compressMP {
 		compress() // Compresses all built binary folders in the ./bin folder

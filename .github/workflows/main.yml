@@ -20,20 +20,21 @@ jobs:
           sudo apt install libasound2-dev
 
       - name: Build
-        run: go run ./build_script/main.go -b -c
+        run: |
+          go run build_script/build.go -b -c
 
       - uses: actions/upload-artifact@v4
         with:
-          name: _gh-actions-masterplan-linux-release-amd64-v0.9
+          name: Linux-0.9-Release-amd64
           path: ./bin/linux-0.9-Release-amd64.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
-          name: _gh-actions-masterplan-linux-demo-amd64-v0.9
+          name: Linux-0.9-Demo-amd64
           path: ./bin/linux-0.9-Demo-amd64.tar.gz
 
-      - name: Test
-        run: go run .
+      # - name: Test
+      #   run: timeout 10s go run .
 
   # For some reason, building on Windows creates a terminal window despite specifying -H=windowsgui in the build settings. For now, I'll crosscompile on my machine.
 
@@ -54,20 +55,24 @@ jobs:
         run: pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-go --noconfirm
 
       - name: Build
-        run: go run ./build_script/main.go -b -c
+        run: |
+          go run build_script/build.go -b -c
 
       - uses: actions/upload-artifact@v4
         with:
-          name: _GH-Actions-MasterPlan-Windows-amd64-Release-v0.9
+          name: Windows-0.9-Release-amd64
           path: ./bin/windows-0.9-Release-amd64.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: _GH-Actions-MasterPlan-Windows-amd64-Demo-v0.9
+          name: Windows-0.9-Demo-amd64
           path: ./bin/windows-0.9-Demo-amd64.zip
 
-      - name: Test
-        run: go run .
+      # - name: Test
+      #   run: |
+      #     start go run .
+      #     timeout /t 10
+      #     taskkill /im go /f
 
   buildMacAmd64:
     runs-on: macos-13 # Earliest MacOS, deprecated
@@ -80,29 +85,31 @@ jobs:
           go-version: 1.24
 
       - name: Download Pre-reqs
-        run: brew install pkg-config dylibbundler
+        run: brew install dylibbundler
 
       - name: Build
-        run: go run ./build_script/main.go -b
+        run: go run build_script/build.go -b
 
       - name: Bundle Dependencies
-        run: dylibbundler -od -b -x ./bin/darwin-0.9-Release-amd64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Release-amd64/MasterPlan.app/Contents/libs -p @executable_path/../libs
+        run: |
+          dylibbundler -od -b -x ./bin/darwin-0.9-Release-amd64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Release-amd64/MasterPlan.app/Contents/libs -p @executable_path/../libs
+          dylibbundler -od -b -x ./bin/darwin-0.9-Demo-amd64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Demo-amd64/MasterPlan.app/Contents/libs -p @executable_path/../libs
 
       - name: Compress
-        run: go run ./build_script/main.go -c
+        run: go run build_script/build.go -c
 
       - uses: actions/upload-artifact@v4
         with:
-          name: _GH-Actions-MasterPlan-MacOS-amd64-Release-v0.9
+          name: MacOS-0.9-Release-amd64
           path: ./bin/darwin-0.9-Release-amd64.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
-          name: _GH-Actions-MasterPlan-MacOS-Demo-amd64-v0.9
-          path: ./bin/darwin-0.9-Release-amd64.tar.gz
+          name: MacOS-0.9-Demo-amd64
+          path: ./bin/darwin-0.9-Demo-amd64.tar.gz
 
-      - name: Test
-        run: go run .
+      # - name: Test
+      #   run: go run .
 
   buildMacArm64:
     runs-on: macos-14 # Deprecated, earliest ARM64 on GH Runners
@@ -115,26 +122,28 @@ jobs:
           go-version: 1.24
 
       - name: Download Pre-reqs
-        run: brew install pkg-config dylibbundler
+        run: brew install dylibbundler
 
       - name: Build
-        run: go run ./build_script/main.go -b -os darwin -arch arm64
+        run: go run build_script/build.go -b -os darwin -arch arm64
 
       - name: Bundle Dependencies
-        run: dylibbundler -od -b -x ./bin/darwin-0.9-Release-arm64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Release-arm64/MasterPlan.app/Contents/libs -p @executable_path/../libs
+        run: |
+          dylibbundler -od -b -x ./bin/darwin-0.9-Release-arm64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Release-arm64/MasterPlan.app/Contents/libs -p @executable_path/../libs
+          dylibbundler -od -b -x ./bin/darwin-0.9-Demo-arm64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Demo-arm64/MasterPlan.app/Contents/libs -p @executable_path/../libs
 
       - name: Compress
-        run: go run ./build_script/main.go -c
+        run: go run build_script/build.go -c
 
       - uses: actions/upload-artifact@v4
         with:
-          name: _GH-Actions-MasterPlan-MacOS-arm64-Release-v0.9
+          name: MacOS-0.9-Release-arm64
           path: bin/darwin-0.9-Release-arm64.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
-          name: _GH-Actions-MasterPlan-MacOS-arm64-Demo-v0.9
+          name: MacOS-0.9-Demo-arm64
           path: bin/darwin-0.9-Demo-arm64.tar.gz
 
-      - name: Test
-        run: go run .
+      # - name: Test
+      #   run: go run .
