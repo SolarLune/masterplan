@@ -1998,8 +1998,6 @@ MasterPlan to take effect.`))
 	audioBufferBG := NewButtonGroup(&sdl.FRect{0, 0, 256, 96}, false, func(index int) {
 		globals.EventLog.Log("Audio playback buffer size set to %s; changes will take effect on program restart.", true, globals.Settings.Get(SettingsAudioBufferSize).AsString())
 	}, globals.Settings.Get(SettingsAudioBufferSize),
-		AudioBufferSize32,
-		AudioBufferSize64,
 		AudioBufferSize128,
 		AudioBufferSize256,
 		AudioBufferSize512,
@@ -4053,12 +4051,12 @@ func InitSpeaker() {
 	bufferSize, _ := strconv.Atoi(globals.Settings.Get(SettingsAudioBufferSize).AsString())
 
 	if bufferSize <= 0 {
-		bufferSize = 512
+		bufferSize = 1024
 		nonPositive = true
 	}
 
 	if nonPositive {
-		globals.EventLog.Log("Warning: sample rate or buffer size is a non-positive integer. Initializing speaker with default values (44.1khz @ 512 buffer size).", true)
+		globals.EventLog.Log("Warning: sample rate or buffer size was a non-positive integer. Initializing speaker with default values (44.1khz @ 1024 buffer size).", true)
 	}
 
 	initialized := globals.SpeakerInitialized

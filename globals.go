@@ -65,7 +65,6 @@ type Globals struct {
 	ReleaseMode       string
 
 	Settings              *Properties
-	SettingsLoaded        bool
 	ChosenAudioSampleRate beep.SampleRate
 	ChosenAudioBufferSize int
 	SpeakerInitialized    bool

@@ -5,12 +5,13 @@ import (
 	"os"
 
 	"github.com/adrg/xdg"
+	"github.com/blang/semver"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
 
 const (
-	SettingsPath                         = "MasterPlan/settings08.json"
+	SettingsPath                         = "MasterPlan/settings.json"
 	SettingsLegacyPath                   = "masterplan-settings08.json"
 	SettingsTheme                        = "Theme"
 	SettingsWindowPosition               = "WindowPosition"
@@ -114,8 +115,6 @@ const (
 )
 
 const (
-	AudioBufferSize32    = "32"
-	AudioBufferSize64    = "64"
 	AudioBufferSize128   = "128"
 	AudioBufferSize256   = "256"
 	AudioBufferSize512   = "512"
@@ -203,10 +202,8 @@ func NewProgramSettings(load bool) *Properties {
 
 	props.Get(SettingsAudioSoundVolume).Set(0.8)
 	props.Get(SettingsAudioUIVolume).Set(0.8)
-
-	// Audio settings; not shown in MasterPlan because it's very rarely necessary to tweak
 	props.Get(SettingsAudioSampleRate).Set(AudioSampleRate44100)
-	props.Get(SettingsAudioBufferSize).Set(AudioBufferSize512)
+	props.Get(SettingsAudioBufferSize).Set(AudioBufferSize1024)
 
 	props.Get(SettingsWindowTransparency).Set(1)
 	props.Get(SettingsWindowTransparencyMode).Set(WindowTransparencyAlways)
@@ -221,20 +218,35 @@ func NewProgramSettings(load bool) *Properties {
 
 	if load {
 
-		path, _ := xdg.ConfigFile(SettingsPath)
+		settingsPath, _ := xdg.ConfigFile(SettingsPath)
+		oldPath, _ := xdg.ConfigFile("MasterPlan/settings08.json")
+
+		// Going from settings08.json to just settings.json
+		if FileExists(oldPath) {
+			os.Rename(oldPath, settingsPath)
+		}
 
 		// Attempt to load the properties here
-		if FileExists(path) {
-			jsonData, err := os.ReadFile(path)
+		if FileExists(settingsPath) {
+			jsonData, err := os.ReadFile(settingsPath)
 			if err != nil {
 				panic(err)
 			}
 
-			globals.SettingsLoaded = true
-
 			data := gjson.Get(string(jsonData), "properties").String()
 
 			props.Deserialize(data)
+
+			// Version overrides
+			if ver, err := semver.Parse(gjson.Get(string(jsonData), "version").String()); err == nil {
+
+				// Override audio settings
+				if ver.Major == 0 && ver.Minor < 9 {
+					props.Get(SettingsAudioBufferSize).Set(AudioBufferSize1024)
+					props.Get(SettingsAudioSampleRate).Set(AudioSampleRate44100)
+				}
+
+			}
 
 			recentFiles := gjson.Get(string(jsonData), "recent files")
 			if recentFiles.Exists() {

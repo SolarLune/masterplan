@@ -1,5 +1,59 @@
 -------
 
+v0.9.0
+
+------
+
+
+Massive QoL: Adding the Internet Card. The Internet Card allows you to embed Chrome tabs within MasterPlan. Note that this isn't performant, and is best used for small and quick informational browser windows, or for limited web media. This feature requires a Chrome-based browser to be installed (so Chrome, Chromium, etc). Chrome-based browsers like Brave or Opera may also work. You'll need to specify the user data directory if you want to keep your sessions, cookies, etc. from outside of MasterPlan. This would probably be the folder that has a "Default" folder in it.
+
+Known issues with the Internet Card: 
+  YouTube videos as played back on YouTube itself don't work properly when played back through the web card. A workaround is to play them from duckduckgo (or perhaps other sites).
+  Some webpages load infinitely, so the loading icon at the top-left appears infinitely.
+
+Massive QoL: This is mostly an internal change, but MasterPlan has moved from SDL2 to SDL3 with dynamically loaded extracted and loaded libraries. This should mean building MasterPlan is now simpler across different platforms, particularly on Windows. Frame timing might be a bit scuffed for now.
+QoL: This also means transparent window backgrounds are back!
+QoL: Sounds added! When clicking, dragging, selecting menu elements, etc., sounds play to help give feedback.
+QoL: Adding a Time Mde to Timer card. When in time mode, the card will enagage whenever the current system time is past the time on the card. When a checkbox is above it and enabled, the card is engaged, and if it is above and not enabled, the card is not engaged. This can be used to make everyday, regular todo lists (i.e. checkbox that says "Monday", underneath are Timer cards that engage at certain times to indicate tasks you should be doing).
+QoL: UI and art fixed up a bit to look overall significantly better. Shadows are also now smoother (this does not impact performance, it's just smoother shadow sprites).
+QoL: Fixing card shading to be consistent, and not for unshadeable cards (map and table, for example).
+QoL: Adding a customizeable "lightbox" visual effect towards the top of the window for aesthetics + "openness".
+QoL: Adding keybindings for expanding and shrinking cards vertically and horizontally.
+QoL: Cards now lift up when dragging them around.
+QoL: Dropdown GUI elements now have buttons to cycle through them without having to open the menu.
+QoL: Scrolling through menus is now smoother and less "jaggy" because of subpixel rendering.
+QoL: Dragging scrollbars is now a little less janky, and you can drag without the mouse being directly over the scroll area.
+QoL: Reimplementing different numbering styles and custom numbering separators (e.g. dash, dot, etc).
+QoL: Slider UI elements now display their values.
+QoL: Externally pasting text now creates a Note Card for it again.
+QoL: Reordering map tool buttons.
+QoL: The selection box drawing is now cleaner.
+QoL: Focusing on cards on undo now only pans the camera to the card if it's offscreen (so the camera doesn't jump around a lot necessarily while undoing a lot of different card changes).
+QoL: Minor change - the highlight rectangle around editable text only appears if you're not active editing the text for enhanced clarity.
+QoL: Adding keybinding to reset card size to original size.
+QoL: Pushing map elements now loops the elements around the map.
+QoL: Adding options to rotate and flip maps in the map editing menu.
+QoL: Adding option to reset all settings in General Settings section.
+QoL: Adding shortcuts to shift Map cards.
+QoL: Possibly fixed subpage cards not taking screenshots properly?
+QoL: Slight optimization in determining onscreen-ness of Cards. Previously this was done on-demand - now it's done once per frame.
+QoL: Adding ability to hide the maximum number for Numbered Cards.
+QoL: You can now click and drag up or down to change NumberSpinner current / max values.
+Minor QoL: Scrollbars that appears only when the mouse is near now are a little less sensitive.
+Minor QoL: It's now easier to scroll things to the top or bottom (by adding a margin).
+QoL: Adding a new theme, the "Snowman" theme.
+Slight QoL: Logging now gets output to both a log file and the terminal, if the application is launched through a terminal.
+
+FIX: Boolean Table cards are no longer stuck at being incomplete if you cycle through a row or column with all X's.
+FIX: Scrollbars now reliably draw over other UI elements.
+FIX: Adding table to the list of card names.
+FIX: Color mixing was incorrect sometimes, particularly for blinking elements.
+FIX / QoL: Fixed cards not collapsing properly. Cards now reliably collapse to one line, or a maximum size to display all UI elements on the card. Note that not all cards can collapse.
+FIX: You can now press buttons while linking cards, allowing you to be able to go into SubPage cards.
+FIX: Jumping from a Link card to another no longer causes an infinite loop and freezes and crashes MasterPlan.
+
+-------
+
 v0.8.0-alpha.8.1
 
 -------
