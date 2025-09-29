@@ -227,7 +227,7 @@ func (iconButton *IconButton) Update() {
 		return
 	}
 
-	if iconButton.CanPress && globals.Mouse.CurrentCursor == CursorNormal && ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active {
+	if iconButton.CanPress && (globals.Mouse.CurrentCursor == CursorNormal || globals.Mouse.CurrentCursor == CursorEyedropper) && ClickedInRect(iconButton.Rect, iconButton.WorldSpace) && iconButton.OnPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active {
 		globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
 		iconButton.OnPressed()
 		iconButton.tween.Reset()
@@ -236,7 +236,7 @@ func (iconButton *IconButton) Update() {
 
 	}
 
-	if iconButton.CanPress && globals.Mouse.CurrentCursor == CursorNormal && iconButton.OnRightClickPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active && globals.Mouse.WorldPosition().Inside(iconButton.Rect) && globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
+	if iconButton.CanPress && (globals.Mouse.CurrentCursor == CursorNormal || globals.Mouse.CurrentCursor == CursorEyedropper) && iconButton.OnRightClickPressed != nil && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateTextEditing || globals.State == StateMapEditing) && iconButton.Active && globals.Mouse.WorldPosition().Inside(iconButton.Rect) && globals.Mouse.Button(sdl.BUTTON_RIGHT).Pressed() {
 		globals.Mouse.Button(sdl.BUTTON_RIGHT).Consume()
 		iconButton.OnRightClickPressed()
 		iconButton.tween.Reset()
@@ -810,7 +810,7 @@ func (button *Button) Update() {
 
 	buttonRect := button.Rectangle()
 
-	if mousePos.Inside(buttonRect) && !button.Disabled && globals.Mouse.CurrentCursor == CursorNormal {
+	if mousePos.Inside(buttonRect) && !button.Disabled && (globals.Mouse.CurrentCursor == CursorNormal || globals.State == StateCardLink) {
 
 		if globals.Mouse.Button(sdl.BUTTON_LEFT).Pressed() && (globals.State == StateNeutral || globals.State == StateCardLink || globals.State == StateContextMenu || globals.State == StateMapEditing || globals.State == StateTextEditing) {
 			if button.OnPressed != nil {

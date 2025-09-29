@@ -3480,6 +3480,7 @@ func (lc *LinkContents) Update() {
 	programMode := lc.Card.Properties.Get("link mode").AsFloat() == 1
 
 	if lc.Card.selected && globals.Keybindings.Pressed(KBActivateLink) {
+		globals.Keybindings.Shortcuts[KBActivateLink].ConsumeKeys()
 		if programMode {
 			lc.Run()
 		} else {
@@ -3531,6 +3532,11 @@ func (lc *LinkContents) Jump() {
 
 		globals.EventLog.Log("Jumped to target: %s.", false, lc.TargetName.TextAsString())
 		lc.Card.Page.Project.Camera.FocusOn(false, lc.targetCard)
+
+		// Select the jumped to card
+		lc.targetCard.Page.Selection.Clear()
+		lc.targetCard.Page.Selection.Add(lc.targetCard)
+
 	} else {
 		globals.EventLog.Log("Link Card [%s] has no target.", false, lc.Card.Properties.Get("description").AsString())
 	}
