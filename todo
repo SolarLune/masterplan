@@ -1,16 +1,53 @@
 [ ] Fix whatever's up with the timer not making the end time visible?
-[ ] Investigate frame drops - not sure if it's just OBS? (I think it's the web card?)
-[ ] Fix web card goroutine not quitting
+[x] Investigate frame drops - not sure if it's just OBS? (I think it's the web card?)
+[x?] Fix web card goroutine not quitting
 [x] Add audio when moving cards around
-[ ] Add ambient bgm???
+[ ] Add ambient bgm / generative music based on the cards' locations / sizes / types???
 [x] Fix cards not collapsing / uncollapsing properly when they're text cards and they have larger sizes.
 [ ] Add collapsing for web cards (maybe to just single-line shades with the web card icon and a label for the URL?)
-[ ] Add freezing / unfreezing for web cards
+[ ] Add freezing / unfreezing for web cards (equivalent to closing and reopening the tab, I guess)
+[ ] Fix up internal directory structure to have source code in /cmd or /internal or something
+[ ] Fix up build script to merge Intel and ARM Mac directories
+[ ] Add transparent windows, as opposed to transparent window backgrounds
+[ ] Add the ability to hide the top-left menu when your mouse isn't nearby.
+[ ] Add the ability to jump to MasterPlan's config folder for whatever OS you're using.
+[ ] Add default unsaved project autosaving
+[ ] Add typing and clicking sound for web card input
+[ ] Fix web card not working
+[ ] Add full project path to window header?
+[ ] Resizing the Map should show you how many cells it is
+[ ] Arrow appears underneath line for linked Cards
+[ ] Fix arrow borders being too thick
+[ ] Add an ability to collapse Cards that link to other Cards? Like, a button to hide them?
+[ ] Add an ability to only show links when mouse is nearby?
 
+-   Add icons:
+    [ ] Another NPC / Unimportant character
+    [ ] A star icon
+    [ ] An important NPC
+    [ ] A king
+    [ ] A cube
+
+[ ] Fix image path being one-line and vertical? Also the icon should probably be the "Options" icon
+[ ] Moving Maps should move the Cards that sit on them
+[ ] Fix stretching not changing the size of the Map card
+[ ] Fix shifting being possible even without selecting the Map card
+[ ] Fix undo / redo changing image sources sometimes?
+[ ] Add ability to substitute images?
+[ ] Make grid look nicer, fade out smoother
+[ ] Add rectangle tool for Map Card
+[ ] Add dual-headed links between Cards?
+[ ] Add a title for Map Cards??
+[ ] Type "---" (for example, in Note Cards) to create a horizontal break? (Note that this would replace the existing horizontal break after the first line)
+
+[ ] Make links always come from and point to the center of Cards?
+[ ] Make links look better / be visible on the edges of Cards?
+[ ] Curve the Map card corners more aggressively?
+[ ] Add "Landmass" pattern with "coast-like" edges?
+[ ] Nodes for flowcharting?
 [ ] Add the ability to pack all relevant files into the .plan file?
 [ ] Add the ability to create new pages from the pages view?
 [x] Add a clock-type task?
-[ ] Nodes for flowcharting?
 [x] Fix collapsing to maybe just alternate between full and single-line?
 [ ] Fix bug where it crashes when zooming in or out and panning (might require moving to SDL3)
 [ ] Maybe use zenity's Calendar for deadline date selection?
