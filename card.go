@@ -1855,9 +1855,33 @@ func (card *Card) Deselect() {
 
 func (card *Card) StartDragging() {
 	if card.Draggable {
+
+		card.Dragging = true
+
+		touchingAnotherMap := false
+
+		// Dragging a Map drags everything on the map too
+		if card.ContentType == ContentTypeMap {
+			touchingCards := card.GridExtents.Grid.CardsInCardShape(card, 0, 0)
+
+			for _, other := range touchingCards {
+				if other.ContentType == ContentTypeMap {
+					touchingAnotherMap = true
+					break
+				}
+			}
+
+			if !touchingAnotherMap {
+				for _, other := range touchingCards {
+					if !other.Dragging && other.ContentType != ContentTypeMap {
+						other.StartDragging()
+					}
+				}
+			}
+		}
+
 		card.DragStart = globals.Mouse.WorldPosition()
 		card.DragStartOffset = card.DragStart.Sub(Vector{card.Rect.X, card.Rect.Y})
-		card.Dragging = true
 		card.CreateUndoState = true // TODO: DON'T FORGET TO DO THIS WHEN MOVING CARDS VIA SHORTCUTS
 
 		PlayUISound(UISoundTypeToggleOff)
