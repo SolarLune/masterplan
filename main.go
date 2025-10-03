@@ -3569,6 +3569,10 @@ horizontally.`))
 	row = root.AddRow(AlignCenter)
 	row.Add("pattern checked", button)
 
+	button = NewButton("Terrain", nil, &sdl.FRect{144, 128, 32, 32}, false, func() { MapPattern = MapPatternTerrain })
+	row = root.AddRow(AlignCenter)
+	row.Add("pattern terrain", button)
+
 	root.AddRow(AlignCenter).Add("shift label", NewLabel("Shift", nil, false, AlignCenter))
 
 	shiftNumberSpinner := NewNumberSpinner(&sdl.FRect{0, 0, 128, 32}, false, nil)

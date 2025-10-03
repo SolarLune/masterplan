@@ -1422,19 +1422,23 @@ func (card *Card) DrawCard() {
 		return
 	}
 
-	tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
+	if card.ContentType != ContentTypeMap {
 
-	color := card.Color()
+		tp := card.Page.Project.Camera.TranslateRect(card.DisplayRect)
 
-	if card.selected && globals.Settings.Get(SettingsFlashSelected).AsBool() {
-		color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
-	}
+		color := card.Color()
 
-	if color[3] != 0 {
-		card.currentColor = card.currentColor.Mix(color, card.colorFadeSpeed)
-		card.Result.Texture.SetColorMod(card.currentColor.RGB())
-		card.Result.Texture.SetAlphaMod(card.currentColor[3])
-		globals.Renderer.RenderTexture(card.Result.Texture, nil, tp)
+		if card.selected && globals.Settings.Get(SettingsFlashSelected).AsBool() {
+			color = color.Sub(uint8(math.Sin(globals.Time*math.Pi*2+float64((card.Rect.X+card.Rect.Y)*0.004))*15 + 15))
+		}
+
+		if color[3] != 0 {
+			card.currentColor = card.currentColor.Mix(color, card.colorFadeSpeed)
+			card.Result.Texture.SetColorMod(card.currentColor.RGB())
+			card.Result.Texture.SetAlphaMod(card.currentColor[3])
+			globals.Renderer.RenderTexture(card.Result.Texture, nil, tp)
+		}
+
 	}
 
 	card.DrawContents()

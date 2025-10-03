@@ -2343,6 +2343,7 @@ const (
 	MapPatternCrossed = 16
 	MapPatternDotted  = 32
 	MapPatternChecked = 64
+	MapPatternTerrain = 128
 )
 
 type MapContents struct {
@@ -2454,6 +2455,7 @@ func NewMapContents(card *Card) *MapContents {
 	mc.PatternButtons[MapPatternDotted] = paletteMenu.Pages["root"].FindElement("pattern dotted", false).(*Button)
 	mc.PatternButtons[MapPatternChecked] = paletteMenu.Pages["root"].FindElement("pattern checked", false).(*Button)
 	mc.PatternButtons[MapPatternCrossed] = paletteMenu.Pages["root"].FindElement("pattern crossed", false).(*Button)
+	mc.PatternButtons[MapPatternTerrain] = paletteMenu.Pages["root"].FindElement("pattern terrain", false).(*Button)
 
 	mc.RecreateTexture()
 	mc.UpdateTexture()
@@ -2477,38 +2479,48 @@ func (mc *MapContents) Update() {
 
 	colorButtons := []*IconButton{}
 
-	for _, row := range globals.MenuSystem.Get("map palette menu").Pages["root"].Rows {
-		for _, element := range row.ElementOrder {
-			if strings.Contains(row.FindElementName(element), "paletteColor") {
-				colorButtons = append(colorButtons, element.(*IconButton))
+	mapPaletteMenu := globals.MenuSystem.Get("map palette menu")
+
+	if mapPaletteMenu.Opened {
+
+		for _, row := range mapPaletteMenu.Pages["root"].Rows {
+			for _, element := range row.ElementOrder {
+				if strings.Contains(row.FindElementName(element), "paletteColor") {
+					colorButtons = append(colorButtons, element.(*IconButton))
+				}
 			}
 		}
-	}
 
-	for index, button := range colorButtons {
-		if MapDrawingColor == index+1 {
-			button.IconSrc.Y = 160
-		} else {
-			button.IconSrc.Y = 128
-		}
-	}
-
-	for patternType, button := range mc.PatternButtons {
-		if MapPattern == patternType {
-			button.IconSrc.X = 48
-			button.IconSrc.Y = 160
-		} else {
-			if patternType == MapPatternSolid {
+		for index, button := range colorButtons {
+			if MapDrawingColor == index+1 {
 				button.IconSrc.X = 48
-			} else if patternType == MapPatternCrossed {
-				button.IconSrc.X = 80
-			} else if patternType == MapPatternDotted {
-				button.IconSrc.X = 112
-			} else if patternType == MapPatternChecked {
-				button.IconSrc.X = 144
+				button.IconSrc.Y = 160
+			} else {
+				button.IconSrc.X = 512
+				button.IconSrc.Y = 0
 			}
-			button.IconSrc.Y = 128
 		}
+
+		for patternType, button := range mc.PatternButtons {
+			if MapPattern == patternType {
+				button.IconSrc.X = 48
+				button.IconSrc.Y = 160
+			} else {
+				if patternType == MapPatternSolid {
+					button.IconSrc.Y = 0
+				} else if patternType == MapPatternCrossed {
+					button.IconSrc.Y = 32
+				} else if patternType == MapPatternDotted {
+					button.IconSrc.Y = 64
+				} else if patternType == MapPatternChecked {
+					button.IconSrc.Y = 96
+				} else if patternType == MapPatternTerrain {
+					button.IconSrc.Y = 128
+				}
+				button.IconSrc.X = 512
+			}
+		}
+
 	}
 
 	// if mc.Card.Resizing != "" && int(mc.Card.Rect.W) != mc.MapData.Width*int(globals.GridSize) || int(mc.Card.Rect.H) != mc.MapData.Height*int(globals.GridSize) {
@@ -2798,10 +2810,7 @@ func (mc *MapContents) Draw() {
 
 		dst := &sdl.FRect{mc.Card.DisplayRect.X, mc.Card.DisplayRect.Y, mc.Card.Rect.W, mc.Card.Rect.H}
 
-		alpha := uint8(255)
-		if mc.Tool != MapEditToolNone {
-			alpha = 200 // Slightly transparent to show things behind the map when it's being edited and is in front
-		}
+		alpha := uint8(200)
 
 		if mc.Card.Resizing != "" {
 			alpha = 128
@@ -2876,7 +2885,7 @@ func (mc *MapContents) ColorIndex() int {
 }
 
 func (mc *MapContents) ColorIndexToPattern(index int) int {
-	c := index & (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
+	c := index & (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked + MapPatternTerrain)
 	if c < 0 {
 		c = 0
 	}
@@ -2884,7 +2893,7 @@ func (mc *MapContents) ColorIndexToPattern(index int) int {
 }
 
 func (mc *MapContents) ColorIndexToColor(index int) int {
-	c := index &^ (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked)
+	c := index &^ (MapPatternSolid + MapPatternDotted + MapPatternCrossed + MapPatternChecked + MapPatternTerrain)
 	if c < 0 {
 		c = 0
 	}
@@ -2955,13 +2964,11 @@ func (mc *MapContents) UpdateTexture() {
 
 		SetRenderTarget(mc.RenderTexture.Texture)
 
-		globals.Renderer.SetDrawColor(getThemeColor(GUIMapColor).RGBA())
+		mapColor := getThemeColor(GUIMapColor)
+		globals.Renderer.SetDrawColor(mapColor.RGBA())
 		globals.Renderer.RenderFillRect(nil)
 
 		guiTex := globals.GUITexture.Texture
-
-		guiTex.SetColorMod(255, 255, 255)
-		guiTex.SetAlphaMod(255)
 
 		for y := 0; y < len(mc.MapData.Data); y++ {
 
@@ -2971,32 +2978,53 @@ func (mc *MapContents) UpdateTexture() {
 
 				src := &sdl.FRect{208, 64, 32, 32}
 				dst := &sdl.FRect{float32(x) * globals.GridSize, float32(y) * globals.GridSize, globals.GridSize, globals.GridSize}
+
+				// Draw the grid space
+
+				globals.Renderer.SetDrawColor(mapColor.RGBA())
+
+				guiTex.SetColorMod(mapColor.Sub(20).RGB())
+				guiTex.SetAlphaMod(mapColor[3])
+				globals.Renderer.RenderTextureRotated(guiTex, src, dst, 0, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+
 				rot := float64(0)
 				color := NewColor(255, 255, 255, 255)
 
-				if value == 0 {
-					color = getThemeColor(GUIMapColor)
-					color = color.Sub(20)
-				} else if value > 0 {
+				if value > 0 {
 
 					// Color value is the value contained in the grid without the pattern bits
 					colorValue := mc.ColorIndexToColor(value)
 
 					color = MapPaletteColors[colorValue-1]
 
-					src.X = 240
+					src.X = 544
 					src.Y = 0
+
 					if value&MapPatternCrossed > 0 {
 						src.Y = 32
 					} else if value&MapPatternDotted > 0 {
 						src.Y = 64
 					} else if value&MapPatternChecked > 0 {
 						src.Y = 96
+					} else if value&MapPatternTerrain > 0 {
+						src.Y = 128
 					}
-					right := mc.MapData.GetI(x+1, y) > 0
-					left := mc.MapData.GetI(x-1, y) > 0
-					top := mc.MapData.GetI(x, y-1) > 0
-					bottom := mc.MapData.GetI(x, y+1) > 0
+
+					rv := mc.MapData.GetI(x+1, y)
+					lv := mc.MapData.GetI(x-1, y)
+					tv := mc.MapData.GetI(x, y-1)
+					bv := mc.MapData.GetI(x, y+1)
+
+					// patternValue := mc.ColorIndexToPattern(value)
+					// right := rv > 0 && mc.ColorIndexToPattern(rv) == patternValue
+					// left := lv > 0 && mc.ColorIndexToPattern(lv) == patternValue
+					// top := tv > 0 && mc.ColorIndexToPattern(tv) == patternValue
+					// bottom := bv > 0 && mc.ColorIndexToPattern(bv) == patternValue
+
+					right := rv == value
+					left := lv == value
+					top := tv == value
+					bottom := bv == value
 
 					count := 0
 					if right {
@@ -3012,42 +3040,59 @@ func (mc *MapContents) UpdateTexture() {
 						count++
 					}
 
-					if count >= 3 {
-						src.X = 336
-					} else if right && left {
-						src.X = 336
-					} else if top && bottom {
-						src.X = 336
-					} else if right && bottom {
-						src.X = 304
-					} else if bottom && left {
-						src.X = 304
-						rot = 90
-					} else if left && top {
-						src.X = 304
-						rot = 180
-					} else if top && right {
-						src.X = 304
-						rot = 270
-					} else if right {
-						src.X = 272
-					} else if left {
-						src.X = 272
-						rot = 180
-					} else if top {
-						src.X = 272
-						rot = -90
-					} else if bottom {
-						src.X = 272
-						rot = 90
+					if count == 4 {
+						src.X = 704
+					} else if count == 3 {
+						src.X = 672
+						if !bottom {
+							rot = 90
+						} else if !left {
+							rot = 180
+						} else if !top {
+							rot = 270
+						}
+					} else if count == 2 {
+
+						if (right && left) || (top && bottom) { /// Hallways
+							src.X = 608
+							if top && bottom {
+								rot = 90
+							}
+						} else {
+							src.X = 640
+
+							if left && bottom {
+								rot = 90
+							} else if left && top { // Corners
+								rot = 180
+							} else if top && right {
+								rot = 270
+							}
+
+						}
+
+					} else if count == 1 {
+
+						src.X = 576
+
+						if left {
+							rot = 180
+						} else if top {
+							rot = -90
+						} else if bottom {
+							rot = 90
+						}
+
 					}
 
+					// Island
+
+					guiTex.SetColorMod(color.RGB())
+					guiTex.SetAlphaMod(color[3])
+
+					globals.Renderer.RenderTextureRotated(guiTex, src, dst, rot, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+
 				}
-
-				guiTex.SetColorMod(color.RGB())
-				guiTex.SetAlphaMod(color[3])
-
-				globals.Renderer.RenderTextureRotated(guiTex, src, dst, rot, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 
 			}
 
