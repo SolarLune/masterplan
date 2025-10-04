@@ -309,7 +309,12 @@ func (cc *CheckboxContents) Draw() {
 
 	if len(dependentCards) > 0 {
 		dstPoint := Vector{cc.Card.DisplayRect.X + cc.Card.DisplayRect.W - 32, cc.Card.DisplayRect.Y}
-		DrawLabel(cc.Card.Page.Project.Camera.TranslatePoint(dstPoint), fmt.Sprintf("%d/%d", int(completed), int(maximum)), getThemeColor(GUIMenuColor))
+		DrawLabel(
+			cc.Card.Page.Project.Camera.TranslatePoint(dstPoint),
+			1,
+			fmt.Sprintf("%d/%d", int(completed), int(maximum)),
+			getThemeColor(GUIMenuColor),
+		)
 	}
 
 	// for _, button := range cc.URLButtons.Buttons {
@@ -644,10 +649,10 @@ func (nc *NumberedContents) Draw() {
 		np := globals.Settings.Get(SettingsDisplayNumberedPercentagesAs).AsString()
 		if np == NumberedPercentagePercent {
 			perc := strconv.FormatFloat(float64(p*100), 'f', 0, 32) + "%"
-			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc, getThemeColor(GUIMenuColor))
+			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), 1, perc, getThemeColor(GUIMenuColor))
 		} else if np == NumberedPercentageCurrentMax {
 			perc := fmt.Sprintf("%.0f / %.0f", nc.Current.Property.AsFloat(), nc.Max.Property.AsFloat())
-			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), perc, getThemeColor(GUIMenuColor))
+			DrawLabel(nc.Card.Page.Project.Camera.TranslatePoint(dstPoint), 1, perc, getThemeColor(GUIMenuColor))
 		}
 
 	}
@@ -2002,7 +2007,7 @@ func (tc *TimerContents) Draw() {
 
 		x -= textSize.X + 16
 
-		DrawLabel(Vector{dst.X + x, dst.Y + 8}, txt, color)
+		DrawLabel(Vector{dst.X + x, dst.Y + 8}, 1, txt, color)
 		// DrawLabel(Point{dst.X - 64, dst.Y + 8}, fmt.Sprintf("%d:%d %s", int(tc.ScheduleTime.Hours()), int(tc.ScheduleTime.Minutes()), amPM))
 	}
 

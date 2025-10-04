@@ -276,6 +276,10 @@ func (cr CorrectingRect) TopLeft() Vector {
 	return Vector{cr.X1, cr.Y1}
 }
 
+func (cr CorrectingRect) BottomRight() Vector {
+	return Vector{cr.X2, cr.Y2}
+}
+
 // func (cr CorrectingRect) CorrectBounds() {
 
 // }
@@ -284,8 +288,22 @@ func (cr CorrectingRect) Width() float32 {
 	return cr.X2 - cr.X1
 }
 
+func (cr CorrectingRect) AbsWidth() float32 {
+	if cr.X2 > cr.X1 {
+		return cr.X2 - cr.X1
+	}
+	return cr.X1 - cr.X2
+}
+
 func (cr CorrectingRect) Height() float32 {
 	return cr.Y2 - cr.Y1
+}
+
+func (cr CorrectingRect) AbsHeight() float32 {
+	if cr.Y2 > cr.Y1 {
+		return cr.Y2 - cr.Y1
+	}
+	return cr.Y1 - cr.Y2
 }
 
 func (cr CorrectingRect) Center() Vector {
@@ -853,7 +871,7 @@ func RoundedBoxColor(renderer *sdl.Renderer, x1 int32, y1 int32, x2 int32, y2 in
 }
 
 // DrawLabel draws a small paper-like label of the specified text at the X and Y position specified.
-func DrawLabel(pos Vector, text string, menuColor Color) {
+func DrawLabel(pos Vector, size float32, text string, menuColor Color) {
 
 	textSize := globals.TextRenderer.MeasureText([]rune(text), 0.5)
 	textSize.X += 16
@@ -868,23 +886,25 @@ func DrawLabel(pos Vector, text string, menuColor Color) {
 	guiTexture.SetAlphaMod(menuColor[3])
 
 	src := &sdl.FRect{480, 48, 8, 24}
-	dst := &sdl.FRect{pos.X, pos.Y, float32(src.W), float32(src.H)}
+	dst := &sdl.FRect{pos.X, pos.Y, float32(src.W) * size, float32(src.H) * size}
 	globals.Renderer.RenderTexture(guiTexture, src, dst)
 
-	dst.X += float32(src.W)
 	src.X += 8
-	dst.W = textSize.X - 16
+
+	dst.X += float32(src.W * size)
+	dst.W = (textSize.X - 16) * size
 	if dst.W > 0 {
 		globals.Renderer.RenderTexture(guiTexture, src, dst)
 	}
 
-	dst.X += dst.W
 	src.X += 8
 	src.W = 16
-	dst.W = float32(src.W)
+
+	dst.X += dst.W
+	dst.W = float32(src.W) * size
 	globals.Renderer.RenderTexture(guiTexture, src, dst)
 
-	globals.TextRenderer.QuickRenderText(text, Vector{pos.X + (textSize.X / 2), pos.Y}, 0.5, getThemeColor(GUIFontColor), nil, AlignCenter)
+	globals.TextRenderer.QuickRenderText(text, Vector{pos.X + (textSize.X / 2 * size), pos.Y}, 0.5*size, getThemeColor(GUIFontColor), nil, AlignCenter)
 
 }
 

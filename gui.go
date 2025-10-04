@@ -3492,7 +3492,7 @@ func (s *Scrollbar) DrawOnTop() {
 	if (s.MouseClose || s.Dragging) && s.DisplayValue {
 		// gfx.RoundedBoxColor(globals.Renderer, x, y, x+64, y+48, 4, getThemeColor(GUICompletedColor).SDLColor())
 
-		DrawLabel(Vector{headRect.X - 16, headRect.Y - 16}, fmt.Sprintf("%.0f%%", (s.ValueMin+(s.ValueMax-s.ValueMin)*s.TargetValue)*100), getThemeColor(GUIMenuColor))
+		DrawLabel(Vector{headRect.X - 16, headRect.Y - 16}, 1, fmt.Sprintf("%.0f%%", (s.ValueMin+(s.ValueMax-s.ValueMin)*s.TargetValue)*100), getThemeColor(GUIMenuColor))
 	}
 
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"path/filepath"
@@ -1453,6 +1454,17 @@ func (card *Card) DrawCard() {
 		globals.GUITexture.Texture.SetAlphaMod(255)
 		globals.Renderer.RenderTexture(globals.GUITexture.Texture, &sdl.FRect{480, 80, 16, 16}, card.Page.Project.Camera.TranslateRect(&r))
 	}
+
+	if card.Resizing != "" {
+		mp := globals.Project.Camera.TranslatePoint(card.ResizingRect.BottomRight())
+		mp.X += 8
+		mp.Y += 8
+		DrawLabel(mp,
+			1,
+			fmt.Sprintf("%dx%d", int(card.ResizingRect.Width()/globals.GridSize), int(card.ResizingRect.Height()/globals.GridSize)),
+			getThemeColor(GUIMenuColor),
+		)
+	}
 }
 
 func (card *Card) Onscreen() bool {
@@ -1665,7 +1677,12 @@ func (card *Card) PostDraw() {
 			// numberingStartX := card.DisplayRect.X + card.DisplayRect.W - 16 - textSize.X
 
 			if len(number) > 0 {
-				DrawLabel(card.Page.Project.Camera.TranslatePoint(Vector{card.DisplayRect.X + (globals.GridSize * 0.75), card.DisplayRect.Y - 8}), number, getThemeColor(GUIMenuColor))
+				DrawLabel(
+					card.Page.Project.Camera.TranslatePoint(Vector{card.DisplayRect.X + (globals.GridSize * 0.75), card.DisplayRect.Y - 8}),
+					1,
+					number,
+					getThemeColor(GUIMenuColor),
+				)
 			}
 
 		}
