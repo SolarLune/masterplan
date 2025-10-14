@@ -2188,7 +2188,7 @@ func (mapData *MapData) Clip() {
 	}
 }
 
-func (mapData *MapData) Rotate(direction int) {
+func (mapData *MapData) Rotate(counterClockwise bool) {
 
 	oldData := [][]int{}
 
@@ -2215,7 +2215,7 @@ func (mapData *MapData) Rotate(direction int) {
 
 	for y := range oldData {
 		for x := range oldData[y] {
-			if direction > 0 {
+			if counterClockwise {
 				invY := len(oldData) - 1 - y
 				mapData.Data[x][invY] = oldData[y][x]
 			} else {
@@ -2232,7 +2232,7 @@ func (mapData *MapData) Rotate(direction int) {
 
 	mapData.Contents.Card.CreateUndoState = true
 
-	if direction > 0 {
+	if counterClockwise {
 		globals.EventLog.Log("Map rotated 90 degrees counter-clockwise.", false)
 	} else {
 		globals.EventLog.Log("Map rotated 90 degrees clockwise.", false)
@@ -2791,6 +2791,14 @@ func (mc *MapContents) Update() {
 		globals.Keybindings.Shortcuts[KBMapShiftDown].ConsumeKeys()
 		mc.MapData.Push(0, 1, true)
 		globals.EventLog.Log("Map shifted by 1 downwards.", false)
+	} else if globals.Keybindings.Pressed(KBMapRotateRight) {
+		globals.Keybindings.Shortcuts[KBMapRotateRight].ConsumeKeys()
+		mc.MapData.Rotate(true)
+		globals.EventLog.Log("Map rotated clockwise by 90 degrees.", false)
+	} else if globals.Keybindings.Pressed(KBMapRotateLeft) {
+		globals.Keybindings.Shortcuts[KBMapRotateLeft].ConsumeKeys()
+		mc.MapData.Rotate(false)
+		globals.EventLog.Log("Map rotated counter-clockwise by 90 degrees.", false)
 	}
 
 }

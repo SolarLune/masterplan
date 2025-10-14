@@ -3643,7 +3643,7 @@ horizontally.`))
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Rotate(-1)
+				card.Contents.(*MapContents).MapData.Rotate(false)
 			}
 		}
 
@@ -3657,7 +3657,7 @@ horizontally.`))
 
 		for _, card := range globals.Project.CurrentPage.Selection.AsSlice() {
 			if card.ContentType == ContentTypeMap {
-				card.Contents.(*MapContents).MapData.Rotate(1)
+				card.Contents.(*MapContents).MapData.Rotate(true)
 			}
 		}
 

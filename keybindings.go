@@ -134,6 +134,8 @@ const (
 	KBMapShiftDown     = "Map: Shift Map Down"
 	KBMapShiftRight    = "Map: Shift Map Right"
 	KBMapShiftLeft     = "Map: Shift Map Left"
+	KBMapRotateRight   = "Map: Rotate Map Right"
+	KBMapRotateLeft    = "Map: Rotate Map Left"
 
 	KBFindNext = "Find: Next Card"
 	KBFindPrev = "Find: Prev. Card"
@@ -565,6 +567,9 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBMapShiftRight, SDLK_RIGHT, SDLK_LCTRL, SDLK_LSHIFT)
 	kb.DefineKeyShortcut(KBMapShiftDown, SDLK_DOWN, SDLK_LCTRL, SDLK_LSHIFT)
 	kb.DefineKeyShortcut(KBMapShiftLeft, SDLK_LEFT, SDLK_LCTRL, SDLK_LSHIFT)
+
+	kb.DefineKeyShortcut(KBMapRotateRight, SDLK_E, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBMapRotateLeft, SDLK_Q, SDLK_LSHIFT)
 
 	kb.DefineKeyShortcut(KBFindNext, SDLK_F, SDLK_LCTRL)
 	kb.DefineKeyShortcut(KBFindPrev, SDLK_F, SDLK_LCTRL, SDLK_LSHIFT)
