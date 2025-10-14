@@ -2599,7 +2599,7 @@ func (mc *MapContents) Update() {
 			globals.State = StateNeutral
 		}
 
-		if mc.Card.Resizing == "" {
+		if mc.Card.Resizing == "" && !globals.Mouse.OverGUI {
 
 			if mc.Tool != MapEditToolNone && globals.Keybindings.Pressed(KBPickColor) {
 
