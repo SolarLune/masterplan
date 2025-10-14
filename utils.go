@@ -123,6 +123,11 @@ func (point Vector) Sub(other Vector) Vector {
 	return Vector{point.X - other.X, point.Y - other.Y}
 }
 
+// Dot returns the dot product of a Vector and another Vector (ignoring the W component).
+func (vec Vector) Dot(other Vector) float32 {
+	return vec.X*other.X + vec.Y*other.Y
+}
+
 func (point Vector) SubF(x, y float32) Vector {
 	return Vector{point.X - x, point.Y - y}
 }
@@ -215,6 +220,10 @@ func (point Vector) Unit() Vector {
 	}
 	point.X, point.Y = point.X/l, point.Y/l
 	return point
+}
+
+func (point Vector) IsZero() bool {
+	return point.X == 0 && point.Y == 0
 }
 
 func (point Vector) Rotate(angle float32) Vector {
