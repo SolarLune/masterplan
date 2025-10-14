@@ -784,8 +784,6 @@ func ThickLine(start, end Vector, thickness float32, color Color) {
 
 	th := thickness
 
-	// line := end.Sub(start).Unit()
-	// hori := line.Rotate(math.Pi / 2).Unit()
 	diagStart1 := start.Sub(end).Unit().Rotate(math.Pi / 4).Scale(th)
 	diagStart2 := start.Sub(end).Unit().Rotate(-math.Pi / 4).Scale(th)
 
@@ -833,8 +831,6 @@ func ThickLine(start, end Vector, thickness float32, color Color) {
 
 	globals.Renderer.RenderGeometry(globals.PlainWhiteTexture, vertices, indices)
 
-	// log.Println("Unimplemented thickline()")
-	// gfx.ThickLineRGBA(globals.Renderer, int32(start.X), int32(start.Y), int32(end.X), int32(end.Y), thickness, color[0], color[1], color[2], color[3])
 }
 
 func FilledCircleColor(x, y, radius int32, color Color) {
