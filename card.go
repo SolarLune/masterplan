@@ -95,6 +95,8 @@ func (le *LinkEnding) Update() {
 					}
 
 					globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
+
+					PlayUISound(UISoundTypeTap)
 				}
 
 			}
@@ -108,6 +110,8 @@ func (le *LinkEnding) Update() {
 					joint.Position.Y = float32(math.Round(float64(joint.Position.Y/globals.GridSize)) * float64(globals.GridSize))
 					joint.Dragging = false
 					le.Start.CreateUndoState = true
+					PlayUISound(UISoundTypeTap)
+
 				}
 
 			}
@@ -117,22 +121,16 @@ func (le *LinkEnding) Update() {
 		if removeJoint >= 0 {
 			le.Joints = append(le.Joints[:removeJoint], le.Joints[removeJoint+1:]...)
 			le.Start.CreateUndoState = true
+			PlayUISound(UISoundTypeTap)
 		}
 
 	}
 
-	points := []Vector{}
-	if len(le.Joints) == 0 {
-		points = append(points, le.Start.NearestPointInRect(le.End.Center(), true), le.End.NearestPointInRect(le.Start.Center(), true))
-	} else {
-		points = append(points, le.Start.NearestPointInRect(le.Joints[0].Position, false))
-
-		for _, joint := range le.Joints {
-			points = append(points, joint.Position)
-		}
-
-		points = append(points, le.End.NearestPointInRect(le.Joints[len(le.Joints)-1].Position, false))
+	points := []Vector{le.Start.Center()}
+	for _, joint := range le.Joints {
+		points = append(points, joint.Position)
 	}
+	points = append(points, le.End.NearestPointTowardRectCenter(points[len(points)-1]))
 
 	for i := 0; i < len(points)-1; i++ {
 
@@ -149,6 +147,8 @@ func (le *LinkEnding) Update() {
 		r := &sdl.FRect{center.X - (jointSize / 2), center.Y - (jointSize / 2), jointSize, jointSize}
 
 		if ClickedInRect(r, true) {
+
+			PlayUISound(UISoundTypeTap)
 
 			lj := NewLinkJoint(center.X, center.Y)
 			lj.Dragging = true
@@ -180,22 +180,21 @@ func (le *LinkEnding) Draw() {
 			outlineColor = ColorBlack
 		}
 
-		points := []Vector{}
-		if len(le.Joints) == 0 {
-			points = append(points, le.Start.NearestPointInRect(le.End.Center(), true), le.End.NearestPointInRect(le.Start.Center(), true))
-		} else {
-			points = append(points, le.Start.NearestPointInRect(le.Joints[0].Position, false))
+		points := []Vector{le.Start.Center()}
 
-			for _, joint := range le.Joints {
-				points = append(points, joint.Position)
-			}
-
-			points = append(points, le.End.NearestPointInRect(le.Joints[len(le.Joints)-1].Position, false))
+		for _, joint := range le.Joints {
+			points = append(points, joint.Position)
 		}
 
-		// delta := points[len(points)-1].Sub(le.End.Center())
-		// px = px.Add(delta.Normalized().Mult(16))
+		nearest := le.End.Center()
 
+		//
+		if !le.End.Dragging {
+			nearest = le.End.NearestPointTowardRectCenter(points[len(points)-1])
+		}
+		points = append(points, nearest)
+
+		// Arrowhead Outline
 		globals.GUITexture.Texture.SetColorMod(outlineColor.RGB())
 		globals.GUITexture.Texture.SetAlphaMod(255)
 		delta := points[len(points)-1].Sub(points[len(points)-2])
@@ -203,14 +202,6 @@ func (le *LinkEnding) Draw() {
 		px = le.Start.Page.Project.Camera.TranslatePoint(px)
 		dir := delta.Angle() / (math.Pi * 2) * 360
 		globals.Renderer.RenderTextureRotated(globals.GUITexture.Texture, &sdl.FRect{240, 224, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
-
-		globals.GUITexture.Texture.SetColorMod(mainColor.RGB())
-		globals.GUITexture.Texture.SetAlphaMod(255)
-		globals.Renderer.RenderTextureRotated(globals.GUITexture.Texture, &sdl.FRect{240, 192, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
-
-		if points[0] == points[len(points)-1] {
-			return
-		}
 
 		for i := 0; i < len(points)-1; i++ {
 
@@ -225,7 +216,7 @@ func (le *LinkEnding) Draw() {
 				end = end.Add(off.Mult(16))
 			}
 
-			ThickLine(camera.TranslatePoint(start), camera.TranslatePoint(end), thickness+4, outlineColor)
+			ThickLine(camera.TranslatePoint(start), camera.TranslatePoint(end), thickness+2, outlineColor)
 			ThickLine(camera.TranslatePoint(start), camera.TranslatePoint(end), thickness, mainColor)
 
 			center := start.Add(end).Div(2)
@@ -238,6 +229,15 @@ func (le *LinkEnding) Draw() {
 
 			le.DrawJoint(center, uint8(192/dist), false)
 
+		}
+
+		// Arrowhead
+		globals.GUITexture.Texture.SetColorMod(mainColor.RGB())
+		globals.GUITexture.Texture.SetAlphaMod(255)
+		globals.Renderer.RenderTextureRotated(globals.GUITexture.Texture, &sdl.FRect{240, 192, 32, 32}, &sdl.FRect{px.X - 16, px.Y - 16, 32, 32}, float64(-dir), &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
+
+		if points[0] == points[len(points)-1] {
+			return
 		}
 
 	}
@@ -818,8 +818,10 @@ func (card *Card) Update() {
 					if globals.Mouse.WorldPosition().Inside(possibleCard.Rect) && released {
 
 						if possibleCard.IsLinkedTo(possibleCard.Page.Arrowing) {
+							PlayUISound(UISoundTypeTransitionDown)
 							card.Unlink(possibleCard)
 						} else {
+							PlayUISound(UISoundTypeTransitionUp)
 							card.Link(possibleCard)
 						}
 
@@ -1145,88 +1147,35 @@ func (card *Card) DrawShadow() {
 
 }
 
-func (card *Card) NearestPointInRect(in Vector, perpendicular bool) Vector {
+func (card *Card) NearestPointTowardRectCenter(in Vector) Vector {
 
-	out := in
-
-	if perpendicular {
-
-		out = card.Center()
-
-		if in.Y < card.DisplayRect.Y {
-			out.Y = card.DisplayRect.Y
-		} else if in.Y > card.DisplayRect.Y+card.DisplayRect.H {
-			out.Y = card.DisplayRect.Y + card.DisplayRect.H
-		}
-
-		if in.X < card.DisplayRect.X {
-			out.X = card.DisplayRect.X
-		} else if in.X > card.DisplayRect.X+card.DisplayRect.W {
-			out.X = card.DisplayRect.X + card.DisplayRect.W
-		}
-
-	} else {
-
-		if out.X < card.DisplayRect.X {
-			out.X = card.DisplayRect.X
-		} else if out.X > card.DisplayRect.X+card.DisplayRect.W {
-			out.X = card.DisplayRect.X + card.DisplayRect.W
-		}
-
-		if out.Y < card.DisplayRect.Y {
-			out.Y = card.DisplayRect.Y
-		} else if out.Y > card.DisplayRect.Y+card.DisplayRect.H {
-			out.Y = card.DisplayRect.Y + card.DisplayRect.H
-		}
-
+	lines := []collidingLine{
+		newCollidingLine(card.Rect.X, card.Rect.Y, card.Rect.X+card.Rect.W, card.Rect.Y),
+		newCollidingLine(card.Rect.X+card.Rect.W, card.Rect.Y, card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H),
+		newCollidingLine(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H, card.Rect.X, card.Rect.Y+card.Rect.H),
+		newCollidingLine(card.Rect.X, card.Rect.Y+card.Rect.H, card.Rect.X, card.Rect.Y),
 	}
 
-	// out := card.Center()
+	center := card.Center()
 
-	// linkAngle := in.Sub(out).Angle()
+	piercingPoint := center.Sub(in).Scale(10000)
+	dest := in.Add(piercingPoint)
 
-	// piece := math.Pi / 8
+	colliding := newCollidingLine(in.X, in.Y, dest.X, dest.Y)
 
-	// fmt.Println("math pi piece: ", piece)
+	closestPoint := Vector{}
+	closestPointDist := float32(math.MaxFloat32)
 
-	// pieces := []Point{
-	// 	{1, 0},
-	// 	{1, -1},
-	// 	{0, -1},
-	// 	{-1, -1},
-	// 	{-1, 0},
-	// 	{-1, 1},
-	// 	{0, 1},
-	// 	{1, 1},
-	// }
+	for _, l := range lines {
+		if point, ok := colliding.IntersectionPointsLine(l); ok {
+			if dist := in.DistanceSquared(point); dist < closestPointDist {
+				closestPointDist = dist
+				closestPoint = point
+			}
+		}
+	}
 
-	// fmt.Println(out)
-
-	// for _, offset := range pieces {
-	// 	angle := offset.Angle()
-	// 	if linkAngle <= angle {
-	// 		fmt.Println(linkAngle, angle)
-	// 		out := card.Center()
-	// 		out.X += offset.X * (card.DisplayRect.W / 2)
-	// 		out.Y += offset.Y * (card.DisplayRect.H / 2)
-	// 	}
-	// }
-
-	// fmt.Println(out)
-
-	// if angle < piece && angle > piece {
-	// 	out.X += card.DisplayRect.W / 2
-	// } else if angle < math.Pi/4 && angle > -math.Pi/4 {
-	// 	out.X += card.DisplayRect.W / 2
-	// } else if angle < math.Pi/4*3 && angle > 0 {
-	// 	out.Y -= card.DisplayRect.H / 2
-	// } else if angle > -math.Pi/4*3 && angle < 0 {
-	// 	out.Y += card.DisplayRect.H / 2
-	// } else {
-	// 	out.X -= card.DisplayRect.W / 2
-	// }
-
-	return out
+	return closestPoint
 
 }
 

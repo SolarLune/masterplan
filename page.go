@@ -136,6 +136,7 @@ func (page *Page) Draw() {
 	}
 
 	for _, card := range sorted {
+		card.DrawLinks()
 		card.DrawCard()
 	}
 
@@ -146,10 +147,6 @@ func (page *Page) Draw() {
 		// We handle undos separately so that if drawing the contents of a card changes its properties / triggers an undo update,
 		// that's reflected here.
 		card.HandleUndos()
-	}
-
-	for _, card := range sorted {
-		card.DrawLinks()
 	}
 
 	for _, draw := range page.Drawables {
