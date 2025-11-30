@@ -37,7 +37,7 @@ func build(baseDir string, releaseMode string, targetOS, targetArch string) {
 		panic(err)
 	}
 
-	copyTo("changelog.txt", filepath.Join(baseDir, "changelog.txt"))
+	copyTo("changelog.md", filepath.Join(baseDir, "changelog.md"))
 
 	if forMac {
 		baseDir = filepath.Join(baseDir, "MasterPlan.app", "Contents", "MacOS")
