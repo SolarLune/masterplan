@@ -21,10 +21,10 @@ While these features (cloud-based, browser apps, etc.) can be beneficial for lar
 
 MasterPlan is not quite fully free software, but the source is available here. If you wish to build MasterPlan or contribute to its development, I thank you, and welcome it. 
 
-To this end, I've made a build script in Go to simplify the building process. In general, it's easier to try running MasterPlan first (`go run ./` in the project root), and if that works, building should generally succeed. The build script is located at `build_script\main.go`. The dependencies for building should be resolved automatically by `go mod` (so you should be using a recent version of Go with support for `go.mod` files). Just run:
+To this end, I've made a build script in Go to simplify the building process. In general, it's easier to try running MasterPlan first (`go run ./` in the project root), and if that works, building should generally succeed. The build script is located at `build_script\build.go`. The dependencies for building should be resolved automatically by `go mod` (so you should be using a recent version of Go with support for `go.mod` files). Just run:
 
 ```
-> go run ./build_script/main.go -b
+> go run ./build_script/build.go -b
 ```
 
 from the MasterPlan source directory to build. It should generate a folder named `bin`, and populate it with a directory with a release build for your OS and architecture, by default. 
@@ -32,7 +32,7 @@ from the MasterPlan source directory to build. It should generate a folder named
 If you follow the necessary steps for cross-compilation from go-sdl2's instructions, you can also specify a target OS to build MasterPlan for that OS.
 
 ```
-> go run ./build_script/main.go -b -os windows/amd64
+> go run ./build_script/build.go -b -os windows/amd64
 ```
 
 ## Requirements
