@@ -296,7 +296,7 @@ func (cc *CheckboxContents) Draw() {
 			color := getThemeColor(GUICompletedColor)
 			if cc.Card.CustomColor != nil {
 				h, s, v := cc.Card.CustomColor.HSV()
-				color = NewColorFromHSV(h+30, s-0.2, v+0.2)
+				color = NewColorFromHSV(h+0.08, s-0.2, v+0.2)
 			}
 			cc.Card.Result.Texture.SetColorMod(color.RGB())
 			globals.Renderer.RenderTexture(cc.Card.Result.Texture, src, dst)
@@ -358,7 +358,7 @@ func (cc *CheckboxContents) Color() Color {
 	if cc.Card.CustomColor != nil {
 		color = cc.Card.CustomColor
 		h, s, v := cc.Card.CustomColor.HSV()
-		completedColor = NewColorFromHSV(h+30, s-0.2, v+0.2)
+		completedColor = NewColorFromHSV(h+0.08, s-0.2, v+0.2)
 	}
 
 	if len(cc.DependentCards()) > 0 {
@@ -1369,8 +1369,11 @@ func (ic *ImageContents) Draw() {
 
 		if ready {
 
+			var shadowTexture *sdl.Texture
+
 			if resource.IsTexture() {
 				texture = resource.AsImage().Texture
+				shadowTexture = resource.AsImage().ShadowTexture
 			} else if ic.GifPlayer != nil {
 				texture = ic.GifPlayer.Texture()
 			}
@@ -1391,6 +1394,22 @@ func (ic *ImageContents) Draw() {
 
 			texture.SetColorMod(color.RGB())
 
+			if shadowTexture != nil && (!ic.Card.VisualDragging || ic.Card.PinnedTo == nil || !ic.Card.PinnedTo.VisualDragging) {
+
+				tp := ic.Card.Page.Project.Camera.TranslatePoint(ic.Card.ShadowDisplayPosition)
+				tp.X += 4
+				tp.Y += 4
+
+				dstRect := &sdl.FRect{
+					X: tp.X,
+					Y: tp.Y,
+					W: ic.Card.DisplayRect.W,
+					H: ic.Card.DisplayRect.H,
+				}
+
+				globals.Renderer.RenderTexture(shadowTexture, nil, dstRect)
+			}
+			// globals.Renderer.RenderTexture(ic.ShadowTexture.Texture, nil, dstRect)
 			globals.Renderer.RenderTexture(texture, nil, ic.Card.Page.Project.Camera.TranslateRect(ic.Card.DisplayRect))
 
 		} else {
@@ -1516,26 +1535,28 @@ const (
 
 type TimerContents struct {
 	DefaultContents
-	Name              *Label
-	ClockLabel        *Label
-	ClockMaxTimeSub   *IconButton
-	ClockMaxTimeLabel *Label
-	ClockMaxTimeAdd   *IconButton
-	MaxTimeRow        *ContainerRow
+	Name *Label
 
-	ClockScheduleTimeSub   *IconButton
-	ClockScheduleTimeLabel *Label
-	ClockScheduleTimeAdd   *IconButton
-	ScheduleTimeRow        *ContainerRow
-	ClockBecameInPhase     bool
+	ClockCountdownTimeSub *IconButton
+	ClockCountdownTimeAdd *IconButton
+	CountdownRow          *ContainerRow
+
+	ClockScheduleTimeSub *IconButton
+	ClockScheduleTimeAdd *IconButton
+	ScheduleTimeRow      *ContainerRow
+	ClockBecameInPhase   bool
+
+	ControlRow *ContainerRow
+
+	CurrentTimeLabel *Label
+	TargetTimeLabel  *Label
 
 	Running            bool
 	TimerValue         time.Duration
-	ClockIcon          *UIClock
-	ClockIconRow       *ContainerRow
+	StopwatchRow       *ContainerRow
 	StartButton        *IconButton
 	RestartButton      *IconButton
-	MaxTime            time.Duration
+	CountdownTime      time.Duration
 	ScheduleTime       time.Duration
 	Mode               *IconButtonGroup
 	TriggerMode        *IconButtonGroup
@@ -1548,60 +1569,51 @@ type TimerContents struct {
 func NewTimerContents(card *Card) *TimerContents {
 
 	tc := &TimerContents{
-		DefaultContents:        newDefaultContents(card),
-		Name:                   NewLabel("New Timer", nil, true, AlignLeft),
-		ClockLabel:             NewLabel("00:00", &sdl.FRect{0, 0, 112, 32}, true, AlignCenter),
-		ClockMaxTimeLabel:      NewLabel("00:00", &sdl.FRect{0, 0, 112, 32}, true, AlignCenter),
-		ClockScheduleTimeLabel: NewLabel("00:00", &sdl.FRect{0, 0, 112, 32}, true, AlignCenter),
-		ClockBecameInPhase:     true,
+		DefaultContents:    newDefaultContents(card),
+		Name:               NewLabel("New Timer", nil, true, AlignLeft),
+		CurrentTimeLabel:   NewLabel("00:00", &sdl.FRect{0, 0, 112, 32}, true, AlignCenter),
+		TargetTimeLabel:    NewLabel("00:00", &sdl.FRect{0, 0, 112, 32}, true, AlignCenter),
+		ClockBecameInPhase: true,
 	}
 
 	tc.Card.Properties.SetDefault("mode group", 0.0)
 	tc.Card.Properties.SetDefault("trigger mode", 0.0)
 	tc.Card.Properties.SetDefault("schedule hour", 8.0)
 	tc.Card.Properties.SetDefault("schedule minute", 0.0)
+	card.Properties.SetDefault("max seconds", 0.0)
+	card.Properties.SetDefault("max minutes", 1.0)
 	tc.Name.Property = card.Properties.Get("description")
 
 	if card.Properties.Has("max time") {
 		split := strings.Split(card.Properties.Get("max time").AsString(), ":")
-		card.Properties.Get("max minutes").Set(split[0])
-		card.Properties.Get("max seconds").Set(split[1])
+
+		tm, _ := strconv.ParseFloat(split[0], 32)
+		ts, _ := strconv.ParseFloat(split[1], 32)
+
+		card.Properties.Get("max minutes").Set(tm)
+		card.Properties.Get("max seconds").Set(ts)
 		card.Properties.Remove("max time")
-	} else {
-		card.Properties.SetDefault("max seconds", 0)
-		card.Properties.SetDefault("max minutes", 1)
 	}
 
-	tc.ClockMaxTimeLabel.RegexString = RegexOnlyDigitsColonAndDot
-	tc.ClockMaxTimeLabel.MaxLength = 8
-	tc.ClockMaxTimeLabel.OnClickOut = func() {
-		text := tc.ClockMaxTimeLabel.TextAsString()
-		if !strings.ContainsAny(text, ":.") {
-			text = "00:" + text
-		}
+	tc.CurrentTimeLabel.RegexString = RegexOnlyDigitsColonAndDot
+	tc.CurrentTimeLabel.MaxLength = 8
 
-		timeUnits := SplitStringOnAny(text, ":.")
-		m, _ := strconv.Atoi(timeUnits[0])
-		s, _ := strconv.Atoi(timeUnits[1])
+	tc.SetCountdownTime(card.Properties.Get("max minutes").AsInt(), card.Properties.Get("max seconds").AsInt())
 
-		tc.SetMaxTime(m, s) // Read the label and set that for the max time
-	}
-	tc.SetMaxTime(card.Properties.Get("max minutes").AsInt(), card.Properties.Get("max seconds").AsInt())
+	tc.TargetTimeLabel.RegexString = RegexOnlyDigitsColonAndDotAMPM
+	tc.TargetTimeLabel.Editable = true
+	tc.TargetTimeLabel.MaxLength = 8
+	tc.TargetTimeLabel.OnClickOut = func() {
 
-	tc.ClockScheduleTimeLabel.RegexString = RegexOnlyDigitsColonAndDotAMPM
-	tc.ClockScheduleTimeLabel.MaxLength = 8
-	tc.ClockScheduleTimeLabel.OnClickOut = func() {
+		text := strings.ToLower(tc.TargetTimeLabel.TextAsString())
 
-		text := strings.ToLower(tc.ClockScheduleTimeLabel.TextAsString())
-		// if !strings.ContainsAny(text, ":.") {
-		// 	text = "00:" + text
-		// }
+		var bigNumber, smallNumber int
 
-		var h, m int
+		modeGroup := tc.Card.Properties.Get("mode group").AsInt()
 
 		if strings.ContainsAny(text, ":.") {
 			timeUnits := SplitStringOnAny(text, ":.")
-			h, _ = strconv.Atoi(timeUnits[0])
+			bigNumber, _ = strconv.Atoi(timeUnits[0])
 
 			s := ""
 			for _, v := range timeUnits[1] {
@@ -1609,7 +1621,7 @@ func NewTimerContents(card *Card) *TimerContents {
 					s += string(v)
 				}
 			}
-			m, _ = strconv.Atoi(s)
+			smallNumber, _ = strconv.Atoi(s)
 		} else {
 			s := ""
 			for _, v := range text {
@@ -1617,16 +1629,23 @@ func NewTimerContents(card *Card) *TimerContents {
 					s += string(v)
 				}
 			}
-			h, _ = strconv.Atoi(s)
+			bigNumber, _ = strconv.Atoi(s)
 		}
 
-		if strings.Contains(text, "a") && h >= 12 {
-			h -= 12
-		} else if strings.Contains(text, "p") && h < 12 {
-			h += 12
+		if modeGroup == 1 {
+			tc.SetCountdownTime(bigNumber, smallNumber)
+		} else if modeGroup == 2 {
+
+			if strings.Contains(text, "a") && bigNumber >= 12 {
+				bigNumber -= 12
+			} else if strings.Contains(text, "p") && bigNumber < 12 {
+				bigNumber += 12
+			}
+
+			tc.SetScheduleTime(bigNumber, smallNumber) // Read the label and set that for the max time
+
 		}
 
-		tc.SetScheduleTime(h, m) // Read the label and set that for the max time
 	}
 
 	tc.SetScheduleTime(card.Properties.Get("schedule hour").AsInt(), card.Properties.Get("schedule minute").AsInt())
@@ -1640,6 +1659,7 @@ func NewTimerContents(card *Card) *TimerContents {
 		} else {
 			globals.EventLog.Log("Timer Mode changed to Clock.", false)
 		}
+		tc.UpdateTargetTimerText()
 	}, card.Properties.Get("mode group"),
 		&sdl.FRect{48, 192, 32, 32},
 		&sdl.FRect{80, 192, 32, 32},
@@ -1668,8 +1688,7 @@ func NewTimerContents(card *Card) *TimerContents {
 	tc.StartButton = NewIconButton(0, 0, &sdl.FRect{112, 32, 32, 32}, globals.GUITexture, true, func() {
 		tc.Running = !tc.Running
 	})
-	tc.RestartButton = NewIconButton(0, 0, &sdl.FRect{176, 32, 32, 32}, globals.GUITexture, true, func() { tc.TimerValue = 0; tc.ClockIcon.Rotation = 0 })
-	tc.ClockIcon = NewUIClockIcon(&sdl.FRect{0, 0, 64, 64}, tc.Color().Sub(80), tc.Color().Add(40), true)
+	tc.RestartButton = NewIconButton(0, 0, &sdl.FRect{176, 32, 32, 32}, globals.GUITexture, true, func() { tc.TimerValue = 0 })
 
 	tc.Name.Editable = true
 	// tc.Name.AutoExpand = true
@@ -1679,22 +1698,28 @@ func NewTimerContents(card *Card) *TimerContents {
 	row.Add("icon", NewGUIImage(nil, &sdl.FRect{80, 64, 32, 32}, globals.GUITexture.Texture, true))
 	row.Add("name", tc.Name)
 
-	tc.MaxTimeRow = tc.container.AddRow(AlignCenter)
-	tc.MaxTimeRow.Add("clock", tc.ClockLabel)
+	// Stopwatch
 
-	tc.ClockMaxTimeSub = NewIconButton(0, 0, &sdl.FRect{80, 96, 32, 32}, globals.GUITexture, true, func() {
-		tc.SetMaxTime(0, int(tc.MaxTime.Seconds()-1))
+	tc.StopwatchRow = tc.container.AddRow(AlignCenter)
+	tc.StopwatchRow.Add("stopwatch label", tc.CurrentTimeLabel)
+
+	// Countdown
+
+	tc.ClockCountdownTimeSub = NewIconButton(0, 0, &sdl.FRect{80, 96, 32, 32}, globals.GUITexture, true, func() {
+		tc.SetCountdownTime(0, int(tc.CountdownTime.Seconds()-1))
 	})
 
-	tc.ClockMaxTimeAdd = NewIconButton(0, 0, &sdl.FRect{48, 96, 32, 32}, globals.GUITexture, true, func() {
-		tc.SetMaxTime(0, int(tc.MaxTime.Seconds()+1))
+	tc.ClockCountdownTimeAdd = NewIconButton(0, 0, &sdl.FRect{48, 96, 32, 32}, globals.GUITexture, true, func() {
+		tc.SetCountdownTime(0, int(tc.CountdownTime.Seconds()+1))
 	})
 
-	tc.MaxTimeRow.Add("subMax", tc.ClockMaxTimeSub)
-	tc.MaxTimeRow.Add("max", tc.ClockMaxTimeLabel)
-	tc.MaxTimeRow.Add("addMax", tc.ClockMaxTimeAdd)
+	tc.CountdownRow = tc.container.AddRow(AlignCenter)
+	tc.CountdownRow.Add("curentCountdownTimeLabel", tc.CurrentTimeLabel)
+	tc.CountdownRow.Add("subCountdown", tc.ClockCountdownTimeSub)
+	tc.CountdownRow.Add("targetCountdownTimeLabel", tc.TargetTimeLabel)
+	tc.CountdownRow.Add("addCountdown", tc.ClockCountdownTimeAdd)
 
-	tc.ScheduleTimeRow = tc.container.AddRow(AlignCenter)
+	// Schedule
 
 	tc.ClockScheduleTimeSub = NewIconButton(0, 0, &sdl.FRect{80, 96, 32, 32}, globals.GUITexture, true, func() {
 		tc.SetScheduleTime(0, int(tc.ScheduleTime.Minutes()-1))
@@ -1704,14 +1729,16 @@ func NewTimerContents(card *Card) *TimerContents {
 		tc.SetScheduleTime(0, int(tc.ScheduleTime.Minutes()+1))
 	})
 
+	tc.ScheduleTimeRow = tc.container.AddRow(AlignCenter)
 	tc.ScheduleTimeRow.Add("subSchedule", tc.ClockScheduleTimeSub)
-	tc.ScheduleTimeRow.Add("schedule", tc.ClockScheduleTimeLabel)
+	tc.ScheduleTimeRow.Add("scheduleTargetTime", tc.TargetTimeLabel)
 	tc.ScheduleTimeRow.Add("addSchedule", tc.ClockScheduleTimeAdd)
 
-	tc.ClockIconRow = tc.container.AddRow(AlignCenter)
-	tc.ClockIconRow.Add("pie", tc.ClockIcon)
-	tc.ClockIconRow.Add("start button", tc.StartButton)
-	tc.ClockIconRow.Add("restart button", tc.RestartButton)
+	// Control Row
+
+	tc.ControlRow = tc.container.AddRow(AlignCenter)
+	tc.ControlRow.Add("start button", tc.StartButton)
+	tc.ControlRow.Add("restart button", tc.RestartButton)
 
 	row = tc.container.AddRow(AlignCenter)
 	row.Add("", NewLabel("Mode:  ", nil, true, AlignRight))
@@ -1724,7 +1751,7 @@ func NewTimerContents(card *Card) *TimerContents {
 	return tc
 }
 
-func (tc *TimerContents) SetMaxTime(minutes, seconds int) string {
+func (tc *TimerContents) SetCountdownTime(minutes, seconds int) string {
 
 	if minutes <= 0 && seconds <= 0 {
 		minutes = 0
@@ -1736,12 +1763,13 @@ func (tc *TimerContents) SetMaxTime(minutes, seconds int) string {
 		minutes++
 	}
 
-	tc.Card.Properties.Get("max minutes").Set(minutes)
-	tc.Card.Properties.Get("max seconds").Set(seconds)
-	tc.ClockMaxTimeLabel.SetTextRaw([]rune(fmt.Sprintf("%02d", minutes) + ":" + fmt.Sprintf("%02d", seconds)))
-	tc.MaxTime = time.Duration((minutes * int(time.Minute)) + (seconds * int(time.Second)))
+	tc.Card.Properties.Get("max minutes").Set(float64(minutes))
+	tc.Card.Properties.Get("max seconds").Set(float64(seconds))
+	tc.CountdownTime = time.Duration((minutes * int(time.Minute)) + (seconds * int(time.Second)))
 
-	return tc.ClockMaxTimeLabel.TextAsString()
+	tc.UpdateTargetTimerText()
+
+	return tc.TargetTimeLabel.TextAsString()
 
 }
 
@@ -1764,19 +1792,34 @@ func (tc *TimerContents) SetScheduleTime(hour, minute int) string {
 		hour -= 24
 	}
 
-	tc.Card.Properties.Get("schedule hour").Set(hour)
-	tc.Card.Properties.Get("schedule minute").Set(minute)
-	tc.ClockScheduleTimeLabel.SetTextRaw([]rune(fmt.Sprintf("%02d", hour) + ":" + fmt.Sprintf("%02d", minute)))
+	tc.Card.Properties.Get("schedule hour").Set(float64(hour))
+	tc.Card.Properties.Get("schedule minute").Set(float64(minute))
 	tc.ScheduleTime = time.Duration((hour * int(time.Hour)) + (minute * int(time.Minute)))
 
-	return tc.ClockScheduleTimeLabel.TextAsString()
+	tc.UpdateTargetTimerText()
+
+	return tc.TargetTimeLabel.TextAsString()
+
+}
+
+func (tc *TimerContents) UpdateTargetTimerText() {
+	var big, small int
+
+	modeGroup := tc.Card.Properties.Get("mode group").AsInt()
+
+	if modeGroup == 1 {
+		big = tc.Card.Properties.Get("max minutes").AsInt()
+		small = tc.Card.Properties.Get("max seconds").AsInt()
+	} else if modeGroup == 2 {
+		big = tc.Card.Properties.Get("schedule hour").AsInt()
+		small = tc.Card.Properties.Get("schedule minute").AsInt()
+	}
+
+	tc.TargetTimeLabel.SetTextRaw([]rune(fmt.Sprintf("%02d", big) + ":" + fmt.Sprintf("%02d", small)))
 
 }
 
 func (tc *TimerContents) Update() {
-
-	// This method correctly sets the label size such that Numbered Cards collapse properly.
-	tc.ClockLabel.SetMaxSize(tc.container.Rect.W-32, tc.ClockLabel.maxSize.Y)
 
 	gs := globals.GridSize
 	r := tc.Name.Rectangle()
@@ -1788,8 +1831,26 @@ func (tc *TimerContents) Update() {
 
 	modeGroup := tc.Card.Properties.Get("mode group").AsInt()
 
-	tc.ScheduleTimeRow.Visible = modeGroup == 2
-	tc.MaxTimeRow.Visible = modeGroup < 2
+	tc.StopwatchRow.Visible = VisibleCollapsed
+	tc.CountdownRow.Visible = VisibleCollapsed
+	tc.ControlRow.Visible = VisibleInvisible
+	tc.ScheduleTimeRow.Visible = VisibleCollapsed
+
+	if modeGroup == 0 {
+		tc.StopwatchRow.Visible = VisibleNormal
+	}
+
+	if modeGroup == 1 {
+		tc.CountdownRow.Visible = VisibleNormal
+	}
+
+	if modeGroup != 2 {
+		tc.ControlRow.Visible = VisibleNormal
+	}
+
+	if modeGroup == 2 {
+		tc.ScheduleTimeRow.Visible = VisibleNormal
+	}
 
 	tc.Name.SetRectangle(r)
 
@@ -1805,18 +1866,16 @@ func (tc *TimerContents) Update() {
 
 		tc.StartButton.IconSrc.X = 144
 		tc.TimerValue += time.Duration(globals.DeltaTime * float32(time.Second))
-		tc.ClockIcon.Rotation += globals.DeltaTime
 
 		modeGroup := int(tc.Card.Properties.Get("mode group").AsFloat())
 
 		// Timer
-		if tc.TimerValue > tc.MaxTime && modeGroup == 1 {
+		if tc.TimerValue > tc.CountdownTime && modeGroup == 1 {
 
 			elapsedMessage := "Timer [" + tc.Name.TextAsString() + "] elapsed."
 
 			tc.Running = false
 			globals.EventLog.Log(elapsedMessage, false)
-			tc.ClockIcon.Rotation = 0
 			tc.TimerValue = 0
 
 			triggerMode := int(tc.Card.Properties.Get("trigger mode").AsFloat())
@@ -1846,30 +1905,11 @@ func (tc *TimerContents) Update() {
 
 		}
 
-	} else if modeGroup == 2 {
-		tc.ClockIcon.Rotation = (float32(time.Now().Second()) / 60)
-		// tc.ClockIcon.Rotation += globals.DeltaTime
 	}
 
-	tc.ClockLabel.SetText([]rune(formatTime(tc.TimerValue, false)))
+	tc.CurrentTimeLabel.SetText([]rune(formatTime(tc.TimerValue, false)))
 
 	if tc.Card.IsSelected() {
-
-		modeGroup := tc.Card.Properties.Get("mode group").AsFloat()
-
-		tc.ClockMaxTimeLabel.Editable = modeGroup == 1
-
-		if modeGroup == 0 {
-			tc.ClockMaxTimeSub.SetRectangle(&sdl.FRect{0, 0, 0, 0})
-			tc.ClockMaxTimeAdd.SetRectangle(&sdl.FRect{0, 0, 0, 0})
-			tc.ClockMaxTimeLabel.SetRectangle(&sdl.FRect{0, 0, 0, 0})
-		} else {
-			tc.ClockMaxTimeLabel.SetRectangle(&sdl.FRect{0, 0, 96, 32})
-			tc.ClockMaxTimeSub.SetRectangle(&sdl.FRect{0, 0, 32, 32})
-			tc.ClockMaxTimeAdd.SetRectangle(&sdl.FRect{0, 0, 32, 32})
-		}
-
-		tc.ClockScheduleTimeLabel.Editable = modeGroup == 2
 
 		if globals.State == StateNeutral && globals.Keybindings.Pressed(KBTimerStartStop) {
 			tc.Running = !tc.Running
@@ -1889,6 +1929,8 @@ func (tc *TimerContents) Update() {
 	top := tc.Card.Stack.Top()
 
 	tc.CheckboxOn = true
+
+	// Card above is a checkbox and it's not complete, so turn off
 	if top != nil && top != tc.Card {
 		if check, ok := top.Contents.(*CheckboxContents); ok && check.CompletionLevel() == 0 {
 			tc.ClockBecameInPhase = false
@@ -1954,10 +1996,10 @@ func (tc *TimerContents) Draw() {
 
 	modeGroup := int(tc.Card.Properties.Get("mode group").AsFloat())
 
-	if modeGroup == 1 && tc.MaxTime > 0 {
+	if modeGroup == 1 && tc.CountdownTime > 0 {
 
 		if tc.TimerValue > 0 {
-			p = float32(tc.TimerValue) / float32(tc.MaxTime)
+			p = float32(tc.TimerValue) / float32(tc.CountdownTime)
 		}
 
 	} else if tc.ClockBecameInPhase {
@@ -1988,8 +2030,8 @@ func (tc *TimerContents) Draw() {
 
 	tc.DefaultContents.Draw()
 
-	if modeGroup == 2 && !tc.ClockScheduleTimeLabel.Editing {
-		txt := tc.ClockScheduleTimeLabel.TextAsString()
+	if modeGroup == 2 && !tc.TargetTimeLabel.Editing {
+		txt := tc.TargetTimeLabel.TextAsString()
 		color := getThemeColor(GUIMenuColor)
 		x := float32(0)
 
@@ -2052,10 +2094,7 @@ func (tc *TimerContents) Trigger(triggerType int) {
 }
 
 func (tc *TimerContents) ReceiveMessage(msg *Message) {
-	if msg.Type == MessageThemeChange {
-		tc.ClockIcon.EdgeColor = tc.Color().Sub(80)
-		tc.ClockIcon.FillColor = tc.Color().Add(40)
-	} else if msg.Type == MessageVolumeChange {
+	if msg.Type == MessageVolumeChange {
 		if tc.AlarmSound != nil {
 			tc.AlarmSound.UpdateVolume()
 		}
@@ -2073,7 +2112,7 @@ func (tc *TimerContents) Color() Color {
 }
 
 func (tc *TimerContents) DefaultSize() Vector {
-	return Vector{globals.GridSize * 9, globals.GridSize * 6}
+	return Vector{globals.GridSize * 9, globals.GridSize * 5}
 }
 
 type MapData struct {
@@ -2417,37 +2456,20 @@ func NewMapContents(card *Card) *MapContents {
 		mc.Buttons = append(mc.Buttons, button)
 	}
 
-	// Rotation buttons
-
-	// rotateRight := NewIconButtonTintless(0, 0, &sdl.FRect{400, 192, 32, 32}, globals.GUITexture, true, func() {
-	// 	mc.MapData.Rotate(1)
-	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-	// })
-	// mc.Buttons = append(mc.Buttons, rotateRight)
-
-	// rotateLeft := NewIconButtonTintless(0, 0, &sdl.FRect{400, 192, 32, 32}, globals.GUITexture, true, func() {
-	// 	mc.MapData.Rotate(-1)
-	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-	// })
-	// rotateLeft.Flip = sdl.FLIP_HORIZONTAL
-
-	// flipHorizontal := NewIconButtonTintless(0, 0, &sdl.FRect{400, 416, 32, 32}, globals.GUITexture, true, func() {
-	// 	mc.MapData.Flip(false)
-	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-	// })
-	// flipHorizontal.Flip = sdl.FLIP_NONE
-
-	// flipVertical := NewIconButtonTintless(0, 0, &sdl.FRect{400, 416, 32, 32}, globals.GUITexture, true, func() {
-	// 	mc.MapData.Flip(true)
-	// 	globals.Mouse.Button(sdl.BUTTON_LEFT).Consume()
-	// })
-	// flipVertical.Rotation = 90
-
-	// mc.Buttons = append(mc.Buttons, rotateLeft)
-
 	mc.container.AddRow(AlignLeft).Add("icon", NewGUIImage(nil, &sdl.FRect{112, 96, 32, 32}, globals.GUITexture.Texture, true))
 
-	mc.MapData.Resize(int(mc.Card.Rect.W/globals.GridSize), int(mc.Card.Rect.H/globals.GridSize))
+	cardWidth := mc.Card.Rect.W
+	cardHeight := mc.Card.Rect.H
+
+	// New cards have no width or height set yet because the contents have
+	// to be set first to get the default width or height
+	if cardWidth == 0 || cardHeight == 0 {
+		size := mc.DefaultSize()
+		cardWidth = size.X
+		cardHeight = size.Y
+	}
+
+	mc.MapData.Resize(int(cardWidth/globals.GridSize), int(cardHeight/globals.GridSize))
 
 	if mc.Card.Properties.Get("contents").AsString() != "" {
 		mc.MapData.Deserialize(mc.Card.Properties.Get("contents").AsString())
@@ -2473,11 +2495,10 @@ func (mc *MapContents) Update() {
 
 	if mc.Tool == MapEditToolNone {
 		mc.Card.Draggable = true
-		mc.Card.Depth = -1
-
+		// mc.Card.Depth = -10000000 // Depth is lower when not editing the map so it's always behind lines
 	} else {
 		mc.Card.Draggable = false
-		mc.Card.Depth = 1 // Depth is higher when editing the map so it's always in front
+		// mc.Card.Depth = 10000000 // Depth is higher when editing the map so it's always in front
 	}
 
 	changed := false
@@ -2763,6 +2784,133 @@ func (mc *MapContents) Update() {
 			button.Update()
 		}
 
+		if globals.Keybindings.Pressed(KBMapShiftRight) {
+			globals.Keybindings.Shortcuts[KBMapShiftRight].ConsumeKeys()
+			mc.MapData.Push(1, 0, true)
+			globals.EventLog.Log("Map shifted by 1 to the right.", false)
+		} else if globals.Keybindings.Pressed(KBMapShiftLeft) {
+			globals.Keybindings.Shortcuts[KBMapShiftLeft].ConsumeKeys()
+			mc.MapData.Push(-1, 0, true)
+			globals.EventLog.Log("Map shifted by 1 to the left.", false)
+		} else if globals.Keybindings.Pressed(KBMapShiftUp) {
+			globals.Keybindings.Shortcuts[KBMapShiftUp].ConsumeKeys()
+			mc.MapData.Push(0, -1, true)
+			globals.EventLog.Log("Map shifted by 1 upwards.", false)
+		} else if globals.Keybindings.Pressed(KBMapShiftDown) {
+			globals.Keybindings.Shortcuts[KBMapShiftDown].ConsumeKeys()
+			mc.MapData.Push(0, 1, true)
+			globals.EventLog.Log("Map shifted by 1 downwards.", false)
+		} else if globals.Keybindings.Pressed(KBMapRotateRight) {
+			globals.Keybindings.Shortcuts[KBMapRotateRight].ConsumeKeys()
+			mc.MapData.Rotate(true)
+			globals.EventLog.Log("Map rotated clockwise by 90 degrees.", false)
+		} else if globals.Keybindings.Pressed(KBMapRotateLeft) {
+			globals.Keybindings.Shortcuts[KBMapRotateLeft].ConsumeKeys()
+			mc.MapData.Rotate(false)
+			globals.EventLog.Log("Map rotated counter-clockwise by 90 degrees.", false)
+		} else if globals.Keybindings.Pressed(KBMapWrapAroundCards) {
+			globals.Keybindings.Shortcuts[KBMapWrapAroundCards].ConsumeKeys()
+
+			set := false
+			x := float32(0)
+			y := float32(0)
+			x2 := float32(0)
+			y2 := float32(0)
+
+			for _, c := range mc.Card.PinnedCards {
+				c.Unpin()
+			}
+
+			for card := range mc.Card.Page.Selection.Cards {
+
+				if card == mc.Card {
+					continue
+				}
+
+				card.Unpin()
+				card.PinTo(mc.Card)
+				card.Page.Raise(card)
+
+				if !set || card.Rect.X < x {
+					x = card.Rect.X
+				}
+
+				if !set || card.Rect.Y < y {
+					y = card.Rect.Y
+				}
+
+				if !set || card.Rect.X+card.Rect.W > x2 {
+					x2 = card.Rect.X + card.Rect.W
+				}
+
+				if !set || card.Rect.Y+card.Rect.H > y2 {
+					y2 = card.Rect.Y + card.Rect.H
+				}
+
+				set = true
+
+			}
+
+			if set {
+				mc.Card.Rect.X = x - globals.GridSize
+				mc.Card.Rect.Y = y - globals.GridSize
+				mc.Card.Rect.W = (x2 - x) + (globals.GridSize * 2)
+				mc.Card.Rect.H = (y2 - y) + (globals.GridSize * 2)
+				mc.Card.StopDragging()
+
+				mc.RecreateTexture()
+				mc.MapData.Clip() // We call Clip() here so if you undo or redo and the size changes, values outside of that range are deleted
+				mc.UpdateTexture()
+
+				globals.EventLog.Log("Smartscaled Map and pinned selected cards.", false)
+			} else {
+
+				for _, c := range mc.Card.PinnedCards {
+					c.Unpin()
+				}
+
+				PlayUISound(UISoundTypeTap)
+				globals.EventLog.Log("Unpinned Map.", false)
+			}
+
+			// for _, card := range mc.Card.PinnedCards {
+
+			// 	if !set || card.Rect.X < x {
+			// 		x = card.Rect.X
+			// 		set = true
+			// 	}
+
+			// 	if !set || card.Rect.Y < y {
+			// 		y = card.Rect.Y
+			// 		set = true
+			// 	}
+
+			// 	if !set || card.Rect.X+card.Rect.W > x2 {
+			// 		x2 = card.Rect.X + card.Rect.W
+			// 		set = true
+			// 	}
+
+			// 	if !set || card.Rect.Y+card.Rect.H > y {
+			// 		y2 = card.Rect.Y + card.Rect.H
+			// 		set = true
+			// 	}
+
+			// }
+
+			// if set {
+			// 	PlayUISound(UISoundTypeTap)
+			// 	mc.Card.Rect.X = x
+			// 	mc.Card.Rect.Y = y
+			// 	mc.Card.Rect.W = x2 - x
+			// 	mc.Card.Rect.H = y2 - y
+			// 	mc.Card.LockPosition()
+			// } else {
+			// 	PlayUISound(UISoundTypeTap)
+			// 	globals.EventLog.Log("Can't smart scale Map to wrap around pinned cards because there are no pinned cards!", false)
+			// }
+
+		}
+
 		mc.PrevPos = Vector{mc.Card.Rect.X, mc.Card.Rect.Y}
 
 	} else {
@@ -2773,32 +2921,6 @@ func (mc *MapContents) Update() {
 		}
 		mc.LineStart.X = -1
 		mc.LineStart.Y = -1
-	}
-
-	if globals.Keybindings.Pressed(KBMapShiftRight) {
-		globals.Keybindings.Shortcuts[KBMapShiftRight].ConsumeKeys()
-		mc.MapData.Push(1, 0, true)
-		globals.EventLog.Log("Map shifted by 1 to the right.", false)
-	} else if globals.Keybindings.Pressed(KBMapShiftLeft) {
-		globals.Keybindings.Shortcuts[KBMapShiftLeft].ConsumeKeys()
-		mc.MapData.Push(-1, 0, true)
-		globals.EventLog.Log("Map shifted by 1 to the left.", false)
-	} else if globals.Keybindings.Pressed(KBMapShiftUp) {
-		globals.Keybindings.Shortcuts[KBMapShiftUp].ConsumeKeys()
-		mc.MapData.Push(0, -1, true)
-		globals.EventLog.Log("Map shifted by 1 upwards.", false)
-	} else if globals.Keybindings.Pressed(KBMapShiftDown) {
-		globals.Keybindings.Shortcuts[KBMapShiftDown].ConsumeKeys()
-		mc.MapData.Push(0, 1, true)
-		globals.EventLog.Log("Map shifted by 1 downwards.", false)
-	} else if globals.Keybindings.Pressed(KBMapRotateRight) {
-		globals.Keybindings.Shortcuts[KBMapRotateRight].ConsumeKeys()
-		mc.MapData.Rotate(true)
-		globals.EventLog.Log("Map rotated clockwise by 90 degrees.", false)
-	} else if globals.Keybindings.Pressed(KBMapRotateLeft) {
-		globals.Keybindings.Shortcuts[KBMapRotateLeft].ConsumeKeys()
-		mc.MapData.Rotate(false)
-		globals.EventLog.Log("Map rotated counter-clockwise by 90 degrees.", false)
 	}
 
 }
@@ -2821,16 +2943,9 @@ func (mc *MapContents) Draw() {
 
 	if mc.RenderTexture != nil {
 
-		dst := &sdl.FRect{mc.Card.DisplayRect.X, mc.Card.DisplayRect.Y, mc.Card.Rect.W, mc.Card.Rect.H}
+		alpha := uint8(150)
 
-		alpha := uint8(200)
-
-		if mc.Card.Resizing != "" {
-			alpha = 128
-			dst = mc.Card.RectPreResize
-		}
-
-		dst = globals.Project.Camera.TranslateRect(dst)
+		dst := globals.Project.Camera.TranslateRect(&sdl.FRect{mc.Card.DisplayRect.X, mc.Card.DisplayRect.Y, mc.Card.Rect.W, mc.Card.Rect.H})
 
 		mc.RenderTexture.Texture.SetAlphaMod(alpha)
 		globals.Renderer.RenderTexture(mc.RenderTexture.Texture, nil, dst)
@@ -2996,7 +3111,7 @@ func (mc *MapContents) UpdateTexture() {
 
 				globals.Renderer.SetDrawColor(mapColor.RGBA())
 
-				guiTex.SetColorMod(mapColor.Sub(20).RGB())
+				guiTex.SetColorMod(mapColor.Sub(5).RGB())
 				guiTex.SetAlphaMod(mapColor[3])
 				globals.Renderer.RenderTextureRotated(guiTex, src, dst, 0, &sdl.FPoint{16, 16}, sdl.FLIP_NONE)
 
@@ -3518,7 +3633,7 @@ func NewLinkContents(card *Card) *LinkContents {
 	lc.linkedIcon = NewGUIImage(nil, &sdl.FRect{176, 126, 32, 32}, globals.GUITexture.Texture, true)
 	row.Add("", lc.linkedIcon)
 	row.Add("", NewLabel("Link Mode:", nil, true, AlignCenter))
-	row.Add("group", NewIconButtonGroup(nil, true, func(index int) {}, card.Properties.Get("link mode"), &sdl.FRect{144, 256, 32, 32}, &sdl.FRect{144, 0, 32, 32}))
+	row.Add("group", NewIconButtonGroup(nil, true, nil, card.Properties.Get("link mode"), &sdl.FRect{144, 256, 32, 32}, &sdl.FRect{144, 0, 32, 32}))
 
 	return lc
 }
@@ -3570,9 +3685,15 @@ func (lc *LinkContents) Update() {
 			lc.Card.Properties.Get("target").Set(-1.0)
 		}
 	}
+	lc.ProgramRow.Visible = VisibleInvisible
+	lc.CardRow.Visible = VisibleInvisible
 
-	lc.ProgramRow.Visible = programMode
-	lc.CardRow.Visible = !programMode
+	if programMode {
+		lc.ProgramRow.Visible = VisibleNormal
+	}
+	if !programMode {
+		lc.CardRow.Visible = VisibleNormal
+	}
 
 	lc.linkedIcon.Visible = (lc.Card.Properties.Get("link mode").AsFloat() == 0 && lc.Card.Properties.Get("target").AsFloat() >= 0) || (lc.Card.Properties.Get("link mode").AsFloat() == 1 && lc.Card.Properties.Get("run").AsString() != "")
 

@@ -247,9 +247,40 @@ func (resource *Resource) Parse() {
 			texture.SetBlendMode(sdl.BLENDMODE_BLEND)
 			texture.SetScaleMode(sdl.SCALEMODE_NEAREST)
 
+			// Create shadow version
+
+			shadowSurface, _ := sdl.CreateSurface(int(w), int(h), surface.Format)
+
+			surface.SetColorMod(0, 0, 0)
+			surface.SetAlphaMod(20)
+
+			for y := -2; y < 2; y++ {
+
+				for x := -2; x < 2; x++ {
+
+					surface.Blit(nil, shadowSurface, &sdl.Rect{
+						X: int32(x),
+						Y: int32(y),
+						W: int32(w),
+						H: int32(h),
+					})
+
+				}
+
+			}
+
+			surface.SetColorMod(255, 255, 255)
+			surface.SetAlphaMod(255)
+
+			shadowTex, err := globals.Renderer.CreateTextureFromSurface(shadowSurface)
+			if err != nil {
+				panic(err)
+			}
+
 			resource.Data = Image{
-				Size:    Vector{float32(surface.W), float32(surface.H)},
-				Texture: texture,
+				Size:          Vector{float32(surface.W), float32(surface.H)},
+				Texture:       texture,
+				ShadowTexture: shadowTex,
 				// Surface: surface,
 			}
 

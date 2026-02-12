@@ -22,12 +22,13 @@ type Page struct {
 
 	Grid         *Grid
 	Cards        []*Card
-	ToDelete     []*Card
-	ToRestore    []*Card
 	Selection    *Selection
 	UpdateStacks bool
 	Drawables    []*Drawable
-	ToRaise      []*Card
+
+	ToDelete  []*Card
+	ToRestore []*Card
+	ToRaise   []*Card
 
 	IgnoreWritePan bool
 	Pan            Vector
@@ -127,15 +128,8 @@ func (page *Page) Draw() {
 
 	sorted := page.Cards[:]
 
-	sort.SliceStable(sorted, func(i, j int) bool {
-		return page.Cards[i].Depth < page.Cards[j].Depth
-	})
-
 	for _, card := range sorted {
 		card.DrawShadow()
-	}
-
-	for _, card := range sorted {
 		card.DrawLinks()
 		card.DrawCard()
 	}
@@ -189,9 +183,9 @@ func (page *Page) Draw() {
 
 	}
 
-	page.ToDelete = []*Card{}
-	page.ToRestore = []*Card{}
-	page.ToRaise = []*Card{}
+	page.ToDelete = page.ToDelete[:0]
+	page.ToRestore = page.ToRestore[:0]
+	page.ToRaise = page.ToRaise[:0]
 
 	page.UpdateLinks()
 
@@ -378,6 +372,8 @@ func (page *Page) CreateNewCard(contentType string) *Card {
 	page.Cards = append(page.Cards, newCard)
 	newCard.Valid = true
 
+	newCard.HandlePinning()
+
 	page.Project.UndoHistory.Capture(NewUndoState(newCard))
 
 	globals.EventLog.Log("Created new Card.", false)
@@ -556,6 +552,10 @@ func (page *Page) Raise(card *Card) {
 	}
 
 	page.ToRaise = append(page.ToRaise, card)
+
+	for _, c := range card.PinnedCards {
+		page.Raise(c)
+	}
 
 }
 
@@ -869,4 +869,13 @@ func (page *Page) SendMessage(msg *Message) {
 		card.ReceiveMessage(msg)
 	}
 
+}
+
+func (page *Page) IndexOf(card *Card) int {
+	for i, c := range page.Cards {
+		if c == card {
+			return i
+		}
+	}
+	return -1
 }

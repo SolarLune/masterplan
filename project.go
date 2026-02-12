@@ -150,7 +150,7 @@ func (project *Project) CreateGridTexture() {
 
 			project.GridTexture.Image.Texture.SetScaleMode(sdl.SCALEMODE_NEAREST)
 
-			gridColor := getThemeColor(GUIGridColor).Mix(getThemeColor(GUIBGColor), 0.5)
+			gridColor := getThemeColor(GUIGridColor).Mix(getThemeColor(GUIBGColor), 0.75)
 
 			guiTex.Texture.SetColorMod(gridColor.RGB())
 			guiTex.Texture.SetAlphaMod(gridColor[3])
@@ -762,7 +762,7 @@ func OpenProjectFrom(filename string) {
 					// Countdown
 					case 0:
 						card.Properties.Get("mode group").Set(TimerModeCountdown)
-						str := card.Contents.(*TimerContents).SetMaxTime(int(task.Get(`TimerMinuteSpinner\.Number`).Int()), int(task.Get(`TimerSecondSpinner\.Number`).Int()))
+						str := card.Contents.(*TimerContents).SetCountdownTime(int(task.Get(`TimerMinuteSpinner\.Number`).Int()), int(task.Get(`TimerSecondSpinner\.Number`).Int()))
 						card.Properties.Get("max time").Set(str)
 						triggerMode := task.Get(`TimerTriggerMode\.CurrentChoice`).Int()
 						switch triggerMode {
@@ -1474,9 +1474,17 @@ func (project *Project) GlobalShortcuts() {
 				grid := project.CurrentPage.Grid
 
 				for _, card := range selected {
+
 					swappedWithNeighbor := false
+
 					for _, neighbor := range grid.CardsInCardShape(card, dx, dy) {
-						if !neighbor.selected {
+
+						if !neighbor.selected && neighbor.PinnedTo == nil && (card.PinnedTo != neighbor && neighbor.PinnedTo != card) {
+
+							ogX := card.Rect.X
+							ogY := card.Rect.Y
+							neighborOGX := neighbor.Rect.X
+							neighborOGY := neighbor.Rect.Y
 
 							if dx > 0 {
 								neighbor.Rect.X = card.Rect.X
@@ -1498,14 +1506,40 @@ func (project *Project) GlobalShortcuts() {
 							neighbor.CreateUndoState = true
 							card.CreateUndoState = true
 
+							dx = card.Rect.X - ogX
+							dy = card.Rect.Y - ogY
+
+							ndx := neighbor.Rect.X - neighborOGX
+							ndy := neighbor.Rect.Y - neighborOGY
+
+							for _, c := range card.PinnedCards {
+								if !c.selected {
+									c.Move(dx, dy)
+								}
+							}
+
+							for _, c := range neighbor.PinnedCards {
+								if !c.selected {
+									c.Move(ndx, ndy)
+								}
+							}
+
 							swappedWithNeighbor = true
 							break
 
 						}
 					}
+
 					if !swappedWithNeighbor {
 						card.Move(dx, dy)
+						for _, c := range card.PinnedCards {
+							if !c.selected {
+								c.Move(dx, dy)
+							}
+						}
 					}
+
+					card.HandleUnpinning()
 
 					// for _, link := range card.Links {
 					// 	if link.Start == card && project.CurrentPage.Selection.Has(link.End) {

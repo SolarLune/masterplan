@@ -2731,7 +2731,7 @@ where the cursor is over the window.`))
 		searchText := strings.ToLower(strings.TrimSpace(searchKeybindingsLabel.TextAsString()))
 		for _, row := range input.FindRows("key-", true) {
 			if searchText == "" {
-				row.Visible = true
+				row.Visible = VisibleNormal
 			} else {
 				shortcutLabelFound := row.FindElement(searchText, true) != nil
 				shortcutKeyFound := false
@@ -2742,9 +2742,9 @@ where the cursor is over the window.`))
 				}
 
 				if shortcutLabelFound || shortcutKeyFound {
-					row.Visible = true
+					row.Visible = VisibleNormal
 				} else {
-					row.Visible = false
+					row.Visible = VisibleCollapsed
 				}
 			}
 		}
@@ -3240,7 +3240,7 @@ Extend: As you type, the card will expand
 horizontally.`))
 
 	row.Add("label", NewLabel("Wrap Mode : ", nil, false, AlignCenter))
-	iconButtonGroup := NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, false, func(index int) {}, globals.textEditingWrap, &sdl.FRect{208, 352, 32, 32}, &sdl.FRect{208, 384, 32, 32})
+	iconButtonGroup := NewIconButtonGroup(&sdl.FRect{0, 0, 64, 32}, false, nil, globals.textEditingWrap, &sdl.FRect{208, 352, 32, 32}, &sdl.FRect{208, 384, 32, 32})
 	for _, b := range iconButtonGroup.Buttons {
 		b.Tint = ColorWhite
 	}
@@ -3278,7 +3278,7 @@ horizontally.`))
 
 		for _, button := range deadlineButtons {
 			// Project changed, start over
-			button.Row.Visible = true
+			button.Row.Visible = VisibleNormal
 
 			if globals.Project != button.Card.Page.Project {
 
@@ -3289,7 +3289,7 @@ horizontally.`))
 				deadlineButtons = []*deadlineButton{}
 				break
 			} else if !button.Card.Valid || !button.Card.Completable() || !button.Card.Properties.Has("deadline") {
-				button.Row.Visible = false
+				button.Row.Visible = VisibleCollapsed
 			}
 
 		}

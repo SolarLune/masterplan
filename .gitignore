@@ -12,4 +12,5 @@ reflex.sh
 bin_archive
 ignore
 examples/cacheTest/*
+updates/*
 .vscode

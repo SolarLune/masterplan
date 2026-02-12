@@ -1360,13 +1360,12 @@ func (bg *IconButtonGroup) SetButtons(icons ...*sdl.FRect) {
 
 		index := i
 		bg.Buttons = append(bg.Buttons, NewIconButton(0, 0, src, globals.GUITexture, bg.WorldSpace, func() {
-			if bg.OnChoose != nil {
-				bg.OnChoose(index)
-			}
+			bg.ChosenIndex = index
 			if bg.Property != nil {
 				bg.Property.Set(float64(index))
-			} else {
-				bg.ChosenIndex = index
+			}
+			if bg.OnChoose != nil {
+				bg.OnChoose(index)
 			}
 		}))
 
@@ -2705,6 +2704,14 @@ func (set ExpandElementSet) Contains(element MenuElement) bool {
 	return false
 }
 
+type VisibilityConstant int
+
+const (
+	VisibleNormal VisibilityConstant = iota
+	VisibleInvisible
+	VisibleCollapsed
+)
+
 type ContainerRow struct {
 	Container            *Container
 	ElementOrder         []MenuElement
@@ -2714,7 +2721,7 @@ type ContainerRow struct {
 	VerticalSpacing      float32
 	ExpandElementSet     ExpandElementSet
 	HorizontalMargin     float32
-	Visible              bool
+	Visible              VisibilityConstant
 	ForcedSize           Vector
 	AlternateBGColor     bool
 	alternateBGColorFlag bool
@@ -2728,7 +2735,6 @@ func NewContainerRow(container *Container, horizontalAlignment string) *Containe
 		Elements:        map[string]MenuElement{},
 		Alignment:       horizontalAlignment,
 		VerticalSpacing: 4,
-		Visible:         true,
 		rect:            &sdl.FRect{},
 		// InterElementSpacing: -1,
 	}
@@ -2968,7 +2974,7 @@ func (container *Container) Update() {
 	container.overallHeight = float32(0)
 	y := float32(math.Round(float64(-perc * container.Rect.H)))
 	for _, row := range container.Rows {
-		if row.Visible {
+		if row.Visible != VisibleCollapsed {
 			diff := row.Update(y)
 			y += diff
 			container.overallHeight += diff
@@ -3025,7 +3031,7 @@ func (container *Container) Draw() {
 
 		row := rows[i]
 
-		if row.Visible {
+		if row.Visible == VisibleNormal {
 
 			if !row.AlternateBGColor {
 				alternateColor = false
@@ -3052,7 +3058,7 @@ func (container *Container) Draw() {
 
 		row := rows[i]
 
-		if row.Visible {
+		if row.Visible == VisibleNormal {
 			for _, element := range row.Elements {
 				if high, ok := element.(HighPriorityDrawMenuElement); ok {
 					high.DrawOnTop()
@@ -3155,7 +3161,7 @@ func (container *Container) IdealSize() Vector {
 
 	for _, row := range container.Rows {
 
-		if !row.Visible {
+		if row.Visible == VisibleCollapsed {
 			continue
 		}
 
@@ -3192,7 +3198,8 @@ func (container *Container) Open() {
 func (container *Container) MinimumHeight() float32 {
 	height := float32(0)
 	for _, row := range container.Rows {
-		if row.Visible {
+		if row.Visible != VisibleCollapsed {
+			// TODO: Fix this to actually check the row's height
 			height += globals.GridSize
 		}
 	}
@@ -3620,7 +3627,7 @@ func (cw *ColorWheel) UpdateColorSurfaces() {
 
 	for x := 0; x < int(cw.HueStrip.W); x++ {
 		for y := 0; y < int(cw.HueStrip.H); y++ {
-			c := NewColorFromHSV(float64(x)/float64(cw.HueStrip.W)*360, float64(y)/float64(cw.HueStrip.H), 1)
+			c := NewColorFromHSV(float64(x)/float64(cw.HueStrip.W), float64(y)/float64(cw.HueStrip.H), 1)
 			r, g, b, _ := c.RGBA()
 			cw.HueStrip.WritePixel(int32(x), int32(y),
 				r,
@@ -3708,9 +3715,15 @@ func (cw *ColorWheel) Update() {
 		cw.SampledPosX = int32(mpX)
 		cw.SampledPosY = int32(mpY)
 
-		r, g, b, _ := ColorAt(cw.HueStrip, int32(mpX), int32(mpY))
+		h := float32(mpX) / float32(cw.HueStrip.W-1)
 
-		cw.SampledHue = NewColor(r, g, b, 255)
+		cw.SampledHue = NewColorFromHSV(float64(h), 1, 1)
+
+		// r, g, b, _ := ColorAt(cw.HueStrip, int32(mpX), int32(mpY))
+
+		// fmt.Println(r, g, b)
+
+		// cw.SampledHue = NewColor(r, g, b, 255)
 
 		if cw.OnColorChange != nil {
 			cw.OnColorChange()

@@ -190,7 +190,7 @@ var uiSounds = map[UISoundType][]string{}
 
 func init() {
 
-	filepath.Walk("assets/sounds/snddev_sine/", func(path string, info fs.FileInfo, err error) error {
+	filepath.Walk(LocalRelativePath("assets/sounds/snddev_sine/"), func(path string, info fs.FileInfo, err error) error {
 
 		if info.IsDir() {
 			return nil

@@ -363,7 +363,7 @@ func handleEvents() {
 
 		switch baseEvent.Type {
 
-		case sdl.EVENT_DROP_COMPLETE:
+		case sdl.EVENT_DROP_FILE:
 			globals.Project.CurrentPage.HandleDroppedFiles(baseEvent.DropEvent().Data)
 
 		case sdl.EVENT_QUIT:

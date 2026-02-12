@@ -344,9 +344,9 @@ func (cr CorrectingRect) SDLRect() *sdl.FRect {
 }
 
 type Image struct {
-	Size    Vector
-	Texture *sdl.Texture
-	// Surface *sdl.Surface
+	Size          Vector
+	Texture       *sdl.Texture
+	ShadowTexture *sdl.Texture
 }
 
 func formatTime(t time.Duration, showMilliseconds bool) string {
@@ -479,19 +479,12 @@ func NewColor(r, g, b, a uint8) Color {
 }
 
 // Cribbed from: https://github.com/lucasb-eyer/go-colorful/blob/master/colors.go
+// h is hue
+// s is saturation
+// v is value
+// All values are expected to range from 0 to 1
 func NewColorFromHSV(h, s, v float64) Color {
 
-	capValue := func(value, cap float64) float64 {
-		if value > cap {
-			value -= cap
-		}
-		if value < 0 {
-			value += cap
-		}
-		return value
-	}
-
-	h = capValue(h, 360)
 	if s > 1 {
 		s = 1
 	} else if s < 0 {
@@ -504,7 +497,15 @@ func NewColorFromHSV(h, s, v float64) Color {
 		v = 0
 	}
 
-	Hp := h / 60.0
+	for h > 1 {
+		h--
+	}
+
+	for h < 0 {
+		h++
+	}
+
+	Hp := h * 6
 	C := v * s
 	X := C * (1.0 - math.Abs(math.Mod(Hp, 2.0)-1.0))
 
@@ -527,7 +528,7 @@ func NewColorFromHSV(h, s, v float64) Color {
 	case 4.0 <= Hp && Hp < 5.0:
 		r = X
 		b = C
-	case 5.0 <= Hp && Hp < 6.0:
+	case 5.0 <= Hp && Hp <= 6.0:
 		r = C
 		b = X
 	}
@@ -696,9 +697,9 @@ func (color Color) HSV() (float64, float64, float64) {
 		if v == b {
 			h = (r-g)/C + 4.0
 		}
-		h *= 60.0
+		h /= 6
 		if h < 0.0 {
-			h += 360.0
+			h++
 		}
 	}
 	return h, s, v
@@ -913,6 +914,71 @@ func DrawLabel(pos Vector, size float32, text string, menuColor Color) {
 
 }
 
+// SortedSet represents a sorted set of elements.
+type SortedSet[E comparable] []E
+
+// NewSortedSet creates a new set.
+func NewSortedSet[E comparable]() SortedSet[E] {
+	return SortedSet[E]{}
+}
+
+func (s SortedSet[E]) Clone() SortedSet[E] {
+	newSet := NewSortedSet[E]()
+	newSet.Combine(s)
+	return newSet
+}
+
+func (s *SortedSet[E]) Set(other SortedSet[E]) {
+	s.Clear()
+	s.Combine(other)
+}
+
+// Add adds the given elements to a set.
+func (s *SortedSet[E]) Add(elements ...E) {
+	for _, element := range elements {
+
+		if s.Contains(element) {
+			continue
+		}
+
+		*s = append(*s, element)
+
+	}
+}
+
+// Combine combines the given other elements to the set.
+func (s SortedSet[E]) Combine(otherSet SortedSet[E]) {
+	for _, element := range otherSet {
+		s.Add(element)
+	}
+}
+
+// Contains returns if the set contains the given element.
+func (s SortedSet[E]) Contains(element E) bool {
+	for _, e := range s {
+		if e == element {
+			return true
+		}
+	}
+	return false
+}
+
+// Remove removes the given element from the set.
+func (s *SortedSet[E]) Remove(element E) {
+	for i, e := range *s {
+		if e == element {
+			var empty E
+			(*s)[i] = empty
+			*s = append((*s)[:i], (*s)[i:]...)
+		}
+	}
+}
+
+// Clear clears the set.
+func (s *SortedSet[E]) Clear() {
+	(*s) = (*s)[:0]
+}
+
 type Shape struct {
 	Rects []*sdl.FRect
 }
@@ -1113,6 +1179,9 @@ func SplitStringOnAny(input string, chars string) (out []string) {
 			out = strings.Split(input, char)
 			return
 		}
+	}
+	if len(out) == 0 {
+		out = []string{input}
 	}
 	return
 }

@@ -127,8 +127,7 @@ func handleScreenshots() {
 			activeScreenshotOutputs = []screenshotOutput{{
 				Page:       globals.Project.CurrentPage,
 				Screenshot: shot,
-			},
-			}
+			}}
 
 		} else if activeScreenshot.ExportIndex < len(pages) {
 

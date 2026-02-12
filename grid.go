@@ -97,6 +97,38 @@ func (selection GridSelection) Cards() []*Card {
 
 }
 
+var addedMap = map[*Card]bool{}
+var forEachCard = []*Card{}
+
+func (selection GridSelection) ForEachCard(forEach func(card *Card) bool) {
+
+	clear(addedMap)
+
+	forEachCard = forEachCard[:0]
+
+	selection.ForEachCell(func(cell *GridCell) bool {
+
+		for _, card := range cell.Cards {
+
+			if _, added := addedMap[card]; !added {
+				forEachCard = append(forEachCard, cell.Cards...)
+				addedMap[card] = true
+				continue
+			}
+
+		}
+
+		return true
+	})
+
+	for _, c := range forEachCard {
+		if !forEach(c) {
+			break
+		}
+	}
+
+}
+
 func (selection GridSelection) Cells() []*GridCell {
 
 	cells := []*GridCell{}
@@ -127,6 +159,40 @@ func (selection GridSelection) Cells() []*GridCell {
 		}
 	}
 	return cells
+
+}
+
+func (selection GridSelection) ForEachCell(forEach func(c *GridCell) bool) {
+
+	offsetY := len(selection.Grid.Cells) / 2
+	offsetX := len(selection.Grid.Cells[0]) / 2
+
+	for y := selection.Start.Y; y < selection.End.Y; y++ {
+		for x := selection.Start.X; x < selection.End.X; x++ {
+			cy := int(y) + offsetY
+			cx := int(x) + offsetX
+
+			if cy < 0 {
+				cy = 0
+			}
+			if cy >= len(selection.Grid.Cells) {
+				cy = len(selection.Grid.Cells) - 1
+			}
+
+			if cx < 0 {
+				cx = 0
+			}
+			if cx >= len(selection.Grid.Cells[0]) {
+				cx = len(selection.Grid.Cells[0]) - 1
+			}
+
+			if !forEach(selection.Grid.Cells[cy][cx]) {
+				return
+			}
+
+		}
+
+	}
 
 }
 
@@ -270,6 +336,11 @@ func (grid *Grid) LockPosition(position float32) float32 {
 // 	return cards
 // }
 
+func (g *Grid) ForEachCardInCardShape(card *Card, dx, dy float32, forEach func(c *Card) bool) {
+	selection := g.Select(&sdl.FRect{card.Rect.X + dx + 2, card.Rect.Y + dy + 2, card.Rect.W - 2, card.Rect.H - 2})
+	selection.ForEachCard(forEach)
+}
+
 func (grid *Grid) CardsInCardShape(card *Card, dx, dy float32) []*Card {
 
 	cards := []*Card{}
@@ -311,4 +382,12 @@ func (grid *Grid) CardsAbove(card *Card) []*Card {
 
 func (grid *Grid) CardsBelow(card *Card) []*Card {
 	return grid.CardsInCardShape(card, 0, globals.GridSize)
+}
+
+func (grid *Grid) ForEachCardAbove(card *Card, forEach func(c *Card) bool) {
+	grid.ForEachCardInCardShape(card, 0, -globals.GridSize, forEach)
+}
+
+func (grid *Grid) ForEachCardBelow(card *Card, forEach func(c *Card) bool) {
+	grid.ForEachCardInCardShape(card, 0, globals.GridSize, forEach)
 }

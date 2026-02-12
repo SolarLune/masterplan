@@ -44,27 +44,25 @@ func (stack *Stack) Update() {
 
 	var above *Card
 
-	if cardsAbove := grid.CardsAbove(stack.Card); len(cardsAbove) > 0 {
-		for _, c := range cardsAbove {
-			if c != stack.Card {
-				above = c
-				break
-			}
+	grid.ForEachCardAbove(stack.Card, func(c *Card) bool {
+		if c != stack.Card && stack.Card.PinnedTo != c {
+			above = c
+			return false
 		}
-	}
+		return true
+	})
 
 	stack.Above = above
 
 	var below *Card
 
-	if cardsBelow := grid.CardsBelow(stack.Card); len(cardsBelow) > 0 {
-		for _, c := range cardsBelow {
-			if c != stack.Card {
-				below = c
-				break
-			}
+	grid.ForEachCardBelow(stack.Card, func(c *Card) bool {
+		if c != stack.Card && stack.Card.PinnedTo != c {
+			below = c
+			return false
 		}
-	}
+		return true
+	})
 
 	// Prevent looping
 
@@ -179,10 +177,12 @@ func (stack *Stack) Tail() []*Card {
 	return rest
 }
 
+var tested = map[*Card]bool{}
+
 func (s *Stack) ForEachInTail(f func(c *Card) bool) {
 
 	below := s.Below
-	tested := map[*Card]bool{}
+	clear(tested)
 	for below != nil {
 		if !f(below) {
 			return
@@ -286,6 +286,14 @@ func (stack *Stack) Any(filterFunc func(card *Card) bool) bool {
 		}
 	}
 	return false
+}
+
+func (stack *Stack) ForEach(filterFunc func(card *Card) bool) {
+	for _, card := range stack.All() {
+		if !filterFunc(card) {
+			return
+		}
+	}
 }
 
 func (stack *Stack) All() []*Card {

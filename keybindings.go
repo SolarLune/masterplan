@@ -122,20 +122,21 @@ const (
 	KBSubpageOpen              = "Sub-Page: Open"
 	KBSubpageClose             = "Sub-Page: Close"
 
-	KBPickColor        = "Map: Pick Color"
-	KBMapNoTool        = "Map: Pointer Tool"
-	KBMapPencilTool    = "Map: Pencil Tool"
-	KBMapEraserTool    = "Map: Eraser Tool"
-	KBMapFillTool      = "Map: Fill Tool"
-	KBMapLineTool      = "Map: Line Tool"
-	KBMapQuickLineTool = "Map: Quick Line"
-	KBMapPalette       = "Map: Open Palette"
-	KBMapShiftUp       = "Map: Shift Map Up"
-	KBMapShiftDown     = "Map: Shift Map Down"
-	KBMapShiftRight    = "Map: Shift Map Right"
-	KBMapShiftLeft     = "Map: Shift Map Left"
-	KBMapRotateRight   = "Map: Rotate Map Right"
-	KBMapRotateLeft    = "Map: Rotate Map Left"
+	KBPickColor          = "Map: Pick Color"
+	KBMapNoTool          = "Map: Pointer Tool"
+	KBMapPencilTool      = "Map: Pencil Tool"
+	KBMapEraserTool      = "Map: Eraser Tool"
+	KBMapFillTool        = "Map: Fill Tool"
+	KBMapLineTool        = "Map: Line Tool"
+	KBMapQuickLineTool   = "Map: Quick Line"
+	KBMapPalette         = "Map: Open Palette"
+	KBMapShiftUp         = "Map: Shift Map Up"
+	KBMapShiftDown       = "Map: Shift Map Down"
+	KBMapShiftRight      = "Map: Shift Map Right"
+	KBMapShiftLeft       = "Map: Shift Map Left"
+	KBMapRotateRight     = "Map: Rotate Map Right"
+	KBMapRotateLeft      = "Map: Rotate Map Left"
+	KBMapWrapAroundCards = "Map: Wrap Selected Cards"
 
 	KBFindNext = "Find: Next Card"
 	KBFindPrev = "Find: Prev. Card"
@@ -570,6 +571,7 @@ func (kb *Keybindings) Default() {
 
 	kb.DefineKeyShortcut(KBMapRotateRight, SDLK_E, SDLK_LSHIFT)
 	kb.DefineKeyShortcut(KBMapRotateLeft, SDLK_Q, SDLK_LSHIFT)
+	kb.DefineKeyShortcut(KBMapWrapAroundCards, SDLK_X, SDLK_LSHIFT)
 
 	kb.DefineKeyShortcut(KBFindNext, SDLK_F, SDLK_LCTRL)
 	kb.DefineKeyShortcut(KBFindPrev, SDLK_F, SDLK_LCTRL, SDLK_LSHIFT)

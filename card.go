@@ -105,9 +105,11 @@ func (le *LinkEnding) Update() {
 
 				joint.Position = globals.Mouse.WorldPosition().Add(joint.DragOffset)
 
+				// Stop dragging
 				if globals.Mouse.Button(sdl.BUTTON_LEFT).Released() {
-					joint.Position.X = float32(math.Round(float64(joint.Position.X/globals.GridSize)) * float64(globals.GridSize))
-					joint.Position.Y = float32(math.Round(float64(joint.Position.Y/globals.GridSize)) * float64(globals.GridSize))
+					hgs := float32(globals.GridSize / 2)
+					joint.Position.X = float32(math.Round(float64((joint.Position.X-hgs)/globals.GridSize))*float64(globals.GridSize)) + hgs
+					joint.Position.Y = float32(math.Round(float64((joint.Position.Y-hgs)/globals.GridSize))*float64(globals.GridSize)) + hgs
 					joint.Dragging = false
 					le.Start.CreateUndoState = true
 					PlayUISound(UISoundTypeTap)
@@ -130,7 +132,7 @@ func (le *LinkEnding) Update() {
 	for _, joint := range le.Joints {
 		points = append(points, joint.Position)
 	}
-	points = append(points, le.End.NearestPointTowardRectCenter(points[len(points)-1]))
+	points = append(points, le.End.NearestPointTowardDisplayRectCenter(points[len(points)-1]))
 
 	for i := 0; i < len(points)-1; i++ {
 
@@ -186,12 +188,8 @@ func (le *LinkEnding) Draw() {
 			points = append(points, joint.Position)
 		}
 
-		nearest := le.End.Center()
+		nearest := le.End.NearestPointTowardDisplayRectCenter(points[len(points)-1])
 
-		//
-		if !le.End.Dragging {
-			nearest = le.End.NearestPointTowardRectCenter(points[len(points)-1])
-		}
 		points = append(points, nearest)
 
 		// Arrowhead Outline
@@ -303,6 +301,7 @@ type Card struct {
 	Result                  *RenderTexture
 	ShadowTexture           *sdl.Texture
 	Dragging                bool
+	MouseInitiatedDragging  bool
 	Draggable               bool
 	VisualDragging          bool
 	DragStart               Vector
@@ -315,12 +314,13 @@ type Card struct {
 	ResizeShape             *Shape
 	LockResizingAspectRatio float32
 	CreateUndoState         bool
-	Depth                   int
 	Valid                   bool
 	CustomColor             Color
 	FontColor               Color
 	deadlineFade            float64
 	ForceDrawing            bool
+
+	Depth int
 
 	GridExtents GridSelection
 	Stack       *Stack
@@ -341,6 +341,9 @@ type Card struct {
 
 	debugUpdateTime time.Duration
 	debugDrawTime   time.Duration
+
+	PinnedTo    *Card
+	PinnedCards []*Card
 }
 
 var globalCardID = int64(0)
@@ -723,6 +726,11 @@ func (card *Card) Update() {
 			ty -= 12
 		}
 
+		// if card.VisualDragging {
+		// 	tx -= 4 + float32(math.Sin(globals.Time*math.Pi*0.791+float64(card.ID)))*2
+		// 	ty -= 12 + float32(math.Cos(globals.Time*math.Pi*1.17+float64(card.ID)))*3
+		// }
+
 		card.DisplayRect.X += SmoothLerpTowards(tx, card.DisplayRect.X, softness)
 		card.DisplayRect.Y += SmoothLerpTowards(ty, card.DisplayRect.Y, softness)
 		card.DisplayRect.W += SmoothLerpTowards(card.Rect.W, card.DisplayRect.W, softness)
@@ -926,7 +934,7 @@ func (card *Card) Update() {
 						selection.Add(card)
 
 						for card := range selection.Cards {
-							card.StartDragging()
+							card.StartDragging(true)
 						}
 
 					}
@@ -1121,7 +1129,7 @@ func (card *Card) DrawShadow() {
 	t := time.Now()
 	defer func() { card.debugDrawTime += time.Since(t) }()
 
-	if !globals.Settings.Get(SettingsCardShadows).AsBool() || !card.Onscreen() {
+	if !globals.Settings.Get(SettingsCardShadows).AsBool() || !card.Onscreen() || (card.VisualDragging && card.PinnedTo != nil && card.PinnedTo.VisualDragging) {
 		return
 	}
 
@@ -1147,13 +1155,13 @@ func (card *Card) DrawShadow() {
 
 }
 
-func (card *Card) NearestPointTowardRectCenter(in Vector) Vector {
+func (card *Card) NearestPointTowardDisplayRectCenter(in Vector) Vector {
 
 	lines := []collidingLine{
-		newCollidingLine(card.Rect.X, card.Rect.Y, card.Rect.X+card.Rect.W, card.Rect.Y),
-		newCollidingLine(card.Rect.X+card.Rect.W, card.Rect.Y, card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H),
-		newCollidingLine(card.Rect.X+card.Rect.W, card.Rect.Y+card.Rect.H, card.Rect.X, card.Rect.Y+card.Rect.H),
-		newCollidingLine(card.Rect.X, card.Rect.Y+card.Rect.H, card.Rect.X, card.Rect.Y),
+		newCollidingLine(card.DisplayRect.X, card.DisplayRect.Y, card.DisplayRect.X+card.DisplayRect.W, card.DisplayRect.Y),
+		newCollidingLine(card.DisplayRect.X+card.DisplayRect.W, card.DisplayRect.Y, card.DisplayRect.X+card.DisplayRect.W, card.DisplayRect.Y+card.DisplayRect.H),
+		newCollidingLine(card.DisplayRect.X+card.DisplayRect.W, card.DisplayRect.Y+card.DisplayRect.H, card.DisplayRect.X, card.DisplayRect.Y+card.DisplayRect.H),
+		newCollidingLine(card.DisplayRect.X, card.DisplayRect.Y+card.DisplayRect.H, card.DisplayRect.X, card.DisplayRect.Y),
 	}
 
 	center := card.Center()
@@ -1542,9 +1550,16 @@ func (card *Card) PostDraw() {
 	}
 
 	alwaysShowNumbering := globals.Settings.Get(SettingsAlwaysShowNumbering).AsBool()
-	numberableCards := card.Stack.Any(func(card *Card) bool { return card.Numberable() })
+	numberableCards := 0
 
-	if card.Stack.Numerous() && numberableCards && (alwaysShowNumbering || card.Stack.Any(func(card *Card) bool { return card.selected })) {
+	card.Stack.ForEach(func(card *Card) bool {
+		if card.Numberable() {
+			numberableCards++
+		}
+		return true
+	})
+
+	if card.Stack.Numerous() && numberableCards > 1 && (alwaysShowNumbering || card.Stack.Any(func(card *Card) bool { return card.selected })) {
 
 		// Top card handles drawing everything
 		if card.Stack.Below != nil && card.Stack.Above == nil {
@@ -1691,6 +1706,10 @@ func (card *Card) Serialize(toSave bool) string {
 	}
 	data, _ = sjson.SetRaw(data, "properties", card.Properties.Serialize(toSave))
 
+	if card.PinnedTo != nil {
+		data, _ = sjson.Set(data, "pinned", card.PinnedTo.ID)
+	}
+
 	if len(card.Links) > 0 {
 
 		existingLinks := "["
@@ -1787,6 +1806,16 @@ func (card *Card) Deserialize(data string) {
 	// 	}
 	// }
 
+	card.Unpin()
+
+	if gjson.Get(data, "pinned").Exists() {
+		pinnedToID := gjson.Get(data, "pinned").Int()
+		pin := card.Page.CardByID(pinnedToID)
+		if pin != nil {
+			card.PinTo(pin)
+		}
+	}
+
 	// Set Rect Position and Size before deserializing properties and setting contents so the contents can know the actual correct, current size of the Card (important for Map Contents)
 	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
 
@@ -1819,31 +1848,25 @@ func (card *Card) Deselect() {
 	card.ReceiveMessage(NewMessage(MessageCardDeselected, nil, nil))
 }
 
-func (card *Card) StartDragging() {
+func (card *Card) StartDragging(mouseInitiated bool) {
+
 	if card.Draggable {
+
+		card.MouseInitiatedDragging = mouseInitiated
 
 		card.Dragging = true
 
-		touchingAnotherMap := false
+		// Dragging a Map or Image drags everything on the map too
+		if mouseInitiated {
 
-		// Dragging a Map drags everything on the map too
-		if card.ContentType == ContentTypeMap {
-			touchingCards := card.GridExtents.Grid.CardsInCardShape(card, 0, 0)
+			pinnedCards := NewSortedSet[*Card]()
 
-			for _, other := range touchingCards {
-				if other.ContentType == ContentTypeMap {
-					touchingAnotherMap = true
-					break
-				}
+			card.appendAllPinnedCards(&pinnedCards)
+
+			for _, c := range pinnedCards {
+				c.StartDragging(false)
 			}
 
-			if !touchingAnotherMap {
-				for _, other := range touchingCards {
-					if !other.Dragging && other.ContentType != ContentTypeMap {
-						other.StartDragging()
-					}
-				}
-			}
 		}
 
 		card.DragStart = globals.Mouse.WorldPosition()
@@ -1855,6 +1878,13 @@ func (card *Card) StartDragging() {
 	}
 }
 
+func (card *Card) appendAllPinnedCards(pinnedCards *SortedSet[*Card]) {
+	pinnedCards.Add(card.PinnedCards...)
+	for _, c := range card.PinnedCards {
+		c.appendAllPinnedCards(pinnedCards)
+	}
+}
+
 func (card *Card) StopDragging() {
 	card.Dragging = false
 	card.VisualDragging = false
@@ -1863,6 +1893,75 @@ func (card *Card) StopDragging() {
 	card.CreateUndoState = true
 
 	PlayUISound(UISoundTypeToggleOn)
+
+	card.HandlePinning()
+
+}
+
+func (card *Card) HandlePinning() {
+
+	touchingCards := NewSortedSet[*Card]()
+	touchingCards.Add(card.GridExtents.Grid.CardsInCardShape(card, 0, 0)...)
+
+	pinnedCards := NewSortedSet[*Card]()
+
+	card.appendAllPinnedCards(&pinnedCards)
+
+	if card.MouseInitiatedDragging {
+
+		if card.PinnedTo != nil && !card.PinnedTo.selected {
+			card.Unpin()
+		}
+
+		for _, other := range touchingCards {
+
+			if other.PinnedTo == card || pinnedCards.Contains(other) {
+				continue
+			}
+
+			if other.ContentType == ContentTypeMap || other.ContentType == ContentTypeImage {
+				card.PinTo(other)
+				break
+			}
+
+		}
+
+	}
+
+}
+
+func (card *Card) HandleUnpinning() {
+	if card.PinnedTo != nil && !RectIntersecting(card.Rect, card.PinnedTo.Rect) {
+		card.Unpin()
+	}
+}
+
+func (card *Card) Unpin() {
+	if card.PinnedTo != nil {
+		for i, pc := range card.PinnedTo.PinnedCards {
+			if pc == card {
+				card.PinnedTo.PinnedCards[i] = nil
+				card.PinnedTo.PinnedCards = append(card.PinnedTo.PinnedCards[:i], card.PinnedTo.PinnedCards[i+1:]...)
+				break
+			}
+		}
+	}
+	card.CreateUndoState = true
+	card.PinnedTo = nil
+}
+
+func (card *Card) PinTo(other *Card) {
+	card.Unpin()
+
+	if other.PinnedTo == card {
+		other.Unpin()
+	}
+
+	card.PinnedTo = other
+	other.PinnedCards = append(other.PinnedCards, card)
+
+	card.CreateUndoState = true
+	other.CreateUndoState = true
 }
 
 func (card *Card) StartResizing(rect *sdl.FRect, side string) {
@@ -2171,6 +2270,10 @@ func (card *Card) ReceiveMessage(message *Message) {
 			top := card.Rect.Y + card.Rect.H
 
 			for _, t := range card.Stack.Tail() {
+
+				if card.PinnedTo == t || t.PinnedTo != nil && t.PinnedTo == card.PinnedTo {
+					continue
+				}
 
 				if t.Rect.Y != top {
 					t.Rect.Y = top
