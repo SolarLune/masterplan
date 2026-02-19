@@ -2862,7 +2862,7 @@ func (mc *MapContents) Update() {
 				mc.MapData.Clip() // We call Clip() here so if you undo or redo and the size changes, values outside of that range are deleted
 				mc.UpdateTexture()
 
-				globals.EventLog.Log("Smartscaled Map and pinned selected cards.", false)
+				globals.EventLog.Log("Wrapped Map to surround and pin selected cards.", false)
 			} else {
 
 				for _, c := range mc.Card.PinnedCards {

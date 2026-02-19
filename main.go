@@ -53,7 +53,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.9.0")
+	globals.Version = semver.MustParse("0.9.1")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -2821,9 +2821,9 @@ where the cursor is over the window.`))
 
 	row = about.AddRow(AlignCenter)
 	if globals.ReleaseMode == "demo" {
-		row.Add("", NewLabel(fmt.Sprintf("This is a demo of the next update, %s. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet. Being in demo mode means you can't save, but you can still get a feel for using the program.", globals.Version), &sdl.FRect{0, 0, 512, 200}, false, AlignLeft))
+		row.Add("", NewLabel(fmt.Sprintf("This is a demo of the next update, %s. As this is just an alpha, it hasn't reached feature parity with the previous major version (v0.7) just yet. Being in demo mode means you can't save, but you can still get a feel for using the program.", globals.Version), &sdl.FRect{0, 0, 512, 200}, false, AlignLeft))
 	} else {
-		row.Add("", NewLabel(fmt.Sprintf("This is an alpha %s. As this is just an alpha, it hasn't reached feature parity with the previous version (v0.7) just yet.", globals.Version), &sdl.FRect{0, 0, 512, 128}, false, AlignLeft))
+		row.Add("", NewLabel(fmt.Sprintf("This is an alpha %s. As this is just an alpha, it hasn't reached feature parity with the previous major version (v0.7) just yet.", globals.Version), &sdl.FRect{0, 0, 512, 128}, false, AlignLeft))
 	}
 
 	row = about.AddRow(AlignCenter)

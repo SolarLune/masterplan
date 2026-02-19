@@ -1,104 +1,134 @@
+# v0.9.1
+
+## Quality of Life Updates
+
+QoL: Cards can now be pinned to other cards (specifically, map and image cards) by dropping them onto the "base" card. Doing so allows you to more easily move cards together as a group, and enables using blank Map cards or images as effectively "pin boards". Map cards also have a shortcut to "wrap around" all selected Cards and pin them to itself (defaults to Left Shift + X).
+QoL: Slight improvement to where lines from card to card point to.
+QoL: When resizing cards, now there's a small size indicator at the bottom-right of the cards.
+QoL: Adding terrain pattern to Map Card. Useful for terrain / maps.
+QoL: Segments segment harder now for Map Cards (previously different colors with the same pattern would blend into each other). This makes using multiple colors and patterns easier and more comprehensible.
+Style on'em: Map Card is now (once again?) slightly transparent, giving a slight transparent glass effect.
+QoL: Adding keybindings to rotate Maps by 90 degrees.
+QoL: Grid background texture cleaned up.
+QoL: Links to cards now appear more consistently towards the cards' centers.
+QoL: Link joints are now centered in the cells when dropping them for consistency with cards.
+QoL: Adding shadows for images.
+QoL: Adding a shortcut to wrap a Map card around other Cards and pin them to it (called Smart Scale).
+QoL: Map card blank spaces aren't as dark.
+QoL: Minor optimizations to reduce memory usage.
+QoL: Optimized processing stacks of Cards.
+QoL: Grid background color made slightly darker.
+
+## Fixes
+
+FIX: Completed checkboxes have more consistent color cycling.
+FIX: Dropping files previously didn't work as it should have; it should now be fixed (except on Linux + Wayland; seems like I'm getting display server crashes in this case.)
+FIX: The Timer card now works properly; previously Clock Mode was broken.
+FIX: Sound loading caused a crash for Macs - this should resolve it.
+FIX: Pressing menu buttons in a window positioned over a map while in edit mode no longer draws / edits the map.
+FIX: Creating and destroying links now creates sounds.
+FIX: Map Card previously didn't go into the foreground while editing, which makes it difficult to draw on / around objects on top of the Map.
+
 # v0.9.0
 
 ## Quality of Life Updates
 
--   Adding the Internet Card. The Internet Card allows you to embed Chrome tabs within MasterPlan. Note that this isn't performant, and is best used for small and quick informational browser windows, or for limited web media. This feature requires a Chrome-based browser to be installed (so Chrome, Chromium, etc). Chrome-based browsers like Brave or Opera may also work. You'll need to specify the user data directory if you want to keep your sessions, cookies, etc. from outside of MasterPlan. This would probably be the folder that has a "Default" folder in it.
+- Adding the Internet Card. The Internet Card allows you to embed Chrome tabs within MasterPlan. Note that this isn't performant, and is best used for small and quick informational browser windows, or for limited web media. This feature requires a Chrome-based browser to be installed (so Chrome, Chromium, etc). Chrome-based browsers like Brave or Opera may also work. You'll need to specify the user data directory if you want to keep your sessions, cookies, etc. from outside of MasterPlan. This would probably be the folder that has a "Default" folder in it.
 
--   Known issues with the Internet Card:
+- Known issues with the Internet Card:
+    - YouTube videos as played back on YouTube itself don't work properly when played back through the web card. A workaround is to play them from duckduckgo (or perhaps other sites).
 
-    -   YouTube videos as played back on YouTube itself don't work properly when played back through the web card. A workaround is to play them from duckduckgo (or perhaps other sites).
+    - Some webpages continuously load while you're on them, so the loading icon at the top-left appears infinitely.
 
-    -   Some webpages continuously load while you're on them, so the loading icon at the top-left appears infinitely.
+- This is mostly an internal change, but MasterPlan has moved from SDL2 to SDL3 with dynamically loaded extracted and loaded libraries. This should mean building MasterPlan is now simpler across different platforms, particularly on Windows. Frame timing might be a bit scuffed for now.
 
--   This is mostly an internal change, but MasterPlan has moved from SDL2 to SDL3 with dynamically loaded extracted and loaded libraries. This should mean building MasterPlan is now simpler across different platforms, particularly on Windows. Frame timing might be a bit scuffed for now.
+- This also means transparent window backgrounds are back!
 
--   This also means transparent window backgrounds are back!
+- In addition, as a result of this change + Github having new ARM MacOS runners, there is now experimental support for ARM MacOS!
 
--   In addition, as a result of this change + Github having new ARM MacOS runners, there is now experimental support for ARM MacOS!
+- Sounds added! When clicking, dragging, selecting menu elements, etc., sounds play to help give feedback.
 
--   Sounds added! When clicking, dragging, selecting menu elements, etc., sounds play to help give feedback.
+- Adding a Time Mode to the Timer card. When in Time Mode, the card will enagage whenever the current system time is past the time on the card. When a checkbox is above it and enabled, the card is engaged, and if it is above and not enabled, the card is not engaged. This can be used to make everyday, regular todo lists (i.e. checkbox that says "Monday", underneath are Timer cards that engage at certain times to indicate tasks you should be doing).
 
--   Adding a Time Mode to the Timer card. When in Time Mode, the card will enagage whenever the current system time is past the time on the card. When a checkbox is above it and enabled, the card is engaged, and if it is above and not enabled, the card is not engaged. This can be used to make everyday, regular todo lists (i.e. checkbox that says "Monday", underneath are Timer cards that engage at certain times to indicate tasks you should be doing).
+- UI and art fixed up a bit to look overall significantly better. Shadows are also now smoother (this does not impact performance, it's just smoother shadow sprites).
 
--   UI and art fixed up a bit to look overall significantly better. Shadows are also now smoother (this does not impact performance, it's just smoother shadow sprites).
+- Fixing card shading to be consistent, and not for unshadeable cards (map and table, for example).
 
--   Fixing card shading to be consistent, and not for unshadeable cards (map and table, for example).
+- Adding a customizeable "lightbox" visual effect towards the top of the window for aesthetics + "openness".
 
--   Adding a customizeable "lightbox" visual effect towards the top of the window for aesthetics + "openness".
+- Adding keybindings for expanding and shrinking cards vertically and horizontally.
 
--   Adding keybindings for expanding and shrinking cards vertically and horizontally.
+- Cards now lift up when dragging them around.
 
--   Cards now lift up when dragging them around.
+- Dropdown GUI elements now have buttons to cycle through them without having to open the menu.
 
--   Dropdown GUI elements now have buttons to cycle through them without having to open the menu.
+- Scrolling through menus is now smoother and less "jaggy" because of subpixel rendering.
 
--   Scrolling through menus is now smoother and less "jaggy" because of subpixel rendering.
+- Dragging scrollbars is now a little less janky, and you can drag without the mouse being directly over the scroll area.
 
--   Dragging scrollbars is now a little less janky, and you can drag without the mouse being directly over the scroll area.
+- Reimplementing different numbering styles and custom numbering separators (e.g. dash, dot, etc).
 
--   Reimplementing different numbering styles and custom numbering separators (e.g. dash, dot, etc).
+- Slider UI elements now display their values.
 
--   Slider UI elements now display their values.
+- Externally pasting text now creates a Note Card for it again.
 
--   Externally pasting text now creates a Note Card for it again.
+- Reordering map tool buttons.
 
--   Reordering map tool buttons.
+- The selection box drawing is now cleaner.
 
--   The selection box drawing is now cleaner.
+- Focusing on cards on undo now only pans the camera to the card if it's offscreen (so the camera doesn't jump around a lot necessarily while undoing a lot of different card changes)
 
--   Focusing on cards on undo now only pans the camera to the card if it's offscreen (so the camera doesn't jump around a lot necessarily while undoing a lot of different card changes)
+- Minor change - the highlight rectangle around editable text only appears if you're not active editing the text for enhanced clarity.
 
--   Minor change - the highlight rectangle around editable text only appears if you're not active editing the text for enhanced clarity.
+- Adding keybinding to reset card size to original size.
 
--   Adding keybinding to reset card size to original size.
+- Pushing map elements now loops the elements around the map.
 
--   Pushing map elements now loops the elements around the map.
+- Adding options to rotate and flip maps in the map editing menu.
 
--   Adding options to rotate and flip maps in the map editing menu.
+- Adding option to reset all settings in General Settings section.
 
--   Adding option to reset all settings in General Settings section.
+- Adding shortcuts to shift Map cards.
 
--   Adding shortcuts to shift Map cards.
+- Possibly fixed subpage cards not taking screenshots properly?
 
--   Possibly fixed subpage cards not taking screenshots properly?
+- Slight optimization in determining onscreen-ness of Cards. Previously this was done on-demand - now it's done once per frame.
 
--   Slight optimization in determining onscreen-ness of Cards. Previously this was done on-demand - now it's done once per frame.
+- Adding ability to hide the maximum number for Numbered Cards by clicking on the Numbered Card icon.
 
--   Adding ability to hide the maximum number for Numbered Cards by clicking on the Numbered Card icon.
+- You can now click and drag up or down to change NumberSpinner current / max values.
 
--   You can now click and drag up or down to change NumberSpinner current / max values.
+- Scrollbars that appears only when the mouse is near now are a little less sensitive.
 
--   Scrollbars that appears only when the mouse is near now are a little less sensitive.
+- It's now easier to scroll things to the top or bottom (by adding a margin).
 
--   It's now easier to scroll things to the top or bottom (by adding a margin).
+- Adding a new theme, the "Snowman" theme.
 
--   Adding a new theme, the "Snowman" theme.
-
--   Logging now gets output to both a log file and the terminal, if the application is launched through a terminal.
+- Logging now gets output to both a log file and the terminal, if the application is launched through a terminal.
 
 ## Fixes
 
--   Boolean Table cards are no longer stuck at being incomplete if you cycle through a row or column with all X's.
+- Boolean Table cards are no longer stuck at being incomplete if you cycle through a row or column with all X's.
 
--   Scrollbars now reliably draw over other UI elements.
+- Scrollbars now reliably draw over other UI elements.
 
--   Adding table to the list of card names (I don't know what I meant by this, I forget, haha).
+- Adding table to the list of card names (I don't know what I meant by this, I forget, haha).
 
--   Color mixing was incorrect sometimes, particularly for blinking elements.
+- Color mixing was incorrect sometimes, particularly for blinking elements.
 
--   FIX / QoL: Fixed cards not collapsing properly. Cards now reliably collapse to one line, or a maximum size to display all UI elements on the card. Note that not all cards can collapse.
+- FIX / QoL: Fixed cards not collapsing properly. Cards now reliably collapse to one line, or a maximum size to display all UI elements on the card. Note that not all cards can collapse.
 
--   You can now press buttons while linking cards, allowing you to be able to go into SubPage cards.
+- You can now press buttons while linking cards, allowing you to be able to go into SubPage cards.
 
--   Jumping from a Link card to another no longer causes an infinite loop and freezes and crashes MasterPlan.
+- Jumping from a Link card to another no longer causes an infinite loop and freezes and crashes MasterPlan.
 
--   The default sound buffer size is now set to 1024 to fix crackling, bad audio on Windows. (Not every OS can be Linux, sorry~)
+- The default sound buffer size is now set to 1024 to fix crackling, bad audio on Windows. (Not every OS can be Linux, sorry~)
 
--------
+---
 
 v0.8.0-alpha.8.1
 
--------
+---
 
 - QoL: Adding more audio playback buffer size options.
 - QoL: Dropped files onto MasterPlan now create cards in the center of the window, rather than the mouse last was prior to exiting the window.
@@ -107,22 +137,22 @@ v0.8.0-alpha.8.1
 - FIX: Tooltip bounds are sized properly now.
 - FIX: Numbered cards now properly count for parent card, rather than over counting when the value is over the maximum.
 
--------
+---
 
 v0.8.0-alpha.8.0
 
--------
- 
+---
+
 - RE-IMPLEMENTATION: Adding tables back in.
   Tables are useful to outline data in a matrix field, represented as an intersection of rows and columns. Rows and columns can be freely resized by clicking and dragging a row or column to rearrange. Double-clicking on the text allows you to edit that text. Tables can be visualized in a few different ways currently: as checkmarks, numbers, or grades (S - F). You can press tab and shift-tab to cycle between editing text for each element.
 - QoL: Adding tooltip buttons to help explain unclear settings or options.
 - QoL: Adding ability to edit multiple cards at the same time by holding the "Mulitple" key, (aka the "Add to Selection" key, which defaults to left shift).
-  - When selecting / operating on multiple cards with the left-shift key, a + will appear next to the mouse cursor to indicate this.
-  - Editing text is done by holding the multi-edit key and double-clicking on the text to edit. All selected cards will have their relevant text field updated by typing.
+    - When selecting / operating on multiple cards with the left-shift key, a + will appear next to the mouse cursor to indicate this.
+    - Editing text is done by holding the multi-edit key and double-clicking on the text to edit. All selected cards will have their relevant text field updated by typing.
 - QoL: Adding ability to move to next or previous card in stack by pressing "Next Card / Prev. Card" shortcuts (defaulting to Tab or Left Shift+Tab, respectively). Doing this while editing text will move to the next editable text in the next card up or down in the stack.
 - QoL: Editing text or collapsing Cards now adjusts the rest of the stack. This isn't perfect, and I still have a lot more I want to do with stacks to improve usability and make them even more fun to work with.
 - QoL: Adding a toggle-able text editing wrapping mode. The menu that displays this will appear at the top-right when editing text on a Card. You can press the button or press the keyboard shortcut to toggle between text wrapping modes (Ctrl+W when editing text).
-  - There are two wrapping modes currently: Wrap, and Expand. Wrap will have cards grow downwards vertically, gaining more lines as you type beyond their borders. Expand will have cards grow horizontally when necessary.
+    - There are two wrapping modes currently: Wrap, and Expand. Wrap will have cards grow downwards vertically, gaining more lines as you type beyond their borders. Expand will have cards grow horizontally when necessary.
 - QoL: Adding name of project to loading prompt when you decide to load a project.
 - QoL: Adding setting to change how numbered cards are displayed (either as percentage or current amount out of maximum).
 - QoL: Numbered Cards now allow negative numbers.
@@ -134,11 +164,11 @@ v0.8.0-alpha.8.0
 - FIX: If a path cannot be made relative (on Windows, for example, if a piece of media points to an external drive), the path is saved and loaded unaltered. Note that this change might mean images don't save or load properly between the previous version and this one, so double-check when upgrading to ensure things work properly.
 - Contribution by Peter0x44: Improve HOME/END text selection when editing text (previously this would only expand the selection, rather than select from the original position to the caret's new position).
 
--------
+---
 
 v0.8.0-alpha.7.3
 
--------
+---
 
 QoL: Mouse wheel scrolling is now more sensitive and tied to the Mouse Wheel Sensitivity Input setting.
 QoL: Adding ability to cache downloaded resources. Caching downloaded resources works by specifying the per-project cache folder in Settings > General Settings. Any downloaded images, sounds, etc. will be stored here, instead of being placed in the temporary directory. When loading a project, these same locations will be used to load the images, meaning that downloaded resources will only be downloaded once; after that, they'll be pulled from the cache directory. If the cache directory doesn't exist, then it will work as it normally does (downloading to the temporary directory).
@@ -167,11 +197,11 @@ FIX: Being unable to create sounds due to sound files not being compatible with 
 FIX: Toggling debug mode is disabled in non-development versions of MasterPlan.
 FIX: Starting MasterPlan no longer crashes if the audio system cannot be initialized.
 
--------
+---
 
 v0.8.0-alpha.7.2
 
--------
+---
 
 QoL: Adding jump button next to pages in hierarchy view.
 QoL: Orphaned page names are now darker than normal page names.
@@ -182,11 +212,11 @@ FIX: Menu to go up from a sub-page now appears again if opening a project from w
 FIX: If a page has no accessible path to the route, it is now considered deleted (if in a normal project) or orphaned (if in a project that already contains orphaned pages).
 Note: When loading a project with orphaned pages, deleted / inaccessible pages will show up in the Hierarchy view as "orphans" - this allows you to get at their contents. When saving a project with orphan pages, as long as they have no contents, they will be deleted. The change here is that if a project has no orphans, deleted pages will not be accessible from the hierarchy.
 
--------
+---
 
 v0.8.0-alpha.7.1
 
--------
+---
 
 HOT-FIX RELEASE: Images should now load on Linux. This was broken previously because the relative paths were mistaken to be URLs (which they weren't, of course).
 
@@ -202,15 +232,16 @@ QoL: MasterPlan now saves which page you're on when you save the project.
 QoL: Keybindings to select top or bottom card in Stack now default to Home / End, rather than Page Up / Page Down.
 QoL: Adding keybindings to select top or bottom card in the selected Card's indentation group (Page Up / Page Down).
 QoL: Adding keybinding to select all cards in indentation group or below. (Left Ctrl+Space).
-  -  For previous users, with these added keybinding changes in mind, please look over the shortcuts to ensure there are no keybinding conflicts (or reset the keybindings to default to avoid having conflicts).
-QoL: MasterPlan should now prefer using the dedicated GPU over the integrated GPU on Windows for computers that have the option.
-QoL: Disabled buttons are now darker, and button choices for button groups are now slightly lighter (60% > 70% brightness).
 
--------
+- For previous users, with these added keybinding changes in mind, please look over the shortcuts to ensure there are no keybinding conflicts (or reset the keybindings to default to avoid having conflicts).
+  QoL: MasterPlan should now prefer using the dedicated GPU over the integrated GPU on Windows for computers that have the option.
+  QoL: Disabled buttons are now darker, and button choices for button groups are now slightly lighter (60% > 70% brightness).
+
+---
 
 v0.8.0-alpha.7
 
--------
+---
 
 RE-IMPLEMENTATION: Deadlines have now been reimplemented. Deadlines are set from the Edit menu, and following the philosophy of new MasterPlan, multiple Cards can have their deadlines set at a time. In the View > Deadlines menu, you can also see the currently active and completed deadlines in your project, sorted in order of urgency.
 RE-IMPLEMENTATION: Image, Sound, and Link file paths are now saved in relative path notation (i.e. "../icon.png" for a file named "icon.png" in the folder above MasterPlan's executable). This should play more nicely when loading projects from different locations as long as its resources are in the same locations relative to the project. Note that this relativity doesn't apply for the arguments section of a Link Card set File Mode.
@@ -222,7 +253,7 @@ QoL: Lowering MasterPlan's memory usage floor by ~60% in cases where a project's
 QoL: Editing text on cards now will automatically resize the card vertically when necessary.
 QoL: When editing text on a Card, the camera will move if the caret gets too close to the edge of the window.
 QoL: Adding ability to grab color from the first selected card when coloring Cards in the Set Color menu.
-QoL: Adding Tools menu, moving Flatten Project to Tools menu. 
+QoL: Adding Tools menu, moving Flatten Project to Tools menu.
 QoL: Adding Take Screenshot menu entry to Tools menu. (It has always been possible to take a screenshot, it's just been only accessible via a keybinding until now.)
 QoL: Adding project settings option to zoom to cursor when zooming in or out - note that this does not take effect when setting the zoom level directly using the number keys.
 QoL: Adding project settings option to enable / disable shadows.
@@ -241,13 +272,13 @@ FIX: Deleting sub-page cards no longer creates orphan pages.
 FIX: GIFs linked from the internet should now load properly when loading the project.
 FIX: Dropdown menus now extend downwards into space properly depending on the currently selected (multiline) option, rather than there being a massive space at the bottom when they're open (this can be seen specifically in the "Transparency Mode" menu).
 FIX: Custom fonts with empty glyphs no longer crash MasterPlan.
-FIX: Foreign / non-English latin characters (like Ç) no longer create a blank line in editable text. They also are now  properly stepped through with the keyboard arrow keys / word jumping.
+FIX: Foreign / non-English latin characters (like Ç) no longer create a blank line in editable text. They also are now properly stepped through with the keyboard arrow keys / word jumping.
 
--------
+---
 
 v0.8.0-alpha.6.1
 
--------
+---
 
 Quickie hotfix for Alpha 6:
 
@@ -266,11 +297,11 @@ FIX: Images that are downloaded from the internet are no longer attempted to sav
 FIX: Orphaned pages (pages that aren't pointed to from an existing Sub-page Card) are no longer saved if they have no cards in them when saving the project.
 FIX?: Images linked from the internet should properly display after loading the project now?
 
--------
+---
 
 v0.8.0-alpha.6
 
--------
+---
 
 QoL: Adding Hierarchy menu. This menu allows you to see your project at a glance with each card listed under its named page. You can filter out cards by card type, or sort them alphabetically or by position on the page.
 QoL: If MasterPlan crashed when attempting to autoload a project, it won't automatically try to load that project again when restarted.
@@ -300,11 +331,11 @@ CHANGE: Keyboard shortcuts have been edited, so be aware of this - you may wish 
 CHANGE: Previous sub page menu is now at the bottom-center, by default.
 Adding basic roadmap on Github: https://github.com/SolarLune/masterplan/wiki/Roadmap
 
--------
+---
 
 v0.8.0-alpha.5
 
--------
+---
 
 Adding the Link Card type. The Link Card can be used to link to another card, either on the current page or another sub-page. This is done by pressing the Link button - after a Card is linked, the card will change color slightly and an icon will appear, indicating a link is established. Pressing the "Jump" button on the Card (or pressing Enter) will then jump to the target location. Link Cards can also be set to link to programs or files on your computer and can open them right from MasterPlan. Pressing "Execute", in this case, will attempt to run or open the file as applicable.
 RE-IMPLEMENTATION: You can now move and select cards via the keyboard. Moving cards in this way will attempt to have them swap with their neighbors.
@@ -342,11 +373,12 @@ FIX: Contextual buttons above Maps and Images now are colored properly regardles
 FIX: Creating Cards via the Create menu now selects them automatically.
 MINOR FIX: Pressing Enter / Return when editing text no longer triggers the key press for shortcuts that use it.
 MINOR FIX: Horizontal spacing improved for rows of elements with manually defined spacing.
--------
+
+---
 
 v0.8.0-alpha.4.2
 
--------
+---
 
 RE-IMPLEMENTATION: Adding movement smoothing. Defaults to on; turning it off makes movement, zooming, and scrolling absolute, rather than smoothed.
 QoL: Removing "colored area" around editable text labels.
@@ -355,11 +387,11 @@ QOL: If path names in the Open Recent menu have the same filename, more of the p
 FIX: The completion color for custom colored Cards is now tweaked slightly for enhanced visibility.
 FIX: MasterPlan no longer crashes when saving pages when subpages were created out of order.
 
--------
+---
 
 v0.8.0-alpha.4.1
 
--------
+---
 
 QoL: Menus can now be anchored. By dragging them to a side or corner of the screen, they will stay there even after resizing MasterPlan's window.
 QoL: The main menu can now be moved from the top-left corner and positioned wherever you want.
@@ -376,11 +408,11 @@ FIX: MasterPlan no longer crashes when loading projects featuring subpages that 
 FIX: MasterPlan no longer crashes if a card was in a stack when linking (via a line) to another card above in that stack.
 FIX: Don't log "Deleted 0 Cards." when pressing delete without having a card selected.
 
--------
+---
 
 v0.8.0-alpha.4
 
--------
+---
 
 IMPROVEMENT: Adding sub-pages. A sub-page is a card that allows you to access another page, thereby giving you more means of planning and organizing your project.
 IMPROVEMENT: Adding a "Help" link to File menu. The help link takes you to a wiki, located on the Github repo for MasterPlan. The Help wiki will serve as a useful online central reference on using MasterPlan, and will be updated as MasterPlan grows.
@@ -421,11 +453,11 @@ FIX: Numbering is no longer broken, displaying a variety of 0's, for when a card
 FIX: Non-numberable cards (like Notes) placed between a parent and its numberable children no longer break dependency in a stack.
 FIX: Projects should no longer save links between cards incorrectly. Again. Internally, this was because it was previously possible to create cards that shared IDs, thereby making them link incorrectly when the project is loaded. This should fix the issue. (Although you will need to re-create the previously broken links and resave your project. Sorry!)
 
--------
+---
 
 v0.8.0-alpha.3
 
--------
+---
 
 Double-click settings (save previous task type, double-click to create a card) have been combined into a single dropdown.
 Adding option to search for keybindings.
@@ -443,11 +475,11 @@ FIX: You can now more easily click on line endings or nodes that are on top of C
 CHANGE: Line arrows are now colored instead of white.
 FIX: You no longer accidentally click on something in the background by clicking on a button in a menu that then closes.
 
--------
+---
 
 v0.8.0-alpha.2
 
--------
+---
 
 Note: The saving and loading system for lines have been reworked, and so you will need to recreate any lines between Cards on your projects after loading in alpha 2. Apologies!
 
@@ -466,13 +498,13 @@ Note: The saving and loading system for lines have been reworked, and so you wil
 - Selecting Cards by any means will raise them now, not only by directly clicking on them.
 - Messages now take longer to display in proportion to their length, making them easier to read.
 - RE-IMPLEMENTATION: You can now use a custom font for use in MasterPlan by specifying a .ttf or .otf file.
-  Note that doing this rebuilds the font glyphs used for displaying text, and so text may not display correctly until restarting MasterPlan. 
+  Note that doing this rebuilds the font glyphs used for displaying text, and so text may not display correctly until restarting MasterPlan.
   This is planned to be improved, though it's not a pressing issue.
-- RE-IMPLEMENTATION: Checkboxes are now able to serve as parent Tasks / Cards by having them at the head of a stack. 
-  An indicator of its childrens' completion will appear at the right-hand side, and the icon for the parent Card will change to a set of squares. 
+- RE-IMPLEMENTATION: Checkboxes are now able to serve as parent Tasks / Cards by having them at the head of a stack.
+  An indicator of its childrens' completion will appear at the right-hand side, and the icon for the parent Card will change to a set of squares.
   All children and grand-children are included in the count.
-- RE-IMPLEMENTATION: You can now properly paste todo lists in as plain text and paste them into MasterPlan as Cards. 
-  For Checkbox Cards, use [ ] at the beginning of the list. 
+- RE-IMPLEMENTATION: You can now properly paste todo lists in as plain text and paste them into MasterPlan as Cards.
+  For Checkbox Cards, use [ ] at the beginning of the list.
   For Numbered Cards, use the same format, but with numbers inside ( like [13/209] ).
 - CHANGE: Reworking the Checkbox icon for the umpteenth time.
 - CHANGE: Resizing rectangle size is now 16 pixels large; it was previously 32 pixels large.
@@ -492,30 +524,30 @@ Note: The saving and loading system for lines have been reworked, and so you wil
 - FIX: Timers should trigger properly now.
 - FIX: Timer mode, trigger mode, and maximum time are now properly saved.
 
--------
+---
 
 v0.8.0-alpha.1.2
 
--------
+---
 
 - Replacing Quicksand with NotoSans font for clarity / increased character count (so now extended latin characters like "αβχδεφγηιγη" can be used).
 - Time estimation now takes into account maximum number of steps in Numbered tasks (i.e. more steps = a longer task, with each step taking the amount of time in the time estimation panel).
 - FIX: Textures becoming invisible when resizing the window on Windows. This happens specifically when changing / resetting the SDL context.
 - FIX: Panning is now consistent regardless of zoom.
 
--------
+---
 
 v0.8.0-alpha.1
 
--------
+---
 
 Like, everything's better. More documentation to come later, but the broadstrokes can be seen in this video: https://youtu.be/43sotReXnGA
 
--------
+---
 
 v0.7.2
 
--------
+---
 
 Panels are now resizeable.
 Added tab focusing (pressing tab focuses on different, consecutive elements in a panel).
@@ -523,15 +555,15 @@ Multiple log files are now created for each time you run the program; a maximum 
 Screenshorts are now named by date-time, not just numerically, allowing for multiple sets of screenshots across multiple sessions of MasterPlan.
 FIX: Paste Content crashes sometimes depending on text in clipboard
 FIX: Checkbox button now properly matches the Task's position.
-FIX: The Project's modified state (the *, for example, in the title bar of MasterPlan) is no longer incorrectly set directly after loading a project.
+FIX: The Project's modified state (the \*, for example, in the title bar of MasterPlan) is no longer incorrectly set directly after loading a project.
 FIX: URL buttons are no longer misaligned.
 FIX: The camera is now locked to pixels for exactness.
 
--------
+---
 
 v0.7.1
 
--------
+---
 
 - Audio samplerate no longer defaults to 22050 hz on Mac OS.
 - Adding ability to click on Checkbox Tasks to check them off.
@@ -571,20 +603,20 @@ v0.7.1
 - FIX: Double-clicking no longer triggers if the two clicks are on different objects. For example, clicking once on a Task and then on the background no longer registers as a double-click on the background.
 - FIX: Double-clicking is now slightly easier by default (0.33 seconds > 0.5 seconds).
 
--------
+---
 
 v0.7.0-1
 
--------
+---
 
 FIX: Lines no longer stop the selection box from showing.
 FIX: Switching from Table to another Task type and back no longer crashes.
 
--------
+---
 
 v0.7.0
 
--------
+---
 
 MASSIVE update. Huge rewrite of the interior of MasterPlan; still tons of work to do.
 
@@ -654,11 +686,11 @@ Also, there were some changes to keyboard shortcuts. Please check them after loa
 [*] OPTIMIZATION: Cut down VRAM usage for Task editing considerably. This number can account for roughly 80% of the VRAM used for Tasks. (In testing, a plan that previously had 284 Tasks, most of which were Checkbox Tasks, used 1084mb of VRAM. Now it uses 204mb).
 [*] OPTIMIZATION: Text rendering for Notes is now rendered to a texture, which is then rendered to the screen. This increases VRAM usage for Notes specifically, but is faster than rendering text directly to the screen. Work still remains to be done in this area, as there are still VRAM leaks in this regard.
 
--------
+---
 
 v0.6.1-3
 
--------
+---
 
 Updating manual.
 Note icon is slightly more readable. Clock icon is less flat.
@@ -668,33 +700,33 @@ Fixing note and outline color being the same for Event Horizon theme.
 MasterPlan now opens the tutorial on first launch (whenever the program settings doesn't exist, which should be sensible).
 Set unfocused FPS to 60 by default (again).
 FIX: Spinner expanding up kicks panel down. This should also fix the Spinner expanding the panel by too much, and regardless of if it's necessary (because the panel is already expanded enough).
-Task selection improvements - selecting Tasks that are in a strict direction from another Task now works much more reliably, at the cost of being less "fuzzy" (so you can't select a Task that is slightly below and to the right of another Task using the right arrow key anymore, for example). 
+Task selection improvements - selecting Tasks that are in a strict direction from another Task now works much more reliably, at the cost of being less "fuzzy" (so you can't select a Task that is slightly below and to the right of another Task using the right arrow key anymore, for example).
 To remedy this, I am also adding shortcuts to select nearby Tasks. These shortcuts should fairly reliably allow for selecting Tasks nearby the currently selected one, moving in a roughly cyclical manner (from top to bottom, and from left to right).
 FIX: Home and End behavior changed for Textboxes. Home and End now jump to start and end of current line, rather than start or end of the entire Textbox, as per standard text editor behavior.
 
--------
+---
 
 v0.6.1-2
 
--------
+---
 
 Removing itch / Steam forums options.
 Removing Steam purchase option from demo (as the demo's only on itch for now, so it doesn't make much sense to add a Steam purchase option).
 FIX: Textboxes were previously shared between copied Tasks.
 
--------
+---
 
 v0.6.1-1
 
--------
+---
 
 FIX: MasterPlan crashing on start when creating a brand new project.
 
--------
+---
 
 v0.6.1
 
--------
+---
 
 Progression Tasks now have buttons to increment and decrement the values (when selected).
 Broken sound icon updated for enhanced readability.
@@ -727,9 +759,7 @@ Changing Task Type from a drop-down menu to a ButtonGroup for easier selection.
 Changing how scroll wheel works for scrollbars in Panels - previously, it would scroll by a percentage. Now it scrolls by a set "chunk" size (so smaller lists are scrolled just as easily as larger ones).
 Adding scroll wheel sensitivity to program settings.
 Adding a setting for UnfocusedFPS. This allows you to set the target FPS when the window is minimized, hidden, or unfocused. It defaults to 60 FPS and the lowest value is 1.
-Adding graphical options in settings.
-    - Adding option for Graphical Tasks (like images, whiteboards, or maps) can now be transparent when changing global Task transparency.
-    - Adding option for deadline animation, so that it can be as understated or distracting as desired.
+Adding graphical options in settings. - Adding option for Graphical Tasks (like images, whiteboards, or maps) can now be transparent when changing global Task transparency. - Adding option for deadline animation, so that it can be as understated or distracting as desired.
 Clicking on Tasks no longer visually raises them.
 Logging improvements. Errors should now be logged onscreen. (This could be due to things like not having a valid clipboard tool installed on Linux, for example.)
 MasterPlan now stores its settings and log file in the XDG-standard local user configuration directory. For Linux, this should be ~/.config/MasterPlan, for Mac OS, ~/Library/Preferences/MasterPlan, and for Windows, C:\Users\<Your Username>\AppData\Local\MasterPlan.
@@ -757,11 +787,11 @@ FIX: Editing shortcuts (backspace, delete, etc) no longer repeat faster dependin
 FIX: Whiteboards weren't the correct colors on load because the MessageThemeChange message wasn't sent when setting the theme through the ChangeTheme() function.
 FIX: Can't use the left Super / Apple key on Mac.
 
--------
+---
 
 v0.6.0
 
--------
+---
 
 Adding keybindings. Keys can now be rebound from the settings screen.
 Adding Whiteboard Task Type. Whiteboards serve to allow for drawing images in your plan. Note that the drawings can balloon the size of the plan dramatically, so it's best used sparingly or for simple drawings / idea sketches.
@@ -791,11 +821,11 @@ FIX: Some GIFs were previously displaying incorrectly.
 FIX: Can't display resources that are linked to by URLs.
 FIX: Can't use partial URLs for resources. (This allows for usage of "abc.com/image.png" instead of "https://abc.com/image.png", as an example.)
 
--------
+---
 
 v0.5.4-1
 
--------
+---
 
 MasterPlan now saves window position on exit (by default).
 Screenshot save directory can now be customized on a per-project basis (thanks to Oscar over on GitHub!​).
@@ -803,11 +833,11 @@ MasterPlan now alerts you to where a screenshot is saved.
 Cleaned up splashscreen.
 FIX: Demo was disallowing saving improperly.
 
--------
+---
 
 v0.5.4
 
--------
+---
 
 Adding a demo. The demo mode is the same as the paid version, just with the inability to save projects and a different "About" section in the settings.
 Improving general autosave reliability.
@@ -818,11 +848,11 @@ FIX: Task.LoadResource() shouldn't attempt to use an Audio Resource that didn't 
 FIX: Add logging messages for when you drop an image, sound, or text file onto MasterPlan successfully.
 FIX: Dropping a local sound file onto MasterPlan no longer renames it if it has an incorrect extension name.
 
--------
+---
 
 v0.5.3
 
--------
+---
 
 - Timing improvements. Previously, MasterPlan was timed using Vsync; this is now replaced with my own timing system using time.sleep(), which should be more cross-platform friendly and make the main goroutine pause without consuming CPU execution. Otherwise, higher refresh rates would cause faster execution speeds (making things like double-clicking or moving using WASD quasi-impossible) or making the CPU idle at high cost as raylib currently seems to internally use a busy-wait-while loop by default on Mac and Linux. This timing mechanism isn't perfect, but is relatively easy to implement and seems accurate enough.
 - Adding experimental option to automatically reload media. This is experimental because it seems like it might be possible to mangle media if MP detects and goes to load a file before the OS is finished writing it. I believe I've mitigated this, but it's still experimental until more people test it out. It also does this every frame for every Task, so it's also a bit slow for the moment.
@@ -831,19 +861,19 @@ v0.5.3
 - Adding Target FPS option to global program settings.
 - FIX: Previously was unable to "refresh" a Task that used media; whatever was loaded was stuck like that until you reloaded the project or MasterPlan. Now when prompted to load media (e.g. after closing the Task), MasterPlan will check to see if the media on disk is newer than the media already loaded; if so, it will reload it.
 
--------
+---
 
 v0.5.2-1
 
--------
+---
 
 - FIX: JPG images aren't loading.
 
--------
+---
 
 v0.5.2
 
--------
+---
 
 - FIX: Paths are serialized relative to the project root.
 - FIX: Images weren't loading with proper size.
@@ -885,11 +915,11 @@ v0.5.2
 - Removing version name from top-right.
 - Renaming "Help" option "Open Tutorial" and moving it lower in the context menu.
 
--------
+---
 
 v0.5.1
 
--------
+---
 
 - Project lock is now undone when the corresponding setting is unchecked in project settings, not just when the settings panel is actually closed.
 - Adding a grid and a placement indicator to editing MapImages.
@@ -899,11 +929,11 @@ v0.5.1
 - FIX: Loading resources had the working directory as root for determining the path to the resources, not the project's filepath.
 - FIX: Images weren't loading with proper size.
 
--------
+---
 
 v0.5.0
 
--------
+---
 
 - Adding Map Task. Map Tasks allow you to draw a shape (like a room layout, or basic map for a town / continent) for your projects.
 - Adding global Task Transparency to project settings.
@@ -929,11 +959,11 @@ v0.5.0
 - FIX: Tasks now cannot be resized by clicking on them when unselected in the resizing area.
 - MacOS system requirements should now be 10.14 and above.
 
--------
+---
 
 v0.4.0
 
--------
+---
 
 - Updating splashscreen.
 - Adding undo / redo. FINALLY. Note that Tasks no longer are deleted like before; - this is done because they could be restored. HOPEFULLY THIS DOESN'T COME BACK TO BITE ME.
@@ -941,8 +971,8 @@ v0.4.0
 - Fix: Right clicking when project settings is open closes the menu.
 - Fix: NumberSpinner is positioned properly (or just more correctly) in settings menu.
 - Serialization (saving and loading) of Tasks / Projects improved.
-- FIX: Project SampleRate isn't loaded properly. 
-- Redirecting log output of MasterPlan to a file ("log.txt", in the same folder as MasterPlan) so that errors and crashes can be sent to me by reference. 
+- FIX: Project SampleRate isn't loaded properly.
+- Redirecting log output of MasterPlan to a file ("log.txt", in the same folder as MasterPlan) so that errors and crashes can be sent to me by reference.
 - Adding automatic backups. Automatic backups happen every X minutes, configurable by the user. MP will automatically delete the oldest backups that exceed the maximum count.
 - FIX: Progression completion current and max can no longer go below 0.
 - MasterPlan no longer asks for project directory on save. Now it asks for the project file name itself, sensibly.
@@ -952,26 +982,26 @@ v0.4.0
 - FIX: Message logging now works correctly with multiple lines per message (\n).
 - FIX: Deadlines can no longer show up on un-completable Tasks by setting the deadline on a un-completable​ Task, and then changing its type.
 
--------
+---
 
 v0.3.1
 
--------
+---
 
 - Fix: Can't load projects (whoops, this was a major, but extremely simple, bug).
 
--------
+---
 
 v0.3.0
 
--------
+---
 
 - Adding a Line Task type. Lines have arrow heads that can be positioned as desired. To make more lines from the same start point, simply copy and paste the line ending.
 - Adding help entry to right-click menu. This loads a tutorial plan to walk through to help learn the program.
 - Adding ability to rearrange the order of Boards by means of the buttons next to the active Board name.
 - Reworked how Tasks are stored internally, which should HOPEFULLY improve efficiency.
 - Default theme for new projects is now always Sunlight.
-- MasterPlan title bar now adds a * when the project has been modified.
+- MasterPlan title bar now adds a \* when the project has been modified.
 - Autosaving is now indicated at top-right of MasterPlan.
 - MasterPlan now asks for confirmation when destructively changing the current project (save as, new project, load project).
 - Tasks that are copy-pasted are now directly placed where the mouse points, like cutting.
@@ -997,21 +1027,21 @@ v0.3.0
 - Fix: Switching between projects should be more efficient now, as resources are now freed from the previous project.
 - Fix: Temporary files created during resource download process weren't being deleted properly.
 - Fix: Pan now defaults to 0,0 for new Projects.
-- Fix: Autosaving now works on fewer actions (just adding tasks, editing tasks, moving tasks, deleting tasks, and changing the project settings). This makes it less of a chore to work with. 
-- Fix: Autosave no longer triggers during load (this was wholly unnecessary). 
+- Fix: Autosaving now works on fewer actions (just adding tasks, editing tasks, moving tasks, deleting tasks, and changing the project settings). This makes it less of a chore to work with.
+- Fix: Autosave no longer triggers during load (this was wholly unnecessary).
 - Fix: Description now has focus on when going to edit a Task.
 - MasterPlan now has an icon and is more "app-like" on Mac.
 
--------
+---
 
 v0.2.3
 
--------
+---
 
 You can now disable the splashscreen on startup.
 You can now rename Boards. Adding a button for this, the Rename button, to the right of the currently active Board.
 Adding Cloudy theme.
-MasterPlan's text rendering is now Unicode character compliant (this means that common Latin characters for non-English languages like À or Æ can be typed and display correctly). 
+MasterPlan's text rendering is now Unicode character compliant (this means that common Latin characters for non-English languages like À or Æ can be typed and display correctly).
 Note that I'm designing the characters myself, so not every character for every Latin-based language is implemented currently. Let me know on the forums if a language is missing
 characters: https://itch.io/board/555951/general
 Switching out the font from Monaco to my own, Excel.
@@ -1021,11 +1051,11 @@ FIX: Text selection and highlighting improved, fixed for center-aligned text.
 FIX: Task and its clone share deadline properties.
 FIX: Can't choose image files to load on Mac.
 
--------
+---
 
 v0.2.2
 
--------
+---
 
 Adding option to disable Task Outlines.
 Images now lock to a grid when scaling - to disable this, hold shift while dragging their size.
@@ -1041,42 +1071,43 @@ Updating a few themes to update shadow color.
 Fix: Can't select the task below the top-most Task on the Board using the keyboard.
 Fix: Settings is always saved next to the MasterPlan executable.
 Fix: Autoloading last plan wasn't being loaded properly.
-Fix: Numbering sequence was broken across all Boards except the first one. 
+Fix: Numbering sequence was broken across all Boards except the first one.
 Fix: Auto-load checkbox not properly loaded on running MasterPlan.
 Fix: All Tasks update now. Before it was just the ones on the current Board. This fixes timers and sounds not playing when switching Boards.
 Fix: Stopping all playing sounds works across all Boards.
 Fix: Searching for a Task switches to the Board it resides on.
 Fix: Boards are now numbered starting from 1, rather than 0.
 
--------
+---
 
 v0.2.1
 
--------
+---
 
-Added Boards. A Board represents a collection of Tasks. Boards are selected by utilizing the Board selection menu at the top-right (or an 
-    associated shortcut, which is Ctrl + 1, 2, 3..., 0). You can add Boards by clicking on the + button in that same menu. Empty Boards (Boards
-    that don't contain any Tasks) are deleted if they are not open.
+Added Boards. A Board represents a collection of Tasks. Boards are selected by utilizing the Board selection menu at the top-right (or an
+associated shortcut, which is Ctrl + 1, 2, 3..., 0). You can add Boards by clicking on the + button in that same menu. Empty Boards (Boards
+that don't contain any Tasks) are deleted if they are not open.
 Added the Board number on the grid background at origin (0, 0).
 Added Cut Tasks option and shortcut. Pasting cut Tasks move them to the mouse's position.
 Fixed wording of Log messages that mention "Tasks" to mention "Task(s)" instead (to cover singular Task use cases).
 
 You can now configure the sound playback sample rate in the Project Settings.
 Sample rate is now set to 22050 by default (the only sample rate that seems to play sounds back flawlessly in my tests, oddly) on Mac.
-Fix: Unable to load .plan files on Mac because the most recent Mac OS version seems to have trouble recognizing file extensions in some cases. So 
-    instead, I'm just removing the filter on the File Open dialog for now.
-Fix: On Mac, shortcuts can now use Super instead of Control. Note that I'm still allowing people to use Control for those shortcuts as well if they 
-    prefer.
-Loading saved plans are validated a little bit more - if the file loaded isn't valid JSON or does not have a "Tasks" entry, then the load will fail 
-    gracefully.
+Fix: Unable to load .plan files on Mac because the most recent Mac OS version seems to have trouble recognizing file extensions in some cases. So
+instead, I'm just removing the filter on the File Open dialog for now.
+Fix: On Mac, shortcuts can now use Super instead of Control. Note that I'm still allowing people to use Control for those shortcuts as well if they
+prefer.
+Loading saved plans are validated a little bit more - if the file loaded isn't valid JSON or does not have a "Tasks" entry, then the load will fail
+gracefully.
 Fix: New Tasks now are created beneath the top-most selected Task, regardless of numbering sequence.
 Pasting Tasks now pastes them below the last Task selected, in the same column.
 Fix: Dragging image or sound files over MasterPlan create associated Tasks, but don't automatically load the media.
 
-_______
+---
 
 v0.2.0
-_______
+
+---
 
 Fix: Splashscreen not displaying on Mac build.
 Splash screen now displays for 1.5 seconds minimum.
@@ -1084,9 +1115,9 @@ Hopeful Fix: Set application build type to GUI on Windows, making it so the comm
 FIX: Task bar not filling for Timer when running.
 Adding splash screen.
 FIX: Task completion time constantly set on save for parent Tasks with completed subtasks.
-Adding Timer Task type. The Timer allows people to add Timers to their plan, allowing them to better control how and when they work. It allows for 
-    Pomodoro-style timing-based workflows (work for x minutes, rest for y minutes, repeat) into their daily development. Timers that are next to 
-    each other trigger in sequence, much like Sound Tasks.
+Adding Timer Task type. The Timer allows people to add Timers to their plan, allowing them to better control how and when they work. It allows for
+Pomodoro-style timing-based workflows (work for x minutes, rest for y minutes, repeat) into their daily development. Timers that are next to
+each other trigger in sequence, much like Sound Tasks.
 Sound Tasks now have buttons for playing, pausing, and restarting sounds.
 Completing Tasks with [C] now is displayed as a notification.
 Deadline patterns cycle faster to indicate urgency.
@@ -1099,9 +1130,9 @@ FIX: Crash if starting MasterPlan and Autoload Last Project setting didn't save.
 
 Major changes - Resource management improvements.
 Resources (images and GIFs) are now stored in a central location on the Project and are reused between Tasks.
-Resource downloading and loading has been improved by the addition of the usage of a MIME type detection library. This allows for MasterPlan to see 
-    what kind of file a file is after downloading, even if the file doesn't have the correct filepath. This means that Paste Content now works much 
-    more reliably across media found on the Internet.
+Resource downloading and loading has been improved by the addition of the usage of a MIME type detection library. This allows for MasterPlan to see
+what kind of file a file is after downloading, even if the file doesn't have the correct filepath. This means that Paste Content now works much
+more reliably across media found on the Internet.
 Lengthening the amount of time messages are on screen (5 seconds to 7 seconds).
 Escape key now defocuses textboxes.
 Enter key now is also a shortcut to jump to the next Task in a search when the searchbar is highlighted (like Ctrl+F). Shift+Enter goes back (much like Shift+Ctrl+F).
@@ -1109,13 +1140,13 @@ Adding project setting to save sounds that are currently playing.
 
 FIX: Percentage didn't fill a Task if under 1% filled. That value has now been bumped to 0.01%.
 FIX: Log reporting selection and deselection of Tasks was incorrect.
-FIX: Pasting Tasks now lowers them below the column of existing Tasks (if the Task is completable). A TODO is to make all Tasks able to have 
-    neighbors so you can shift them around easily using the keyboard.
+FIX: Pasting Tasks now lowers them below the column of existing Tasks (if the Task is completable). A TODO is to make all Tasks able to have
+neighbors so you can shift them around easily using the keyboard.
 FIX: Crash if using Ctrl+V to paste Tasks with no Tasks copied.
-FIX: Crash if playing resampled audio and looping it multiple times (4-6 in my tests on a specific file). This seems to be FIXed by lowering the 
-    quality of resampling (quality of 4 > quality of 1).
-FIX: Hang when deleting Tasks due to Tasks registering their neighbors that include themselves, resulting in a loop (A.TaskAbove = B, B.TaskAbove = 
-    A). This is resolved by comparing Task positions more absolutely to determine whether a Task is another's neighbor.
+FIX: Crash if playing resampled audio and looping it multiple times (4-6 in my tests on a specific file). This seems to be FIXed by lowering the
+quality of resampling (quality of 4 > quality of 1).
+FIX: Hang when deleting Tasks due to Tasks registering their neighbors that include themselves, resulting in a loop (A.TaskAbove = B, B.TaskAbove =
+A). This is resolved by comparing Task positions more absolutely to determine whether a Task is another's neighbor.
 
 Massive textbox improvements.
 You can now select blocks of text in textboxes, either by mouse click and drag, or by holding shift and using the keyboard.
@@ -1125,24 +1156,25 @@ FIX: Navigating text lines by keyboard in textboxes is no longer as inaccurate. 
 
 You can now move multiple Tasks at a time with the keyboard.
 You can now select multiple Tasks using Shift + up or down arrow.
-Ctrl + arrow keys now move Tasks, rather than Shift. This is a bit more awkward, but more consistent with how holding shift allows for selecting 
-    multiple Tasks with the mouse.
-Moving Tasks no longer adjusts the indentation. This seems better to keep Tasks arranged consistently and not jump around when moving groups of 
-    Tasks around.
+Ctrl + arrow keys now move Tasks, rather than Shift. This is a bit more awkward, but more consistent with how holding shift allows for selecting
+multiple Tasks with the mouse.
+Moving Tasks no longer adjusts the indentation. This seems better to keep Tasks arranged consistently and not jump around when moving groups of
+Tasks around.
 Escape now deselects all Tasks.
 Page Up and Page Down now selects the first or last Task in a column, respectively.
 FIX: Shadows no longer render on top of Tasks.
 FIX: You can now pan while dragging Tasks.
 FIX: Projects couldn't restore the pan of the camera from saved plans. To resolve this, creating new Tasks now no longer focuses the view on them.
-HOPEFUL FIX: Zoom locks when close to targeted zoom. Seems like I was getting some artifacting at 1x zoom level, but I can't seem to reproduce it 
-    reliably. This should help make sure the zoom never stays at fractional levels.
+HOPEFUL FIX: Zoom locks when close to targeted zoom. Seems like I was getting some artifacting at 1x zoom level, but I can't seem to reproduce it
+reliably. This should help make sure the zoom never stays at fractional levels.
 
 Other assorted code rearrangings and minor fixes.
 
-_______
+---
 
 v0.1.2
-_______
+
+---
 
 MasterPlan now maintains global program settings in an external file.
 FIX: Crash due to color theme spinner pointing to a theme that no longer exists if a theme is deleted or renamed.
