@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
+	stdzip "archive/zip"
 	"github.com/mholt/archives"
 	"github.com/otiai10/copy"
 )
@@ -37,7 +37,7 @@ func build(baseDir string, releaseMode string, targetOS, targetArch string) {
 		panic(err)
 	}
 
-	copyTo("changelog.txt", filepath.Join(baseDir, "changelog.txt"))
+	copyTo("changelog.md", filepath.Join(baseDir, "changelog.md"))
 
 	if forMac {
 		baseDir = filepath.Join(baseDir, "MasterPlan.app", "Contents", "MacOS")
@@ -169,35 +169,48 @@ func compress() {
 		version := versions[i]
 		ending := versions[i+1]
 
-		// We want to create separate archives for each version (e.g. release and demo)
-		files, err := archives.FilesFromDisk(ctx, nil, map[string]string{
-			version: version + ending,
-		})
-
-		if err != nil {
-			panic(err)
-		}
-
-		format := archives.CompressedArchive{
-			Compression: archives.Gz{},
-			Archival:    archives.Tar{},
-		}
-
-		out, err := os.Create(version + ending)
-		if err != nil {
-			panic(err)
-		}
-
-		defer out.Close()
-
-		err = format.Archive(ctx, out, files)
-		if err != nil {
-			panic(err)
-		}
+		// Use helper to write the archive for this version+ending
+		writeArchive(ctx, version, ending)
 
 	}
 
 	fmt.Println("<Build successfully compressed!>")
+
+}
+
+// writes an archive for the given directory `version` using the provided ending.
+func writeArchive(ctx context.Context, version, ending string) {
+
+	files, err := archives.FilesFromDisk(ctx, nil, map[string]string{
+		version: version + ending,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	out, err := os.Create(version + ending)
+	if err != nil {
+		panic(err)
+	}
+	defer out.Close()
+
+	var format archives.CompressedArchive
+	if ending == ".zip" {
+		format = archives.CompressedArchive{
+			Archival: archives.Zip{Compression: stdzip.Deflate},
+		}
+	} else {
+		format = archives.CompressedArchive{
+			Compression: archives.Gz{},
+			Archival:    archives.Tar{},
+		}
+	}
+
+	err = format.Archive(ctx, out, files)
+	if err != nil {
+		panic(err)
+	}
 
 }
 

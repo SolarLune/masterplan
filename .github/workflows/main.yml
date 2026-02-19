@@ -21,17 +21,17 @@ jobs:
 
       - name: Build
         run: |
-          go run build_script/build.go -b -c
+          go run build_script/build.go -b
 
       - uses: actions/upload-artifact@v4
         with:
           name: Linux-0.9-Release-amd64
-          path: ./bin/linux-0.9-Release-amd64.tar.gz
+          path: ./bin/linux-0.9-Release-amd64
 
       - uses: actions/upload-artifact@v4
         with:
           name: Linux-0.9-Demo-amd64
-          path: ./bin/linux-0.9-Demo-amd64.tar.gz
+          path: ./bin/linux-0.9-Demo-amd64
 
       # - name: Test
       #   run: timeout 10s go run .
@@ -56,17 +56,17 @@ jobs:
 
       - name: Build
         run: |
-          go run build_script/build.go -b -c
+          go run build_script/build.go -b
 
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-0.9-Release-amd64
-          path: ./bin/windows-0.9-Release-amd64.zip
+          path: ./bin/windows-0.9-Release-amd64
 
       - uses: actions/upload-artifact@v4
         with:
           name: Windows-0.9-Demo-amd64
-          path: ./bin/windows-0.9-Demo-amd64.zip
+          path: ./bin/windows-0.9-Demo-amd64
 
       # - name: Test
       #   run: |
@@ -94,19 +94,15 @@ jobs:
         run: |
           dylibbundler -od -b -x ./bin/darwin-0.9-Release-amd64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Release-amd64/MasterPlan.app/Contents/libs -p @executable_path/../libs
           dylibbundler -od -b -x ./bin/darwin-0.9-Demo-amd64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Demo-amd64/MasterPlan.app/Contents/libs -p @executable_path/../libs
-
-      - name: Compress
-        run: go run build_script/build.go -c
-
       - uses: actions/upload-artifact@v4
         with:
           name: MacOS-0.9-Release-amd64
-          path: ./bin/darwin-0.9-Release-amd64.tar.gz
+          path: ./bin/darwin-0.9-Release-amd64
 
       - uses: actions/upload-artifact@v4
         with:
           name: MacOS-0.9-Demo-amd64
-          path: ./bin/darwin-0.9-Demo-amd64.tar.gz
+          path: ./bin/darwin-0.9-Demo-amd64
 
       # - name: Test
       #   run: go run .
@@ -131,19 +127,15 @@ jobs:
         run: |
           dylibbundler -od -b -x ./bin/darwin-0.9-Release-arm64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Release-arm64/MasterPlan.app/Contents/libs -p @executable_path/../libs
           dylibbundler -od -b -x ./bin/darwin-0.9-Demo-arm64/MasterPlan.app/Contents/MacOS/masterplan -d ./bin/darwin-0.9-Demo-arm64/MasterPlan.app/Contents/libs -p @executable_path/../libs
-
-      - name: Compress
-        run: go run build_script/build.go -c
-
       - uses: actions/upload-artifact@v4
         with:
           name: MacOS-0.9-Release-arm64
-          path: bin/darwin-0.9-Release-arm64.tar.gz
+          path: bin/darwin-0.9-Release-arm64
 
       - uses: actions/upload-artifact@v4
         with:
           name: MacOS-0.9-Demo-arm64
-          path: bin/darwin-0.9-Demo-arm64.tar.gz
+          path: bin/darwin-0.9-Demo-arm64
 
       # - name: Test
       #   run: go run .
