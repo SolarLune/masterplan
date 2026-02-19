@@ -75,7 +75,7 @@ jobs:
       #     taskkill /im go /f
 
   buildMacAmd64:
-    runs-on: macos-13 # Earliest MacOS, deprecated
+    runs-on: macos-14-large # Only available Intel MacOS on Github Runners
     steps:
       - uses: actions/checkout@v4
 
@@ -112,7 +112,7 @@ jobs:
       #   run: go run .
 
   buildMacArm64:
-    runs-on: macos-13-xlarge # Deprecated, earliest ARM64 on GH Runners
+    runs-on: macos-14 # Earliest available ARM64 Mac on GH Runners
     steps:
       - uses: actions/checkout@v4
 
