@@ -1,3 +1,11 @@
+# v0.9.2
+
+FIX: Some issues with card pinning.
+FIX: Cards now properly are pinned when loading projects.
+QoL: Adding keybinding shortcut to cycle capitalization for highlighted text.
+QoL: Clicking and highlighting a word and then dragging will highlight whole words, like most text editors (there's a little work to be done here still).
+QoL: Adding the ability to make the window entirely transparent (be a bit careful with this - you can make the window always wholly transparent!). Note that this breaks existing BG window transparency settings, so please re-set it to what you'd like.
+
 # v0.9.1
 
 ## Quality of Life Updates

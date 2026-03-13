@@ -53,7 +53,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.9.1")
+	globals.Version = semver.MustParse("0.9.2")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()
@@ -377,34 +377,50 @@ func main() {
 
 	}
 
-	windowTransparency := 1.0
+	windowBGTransparency := 1.0
+	windowFrameTransparency := 1.0
+	canHandleTransparentWindows := true // Doesn't work on Wayland :(
 
 	for !quit {
 
 		fpsManager.Start()
 
-		wtMode := globals.Settings.Get(SettingsWindowTransparencyMode).AsString()
+		bgTransparencyMode := globals.Settings.Get(SettingsWindowBGTransparencyMode).AsString()
+		frameTransparencyMode := globals.Settings.Get(SettingsWindowFrameTransparencyMode).AsString()
 
-		transparent := false
+		bgTransparent := false
+		windowTransparent := false
 
-		switch wtMode {
+		switch bgTransparencyMode {
 		case WindowTransparencyAlways:
-			transparent = true
+			bgTransparent = true
 		case WindowTransparencyMouse:
-			transparent = !globals.Mouse.InsideWindow
+			bgTransparent = !globals.Mouse.InsideWindow
 		case WindowTransparencyWindow:
-			transparent = (window.Flags()&sdl.WINDOW_INPUT_FOCUS == 0) && (window.Flags()&sdl.WINDOW_KEYBOARD_GRABBED == 0) && (window.Flags()&sdl.WINDOW_MOUSE_GRABBED == 0)
-			// default:
-			// 	transparency = false
+			bgTransparent = (window.Flags()&sdl.WINDOW_INPUT_FOCUS == 0) && (window.Flags()&sdl.WINDOW_KEYBOARD_GRABBED == 0) && (window.Flags()&sdl.WINDOW_MOUSE_GRABBED == 0)
+		}
+
+		switch frameTransparencyMode {
+		case WindowTransparencyAlways:
+			windowTransparent = true
+		case WindowTransparencyMouse:
+			windowTransparent = !globals.Mouse.InsideWindow
+		case WindowTransparencyWindow:
+			windowTransparent = (window.Flags()&sdl.WINDOW_INPUT_FOCUS == 0) && (window.Flags()&sdl.WINDOW_KEYBOARD_GRABBED == 0) && (window.Flags()&sdl.WINDOW_MOUSE_GRABBED == 0)
 		}
 
 		targetBGAlpha := 1.0
+		targetWindowAlpha := 1.0
 
-		if transparent {
-			targetBGAlpha = globals.Settings.Get(SettingsWindowTransparency).AsFloat()
+		if bgTransparent {
+			targetBGAlpha = globals.Settings.Get(SettingsWindowBGTransparency).AsFloat()
+		}
+		if windowTransparent {
+			targetWindowAlpha = globals.Settings.Get(SettingsWindowFrameTransparency).AsFloat()
 		}
 
-		windowTransparency += (float64(targetBGAlpha) - windowTransparency) * 0.1
+		windowBGTransparency += (float64(targetBGAlpha) - windowBGTransparency) * 0.1
+		windowFrameTransparency += (float64(targetWindowAlpha) - windowFrameTransparency) * 0.1
 
 		globals.MenuSystem.Get("main").Pages["root"].FindElement("time label", false).(*Label).SetText([]rune(time.Now().Format("Mon Jan 2 2006")))
 
@@ -470,12 +486,19 @@ func main() {
 		// 	clearColor = rl.Color{}
 		// }
 		clearColor := getThemeColor(GUIBGColor)
-		clearColor[0] = uint8(float64(clearColor[0]) * windowTransparency)
-		clearColor[1] = uint8(float64(clearColor[1]) * windowTransparency)
-		clearColor[2] = uint8(float64(clearColor[2]) * windowTransparency)
-		clearColor[3] = uint8(windowTransparency * 255)
+		clearColor[0] = uint8(float64(clearColor[0]) * windowBGTransparency)
+		clearColor[1] = uint8(float64(clearColor[1]) * windowBGTransparency)
+		clearColor[2] = uint8(float64(clearColor[2]) * windowBGTransparency)
+		clearColor[3] = uint8(windowBGTransparency * 255)
 		renderer.SetDrawColor(clearColor.RGBA())
 		renderer.Clear()
+
+		if canHandleTransparentWindows {
+			if err = window.SetOpacity(float32(windowFrameTransparency)); err != nil {
+				canHandleTransparentWindows = false
+				globals.EventLog.Log("Couldn't make window transparent:\n"+err.Error(), true)
+			}
+		}
 
 		// fmt.Println(globals.TextRenderer.MeasureText([]rune("New Project"), 1))
 
@@ -2545,16 +2568,27 @@ of images can be.`))
 	row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsOutlineWindow)))
 
 	row = visual.AddRow(AlignCenter)
-	row.Add("", NewLabel("Window Transparency:", nil, false, AlignLeft))
-	scrollbar := NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0, 1, false, globals.Settings.Get(SettingsWindowTransparency))
+	row.Add("", NewLabel("Window BG Transparency:", nil, false, AlignLeft))
+	scrollbar := NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0, 1, false, globals.Settings.Get(SettingsWindowBGTransparency))
 	scrollbar.DisplayValue = true
 	row.Add("", scrollbar)
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewLabel("Transparent when:", nil, false, AlignLeft))
-	transparencyDropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsWindowTransparencyMode), WindowTransparencyAlways, WindowTransparencyMouse, WindowTransparencyWindow)
+	transparencyDropdown := NewDropdown(nil, false, nil, globals.Settings.Get(SettingsWindowBGTransparencyMode), WindowTransparencyAlways, WindowTransparencyMouse, WindowTransparencyWindow)
 	row.Add("", transparencyDropdown)
 	// row.Add("", NewCheckbox(0, 0, false, globals.Settings.Get(SettingsWindowTransparencyMode)))
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Overall Window Opacity:", nil, false, AlignLeft))
+	scrollbar = NewScrollbar(&sdl.FRect{0, 0, 64, 32}, 0, 1, false, globals.Settings.Get(SettingsWindowFrameTransparency))
+	scrollbar.DisplayValue = true
+	row.Add("", scrollbar)
+
+	row = visual.AddRow(AlignCenter)
+	row.Add("", NewLabel("Transparent when:", nil, false, AlignLeft))
+	transparencyDropdown = NewDropdown(nil, false, nil, globals.Settings.Get(SettingsWindowFrameTransparencyMode), WindowTransparencyAlways, WindowTransparencyMouse, WindowTransparencyWindow)
+	row.Add("", transparencyDropdown)
 
 	row = visual.AddRow(AlignCenter)
 	row.Add("", NewSpacer(nil))

@@ -1806,16 +1806,6 @@ func (card *Card) Deserialize(data string) {
 	// 	}
 	// }
 
-	card.Unpin()
-
-	if gjson.Get(data, "pinned").Exists() {
-		pinnedToID := gjson.Get(data, "pinned").Int()
-		pin := card.Page.CardByID(pinnedToID)
-		if pin != nil {
-			card.PinTo(pin)
-		}
-	}
-
 	// Set Rect Position and Size before deserializing properties and setting contents so the contents can know the actual correct, current size of the Card (important for Map Contents)
 	card.Recreate(float32(rect.Get("W").Float()), float32(rect.Get("H").Float()))
 
@@ -1833,6 +1823,16 @@ func (card *Card) Deserialize(data string) {
 
 	card.LockPosition() // We call this to lock the position of the card, but also to update the Card's position on the underlying Grid.
 
+	card.Unpin()
+
+	if gjson.Get(data, "pinned").Exists() {
+
+		pinnedToID := gjson.Get(data, "pinned").Int()
+		pin := card.Page.CardByLoadedID(pinnedToID)
+		if pin != nil {
+			card.PinTo(pin)
+		}
+	}
 }
 
 func (card *Card) Select() {
@@ -1951,6 +1951,10 @@ func (card *Card) Unpin() {
 }
 
 func (card *Card) PinTo(other *Card) {
+	if card == other || (other.ContentType != ContentTypeMap && other.ContentType != ContentTypeImage) {
+		return
+	}
+
 	card.Unpin()
 
 	if other.PinnedTo == card {

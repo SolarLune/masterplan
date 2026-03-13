@@ -209,7 +209,7 @@ func publishToItch() {
 
 		dirCount := len(strings.Split(path, string(os.PathSeparator)))
 
-		if info.IsDir() && dirCount == 2 {
+		if info != nil && info.IsDir() && dirCount == 2 {
 			buildNames = append(buildNames, path) // We want to upload the build directories
 		}
 

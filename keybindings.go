@@ -93,6 +93,7 @@ const (
 	KBCopyText      = "Textbox: Copy Selected Text"
 	KBCutText       = "Textbox: Cut Selected Text"
 	KBPasteText     = "Textbox: Paste Copied Text"
+	KBCycleCaps     = "Textbox: Cycle Capitalization"
 	KBSelectAllText = "Textbox: Select All Text"
 
 	KBSwitchWrapMode    = "Card Text Editing: Switch Wrap Mode"
@@ -527,6 +528,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBCopyText, SDLK_C, SDLK_LCTRL)
 	kb.DefineKeyShortcut(KBCutText, SDLK_X, SDLK_LCTRL)
 	kb.DefineKeyShortcut(KBPasteText, SDLK_V, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBCycleCaps, SDLK_R, SDLK_LCTRL)
 	kb.DefineKeyShortcut(KBSelectAllText, SDLK_A, SDLK_LCTRL)
 
 	kb.DefineKeyShortcut(KBSwitchWrapMode, SDLK_W, SDLK_LCTRL)

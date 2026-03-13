@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/Zyko0/go-sdl3/sdl"
 	"github.com/tanema/gween"
@@ -1539,7 +1540,9 @@ type Label struct {
 	Editing            bool
 	DrawLineUnderTitle bool
 
-	Selection *TextSelection
+	Selection            *TextSelection
+	SelectWordIndexStart int
+	SelectWordIndexEnd   int
 
 	RegexString string
 
@@ -1854,13 +1857,15 @@ func (label *Label) Update() {
 								lineText = append(lineText, ' ') // We add a space so you can position the click at the end
 							}
 
-							for _, c := range lineText {
+							for i, c := range lineText {
 
 								diff := pos.DistanceSquared(mousePos)
 								if dist < 0 || diff < dist {
 									if float32(math.Abs(float64(pos.Y-mousePos.Y))) < globals.GridSize/2 {
-										closestIndex = cIndex
-										dist = diff
+										if label.SelectWordIndexStart == -1 || (c == '\n' || c == ' ' || i == 0) {
+											closestIndex = cIndex
+											dist = diff
+										}
 									}
 								}
 
@@ -1886,7 +1891,19 @@ func (label *Label) Update() {
 						if button.Pressed() {
 							label.Selection.Select(closestIndex, closestIndex)
 						} else if button.Held() && globals.Mouse.Moving() {
-							label.Selection.Select(label.Selection.Start, closestIndex)
+							if label.SelectWordIndexStart >= 0 {
+								start := label.SelectWordIndexStart
+								end := label.SelectWordIndexEnd
+								if closestIndex > label.SelectWordIndexEnd {
+									end = closestIndex
+								} else if closestIndex < label.SelectWordIndexStart {
+									start = closestIndex
+									end = label.SelectWordIndexEnd
+								}
+								label.Selection.Select(start, end)
+							} else {
+								label.Selection.Select(label.Selection.Start, closestIndex)
+							}
 						}
 					}
 
@@ -1908,6 +1925,9 @@ func (label *Label) Update() {
 						}
 
 						label.Selection.Select(startOfWord, endOfWord)
+
+						label.SelectWordIndexStart = label.Selection.Start
+						label.SelectWordIndexEnd = label.Selection.End
 
 					} else if button.PressedTimes(3) {
 						// label.Selection.Select(0, len(label.Text))
@@ -1972,6 +1992,52 @@ func (label *Label) Update() {
 					start, end := label.Selection.ContiguousRange()
 					text := label.Text[start:end]
 					clipboard.Write(clipboard.FmtText, []byte(string(text)))
+				}
+
+				if globals.Keybindings.Pressed(KBCycleCaps) {
+					text := string(label.SelectedChars())
+					start := label.Selection.Start
+					end := label.Selection.End
+
+					isUppercase := strings.ToUpper(text) == text
+					isLowercase := strings.ToLower(text) == text
+					// isTitlecase := strings.ToTitle(text) == text
+
+					if len(strings.TrimSpace(text)) == 1 {
+
+						if isUppercase {
+							label.DeleteSelectedChars()
+							label.InsertRunesAtIndex([]rune(strings.ToLower(text)), label.Selection.Start)
+						} else if isLowercase {
+							label.DeleteSelectedChars()
+							label.InsertRunesAtIndex([]rune(strings.ToUpper(text)), label.Selection.Start)
+						}
+
+					} else {
+
+						if isUppercase {
+							label.DeleteSelectedChars()
+							label.InsertRunesAtIndex([]rune(strings.ToLower(text)), label.Selection.Start)
+						} else if isLowercase {
+							// First Letter Capitalized Of Each Word
+							label.DeleteSelectedChars()
+							mod := []rune(text)
+							for i, r := range mod {
+								if i == 0 || unicode.IsSpace(rune(text[i-1])) {
+									mod[i] = rune(strings.ToUpper(string(r))[0])
+								}
+							}
+							label.InsertRunesAtIndex(mod, label.Selection.Start)
+						} else {
+							label.DeleteSelectedChars()
+							label.InsertRunesAtIndex([]rune(strings.ToUpper(text)), label.Selection.Start)
+						}
+
+					}
+
+					label.Selection.Start = start
+					label.Selection.End = end
+
 				}
 
 				if globals.Keybindings.Pressed(KBPasteText) {
@@ -2072,6 +2138,10 @@ func (label *Label) Update() {
 					label.MousedOver = globals.Mouse.Position().Inside(label.Rect)
 				}
 
+			}
+
+			if !label.Editing || globals.Mouse.Button(sdl.BUTTON_LEFT).ReleasedRaw() {
+				label.SelectWordIndexStart = -1
 			}
 
 			if !label.Editing && label.Editable && mousePos.Inside(label.Rect) {
@@ -2476,6 +2546,11 @@ func (label *Label) TextAsInt() int {
 
 func (label *Label) TextSize() Vector {
 	return globals.TextRenderer.MeasureText(label.Text, 1)
+}
+
+func (label *Label) SelectedChars() []rune {
+	start, end := label.Selection.ContiguousRange()
+	return label.Text[start:end]
 }
 
 func (label *Label) DeleteSelectedChars() {

@@ -38,8 +38,10 @@ const (
 	SettingsScreenshotPath               = "ScreenshotPath"
 	SettingsSmoothMovement               = "SmoothMovement"
 	SettingsFocusOnSelectingWithKeys     = "FocusOnSelectingWithKeys"
-	SettingsWindowTransparency           = "Window Transparency"
-	SettingsWindowTransparencyMode       = "Transparency Mode"
+	SettingsWindowBGTransparency         = "Window BG Transparency"
+	SettingsWindowBGTransparencyMode     = "Window BG Transparency Mode"
+	SettingsWindowFrameTransparency      = "Windowframe Transparency"
+	SettingsWindowFrameTransparencyMode  = "Windowframe Transparency Mode"
 	SettingsFocusOnUndo                  = "FocusOnUndo"
 	SettingsSuccessfulLoad               = "SuccesfulLoad"
 	SettingsAutoBackup                   = "Automatic Backups"
@@ -205,8 +207,10 @@ func NewProgramSettings(load bool) *Properties {
 	props.Get(SettingsAudioSampleRate).Set(AudioSampleRate44100)
 	props.Get(SettingsAudioBufferSize).Set(AudioBufferSize1024)
 
-	props.Get(SettingsWindowTransparency).Set(1)
-	props.Get(SettingsWindowTransparencyMode).Set(WindowTransparencyAlways)
+	props.Get(SettingsWindowBGTransparency).Set(1)
+	props.Get(SettingsWindowBGTransparencyMode).Set(WindowTransparencyAlways)
+	props.Get(SettingsWindowFrameTransparency).Set(1)
+	props.Get(SettingsWindowFrameTransparencyMode).Set(WindowTransparencyAlways)
 
 	borderless := props.Get(SettingsBorderlessWindow)
 	borderless.Set(false)

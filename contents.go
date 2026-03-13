@@ -2811,15 +2811,11 @@ func (mc *MapContents) Update() {
 		} else if globals.Keybindings.Pressed(KBMapWrapAroundCards) {
 			globals.Keybindings.Shortcuts[KBMapWrapAroundCards].ConsumeKeys()
 
-			set := false
+			wrap := false
 			x := float32(0)
 			y := float32(0)
 			x2 := float32(0)
 			y2 := float32(0)
-
-			for _, c := range mc.Card.PinnedCards {
-				c.Unpin()
-			}
 
 			for card := range mc.Card.Page.Selection.Cards {
 
@@ -2827,31 +2823,40 @@ func (mc *MapContents) Update() {
 					continue
 				}
 
-				card.Unpin()
-				card.PinTo(mc.Card)
-				card.Page.Raise(card)
-
-				if !set || card.Rect.X < x {
+				if !wrap || card.Rect.X < x {
 					x = card.Rect.X
 				}
 
-				if !set || card.Rect.Y < y {
+				if !wrap || card.Rect.Y < y {
 					y = card.Rect.Y
 				}
 
-				if !set || card.Rect.X+card.Rect.W > x2 {
+				if !wrap || card.Rect.X+card.Rect.W > x2 {
 					x2 = card.Rect.X + card.Rect.W
 				}
 
-				if !set || card.Rect.Y+card.Rect.H > y2 {
+				if !wrap || card.Rect.Y+card.Rect.H > y2 {
 					y2 = card.Rect.Y + card.Rect.H
 				}
 
-				set = true
+				wrap = true
 
 			}
 
-			if set {
+			pinnedCards := append([]*Card{}, mc.Card.PinnedCards...)
+
+			if wrap {
+
+				for _, c := range pinnedCards {
+					c.Unpin()
+				}
+
+				for card := range mc.Card.Page.Selection.Cards {
+					card.Unpin()
+					card.PinTo(mc.Card)
+					card.Page.Raise(card)
+				}
+
 				mc.Card.Rect.X = x - globals.GridSize
 				mc.Card.Rect.Y = y - globals.GridSize
 				mc.Card.Rect.W = (x2 - x) + (globals.GridSize * 2)
@@ -2865,7 +2870,7 @@ func (mc *MapContents) Update() {
 				globals.EventLog.Log("Wrapped Map to surround and pin selected cards.", false)
 			} else {
 
-				for _, c := range mc.Card.PinnedCards {
+				for _, c := range pinnedCards {
 					c.Unpin()
 				}
 
