@@ -1,5 +1,6 @@
 # v0.9.2
 
+QoL: Adding Pinboard Card. The Pinboard card allows you to pin multiple cards together, like Maps or Images before, but for a specialized card type.
 FIX: Some issues with card pinning.
 FIX: Cards now properly are pinned when loading projects.
 QoL: Adding keybinding shortcut to cycle capitalization for highlighted text.

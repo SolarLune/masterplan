@@ -510,7 +510,7 @@ func main() {
 
 			if globals.Keybindings.Pressed(KBDebugToggle) {
 				globals.DebugMode++
-				if globals.DebugMode > DebugModeCards {
+				if globals.DebugMode > DebugModeCardIDs {
 					globals.DebugMode = 0
 				}
 			}
@@ -1299,6 +1299,10 @@ func ConstructMenus() {
 
 	root.AddRow(AlignCenter).Add("create new note", NewButton("Note", nil, icons[ContentTypeNote], false, func() {
 		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypeNote), true)
+	}))
+
+	root.AddRow(AlignCenter).Add("create new pinboard", NewButton("Pinboard", nil, icons[ContentTypePinboard], false, func() {
+		placeCardInStack(globals.Project.CurrentPage.CreateNewCard(ContentTypePinboard), true)
 	}))
 
 	root.AddRow(AlignCenter).Add("create new sound", NewButton("Sound", nil, icons[ContentTypeSound], false, func() {

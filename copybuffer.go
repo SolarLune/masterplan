@@ -30,3 +30,7 @@ func (buffer *CopyBuffer) Index(card *Card) int {
 	}
 	return -1
 }
+
+func (buffer *CopyBuffer) Contains(card *Card) bool {
+	return buffer.Index(card) >= 0
+}

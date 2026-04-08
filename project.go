@@ -1316,6 +1316,11 @@ func (project *Project) GlobalShortcuts() {
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeMap)
 			kb.Shortcuts[KBNewMapCard].ConsumeKeys()
 
+		} else if kb.Pressed(KBNewPinboardCard) {
+
+			newCard = project.CurrentPage.CreateNewCard(ContentTypePinboard)
+			kb.Shortcuts[KBNewPinboardCard].ConsumeKeys()
+
 		} else if kb.Pressed(KBNewSubpageCard) {
 
 			newCard = project.CurrentPage.CreateNewCard(ContentTypeSubpage)

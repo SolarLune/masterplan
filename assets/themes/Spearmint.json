@@ -4,6 +4,7 @@
     "Menu Color":[30, 50, 50, 255],
     "Font Color":[240, 255, 245, 255],
     "Checkbox Color": [120, 160, 150, 255],
+    "Pinboard Color": [60, 60, 60, 255],
     "Number Color": [110, 160, 160, 255],
     "Completed Color": [100, 220, 170, 255],
     "Note Color": [140, 110, 140, 255],

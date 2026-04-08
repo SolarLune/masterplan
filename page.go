@@ -210,6 +210,12 @@ func (page *Page) Draw() {
 			globals.Renderer.SetScale(ogScaleX, ogScaleY)
 		}
 
+	} else if globals.DebugMode == DebugModeCardIDs {
+
+		for _, c := range page.Cards {
+			globals.TextRenderer.QuickRenderText("ID:"+strconv.Itoa(int(c.ID))+"\nLoaded ID:"+strconv.Itoa(int(c.LoadedID)), page.Project.Camera.TranslatePoint(Vector{c.DisplayRect.X, c.DisplayRect.Y}), 1, ColorWhite, ColorBlack, AlignLeft)
+		}
+
 	}
 
 }
@@ -489,6 +495,16 @@ func (page *Page) PasteCards(offset Vector, adhereToMousePosition bool) []*Card 
 		newCard := newCards[i]
 		newCard.Deserialize(serialized)
 		page.Selection.Add(newCard)
+
+		if card.PinnedTo != nil && globals.CopyBuffer.Contains(card.PinnedTo) {
+			for c := range oldToNew {
+				if c == card.PinnedTo {
+					newCard.PinTo(oldToNew[c])
+					break
+				}
+			}
+		}
+
 	}
 
 	// We do this because otherwise when creating an undo state below, the links wouldn't be included

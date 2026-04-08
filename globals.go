@@ -104,4 +104,5 @@ const (
 	DebugModeNone = iota
 	DebugModeUI
 	DebugModeCards
+	DebugModeCardIDs
 )

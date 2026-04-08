@@ -1048,6 +1048,8 @@ func (card *Card) Name() string {
 		text = "Table"
 	case ContentTypeInternet:
 		text = "Internet"
+	case ContentTypePinboard:
+		text = "Pinboard"
 	default:
 		text = card.Properties.Get("description").AsString()
 	}
@@ -1828,7 +1830,13 @@ func (card *Card) Deserialize(data string) {
 	if gjson.Get(data, "pinned").Exists() {
 
 		pinnedToID := gjson.Get(data, "pinned").Int()
-		pin := card.Page.CardByLoadedID(pinnedToID)
+		var pin *Card
+		if globals.Project.Loading {
+			pin = card.Page.CardByLoadedID(pinnedToID)
+		} else {
+			pin = card.Page.CardByID(pinnedToID)
+		}
+
 		if pin != nil {
 			card.PinTo(pin)
 		}
@@ -1919,7 +1927,7 @@ func (card *Card) HandlePinning() {
 				continue
 			}
 
-			if other.ContentType == ContentTypeMap || other.ContentType == ContentTypeImage {
+			if other.ContentType == ContentTypePinboard || other.ContentType == ContentTypeMap || other.ContentType == ContentTypeImage {
 				card.PinTo(other)
 				break
 			}
@@ -1951,7 +1959,7 @@ func (card *Card) Unpin() {
 }
 
 func (card *Card) PinTo(other *Card) {
-	if card == other || (other.ContentType != ContentTypeMap && other.ContentType != ContentTypeImage) {
+	if card == other || (other.ContentType != ContentTypeMap && other.ContentType != ContentTypePinboard && other.ContentType != ContentTypeImage) {
 		return
 	}
 
@@ -2273,10 +2281,10 @@ func (card *Card) ReceiveMessage(message *Message) {
 
 			top := card.Rect.Y + card.Rect.H
 
-			for _, t := range card.Stack.Tail() {
+			card.Stack.ForEachInTail(func(t *Card) bool {
 
-				if card.PinnedTo == t || t.PinnedTo != nil && t.PinnedTo == card.PinnedTo {
-					continue
+				if card.PinnedTo == t || (t.PinnedTo != nil && t.PinnedTo == card.PinnedTo) || (t.PinnedTo != nil && t.PinnedTo == card) {
+					return true
 				}
 
 				if t.Rect.Y != top {
@@ -2285,9 +2293,12 @@ func (card *Card) ReceiveMessage(message *Message) {
 					t.CreateUndoState = true
 					top += t.Rect.H
 				} else {
-					break
+					return false
 				}
-			}
+
+				return true
+
+			})
 
 		}
 
@@ -2318,6 +2329,8 @@ func (card *Card) SetContents(contentType string) {
 			card.Contents = NewNumberedContents(card)
 		case ContentTypeNote:
 			card.Contents = NewNoteContents(card)
+		case ContentTypePinboard:
+			card.Contents = NewPinboardContents(card)
 		case ContentTypeSound:
 			card.Contents = NewSoundContents(card)
 		case ContentTypeImage:

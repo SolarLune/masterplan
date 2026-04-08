@@ -37,6 +37,7 @@ const (
 	ContentTypeLink     = "Link"
 	ContentTypeTable    = "Table"
 	ContentTypeInternet = "Internet"
+	ContentTypePinboard = "Pinboard"
 	ContentTypeNull     = ""
 )
 const (
@@ -58,6 +59,7 @@ var icons map[string]*sdl.FRect = map[string]*sdl.FRect{
 	ContentTypeLink:     {112, 256, 32, 32},
 	ContentTypeTable:    {176, 224, 32, 32},
 	ContentTypeInternet: {144, 288, 32, 32},
+	ContentTypePinboard: {80, 320, 32, 32},
 }
 
 var contentOrder = map[string]int{
@@ -72,6 +74,7 @@ var contentOrder = map[string]int{
 	ContentTypeLink:     8,
 	ContentTypeTable:    9,
 	ContentTypeInternet: 10,
+	ContentTypePinboard: 11,
 }
 
 type Contents interface {
@@ -776,6 +779,114 @@ func (nc *NoteContents) Color() Color {
 func (nc *NoteContents) DefaultSize() Vector {
 	return Vector{globals.GridSize * 8, globals.GridSize * 1}
 }
+
+type PinboardContents struct {
+	DefaultContents
+}
+
+func NewPinboardContents(card *Card) *PinboardContents {
+
+	contents := &PinboardContents{
+		DefaultContents: newDefaultContents(card),
+	}
+
+	return contents
+
+}
+
+func (pc *PinboardContents) Update() {
+
+	if globals.Keybindings.Pressed(KBMapWrapAroundCards) {
+		globals.Keybindings.Shortcuts[KBMapWrapAroundCards].ConsumeKeys()
+
+		wrap := false
+		x := float32(0)
+		y := float32(0)
+		x2 := float32(0)
+		y2 := float32(0)
+
+		for card := range pc.Card.Page.Selection.Cards {
+
+			if card == pc.Card {
+				continue
+			}
+
+			if !wrap || card.Rect.X < x {
+				x = card.Rect.X
+			}
+
+			if !wrap || card.Rect.Y < y {
+				y = card.Rect.Y
+			}
+
+			if !wrap || card.Rect.X+card.Rect.W > x2 {
+				x2 = card.Rect.X + card.Rect.W
+			}
+
+			if !wrap || card.Rect.Y+card.Rect.H > y2 {
+				y2 = card.Rect.Y + card.Rect.H
+			}
+
+			wrap = true
+
+		}
+
+		pinnedCards := append([]*Card{}, pc.Card.PinnedCards...)
+
+		if wrap {
+
+			for _, c := range pinnedCards {
+				c.Unpin()
+			}
+
+			for card := range pc.Card.Page.Selection.Cards {
+				if card != pc.Card {
+					card.Unpin()
+					card.PinTo(pc.Card)
+					card.Page.Raise(card)
+				}
+			}
+
+			pc.Card.Rect.X = x - globals.GridSize
+			pc.Card.Rect.Y = y - globals.GridSize
+			pc.Card.Recreate(
+				(x2-x)+(globals.GridSize*2),
+				(y2-y)+(globals.GridSize*2),
+			)
+
+			globals.EventLog.Log("Wrapped Pinboard to surround and pin selected cards.", false)
+
+		} else {
+
+			for _, c := range pinnedCards {
+				c.Unpin()
+			}
+
+			PlayUISound(UISoundTypeTap)
+			globals.EventLog.Log("Unpinned cards from Pinboard.", false)
+		}
+
+	}
+
+}
+
+func (pc *PinboardContents) Draw() {
+}
+
+func (pc *PinboardContents) Color() Color {
+	if pc.Card.CustomColor != nil {
+		return pc.Card.CustomColor
+	}
+	return getThemeColor(GUIPinboardColor)
+}
+
+func (pc *PinboardContents) DefaultSize() Vector {
+	return Vector{globals.GridSize * 8, globals.GridSize * 8}
+}
+
+func (pc *PinboardContents) Trigger(triggerType int) {}
+
+func (pc *PinboardContents) ReceiveMessage(msg *Message) {}
 
 type SoundContents struct {
 	DefaultContents

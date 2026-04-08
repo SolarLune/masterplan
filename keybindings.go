@@ -62,6 +62,7 @@ const (
 	KBNewImageCard    = "New Image Card"
 	KBNewTimerCard    = "New Timer Card"
 	KBNewMapCard      = "New Map Card"
+	KBNewPinboardCard = "New Pinboard Card"
 	KBNewSubpageCard  = "New Sub-Page Card"
 	KBNewLinkCard     = "New Link Card"
 	KBNewTableCard    = "New Table Card"
@@ -138,6 +139,8 @@ const (
 	KBMapRotateRight     = "Map: Rotate Map Right"
 	KBMapRotateLeft      = "Map: Rotate Map Left"
 	KBMapWrapAroundCards = "Map: Wrap Selected Cards"
+
+	KBPinboardWrapAroundCards = "Pinboard: Wrap Selected Cards"
 
 	KBFindNext = "Find: Next Card"
 	KBFindPrev = "Find: Prev. Card"
@@ -507,6 +510,7 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBNewLinkCard, SDLK_9, SDLK_LSHIFT)
 	kb.DefineKeyShortcut(KBNewTableCard, SDLK_0, SDLK_LSHIFT)
 	kb.DefineKeyShortcut(KBNewInternetCard, SDLK_1, SDLK_LSHIFT, SDLK_LCTRL)
+	kb.DefineKeyShortcut(KBNewPinboardCard, SDLK_2, SDLK_LSHIFT, SDLK_LCTRL)
 	kb.DefineKeyShortcut(KBNewCardOfPrevType, SDLK_RETURN, SDLK_LCTRL)
 
 	kb.DefineKeyShortcut(KBAddToSelection, SDLK_LSHIFT).triggerMode = TriggerModeHold
@@ -574,6 +578,8 @@ func (kb *Keybindings) Default() {
 	kb.DefineKeyShortcut(KBMapRotateRight, SDLK_E, SDLK_LSHIFT)
 	kb.DefineKeyShortcut(KBMapRotateLeft, SDLK_Q, SDLK_LSHIFT)
 	kb.DefineKeyShortcut(KBMapWrapAroundCards, SDLK_X, SDLK_LSHIFT)
+
+	kb.DefineKeyShortcut(KBPinboardWrapAroundCards, SDLK_X, SDLK_LSHIFT)
 
 	kb.DefineKeyShortcut(KBFindNext, SDLK_F, SDLK_LCTRL)
 	kb.DefineKeyShortcut(KBFindPrev, SDLK_F, SDLK_LCTRL, SDLK_LSHIFT)

@@ -48,6 +48,7 @@ const (
 	GUICompletedColor  = "Completed Color"
 	GUINumberColor     = "Number Color"
 	GUINoteColor       = "Note Color"
+	GUIPinboardColor   = "Pinboard Color"
 	GUISoundColor      = "Sound Color"
 	GUITimerColor      = "Timer Color"
 	GUIBlankImageColor = "Blank Image Color"

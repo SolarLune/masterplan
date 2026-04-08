@@ -80,14 +80,6 @@ func (stack *Stack) Update() {
 
 func (stack *Stack) PostUpdate() {
 
-	// if stack.Above != nil && stack.Above != stack.PrevAbove && stack.Above.Stack.Below != stack.Card {
-
-	// 	for _, card := range stack.Above.Stack.Tail() {
-	// 		card.Rect.Y += stack.Card.Rect.H
-	// 	}
-
-	// }
-
 	if stack.Card.Numberable() {
 
 		numbers := []int{0}
