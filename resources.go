@@ -249,7 +249,7 @@ func (resource *Resource) Parse() {
 
 			// Create shadow version
 
-			shadowSurface, _ := sdl.CreateSurface(int(w), int(h), surface.Format)
+			shadowSurface, _ := sdl.CreateSurface(int(w), int(h), sdl.PIXELFORMAT_RGBA32)
 
 			surface.SetColorMod(0, 0, 0)
 			surface.SetAlphaMod(20)

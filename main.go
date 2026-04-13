@@ -53,7 +53,7 @@ func init() {
 
 	runtime.LockOSThread()
 
-	globals.Version = semver.MustParse("0.9.2")
+	globals.Version = semver.MustParse("0.9.3")
 	globals.Keyboard = NewKeyboard()
 	globals.Mouse = NewMouse()
 	nm := NewMouse()

@@ -361,7 +361,7 @@ func (cc *CheckboxContents) Color() Color {
 	if cc.Card.CustomColor != nil {
 		color = cc.Card.CustomColor
 		h, s, v := cc.Card.CustomColor.HSV()
-		completedColor = NewColorFromHSV(h+0.08, s-0.2, v+0.2)
+		completedColor = NewColorFromHSV(h+0.04, s-0.2, v+0.2)
 	}
 
 	if len(cc.DependentCards()) > 0 {
@@ -636,7 +636,7 @@ func (nc *NumberedContents) Draw() {
 		completionColor := getThemeColor(GUICompletedColor)
 		if nc.Card.CustomColor != nil {
 			h, s, v := nc.Card.CustomColor.HSV()
-			completionColor = NewColorFromHSV(h+30, s-0.2, v+0.2)
+			completionColor = NewColorFromHSV(h+0.04, s-0.2, v+0.2)
 		}
 
 		nc.Card.Result.Texture.SetColorMod(completionColor.RGB())
@@ -670,7 +670,7 @@ func (nc *NumberedContents) Color() Color {
 	if nc.Card.CustomColor != nil {
 		color = nc.Card.CustomColor
 		h, s, v := nc.Card.CustomColor.HSV()
-		completedColor = NewColorFromHSV(h+30, s-0.2, v+0.2)
+		completedColor = NewColorFromHSV(h+0.04, s-0.2, v+0.2)
 	}
 
 	if !nc.Card.Properties.Get("hideMax").AsBool() && nc.PercentageComplete >= 0.99 {
@@ -1507,9 +1507,11 @@ func (ic *ImageContents) Draw() {
 
 			if shadowTexture != nil && (!ic.Card.VisualDragging || ic.Card.PinnedTo == nil || !ic.Card.PinnedTo.VisualDragging) {
 
-				tp := ic.Card.Page.Project.Camera.TranslatePoint(ic.Card.ShadowDisplayPosition)
-				tp.X += 4
-				tp.Y += 4
+				p := ic.Card.ShadowDisplayPosition
+				p.X += ic.Card.DisplayRect.W / 16
+				p.Y += ic.Card.DisplayRect.H / 16
+
+				tp := ic.Card.Page.Project.Camera.TranslatePoint(p)
 
 				dstRect := &sdl.FRect{
 					X: tp.X,

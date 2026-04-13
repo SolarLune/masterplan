@@ -3793,13 +3793,7 @@ func (cw *ColorWheel) Update() {
 
 		h := float32(mpX) / float32(cw.HueStrip.W-1)
 
-		cw.SampledHue = NewColorFromHSV(float64(h), 1, 1)
-
-		// r, g, b, _ := ColorAt(cw.HueStrip, int32(mpX), int32(mpY))
-
-		// fmt.Println(r, g, b)
-
-		// cw.SampledHue = NewColor(r, g, b, 255)
+		cw.SampledHue = NewColorFromHSV(float64(h), float64(mpY)/float64(cw.HueStrip.H-1), 1)
 
 		if cw.OnColorChange != nil {
 			cw.OnColorChange()
