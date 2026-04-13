@@ -1,7 +1,12 @@
 # v0.9.2
 
-QoL: Adding Pinboard Card. The Pinboard card allows you to pin multiple cards together, like Maps or Images before, but for a specialized card type.
-FIX: Some issues with card pinning.
+FIX: It wasn't possible to desaturate the color selected in the Edit Color menu previously; this is now fixed.
+FIX: Crash when loading some images that are indexed.
+
+# v0.9.2
+
+QoL: Adding Pinboard Card. The Pinboard card is just a blank card that allows you to pin multiple cards together.
+FIX: Some issues with card pinning and copying cards that are pinned.
 FIX: Cards now properly are pinned when loading projects.
 QoL: Adding keybinding shortcut to cycle capitalization for highlighted text.
 QoL: Clicking and highlighting a word and then dragging will highlight whole words, like most text editors (there's a little work to be done here still).
