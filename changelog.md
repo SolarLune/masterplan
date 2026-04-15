@@ -1,4 +1,4 @@
-# v0.9.2
+# v0.9.3
 
 FIX: It wasn't possible to desaturate the color selected in the Edit Color menu previously; this is now fixed.
 FIX: Crash when loading some images that are indexed.
