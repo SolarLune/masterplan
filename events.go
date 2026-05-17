@@ -352,6 +352,8 @@ func LoadCursors() {
 
 }
 
+var activeAccent = STATE_NONE
+
 func handleEvents() {
 
 	globals.Mouse.wheel = 0
@@ -425,11 +427,33 @@ func handleEvents() {
 			wheel := event.Y
 			globals.Mouse.wheel = int32(wheel)
 
-			// TODO: Add IME support; should be doable but I'm not sure how right now
+		// TODO: Add IME support; should be doable but I'm not sure how right now
+
+		case sdl.EVENT_TEXT_EDITING:
+			event := baseEvent.TextEditingEvent()
+
+			if event.Text == "`" {
+				activeAccent = STATE_GRAVE
+			} else if event.Text == "´" {
+				activeAccent = STATE_ACUTE
+			}
 
 		case sdl.EVENT_TEXT_INPUT:
+			input := baseEvent.TextInputEvent().Text
 
-			globals.InputText = append(globals.InputText, []rune(baseEvent.TextInputEvent().Text)...)
+			if activeAccent == STATE_ACUTE {
+				if accented, exists := acuteMap[input]; exists {
+					input = accented
+				}
+				activeAccent = STATE_NONE
+			} else if activeAccent == STATE_GRAVE {
+				if accented, exists := graveMap[input]; exists {
+					input = accented
+				}
+				activeAccent = STATE_NONE
+			}
+
+			globals.InputText = append(globals.InputText, []rune(input)...)
 
 		case sdl.EVENT_RENDER_DEVICE_RESET:
 			fallthrough
